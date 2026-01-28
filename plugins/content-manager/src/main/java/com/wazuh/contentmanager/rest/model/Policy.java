@@ -186,6 +186,11 @@ public class Policy {
         return map;
     }
 
+    /**
+     * Converts this Policy to a Gson JsonObject representation.
+     *
+     * @return A JsonObject containing all policy fields.
+     */
     public JsonObject toJson() {
         JsonObject jsonObject = new JsonObject();
 
@@ -241,58 +246,128 @@ public class Policy {
 
     // Getters and Setters
 
+    /**
+     * Gets the type of this resource.
+     *
+     * @return The resource type (should be "policy").
+     */
     public String getType() {
         return this.type;
     }
 
+    /**
+     * Sets the type of this resource.
+     *
+     * @param type The resource type to set.
+     */
     public void setType(String type) {
         this.type = type;
     }
 
+    /**
+     * Gets the root decoder identifier.
+     *
+     * @return The root decoder identifier.
+     */
     public String getRootDecoder() {
         return this.rootDecoder;
     }
 
+    /**
+     * Sets the root decoder identifier.
+     *
+     * @param rootDecoder The root decoder identifier to set.
+     */
     public void setRootDecoder(String rootDecoder) {
         this.rootDecoder = rootDecoder;
     }
 
+    /**
+     * Gets the list of integration IDs associated with this policy.
+     *
+     * @return The list of integration IDs.
+     */
     public List<String> getIntegrations() {
         return this.integrations;
     }
 
+    /**
+     * Sets the list of integration IDs for this policy.
+     *
+     * @param integrations The list of integration IDs to set. If null, an empty list is used.
+     */
     public void setIntegrations(List<String> integrations) {
         this.integrations = integrations != null ? integrations : new ArrayList<>();
     }
 
+    /**
+     * Gets the author of this policy.
+     *
+     * @return The author name.
+     */
     public String getAuthor() {
         return this.author;
     }
 
+    /**
+     * Sets the author of this policy.
+     *
+     * @param author The author name to set.
+     */
     public void setAuthor(String author) {
         this.author = author;
     }
 
+    /**
+     * Gets the description of this policy.
+     *
+     * @return The policy description.
+     */
     public String getDescription() {
         return this.description;
     }
 
+    /**
+     * Sets the description of this policy.
+     *
+     * @param description The policy description to set.
+     */
     public void setDescription(String description) {
         this.description = description;
     }
 
+    /**
+     * Gets the detailed documentation for this policy.
+     *
+     * @return The policy documentation.
+     */
     public String getDocumentation() {
         return this.documentation;
     }
 
+    /**
+     * Sets the detailed documentation for this policy.
+     *
+     * @param documentation The policy documentation to set.
+     */
     public void setDocumentation(String documentation) {
         this.documentation = documentation;
     }
 
+    /**
+     * Gets the external references or links related to this policy.
+     *
+     * @return The policy references.
+     */
     public String getReferences() {
         return this.references;
     }
 
+    /**
+     * Sets the external references or links related to this policy.
+     *
+     * @param references The policy references to set.
+     */
     public void setReferences(String references) {
         this.references = references;
     }

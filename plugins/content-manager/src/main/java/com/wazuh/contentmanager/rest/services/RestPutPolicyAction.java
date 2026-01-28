@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.UUIDs;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -92,7 +93,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        RestResponse response = handleRequest(request, client);
+        RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
@@ -108,10 +109,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * </ol>
      *
      * @param request incoming REST request containing the policy data
+     * @param client the node client
      * @return a RestResponse describing the outcome of the operation
      */
     public RestResponse handleRequest(RestRequest request, NodeClient client) {
-        // TODO: Move this logic to a common utility method since it's repeated in multiple handlers.
         // 1. Check if engine service exists
         if (this.engine == null) {
             return new RestResponse(
@@ -127,22 +128,28 @@ public class RestPutPolicyAction extends BaseRestHandler {
         try {
             policy = mapper.readValue(request.content().utf8ToString(), Policy.class);
         } catch (IOException e) {
-            log.debug("Invalid Policy JSON content: " + e.getMessage());
             return new RestResponse(
                     "Invalid Policy JSON content: " + request.content().utf8ToString(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
         // 4. Store the policy in the draft space
         // Search the current draft policy to get the ID
-        ContentIndex contentIndex = new ContentIndex(client, ".cti-policies.");
+        ContentIndex contentIndex = new ContentIndex(client, ".cti-policies.", null);
         QueryBuilder queryBuilder = QueryBuilders.termQuery("space", "draft");
         JsonObject resource = contentIndex.searchByQuery(queryBuilder);
+        log.info("Found existing draft policy: {}", resource);
+        // Update the policy using the retrieved ID
+        String id =
+                (resource != null && resource.has("id"))
+                        ? resource.get("id").getAsString()
+                        : UUIDs.base64UUID();
         try {
-            // Update the policy
-            contentIndex.create(resource.get("id").getAsString(), policy.toJson());
-        } catch (IOException ex) {
-            System.getLogger(RestPutPolicyAction.class.getName())
-                    .log(System.Logger.Level.ERROR, (String) null, ex);
+            // If no existing draft policy, will create a new one
+            contentIndex.create(id, policy.toJson());
+        } catch (IOException e) {
+            return new RestResponse(
+                    "Failed to store the updated policy: " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         return new RestResponse(policy.toString(), RestStatus.OK.getStatus());

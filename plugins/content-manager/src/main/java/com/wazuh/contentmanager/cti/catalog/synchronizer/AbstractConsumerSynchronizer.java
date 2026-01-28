@@ -146,7 +146,7 @@ public abstract class AbstractConsumerSynchronizer {
             case KVDB -> ".cti-kvdbs";
             case INTEGRATION -> ".cti-integrations";
             case POLICY -> ".cti-policies";
-            default -> null;
+            default -> "." + this.getContext() + "-" + this.getConsumer() + "-" + type;
         };
     }
 

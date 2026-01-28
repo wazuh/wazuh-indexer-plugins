@@ -85,10 +85,6 @@ public class ContentIndex {
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DECODER_KEY = "decoder";
 
-    public ContentIndex(Client client, String indexName) {
-        this(client, indexName, null, null);
-    }
-
     /**
      * Constructs a new ContentIndex manager.
      *
@@ -296,7 +292,9 @@ public class ContentIndex {
                             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             // Check if we have results
-            if (searchResponse.getHits().getTotalHits() == null
+            if (searchResponse == null
+                    || searchResponse.getHits() == null
+                    || searchResponse.getHits().getTotalHits() == null
                     || searchResponse.getHits().getTotalHits().value() == 0L) {
                 log.debug(
                         "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
