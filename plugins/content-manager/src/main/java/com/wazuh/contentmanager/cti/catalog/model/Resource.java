@@ -64,11 +64,12 @@ public class Resource {
      * Factory method to create a Resource instance from a raw Gson JsonObject.
      *
      * @param payload The raw JSON object containing the resource data.
+     * @param spaceName The name of the space to assign to the resource.
      * @return A fully populated Resource instance.
      */
-    public static Resource fromPayload(JsonObject payload) {
+    public static Resource fromPayload(JsonObject payload, String spaceName) {
         Resource resource = new Resource();
-        Resource.populateResource(resource, payload);
+        Resource.populateResource(resource, payload, spaceName);
         return resource;
     }
 
@@ -77,8 +78,9 @@ public class Resource {
      *
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
+     * @param spaceName The name of the space to assign to the resource.
      */
-    protected static void populateResource(Resource resource, JsonObject payload) {
+    protected static void populateResource(Resource resource, JsonObject payload, String spaceName) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
@@ -98,7 +100,6 @@ public class Resource {
         // 3. Set Space
         // TODO: Change To the real logic once CTI is ready
         Map<String, String> spaceMap = new HashMap<>();
-        String spaceName = Space.STANDARD.toString();
         spaceMap.put("name", spaceName);
         resource.setSpace(spaceMap);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,7 +26,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Model representing a Decoder resource. */
 public class Decoder extends Resource {
@@ -59,12 +63,13 @@ public class Decoder extends Resource {
      * Factory method to create a Decoder instance from a raw JSON payload.
      *
      * @param payload The raw JSON object containing the decoder data.
+     * @param spaceName The name of the space to assign to the decoder.
      * @return A populated Decoder object with the generated YAML string.
      */
-    public static Decoder fromPayload(JsonObject payload) {
+    public static Decoder fromPayload(JsonObject payload, String spaceName) {
         Decoder decoder = new Decoder();
         // 1. Basic logic for every resource
-        Resource.populateResource(decoder, payload);
+        Resource.populateResource(decoder, payload, spaceName);
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has("document")) {
@@ -83,7 +88,7 @@ public class Decoder extends Resource {
      */
     private static String toYamlString(JsonObject payload) {
         try {
-            if (!payload.has("document")) { 
+            if (!payload.has("document")) {
                 return null;
             }
             JsonNode docNode = jsonMapper.readTree(payload.get("document").toString());

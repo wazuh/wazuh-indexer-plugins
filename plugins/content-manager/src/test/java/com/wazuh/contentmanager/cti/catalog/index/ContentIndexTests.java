@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
@@ -112,7 +113,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Act
         try {
-            this.contentIndex.create(id, payload);
+            this.contentIndex.create(id, payload, Space.STANDARD.toString());
         } catch (Exception e) {
             fail("Create should not throw exception: " + e.getMessage());
         }
@@ -153,7 +154,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Act
         try {
-            this.contentIndex.create(id, payload);
+            this.contentIndex.create(id, payload, Space.STANDARD.toString());
         } catch (Exception e) {
             fail("Create should not throw exception: " + e.getMessage());
         }
@@ -196,7 +197,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Act
         try {
-            this.contentIndex.create(id, payload);
+            this.contentIndex.create(id, payload, Space.STANDARD.toString());
         } catch (Exception e) {
             fail("Create should not throw exception: " + e.getMessage());
         }
@@ -239,7 +240,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Act
         try {
-            this.contentIndex.create(id, payload);
+            this.contentIndex.create(id, payload, Space.STANDARD.toString());
         } catch (Exception e) {
             fail("Create should not throw exception: " + e.getMessage());
         }
@@ -261,6 +262,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
     /**
      * Test updating a document. Simulates fetching an existing document, applying operations, and
      * re-indexing.
+     *
+     * @throws Exception if an error occurs
      */
     public void testUpdate_Operations() throws Exception {
         String id = "58dc8e10-0b69-4b81-a851-7a767e831fff";
@@ -297,7 +300,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         "new_duration"));
 
         // Act
-        this.contentIndex.update(id, operations);
+        this.contentIndex.update(id, operations, Space.STANDARD.toString());
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -393,7 +396,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Act
         try {
-            this.contentIndex.create(id, payload);
+            this.contentIndex.create(id, payload, Space.STANDARD.toString());
         } catch (Exception e) {
             fail("Create should not throw exception: " + e.getMessage());
         }
@@ -428,7 +431,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         // Act & Assert
         Exception exception = null;
         try {
-            this.contentIndex.update(id, operations);
+            this.contentIndex.update(id, operations, Space.STANDARD.toString());
         } catch (Exception e) {
             exception = e;
         }

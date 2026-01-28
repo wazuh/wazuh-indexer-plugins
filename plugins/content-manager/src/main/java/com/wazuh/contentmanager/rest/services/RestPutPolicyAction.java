@@ -51,6 +51,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutPolicyAction.class);
     private static final String ENDPOINT_NAME = "content_manager_policy_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/policy_update";
+
+    // Index and field constants
+    private static final String POLICIES_INDEX = ".cti-policies.";
+    private static final String SPACE_FIELD = "space";
+    private static final String DRAFT_SPACE = "draft";
+    private static final String ID_FIELD = "id";
+
     private final EngineService engine;
 
     /**
@@ -113,45 +120,99 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return a RestResponse describing the outcome of the operation
      */
     public RestResponse handleRequest(RestRequest request, NodeClient client) {
-        // 1. Check if engine service exists
-        if (this.engine == null) {
-            return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        // Validate prerequisites
+        RestResponse validationError = this.validateRequest(request);
+        if (validationError != null) {
+            return validationError;
         }
-        // 2. Check request's payload exists
-        if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        // 3. Check request's payload is valid Policy JSON
-        ObjectMapper mapper = new ObjectMapper();
+
+        // Parse policy from request
         Policy policy;
         try {
-            policy = mapper.readValue(request.content().utf8ToString(), Policy.class);
+            policy = this.parsePolicy(request);
         } catch (IOException e) {
             return new RestResponse(
                     "Invalid Policy JSON content: " + request.content().utf8ToString(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
-        // 4. Store the policy in the draft space
-        // Search the current draft policy to get the ID
-        ContentIndex contentIndex = new ContentIndex(client, ".cti-policies.", null);
-        QueryBuilder queryBuilder = QueryBuilders.termQuery("space", "draft");
-        JsonObject resource = contentIndex.searchByQuery(queryBuilder);
-        log.info("Found existing draft policy: {}", resource);
-        // Update the policy using the retrieved ID
-        String id =
-                (resource != null && resource.has("id"))
-                        ? resource.get("id").getAsString()
-                        : UUIDs.base64UUID();
+
+        // Store or update the policy
         try {
-            // If no existing draft policy, will create a new one
-            contentIndex.create(id, policy.toJson());
+            this.storePolicy(client, policy);
+            return new RestResponse(policy.toString(), RestStatus.OK.getStatus());
         } catch (IOException e) {
             return new RestResponse(
                     "Failed to store the updated policy: " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+    }
 
-        return new RestResponse(policy.toString(), RestStatus.OK.getStatus());
+    /**
+     * Validates the incoming request for required conditions.
+     *
+     * @param request the REST request to validate
+     * @return a RestResponse with error details if validation fails, null otherwise
+     */
+    private RestResponse validateRequest(RestRequest request) {
+        if (this.engine == null) {
+            return new RestResponse(
+                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
+        if (!request.hasContent()) {
+            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
+    }
+
+    /**
+     * Parses a Policy object from the request content.
+     *
+     * @param request the REST request containing the policy JSON
+     * @return the parsed Policy object
+     * @throws IOException if parsing fails
+     */
+    private Policy parsePolicy(RestRequest request) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(request.content().utf8ToString(), Policy.class);
+    }
+
+    /**
+     * Stores or updates the policy in the draft space.
+     *
+     * <p>If a draft policy already exists, it will be updated using its existing ID. Otherwise, a new
+     * policy will be created with a generated UUID.
+     *
+     * @param client the node client for index operations
+     * @param policy the policy to store
+     * @throws IOException if storage fails
+     */
+    private void storePolicy(NodeClient client, Policy policy) throws IOException {
+        ContentIndex contentIndex = new ContentIndex(client, POLICIES_INDEX, null);
+        String policyId = this.findDraftPolicyId(contentIndex);
+        contentIndex.create(policyId, policy.toJson(), "draft");
+        log.info("Policy stored successfully with ID: {}", policyId);
+    }
+
+    /**
+     * Finds the ID of the existing draft policy, or generates a new one.
+     *
+     * @param contentIndex the content index to search
+     * @return the existing policy ID or a new UUID
+     */
+    private String findDraftPolicyId(ContentIndex contentIndex) {
+        QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_FIELD, DRAFT_SPACE);
+        JsonObject resource = contentIndex.searchByQuery(queryBuilder);
+
+        if (resource != null && resource.has(ID_FIELD)) {
+            String existingId = resource.get(ID_FIELD).getAsString();
+            log.debug("Found existing draft policy with ID: {}", existingId);
+            return existingId;
+        }
+
+        String newId = UUIDs.base64UUID();
+        log.debug("No existing draft policy found, generated new ID: {}", newId);
+        return newId;
     }
 }

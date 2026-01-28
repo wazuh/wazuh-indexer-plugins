@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -149,10 +149,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         // Verify CREATE
-        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
+        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class), anyString());
 
         // Verify UPDATE
-        verify(this.ruleIndex).update(eq("rule-2"), any(List.class));
+        verify(this.ruleIndex).update(eq("rule-2"), any(List.class), anyString());
 
         // Verify DELETE
         verify(this.decoderIndex).delete("decoder-1");
@@ -201,8 +201,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(19, 20);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), anyString());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), anyString());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
@@ -223,7 +223,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(1, 5);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), anyString());
         verify(this.consumersIndex, never()).setConsumer(any());
     }
 
@@ -257,7 +257,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class));
+                .create(anyString(), any(JsonNode.class), anyString());
 
         // Act
         this.updateService.update(29, 30);
@@ -306,8 +306,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(39, 40);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), anyString());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), anyString());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());

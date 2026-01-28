@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -39,6 +39,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -186,7 +187,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         BulkRequest bulkRequest = new BulkRequest();
 
         // Use any available index to execute the bulk request
-        ContentIndex executorIndex = this.indicesMap.isEmpty() ? null : this.indicesMap.values().iterator().next();
+        ContentIndex executorIndex =
+                this.indicesMap.isEmpty() ? null : this.indicesMap.values().iterator().next();
         if (executorIndex == null) {
             return;
         }
@@ -216,8 +218,9 @@ public class SnapshotServiceImpl implements SnapshotService {
                         log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
-
-                    JsonObject processedPayload = indexHandler.processPayload(payload);
+                    // TODO: Handle spaces properly
+                    String space = Space.STANDARD.toString();
+                    JsonObject processedPayload = indexHandler.processPayload(payload, space);
                     String indexName = indexHandler.getIndexName();
 
                     // 4. Create Index Request

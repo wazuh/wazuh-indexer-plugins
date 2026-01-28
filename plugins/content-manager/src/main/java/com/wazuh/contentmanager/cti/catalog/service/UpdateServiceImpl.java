@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -32,6 +32,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
@@ -137,6 +138,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
         ContentIndex index;
+        // TODO: Handle spaces properly
+        String space = Space.STANDARD.toString();
 
         switch (offset.getType()) {
             case CREATE:
@@ -147,7 +150,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload);
+                            index.create(id, payload, Space.STANDARD.toString());
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }
@@ -156,7 +159,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 index = this.findIndexForId(id);
-                index.update(id, offset.getOperations());
+                index.update(id, offset.getOperations(), space);
                 break;
             case DELETE:
                 index = this.findIndexForId(id);
