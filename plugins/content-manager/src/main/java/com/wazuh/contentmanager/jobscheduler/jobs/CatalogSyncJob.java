@@ -28,8 +28,7 @@ import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.synchronizer.AbstractConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.DecodersConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.RulesConsumerSynchronizer;
+import com.wazuh.contentmanager.cti.catalog.synchronizer.UnifiedConsumerSynchronizer;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 
 /**
@@ -65,9 +64,7 @@ public class CatalogSyncJob implements JobExecutor {
             ThreadPool threadPool) {
         this.threadPool = threadPool;
         this.synchronizers =
-                List.of(
-                        new RulesConsumerSynchronizer(client, consumersIndex, environment),
-                        new DecodersConsumerSynchronizer(client, consumersIndex, environment));
+            List.of(new UnifiedConsumerSynchronizer(client, consumersIndex, environment));
     }
 
     /**

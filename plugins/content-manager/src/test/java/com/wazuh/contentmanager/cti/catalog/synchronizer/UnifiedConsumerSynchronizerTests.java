@@ -31,10 +31,10 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-/** Tests for the RulesConsumerSynchronizer class. */
-public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
+/** Tests for the UnifiedConsumerSynchronizer class. */
+public class UnifiedConsumerSynchronizerTests extends OpenSearchTestCase {
 
-    private RulesConsumerSynchronizer synchronizer;
+    private UnifiedConsumerSynchronizer synchronizer;
     private AutoCloseable closeable;
 
     @Mock private Client client;
@@ -48,7 +48,7 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
-                new RulesConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
+            new UnifiedConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
     }
 
     @After
@@ -64,14 +64,14 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
     public void testGetContextReturnsExpectedValue() {
         String context = this.synchronizer.getContext();
 
-        Assert.assertEquals(PluginSettings.getInstance().getRulesContext(), context);
+        Assert.assertEquals(PluginSettings.getInstance().getContentContext(), context);
     }
 
     /** Tests that getConsumer returns the expected consumer value. */
     public void testGetConsumerReturnsExpectedValue() {
         String consumer = this.synchronizer.getConsumer();
 
-        Assert.assertEquals(PluginSettings.getInstance().getRulesConsumer(), consumer);
+        Assert.assertEquals(PluginSettings.getInstance().getContentConsumer(), consumer);
     }
 
     /** Tests that getMappings returns the expected index mappings. */
@@ -79,33 +79,33 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         Map<String, String> mappings = this.synchronizer.getMappings();
 
         Assert.assertNotNull(mappings);
-        Assert.assertEquals(3, mappings.size());
+        Assert.assertEquals(5, mappings.size());
         Assert.assertEquals("/mappings/cti-rules-mappings.json", mappings.get("rule"));
+        Assert.assertEquals("/mappings/cti-decoders-mappings.json", mappings.get("decoder"));
+        Assert.assertEquals("/mappings/cti-kvdbs-mappings.json", mappings.get("kvdb"));
         Assert.assertEquals("/mappings/cti-integrations-mappings.json", mappings.get("integration"));
         Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
     }
 
-    /** Tests that getAliases returns the expected index aliases. */
-    public void testGetAliasesReturnsExpectedAliases() {
+    /** Tests that getAliases returns empty map as aliases are used as names. */
+    public void testGetAliasesReturnsEmpty() {
         Map<String, String> aliases = this.synchronizer.getAliases();
-
         Assert.assertNotNull(aliases);
-        Assert.assertEquals(3, aliases.size());
-        Assert.assertEquals(".cti-rules", aliases.get("rule"));
-        Assert.assertEquals(".cti-integration-rules", aliases.get("integration"));
-        Assert.assertEquals(".cti-rules-policy", aliases.get("policy"));
+        Assert.assertTrue(aliases.isEmpty());
     }
 
-    /** Tests that getIndexName formats the index name correctly. */
+    /** Tests that getIndexName returns the correct unified name. */
     public void testGetIndexNameFormatsCorrectly() {
-        String indexName = this.synchronizer.getIndexName("rule");
+        Assert.assertEquals(".cti-rules", this.synchronizer.getIndexName("rule"));
+        Assert.assertEquals(".cti-decoders", this.synchronizer.getIndexName("decoder"));
+        Assert.assertEquals(".cti-kvdbs", this.synchronizer.getIndexName("kvdb"));
+        Assert.assertEquals(".cti-integrations", this.synchronizer.getIndexName("integration"));
+        Assert.assertEquals(".cti-policies", this.synchronizer.getIndexName("policy"));
 
+        // Test fallback
         Assert.assertEquals(
-                "."
-                        + PluginSettings.getInstance().getRulesContext()
-                        + "-"
-                        + PluginSettings.getInstance().getRulesConsumer()
-                        + "-rule",
-                indexName);
+            "." + PluginSettings.getInstance().getContentContext() + "-"
+                + PluginSettings.getInstance().getContentConsumer() + "-unknown",
+            this.synchronizer.getIndexName("unknown"));
     }
 }

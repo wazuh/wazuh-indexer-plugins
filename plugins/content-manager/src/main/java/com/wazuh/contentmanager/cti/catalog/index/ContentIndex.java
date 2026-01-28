@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
@@ -34,16 +35,20 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -266,6 +271,39 @@ public class ContentIndex {
                         log.error("Failed to delete {}: {}", id, e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * Searches for a document by a specific field name and value.
+     *
+     * @param queryBuilder The query to execute.
+     * @return A JsonObject representing the found document, or null if not found or on
+     */
+    public JsonObject searchByQuery(QueryBuilder queryBuilder) {
+        try {
+            // Create search request
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
+            SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
+
+            // Execute search synchronously
+            SearchResponse searchResponse =
+                    this.client
+                            .search(searchRequest)
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+            // Check if we have results
+            if (searchResponse.getHits().getTotalHits() == null
+                    || searchResponse.getHits().getTotalHits().value() == 0L) {
+                log.debug(
+                        "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
+                return null;
+            }
+            // Parse all hits and return in JsonObject format
+            return JsonParser.parseString(searchResponse.getHits().toString()).getAsJsonObject();
+        } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
+            log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
+            return null;
+        }
     }
 
     /**

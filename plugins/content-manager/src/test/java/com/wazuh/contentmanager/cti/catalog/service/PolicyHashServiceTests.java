@@ -62,8 +62,11 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
     @Mock private ActionFuture<SearchResponse> searchFuture;
     @Mock private SearchResponse searchResponse;
 
-    private static String CONTEXT;
-    private static String CONSUMER;
+    private static final String POLICY_IDX = ".cti-policies";
+    private static final String INTEGRATION_IDX = ".cti-integrations";
+    private static final String DECODER_IDX = ".cti-decoders";
+    private static final String KVDB_IDX = ".cti-kvdbs";
+    private static final String RULE_IDX = ".cti-rules";
 
     @Before
     @Override
@@ -72,9 +75,6 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         PluginSettings.getInstance(Settings.EMPTY);
         this.closeable = MockitoAnnotations.openMocks(this);
         this.policyHashService = new PolicyHashService(this.client);
-
-        CONTEXT = PluginSettings.getInstance().getDecodersContext();
-        CONSUMER = PluginSettings.getInstance().getDecodersConsumer();
     }
 
     @After
@@ -95,7 +95,7 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
         when(this.indicesExistsResponse.isExists()).thenReturn(false);
 
-        this.policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
+        this.policyHashService.calculateAndUpdate(POLICY_IDX, INTEGRATION_IDX, DECODER_IDX, KVDB_IDX, RULE_IDX);
 
         verify(this.client, never()).search(any(SearchRequest.class));
     }
@@ -118,7 +118,7 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         when(this.searchResponse.getHits()).thenReturn(emptyHits);
 
         // Should not throw any exception
-        this.policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
+        this.policyHashService.calculateAndUpdate(POLICY_IDX, INTEGRATION_IDX, DECODER_IDX, KVDB_IDX, RULE_IDX);
 
         verify(this.client).search(any(SearchRequest.class));
         // No bulk update should be performed when there are no policies
@@ -130,6 +130,6 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         when(this.client.admin()).thenThrow(new RuntimeException("Test exception"));
 
         // Should not throw any exception - it should be caught internally
-        this.policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
+        this.policyHashService.calculateAndUpdate(POLICY_IDX, INTEGRATION_IDX, DECODER_IDX, KVDB_IDX, RULE_IDX);
     }
 }
