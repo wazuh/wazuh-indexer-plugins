@@ -16,6 +16,11 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -23,47 +28,54 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
- * TODO !CHANGE_ME GET /_plugins/content-manager/promote_preview
+ * GET /_plugins/content-manager/promote_preview
  *
- * <p>Previews the promotion of content from the staging area to production in the local engine.
+ * <p>Previews the promotion of content from one space to another. Compares resources in the source
+ * space against the target space and returns a list of operations (add, remove, update) required to
+ * synchronize them.
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>Supported transitions:
+ *
+ * <ul>
+ *   <li>space=draft: Compares DRAFT (Source) -> TEST (Target)
+ *   <li>space=test: Compares TEST (Source) -> CUSTOM (Target)
+ * </ul>
  */
 public class RestGetPromotePreviewAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_promote_preview";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote_preview";
-    private final EngineService engine;
+    private static final Logger log = LogManager.getLogger(RestGetPromotePreviewAction.class);
 
-    /**
-     * Constructs a new TODO !CHANGE_ME.
-     *
-     * @param engine The service instance to communicate with the local engine service.
-     */
-    public RestGetPromotePreviewAction(EngineService engine) {
-        this.engine = engine;
+    // Operations
+    private static final String OP_ADD = "add";
+    private static final String OP_REMOVE_VAL = "remove";
+    private static final String OP_UPDATE = "update";
+
+    private final SpaceService spaceService;
+
+    public RestGetPromotePreviewAction(SpaceService spaceService) {
+        this.spaceService = spaceService;
     }
 
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -74,27 +86,127 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * TODO !CHANGE_ME.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        // Explicitly consume 'space' parameter to satisfy BaseRestHandler validation
+        if (request.hasParam("space")) {
+            request.param("space");
+        }
         return channel -> channel.sendResponse(this.handleRequest(request));
     }
 
+    public BytesRestResponse handleRequest(RestRequest request) {
+        try {
+            // 1. Validate Space Parameter
+            String spaceParam = request.param("space");
+            if (spaceParam == null || spaceParam.isEmpty()) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse(
+                                        "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus())
+                                .toXContent());
+            }
+
+            String sourceSpace;
+            String targetSpace;
+
+            // Normalize input
+            // Pasar al Space clase
+            String spaceLower = spaceParam.toLowerCase(Locale.ROOT);
+
+            if ("draft".equals(spaceLower)) {
+                sourceSpace = Space.DRAFT.toString();
+                targetSpace = Space.TEST.toString();
+            } else if ("test".equals(spaceLower)) {
+                sourceSpace = Space.TEST.toString();
+                targetSpace = Space.CUSTOM.toString();
+            } else {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse(
+                                        "Invalid space parameter. Must be 'draft' or 'test'.",
+                                        RestStatus.BAD_REQUEST.getStatus())
+                                .toXContent());
+            }
+
+            // 2. Fetch Resources for both spaces using SpaceService
+            // Structure: Map<ResourceType, Map<ID, Hash>>
+            Map<String, Map<String, String>> sourceContent =
+                    this.spaceService.getSpaceResources(sourceSpace);
+            Map<String, Map<String, String>> targetContent =
+                    this.spaceService.getSpaceResources(targetSpace);
+
+            // 3. Calculate Differences
+            Map<String, List<Map<String, String>>> changes = new HashMap<>();
+
+            // Iterate over the keys returned by the service (policy, integrations, etc.)
+            // We use the union of keys to ensure we catch everything in case one map is missing a type
+            for (String resourceType : sourceContent.keySet()) {
+                Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
+                Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
+
+                List<Map<String, String>> resourceChanges = this.calculateDiff(sourceItems, targetItems);
+                changes.put(resourceType, resourceChanges);
+            }
+
+            // 4. Build Response
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startObject();
+            builder.field("changes", changes);
+            builder.endObject();
+
+            return new BytesRestResponse(RestStatus.OK, builder);
+
+        } catch (Exception e) {
+            log.error("Error processing promote preview: {}", e.getMessage(), e);
+            try {
+                return new BytesRestResponse(
+                        RestStatus.INTERNAL_SERVER_ERROR,
+                        new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                                .toXContent());
+            } catch (IOException ex) {
+                return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
+            }
+        }
+    }
+
     /**
-     * TODO !CHANGE_ME.
+     * Compares source and target items to determine Add, Update, Remove operations.
      *
-     * @param request incoming request
-     * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
+     * @param sourceItems Map of ID -> Hash for the source space
+     * @param targetItems Map of ID -> Hash for the target space
+     * @return List of change operations
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
-        return null;
+    private List<Map<String, String>> calculateDiff(
+            Map<String, String> sourceItems, Map<String, String> targetItems) {
+        List<Map<String, String>> changes = new ArrayList<>();
+
+        // Check ADD and UPDATE
+        for (Map.Entry<String, String> entry : sourceItems.entrySet()) {
+            String id = entry.getKey();
+            String sourceHash = entry.getValue();
+
+            if (!targetItems.containsKey(id)) {
+                // Case 2: Promoted space doesn't have that UUID -> ADD
+                changes.add(Map.of("operation", OP_ADD, "id", id));
+            } else {
+                // Case 1: Promoted space has different hash -> UPDATE
+                String targetHash = targetItems.get(id);
+                if (!sourceHash.equals(targetHash)) {
+                    changes.add(Map.of("operation", OP_UPDATE, "id", id));
+                }
+            }
+        }
+
+        // Check REMOVE
+        // Case 3: UUID is in promoted space but not in current one -> DELETE (Remove)
+        for (String targetId : targetItems.keySet()) {
+            if (!sourceItems.containsKey(targetId)) {
+                changes.add(Map.of("operation", OP_REMOVE_VAL, "id", targetId));
+            }
+        }
+
+        return changes;
     }
 }
