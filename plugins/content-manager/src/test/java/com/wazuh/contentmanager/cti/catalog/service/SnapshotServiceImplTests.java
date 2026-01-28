@@ -31,7 +31,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipEntry;
@@ -47,12 +49,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link SnapshotServiceImpl} class. This test suite validates the snapshot
@@ -90,17 +87,25 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.environment.settings()).thenReturn(settings);
 
         PluginSettings.getInstance(settings);
-        List<ContentIndex> contentIndices = Collections.singletonList(this.contentIndexMock);
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        indicesMap.put("policy", this.contentIndexMock);
+        indicesMap.put("decoder", this.contentIndexMock);
+        indicesMap.put("rule", this.contentIndexMock);
+        indicesMap.put("reputation", this.contentIndexMock);
+
         String context = "test-context";
         String consumer = "test-consumer";
 
         this.snapshotService =
                 new SnapshotServiceImpl(
-                        context, consumer, contentIndices, this.consumersIndex, this.environment);
+                    context, consumer, indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.processPayload(any(JsonObject.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-kvdb");
     }
 
     @After
@@ -177,7 +182,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).clear();
+        verify(this.contentIndexMock, times(5)).clear();
         verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
@@ -207,6 +212,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Mock
         String url = "http://example.com/policy.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-policy");
 
         Path zipPath =
                 this.createZipFileWithContent(

@@ -83,7 +83,9 @@ public class Decoder extends Resource {
      */
     private static String toYamlString(JsonObject payload) {
         try {
-            if (!payload.has("document")) return null;
+            if (!payload.has("document")) { 
+                return null;
+            }
             JsonNode docNode = jsonMapper.readTree(payload.get("document").toString());
 
             if (docNode != null && docNode.isObject()) {
