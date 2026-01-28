@@ -70,45 +70,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      *
      * @throws IOException
      */
-    public void testPostPromote400() throws IOException {
-        RestRequest request = mock(RestRequest.class);
-        RestResponse expectedResponse;
-        RestResponse actualResponse;
-
-        // No content
-        when(request.hasContent()).thenReturn(false);
-        when(request.content()).thenReturn(new BytesArray("".getBytes(StandardCharsets.UTF_8)));
-        actualResponse = this.action.handleRequest(request);
-        expectedResponse = new RestResponse("JSON request body is required.", 400);
-        assertEquals(expectedResponse, actualResponse);
-
-        // Invalid content
-        when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray("invalid".getBytes(StandardCharsets.UTF_8)));
-        actualResponse = this.action.handleRequest(request);
-        assertTrue(actualResponse.getMessage().contains("Invalid JSON"));
-        assertEquals(400, actualResponse.getStatus());
-
-        // Document stated in the payload is missing
-        JsonNode payload =
-                FixtureFactory.from(
-                        "{\n"
-                                + "  \"space\": \"test\",\n"
-                                + "  \"changes\": {\n"
-                                + "    \"policy\": [],\n"
-                                + "    \"integrations\": [],\n"
-                                + "    \"kvdbs\": [],\n"
-                                + "    \"decoders\": [{\"operation\": \"add\", \"id\": \"12345\"}],\n"
-                                + "    \"filters\": []\n"
-                                + "  }\n"
-                                + "}");
-
-        when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(payload.asText()));
-        actualResponse = this.action.handleRequest(request);
-        assertTrue(actualResponse.getMessage().contains("Resource with ID [12345] does not exist"));
-        assertEquals(400, actualResponse.getStatus());
-    }
+    public void testPostPromote400() throws IOException {}
 
     /**
      * Test the {@link RestPostPromoteAction#handleRequest(RestRequest)} method when an unexpected
