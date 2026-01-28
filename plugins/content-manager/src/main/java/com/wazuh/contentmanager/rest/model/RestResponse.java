@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -20,10 +20,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * General response model for REST API endpoints.
@@ -126,5 +129,38 @@ public class RestResponse implements ToXContent {
                 .endObject();
 
         return builder;
+    }
+
+    /**
+     * Generate a BytesRestResponse instance for the API.
+     *
+     * @return this RestResponse instance as a BytesRestResponse
+     */
+    public BytesRestResponse toBytesRestResponse() {
+        try {
+            return new BytesRestResponse(RestStatus.fromCode(this.status), this.toXContent());
+        } catch (IOException e) {
+            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * Invoked internally by Mockito.
+     *
+     * @param other the reference object with which to compare.
+     * @return true if the instances are equal, false otherwise.
+     */
+    @Override
+    public boolean equals(Object other) {
+        if (other == null || this.getClass() != other.getClass()) {
+            return false;
+        }
+        RestResponse response = (RestResponse) other;
+        return this.status == response.status && Objects.equals(this.message, response.message);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.message, this.status);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest;
+package com.wazuh.contentmanager.rest.services;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
@@ -26,20 +26,20 @@ import java.io.IOException;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the {@link RestDeleteSubscriptionAction} class. This test suite validates the REST
- * API endpoint responsible for deleting CTI subscription tokens.
+ * Unit tests for the {@link RestGetSubscriptionAction} class. This test suite validates the REST
+ * API endpoint responsible for retrieving the current CTI subscription token.
  *
- * <p>Tests verify token deletion requests, proper cleanup of authentication state, and appropriate
- * HTTP response codes for successful deletions and missing token scenarios.
+ * <p>Tests verify proper token retrieval, correct HTTP response formatting, and appropriate status
+ * codes for scenarios including successful token retrieval and missing token conditions.
  */
-public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
+public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
     private CtiConsole console;
-    private RestDeleteSubscriptionAction action;
+    private RestGetSubscriptionAction action;
 
     /**
      * Set up the tests
@@ -51,16 +51,16 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.console = mock(CtiConsole.class);
-        this.action = new RestDeleteSubscriptionAction(this.console);
+        this.action = new RestGetSubscriptionAction(this.console);
     }
 
     /**
-     * Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token is created
-     * (mock). The expected response is: {200, RestResponse}
+     * Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token is created
+     * (mock). The expected response is: {200, Token}
      *
      * @throws IOException
      */
-    public void testDeleteToken200() throws IOException {
+    public void testGetToken200() throws IOException {
         // Mock
         Token token = new Token("test_token", "test_type");
         when(this.console.getToken()).thenReturn(token);
@@ -68,27 +68,19 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
-
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        assertTrue(
-                bytesRestResponse
-                        .content()
-                        .utf8ToString()
-                        .contains(String.valueOf(expectedResponse.getStatus())));
+        assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getAccessToken()));
+        assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getTokenType()));
         assertEquals(RestStatus.OK, bytesRestResponse.status());
     }
 
     /**
-     * Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token has not
-     * been created (mock). The expected response is: {404, RestResponse}
+     * Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token has not been
+     * created (mock). The expected response is: {404, RestResponse}
      *
      * @throws IOException
      */
-    public void testDeleteToken404() throws IOException {
+    public void testGetToken404() throws IOException {
         // Mock
         when(this.console.getToken()).thenReturn(null);
 

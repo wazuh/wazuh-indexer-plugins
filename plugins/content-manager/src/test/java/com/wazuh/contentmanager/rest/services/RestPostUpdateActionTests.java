@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest;
+package com.wazuh.contentmanager.rest.services;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
@@ -27,7 +27,6 @@ import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 
 import static org.mockito.Mockito.*;
 

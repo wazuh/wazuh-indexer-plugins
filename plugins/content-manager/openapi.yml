@@ -387,6 +387,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/LogtestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -422,7 +424,7 @@ paths:
               allOf:
                 - $ref: "#/components/schemas/PolicyDiff"
                 - $ref: "#/components/schemas/PromotionSpace"
-                
+
       responses:
         "200":
           description: Promotion executed
@@ -522,19 +524,23 @@ components:
           type: integer
           minimum: 0
           description: Queue number used for logtest execution
+          example: 1
 
         location:
           type: string
           description: Log file path or logical source location
+          example: "/var/log/auth.log"
 
         agent_metadata:
           type: object
           additionalProperties: true
           description: Optional agent metadata passed to the logtest engine
+          example: {}
 
         event:
           type: string
           description: Raw log event to be tested
+          example: "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2"
 
         trace_level:
           type: string
@@ -543,6 +549,7 @@ components:
             - BASIC
             - FULL
           description: Trace verbosity level
+          example: "NONE"
 
     # Response body showing differences during promotion preview
     PolicyDiff:
@@ -953,10 +960,10 @@ components:
       type: object
       description: Standard error response schema.
       properties:
-        error:
+        status:
           type: string
-      required:
-        - error
+        message:
+          type: string
 
   # --- Responses schemas ---
   responses:
@@ -1010,7 +1017,8 @@ components:
             missing_parameter:
               summary: Missing required parameter
               value:
-                error: "Required parameter 'client_id' is missing."
+                message: "Required parameter 'client_id' is missing."
+                status: 400
 
     Unauthorized:
       description: Unauthorized - Authentication failed or credentials are invalid.
@@ -1090,7 +1098,8 @@ components:
             internal_error:
               summary: Internal server error
               value:
-                error: "An unexpected error occurred while processing your request."
+                message: "An unexpected error occurred while processing your request."
+                status: 500
 
     # Response body for logtest execution results (pass-through)
     LogtestResponse:
@@ -1098,7 +1107,34 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestResponse"
+            type: object
+            additionalProperties: false
+            properties:
+              status:
+                type: string
+                example: "OK"
+              result:
+                type: object
+                properties:
+                  output:
+                    type: string
+                    example: '{"wazuh":{"protocol":{"queue":1,"location":"syscheck"},"integration":{"category":"Security","name":"integration/wazuh-core/0","decoders":["core-wazuh-message","integrations"]}},"name":"nahuel","event":{"original":"File /etc/passwd modified"},"@timestamp":"2025-12-26T17:33:22Z"}'
+                  asset_traces:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        asset:
+                          type: string
+                          example: "decoder/core-wazuh-message/0"
+                        success:
+                          type: boolean
+                          example: true
+                        traces:
+                          type: array
+                          items:
+                            type: string
+                          example: ["@timestamp: get_date -> Success"]
 
     PromotionPreviewResponse:
       description: Promotion preview result
