@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,11 +16,17 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
@@ -35,6 +41,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * the OpenSearch Client.
  */
 public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
+
     private static final Logger log = LogManager.getLogger(SecurityAnalyticsServiceImpl.class);
 
     private static final String JSON_DOCUMENT_KEY = "document";
@@ -56,10 +63,20 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonObject doc) {
+    public WIndexIntegrationResponse upsertIntegration(JsonNode doc) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+
+        JsonObject jsonObject =
+                JsonParser.parseString(mapper.writeValueAsString(doc)).getAsJsonObject();
+
+        return upsertIntegration(jsonObject);
+    }
+
+    @Override
+    public WIndexIntegrationResponse upsertIntegration(JsonObject doc) {
         try {
             if (!doc.has(JSON_DOCUMENT_KEY)) {
-                return;
+                return new WIndexIntegrationResponse(null, null, RestStatus.INTERNAL_SERVER_ERROR, null);
             }
             JsonObject innerDoc = doc.getAsJsonObject(JSON_DOCUMENT_KEY);
             String id = innerDoc.get(JSON_ID_KEY).getAsString();
@@ -75,7 +92,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                         .forEach(item -> rules.add(item.getAsString()));
             }
             if (rules.isEmpty()) {
-                return;
+                return new WIndexIntegrationResponse(null, null, RestStatus.INTERNAL_SERVER_ERROR, null);
             }
 
             log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
@@ -87,10 +104,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             POST,
                             new Integration(
                                     id, null, name, description, category, "Sigma", rules, new HashMap<>()));
-            this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
-
+            return this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
         } catch (Exception e) {
             log.error("Failed to upsert Integration: {}", e.getMessage());
+            return new WIndexIntegrationResponse(null, null, RestStatus.INTERNAL_SERVER_ERROR, null);
         }
     }
 
