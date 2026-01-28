@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.action.get.GetRequestBuilder;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.action.ActionFuture;
@@ -31,7 +33,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.securityanalytics.action.WIndexRuleAction;
@@ -39,16 +41,11 @@ import com.wazuh.securityanalytics.action.WIndexRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for the {@link RestPutRuleAction} class. This test suite validates the REST API
- * endpoint responsible for updating new CTI Rules.
- *
- * <p>Tests verify Rule update requests, proper handling of Rule data, and appropriate HTTP response
- * codes for successful Rule update errors.
- */
+/** Unit tests for the {@link RestPutRuleAction} class. */
 public class RestPutRuleActionTests extends OpenSearchTestCase {
 
     private RestPutRuleAction action;
@@ -81,7 +78,6 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "author": "Florian Roth",
-              "date": "2021-05-31",
               "description": "Updated Description.",
               "detection": {
                 "condition": "selection",
@@ -105,9 +101,19 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", ruleId))
-                        .withContent(
-                                new BytesArray(jsonRule.getBytes(StandardCharsets.UTF_8)), XContentType.JSON)
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
+
+        GetRequestBuilder getRequestBuilder = mock(GetRequestBuilder.class);
+        GetResponse getResponse = mock(GetResponse.class);
+        doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
+        when(getRequestBuilder.setFetchSource(any(String[].class), any()))
+                .thenReturn(getRequestBuilder);
+        when(getRequestBuilder.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> docMap = new HashMap<>();
+        docMap.put("date", "2021-05-31");
+        when(getResponse.getSourceAsMap()).thenReturn(Map.of("document", docMap));
 
         ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
         when(sapFuture.actionGet()).thenReturn(new WIndexRuleResponse(ruleId, 2L, RestStatus.OK));
@@ -161,6 +167,9 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
+        doThrow(new RuntimeException("Simulated error"))
+                .when(this.client)
+                .prepareGet(anyString(), anyString());
         doThrow(new RuntimeException("Simulated error")).when(this.client).execute(any(), any());
 
         // Act

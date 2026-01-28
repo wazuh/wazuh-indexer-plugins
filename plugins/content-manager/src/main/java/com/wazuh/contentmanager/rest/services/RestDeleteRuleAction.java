@@ -63,6 +63,7 @@ public class RestDeleteRuleAction extends BaseRestHandler {
     private static final String CTI_RULES_INDEX = ".cti-rules";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
 
+    /** Default constructor. */
     public RestDeleteRuleAction() {}
 
     /** Return a short identifier for this handler. */
@@ -97,6 +98,9 @@ public class RestDeleteRuleAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        if (request.hasParam("id")) {
+            request.param("id");
+        }
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 

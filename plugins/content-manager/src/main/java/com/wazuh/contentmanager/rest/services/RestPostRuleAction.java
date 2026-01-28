@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WIndexRuleAction;
@@ -65,6 +66,7 @@ public class RestPostRuleAction extends BaseRestHandler {
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
     private static final String INTEGRATION_ID_FIELD = "integration_id";
 
+    /** Default constructor. */
     public RestPostRuleAction() {}
 
     /** Return a short identifier for this handler. */
@@ -111,6 +113,7 @@ public class RestPostRuleAction extends BaseRestHandler {
      *   <li>Validates the request body and required fields (e.g., {@code integration_id}).
      *   <li>Ensures the payload does not contain an {@code id} field.
      *   <li>Calls the Security Analytics Plugin (SAP) to create the rule in the engine.
+     *   <li>Calculates the SHA-256 hash of the rule document.
      *   <li>Indexes the rule in the CTI rules index.
      *   <li>Updates the corresponding integration in the CTI integrations index to link the new rule.
      * </ol>
@@ -191,6 +194,11 @@ public class RestPostRuleAction extends BaseRestHandler {
             Map<String, Object> ctiDoc = new HashMap<>();
             Map<String, Object> ruleMap = mapper.convertValue(ruleNode, Map.class);
             ctiDoc.put("document", ruleMap);
+
+            // Calculate Hash
+            String hash = HashCalculator.sha256(ruleNode.toString());
+            ctiDoc.put("hash", Map.of("sha256", hash));
+
             ctiDoc.put("space", Map.of("name", "custom"));
 
             IndexRequest indexRequest =
