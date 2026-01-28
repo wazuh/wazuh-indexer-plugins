@@ -179,7 +179,8 @@ public class ContentManagerPlugin extends Plugin
                 // User-generated content endpoints
                 new RestPostLogtestAction(this.engine),
                 new RestPostDecoderAction(this.engine),
-                new RestPutDecoderAction(this.engine));
+                new RestPutDecoderAction(this.engine),
+                new RestDeleteDecoderAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */
