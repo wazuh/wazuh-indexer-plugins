@@ -186,7 +186,6 @@ public class ContentIndex {
                 new IndexRequest(this.indexName)
                         .id(id)
                         .source(processedPayload.toString(), XContentType.JSON);
-
         try {
             this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         } catch (Exception e) {

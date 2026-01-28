@@ -68,7 +68,7 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(PluginSettings.PROMOTE_PREVIEW_URI)
+                        .path(PluginSettings.PROMOTE_URI)
                         .method(GET)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
