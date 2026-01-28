@@ -107,7 +107,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration/wazuh-core/0\"],"
                         + "\"author\": \"Wazuh Inc.\","
-                        + "\"description\": \"Test policy\""
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": \"Test references\""
                         + "}";
 
         Map<String, String> params = new HashMap<>();
@@ -152,7 +154,11 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                 "{"
                         + "\"type\": \"policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
-                        + "\"integrations\": []"
+                        + "\"integrations\": [],"
+                        + "\"author\": \"Test Author\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"\","
+                        + "\"references\": \"\""
                         + "}";
 
         Map<String, String> params = new HashMap<>();
@@ -268,7 +274,11 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                 "{"
                         + "\"type\": \"policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
-                        + "\"integrations\": []"
+                        + "\"integrations\": [],"
+                        + "\"author\": \"Test Author\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"\","
+                        + "\"references\": \"\""
                         + "}";
 
         Map<String, String> params = new HashMap<>();

@@ -39,7 +39,7 @@ import java.util.Map;
  * <p>The policy acts as a container that references integrations by their IDs and specifies the
  * root decoder to be used for content processing.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Policy {
     // JSON Key Constants
     private static final String TYPE_KEY = "type";
@@ -258,10 +258,10 @@ public class Policy {
     /**
      * Sets the type of this resource.
      *
-     * @param type The resource type to set.
+     * @param type The resource type to set. If null, defaults to "policy".
      */
     public void setType(String type) {
-        this.type = type;
+        this.type = type != null ? type : "policy";
     }
 
     /**
@@ -276,10 +276,10 @@ public class Policy {
     /**
      * Sets the root decoder identifier.
      *
-     * @param rootDecoder The root decoder identifier to set.
+     * @param rootDecoder The root decoder identifier to set. If null, defaults to empty string.
      */
     public void setRootDecoder(String rootDecoder) {
-        this.rootDecoder = rootDecoder;
+        this.rootDecoder = rootDecoder != null ? rootDecoder : "";
     }
 
     /**
@@ -312,10 +312,10 @@ public class Policy {
     /**
      * Sets the author of this policy.
      *
-     * @param author The author name to set.
+     * @param author The author name to set. If null, defaults to empty string.
      */
     public void setAuthor(String author) {
-        this.author = author;
+        this.author = author != null ? author : "";
     }
 
     /**
@@ -330,10 +330,10 @@ public class Policy {
     /**
      * Sets the description of this policy.
      *
-     * @param description The policy description to set.
+     * @param description The policy description to set. If null, defaults to empty string.
      */
     public void setDescription(String description) {
-        this.description = description;
+        this.description = description != null ? description : "";
     }
 
     /**
@@ -348,10 +348,10 @@ public class Policy {
     /**
      * Sets the detailed documentation for this policy.
      *
-     * @param documentation The policy documentation to set.
+     * @param documentation The policy documentation to set. If null, defaults to empty string.
      */
     public void setDocumentation(String documentation) {
-        this.documentation = documentation;
+        this.documentation = documentation != null ? documentation : "";
     }
 
     /**
@@ -366,10 +366,10 @@ public class Policy {
     /**
      * Sets the external references or links related to this policy.
      *
-     * @param references The policy references to set.
+     * @param references The policy references to set. If null, defaults to empty string.
      */
     public void setReferences(String references) {
-        this.references = references;
+        this.references = references != null ? references : "";
     }
 
     @Override

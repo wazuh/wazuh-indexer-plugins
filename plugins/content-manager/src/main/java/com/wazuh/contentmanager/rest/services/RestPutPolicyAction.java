@@ -31,9 +31,13 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.Policy;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -53,9 +57,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/policy_update";
 
     // Index and field constants
-    private static final String POLICIES_INDEX = ".cti-policies.";
+    private static final String POLICIES_INDEX = ".cti-policies";
     private static final String SPACE_FIELD = "space";
-    private static final String DRAFT_SPACE = "draft";
     private static final String ID_FIELD = "id";
 
     private final EngineService engine;
@@ -136,6 +139,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Validate policy fields
+        RestResponse policyValidationError = this.validatePolicy(policy);
+        if (policyValidationError != null) {
+            return policyValidationError;
+        }
+
         // Store or update the policy
         try {
             this.storePolicy(client, policy);
@@ -179,6 +188,49 @@ public class RestPutPolicyAction extends BaseRestHandler {
     }
 
     /**
+     * Validates that the policy fields meet the required constraints.
+     *
+     * <p>Uses a dynamic reflection-based approach to validate all policy fields. Fields must not be
+     * null, but can be empty strings or empty arrays. This ensures the policy structure is valid
+     * before storage.
+     *
+     * @param policy the policy to validate
+     * @return a RestResponse with error details if validation fails, null otherwise
+     */
+    private RestResponse validatePolicy(Policy policy) {
+        // Define fields to validate with their display names
+        Map<String, String> fieldsToValidate = new LinkedHashMap<>();
+        fieldsToValidate.put("getType", "type");
+        fieldsToValidate.put("getRootDecoder", "root_decoder");
+        fieldsToValidate.put("getIntegrations", "integrations");
+        fieldsToValidate.put("getAuthor", "author");
+        fieldsToValidate.put("getDescription", "description");
+        fieldsToValidate.put("getDocumentation", "documentation");
+        fieldsToValidate.put("getReferences", "references");
+
+        // Validate each field dynamically
+        for (Map.Entry<String, String> entry : fieldsToValidate.entrySet()) {
+            String methodName = entry.getKey();
+            String fieldName = entry.getValue();
+
+            try {
+                Method getter = Policy.class.getMethod(methodName);
+                Object value = getter.invoke(policy);
+                if (value == null) {
+                    return new RestResponse(
+                            "Policy field " + fieldName + " cannot be null.", RestStatus.BAD_REQUEST.getStatus());
+                }
+            } catch (Exception e) {
+                return new RestResponse(
+                        "Internal validation error for field: " + fieldName,
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Stores or updates the policy in the draft space.
      *
      * <p>If a draft policy already exists, it will be updated using its existing ID. Otherwise, a new
@@ -191,7 +243,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private void storePolicy(NodeClient client, Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(client, POLICIES_INDEX, null);
         String policyId = this.findDraftPolicyId(contentIndex);
-        contentIndex.create(policyId, policy.toJson(), "draft");
+        contentIndex.create(policyId, policy.toJson(), Space.DRAFT.toString());
         log.info("Policy stored successfully with ID: {}", policyId);
     }
 
@@ -202,7 +254,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return the existing policy ID or a new UUID
      */
     private String findDraftPolicyId(ContentIndex contentIndex) {
-        QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_FIELD, DRAFT_SPACE);
+        QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_FIELD, Space.DRAFT.toString());
         JsonObject resource = contentIndex.searchByQuery(queryBuilder);
 
         if (resource != null && resource.has(ID_FIELD)) {
