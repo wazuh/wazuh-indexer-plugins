@@ -18,7 +18,7 @@ The Content Manager plugin handles:
 The plugin manages several indices:
 - `.cti-consumers`: Stores consumer information and synchronization state.
 - `.wazuh-content-manager-jobs`: Stores job scheduler metadata.
-- Content Indices: Indices for specific content types following the naming `.<context>-<consumer>-<type>`.
+- Content Indices: Indices for specific content types (e.g., `.cti-rules`, `.cti-decoders`).
 
 ---
 
@@ -52,8 +52,11 @@ classDiagram
     class CatalogSyncJob {
         +execute()
         +performSynchronization()
-        -rulesConsumer()
-        -decodersConsumer()
+    }
+
+    class UnifiedConsumerSynchronizer {
+        +synchronize()
+        -onSyncComplete()
     }
 
     class ConsumerService {
@@ -90,15 +93,15 @@ classDiagram
     RestLayer --> CatalogSyncJob : Triggers manually
 
     %% Job Dependencies
-    CatalogSyncJob --> ConsumerService : Checks State
-    CatalogSyncJob ..> SnapshotServiceImpl : (if offset == 0)
-    CatalogSyncJob ..> UpdateServiceImpl : (if offset < remote)
+    CatalogSyncJob --> UnifiedConsumerSynchronizer : Delegates
+    UnifiedConsumerSynchronizer --> ConsumerService : Checks State
+    UnifiedConsumerSynchronizer ..> SnapshotServiceImpl : (if offset == 0)
+    UnifiedConsumerSynchronizer ..> UpdateServiceImpl : (if offset < remote)
     
     %% SAP Interactions
     SnapshotServiceImpl --> SecurityAnalyticsService : Upserts Content
     UpdateServiceImpl --> SecurityAnalyticsService : Upserts Content
-    CatalogSyncJob --> SecurityAnalyticsService : Upserts Detectors
-
+    UnifiedConsumerSynchronizer --> SecurityAnalyticsService : Upserts Detectors
 ```
 
 #### 1. **ContentManagerPlugin**
@@ -113,10 +116,8 @@ This is the entry point of the plugin:
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/jobscheduler/jobs/CatalogSyncJob.java`
 
 This class acts as the orchestrator (`JobExecutor`). It is responsible for:
-- Executing the content synchronization logic.
+- Executing the content synchronization logic via the `UnifiedConsumerSynchronizer`.
 - Managing concurrency using semaphores to prevent overlapping jobs.
-- Determining whether to trigger a Snapshot Initialization or an Incremental Update based on consumer offsets.
-- Triggering post-processing tasks like integrity checks (hash calculation) and detector updates.
 
 #### 3. **Services**
 The logic is split into specialized services:
@@ -130,7 +131,7 @@ Retrieves `LocalConsumer` state from `.cti-consumers` and `RemoteConsumer` state
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/SnapshotServiceImpl.java`
 
 Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content. 
-It iterates through ingested items to upsert rules and integrations into the Security Analytics plugin.
+It supports multiple content types (rules, decoders, etc.) and indexes them into their respective indices.
 
 ##### 3.3 **UpdateService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/UpdateServiceImpl.java`
@@ -181,10 +182,8 @@ The plugin is configured through the `PluginSettings` class. Settings can be def
 | `plugins.content_manager.client.timeout`             | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
 | `plugins.content_manager.catalog.update_on_start`    | `true`                             | Triggers a content update when the plugin starts.                            |
 | `plugins.content_manager.catalog.update_on_schedule` | `true`                             | Enables or disables the periodic content update job.                         |
-| `plugins.content_manager.catalog.rules.context`      | `rules_development_0.0.2`          | Context identifier for the Rules catalog.                                    |
-| `plugins.content_manager.catalog.rules.consumer`     | `rules_development_0.0.2_test`     | Consumer identifier for the Rules catalog.                                   |
-| `plugins.content_manager.catalog.decoders.context`   | `decoders_development_0.0.2`       | Context identifier for the Decoders catalog.                                 |
-| `plugins.content_manager.catalog.decoders.consumer`  | `decoders_development_0.0.2_test`  | Consumer identifier for the Decoders catalog.                                |
+| `plugins.content_manager.catalog.content.context`    | `development_0.0.3`                | Unified Context identifier for the CTI content.                              |
+| `plugins.content_manager.catalog.content.consumer`   | `development_0.0.3_test`           | Unified Consumer identifier for the CTI content.                             |
 
 ---
 
@@ -194,57 +193,60 @@ The plugin is configured through the `PluginSettings` class. Settings can be def
 sequenceDiagram
     participant Scheduler as JobScheduler/RestAction
     participant SyncJob as CatalogSyncJob
+    participant Synchronizer as UnifiedConsumerSynchronizer
     participant ConsumerSvc as ConsumerService
     participant CTI as External CTI API
     participant Snapshot as SnapshotService
     participant Update as UpdateService
     participant Indices as Content Indices
-    participant SAP as SecurityAnalyticsService
+    participant Processors as Processors (Rule/Integration/Detector)
+    participant SAP as SecurityAnalyticsPlugin
 
     Scheduler->>SyncJob: Trigger Execution
     activate SyncJob
     
-    SyncJob->>ConsumerSvc: getLocalConsumer()
-    ConsumerSvc-->>SyncJob: Local Offset
+    SyncJob->>Synchronizer: synchronize()
     
-    SyncJob->>ConsumerSvc: getRemoteConsumer()
-    ConsumerSvc->>CTI: GET /consumer
-    CTI-->>ConsumerSvc: Remote Offset & Metadata
-    ConsumerSvc-->>SyncJob: Remote Info
+    Synchronizer->>ConsumerSvc: getLocalConsumer() / getRemoteConsumer()
+    ConsumerSvc->>CTI: Fetch Metadata
+    ConsumerSvc-->>Synchronizer: Offsets & Metadata
 
     alt Local Offset == 0 (Initialization)
-        SyncJob->>Snapshot: initialize(remoteConsumer)
+        Synchronizer->>Snapshot: initialize(remoteConsumer)
         Snapshot->>CTI: Download Snapshot ZIP
-        Snapshot->>Indices: Bulk Index Content
-        loop For each Item
-            Snapshot->>SAP: upsertRule(doc) / upsertIntegration(doc)
-        end
-        Snapshot-->>SyncJob: Done
+        Snapshot->>Indices: Bulk Index Content (Rules/Integrations/etc.)
+        Snapshot-->>Synchronizer: Done
     else Local Offset < Remote Offset (Update)
-        SyncJob->>Update: update(localOffset, remoteOffset)
+        Synchronizer->>Update: update(localOffset, remoteOffset)
         Update->>CTI: Fetch Changes
         Update->>Indices: Apply JSON Patches
-        loop For each Change
-            Update->>SAP: upsertRule(doc) / upsertIntegration(doc)
-        end
-        Update-->>SyncJob: Done
+        Update-->>Synchronizer: Done
     end
 
-    opt Changes Applied
-        SyncJob->>Indices: Refresh Indices
+    opt Changes Applied (onSyncComplete)
+        Synchronizer->>Indices: Refresh Indices
         
-        par Update Detectors
-            SyncJob->>Indices: Search Integration Rules
-            Indices-->>SyncJob: Rule Documents
-            loop For each Rule/Integration
-                SyncJob->>SAP: upsertDetector(document)
-            end
+        Note right of Synchronizer: Sync Local Indices to SAP
+        
+        Synchronizer->>Processors: IntegrationProcessor.process()
+        Processors->>Indices: Search Integrations
+        loop For each Integration
+            Processors->>SAP: WIndexIntegrationAction
         end
 
-        par Calculate Integrity
-            SyncJob->>SyncJob: hashPolicy()
-            note right of SyncJob: Calculates SHA-256 for<br/>Rules, Decoders, Policies
+        Synchronizer->>Processors: RuleProcessor.process()
+        Processors->>Indices: Search Rules
+        loop For each Rule
+            Processors->>SAP: WIndexRuleAction
         end
+
+        Synchronizer->>Processors: DetectorProcessor.process()
+        Processors->>Indices: Search Integrations (for Detectors)
+        loop For each Integration
+            Processors->>SAP: WIndexDetectorAction
+        end
+
+        Synchronizer->>Synchronizer: calculatePolicyHash()
     end
 
     deactivate SyncJob
@@ -271,7 +273,7 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 
 ### 3. **Post-Synchronization Phase**
 
-After changes are applied, the `CatalogSyncJob` performs maintenance:
+After changes are applied, the synchronizer performs maintenance:
 
 1.  **Refresh:** Refreshes indices to ensure data is searchable.
 2.  **Update Detectors:**
@@ -288,33 +290,53 @@ If a critical error occurs or data corruption is detected, the system resets `lo
 
 ## 📡 REST API
 
-### Subscription Management
+This API is formally defined in OpenAPI specification ([openapi.yml](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/content-manager/openapi.yml)).
 
-#### GET /subscription
+### User Generate Content Management Endpoints
 
-Retrieves the current subscription token. 
+#### Logtest
 
-`GET /_plugins/content-manager/subscription`
+The Indexer acts as a middleman between the UI and the Engine. The Indexer's `POST /logtest` endpoints accepts the payload and sends it to the engine exactly as provided. No validation is performed. If the engine responds, the Indexer returns it as the response for its endpoint call. If the engine does not respond, a 500 error is returned.
 
-#### POST /subscription 
+<div class="warning">
 
-Creates or updates a subscription. 
+A testing policy needs to be loaded in the Engine for the logtest to be executed successfully. Load a policy via the policy promotion endpoint.
+</div>
 
-`POST /_plugins/content-manager/subscription { "device_code": "...", "client_id": "...", "expires_in": 3600, "interval": 5 }`
+**Diagrams**
 
-#### DELETE /subscription
+```mermaid
+---
+title: Logtest execution - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
 
-Deletes the current token/subscription. 
+    User->>UI: run logtest
 
-`DELETE /_plugins/content-manager/subscription`
+    UI->>Indexer: POST /logtest
+    Indexer->>Engine: POST /logtest
+    Engine-->>Indexer: response
+    Indexer-->>UI: response
+```
 
-### Update Trigger
+```mermaid
+---
+title: Logtest execution - Flowchart
+---
+flowchart LR
+    UI-- request -->Indexer
+    subgraph indexer_node [Indexer node]
+    Indexer-->Engine
 
-#### POST /update 
+    Engine -.-> Indexer
+    end
+    Indexer -. response .-> UI
+```
 
-Manually triggers the `CatalogSyncJob`. 
-
-`POST /_plugins/content-manager/update`
 
 ---
 
