@@ -186,6 +186,38 @@ public class Policy {
         return map;
     }
 
+    public JsonObject toJson() {
+        JsonObject jsonObject = new JsonObject();
+
+        if (this.type != null) {
+            jsonObject.addProperty(TYPE_KEY, this.type);
+        }
+        if (this.rootDecoder != null) {
+            jsonObject.addProperty(ROOT_DECODER_KEY, this.rootDecoder);
+        }
+        if (this.integrations != null) {
+            JsonArray integrationsArray = new JsonArray();
+            for (String integration : this.integrations) {
+                integrationsArray.add(integration);
+            }
+            jsonObject.add(INTEGRATIONS_KEY, integrationsArray);
+        }
+        if (this.author != null) {
+            jsonObject.addProperty(AUTHOR_KEY, this.author);
+        }
+        if (this.description != null) {
+            jsonObject.addProperty(DESCRIPTION_KEY, this.description);
+        }
+        if (this.documentation != null) {
+            jsonObject.addProperty(DOCUMENTATION_KEY, this.documentation);
+        }
+        if (this.references != null) {
+            jsonObject.addProperty(REFERENCES_KEY, this.references);
+        }
+
+        return jsonObject;
+    }
+
     /**
      * Adds an integration ID to the policy's integrations list.
      *

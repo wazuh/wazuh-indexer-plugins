@@ -43,12 +43,11 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
-import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
@@ -85,6 +84,10 @@ public class ContentIndex {
 
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DECODER_KEY = "decoder";
+
+    public ContentIndex(Client client, String indexName) {
+        this(client, indexName, null, null);
+    }
 
     /**
      * Constructs a new ContentIndex manager.
@@ -277,20 +280,13 @@ public class ContentIndex {
     /**
      * Searches for a document by a specific field name and value.
      *
-     * @param key The field name to search for.
-     * @param value The value to match in the specified field.
-     * @return The first matching Resource, or null if no document is found.
+     * @param queryBuilder The query to execute.
+     * @return A JsonObject representing the found document, or null if not found or on
      */
-    public Resource searchByKeyValue(String key, String value) {
+    public JsonObject searchByQuery(QueryBuilder queryBuilder) {
         try {
-            // Build the term query for exact match
-            BoolQueryBuilder queryBuilder =
-                    QueryBuilders.boolQuery().must(QueryBuilders.termQuery(key, value));
-
             // Create search request
-            SearchSourceBuilder searchSourceBuilder =
-                    new SearchSourceBuilder().query(queryBuilder).size(1); // We only need the first result
-
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
             SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
 
             // Execute search synchronously
@@ -302,25 +298,14 @@ public class ContentIndex {
             // Check if we have results
             if (searchResponse.getHits().getTotalHits() == null
                     || searchResponse.getHits().getTotalHits().value() == 0L) {
-                log.debug("No document found in [{}] with {}={}", this.indexName, key, value);
+                log.debug(
+                        "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
                 return null;
             }
-
-            // Parse the first hit to a Resource
-            SearchHit hit = searchResponse.getHits().getAt(0);
-            JsonObject document = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-
-            // Determine the appropriate Resource type based on the document
-            if (document.has(JSON_TYPE_KEY)
-                    && JSON_DECODER_KEY.equalsIgnoreCase(document.get(JSON_TYPE_KEY).getAsString())) {
-                return Decoder.fromPayload(document);
-            } else {
-                return Resource.fromPayload(document);
-            }
-
+            // Parse all hits and return in JsonObject format
+            return JsonParser.parseString(searchResponse.getHits().toString()).getAsJsonObject();
         } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Failed to search by {}={} in [{}]: {}", key, value, this.indexName, e.getMessage());
+            log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
             return null;
         }
     }

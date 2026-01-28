@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -22,11 +22,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -65,6 +62,12 @@ public abstract class AbstractConsumerSynchronizer {
 
     /** The OpenSearch environment configuration. */
     protected final Environment environment;
+
+    public static final String POLICY = "policy";
+    public static final String RULE = "rule";
+    public static final String DECODER = "decoder";
+    public static final String KVDB = "kvdb";
+    public static final String INTEGRATION = "integration";
 
     /**
      * Constructs a new AbstractConsumerSynchronizer.
@@ -131,14 +134,20 @@ public abstract class AbstractConsumerSynchronizer {
     }
 
     /**
-     * Constructs the index name for a given type. The index name follows the pattern:
-     * .context-consumer-type
+     * Overrides index naming to utilize the alias name convention directly.
      *
      * @param type The type identifier for the index.
-     * @return The fully qualified index name.
+     * @return The unified index name.
      */
-    protected String getIndexName(String type) {
-        return String.format(Locale.ROOT, ".%s-%s-%s", this.getContext(), this.getConsumer(), type);
+    public String getIndexName(String type) {
+        return switch (type) {
+            case RULE -> ".cti-rules";
+            case DECODER -> ".cti-decoders";
+            case KVDB -> ".cti-kvdbs";
+            case INTEGRATION -> ".cti-integrations";
+            case POLICY -> ".cti-policies";
+            default -> null;
+        };
     }
 
     /**

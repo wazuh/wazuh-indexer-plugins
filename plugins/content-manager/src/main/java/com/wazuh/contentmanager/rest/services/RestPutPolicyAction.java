@@ -16,9 +16,15 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.google.gson.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -26,8 +32,8 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.engine.utils.PolicyHandler;
 import com.wazuh.contentmanager.rest.model.Policy;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -41,6 +47,7 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  * policy defines the root decoder and integrations list for content processing.
  */
 public class RestPutPolicyAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPutPolicyAction.class);
     private static final String ENDPOINT_NAME = "content_manager_policy_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/policy_update";
     private final EngineService engine;
@@ -85,7 +92,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+        RestResponse response = handleRequest(request, client);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
     /**
@@ -100,39 +108,43 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * </ol>
      *
      * @param request incoming REST request containing the policy data
-     * @return a BytesRestResponse describing the outcome of the operation
-     * @throws IOException if an I/O error occurs while building the response
+     * @return a RestResponse describing the outcome of the operation
      */
-    public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
-            throws IOException, Exception {
+    public RestResponse handleRequest(RestRequest request, NodeClient client) {
         // TODO: Move this logic to a common utility method since it's repeated in multiple handlers.
         // 1. Check if engine service exists
         if (this.engine == null) {
-            RestResponse error =
-                    new RestResponse(
-                            "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+            return new RestResponse(
+                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         // 2. Check request's payload exists
         if (!request.hasContent()) {
-            RestResponse error =
-                    new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
         // 3. Check request's payload is valid Policy JSON
-        Policy policy = PolicyHandler.getPolicyFromJson(request.content());
-        if (policy == null) {
-            RestResponse error =
-                    new RestResponse(
-                            "Invalid Policy JSON content: " + request.content().utf8ToString(),
-                            RestStatus.BAD_REQUEST.getStatus());
-            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+        ObjectMapper mapper = new ObjectMapper();
+        Policy policy;
+        try {
+            policy = mapper.readValue(request.content().utf8ToString(), Policy.class);
+        } catch (IOException e) {
+            log.debug("Invalid Policy JSON content: " + e.getMessage());
+            return new RestResponse(
+                    "Invalid Policy JSON content: " + request.content().utf8ToString(),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
-        if (PolicyHandler.searchPolicyBySpace("draft", client) == null) {
-            PolicyHandler.createDefaultPolicy(client);
+        // 4. Store the policy in the draft space
+        // Search the current draft policy to get the ID
+        ContentIndex contentIndex = new ContentIndex(client, ".cti-policies.");
+        QueryBuilder queryBuilder = QueryBuilders.termQuery("space", "draft");
+        JsonObject resource = contentIndex.searchByQuery(queryBuilder);
+        try {
+            // Update the policy
+            contentIndex.create(resource.get("id").getAsString(), policy.toJson());
+        } catch (IOException ex) {
+            System.getLogger(RestPutPolicyAction.class.getName())
+                    .log(System.Logger.Level.ERROR, (String) null, ex);
         }
-        // 4. Update the policy using the engine service. TODO: Implement this logic.
-        PolicyHandler.indexPolicy(policy, "draft", client);
-        return new BytesRestResponse(RestStatus.OK, policy.toString());
+
+        return new RestResponse(policy.toString(), RestStatus.OK.getStatus());
     }
 }
