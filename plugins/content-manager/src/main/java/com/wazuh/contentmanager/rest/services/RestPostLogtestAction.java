@@ -35,13 +35,15 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * POST /_plugins/content-manager/logtest
+ * POST /_plugins/_content_manager/logtest
  *
- * <p>Triggers a log test execution in the local engine.
+ * <p>Triggers a log test execution in the local engine. Possible HTTP responses:
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <pre>
+ *  - 200 Accepted: Wazuh Engine replied with a successful response.
+ *  - 400 Bad Request: Wazuh Engine replied with an error response.
+ *  - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
+ * </pre>
  */
 public class RestPostLogtestAction extends BaseRestHandler {
 
@@ -80,7 +82,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
     }
 
     /**
-     * Prepare the request by returning a consumer that executes the update operation.
+     * Handles incoming requests.
      *
      * @param request the incoming REST request
      * @param client the node client

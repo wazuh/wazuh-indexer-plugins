@@ -16,15 +16,21 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestPostPromoteAction} class. This test suite validates the REST API
@@ -34,7 +40,7 @@ import static org.mockito.Mockito.mock;
  * codes for successful Promote requests and validation errors.
  */
 public class RestPostPromoteActionTests extends OpenSearchTestCase {
-    private EngineService service;
+    private EngineService engine;
     private RestPostPromoteAction action;
 
     /**
@@ -46,17 +52,17 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.service = mock(EngineService.class);
-        this.action = new RestPostPromoteAction(this.service);
+        this.engine = mock(EngineService.class);
+        this.action = new RestPostPromoteAction(this.engine);
     }
 
     /**
      * Test the {@link RestPostPromoteAction#handleRequest(RestRequest)} method when the request is
-     * complete. The expected response is: {201, RestResponse}
+     * complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException
      */
-    public void testPostPromote201() throws IOException {}
+    public void testPostPromote200() throws IOException {}
 
     /**
      * Test the {@link RestPostPromoteAction#handleRequest(RestRequest) method when the promote has not
@@ -64,7 +70,45 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      *
      * @throws IOException
      */
-    public void testPostPromote400() throws IOException {}
+    public void testPostPromote400() throws IOException {
+        RestRequest request = mock(RestRequest.class);
+        RestResponse expectedResponse;
+        RestResponse actualResponse;
+
+        // No content
+        when(request.hasContent()).thenReturn(false);
+        when(request.content()).thenReturn(new BytesArray("".getBytes(StandardCharsets.UTF_8)));
+        actualResponse = this.action.handleRequest(request);
+        expectedResponse = new RestResponse("JSON request body is required.", 400);
+        assertEquals(expectedResponse, actualResponse);
+
+        // Invalid content
+        when(request.hasContent()).thenReturn(true);
+        when(request.content()).thenReturn(new BytesArray("invalid".getBytes(StandardCharsets.UTF_8)));
+        actualResponse = this.action.handleRequest(request);
+        assertTrue(actualResponse.getMessage().contains("Invalid JSON"));
+        assertEquals(400, actualResponse.getStatus());
+
+        // Document stated in the payload is missing
+        JsonNode payload =
+                FixtureFactory.from(
+                        "{\n"
+                                + "  \"space\": \"test\",\n"
+                                + "  \"changes\": {\n"
+                                + "    \"policy\": [],\n"
+                                + "    \"integrations\": [],\n"
+                                + "    \"kvdbs\": [],\n"
+                                + "    \"decoders\": [{\"operation\": \"add\", \"id\": \"12345\"}],\n"
+                                + "    \"filters\": []\n"
+                                + "  }\n"
+                                + "}");
+
+        when(request.hasContent()).thenReturn(true);
+        when(request.content()).thenReturn(new BytesArray(payload.asText()));
+        actualResponse = this.action.handleRequest(request);
+        assertTrue(actualResponse.getMessage().contains("Resource with ID [12345] does not exist"));
+        assertEquals(400, actualResponse.getStatus());
+    }
 
     /**
      * Test the {@link RestPostPromoteAction#handleRequest(RestRequest)} method when an unexpected
