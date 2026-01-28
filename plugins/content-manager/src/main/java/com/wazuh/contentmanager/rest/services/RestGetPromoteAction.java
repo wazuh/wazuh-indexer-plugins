@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -42,23 +41,18 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
- * GET /_plugins/content-manager/promote_preview
+ * GET /_plugins/content-manager/promote
  *
  * <p>Previews the promotion of content from one space to another. Compares resources in the source
  * space against the target space and returns a list of operations (add, remove, update) required to
  * synchronize them.
  *
- * <p>Supported transitions:
- *
- * <ul>
- *   <li>space=draft: Compares DRAFT (Source) -> TEST (Target)
- *   <li>space=test: Compares TEST (Source) -> CUSTOM (Target)
- * </ul>
+ * <p>Supported transitions are defined by {@link Space#promote()}.
  */
-public class RestGetPromotePreviewAction extends BaseRestHandler {
+public class RestGetPromoteAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_promote_preview";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote_preview";
-    private static final Logger log = LogManager.getLogger(RestGetPromotePreviewAction.class);
+    private static final Logger log = LogManager.getLogger(RestGetPromoteAction.class);
 
     // Operations
     private static final String OP_ADD = "add";
@@ -67,7 +61,7 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
 
     private final SpaceService spaceService;
 
-    public RestGetPromotePreviewAction(SpaceService spaceService) {
+    public RestGetPromoteAction(SpaceService spaceService) {
         this.spaceService = spaceService;
     }
 
@@ -80,7 +74,7 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(PluginSettings.PROMOTE_PREVIEW_URI)
+                        .path(PluginSettings.PROMOTE_URI)
                         .method(GET)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
@@ -89,7 +83,6 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        // Explicitly consume 'space' parameter to satisfy BaseRestHandler validation
         if (request.hasParam("space")) {
             request.param("space");
         }
@@ -108,40 +101,39 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
                                 .toXContent());
             }
 
-            String sourceSpace;
-            String targetSpace;
-
-            // Normalize input
-            // Pasar al Space clase
-            String spaceLower = spaceParam.toLowerCase(Locale.ROOT);
-
-            if ("draft".equals(spaceLower)) {
-                sourceSpace = Space.DRAFT.toString();
-                targetSpace = Space.TEST.toString();
-            } else if ("test".equals(spaceLower)) {
-                sourceSpace = Space.TEST.toString();
-                targetSpace = Space.CUSTOM.toString();
-            } else {
+            Space sourceSpace;
+            try {
+                sourceSpace = Space.fromValue(spaceParam);
+            } catch (IllegalArgumentException e) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse(
-                                        "Invalid space parameter. Must be 'draft' or 'test'.",
+                                        "Invalid space parameter: " + spaceParam, RestStatus.BAD_REQUEST.getStatus())
+                                .toXContent());
+            }
+
+            // 2. Determine Target Space
+            Space targetSpace = sourceSpace.promote();
+            if (targetSpace == sourceSpace) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse(
+                                        "Space [" + sourceSpace + "] cannot be promoted further.",
                                         RestStatus.BAD_REQUEST.getStatus())
                                 .toXContent());
             }
 
-            // 2. Fetch Resources for both spaces using SpaceService
+            // 3. Fetch Resources for both spaces using SpaceService
             // Structure: Map<ResourceType, Map<ID, Hash>>
             Map<String, Map<String, String>> sourceContent =
-                    this.spaceService.getSpaceResources(sourceSpace);
+                    this.spaceService.getSpaceResources(sourceSpace.toString());
             Map<String, Map<String, String>> targetContent =
-                    this.spaceService.getSpaceResources(targetSpace);
+                    this.spaceService.getSpaceResources(targetSpace.toString());
 
-            // 3. Calculate Differences
+            // 4. Calculate Differences
             Map<String, List<Map<String, String>>> changes = new HashMap<>();
 
-            // Iterate over the keys returned by the service (policy, integrations, etc.)
-            // We use the union of keys to ensure we catch everything in case one map is missing a type
+            // Iterate over the keys returned by the service
             for (String resourceType : sourceContent.keySet()) {
                 Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
                 Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
@@ -150,7 +142,7 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
                 changes.put(resourceType, resourceChanges);
             }
 
-            // 4. Build Response
+            // 5. Build Response
             XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.startObject();
             builder.field("changes", changes);
@@ -200,7 +192,7 @@ public class RestGetPromotePreviewAction extends BaseRestHandler {
         }
 
         // Check REMOVE
-        // Case 3: UUID is in promoted space but not in current one -> DELETE (Remove)
+        // Case 3: UUID is in promoted space but not in current one -> DELETE
         for (String targetId : targetItems.keySet()) {
             if (!sourceItems.containsKey(targetId)) {
                 changes.add(Map.of("operation", OP_REMOVE_VAL, "id", targetId));

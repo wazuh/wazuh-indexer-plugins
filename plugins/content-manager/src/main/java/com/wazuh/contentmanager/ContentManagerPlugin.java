@@ -188,7 +188,7 @@ public class ContentManagerPlugin extends Plugin
                 // User-generated content endpoints
                 new RestPostLogtestAction(this.engine),
                 new RestPostPromoteAction(this.engine),
-                new RestGetPromotePreviewAction(this.spaceService));
+                new RestGetPromoteAction(this.spaceService));
     }
 
     /** Performs initialization tasks for the plugin. */
