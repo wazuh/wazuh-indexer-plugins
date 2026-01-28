@@ -21,6 +21,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 
 import static org.mockito.Mockito.mock;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.mock;
  */
 public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     private EngineService service;
+    private SecurityAnalyticsService sapService;
     private RestPutIntegrationAction action;
 
     /**
@@ -46,7 +48,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        this.action = new RestPutIntegrationAction(this.service);
+        this.sapService = mock(SecurityAnalyticsService.class);
+        this.action = new RestPutIntegrationAction(this.service, this.sapService);
     }
 
     /**
