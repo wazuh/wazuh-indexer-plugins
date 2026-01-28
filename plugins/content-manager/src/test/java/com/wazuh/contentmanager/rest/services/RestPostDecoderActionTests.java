@@ -114,7 +114,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
 
         // Assert
         RestResponse actualResponse = parseResponse(bytesRestResponse);
@@ -125,7 +125,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         verify(this.service).validate(payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
         assertEquals("decoder", captured.get("type").asText());
-        assertEquals("integration-1", captured.get("integration").asText());
+        assertFalse(captured.has("integration"));
         JsonNode resource = captured.get("resource");
         assertTrue(resource.hasNonNull("id"));
         UUID.fromString(resource.get("id").asText());
@@ -142,7 +142,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestRequest request = buildRequest(DECODER_PAYLOAD_WITH_ID, null);
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
 
         // Assert
         RestResponse expectedResponse =
@@ -179,7 +179,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
                                 + "}",
                         null);
 
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
 
         RestResponse expectedResponse =
                 new RestResponse(
@@ -203,7 +203,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestRequest request = buildRequest(DECODER_PAYLOAD, null);
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
 
         // Assert
         RestResponse expectedResponse =
