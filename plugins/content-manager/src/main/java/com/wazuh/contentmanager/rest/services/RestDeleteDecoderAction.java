@@ -44,13 +44,20 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
- * TODO !CHANGE_ME DELETE /_plugins/content-manager/decoder/{decoder_id}
+ * REST handler for deleting CTI decoders.
  *
- * <p>Deletes a decoder
+ * <p>Endpoint: DELETE /_plugins/content-manager/decoder/{decoder_id}
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>This handler processes decoder deletion requests. When a decoder is deleted, it is also
+ * removed from any integrations that reference it.
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Decoder deleted successfully.
+ *   <li>400 Bad Request: Decoder ID is missing or invalid.
+ *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ * </ul>
  */
 public class RestDeleteDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
@@ -65,9 +72,9 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     private final EngineService engine;
 
     /**
-     * Constructs a new TODO !CHANGE_ME.
+     * Constructs a new RestDeleteDecoderAction handler.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param engine the engine service instance for communication with the Wazuh engine
      */
     public RestDeleteDecoderAction(EngineService engine) {
         this.engine = engine;
@@ -95,11 +102,12 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Prepares the REST request for processing.
      *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
+     * @param request the incoming REST request containing the decoder ID
+     * @param client the node client for executing operations
+     * @return a consumer that executes the delete operation and sends the response
+     * @throws IOException if an I/O error occurs during request preparation
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
@@ -110,11 +118,14 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Handles the decoder deletion request.
      *
-     * @param request incoming request
-     * @param client the node client
-     * @return a BytesRestResponse describing the outcome
+     * <p>This method validates the request, deletes the decoder from the index, and removes
+     * references to the decoder from any integrations that include it.
+     *
+     * @param request the incoming REST request containing the decoder ID to delete
+     * @param client the OpenSearch client for index operations
+     * @return a BytesRestResponse indicating success or failure of the deletion
      */
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
