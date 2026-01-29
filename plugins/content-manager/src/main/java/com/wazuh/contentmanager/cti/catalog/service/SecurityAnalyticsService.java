@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.gson.JsonObject;
 
+import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
 import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
 
 /**
@@ -49,7 +50,7 @@ public interface SecurityAnalyticsService {
      *
      * @param id The identifier of the integration to delete.
      */
-    void deleteIntegration(String id);
+    WDeleteIntegrationResponse deleteIntegration(String id);
 
     /**
      * Creates or updates a Rule in SAP.

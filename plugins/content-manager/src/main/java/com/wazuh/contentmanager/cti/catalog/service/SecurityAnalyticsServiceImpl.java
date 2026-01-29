@@ -112,14 +112,14 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteIntegration(String id) {
+    public WDeleteIntegrationResponse deleteIntegration(String id) {
         try {
             // Delete detector first
             this.deleteDetector(id);
 
             // Then delete integration
             log.info("Deleting Integration [{}] from SAP", id);
-            this.client
+            return this.client
                     .execute(
                             WDeleteIntegrationAction.INSTANCE,
                             new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
