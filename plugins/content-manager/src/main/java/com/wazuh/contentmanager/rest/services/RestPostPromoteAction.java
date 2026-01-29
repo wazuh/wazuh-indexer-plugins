@@ -16,21 +16,15 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -101,49 +95,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
      * @return a RestResponse
      */
     public RestResponse handleRequest(RestRequest request) {
-        try {
-            // 0. Common validations
-            if (this.engine == null) {
-                return new RestResponse(
-                        "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-            if (request == null || !request.hasContent()) {
-                return new RestResponse(
-                        "JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // 1. Payload validation
-            ObjectMapper mapper = new ObjectMapper();
-            SpaceDiff spaceDiff;
-            try {
-                spaceDiff = mapper.readValue(request.content().utf8ToString(), SpaceDiff.class);
-            } catch (IOException e) {
-                return new RestResponse(
-                        "Invalid JSON: " + e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // 2. Policy gathering
-            // TODO
-            JsonNode engine_payload = null;
-
-            // 3. Promote
-            RestResponse response = this.engine.promote(engine_payload);
-            if (response.getStatus() != RestStatus.OK.getStatus()) {
-                return response;
-            }
-            // TODO Update the resources' space
-
-            // TODO Regenerate the space hash
-
-            // Reply with a 200 OK (already 200 is we reached this point)
-            response.setMessage("Promotion complete.");
-            return response;
-        } catch (Exception e) {
-            return new RestResponse(
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "An unexpected error occurred while processing your request.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+        return null;
     }
 }
