@@ -80,7 +80,7 @@ public class Resource {
      * @param payload The source JSON payload.
      * @param spaceName The name of the space to assign to the resource.
      */
-    protected static void populateResource(Resource resource, JsonObject payload, String spaceName) {
+    protected static void populateResource(Resource resource, JsonObject payload) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
@@ -98,8 +98,8 @@ public class Resource {
         }
 
         // 3. Set Space
-        // TODO: Change To the real logic once CTI is ready
         Map<String, String> spaceMap = new HashMap<>();
+        String spaceName = resource.getSpace().getOrDefault("name", Space.STANDARD.toString());
         spaceMap.put("name", spaceName);
         resource.setSpace(spaceMap);
     }
