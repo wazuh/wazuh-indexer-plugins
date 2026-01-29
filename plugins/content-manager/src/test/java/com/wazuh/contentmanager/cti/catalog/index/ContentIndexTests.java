@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -321,7 +323,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /** Test delete operation. */
-    public void testDelete() {
+    public void testDelete() throws ExecutionException, InterruptedException, TimeoutException {
         String id = "test-id";
 
         // Act
