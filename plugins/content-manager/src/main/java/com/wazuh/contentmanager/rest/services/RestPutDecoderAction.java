@@ -232,9 +232,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
     /** Updates the decoder document in the index. */
     private void updateDecoder(Client client, String decoderId, ObjectNode resourceNode)
             throws IOException {
-        if (client == null) {
-            return;
-        }
 
         ensureIndexExists(client);
         ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);

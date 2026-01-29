@@ -146,22 +146,20 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             }
             final String resolvedDecoderId = decoderId;
 
-            if (client != null) {
-                String decoderIndexName = DECODER_INDEX;
-                ensureIndexExists(client, decoderIndexName);
-                ContentIndex decoderIndex = new ContentIndex(client, decoderIndexName, null);
+            String decoderIndexName = DECODER_INDEX;
+            ensureIndexExists(client, decoderIndexName);
+            ContentIndex decoderIndex = new ContentIndex(client, decoderIndexName, null);
 
-                // Check if decoder exists before deleting
-                if (!decoderIndex.exists(resolvedDecoderId)) {
-                    return new RestResponse(
-                                    "Decoder [" + resolvedDecoderId + "] not found.",
-                                    RestStatus.NOT_FOUND.getStatus())
-                            .toBytesRestResponse();
-                }
-
-                updateIntegrationsRemovingDecoder(client, resolvedDecoderId);
-                decoderIndex.delete(resolvedDecoderId);
+            // Check if decoder exists before deleting
+            if (!decoderIndex.exists(resolvedDecoderId)) {
+                return new RestResponse(
+                                "Decoder [" + resolvedDecoderId + "] not found.",
+                                RestStatus.NOT_FOUND.getStatus())
+                        .toBytesRestResponse();
             }
+
+            updateIntegrationsRemovingDecoder(client, resolvedDecoderId);
+            decoderIndex.delete(resolvedDecoderId);
 
             return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
                     .toBytesRestResponse();
