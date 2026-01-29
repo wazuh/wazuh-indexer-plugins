@@ -157,7 +157,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     "Integration with id {id} could not be found", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        SearchHit[] hits = searchPolicy(client, id);
+        SearchHit[] hits = searchPolicyContainingIntegration(client, id, DRAFT_SPACE_NAME);
         if (hits.length == 0) {
             return new RestResponse(
                     "Integration with id {id} is not associated with any policy.",
@@ -290,12 +290,13 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
     }
 
-    private static SearchHit[] searchPolicy(Client client, String id) {
+    private static SearchHit[] searchPolicyContainingIntegration(
+            Client client, String id, String spaceName) {
         // Get the draft policy document
         BoolQueryBuilder query =
                 QueryBuilders.boolQuery()
                         .must(QueryBuilders.termQuery("document.integrations", id))
-                        .must(QueryBuilders.termQuery("space.name", DRAFT_SPACE_NAME));
+                        .must(QueryBuilders.termQuery("space.name", spaceName));
         // TODO: Use a dedicated utils method such as ContentIndex's searchByQuery()
         SearchHit[] hits =
                 client
