@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -164,7 +165,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
 
         // Generate ID
-        final String id = UUIDs.base64UUID();
+        final String id = "d_" + UUIDs.base64UUID();
 
         // Insert ID into /resource/document/id
         final JsonNode documentNode = jsonNode.at("/resource/document");
@@ -239,9 +240,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                                             .source(new SearchSourceBuilder().query(queryBuilder).size(1)))
                             .actionGet();
 
-            if (searchResponse.getHits() == null || searchResponse.getHits().getHits().length == 0) {
-                // Best-effort rollback: SAP integration is removed. Integration doc cannot be removed here
-                // without a DeleteRequest.
+            // If we cannot find the draft space policy, rollback and return an error.
+            if (searchResponse.getHits() == null || searchResponse.getHits().getHits().length != 1) {
+                // Rollback: delete created integration in CTI index and in SAP
+                DeleteRequest deleteRequest = new DeleteRequest(CTI_INTEGRATIONS_INDEX).id(id);
+                client.delete(deleteRequest).actionGet();
                 service.deleteIntegration(id);
                 return new RestResponse(
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
