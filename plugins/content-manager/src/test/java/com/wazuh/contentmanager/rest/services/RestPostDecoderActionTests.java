@@ -150,7 +150,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
-        assertEquals(RestStatus.ACCEPTED, bytesRestResponse.status());
+        assertEquals(RestStatus.CREATED, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().startsWith("Decoder created successfully with ID:"));
@@ -245,6 +245,63 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
+    /** Test that missing integration returns 400 Bad Request. */
+    public void testPostDecoderIntegrationNotFoundReturns400() throws Exception {
+        // Arrange
+        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = buildClientWithMissingIntegration();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
+    }
+
+    /** Test that integration without document field returns 400 Bad Request. */
+    public void testPostDecoderIntegrationWithoutDocumentReturns400() throws Exception {
+        // Arrange
+        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = buildClientWithIntegrationWithoutDocument();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertTrue(actualResponse.getMessage().contains("Can't find document in integration"));
+    }
+
+    /** Test that integration with invalid document returns 400 Bad Request. */
+    public void testPostDecoderIntegrationInvalidDocumentReturns400() throws Exception {
+        // Arrange
+        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = buildClientWithIntegrationInvalidDocument();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertTrue(actualResponse.getMessage().contains("Integration document [integration-1] is invalid"));
+    }
+
     private RestRequest buildRequest(String payload, String decoderId) {
         FakeRestRequest.Builder builder =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -276,6 +333,61 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Use mutable map since updateIntegrationWithDecoder modifies it
         Map<String, Object> source = new HashMap<>();
         source.put("document", document);
+        when(getResponse.getSourceAsMap()).thenReturn(source);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
+
+        return client;
+    }
+
+    private Client buildClientWithMissingIntegration() throws Exception {
+        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        @SuppressWarnings("unchecked")
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
+        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(false);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
+
+        return client;
+    }
+
+    private Client buildClientWithIntegrationWithoutDocument() throws Exception {
+        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        @SuppressWarnings("unchecked")
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
+        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        // Source without document field
+        Map<String, Object> source = new HashMap<>();
+        when(getResponse.getSourceAsMap()).thenReturn(source);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
+
+        return client;
+    }
+
+    private Client buildClientWithIntegrationInvalidDocument() throws Exception {
+        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        @SuppressWarnings("unchecked")
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
+        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        // Source with document field but not a Map
+        Map<String, Object> source = new HashMap<>();
+        source.put("document", "invalid-document-type");
         when(getResponse.getSourceAsMap()).thenReturn(source);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
 

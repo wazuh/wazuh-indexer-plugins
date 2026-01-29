@@ -138,6 +138,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
             }
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
+
+            
+
             // Generate UUID and validate with engine
             resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
             RestResponse engineResponse = validateWithEngine(resourceNode);
@@ -151,10 +154,10 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderIndexId,
-                    RestStatus.ACCEPTED.getStatus());
+                    RestStatus.CREATED.getStatus());
 
         } catch (IOException e) {
-            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error creating decoder: {}", e.getMessage(), e);
             return new RestResponse(
@@ -232,24 +235,21 @@ public class RestPostDecoderAction extends BaseRestHandler {
     /** Updates the integration document to include the new decoder reference. */
     @SuppressWarnings("unchecked")
     private void updateIntegrationWithDecoder(
-            Client client, String integrationId, String decoderIndexId) {
+            Client client, String integrationId, String decoderIndexId) throws IOException {
         GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
 
         if (!integrationResponse.isExists()) {
-            log.error(
-                    "Integration [{}] not found when creating decoder [{}].", integrationId, decoderIndexId);
-            return;
+            throw new IOException("Integration [" + integrationId + "] not found when creating decoder [" + decoderIndexId + "].");
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(FIELD_DOCUMENT)) {
+            throw new IOException("Can't find document in integration [" + integrationId + "] when creating decoder [" + decoderIndexId + "].");
+        }
         Object documentObj = source.get(FIELD_DOCUMENT);
 
-        if (!(documentObj instanceof Map)) {
-            log.error(
-                    "Integration document [{}] is invalid when creating decoder [{}].",
-                    integrationId,
-                    decoderIndexId);
-            return;
+        if (documentObj == null || !(documentObj instanceof Map)) {
+            throw new IOException("Integration document [" + integrationId + "] is invalid when creating decoder [" + decoderIndexId + "].");
         }
 
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
