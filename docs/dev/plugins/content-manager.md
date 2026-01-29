@@ -337,6 +337,82 @@ flowchart LR
     Indexer -. response .-> UI
 ```
 
+#### Decoders
+
+The Content Manager provides REST API endpoints for managing decoders in the draft space. Decoders are validated against the Wazuh engine before being stored.
+
+<div class="warning">
+
+A testing policy needs to be loaded in the Engine for the decoders to be executed successfully. Load a policy via the policy promotion endpoint.
+</div>
+
+**Diagrams**
+
+```mermaid
+---
+title: Decoder creation - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
+    participant DecoderIndex as .cti-decoders
+    participant IntegrationIndex as .cti-integrations
+
+    User->>UI: create decoder
+    UI->>Indexer: POST /_plugins/_content_manager/decoders
+    Indexer->>Indexer: Generate UUID, prefix with d_
+    Indexer->>Engine: POST /content/validate/resource
+    Engine-->>Indexer: validation response
+    Indexer->>DecoderIndex: Index decoder (draft space)
+    Indexer->>IntegrationIndex: Update integration (add decoder reference)
+    Indexer-->>UI: response
+    UI-->>User: decoder created
+```
+
+```mermaid
+---
+title: Decoder update - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
+    participant DecoderIndex as .cti-decoders
+
+    User->>UI: update decoder
+    UI->>Indexer: PUT /_plugins/_content_manager/decoders/{decoder_id}
+    Indexer->>DecoderIndex: Check if decoder exists
+    DecoderIndex-->>Indexer: exists
+    Indexer->>Engine: POST /content/validate/resource
+    Engine-->>Indexer: validation response
+    Indexer->>DecoderIndex: Update decoder
+    Indexer-->>UI: response
+    UI-->>User: decoder updated
+```
+
+```mermaid
+---
+title: Decoder deletion - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant DecoderIndex as .cti-decoders
+    participant IntegrationIndex as .cti-integrations
+
+    User->>UI: delete decoder
+    UI->>Indexer: DELETE /_plugins/_content_manager/decoders/{decoder_id}
+    Indexer->>DecoderIndex: Check if decoder exists
+    DecoderIndex-->>Indexer: exists
+    Indexer->>IntegrationIndex: Update integrations (remove decoder reference)
+    Indexer->>DecoderIndex: Delete decoder
+    Indexer-->>UI: response
+    UI-->>User: decoder deleted
+```
 
 ---
 
