@@ -21,20 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.UUIDs;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
@@ -85,6 +81,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     private final SecurityAnalyticsService service;
 
     private final Logger log = LogManager.getLogger(RestPostIntegrationAction.class);
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new TODO !CHANGE_ME.
@@ -128,33 +125,61 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.policyHashService = new PolicyHashService(client);
         this.integrationsIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null);
         this.policiesIndex = new ContentIndex(client, CTI_POLICIES_INDEX, null);
         return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+                channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
+    }
+
+    /**
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
+
+    /**
+     * Setter for the integrations index, used in tests.
+     *
+     * @param integrationsIndex the integrations index ContentIndex object
+     */
+    public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
+        this.integrationsIndex = integrationsIndex;
+    }
+
+    /**
+     * Setter for the policies index, used in tests.
+     *
+     * @param policiesIndex the integrations index ContentIndex object
+     */
+    public void setPoliciesContentIndex(ContentIndex policiesIndex) {
+        this.policiesIndex = policiesIndex;
     }
 
     /**
      * TODO !CHANGE_ME.
      *
      * @param request incoming request
-     * @param client the node client
      * @return a RestResponse describing the outcome
      * @throws IOException if an I/O error occurs while building the response
      */
-    public RestResponse handleRequest(RestRequest request, Client client) throws IOException {
-        log.debug("POST integration request received (hasContent={}, uri={})", request.hasContent(), request.uri());
+    public RestResponse handleRequest(RestRequest request) throws IOException {
+        this.log.info(
+                "POST integration request received (hasContent={}, uri={})",
+                request.hasContent(),
+                request.uri());
 
         // Check if engine service exists
         if (this.engine == null) {
-            log.debug("Engine instance is null");
+            this.log.info("Engine instance is null");
             return new RestResponse(
                     "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // Check if security analytics service exists
         if (this.service == null) {
-            log.debug("Security Analytics service instance is null");
+            this.log.debug("Security Analytics service instance is null");
             return new RestResponse(
                     "Security Analytics service instance is null.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -162,42 +187,45 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // Check request's payload exists
         if (!request.hasContent()) {
-            log.debug("Request rejected: JSON request body missing");
+            this.log.info("Request rejected: JSON request body missing");
             return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check request's payload is valid JSON
-        final JsonNode requestPayload;
+        JsonNode requestPayload;
         try {
             requestPayload = MAPPER.readTree(request.content().streamInput());
         } catch (IOException ex) {
-            log.debug("Request rejected: invalid JSON content", ex);
+            this.log.info("Request rejected: invalid JSON content", ex);
             return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Verify request is of type "integration"
         if (!requestPayload.has("type") || !requestPayload.get("type").asText().equals("integration")) {
-            log.debug("Request rejected: invalid request type (type={})",
+            this.log.info(
+                    "Request rejected: invalid request type (type={})",
                     requestPayload.has("type") ? requestPayload.get("type").asText() : null);
             return new RestResponse("Invalid request type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check that there is no ID field
         if (!requestPayload.at("/resource/document/id").isMissingNode()) {
-            log.debug("Request rejected: id field present in request body");
+            this.log.info("Request rejected: id field present in request body");
             return new RestResponse(
                     "ID field is not allowed in the request body.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Generate ID
-        final String id = "d_" + UUIDs.base64UUID();
-        log.debug("Generated integration id={}", id);
+        String id = this.generateId();
+        this.log.info("Generated integration id={}", id);
 
         // Extract /resource and /resource/document nodes
         JsonNode integrationNode = requestPayload.at("/resource");
         final JsonNode documentNode = requestPayload.at("/resource/document");
         if (!documentNode.isObject()) {
-            log.debug("Request rejected: /resource/document is not an object (nodeType={})", documentNode.getNodeType());
+            this.log.info(
+                    "Request rejected: /resource/document is not an object (nodeType={})",
+                    documentNode.getNodeType());
             return new RestResponse(
                     "Invalid JSON structure: /resource/document must be an object.",
                     RestStatus.BAD_REQUEST.getStatus());
@@ -213,18 +241,18 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(documentNode.toString());
         ((ObjectNode) integrationNode).putObject("hash").put("sha256", hash);
-        log.debug(
+        this.log.info(
                 "Computed integration sha256 hash for id={} (hashPrefix={})",
                 id,
                 hash.length() >= 12 ? hash.substring(0, 12) : hash);
 
         // Create integration in SAP
-        log.debug("Creating/upserting integration in Security Analytics (id={})", id);
-        final WIndexIntegrationResponse sapResponse = service.upsertIntegration(requestPayload);
+        this.log.info("Creating/upserting integration in Security Analytics (id={})", id);
+        final WIndexIntegrationResponse sapResponse = this.service.upsertIntegration(requestPayload);
 
         // Check if SAP response is valid
         if (sapResponse == null || sapResponse.getStatus() == null) {
-            log.debug("SAP upsert integration failed: response/status is null (id={})", id);
+            this.log.info("SAP upsert integration failed: response/status is null (id={})", id);
             return new RestResponse(
                     "Failed to create Integration, SAP response is null.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -232,20 +260,24 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // If SAP response is not OK, return error
         if (sapResponse.getStatus() != RestStatus.OK) {
-            log.debug("SAP upsert integration returned non-OK status={} (id={})", sapResponse.getStatus(), id);
+            this.log.info(
+                    "SAP upsert integration returned non-OK status={} (id={})", sapResponse.getStatus(), id);
             return new RestResponse(
                     "Failed to create Integration, SAP response: " + sapResponse.getStatus(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate integration with Wazuh Engine
-        log.debug("Validating integration with Engine (id={})", id);
+        this.log.info("Validating integration with Engine (id={})", id);
         final RestResponse validationResponse = this.engine.validate(requestPayload);
 
         // If validation failed, delete the created integration in SAP
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-            log.debug("Engine validation failed (id={}, status={}); rolling back SAP integration", id, validationResponse.getStatus());
-            service.deleteIntegration(id);
+            this.log.info(
+                    "Engine validation failed (id={}, status={}); rolling back SAP integration",
+                    id,
+                    validationResponse.getStatus());
+            this.service.deleteIntegration(id);
             return new RestResponse(
                     "Failed to create Integration, Validation response: "
                             + validationResponse.getStatus()
@@ -256,64 +288,107 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {
             // Index the integration into CTI integrations index (sync + check response)
-            log.debug("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, id);
+            this.log.info("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, id);
             IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, integrationNode);
 
             // Check indexing response. We are expecting for a 200 OK status.
             if (integrationIndexResponse == null || integrationIndexResponse.status() != RestStatus.OK) {
-                log.debug("Indexing integration failed (id={}, status={}); rolling back SAP integration",
+                this.log.info(
+                        "Indexing integration failed (id={}, status={}); rolling back SAP integration",
                         id,
                         integrationIndexResponse != null ? integrationIndexResponse.status() : null);
                 // otherwise, we delete the created SAP integration and return an error.
-                service.deleteIntegration(id);
+                this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Search for the draft policy (scoped to policies index, limit 1)
-            log.debug("Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
+            this.log.info("Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
+
             TermQueryBuilder queryBuilder = new TermQueryBuilder("document.space.name", DRAFT_SPACE_NAME);
 
-            SearchResponse searchResponse =
-                    client
-                            .search(
-                                    new SearchRequest(CTI_POLICIES_INDEX)
-                                            .source(new SearchSourceBuilder().query(queryBuilder).size(1)))
-                            .actionGet();
+            //   SearchResponse searchResponse =
+            //           client
+            //                   .search(
+            //                           new SearchRequest(CTI_POLICIES_INDEX)
+            //                                   .source(new
+            // SearchSourceBuilder().query(queryBuilder).size(1)))
+            //                   .actionGet();
 
-            // If we cannot find the draft space policy, rollback and return an error.
-            if (searchResponse.getHits() == null || searchResponse.getHits().getHits().length != 1) {
-                log.debug("Draft policy not found or ambiguous (hits={}); rolling back (id={})",
-                        searchResponse.getHits() != null ? searchResponse.getHits().getHits().length : null,
-                        id);
+            JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
+
+            if (searchResult == null) {
+                this.log.info("Draft policy search returned null result; rolling back (id={})", id);
                 // Rollback: delete created integration in CTI index and in SAP
-                DeleteRequest deleteRequest = new DeleteRequest(CTI_INTEGRATIONS_INDEX).id(id);
-                client.delete(deleteRequest).actionGet();
-                service.deleteIntegration(id);
+                this.integrationsIndex.delete(id);
+                this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            // Get the policy document
-            JsonNode draftPolicyNode =
-                    MAPPER.readTree(searchResponse.getHits().getAt(0).getSourceAsString());
+            JsonNode draftPolicy = MAPPER.readTree(searchResult.toString());
+
+            //   // If we cannot find the draft space policy, rollback and return an error.
+            //   if (searchResponse.getHits() == null || searchResponse.getHits().getHits().length != 1) {
+            //       log.info(
+            //               "Draft policy not found or ambiguous (hits={}); rolling back (id={})",
+            //               searchResponse.getHits() != null ? searchResponse.getHits().getHits().length
+            // : null,
+            //               id);
+            //       // Rollback: delete created integration in CTI index and in SAP
+            //       DeleteRequest deleteRequest = new DeleteRequest(CTI_INTEGRATIONS_INDEX).id(id);
+            //       client.delete(deleteRequest).actionGet();
+            //       service.deleteIntegration(id);
+            //       return new RestResponse(
+            //               "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            //   }
+
+            if (draftPolicy == null) {
+                this.log.info("Draft policy not found; rolling back (id={})", id);
+                // Rollback: delete created integration in CTI index and in SAP
+                this.service.deleteIntegration(id);
+                return new RestResponse(
+                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+
+            //   // Get the policy document
+            //   JsonNode draftPolicyNode =
+            //           MAPPER.readTree(searchResponse.getHits().getAt(0).getSourceAsString());
+            //   JsonNode documentJsonObject = draftPolicyNode.at("/_source/document");
+            //   if (documentJsonObject.isMissingNode()) {
+            //       log.info(
+            //               "Draft policy hit missing /_source/document (policyId={})",
+            //               searchResponse.getHits().getAt(0).getId());
+            //       return new RestResponse(
+            //               "Failed to retrieve draft policy document.",
+            //               RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            //   }
+
+            JsonNode draftPolicyNode = draftPolicy.get("hits").get(0);
+
+            String policyId = draftPolicyNode.get("_id").asText();
+
             JsonNode documentJsonObject = draftPolicyNode.at("/_source/document");
             if (documentJsonObject.isMissingNode()) {
-                log.debug("Draft policy hit missing /_source/document (policyId={})", searchResponse.getHits().getAt(0).getId());
+                this.log.info("Draft policy hit missing /_source/document (policyId={})", policyId);
                 return new RestResponse(
                         "Failed to retrieve draft policy document.",
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            // Get the policy Id
-            String policyId = searchResponse.getHits().getAt(0).getId();
-            log.debug("Draft policy found (policyId={}); updating integrations", policyId);
+            //   // Get the policy Id
+            //   String policyId = searchResponse.getHits().getAt(0).getId();
+            this.log.info("Draft policy found (policyId={}); updating integrations", policyId);
 
             // Retrieve the integrations array from the policy document
             ArrayNode integrationsArray = (ArrayNode) documentJsonObject.get("integrations");
             if (integrationsArray == null || !integrationsArray.isArray()) {
-                log.debug("Draft policy integrations field missing or not array (policyId={}); rolling back SAP integration (id={})", policyId, id);
-                service.deleteIntegration(id);
+                this.log.info(
+                        "Draft policy integrations field missing or not array (policyId={}); rolling back SAP integration (id={})",
+                        policyId,
+                        id);
+                this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to retrieve integrations array from draft policy document.",
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -323,8 +398,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             for (JsonNode existing : integrationsArray) {
                 if (id.equals(existing.asText())) {
                     // Integration ID already exists in the policy
-                    log.debug("Integration id already exists in draft policy (policyId={}, id={}); rolling back SAP integration", policyId, id);
-                    service.deleteIntegration(id);
+                    this.log.info(
+                            "Integration id already exists in draft policy (policyId={}, id={}); rolling back SAP integration",
+                            policyId,
+                            id);
+                    this.service.deleteIntegration(id);
                     return new RestResponse(
                             "Integration ID already exists in the draft policy.",
                             RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -337,44 +415,55 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             // Put policyHash inside hash.sha256 key
             ((ObjectNode) draftPolicyNode.at("/_source/hash")).put("sha256", policyHash);
-            log.debug(
+            this.log.info(
                     "Updated draft policy hash (policyId={}, hashPrefix={})",
                     policyId,
                     policyHash.length() >= 12 ? policyHash.substring(0, 12) : policyHash);
 
             // Index the policy with the updated integrations array
-            log.debug("Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, policyId);
+            this.log.info("Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, policyId);
             IndexResponse indexPolicyResponse = this.policiesIndex.create(policyId, draftPolicyNode);
 
             if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.OK) {
-                log.debug("Indexing updated draft policy failed (policyId={}, status={}); rolling back SAP integration (id={})",
+                this.log.info(
+                        "Indexing updated draft policy failed (policyId={}, status={}); rolling back SAP integration (id={})",
                         policyId,
                         indexPolicyResponse != null ? indexPolicyResponse.status() : null,
                         id);
-                service.deleteIntegration(id);
+                this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Update the space's hash in the policy
-            log.debug("Recalculating space hash for draft space after integration create (id={})", id);
-            new PolicyHashService(client)
-                    .calculateAndUpdate(
-                            CTI_POLICIES_INDEX,
-                            CTI_INTEGRATIONS_INDEX,
-                            CTI_DECODERS_INDEX,
-                            CTI_KVDBS_INDEX,
-                            CTI_RULES_INDEX,
-                            List.of(Space.DRAFT.toString()));
+            this.log.info("Recalculating space hash for draft space after integration create (id={})", id);
 
-            log.debug("Integration created successfully (id={})", id);
+            this.policyHashService.calculateAndUpdate(
+                    CTI_POLICIES_INDEX,
+                    CTI_INTEGRATIONS_INDEX,
+                    CTI_DECODERS_INDEX,
+                    CTI_KVDBS_INDEX,
+                    CTI_RULES_INDEX,
+                    List.of(Space.DRAFT.toString()));
+
+            this.log.info("Integration created successfully (id={})", id);
             return new RestResponse(
                     "Integration created successfully with ID: " + id + ".", RestStatus.OK.getStatus());
         } catch (Exception e) {
-            log.debug("Unexpected error creating integration (id={}); rolling back SAP integration", id, e);
-            service.deleteIntegration(id);
+            this.log.info(
+                    "Unexpected error creating integration (id={}); rolling back SAP integration", id, e);
+            this.service.deleteIntegration(id);
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+    }
+
+    /**
+     * Generates a unique identifier for an integration.
+     *
+     * @return a unique integration ID string
+     */
+    public String generateId() {
+        return "d_" + UUIDs.base64UUID();
     }
 }
