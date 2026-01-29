@@ -245,8 +245,27 @@ public class RestPostDecoderAction extends BaseRestHandler {
                             + "].");
         }
 
-        Map<String, Object> source = new HashMap<>(integrationResponse.getSourceAsMap());
-        Map<String, Object> document = (Map<String, Object>) source.get(FIELD_DOCUMENT);
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(FIELD_DOCUMENT)) {
+            throw new IOException(
+                    "Can't find document in integration ["
+                            + integrationId
+                            + "] when creating decoder ["
+                            + decoderIndexId
+                            + "].");
+        }
+        Object documentObj = source.get(FIELD_DOCUMENT);
+
+        if (documentObj == null || !(documentObj instanceof Map)) {
+            throw new IOException(
+                    "Integration document ["
+                            + integrationId
+                            + "] is invalid when creating decoder ["
+                            + decoderIndexId
+                            + "].");
+        }
+
+        Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
         List<String> decoders = this.extractDecodersList(document.get(FIELD_DECODERS));
 
         if (!decoders.contains(decoderIndexId)) {
