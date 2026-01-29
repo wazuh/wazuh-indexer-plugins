@@ -128,8 +128,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         this.policyHashService = new PolicyHashService(client);
         this.integrationsIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null);
         this.policiesIndex = new ContentIndex(client, CTI_POLICIES_INDEX, null);
-        return channel ->
-                channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
+        return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
     }
 
     /**
@@ -304,7 +303,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             }
 
             // Search for the draft policy (scoped to policies index, limit 1)
-            this.log.info("Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
+            this.log.info(
+                    "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
 
             TermQueryBuilder queryBuilder = new TermQueryBuilder("document.space.name", DRAFT_SPACE_NAME);
 
@@ -421,7 +421,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     policyHash.length() >= 12 ? policyHash.substring(0, 12) : policyHash);
 
             // Index the policy with the updated integrations array
-            this.log.info("Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, policyId);
+            this.log.info(
+                    "Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, policyId);
             IndexResponse indexPolicyResponse = this.policiesIndex.create(policyId, draftPolicyNode);
 
             if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.OK) {
@@ -436,7 +437,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             }
 
             // Update the space's hash in the policy
-            this.log.info("Recalculating space hash for draft space after integration create (id={})", id);
+            this.log.info(
+                    "Recalculating space hash for draft space after integration create (id={})", id);
 
             this.policyHashService.calculateAndUpdate(
                     CTI_POLICIES_INDEX,

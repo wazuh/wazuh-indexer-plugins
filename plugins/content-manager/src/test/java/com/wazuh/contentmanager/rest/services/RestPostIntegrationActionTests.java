@@ -80,8 +80,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when the
-     * request is complete. The expected response is: {200, RestResponse}
+     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when the request
+     * is complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
@@ -357,8 +357,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when an
-     * unexpected error occurs. The expected response is: {500, RestResponse}
+     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when an unexpected
+     * error occurs. The expected response is: {500, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */

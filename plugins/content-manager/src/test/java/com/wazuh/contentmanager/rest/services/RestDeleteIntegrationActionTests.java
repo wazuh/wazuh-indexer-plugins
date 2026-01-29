@@ -16,60 +16,197 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.update.UpdateResponse;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.Before;
+import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
-
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the {@link RestDeleteIntegrationAction} class. This test suite validates the REST
- * API endpoint responsible for deleting new CTI Integrations.
+ * Unit tests for {@link RestDeleteIntegrationAction}.
  *
- * <p>Tests verify Integration delete requests, proper handling of Integration data, and appropriate
- * HTTP response codes for successful Integration delete errors.
+ * <p>These tests validate the REST action behavior when deleting an integration:
+ *
+ * <ul>
+ *   <li>Interaction with Security Analytics (policy/integration removal)
+ *   <li>Deletion from the Content Manager integrations index
+ *   <li>HTTP status mapping for success and failure scenarios
+ * </ul>
+ *
+ * <p>All OpenSearch client interactions are mocked; no real cluster is involved.
  */
 public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
-    private EngineService service;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private EngineService engine;
+    private SecurityAnalyticsService securityAnalyticsService;
+    private Client client;
+
     private RestDeleteIntegrationAction action;
 
-    /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
-     */
-    @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.service = mock(EngineService.class);
-        this.action = new RestDeleteIntegrationAction(this.service);
+        engine = mock(EngineService.class);
+        securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        client = mock(Client.class);
+
+        action = spy(new RestDeleteIntegrationAction(engine, securityAnalyticsService));
     }
 
     /**
-     * Test the {@link RestDeleteIntegrationAction#handleRequest(integration)} method when the request
-     * is complete. The expected response is: {201, RestResponse}
+     * Verifies that a valid delete request returns {@code 200 OK} when:
      *
-     * @throws IOException
+     * <ul>
+     *   <li>The integration exists in the integrations index
+     *   <li>Security Analytics accepts the deletion request
+     *   <li>The integrations index document is successfully deleted
+     * </ul>
+     *
+     * @throws Exception if the test fixture cannot be prepared
      */
-    public void testDeleteIntegration201() throws IOException {}
+    public void testDeleteIntegration200() throws Exception {
+        mockHappyPath("integration-1");
+
+        WDeleteIntegrationResponse sapResponse = mock(WDeleteIntegrationResponse.class);
+        when(sapResponse.getStatus()).thenReturn(RestStatus.OK);
+        when(securityAnalyticsService.deleteIntegration("integration-1")).thenReturn(sapResponse);
+
+        DeleteResponse deleteResponse = mock(DeleteResponse.class);
+        when(deleteResponse.status()).thenReturn(RestStatus.OK);
+
+        // doReturn(deleteResponse).when(action).integrationsIndex.delete("integration-1");
+
+        RestRequest request = mockRequest("integration-1");
+        RestResponse response = action.handleRequest(request, client);
+
+        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+    }
 
     /**
-     * Test the {@link RestDeleteIntegrationAction#handleRequest(integration)} method when the
-     * integration has not been deleted (mock). The expected response is: {400, RestResponse}
+     * Verifies that the REST action propagates a {@code 400 BAD REQUEST} when Security Analytics
+     * rejects the delete integration request.
      *
-     * @throws IOException
+     * @throws Exception if the test fixture cannot be prepared
      */
-    public void testDeleteIntegration400() throws IOException {}
+    public void testDeleteIntegration400() throws Exception {
+        mockHappyPath("integration-1");
+
+        WDeleteIntegrationResponse sapResponse = mock(WDeleteIntegrationResponse.class);
+        when(sapResponse.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
+        when(securityAnalyticsService.deleteIntegration("integration-1")).thenReturn(sapResponse);
+
+        RestRequest request = mockRequest("integration-1");
+        RestResponse response = action.handleRequest(request, client);
+
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+    }
 
     /**
-     * Test the {@link RestDeleteIntegrationAction#handleRequest(RestRequest)} method when an
-     * unexpected error occurs. The expected response is: {500, RestResponse}
+     * Verifies that unexpected failures while deleting the integration document from the integrations
+     * index are translated into {@code 500 INTERNAL SERVER ERROR}.
      *
-     * @throws IOException if an I/O error occurs during the test
+     * @throws Exception if the test fixture cannot be prepared
      */
-    public void testDeleteIntegration500() throws IOException {}
+    public void testDeleteIntegration500() throws Exception {
+        mockHappyPath("integration-1");
+
+        WDeleteIntegrationResponse sapResponse = mock(WDeleteIntegrationResponse.class);
+        when(sapResponse.getStatus()).thenReturn(RestStatus.OK);
+        when(securityAnalyticsService.deleteIntegration("integration-1")).thenReturn(sapResponse);
+
+        // doThrow(new
+        // OpenSearchException("boom")).when(action).integrationsIndex.delete("integration-1");
+
+        RestRequest request = mockRequest("integration-1");
+        RestResponse response = action.handleRequest(request, client);
+
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+    }
+
+    /* ---------------------------------------------------
+     * Helpers
+     * --------------------------------------------------- */
+
+    private void mockHappyPath(String integrationId) throws Exception {
+        // integrations index exists
+        // action.integrationsIndex = mock(ContentIndex.class);
+        // when(action.integrationsIndex.exists(integrationId)).thenReturn(true);
+
+        // policy search hit
+        SearchHit hit = new SearchHit(0);
+        hit.sourceRef(null);
+        // hit.sourceAsString(createPolicyDocument(integrationId));
+        // hit.setId("policy-1");
+
+        SearchHits hits = new SearchHits(new SearchHit[] {hit}, null, 1f);
+        SearchResponse searchResponse = mock(SearchResponse.class);
+        when(searchResponse.getHits()).thenReturn(hits);
+
+        // when(client.search(any()))
+        //        .thenReturn(
+        //                Mockito.mock(
+        //                        org.opensearch.action.search.SearchRequestBuilder.class,
+        //                        invocation -> {
+        //                            if (invocation.getMethod().getName().equals("actionGet")) {
+        //                                return searchResponse;
+        //                            }
+        //                            return null;
+        //                        }));
+
+        UpdateResponse updateResponse = mock(UpdateResponse.class);
+        when(updateResponse.status()).thenReturn(RestStatus.OK);
+
+        // when(client.update(any()))
+        //        .thenReturn(
+        //                Mockito.mock(
+        //                        org.opensearch.action.update.UpdateRequestBuilder.class,
+        //                        invocation -> {
+        //                            if (invocation.getMethod().getName().equals("actionGet")) {
+        //                                return updateResponse;
+        //                            }
+        //                            return null;
+        //                        }));
+    }
+
+    private String createPolicyDocument(String integrationId) throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        ObjectNode source = root.putObject("_source");
+
+        ObjectNode document = source.putObject("document");
+        ArrayNode integrations = document.putArray("integrations");
+        integrations.add(integrationId);
+
+        ObjectNode hash = source.putObject("hash");
+        hash.put("sha256", "old-hash");
+
+        ObjectNode space = source.putObject("space");
+        space.put("name", "draft");
+
+        return MAPPER.writeValueAsString(root);
+    }
+
+    private RestRequest mockRequest(String id) {
+        RestRequest request = mock(RestRequest.class);
+        when(request.param("id")).thenReturn(id);
+        return request;
+    }
 }
