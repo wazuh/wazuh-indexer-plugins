@@ -154,6 +154,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Verify request is of type "integration"
+        if (!requestPayload.has("type") || !requestPayload.get("type").asText().equals("integration")) {
+            return new RestResponse("Invalid request type.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
         // Check a document with the solicited Id exists in the integrations index
         if (!this.integrationsIndex.exists(id)) {
             return new RestResponse(
@@ -169,11 +174,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Integration with id {id} is not associated with any policy.",
                     RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Verify request is of type "integration"
-        if (!requestPayload.has("type") || !requestPayload.get("type").asText().equals("integration")) {
-            return new RestResponse("Invalid request type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Extract /resource and /resource/document nodes
