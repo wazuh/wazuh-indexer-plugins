@@ -30,6 +30,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -375,8 +376,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         assertEquals(INDEX_NAME, indexName);
     }
 
-    /** Test creating a Policy. Validates that the policy is processed correctly. */
-    public void testCreate_Policy_Processing() {
+    /**
+     * Test that creating a resource produces the expected JSON schema. Validates that the indexed
+     * document contains the required keys: document, hash, and space.
+     */
+    public void testCreate_Resource_ExpectedSchema() {
         // Mock
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.indexResponse);
@@ -384,19 +388,20 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         String jsonPayload =
                 "{"
-                        + "\"type\": \"policy\","
-                        + "\"root_decoder\": \"decoder/integrations/0\","
-                        + "\"integrations\": [\"integration/wazuh-core/0\"],"
-                        + "\"author\": \"Wazuh Inc.\","
-                        + "\"description\": \"Core policy for Wazuh\""
+                        + "\"type\": \"test\","
+                        + "\"document\": {"
+                        + "  \"id\": \"test-resource-id\","
+                        + "  \"title\": \"Test Resource\","
+                        + "  \"enabled\": true"
+                        + "}"
                         + "}";
         JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
-        String id = "policy-id-123";
+        String id = "test-resource-id";
 
         // Act
         try {
             this.contentIndex.create(id, payload);
-        } catch (Exception e) {
+        } catch (IOException e) {
             fail("Create should not throw exception: " + e.getMessage());
         }
 
@@ -408,10 +413,10 @@ public class ContentIndexTests extends OpenSearchTestCase {
         assertEquals(INDEX_NAME, request.index());
         assertEquals(id, request.id());
 
-        // Policy is processed as a Resource which expects a "document" wrapper
-        // Since our test payload doesn't have that structure, the processed output will be minimal
-        // Just verify the indexing operation was called successfully
-        assertNotNull("Source should not be null", request.source());
+        JsonObject source = JsonParser.parseString(request.source().utf8ToString()).getAsJsonObject();
+        assertTrue("Should contain 'document' key", source.has("document"));
+        assertTrue("Should contain 'hash' key", source.has("hash"));
+        assertTrue("Should contain 'space' key", source.has("space"));
     }
 
     /** Test update when document does not exist. */
