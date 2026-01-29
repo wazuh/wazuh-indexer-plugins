@@ -119,11 +119,10 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
-                RestResponse error =
-                        new RestResponse(
+                return new RestResponse(
                                 "Engine service unavailable.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                return error.toBytesRestResponse();
+                                RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                        .toBytesRestResponse();
             }
 
             String decoderId = request.param("id");
@@ -131,9 +130,8 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 decoderId = request.param(FIELD_DECODER_ID_PARAM);
             }
             if (decoderId == null || decoderId.isBlank()) {
-                RestResponse error =
-                        new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
-                return error.toBytesRestResponse();
+                return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus())
+                        .toBytesRestResponse();
             }
             final String resolvedDecoderId = decoderId;
 
@@ -146,18 +144,16 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 decoderIndex.delete(resolvedDecoderId);
             }
 
-            RestResponse response =
-                    new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus());
-            return response.toBytesRestResponse();
+            return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
+                    .toBytesRestResponse();
         } catch (Exception e) {
             log.error("Error deleting decoder: {}", e.getMessage(), e);
-            RestResponse error =
-                    new RestResponse(
+            return new RestResponse(
                             e.getMessage() != null
                                     ? e.getMessage()
                                     : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return error.toBytesRestResponse();
+                            RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                    .toBytesRestResponse();
         }
     }
 
