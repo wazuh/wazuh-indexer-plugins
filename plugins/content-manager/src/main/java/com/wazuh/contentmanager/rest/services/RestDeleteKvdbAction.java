@@ -144,16 +144,13 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                 return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus())
                     .toBytesRestResponse();
             }
-            final String resolvedKvdbId = kvdbId;
 
-            if (client != null) {
-                String kvdbIndexName = KVDB_ALIAS;
-                ensureIndexExists(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
-                ContentIndex kvdbIndex =
-                    new ContentIndex(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
-                updateIntegrationsRemovingKvdb(client, resolvedKvdbId);
-                kvdbIndex.delete(resolvedKvdbId);
-            }
+            String kvdbIndexName = KVDB_ALIAS;
+            ensureIndexExists(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
+            ContentIndex kvdbIndex =
+                new ContentIndex(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
+            updateIntegrationsRemovingKvdb(client, kvdbId);
+            kvdbIndex.delete(kvdbId);
 
             return new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus())
                 .toBytesRestResponse();
