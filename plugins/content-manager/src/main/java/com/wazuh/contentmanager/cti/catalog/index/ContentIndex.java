@@ -183,11 +183,10 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
-     * @param spaceName The space name to assign to the resource.
      * @throws IOException If the indexing operation fails.
      */
-    public void create(String id, JsonObject payload, String spaceName) throws IOException {
-        JsonObject processedPayload = this.processPayload(payload, spaceName);
+    public void create(String id, JsonObject payload) throws IOException {
+        JsonObject processedPayload = this.processPayload(payload);
         IndexRequest request =
                 new IndexRequest(this.indexName)
                         .id(id)
@@ -210,13 +209,12 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The Jackson JsonNode representing the document content.
-     * @param spaceName The space name to assign to the resource.
      * @throws IOException If the indexing operation fails.
      */
-    public void create(String id, JsonNode payload, String spaceName) throws IOException {
+    public void create(String id, JsonNode payload) throws IOException {
         // Convert Jackson JsonNode to Gson JsonObject for compatibility
         JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
-        this.create(id, gsonPayload, spaceName);
+        this.create(id, gsonPayload);
     }
 
     /**
@@ -224,10 +222,9 @@ public class ContentIndex {
      *
      * @param id The ID of the document to update.
      * @param operations The list of operations to apply to the document.
-     * @param spaceName The space name to assign to the resource.
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
-    public void update(String id, List<Operation> operations, String spaceName) throws Exception {
+    public void update(String id, List<Operation> operations) throws Exception {
         // 1. Fetch
         GetResponse response =
                 this.client
@@ -247,7 +244,7 @@ public class ContentIndex {
         }
 
         // 3. Process
-        JsonObject processedDoc = this.processPayload(currentDoc, spaceName);
+        JsonObject processedDoc = this.processPayload(currentDoc);
 
         // 4. Index
         IndexRequest request =
@@ -372,18 +369,17 @@ public class ContentIndex {
      * Orchestrates the enrichment and sanitization of a payload using Domain Models.
      *
      * @param payload The JSON payload to process.
-     * @param spaceName The space name to assign to the resource.
      * @return A new JsonObject containing the processed payload.
      */
-    public JsonObject processPayload(JsonObject payload, String spaceName) {
+    public JsonObject processPayload(JsonObject payload) {
         try {
             Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
             if (payload.has(JSON_TYPE_KEY)
                     && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
-                resource = Decoder.fromPayload(payload, spaceName);
+                resource = Decoder.fromPayload(payload);
             } else {
-                resource = Resource.fromPayload(payload, spaceName);
+                resource = Resource.fromPayload(payload);
             }
             // 2. Convert Model back to JsonObject for OpenSearch indexing
             String jsonString = this.jsonMapper.writeValueAsString(resource);

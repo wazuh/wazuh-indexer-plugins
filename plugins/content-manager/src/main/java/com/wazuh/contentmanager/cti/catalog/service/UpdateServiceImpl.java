@@ -32,7 +32,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
@@ -138,8 +137,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
         ContentIndex index;
-        // Space defined for Wazuh's built-in resources.
-        String space = Space.STANDARD.toString();
 
         switch (offset.getType()) {
             case CREATE:
@@ -150,7 +147,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload, space);
+                            index.create(id, payload);
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }
@@ -159,7 +156,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 index = this.findIndexForId(id);
-                index.update(id, offset.getOperations(), space);
+                index.update(id, offset.getOperations());
                 break;
             case DELETE:
                 index = this.findIndexForId(id);

@@ -63,13 +63,12 @@ public class Decoder extends Resource {
      * Factory method to create a Decoder instance from a raw JSON payload.
      *
      * @param payload The raw JSON object containing the decoder data.
-     * @param spaceName The name of the space to assign to the decoder.
      * @return A populated Decoder object with the generated YAML string.
      */
-    public static Decoder fromPayload(JsonObject payload, String spaceName) {
+    public static Decoder fromPayload(JsonObject payload) {
         Decoder decoder = new Decoder();
         // 1. Basic logic for every resource
-        Resource.populateResource(decoder, payload, spaceName);
+        Resource.populateResource(decoder, payload);
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has("document")) {

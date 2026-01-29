@@ -107,7 +107,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         context, consumer, indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
-        when(this.contentIndexMock.processPayload(any(JsonObject.class), anyString()))
+        when(this.contentIndexMock.processPayload(any(JsonObject.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-kvdb");
     }
@@ -187,7 +187,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.contentIndexMock, times(5)).clear();
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -227,7 +227,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
@@ -258,7 +258,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         // Verify delegation to ContentIndex.processPayload
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -282,7 +282,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -329,7 +329,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -359,7 +359,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonObject.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -392,7 +392,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class), anyString());
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 

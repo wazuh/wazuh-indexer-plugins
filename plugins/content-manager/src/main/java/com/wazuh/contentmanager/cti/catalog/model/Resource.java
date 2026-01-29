@@ -64,12 +64,11 @@ public class Resource {
      * Factory method to create a Resource instance from a raw Gson JsonObject.
      *
      * @param payload The raw JSON object containing the resource data.
-     * @param spaceName The name of the space to assign to the resource.
      * @return A fully populated Resource instance.
      */
-    public static Resource fromPayload(JsonObject payload, String spaceName) {
+    public static Resource fromPayload(JsonObject payload) {
         Resource resource = new Resource();
-        Resource.populateResource(resource, payload, spaceName);
+        Resource.populateResource(resource, payload);
         return resource;
     }
 
@@ -78,7 +77,6 @@ public class Resource {
      *
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
-     * @param spaceName The name of the space to assign to the resource.
      */
     protected static void populateResource(Resource resource, JsonObject payload) {
         // 1. Process Document
@@ -99,7 +97,11 @@ public class Resource {
 
         // 3. Set Space
         Map<String, String> spaceMap = new HashMap<>();
-        String spaceName = resource.getSpace().getOrDefault("name", Space.STANDARD.toString());
+        Map<String, String> existingSpace = resource.getSpace();
+        String spaceName = Space.STANDARD.toString();
+        if (existingSpace != null) {
+            spaceName = existingSpace.getOrDefault("name", spaceName);
+        }
         spaceMap.put("name", spaceName);
         resource.setSpace(spaceMap);
     }

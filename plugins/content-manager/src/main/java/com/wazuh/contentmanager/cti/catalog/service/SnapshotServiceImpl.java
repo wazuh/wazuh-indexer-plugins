@@ -39,7 +39,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -218,9 +217,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
-                    // Space defined for Wazuh's built-in resources
-                    String space = Space.STANDARD.toString();
-                    JsonObject processedPayload = indexHandler.processPayload(payload, space);
+                    JsonObject processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
                     // 4. Create Index Request

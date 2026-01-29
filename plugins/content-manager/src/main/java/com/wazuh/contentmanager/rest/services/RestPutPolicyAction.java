@@ -251,7 +251,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
         String policyId = this.findDraftPolicyId(contentIndex);
         JsonObject resourcePayload = new JsonObject();
         resourcePayload.add("document", policy.toJson());
-        contentIndex.create(policyId, resourcePayload, Space.DRAFT.toString());
+        resourcePayload.addProperty(SPACE_NAME_FIELD, Space.DRAFT.toString());
+        contentIndex.create(policyId, resourcePayload);
         log.info("Policy stored successfully with ID: {}", policyId);
     }
 
