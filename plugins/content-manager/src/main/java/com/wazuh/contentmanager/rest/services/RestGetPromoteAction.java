@@ -18,11 +18,9 @@ package com.wazuh.contentmanager.rest.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -86,41 +84,33 @@ public class RestGetPromoteAction extends BaseRestHandler {
         if (request.hasParam("space")) {
             request.param("space");
         }
-        return channel -> channel.sendResponse(this.handleRequest(request));
+        RestResponse response = this.handleRequest(request);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
-    public BytesRestResponse handleRequest(RestRequest request) {
+    public RestResponse handleRequest(RestRequest request) {
         try {
             // 1. Validate Space Parameter
             String spaceParam = request.param("space");
             if (spaceParam == null || spaceParam.isEmpty()) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                    "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus());
             }
 
             Space sourceSpace;
             try {
                 sourceSpace = Space.fromValue(spaceParam);
             } catch (IllegalArgumentException e) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Invalid space parameter: " + spaceParam, RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                    "Invalid space parameter: " + spaceParam, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 2. Determine Target Space
             Space targetSpace = sourceSpace.promote();
             if (targetSpace == sourceSpace) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Space [" + sourceSpace + "] cannot be promoted further.",
-                                        RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                    "Space [" + sourceSpace + "] cannot be promoted further.",
+                    RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 3. Fetch Resources for both spaces using SpaceService
@@ -143,23 +133,13 @@ public class RestGetPromoteAction extends BaseRestHandler {
             }
 
             // 5. Build Response
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            builder.startObject();
-            builder.field("changes", changes);
-            builder.endObject();
-
-            return new BytesRestResponse(RestStatus.OK, builder);
+            return new PromoteResponse(changes);
 
         } catch (Exception e) {
             log.error("Error processing promote preview: {}", e.getMessage(), e);
-            try {
-                return new BytesRestResponse(
-                        RestStatus.INTERNAL_SERVER_ERROR,
-                        new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                                .toXContent());
-            } catch (IOException ex) {
-                return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
-            }
+            return new RestResponse(
+                e.getMessage() != null ? e.getMessage() : "Internal Server Error",
+                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
@@ -200,5 +180,23 @@ public class RestGetPromoteAction extends BaseRestHandler {
         }
 
         return changes;
+    }
+
+    /** Inner class to extend RestResponse and provide the custom 'changes' payload */
+    private static class PromoteResponse extends RestResponse {
+        private final Map<String, List<Map<String, String>>> changes;
+
+        public PromoteResponse(Map<String, List<Map<String, String>>> changes) {
+            super("Promotion preview calculated", RestStatus.OK.getStatus());
+            this.changes = changes;
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+            builder.field("changes", this.changes);
+            builder.endObject();
+            return builder;
+        }
     }
 }
