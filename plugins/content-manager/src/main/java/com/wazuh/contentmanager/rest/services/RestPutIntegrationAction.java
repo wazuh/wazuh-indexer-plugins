@@ -27,12 +27,15 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
@@ -52,8 +55,11 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestPutIntegrationAction extends BaseRestHandler {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
+    private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
     private static final String CTI_POLICIES_INDEX = ".cti-policies";
+    private static final String CTI_RULES_INDEX = ".cti-rules";
     private static final String DRAFT_SPACE_NAME = "draft";
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_update";
@@ -103,15 +109,17 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             throws IOException {
         this.policiesIndex = new ContentIndex(client, CTI_POLICIES_INDEX, null);
         this.integrationsIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null);
-        return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
+        return channel ->
+                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
 
     /**
      * @param request incoming request
+     * @param client the node client
      * @return a BytesRestResponse describing the outcome
      * @throws IOException if an I/O error occurs while building the response
      */
-    public RestResponse handleRequest(RestRequest request) throws IOException {
+    public RestResponse handleRequest(RestRequest request, Client client) throws IOException {
 
         // Extract ID from path parameter
         String id = request.param("id");
@@ -184,10 +192,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Insert "draft" into /space/name
         ((ObjectNode) integrationNode).putObject("space").put("name", DRAFT_SPACE_NAME);
 
-        // Calculate and add a hash to the document
+        // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(documentNode.toString());
-
-        // Add hash to /hash/sha256
         ((ObjectNode) integrationNode).putObject("hash").put("sha256", hash);
 
         // Update integration in SAP
@@ -233,6 +239,16 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                 return new RestResponse(
                         "Failed to update integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
+
+            // Update the space's hash in the policy
+            new PolicyHashService(client)
+                    .calculateAndUpdate(
+                            CTI_POLICIES_INDEX,
+                            CTI_INTEGRATIONS_INDEX,
+                            CTI_DECODERS_INDEX,
+                            CTI_KVDBS_INDEX,
+                            CTI_RULES_INDEX,
+                            List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Integration with ID {id} updated successfully : ", RestStatus.OK.getStatus());
