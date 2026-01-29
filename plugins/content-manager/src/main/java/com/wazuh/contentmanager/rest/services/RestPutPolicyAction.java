@@ -130,7 +130,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
         if (validationError != null) {
             return validationError;
         }
-
         // Parse policy from request
         Policy policy;
         try {
@@ -140,17 +139,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
                     "Invalid Policy JSON content: " + request.content().utf8ToString(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
-
         // Validate policy fields
         RestResponse policyValidationError = this.validatePolicy(policy);
         if (policyValidationError != null) {
             return policyValidationError;
         }
-
         // Store or update the policy
         try {
             this.storePolicy(client, policy);
-            return new RestResponse(policy.toString(), RestStatus.OK.getStatus());
+            return new RestResponse("Draft policy updated.", RestStatus.OK.getStatus());
         } catch (IOException e) {
             return new RestResponse(
                     "Failed to store the updated policy: " + e.getMessage(),
