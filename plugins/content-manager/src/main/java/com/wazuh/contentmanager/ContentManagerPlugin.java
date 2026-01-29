@@ -50,6 +50,7 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
@@ -71,6 +72,7 @@ public class ContentManagerPlugin extends Plugin
     private Client client;
     private CatalogSyncJob catalogSyncJob;
     private EngineServiceImpl engine;
+    private SpaceService spaceService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -121,6 +123,9 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize Engine service
         this.engine = new EngineServiceImpl();
+
+        // Initialize Space Service
+        this.spaceService = new SpaceService(this.client);
 
         return Collections.emptyList();
     }
@@ -178,7 +183,8 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
                 // User-generated content endpoints
                 new RestPostLogtestAction(this.engine),
-                new RestPostPromoteAction(this.engine));
+                new RestPostPromoteAction(this.engine),
+                new RestGetPromoteAction(this.spaceService));
     }
 
     /** Performs initialization tasks for the plugin. */
