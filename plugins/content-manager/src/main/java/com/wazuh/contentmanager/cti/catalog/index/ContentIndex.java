@@ -260,20 +260,11 @@ public class ContentIndex {
      *
      * @param id The ID of the document to delete.
      */
-    public void delete(String id) {
-        this.client.delete(
-                new DeleteRequest(this.indexName, id),
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(DeleteResponse response) {
-                        log.debug("Deleted {} from {}", id, ContentIndex.this.indexName);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("Failed to delete {}: {}", id, e.getMessage());
-                    }
-                });
+    public DeleteResponse delete(String id)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        return this.client
+                .delete(new DeleteRequest(this.indexName, id))
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
