@@ -72,7 +72,6 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
 
     private ContentIndex integrationsIndex;
-    private ContentIndex policiesIndex;
     private final EngineService engine;
     private final SecurityAnalyticsService service;
 
@@ -118,6 +117,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.integrationsIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
