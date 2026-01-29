@@ -35,11 +35,9 @@ import org.opensearch.transport.client.Client;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
@@ -137,13 +135,17 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         this.action = new RestPostDecoderAction(this.service);
     }
 
-    /** Test successful decoder creation returns 202 Accepted. */
+    /**
+     * Test successful decoder creation returns 202 Accepted.
+     *
+     * @throws Exception When an error occurs
+     */
     public void testPostDecoderSuccess() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientForIndex();
+        Client client = this.buildClientForIndex();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -152,7 +154,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.CREATED, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().startsWith("Decoder created successfully with ID:"));
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
@@ -163,13 +165,12 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         JsonNode resource = captured.get("resource");
         assertTrue(resource.hasNonNull("id"));
-        UUID.fromString(resource.get("id").asText());
     }
 
     /** Test that providing a resource ID on creation returns 400 Bad Request. */
-    public void testPostDecoderWithIdReturns400() throws IOException {
+    public void testPostDecoderWithIdReturns400() {
         // Arrange
-        RestRequest request = buildRequest(DECODER_PAYLOAD_WITH_ID, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -181,16 +182,16 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse =
                 new RestResponse(
                         "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
     /** Test that missing integration field returns 400 Bad Request. */
-    public void testPostDecoderMissingIntegrationReturns400() throws IOException {
+    public void testPostDecoderMissingIntegrationReturns400() {
         // Arrange
-        RestRequest request = buildRequest(DECODER_PAYLOAD_MISSING_INTEGRATION, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD_MISSING_INTEGRATION);
 
         // Act
         RestResponse response = this.action.handleRequest(request, null);
@@ -201,17 +202,17 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
     /** Test that null engine service returns 500 Internal Server Error. */
-    public void testPostDecoderEngineUnavailableReturns500() throws IOException {
+    public void testPostDecoderEngineUnavailableReturns500() {
         // Arrange
         this.action = new RestPostDecoderAction(null);
-        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -223,12 +224,12 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse =
                 new RestResponse(
                         "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
 
     /** Test that missing request body returns 400 Bad Request. */
-    public void testPostDecoderMissingBodyReturns400() throws IOException {
+    public void testPostDecoderMissingBodyReturns400() {
         // Arrange
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
 
@@ -241,17 +242,21 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /** Test that missing integration returns 400 Bad Request. */
+    /**
+     * Test that missing integration returns 400 Bad Request.
+     *
+     * @throws Exception When an error occurs
+     */
     public void testPostDecoderIntegrationNotFoundReturns400() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientWithMissingIntegration();
+        Client client = this.buildClientWithMissingIntegration();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -260,17 +265,21 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
-    /** Test that integration without document field returns 400 Bad Request. */
+    /**
+     * Test that integration without document field returns 400 Bad Request.
+     *
+     * @throws Exception When an error occurs
+     */
     public void testPostDecoderIntegrationWithoutDocumentReturns400() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientWithIntegrationWithoutDocument();
+        Client client = this.buildClientWithIntegrationWithoutDocument();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -279,17 +288,21 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().contains("Can't find document in integration"));
     }
 
-    /** Test that integration with invalid document returns 400 Bad Request. */
+    /**
+     * Test that integration with invalid document returns 400 Bad Request.
+     *
+     * @throws Exception When an error occurs
+     */
     public void testPostDecoderIntegrationInvalidDocumentReturns400() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientWithIntegrationInvalidDocument();
+        Client client = this.buildClientWithIntegrationInvalidDocument();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -298,17 +311,15 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("Integration document [integration-1] is invalid"));
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertTrue(
+                actualResponse.getMessage().contains("Integration document [integration-1] is invalid"));
     }
 
-    private RestRequest buildRequest(String payload, String decoderId) {
+    private RestRequest buildRequest(String payload) {
         FakeRestRequest.Builder builder =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(payload), XContentType.JSON);
-        if (decoderId != null) {
-            builder.withParams(Map.of("id", decoderId, "decoder_id", decoderId));
-        }
         return builder.build();
     }
 

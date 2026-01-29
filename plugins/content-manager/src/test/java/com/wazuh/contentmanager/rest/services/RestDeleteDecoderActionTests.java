@@ -27,7 +27,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -39,7 +38,6 @@ import org.opensearch.transport.client.Client;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -62,7 +60,6 @@ import static org.mockito.Mockito.when;
  * response codes for successful Decoder delete errors.
  */
 public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
-    private EngineService service;
     private RestDeleteDecoderAction action;
 
     /** Initialize PluginSettings singleton once for all tests. */
@@ -85,20 +82,18 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.service = mock(EngineService.class);
-        this.action = new RestDeleteDecoderAction(this.service);
+        EngineService service = mock(EngineService.class);
+        this.action = new RestDeleteDecoderAction(service);
     }
 
     /**
      * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the request is
      * complete. The expected response is: {200, RestResponse}
-     *
-     * @throws IOException
      */
-    public void testDeleteDecoder200() throws IOException {
+    public void testDeleteDecoder200() {
         // Mock
-        RestRequest request = buildRequest(null, "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
-        Client client = buildClientForDelete();
+        RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        Client client = this.buildClientForDelete();
 
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);
@@ -106,7 +101,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.OK, bytesRestResponse.status());
     }
@@ -114,12 +109,10 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the decoder has
      * not been deleted (mock). The expected response is: {400, RestResponse}
-     *
-     * @throws IOException
      */
-    public void testDeleteDecoder400() throws IOException {
+    public void testDeleteDecoder400() {
         // Mock
-        RestRequest request = buildRequest(null, null);
+        RestRequest request = this.buildRequest(null);
 
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
@@ -127,7 +120,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
     }
@@ -135,13 +128,11 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when an unexpected
      * error occurs. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteDecoder500() throws IOException {
+    public void testDeleteDecoder500() {
         // Mock
         this.action = new RestDeleteDecoderAction(null);
-        RestRequest request = buildRequest(null, "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
 
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
@@ -150,16 +141,13 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse =
                 new RestResponse(
                         "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
     }
 
-    private RestRequest buildRequest(String payload, String decoderId) {
+    private RestRequest buildRequest(String decoderId) {
         FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
-        if (payload != null) {
-            builder.withContent(new BytesArray(payload), XContentType.JSON);
-        }
         if (decoderId != null) {
             builder.withParams(Map.of("id", decoderId, "decoder_id", decoderId));
         }
@@ -171,21 +159,17 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         return new RestResponse(node.get("message").asText(), node.get("status").asInt());
     }
 
-    private Client buildClientForDelete() throws IOException {
+    private Client buildClientForDelete() {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
         // Mock ContentIndex.exists() - decoder exists
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(true);
-        when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get()).thenReturn(getResponse);
+        when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
+                .thenReturn(getResponse);
 
-        doAnswer(
-                        invocation -> {
-                            return null;
-                        })
-                .when(client)
-                .delete(any(DeleteRequest.class), any());
+        doAnswer(invocation -> null).when(client).delete(any(DeleteRequest.class), any());
 
         @SuppressWarnings("unchecked")
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);

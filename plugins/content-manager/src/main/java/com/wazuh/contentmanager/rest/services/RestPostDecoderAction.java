@@ -124,33 +124,31 @@ public class RestPostDecoderAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         // Validate prerequisites
-        RestResponse validationError = validatePrerequisites(request);
+        RestResponse validationError = this.validatePrerequisites(request);
         if (validationError != null) {
             return validationError;
         }
 
         try {
-            JsonNode payload = mapper.readTree(request.content().streamInput());
+            JsonNode payload = this.mapper.readTree(request.content().streamInput());
             // Validate payload structure
-            validationError = validatePayload(payload);
+            validationError = this.validatePayload(payload);
             if (validationError != null) {
                 return validationError;
             }
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
 
-            
-
             // Generate UUID and validate with engine
             resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
-            RestResponse engineResponse = validateWithEngine(resourceNode);
+            RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
             }
             // Create decoder and update integration
             String decoderIndexId = toIndexId(resourceNode.get(FIELD_ID).asText());
-            createDecoder(client, decoderIndexId, resourceNode);
-            updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
+            this.createDecoder(client, decoderIndexId, resourceNode);
+            this.updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
 
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderIndexId,
@@ -195,7 +193,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
     /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = mapper.createObjectNode();
+        ObjectNode enginePayload = this.mapper.createObjectNode();
         enginePayload.put(FIELD_TYPE, DECODER_TYPE);
         enginePayload.set(FIELD_RESOURCE, resourceNode);
 
@@ -211,16 +209,16 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private void createDecoder(Client client, String decoderIndexId, ObjectNode resourceNode)
             throws IOException {
         ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
-        decoderIndex.create(decoderIndexId, buildDecoderPayload(resourceNode));
+        decoderIndex.create(decoderIndexId, this.buildDecoderPayload(resourceNode));
     }
 
     /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
-        ObjectNode node = mapper.createObjectNode();
+        ObjectNode node = this.mapper.createObjectNode();
         node.put(FIELD_TYPE, DECODER_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
         // Add draft space
-        ObjectNode spaceNode = mapper.createObjectNode();
+        ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
 
@@ -239,21 +237,36 @@ public class RestPostDecoderAction extends BaseRestHandler {
         GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
 
         if (!integrationResponse.isExists()) {
-            throw new IOException("Integration [" + integrationId + "] not found when creating decoder [" + decoderIndexId + "].");
+            throw new IOException(
+                    "Integration ["
+                            + integrationId
+                            + "] not found when creating decoder ["
+                            + decoderIndexId
+                            + "].");
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
         if (source == null || !source.containsKey(FIELD_DOCUMENT)) {
-            throw new IOException("Can't find document in integration [" + integrationId + "] when creating decoder [" + decoderIndexId + "].");
+            throw new IOException(
+                    "Can't find document in integration ["
+                            + integrationId
+                            + "] when creating decoder ["
+                            + decoderIndexId
+                            + "].");
         }
         Object documentObj = source.get(FIELD_DOCUMENT);
 
-        if (documentObj == null || !(documentObj instanceof Map)) {
-            throw new IOException("Integration document [" + integrationId + "] is invalid when creating decoder [" + decoderIndexId + "].");
+        if (!(documentObj instanceof Map)) {
+            throw new IOException(
+                    "Integration document ["
+                            + integrationId
+                            + "] is invalid when creating decoder ["
+                            + decoderIndexId
+                            + "].");
         }
 
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
-        List<String> decoders = extractDecodersList(document.get(FIELD_DECODERS));
+        List<String> decoders = this.extractDecodersList(document.get(FIELD_DECODERS));
 
         if (!decoders.contains(decoderIndexId)) {
             decoders.add(decoderIndexId);

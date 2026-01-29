@@ -148,10 +148,10 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
 
             if (client != null) {
                 String decoderIndexName = DECODER_ALIAS;
-                ensureIndexExists(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
+                ensureIndexExists(client, decoderIndexName);
                 ContentIndex decoderIndex =
                         new ContentIndex(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
-                
+
                 // Check if decoder exists before deleting
                 if (!decoderIndex.exists(resolvedDecoderId)) {
                     return new RestResponse(
@@ -159,7 +159,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                                     RestStatus.NOT_FOUND.getStatus())
                             .toBytesRestResponse();
                 }
-                
+
                 updateIntegrationsRemovingDecoder(client, resolvedDecoderId);
                 decoderIndex.delete(resolvedDecoderId);
             }
@@ -177,10 +177,9 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
         }
     }
 
-    private static void ensureIndexExists(
-            Client client, String indexName, String mappingsPath, String alias) throws IOException {
+    private static void ensureIndexExists(Client client, String indexName) throws IOException {
         if (!IndexHelper.indexExists(client, indexName)) {
-            ContentIndex index = new ContentIndex(client, indexName, mappingsPath, alias);
+            ContentIndex index = new ContentIndex(client, indexName, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
@@ -210,8 +209,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 doc.put(String.valueOf(entry.getKey()), entry.getValue());
             }
             Object decodersObj = doc.get(FIELD_DECODERS);
-            if (decodersObj instanceof List) {
-                List<?> list = (List<?>) decodersObj;
+            if (decodersObj instanceof List<?> list) {
                 java.util.List<Object> updated = new java.util.ArrayList<>(list);
                 updated.removeIf(item -> decoderIndexId.equals(String.valueOf(item)));
                 doc.put(FIELD_DECODERS, updated);

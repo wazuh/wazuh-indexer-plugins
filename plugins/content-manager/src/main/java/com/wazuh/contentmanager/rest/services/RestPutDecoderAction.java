@@ -62,9 +62,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
     private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
     private static final String INDEX_ID_PREFIX = "d_";
-    private static final String DECODER_MAPPINGS = "/mappings/cti-decoders-mappings.json";
-    private static final String DECODER_ALIAS = ".cti-decoders";
-    private static final String DECODER_INDEX = DECODER_ALIAS;
+    private static final String DECODER_INDEX = ".cti-decoders";
     private static final String DECODER_TYPE = "decoder";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
@@ -117,7 +115,8 @@ public class RestPutDecoderAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
-        return channel -> channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+        return channel ->
+                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
 
     /**
@@ -132,20 +131,20 @@ public class RestPutDecoderAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         // Validate prerequisites
-        RestResponse validationError = validatePrerequisites(request);
+        RestResponse validationError = this.validatePrerequisites(request);
         if (validationError != null) {
             return validationError;
         }
 
         try {
-            String decoderId = extractDecoderId(request);
+            String decoderId = this.extractDecoderId(request);
             if (decoderId == null || decoderId.isBlank()) {
                 return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            JsonNode payload = mapper.readTree(request.content().streamInput());
+            JsonNode payload = this.mapper.readTree(request.content().streamInput());
             // Validate payload structure
-            validationError = validatePayload(payload, decoderId);
+            validationError = this.validatePayload(payload, decoderId);
             if (validationError != null) {
                 return validationError;
             }
@@ -155,13 +154,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
             resourceNode.put(FIELD_ID, resourceId);
 
             // Validate with engine
-            RestResponse engineResponse = validateWithEngine(resourceNode);
+            RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
             }
 
             // Update decoder
-            updateDecoder(client, decoderId, resourceNode);
+            this.updateDecoder(client, decoderId, resourceNode);
 
             return new RestResponse(
                     "Decoder updated successfully with ID: " + decoderId, RestStatus.OK.getStatus());
@@ -217,7 +216,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = mapper.createObjectNode();
+        ObjectNode enginePayload = this.mapper.createObjectNode();
         enginePayload.put(FIELD_TYPE, DECODER_TYPE);
         enginePayload.set(FIELD_RESOURCE, resourceNode);
 
@@ -236,7 +235,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             return;
         }
 
-        ensureIndexExists(client, DECODER_INDEX, DECODER_MAPPINGS, DECODER_ALIAS);
+        ensureIndexExists(client);
         ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
 
         // Check if decoder exists before updating
@@ -244,16 +243,16 @@ public class RestPutDecoderAction extends BaseRestHandler {
             throw new IOException("Decoder [" + decoderId + "] not found.");
         }
 
-        decoderIndex.create(decoderId, buildDecoderPayload(resourceNode));
+        decoderIndex.create(decoderId, this.buildDecoderPayload(resourceNode));
     }
 
     /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
-        ObjectNode node = mapper.createObjectNode();
+        ObjectNode node = this.mapper.createObjectNode();
         node.put(FIELD_TYPE, DECODER_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
         // Add draft space
-        ObjectNode spaceNode = mapper.createObjectNode();
+        ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
 
@@ -261,14 +260,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
     }
 
     /** Ensures the decoder index exists, creating it if necessary. */
-    private static void ensureIndexExists(
-            Client client, String indexName, String mappingsPath, String alias) throws IOException {
-        if (!IndexHelper.indexExists(client, indexName)) {
-            ContentIndex index = new ContentIndex(client, indexName, mappingsPath, alias);
+    private static void ensureIndexExists(Client client) throws IOException {
+        if (!IndexHelper.indexExists(client, RestPutDecoderAction.DECODER_INDEX)) {
+            ContentIndex index = new ContentIndex(client, RestPutDecoderAction.DECODER_INDEX, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + indexName, e);
+                throw new IOException("Failed to create index " + RestPutDecoderAction.DECODER_INDEX, e);
             }
         }
     }
