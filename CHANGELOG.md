@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Apply default replicas setting from configuration on startup [(#733)](https://github.com/wazuh/wazuh-indexer-plugins/pull/733)
 - Extend OpenAPI document with user-generated content management endpoints [(#736)](https://github.com/wazuh/wazuh-indexer-plugins/pull/736)
 - Define Index schema for IoC content [(#744)](https://github.com/wazuh/wazuh-indexer-plugins/pull/744)
+- Implement SAP Local Maven publisher GHA [(#750)](https://github.com/wazuh/wazuh-indexer-plugins/pull/750)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
