@@ -27,13 +27,13 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,6 @@ import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -49,23 +48,29 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * TODO !CHANGE_ME POST /_plugins/content-manager/decoders
+ * REST handler for creating decoder resources.
  *
- * <p>Creates a decoder in the local engine.
+ * <p>Endpoint: POST /_plugins/_content_manager/decoders
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>Creates a decoder in the draft space and associates it with an integration.
+ *
+ * <p>HTTP responses:
+ *
+ * <ul>
+ *   <li>202 Accepted: Decoder created successfully
+ *   <li>400 Bad Request: Invalid payload or validation error
+ *   <li>500 Internal Server Error: Engine unavailable or unexpected error
+ * </ul>
  */
 public class RestPostDecoderAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
+
+    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
-    private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
-    private static final String INDEX_ID_PREFIX = "d_";
-    private static final String DECODER_MAPPINGS = "/mappings/cti-decoders-mappings.json";
-    private static final String DECODER_ALIAS = ".cti-decoders";
+    private static final String DECODER_INDEX = ".cti-decoders";
     private static final String INTEGRATION_INDEX = ".cti-integrations";
-    private static final String DECODER_TYPE = "decoder";
+    private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_INTEGRATION = "integration";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
@@ -74,10 +79,13 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final String FIELD_TYPE = "type";
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
+    private static final String DECODER_TYPE = "decoder";
+
     private final EngineService engine;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
-     * Constructs a new TODO !CHANGE_ME.
+     * Constructs a new RestPostDecoderAction handler.
      *
      * @param engine The service instance to communicate with the local engine service.
      */
@@ -85,17 +93,11 @@ public class RestPostDecoderAction extends BaseRestHandler {
         this.engine = engine;
     }
 
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -106,177 +108,177 @@ public class RestPostDecoderAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * TODO !CHANGE_ME.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+        RestResponse response = this.handleRequest(request, client);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Handles the decoder creation request.
      *
-     * @param request incoming request
-     * @param client the node client
-     * @return a BytesRestResponse describing the outcome
+     * @param request incoming REST request containing decoder payload
+     * @param client the node client for index operations
+     * @return a RestResponse describing the outcome
      */
-    public BytesRestResponse handleRequest(RestRequest request, Client client) {
+    public RestResponse handleRequest(RestRequest request, Client client) {
+        // Validate prerequisites
+        RestResponse validationError = validatePrerequisites(request);
+        if (validationError != null) {
+            return validationError;
+        }
+
         try {
-            if (this.engine == null) {
-                RestResponse error =
-                        new RestResponse(
-                                "Engine service unavailable.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                return error.toBytesRestResponse();
-            }
-
-            if (!request.hasContent()) {
-                RestResponse error =
-                        new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-                return error.toBytesRestResponse();
-            }
-
-            ObjectMapper mapper = new ObjectMapper();
             JsonNode payload = mapper.readTree(request.content().streamInput());
-            if (!payload.has(FIELD_INTEGRATION) || payload.get(FIELD_INTEGRATION).asText("").isBlank()) {
-                RestResponse error =
-                        new RestResponse(
-                                "Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
-                return error.toBytesRestResponse();
+            // Validate payload structure
+            validationError = validatePayload(payload);
+            if (validationError != null) {
+                return validationError;
             }
-
-            if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
-                RestResponse error =
-                        new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
-                return error.toBytesRestResponse();
-            }
-
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            if (resourceNode.hasNonNull(FIELD_ID)) {
-                RestResponse error =
-                        new RestResponse(
-                                "Resource ID must not be provided on create.",
-                                RestStatus.BAD_REQUEST.getStatus());
-                return error.toBytesRestResponse();
-            }
-
-            // Generate UUID for the resource on creation
+            String integrationId = payload.get(FIELD_INTEGRATION).asText();
+            // Generate UUID and validate with engine
             resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
-
-            ObjectNode enginePayload = mapper.createObjectNode();
-            enginePayload.put(FIELD_TYPE, DECODER_TYPE);
-            enginePayload.set(FIELD_RESOURCE, resourceNode);
-            RestResponse response = this.engine.validate(enginePayload);
-            if (response == null) {
-                RestResponse error =
-                        new RestResponse(
-                                "Engine returned an empty response.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                return error.toBytesRestResponse();
+            RestResponse engineResponse = validateWithEngine(resourceNode);
+            if (engineResponse != null) {
+                return engineResponse;
             }
+            // Create decoder and update integration
+            String decoderIndexId = toIndexId(resourceNode.get(FIELD_ID).asText());
+            createDecoder(client, decoderIndexId, resourceNode);
+            updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
 
-            if (client != null) {
-                String decoderId = resourceNode.get(FIELD_ID).asText();
-                String decoderIndexId = toIndexId(decoderId);
-                String integrationId = payload.get(FIELD_INTEGRATION).asText();
-                String decoderIndexName = DECODER_ALIAS;
-                ensureIndexExists(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
-                ContentIndex decoderIndex =
-                        new ContentIndex(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
-                decoderIndex.create(decoderIndexId, buildDecoderPayload(resourceNode));
-                updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
-            }
-            return response.toBytesRestResponse();
+            return new RestResponse(
+                    "Decoder created successfully with ID: " + decoderIndexId,
+                    RestStatus.ACCEPTED.getStatus());
+
         } catch (IOException e) {
-            RestResponse error =
-                    new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
-            return error.toBytesRestResponse();
+            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error creating decoder: {}", e.getMessage(), e);
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return error.toBytesRestResponse();
+            return new RestResponse(
+                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
-    private static JsonNode buildDecoderPayload(ObjectNode resourceNode) {
-        ObjectMapper mapper = new ObjectMapper();
+    /** Validates that the engine service and request content are available. */
+    private RestResponse validatePrerequisites(RestRequest request) {
+        if (this.engine == null) {
+            return new RestResponse(
+                    "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+        if (!request.hasContent()) {
+            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /** Validates the payload structure and required fields. */
+    private RestResponse validatePayload(JsonNode payload) {
+        if (!payload.has(FIELD_INTEGRATION) || payload.get(FIELD_INTEGRATION).asText("").isBlank()) {
+            return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (payload.get(FIELD_RESOURCE).hasNonNull(FIELD_ID)) {
+            return new RestResponse(
+                    "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /** Validates the resource with the engine service. */
+    private RestResponse validateWithEngine(ObjectNode resourceNode) {
+        ObjectNode enginePayload = mapper.createObjectNode();
+        enginePayload.put(FIELD_TYPE, DECODER_TYPE);
+        enginePayload.set(FIELD_RESOURCE, resourceNode);
+
+        RestResponse response = this.engine.validate(enginePayload);
+        if (response == null) {
+            return new RestResponse(
+                    "Invalid decoder body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /** Creates the decoder document in the index. */
+    private void createDecoder(Client client, String decoderIndexId, ObjectNode resourceNode)
+            throws IOException {
+        ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
+        decoderIndex.create(decoderIndexId, buildDecoderPayload(resourceNode));
+    }
+
+    /** Builds the decoder payload with document and space information. */
+    private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectNode node = mapper.createObjectNode();
         node.put(FIELD_TYPE, DECODER_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
+        // Add draft space
         ObjectNode spaceNode = mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
+
         return node;
     }
 
-    private static void ensureIndexExists(
-            Client client, String indexName, String mappingsPath, String alias)
-            throws IOException {
-        if (!IndexHelper.indexExists(client, indexName)) {
-            ContentIndex index = new ContentIndex(client, indexName, mappingsPath, alias);
-            try {
-                index.createIndex();
-            } catch (Exception e) {
-                throw new IOException("Failed to create index " + indexName, e);
-            }
-        }
-    }
-
+    /** Converts a resource ID to an index document ID. */
     private static String toIndexId(String resourceId) {
         return INDEX_ID_PREFIX + resourceId;
     }
 
-    private static void updateIntegrationWithDecoder(
+    /** Updates the integration document to include the new decoder reference. */
+    @SuppressWarnings("unchecked")
+    private void updateIntegrationWithDecoder(
             Client client, String integrationId, String decoderIndexId) {
         GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+
         if (!integrationResponse.isExists()) {
-            log.warn(
-                    "Integration [{}] not found when creating decoder [{}].",
-                    integrationId,
-                    decoderIndexId);
+            log.error(
+                    "Integration [{}] not found when creating decoder [{}].", integrationId, decoderIndexId);
             return;
         }
+
         Map<String, Object> source = integrationResponse.getSourceAsMap();
         Object documentObj = source.get(FIELD_DOCUMENT);
+
         if (!(documentObj instanceof Map)) {
-            log.warn(
+            log.error(
                     "Integration document [{}] is invalid when creating decoder [{}].",
                     integrationId,
                     decoderIndexId);
             return;
         }
-        Map<String, Object> document = new HashMap<>();
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
-            document.put(String.valueOf(entry.getKey()), entry.getValue());
-        }
-        Object existing = document.get(FIELD_DECODERS);
-        List<String> decoders = new java.util.ArrayList<>();
-        if (existing instanceof List) {
-            for (Object item : (List<?>) existing) {
-                decoders.add(String.valueOf(item));
-            }
-        }
+
+        Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
+        List<String> decoders = extractDecodersList(document.get(FIELD_DECODERS));
+
         if (!decoders.contains(decoderIndexId)) {
             decoders.add(decoderIndexId);
         }
+
         document.put(FIELD_DECODERS, decoders);
         source.put(FIELD_DOCUMENT, document);
-        client.index(
+
+        client
+                .index(
                         new IndexRequest(INTEGRATION_INDEX)
                                 .id(integrationId)
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
                 .actionGet();
+    }
+
+    /** Extracts the decoders list from the document, handling type conversion. */
+    private List<String> extractDecodersList(Object existing) {
+        List<String> decoders = new ArrayList<>();
+        if (existing instanceof List) {
+            for (Object item : (List<?>) existing) {
+                decoders.add(String.valueOf(item));
+            }
+        }
+        return decoders;
     }
 }

@@ -37,6 +37,7 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -45,7 +46,6 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
@@ -152,8 +152,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
@@ -164,12 +163,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(payload), XContentType.JSON);
         if (decoderId != null) {
-            builder.withParams(
-                    Map.of(
-                            "id",
-                            decoderId,
-                            "decoder_id",
-                            decoderId));
+            builder.withParams(Map.of("id", decoderId, "decoder_id", decoderId));
         }
         return builder.build();
     }
@@ -188,5 +182,4 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
         return client;
     }
-
 }

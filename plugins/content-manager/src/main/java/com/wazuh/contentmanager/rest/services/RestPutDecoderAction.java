@@ -124,8 +124,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             if (this.engine == null) {
                 RestResponse error =
                         new RestResponse(
-                                "Engine service unavailable.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
                 return error.toBytesRestResponse();
             }
 
@@ -160,8 +159,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 if (!payloadId.equals(resourceId) && !payloadId.equals(decoderId)) {
                     RestResponse error =
                             new RestResponse(
-                                    "Decoder ID does not match resource ID.",
-                                    RestStatus.BAD_REQUEST.getStatus());
+                                    "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
                     return error.toBytesRestResponse();
                 }
             }
@@ -174,8 +172,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             if (response == null) {
                 RestResponse error =
                         new RestResponse(
-                                "Engine returned an empty response.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                                "Engine returned an empty response.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
                 return error.toBytesRestResponse();
             }
             if (client != null) {
@@ -214,8 +211,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     }
 
     private static void ensureIndexExists(
-            Client client, String indexName, String mappingsPath, String alias)
-            throws IOException {
+            Client client, String indexName, String mappingsPath, String alias) throws IOException {
         if (!IndexHelper.indexExists(client, indexName)) {
             ContentIndex index = new ContentIndex(client, indexName, mappingsPath, alias);
             try {
@@ -232,5 +228,4 @@ public class RestPutDecoderAction extends BaseRestHandler {
         }
         return indexId;
     }
-
 }

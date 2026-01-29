@@ -18,12 +18,14 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
@@ -34,13 +36,15 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -59,6 +63,17 @@ import static org.mockito.Mockito.when;
 public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestDeleteDecoderAction action;
+
+    /** Initialize PluginSettings singleton once for all tests. */
+    @BeforeClass
+    public static void setUpClass() {
+        // Initialize PluginSettings singleton - it will persist across all tests
+        try {
+            PluginSettings.getInstance(Settings.EMPTY);
+        } catch (IllegalStateException e) {
+            // Already initialized, ignore
+        }
+    }
 
     /**
      * Set up the tests
@@ -133,26 +148,19 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
     }
 
     private RestRequest buildRequest(String payload, String decoderId) {
-        FakeRestRequest.Builder builder =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
+        FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
         if (payload != null) {
             builder.withContent(new BytesArray(payload), XContentType.JSON);
         }
         if (decoderId != null) {
-            builder.withParams(
-                    Map.of(
-                            "id",
-                            decoderId,
-                            "decoder_id",
-                            decoderId));
+            builder.withParams(Map.of("id", decoderId, "decoder_id", decoderId));
         }
         return builder.build();
     }
@@ -179,17 +187,17 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         SearchResponse searchResponse = mock(SearchResponse.class);
-        org.opensearch.search.SearchHit hit = mock(org.opensearch.search.SearchHit.class);
-        when(hit.getId()).thenReturn("integration-1");
-        when(hit.getSourceAsMap())
-                .thenReturn(
-                        Map.of(
-                                "document",
-                                Map.of(
-                                        "decoders",
-                                        List.of("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f"))));
-        org.opensearch.search.SearchHits hits = mock(org.opensearch.search.SearchHits.class);
-        when(hits.getHits()).thenReturn(new org.opensearch.search.SearchHit[] {hit});
+        org.opensearch.search.SearchHit hit =
+                new org.opensearch.search.SearchHit(
+                        0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
+        hit.sourceRef(
+                new BytesArray(
+                        "{\"document\":{\"decoders\":[\"d_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
+        org.opensearch.search.SearchHits hits =
+                new org.opensearch.search.SearchHits(
+                        new org.opensearch.search.SearchHit[] {hit},
+                        new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+                        1.0f);
         when(searchResponse.getHits()).thenReturn(hits);
         when(client.search(any(SearchRequest.class)).actionGet()).thenReturn(searchResponse);
 

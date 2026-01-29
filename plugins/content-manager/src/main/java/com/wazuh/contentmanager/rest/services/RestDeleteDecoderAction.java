@@ -16,6 +16,10 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -28,20 +32,15 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import static org.opensearch.rest.RestRequest.Method.DELETE;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-
-import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
  * TODO !CHANGE_ME DELETE /_plugins/content-manager/decoder/{decoder_id}
@@ -119,10 +118,10 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
-                return new RestResponse(
-                                "Engine service unavailable.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                        .toBytesRestResponse();
+                RestResponse error =
+                        new RestResponse(
+                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                return error.toBytesRestResponse();
             }
 
             String decoderId = request.param("id");
@@ -158,8 +157,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     }
 
     private static void ensureIndexExists(
-            Client client, String indexName, String mappingsPath, String alias)
-            throws IOException {
+            Client client, String indexName, String mappingsPath, String alias) throws IOException {
         if (!IndexHelper.indexExists(client, indexName)) {
             ContentIndex index = new ContentIndex(client, indexName, mappingsPath, alias);
             try {
@@ -172,7 +170,9 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
 
     private static void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
         SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
-        searchRequest.source().query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_DECODERS, decoderIndexId));
+        searchRequest
+                .source()
+                .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_DECODERS, decoderIndexId));
         SearchResponse searchResponse = client.search(searchRequest).actionGet();
         for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
             Map<String, Object> source = hit.getSourceAsMap();
