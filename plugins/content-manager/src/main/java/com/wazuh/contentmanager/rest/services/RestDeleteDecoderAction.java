@@ -16,29 +16,26 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.DecodersConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -60,12 +57,11 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
     private static final Logger log = LogManager.getLogger(RestDeleteDecoderAction.class);
     private static final String DECODER_MAPPINGS = "/mappings/cti-decoders-mappings.json";
-    private static final String INTEGRATION_MAPPINGS = "/mappings/cti-integrations-mappings.json";
     private static final String DECODER_ALIAS = ".cti-decoders";
-    private static final String INTEGRATION_ALIAS = ".cti-integration-decoders";
+    private static final String INTEGRATION_INDEX = ".cti-integrations";
+    private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_DECODERS = "decoders";
-    private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
     private final EngineService engine;
 
     /**
@@ -117,8 +113,8 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
      * TODO !CHANGE_ME.
      *
      * @param request incoming request
+     * @param client the node client
      * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
@@ -142,63 +138,12 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             final String resolvedDecoderId = decoderId;
 
             if (client != null) {
-                String decoderIndexName = getIndexName(DecodersConsumerSynchronizer.DECODER);
+                String decoderIndexName = DECODER_ALIAS;
                 ensureIndexExists(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
                 ContentIndex decoderIndex =
                         new ContentIndex(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
+                updateIntegrationsRemovingDecoder(client, resolvedDecoderId);
                 decoderIndex.delete(resolvedDecoderId);
-
-                String integrationIndexName = getIndexName(DecodersConsumerSynchronizer.INTEGRATION);
-                ensureIndexExists(
-                        client, integrationIndexName, INTEGRATION_MAPPINGS, INTEGRATION_ALIAS);
-                SearchResponse searchResponse =
-                        client.prepareSearch(integrationIndexName)
-                                .setQuery(
-                                        QueryBuilders.termQuery(
-                                                FIELD_DOCUMENT + "." + FIELD_DECODERS,
-                                                resolvedDecoderId))
-                                .setSize(100)
-                                .get();
-                SearchHit[] hits = searchResponse.getHits().getHits();
-                if (hits.length == 0) {
-                    log.warn("No integrations reference decoder [{}].", resolvedDecoderId);
-                }
-                for (SearchHit hit : hits) {
-                    Map<String, Object> source = hit.getSourceAsMap();
-                    Object documentObj = source.get(FIELD_DOCUMENT);
-                    if (!(documentObj instanceof Map)) {
-                        log.warn(
-                                "Integration document [{}] is invalid while removing decoder [{}].",
-                                hit.getId(),
-                                resolvedDecoderId);
-                        continue;
-                    }
-                    Map<String, Object> document = new HashMap<>();
-                    for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
-                        document.put(String.valueOf(entry.getKey()), entry.getValue());
-                    }
-                    Object existing = document.get(FIELD_DECODERS);
-                    if (existing instanceof List) {
-                        List<?> list = (List<?>) existing;
-                        List<Object> updated = new java.util.ArrayList<>(list);
-                        updated.removeIf(item -> resolvedDecoderId.equals(String.valueOf(item)));
-                        document.put(FIELD_DECODERS, updated);
-                        source.put(FIELD_DOCUMENT, document);
-                        ContentIndex integrationIndex =
-                                new ContentIndex(
-                                        client,
-                                        integrationIndexName,
-                                        INTEGRATION_MAPPINGS,
-                                        INTEGRATION_ALIAS);
-                        ObjectMapper mapper = new ObjectMapper();
-                        integrationIndex.create(hit.getId(), mapper.valueToTree(source));
-                    }
-                }
-
-                PluginSettings settings = PluginSettings.getInstance();
-                new PolicyHashService(client)
-                        .calculateAndUpdate(
-                                settings.getDecodersContext(), settings.getDecodersConsumer());
             }
 
             RestResponse response =
@@ -216,16 +161,6 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
         }
     }
 
-    private static String getIndexName(String type) {
-        PluginSettings settings = PluginSettings.getInstance();
-        return String.format(
-                java.util.Locale.ROOT,
-                ".%s-%s-%s",
-                settings.getDecodersContext(),
-                settings.getDecodersConsumer(),
-                type);
-    }
-
     private static void ensureIndexExists(
             Client client, String indexName, String mappingsPath, String alias)
             throws IOException {
@@ -235,6 +170,42 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 index.createIndex();
             } catch (Exception e) {
                 throw new IOException("Failed to create index " + indexName, e);
+            }
+        }
+    }
+
+    private static void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
+        SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
+        searchRequest.source().query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_DECODERS, decoderIndexId));
+        SearchResponse searchResponse = client.search(searchRequest).actionGet();
+        for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
+            Map<String, Object> source = hit.getSourceAsMap();
+            Object documentObj = source.get(FIELD_DOCUMENT);
+            if (!(documentObj instanceof Map)) {
+                log.warn(
+                        "Integration document [{}] is invalid while removing decoder [{}].",
+                        hit.getId(),
+                        decoderIndexId);
+                continue;
+            }
+            Map<String, Object> doc = new java.util.HashMap<>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
+                doc.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+            Object decodersObj = doc.get(FIELD_DECODERS);
+            if (decodersObj instanceof List) {
+                List<?> list = (List<?>) decodersObj;
+                java.util.List<Object> updated = new java.util.ArrayList<>(list);
+                updated.removeIf(item -> decoderIndexId.equals(String.valueOf(item)));
+                doc.put(FIELD_DECODERS, updated);
+                source.put(FIELD_DOCUMENT, doc);
+                client
+                        .index(
+                                new IndexRequest(INTEGRATION_INDEX)
+                                        .id(hit.getId())
+                                        .source(source)
+                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                        .actionGet();
             }
         }
     }

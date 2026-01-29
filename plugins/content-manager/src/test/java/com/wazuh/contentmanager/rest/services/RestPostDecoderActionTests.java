@@ -18,6 +18,10 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
@@ -26,21 +30,26 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
-import java.util.UUID;
-
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.ArgumentCaptor;
 
 /**
@@ -107,14 +116,15 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
      *
      * @throws IOException
      */
-    public void testPostDecoder200() throws IOException {
+    public void testPostDecoder200() throws Exception {
         // Mock
         RestRequest request = buildRequest(DECODER_PAYLOAD, null);
         RestResponse engineResponse = new RestResponse("Decoder created", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = buildClientForIndex();
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);
 
         // Assert
         RestResponse actualResponse = parseResponse(bytesRestResponse);
@@ -233,5 +243,24 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
     private RestResponse parseResponse(BytesRestResponse response) {
         JsonNode node = FixtureFactory.from(response.content().utf8ToString());
         return new RestResponse(node.get("message").asText(), node.get("status").asInt());
+    }
+
+    private Client buildClientForIndex() throws Exception {
+        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        @SuppressWarnings("unchecked")
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.get(anyLong(), any())).thenReturn(mock(IndexResponse.class));
+        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> document = new HashMap<>();
+        document.put("decoders", new ArrayList<>());
+        when(getResponse.getSourceAsMap()).thenReturn(Map.of("document", document));
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
+
+        return client;
     }
 }

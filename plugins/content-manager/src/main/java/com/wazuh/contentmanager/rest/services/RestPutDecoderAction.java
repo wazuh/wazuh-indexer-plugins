@@ -35,8 +35,6 @@ import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.DecodersConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -57,6 +55,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
     private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
+    private static final String INDEX_ID_PREFIX = "d_";
     private static final String DECODER_MAPPINGS = "/mappings/cti-decoders-mappings.json";
     private static final String DECODER_ALIAS = ".cti-decoders";
     private static final String DECODER_TYPE = "decoder";
@@ -117,8 +116,8 @@ public class RestPutDecoderAction extends BaseRestHandler {
      * TODO !CHANGE_ME.
      *
      * @param request incoming request
+     * @param client the node client
      * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
@@ -155,15 +154,18 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            if (resourceNode.hasNonNull(FIELD_ID)
-                    && !decoderId.equals(resourceNode.get(FIELD_ID).asText())) {
-                RestResponse error =
-                        new RestResponse(
-                                "Decoder ID does not match resource ID.",
-                                RestStatus.BAD_REQUEST.getStatus());
-                return error.toBytesRestResponse();
+            String resourceId = toResourceId(decoderId);
+            if (resourceNode.hasNonNull(FIELD_ID)) {
+                String payloadId = resourceNode.get(FIELD_ID).asText();
+                if (!payloadId.equals(resourceId) && !payloadId.equals(decoderId)) {
+                    RestResponse error =
+                            new RestResponse(
+                                    "Decoder ID does not match resource ID.",
+                                    RestStatus.BAD_REQUEST.getStatus());
+                    return error.toBytesRestResponse();
+                }
             }
-            resourceNode.put(FIELD_ID, decoderId);
+            resourceNode.put(FIELD_ID, resourceId);
 
             ObjectNode enginePayload = mapper.createObjectNode();
             enginePayload.put(FIELD_TYPE, DECODER_TYPE);
@@ -177,16 +179,11 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return error.toBytesRestResponse();
             }
             if (client != null) {
-                String decoderIndexName = getIndexName(DecodersConsumerSynchronizer.DECODER);
+                String decoderIndexName = DECODER_ALIAS;
                 ensureIndexExists(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
                 ContentIndex decoderIndex =
                         new ContentIndex(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
                 decoderIndex.create(decoderId, buildDecoderPayload(resourceNode));
-
-                PluginSettings settings = PluginSettings.getInstance();
-                new PolicyHashService(client)
-                        .calculateAndUpdate(
-                                settings.getDecodersContext(), settings.getDecodersConsumer());
             }
             return response.toBytesRestResponse();
         } catch (IOException e) {
@@ -208,22 +205,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private static JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put(FIELD_TYPE, DecodersConsumerSynchronizer.DECODER);
+        node.put(FIELD_TYPE, DECODER_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
         ObjectNode spaceNode = mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
         return node;
-    }
-
-    private static String getIndexName(String type) {
-        PluginSettings settings = PluginSettings.getInstance();
-        return String.format(
-                java.util.Locale.ROOT,
-                ".%s-%s-%s",
-                settings.getDecodersContext(),
-                settings.getDecodersConsumer(),
-                type);
     }
 
     private static void ensureIndexExists(
@@ -238,4 +225,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
         }
     }
+
+    private static String toResourceId(String indexId) {
+        if (indexId != null && indexId.startsWith(INDEX_ID_PREFIX)) {
+            return indexId.substring(INDEX_ID_PREFIX.length());
+        }
+        return indexId;
+    }
+
 }

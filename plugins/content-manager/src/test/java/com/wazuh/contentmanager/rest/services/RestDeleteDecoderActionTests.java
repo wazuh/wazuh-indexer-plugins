@@ -18,6 +18,12 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
@@ -26,15 +32,22 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestDeleteDecoderAction} class. This test suite validates the REST API
@@ -68,10 +81,11 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
      */
     public void testDeleteDecoder200() throws IOException {
         // Mock
-        RestRequest request = buildRequest(null, "82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        RestRequest request = buildRequest(null, "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        Client client = buildClientForDelete();
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);
 
         // Assert
         RestResponse expectedResponse =
@@ -111,7 +125,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     public void testDeleteDecoder500() throws IOException {
         // Mock
         this.action = new RestDeleteDecoderAction(null);
-        RestRequest request = buildRequest(null, "82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        RestRequest request = buildRequest(null, "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
 
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
@@ -146,5 +160,39 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     private RestResponse parseResponse(BytesRestResponse response) {
         JsonNode node = FixtureFactory.from(response.content().utf8ToString());
         return new RestResponse(node.get("message").asText(), node.get("status").asInt());
+    }
+
+    private Client buildClientForDelete() throws IOException {
+        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        doAnswer(
+                        invocation -> {
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any());
+
+        @SuppressWarnings("unchecked")
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        SearchResponse searchResponse = mock(SearchResponse.class);
+        org.opensearch.search.SearchHit hit = mock(org.opensearch.search.SearchHit.class);
+        when(hit.getId()).thenReturn("integration-1");
+        when(hit.getSourceAsMap())
+                .thenReturn(
+                        Map.of(
+                                "document",
+                                Map.of(
+                                        "decoders",
+                                        List.of("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f"))));
+        org.opensearch.search.SearchHits hits = mock(org.opensearch.search.SearchHits.class);
+        when(hits.getHits()).thenReturn(new org.opensearch.search.SearchHit[] {hit});
+        when(searchResponse.getHits()).thenReturn(hits);
+        when(client.search(any(SearchRequest.class)).actionGet()).thenReturn(searchResponse);
+
+        return client;
     }
 }

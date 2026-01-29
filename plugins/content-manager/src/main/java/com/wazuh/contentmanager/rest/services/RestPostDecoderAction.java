@@ -22,6 +22,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -31,7 +34,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +41,6 @@ import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.DecodersConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -61,10 +61,10 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
     private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
+    private static final String INDEX_ID_PREFIX = "d_";
     private static final String DECODER_MAPPINGS = "/mappings/cti-decoders-mappings.json";
-    private static final String INTEGRATION_MAPPINGS = "/mappings/cti-integrations-mappings.json";
     private static final String DECODER_ALIAS = ".cti-decoders";
-    private static final String INTEGRATION_ALIAS = ".cti-integration-decoders";
+    private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String DECODER_TYPE = "decoder";
     private static final String FIELD_INTEGRATION = "integration";
     private static final String FIELD_RESOURCE = "resource";
@@ -123,8 +123,8 @@ public class RestPostDecoderAction extends BaseRestHandler {
      * TODO !CHANGE_ME.
      *
      * @param request incoming request
+     * @param client the node client
      * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
@@ -183,61 +183,14 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
             if (client != null) {
                 String decoderId = resourceNode.get(FIELD_ID).asText();
+                String decoderIndexId = toIndexId(decoderId);
                 String integrationId = payload.get(FIELD_INTEGRATION).asText();
-                String decoderIndexName = getIndexName(DecodersConsumerSynchronizer.DECODER);
+                String decoderIndexName = DECODER_ALIAS;
                 ensureIndexExists(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
                 ContentIndex decoderIndex =
                         new ContentIndex(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
-                decoderIndex.create(decoderId, buildDecoderPayload(resourceNode));
-
-                String integrationIndexName = getIndexName(DecodersConsumerSynchronizer.INTEGRATION);
-                ensureIndexExists(
-                        client, integrationIndexName, INTEGRATION_MAPPINGS, INTEGRATION_ALIAS);
-                Map<String, Object> source =
-                        IndexHelper.getDocumentSource(client, integrationIndexName, integrationId);
-                if (source == null) {
-                    log.warn(
-                            "Integration [{}] not found when creating decoder [{}].",
-                            integrationId,
-                            decoderId);
-                } else {
-                    Object documentObj = source.get(FIELD_DOCUMENT);
-                    if (!(documentObj instanceof Map)) {
-                        log.warn(
-                                "Integration document [{}] is invalid when creating decoder [{}].",
-                                integrationId,
-                                decoderId);
-                    } else {
-                        Map<String, Object> document = new HashMap<>();
-                        for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
-                            document.put(String.valueOf(entry.getKey()), entry.getValue());
-                        }
-                        Object existing = document.get(FIELD_DECODERS);
-                        List<String> decoders = new ArrayList<>();
-                        if (existing instanceof List) {
-                            for (Object item : (List<?>) existing) {
-                                decoders.add(String.valueOf(item));
-                            }
-                        }
-                        if (!decoders.contains(decoderId)) {
-                            decoders.add(decoderId);
-                        }
-                        document.put(FIELD_DECODERS, decoders);
-                        source.put(FIELD_DOCUMENT, document);
-                        ContentIndex integrationIndex =
-                                new ContentIndex(
-                                        client,
-                                        integrationIndexName,
-                                        INTEGRATION_MAPPINGS,
-                                        INTEGRATION_ALIAS);
-                        integrationIndex.create(integrationId, mapper.valueToTree(source));
-                    }
-                }
-
-                PluginSettings settings = PluginSettings.getInstance();
-                new PolicyHashService(client)
-                        .calculateAndUpdate(
-                                settings.getDecodersContext(), settings.getDecodersConsumer());
+                decoderIndex.create(decoderIndexId, buildDecoderPayload(resourceNode));
+                updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
             }
             return response.toBytesRestResponse();
         } catch (IOException e) {
@@ -259,22 +212,12 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
-        node.put(FIELD_TYPE, DecodersConsumerSynchronizer.DECODER);
+        node.put(FIELD_TYPE, DECODER_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
         ObjectNode spaceNode = mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
         return node;
-    }
-
-    private static String getIndexName(String type) {
-        PluginSettings settings = PluginSettings.getInstance();
-        return String.format(
-                java.util.Locale.ROOT,
-                ".%s-%s-%s",
-                settings.getDecodersContext(),
-                settings.getDecodersConsumer(),
-                type);
     }
 
     private static void ensureIndexExists(
@@ -288,5 +231,52 @@ public class RestPostDecoderAction extends BaseRestHandler {
                 throw new IOException("Failed to create index " + indexName, e);
             }
         }
+    }
+
+    private static String toIndexId(String resourceId) {
+        return INDEX_ID_PREFIX + resourceId;
+    }
+
+    private static void updateIntegrationWithDecoder(
+            Client client, String integrationId, String decoderIndexId) {
+        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+        if (!integrationResponse.isExists()) {
+            log.warn(
+                    "Integration [{}] not found when creating decoder [{}].",
+                    integrationId,
+                    decoderIndexId);
+            return;
+        }
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        Object documentObj = source.get(FIELD_DOCUMENT);
+        if (!(documentObj instanceof Map)) {
+            log.warn(
+                    "Integration document [{}] is invalid when creating decoder [{}].",
+                    integrationId,
+                    decoderIndexId);
+            return;
+        }
+        Map<String, Object> document = new HashMap<>();
+        for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
+            document.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        Object existing = document.get(FIELD_DECODERS);
+        List<String> decoders = new java.util.ArrayList<>();
+        if (existing instanceof List) {
+            for (Object item : (List<?>) existing) {
+                decoders.add(String.valueOf(item));
+            }
+        }
+        if (!decoders.contains(decoderIndexId)) {
+            decoders.add(decoderIndexId);
+        }
+        document.put(FIELD_DECODERS, decoders);
+        source.put(FIELD_DOCUMENT, document);
+        client.index(
+                        new IndexRequest(INTEGRATION_INDEX)
+                                .id(integrationId)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                .actionGet();
     }
 }
