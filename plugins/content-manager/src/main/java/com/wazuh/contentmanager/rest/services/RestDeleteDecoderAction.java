@@ -60,11 +60,11 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  * </ul>
  */
 public class RestDeleteDecoderAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestDeleteDecoderAction.class);
+    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
-    private static final Logger log = LogManager.getLogger(RestDeleteDecoderAction.class);
-    private static final String DECODER_MAPPINGS = "/mappings/cti-decoders-mappings.json";
-    private static final String DECODER_ALIAS = ".cti-decoders";
+    private static final String DECODER_INDEX = ".cti-decoders";
     private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
     private static final String FIELD_DOCUMENT = "document";
@@ -147,10 +147,9 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             final String resolvedDecoderId = decoderId;
 
             if (client != null) {
-                String decoderIndexName = DECODER_ALIAS;
+                String decoderIndexName = DECODER_INDEX;
                 ensureIndexExists(client, decoderIndexName);
-                ContentIndex decoderIndex =
-                        new ContentIndex(client, decoderIndexName, DECODER_MAPPINGS, DECODER_ALIAS);
+                ContentIndex decoderIndex = new ContentIndex(client, decoderIndexName, null);
 
                 // Check if decoder exists before deleting
                 if (!decoderIndex.exists(resolvedDecoderId)) {

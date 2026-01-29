@@ -58,9 +58,10 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  * </ul>
  */
 public class RestPutDecoderAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
+    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
-    private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
     private static final String INDEX_ID_PREFIX = "d_";
     private static final String DECODER_INDEX = ".cti-decoders";
     private static final String DECODER_TYPE = "decoder";
