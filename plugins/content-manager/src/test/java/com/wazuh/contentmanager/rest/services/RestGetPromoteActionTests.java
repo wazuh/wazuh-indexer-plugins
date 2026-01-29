@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -99,7 +100,8 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         when(this.spaceService.getSpaceResources("test")).thenReturn(targetResources);
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.OK, response.status());
@@ -162,7 +164,8 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         when(this.spaceService.getSpaceResources("custom")).thenReturn(targetResources);
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.OK, response.status());
@@ -200,21 +203,21 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * * Test validation failure when the required 'space' parameter is missing. Expected outcome: 400
+     * Test validation failure when the required 'space' parameter is missing. Expected outcome: 400
      * Bad Request.
      */
     public void testGetPromote400_MissingSpace() {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
         assertTrue(response.content().utf8ToString().contains("Missing required parameter"));
     }
 
     /**
-     * * Test validation failure when the 'space' parameter is empty. Expected outcome: 400 Bad
-     * Request.
+     * Test validation failure when the 'space' parameter is empty. Expected outcome: 400 Bad Request.
      */
     public void testGetPromote400_EmptySpace() {
         RestRequest request =
@@ -222,13 +225,14 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("space", ""))
                         .build();
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
     }
 
     /**
-     * * Test validation failure when the 'space' parameter contains an invalid value (e.g. 'prod').
+     * Test validation failure when the 'space' parameter contains an invalid value (e.g. 'prod').
      * Expected outcome: 400 Bad Request.
      */
     public void testGetPromote400_InvalidSpace() {
@@ -237,14 +241,15 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("space", "prod"))
                         .build();
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
         assertTrue(response.content().utf8ToString().contains("Invalid space parameter"));
     }
 
     /**
-     * * Test validation failure when trying to promote from a space that has no subsequent target
+     * Test validation failure when trying to promote from a space that has no subsequent target
      * (e.g., 'custom'). Expected outcome: 400 Bad Request.
      */
     public void testGetPromote400_NoPromotionTarget() {
@@ -253,14 +258,15 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("space", "custom"))
                         .build();
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
         assertTrue(response.content().utf8ToString().contains("cannot be promoted further"));
     }
 
     /**
-     * * Test internal server error handling when the backend service throws an exception. Expected
+     * Test internal server error handling when the backend service throws an exception. Expected
      * outcome: 500 Internal Server Error.
      */
     public void testGetPromote500() {
@@ -273,7 +279,8 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         when(this.spaceService.getSpaceResources(anyString()))
                 .thenThrow(new RuntimeException("Service Error"));
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
     }

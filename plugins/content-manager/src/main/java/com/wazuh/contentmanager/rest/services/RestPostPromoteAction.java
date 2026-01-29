@@ -17,23 +17,18 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -140,8 +135,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.consolidateChanges(context);
 
             // 5. Response Phase - Reply with success
-            return new RestResponse(
-                    "Promotion completed successfully", RestStatus.OK.getStatus());
+            return new RestResponse("Promotion completed successfully", RestStatus.OK.getStatus());
 
         } catch (IllegalArgumentException e) {
             log.warn("Validation error during promotion: {}", e.getMessage());
@@ -149,14 +143,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
         } catch (IOException e) {
             log.error("IO error during promotion: {}", e.getMessage(), e);
             return new RestResponse(
-                            "Internal error during promotion: " + e.getMessage(),
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Internal error during promotion: " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
             log.error("Unexpected error during promotion: {}", e.getMessage(), e);
             String message =
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "An unexpected error occurred during promotion";
+                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred during promotion";
             return new RestResponse(message, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
@@ -173,8 +165,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         // Validate that the source space can be promoted
         if (sourceSpace == targetSpace) {
-            throw new IllegalArgumentException(
-                    "Space '" + sourceSpace + "' cannot be promoted");
+            throw new IllegalArgumentException("Space '" + sourceSpace + "' cannot be promoted");
         }
 
         SpaceDiff.Changes changes = spaceDiff.getChanges();
@@ -182,15 +173,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Validate policy operations - only UPDATE is allowed
         for (SpaceDiff.OperationItem item : changes.getPolicy()) {
             if (item.getOperation() != SpaceDiff.Operation.UPDATE) {
-                throw new IllegalArgumentException(
-                        "Only 'update' operation is supported for policy");
+                throw new IllegalArgumentException("Only 'update' operation is supported for policy");
             }
         }
     }
 
     /**
-     * Gathers all necessary data for the promotion operation. This method fetches all resources
-     * from the target space and applies the modifications from the source space.
+     * Gathers all necessary data for the promotion operation. This method fetches all resources from
+     * the target space and applies the modifications from the source space.
      *
      * @param spaceDiff The space diff request.
      * @return A PromotionContext containing the engine payload and consolidation data.
@@ -202,11 +192,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
         SpaceDiff.Changes changes = spaceDiff.getChanges();
 
         // Fetch the target policy
-        Map<String, Object> policyDocument =
-                this.spaceService.getPolicy(targetSpace.toString());
+        Map<String, Object> policyDocument = this.spaceService.getPolicy(targetSpace.toString());
         if (policyDocument == null) {
-            throw new IOException(
-                    "Policy document not found for target space: " + targetSpace);
+            throw new IOException("Policy document not found for target space: " + targetSpace);
         }
 
         // Maps to track resources to apply (ADD/UPDATE) - from source space
@@ -313,8 +301,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             switch (operation) {
                 case ADD -> {
                     // ADD: Resource exists in source space but NOT in target space
-                    Map<String, Object> sourceDoc =
-                            this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -327,8 +314,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     // Verify it's in the source space
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>)
-                                    sourceDoc.getOrDefault("space", new HashMap<>());
+                            (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
                     String docSpace = sourceDocSpace.get("name");
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
@@ -343,13 +329,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
                     // Verify it does NOT exist in target space
                     // We check all docs with same ID regardless of space
-                    Map<String, Object> targetDoc =
-                            this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>)
-                                        targetDoc.getOrDefault("space", new HashMap<>());
+                                (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
                         String targetDocSpaceName = targetDocSpace.get("name");
                         if (targetSpace.equals(targetDocSpaceName)) {
                             throw new IllegalArgumentException(
@@ -366,8 +350,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 }
                 case UPDATE -> {
                     // UPDATE: Resource exists in BOTH source and target spaces
-                    Map<String, Object> sourceDoc =
-                            this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -380,8 +363,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     // Verify it's in the source space
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>)
-                                    sourceDoc.getOrDefault("space", new HashMap<>());
+                            (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
                     String docSpace = sourceDocSpace.get("name");
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
@@ -402,13 +384,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 case DELETE -> {
                     // DELETE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
-                    Map<String, Object> targetDoc =
-                            this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>)
-                                        targetDoc.getOrDefault("space", new HashMap<>());
+                                (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
                         String targetDocSpaceName = targetDocSpace.get("name");
                         if (!targetSpace.equals(targetDocSpaceName)) {
                             log.warn(
@@ -422,9 +402,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     // Mark for deletion
                     resourcesToDelete.add(resourceId);
                     log.debug(
-                            "Resource '{}' marked for deletion from target space {}",
-                            resourceId,
-                            targetSpace);
+                            "Resource '{}' marked for deletion from target space {}", resourceId, targetSpace);
                 }
             }
         }
@@ -497,9 +475,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         }
     }
 
-    /**
-     * Internal context class to hold promotion data.
-     */
+    /** Internal context class to hold promotion data. */
     private static class PromotionContext {
         final JsonNode enginePayload;
         final Map<String, Map<String, Object>> integrationsToApply;

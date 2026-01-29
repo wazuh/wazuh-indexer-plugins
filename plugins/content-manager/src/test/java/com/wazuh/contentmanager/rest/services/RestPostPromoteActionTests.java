@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
-
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
@@ -102,17 +101,13 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, String> decoderSpace = new HashMap<>();
         decoderSpace.put("name", "draft");
         decoderDoc.put("space", decoderSpace);
-        when(this.spaceService.getDocument(anyString(), eq("decoder-123")))
-                .thenReturn(decoderDoc);
+        when(this.spaceService.getDocument(anyString(), eq("decoder-123"))).thenReturn(decoderDoc);
 
         // Mock index names
-        when(this.spaceService.getIndexForResourceType("decoders"))
-                .thenReturn(".cti-decoders");
-        when(this.spaceService.getIndexForResourceType("integrations"))
-                .thenReturn(".cti-integrations");
+        when(this.spaceService.getIndexForResourceType("decoders")).thenReturn(".cti-decoders");
+        when(this.spaceService.getIndexForResourceType("integrations")).thenReturn(".cti-integrations");
         when(this.spaceService.getIndexForResourceType("kvdbs")).thenReturn(".cti-kvdbs");
-        when(this.spaceService.getIndexForResourceType("filters"))
-                .thenReturn(".engine-filters");
+        when(this.spaceService.getIndexForResourceType("filters")).thenReturn(".engine-filters");
 
         // Mock target space resources (empty for simplicity)
         when(this.spaceService.getResourcesBySpace(anyString(), eq("test")))
@@ -200,9 +195,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(
-                response.getMessage()
-                        .contains("Only 'update' operation is supported for policy"));
+        assertTrue(response.getMessage().contains("Only 'update' operation is supported for policy"));
     }
 
     /**
@@ -221,13 +214,10 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         when(this.spaceService.getPolicy("test")).thenReturn(policyDoc);
 
         // Mock index names for all resource types
-        when(this.spaceService.getIndexForResourceType("decoders"))
-                .thenReturn(".cti-decoders");
-        when(this.spaceService.getIndexForResourceType("integrations"))
-                .thenReturn(".cti-integrations");
+        when(this.spaceService.getIndexForResourceType("decoders")).thenReturn(".cti-decoders");
+        when(this.spaceService.getIndexForResourceType("integrations")).thenReturn(".cti-integrations");
         when(this.spaceService.getIndexForResourceType("kvdbs")).thenReturn(".cti-kvdbs");
-        when(this.spaceService.getIndexForResourceType("filters"))
-                .thenReturn(".engine-filters");
+        when(this.spaceService.getIndexForResourceType("filters")).thenReturn(".engine-filters");
 
         // Mock decoder does not exist
         when(this.spaceService.getDocument(anyString(), eq("decoder-123"))).thenReturn(null);
@@ -265,15 +255,11 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, String> decoderSpace = new HashMap<>();
         decoderSpace.put("name", "draft");
         decoderDoc.put("space", decoderSpace);
-        when(this.spaceService.getDocument(anyString(), eq("decoder-123")))
-                .thenReturn(decoderDoc);
-        when(this.spaceService.getIndexForResourceType("decoders"))
-                .thenReturn(".cti-decoders");
-        when(this.spaceService.getIndexForResourceType("integrations"))
-                .thenReturn(".cti-integrations");
+        when(this.spaceService.getDocument(anyString(), eq("decoder-123"))).thenReturn(decoderDoc);
+        when(this.spaceService.getIndexForResourceType("decoders")).thenReturn(".cti-decoders");
+        when(this.spaceService.getIndexForResourceType("integrations")).thenReturn(".cti-integrations");
         when(this.spaceService.getIndexForResourceType("kvdbs")).thenReturn(".cti-kvdbs");
-        when(this.spaceService.getIndexForResourceType("filters"))
-                .thenReturn(".engine-filters");
+        when(this.spaceService.getIndexForResourceType("filters")).thenReturn(".engine-filters");
 
         // Mock target space resources
         when(this.spaceService.getResourcesBySpace(anyString(), eq("test")))
@@ -300,8 +286,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(
-                response.getMessage().contains("Validation failed: Invalid decoder syntax"));
+        assertTrue(response.getMessage().contains("Validation failed: Invalid decoder syntax"));
     }
 
     /**
@@ -326,15 +311,11 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, String> decoderSpace = new HashMap<>();
         decoderSpace.put("name", "draft");
         decoderDoc.put("space", decoderSpace);
-        when(this.spaceService.getDocument(anyString(), eq("decoder-123")))
-                .thenReturn(decoderDoc);
-        when(this.spaceService.getIndexForResourceType("decoders"))
-                .thenReturn(".cti-decoders");
-        when(this.spaceService.getIndexForResourceType("integrations"))
-                .thenReturn(".cti-integrations");
+        when(this.spaceService.getDocument(anyString(), eq("decoder-123"))).thenReturn(decoderDoc);
+        when(this.spaceService.getIndexForResourceType("decoders")).thenReturn(".cti-decoders");
+        when(this.spaceService.getIndexForResourceType("integrations")).thenReturn(".cti-integrations");
         when(this.spaceService.getIndexForResourceType("kvdbs")).thenReturn(".cti-kvdbs");
-        when(this.spaceService.getIndexForResourceType("filters"))
-                .thenReturn(".engine-filters");
+        when(this.spaceService.getIndexForResourceType("filters")).thenReturn(".engine-filters");
 
         // Mock target space resources
         when(this.spaceService.getResourcesBySpace(anyString(), eq("test")))
@@ -389,15 +370,11 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, String> decoderSpace = new HashMap<>();
         decoderSpace.put("name", "draft");
         decoderDoc.put("space", decoderSpace);
-        when(this.spaceService.getDocument(anyString(), eq("decoder-123")))
-                .thenReturn(decoderDoc);
-        when(this.spaceService.getIndexForResourceType("decoders"))
-                .thenReturn(".cti-decoders");
-        when(this.spaceService.getIndexForResourceType("integrations"))
-                .thenReturn(".cti-integrations");
+        when(this.spaceService.getDocument(anyString(), eq("decoder-123"))).thenReturn(decoderDoc);
+        when(this.spaceService.getIndexForResourceType("decoders")).thenReturn(".cti-decoders");
+        when(this.spaceService.getIndexForResourceType("integrations")).thenReturn(".cti-integrations");
         when(this.spaceService.getIndexForResourceType("kvdbs")).thenReturn(".cti-kvdbs");
-        when(this.spaceService.getIndexForResourceType("filters"))
-                .thenReturn(".engine-filters");
+        when(this.spaceService.getIndexForResourceType("filters")).thenReturn(".engine-filters");
 
         // Mock target space resources
         when(this.spaceService.getResourcesBySpace(anyString(), eq("test")))
@@ -411,8 +388,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                 .thenReturn(mockEnginePayload);
 
         // Mock engine unreachable (returns 500)
-        RestResponse engineResponse =
-                new RestResponse("Engine service unavailable", 500);
+        RestResponse engineResponse = new RestResponse("Engine service unavailable", 500);
         when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
 
         // Act

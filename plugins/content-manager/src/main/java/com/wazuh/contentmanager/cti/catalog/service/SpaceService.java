@@ -38,7 +38,6 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -144,9 +143,7 @@ public class SpaceService {
         try {
             GetRequest request = new GetRequest(indexName, id);
             GetResponse response =
-                    this.client
-                            .get(request)
-                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                    this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             if (response.isExists()) {
                 return response.getSourceAsMap();
@@ -196,15 +193,12 @@ public class SpaceService {
      * @throws IOException If the bulk update operation fails.
      */
     public void consolidateAddUpdateResources(
-            String indexName,
-            Map<String, Map<String, Object>> resourcesToConsolidate,
-            String targetSpace)
+            String indexName, Map<String, Map<String, Object>> resourcesToConsolidate, String targetSpace)
             throws IOException {
         try {
             BulkRequest bulkRequest = new BulkRequest();
 
-            for (Map.Entry<String, Map<String, Object>> entry :
-                    resourcesToConsolidate.entrySet()) {
+            for (Map.Entry<String, Map<String, Object>> entry : resourcesToConsolidate.entrySet()) {
                 String docId = entry.getKey();
                 Map<String, Object> doc = entry.getValue();
 
@@ -229,8 +223,7 @@ public class SpaceService {
                                 .bulk(bulkRequest)
                                 .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
                 if (response.hasFailures()) {
-                    throw new IOException(
-                            "Bulk consolidation failed: " + response.buildFailureMessage());
+                    throw new IOException("Bulk consolidation failed: " + response.buildFailureMessage());
                 }
             }
         } catch (Exception e) {
@@ -258,9 +251,7 @@ public class SpaceService {
                 Map<String, Object> doc = this.getDocument(indexName, docId);
                 if (doc == null) {
                     log.warn(
-                            "Document [{}] not found in index [{}] for deletion, skipping",
-                            docId,
-                            indexName);
+                            "Document [{}] not found in index [{}] for deletion, skipping", docId, indexName);
                     continue;
                 }
 
@@ -290,8 +281,7 @@ public class SpaceService {
                                 .bulk(bulkRequest)
                                 .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
                 if (response.hasFailures()) {
-                    throw new IOException(
-                            "Bulk deletion failed: " + response.buildFailureMessage());
+                    throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
                 }
             }
         } catch (Exception e) {
