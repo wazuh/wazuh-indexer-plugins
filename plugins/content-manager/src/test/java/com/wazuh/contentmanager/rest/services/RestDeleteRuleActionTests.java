@@ -44,8 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.securityanalytics.action.WDeleteRuleAction;
-import com.wazuh.securityanalytics.action.WDeleteRuleRequest;
+import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
+import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
 import org.mockito.ArgumentCaptor;
 
@@ -114,7 +114,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.OK, response.status());
 
-        verify(this.client).execute(eq(WDeleteRuleAction.INSTANCE), any(WDeleteRuleRequest.class));
+        verify(this.client)
+                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
         verify(this.client).index(any(IndexRequest.class));
         verify(this.client).delete(any(DeleteRequest.class));
     }
@@ -246,7 +247,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         when(sapFuture.actionGet()).thenReturn(new WDeleteRuleResponse(ruleId, 1L, RestStatus.OK));
         doReturn(sapFuture)
                 .when(this.client)
-                .execute(eq(WDeleteRuleAction.INSTANCE), any(WDeleteRuleRequest.class));
+                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
     }
 
     /**

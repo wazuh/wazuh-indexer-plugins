@@ -36,8 +36,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.securityanalytics.action.WIndexRuleAction;
-import com.wazuh.securityanalytics.action.WIndexRuleRequest;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -111,7 +111,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
                 .thenReturn(new WIndexRuleResponse("new-rule-id", 1L, RestStatus.CREATED));
         doReturn(sapFuture)
                 .when(this.client)
-                .execute(eq(WIndexRuleAction.INSTANCE), any(WIndexRuleRequest.class));
+                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
 
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
         when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
@@ -123,12 +123,14 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         org.opensearch.action.get.GetRequestBuilder getRequestBuilder =
                 mock(org.opensearch.action.get.GetRequestBuilder.class);
         doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
+        when(getRequestBuilder.setFetchSource(anyBoolean())).thenReturn(getRequestBuilder);
         when(getRequestBuilder.get()).thenReturn(getResponse);
 
         when(getResponse.isExists()).thenReturn(true);
         Map<String, Object> docMap = new HashMap<>();
         docMap.put("rules", Collections.emptyList());
         when(getResponse.getSourceAsMap()).thenReturn(Map.of("document", new HashMap<>(docMap)));
+        when(getResponse.getSourceAsString()).thenReturn("{\"document\": {\"rules\": []}}");
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
@@ -137,7 +139,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.CREATED, response.status());
 
         verify(this.client, times(1))
-                .execute(eq(WIndexRuleAction.INSTANCE), any(WIndexRuleRequest.class));
+                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
 
         // Verify 2 index calls:
         // 1. Indexing the rule in .cti-rules
@@ -205,10 +207,51 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
 
-        // Assert
         assertEquals(RestStatus.BAD_REQUEST, response.status());
         assertTrue(
                 response.content().utf8ToString().contains("ID must not be provided during creation"));
+    }
+
+    /**
+     * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the rule has
+     * not been created, because there integration from the integration_id field doesn't exist. The
+     * expected response is: {400, RestResponse}
+     *
+     * @throws IOException
+     */
+    public void testPostRule400_IntegrationNotFound() throws IOException {
+        // Arrange
+        // spotless:off
+        String jsonRule = """
+            {
+              "integration_id": "missing-integration",
+              "title": "Rule",
+              "logsource": { "product": "test" }
+            }
+            """;
+        // spotless:on
+
+        // Mock
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        GetResponse getResponse = mock(GetResponse.class);
+        org.opensearch.action.get.GetRequestBuilder getRequestBuilder =
+                mock(org.opensearch.action.get.GetRequestBuilder.class);
+
+        doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
+        when(getRequestBuilder.setFetchSource(anyBoolean())).thenReturn(getRequestBuilder);
+        when(getRequestBuilder.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(false);
+
+        // Act
+        BytesRestResponse response = this.action.handleRequest(request, this.client);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        assertTrue(response.content().utf8ToString().contains("does not exist"));
     }
 
     /**

@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -35,16 +33,14 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexRuleAction;
-import com.wazuh.securityanalytics.action.WIndexRuleRequest;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -143,44 +139,30 @@ public class RestPutRuleAction extends BaseRestHandler {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(request.content().streamInput());
 
-            if (rootNode.has("date")) {
+            if (rootNode.has("date") || rootNode.has("modified")) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse(
-                                        "Field 'date' is managed by the system and cannot be provided.",
-                                        RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
-            }
-            if (rootNode.has("modified")) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Field 'modified' is managed by the system and cannot be provided.",
+                                        "Fields 'date' and 'modified' are managed by the system.",
                                         RestStatus.BAD_REQUEST.getStatus())
                                 .toXContent());
             }
 
             ObjectNode ruleNode = rootNode.deepCopy();
-            ruleNode.put("id", ruleId);
 
+            ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
             String createdDate = null;
-            try {
-                GetResponse response =
-                        client
-                                .prepareGet(CTI_RULES_INDEX, ruleId)
-                                .setFetchSource(new String[] {"document.date"}, null)
-                                .get();
-                if (response.isExists() && response.getSourceAsMap() != null) {
-                    Map<String, Object> source = response.getSourceAsMap();
-                    if (source.containsKey("document")) {
-                        Map<String, Object> doc = (Map<String, Object>) source.get("document");
-                        if (doc.get("date") != null) {
-                            createdDate = doc.get("date").toString();
-                        }
-                    }
+            String existingAuthor = null;
+
+            JsonNode existingDoc = rulesIndex.getDocument(ruleId);
+            if (existingDoc != null && existingDoc.has("document")) {
+                JsonNode doc = existingDoc.get("document");
+                if (doc.has("date")) {
+                    createdDate = doc.get("date").asText();
                 }
-            } catch (Exception ex) {
-                log.warn("Failed to fetch existing rule date for preservation: {}", ex.getMessage());
+                if (doc.has("author")) {
+                    existingAuthor = doc.get("author").asText();
+                }
             }
 
             ruleNode.put(
@@ -190,48 +172,27 @@ public class RestPutRuleAction extends BaseRestHandler {
             if (!ruleNode.has("enabled")) {
                 ruleNode.put("enabled", true);
             }
-
-            // Determine product
-            String product = "linux";
-            if (ruleNode.has("logsource")) {
-                JsonNode logsource = ruleNode.get("logsource");
-                if (logsource.has("product")) {
-                    product = logsource.get("product").asText();
-                } else if (logsource.has("category")) {
-                    product = logsource.get("category").asText();
-                }
+            if (!ruleNode.has("author")) {
+                ruleNode.put("author", existingAuthor != null ? existingAuthor : "Wazuh (generated)");
             }
 
-            // 1. Call SAP to update rule
-            WIndexRuleRequest ruleRequest =
-                    new WIndexRuleRequest(
+            String product = ContentIndex.extractProduct(ruleNode);
+
+            // 1. Call SAP
+            ruleNode.put("id", ruleId);
+            WIndexCustomRuleRequest ruleRequest =
+                    new WIndexCustomRuleRequest(
                             ruleId,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             product,
                             org.opensearch.rest.RestRequest.Method.POST,
                             ruleNode.toString(),
-                            true);
-
-            client.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
+                            true // forced
+                            );
+            client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
 
             // 2. Update CTI Rules Index
-            Map<String, Object> ctiDoc = new HashMap<>();
-            Map<String, Object> ruleMap = mapper.convertValue(ruleNode, Map.class);
-            ctiDoc.put("document", ruleMap);
-
-            // Calculate Hash
-            String hash = HashCalculator.sha256(ruleNode.toString());
-            ctiDoc.put("hash", Map.of("sha256", hash));
-
-            ctiDoc.put("space", Map.of("name", "custom"));
-
-            IndexRequest indexRequest =
-                    new IndexRequest(CTI_RULES_INDEX)
-                            .id(ruleId)
-                            .source(ctiDoc)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-            client.index(indexRequest).actionGet();
+            rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
 
             RestResponse response =
                     new RestResponse("Rule updated successfully", RestStatus.OK.getStatus());

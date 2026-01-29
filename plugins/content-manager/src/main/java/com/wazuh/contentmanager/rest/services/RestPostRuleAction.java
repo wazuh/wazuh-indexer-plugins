@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -35,16 +33,14 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexRuleAction;
-import com.wazuh.securityanalytics.action.WIndexRuleRequest;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -150,7 +146,19 @@ public class RestPostRuleAction extends BaseRestHandler {
             }
 
             String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
-            // Set UUID of the rule
+
+            // Validate that the Integration exists
+            ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
+            if (!integrationIndex.exists(integrationId)) {
+                log.warn("RestPostRuleAction: Integration ID [{}] does not exist.", integrationId);
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse(
+                                        "Integration with ID " + integrationId + " does not exist.",
+                                        RestStatus.BAD_REQUEST.getStatus())
+                                .toXContent());
+            }
+
             String ruleId = UUID.randomUUID().toString();
 
             // Prepare rule object
@@ -166,82 +174,29 @@ public class RestPostRuleAction extends BaseRestHandler {
                 ruleNode.put("enabled", true);
             }
 
-            // Determine product (default to linux)
-            String product = "linux";
-            if (ruleNode.has("logsource")) {
-                JsonNode logsource = ruleNode.get("logsource");
-                if (logsource.has("product")) {
-                    product = logsource.get("product").asText();
-                } else if (logsource.has("category")) {
-                    product = logsource.get("category").asText();
-                }
+            String product = ContentIndex.extractProduct(ruleNode);
+            String payloadString = ruleNode.toString();
+
+            // 2. Call SAP -> Custom Action
+            try {
+                WIndexCustomRuleRequest ruleRequest =
+                        new WIndexCustomRuleRequest(
+                                ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, payloadString, true);
+
+                client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
+                log.info("RestPostRuleAction: SAP created rule successfully (Custom).");
+            } catch (Exception e) {
+                log.error("RestPostRuleAction: SAP creation failed.", e);
+                throw e;
             }
-
-            // 2. Call SAP to create rule
-            WIndexRuleRequest ruleRequest =
-                    new WIndexRuleRequest(
-                            ruleId,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            product,
-                            POST,
-                            ruleNode.toString(),
-                            false);
-
-            // Execute SAP Action
-            client.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
 
             // 3. Store in CTI Rules Index
-            Map<String, Object> ctiDoc = new HashMap<>();
-            Map<String, Object> ruleMap = mapper.convertValue(ruleNode, Map.class);
-            ctiDoc.put("document", ruleMap);
+            ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
+            rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
 
-            // Calculate Hash
-            String hash = HashCalculator.sha256(ruleNode.toString());
-            ctiDoc.put("hash", Map.of("sha256", hash));
+            // 4. Link in Integration
+            integrationIndex.appendToList(integrationId, "document.rules", ruleId);
 
-            ctiDoc.put("space", Map.of("name", "custom"));
-
-            IndexRequest indexRequest =
-                    new IndexRequest(CTI_RULES_INDEX)
-                            .id(ruleId)
-                            .source(ctiDoc)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-            client.index(indexRequest).actionGet();
-
-            // 4. Update Integration
-            GetResponse integrationResponse =
-                    client.prepareGet(CTI_INTEGRATIONS_INDEX, integrationId).get();
-            if (integrationResponse.isExists()) {
-                Map<String, Object> integrationSource = integrationResponse.getSourceAsMap();
-                if (integrationSource.containsKey("document")) {
-                    Map<String, Object> doc = (Map<String, Object>) integrationSource.get("document");
-                    List<String> rules = (List<String>) doc.getOrDefault("rules", java.util.List.of());
-
-                    // Add new rule ID
-                    java.util.List<String> updatedRules = new java.util.ArrayList<>(rules);
-                    if (!updatedRules.contains(ruleId)) {
-                        updatedRules.add(ruleId);
-                    }
-                    doc.put("rules", updatedRules);
-
-                    // Update integration
-                    client
-                            .index(
-                                    new IndexRequest(CTI_INTEGRATIONS_INDEX)
-                                            .id(integrationId)
-                                            .source(integrationSource)
-                                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                            .actionGet();
-                }
-            } else {
-                log.warn(
-                        "Integration [{}] not found when creating rule [{}]. Rule created but not linked.",
-                        integrationId,
-                        ruleId);
-            }
-
-            // Return success with ID
             ObjectNode responseNode = mapper.createObjectNode();
             responseNode.put("message", "Rule created successfully");
             responseNode.put("id", ruleId);

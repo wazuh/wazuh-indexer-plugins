@@ -18,10 +18,6 @@ package com.wazuh.contentmanager.rest.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
@@ -29,19 +25,17 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WDeleteRuleAction;
-import com.wazuh.securityanalytics.action.WDeleteRuleRequest;
+import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
+import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -134,8 +128,10 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             try {
                 client
                         .execute(
-                                WDeleteRuleAction.INSTANCE,
-                                new WDeleteRuleRequest(ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                                WDeleteCustomRuleAction.INSTANCE,
+                                new WDeleteCustomRuleRequest(
+                                        ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, true // forced
+                                        ))
                         .actionGet();
             } catch (Exception e) {
                 log.warn(
@@ -144,43 +140,14 @@ public class RestDeleteRuleAction extends BaseRestHandler {
                         e.getMessage());
             }
 
-            // 2. Update Integration
-            SearchRequest searchRequest = new SearchRequest(CTI_INTEGRATIONS_INDEX);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery("document.rules", ruleId));
-            searchRequest.source(sourceBuilder);
-
-            try {
-                SearchResponse searchResponse = client.search(searchRequest).actionGet();
-                for (SearchHit hit : searchResponse.getHits().getHits()) {
-                    Map<String, Object> source = hit.getSourceAsMap();
-                    if (source.containsKey("document")) {
-                        Map<String, Object> doc = (Map<String, Object>) source.get("document");
-                        if (doc.containsKey("rules") && doc.get("rules") instanceof List) {
-                            List<String> rules = (List<String>) doc.get("rules");
-                            if (rules.remove(ruleId)) {
-                                doc.put("rules", rules);
-                                client
-                                        .index(
-                                                new IndexRequest(CTI_INTEGRATIONS_INDEX)
-                                                        .id(hit.getId())
-                                                        .source(source)
-                                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                                        .actionGet();
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Failed to unlink rule [{}] from integrations: {}", ruleId, e.getMessage());
-            }
+            // 2. Unlink from Integrations
+            ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
+            integrationIndex.removeFromListByQuery(
+                    QueryBuilders.termQuery("document.rules", ruleId), "document.rules", ruleId);
 
             // 3. Delete from CTI Rules Index
-            client
-                    .delete(
-                            new DeleteRequest(CTI_RULES_INDEX, ruleId)
-                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                    .actionGet();
+            ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
+            rulesIndex.delete(ruleId);
 
             RestResponse response =
                     new RestResponse("Rule deleted successfully", RestStatus.OK.getStatus());

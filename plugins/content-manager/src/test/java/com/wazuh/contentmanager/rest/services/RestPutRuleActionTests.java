@@ -36,8 +36,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.securityanalytics.action.WIndexRuleAction;
-import com.wazuh.securityanalytics.action.WIndexRuleRequest;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -114,12 +114,13 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         Map<String, Object> docMap = new HashMap<>();
         docMap.put("date", "2021-05-31");
         when(getResponse.getSourceAsMap()).thenReturn(Map.of("document", docMap));
+        when(getResponse.getSourceAsString()).thenReturn("{\"document\": {\"date\": \"2021-05-31\"}}");
 
         ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
         when(sapFuture.actionGet()).thenReturn(new WIndexRuleResponse(ruleId, 2L, RestStatus.OK));
         doReturn(sapFuture)
                 .when(this.client)
-                .execute(eq(WIndexRuleAction.INSTANCE), any(WIndexRuleRequest.class));
+                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
 
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
         when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
@@ -131,7 +132,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.OK, response.status());
         verify(this.client, times(1))
-                .execute(eq(WIndexRuleAction.INSTANCE), any(WIndexRuleRequest.class));
+                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
         verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 
@@ -170,7 +171,6 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         doThrow(new RuntimeException("Simulated error"))
                 .when(this.client)
                 .prepareGet(anyString(), anyString());
-        doThrow(new RuntimeException("Simulated error")).when(this.client).execute(any(), any());
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
