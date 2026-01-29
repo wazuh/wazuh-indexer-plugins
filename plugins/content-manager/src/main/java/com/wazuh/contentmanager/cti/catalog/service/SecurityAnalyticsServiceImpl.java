@@ -127,6 +127,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
         }
+        return null;
     }
 
     @Override
