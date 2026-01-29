@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -48,6 +49,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
@@ -301,7 +303,16 @@ public class ContentIndex {
                 return null;
             }
             // Parse all hits and return in JsonObject format
-            return JsonParser.parseString(searchResponse.getHits().toString()).getAsJsonObject();
+            JsonArray hitsArray = new JsonArray();
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                JsonObject hitObject = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                hitObject.addProperty("id", hit.getId());
+                hitsArray.add(hitObject);
+            }
+            JsonObject result = new JsonObject();
+            result.add("hits", hitsArray);
+            result.addProperty("total", searchResponse.getHits().getTotalHits().value());
+            return result;
         } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
             return null;

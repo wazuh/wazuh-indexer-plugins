@@ -31,6 +31,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -220,7 +221,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 if (value == null) {
                     nullFields.add(fieldName);
                 }
-            } catch (Exception e) {
+            } catch (IllegalAccessException
+                    | NoSuchMethodException
+                    | SecurityException
+                    | InvocationTargetException e) {
                 log.error("Error validating field '{}': {}", fieldName, e.getMessage());
                 return new RestResponse(
                         "Internal validation error for field: " + fieldName,
@@ -249,9 +253,14 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private void storePolicy(NodeClient client, Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(client, POLICIES_INDEX, null);
         String policyId = this.findDraftPolicyId(contentIndex);
+        // Prepare the resource payload
         JsonObject resourcePayload = new JsonObject();
         resourcePayload.add("document", policy.toJson());
-        resourcePayload.addProperty(SPACE_NAME_FIELD, Space.DRAFT.toString());
+        // Set the space to DRAFT
+        JsonObject spaceObject = new JsonObject();
+        spaceObject.addProperty("name", Space.DRAFT.toString());
+        resourcePayload.add("space", spaceObject);
+        // Store the new draft policy
         contentIndex.create(policyId, resourcePayload);
         log.info("Policy stored successfully with ID: {}", policyId);
     }

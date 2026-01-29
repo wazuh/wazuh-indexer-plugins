@@ -95,12 +95,14 @@ public class Resource {
             }
         }
 
-        // 3. Set Space
+        // 3. Set Space if not present in resource payload
         Map<String, String> spaceMap = new HashMap<>();
-        Map<String, String> existingSpace = resource.getSpace();
         String spaceName = Space.STANDARD.toString();
-        if (existingSpace != null) {
-            spaceName = existingSpace.getOrDefault("name", spaceName);
+        if (payload.has("space") && payload.get("space").isJsonObject()) {
+            JsonObject spaceObj = payload.getAsJsonObject("space");
+            if (spaceObj.has("name")) {
+                spaceName = spaceObj.get("name").getAsString();
+            }
         }
         spaceMap.put("name", spaceName);
         resource.setSpace(spaceMap);
