@@ -22,13 +22,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.common.UUIDs;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
@@ -266,12 +263,13 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             }
 
             // Get the policy document
-            JsonNode draftPolicyNode = MAPPER.readTree(searchResponse.getHits().getAt(0).getSourceAsString());
+            JsonNode draftPolicyNode =
+                    MAPPER.readTree(searchResponse.getHits().getAt(0).getSourceAsString());
             JsonNode documentJsonObject = draftPolicyNode.at("/_source/document");
             if (documentJsonObject.isMissingNode()) {
                 return new RestResponse(
-                    "Failed to retrieve draft policy document.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        "Failed to retrieve draft policy document.",
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Get the policy Id
@@ -282,8 +280,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             if (integrationsArray == null || !integrationsArray.isArray()) {
                 service.deleteIntegration(id);
                 return new RestResponse(
-                    "Failed to retrieve integrations array from draft policy document.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        "Failed to retrieve integrations array from draft policy document.",
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Add the new integration ID to the integrations array (avoid duplicates)
