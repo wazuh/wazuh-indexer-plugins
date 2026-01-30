@@ -56,6 +56,16 @@ import com.wazuh.securityanalytics.model.Integration;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
+/**
+ * REST Handler for creating new Integrations in the Content Manager.
+ *
+ * <p>This handler processes POST requests to create integrations. It orchestrates validation via
+ * the Engine, creation in the Security Analytics Plugin (SAP), and storage in the local index. All
+ * created integrations are automatically assigned to the "draft" space and added to the draft
+ * policy.
+ *
+ * <p>Endpoint: POST /_plugins/_content_manager/integrations
+ */
 public class RestPostIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_create";
@@ -66,6 +76,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     private final EngineService engine;
     private final ObjectMapper mapper;
 
+    /**
+     * Constructs a new RestPostIntegrationAction.
+     *
+     * @param engine The EngineService used for validating the integration resource.
+     */
     public RestPostIntegrationAction(EngineService engine) {
         this.engine = engine;
         this.mapper = new ObjectMapper();
@@ -92,6 +107,25 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
+    /**
+     * Handles the creation request for an integration.
+     *
+     * <p>The flow is as follows:
+     *
+     * <ol>
+     *   <li>Validates the request body structure (must contain 'resource' and no ID).
+     *   <li>Generates a new UUID (rawId) and a draft ID (d_UUID).
+     *   <li>Validates the resource using the {@link EngineService}.
+     *   <li>Indexes the integration in the Security Analytics Plugin (SAP) using the draft ID.
+     *   <li>Indexes the integration in the local CTI index with metadata (hash, space).
+     *   <li>Updates the Draft Policy to include the new integration ID.
+     * </ol>
+     *
+     * @param request The REST request.
+     * @param client The OpenSearch client.
+     * @return A BytesRestResponse containing the result of the operation.
+     * @throws IOException If an I/O error occurs.
+     */
     public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
             throws IOException {
         try {
@@ -99,11 +133,29 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 return new BytesRestResponse(RestStatus.BAD_REQUEST, "Request body is missing");
             }
 
-            JsonNode payload = this.mapper.readTree(request.content().utf8ToString());
+            JsonNode requestBody = this.mapper.readTree(request.content().utf8ToString());
 
-            if (payload.has("id")) {
+            // Validate Input Structure
+            if (!requestBody.has("resource")) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST, "Request body must contain 'resource' field");
+            }
+
+            ObjectNode resourceNode = (ObjectNode) requestBody.get("resource");
+
+            if (resourceNode.has("id")) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST, "ID must not be provided during creation");
+            }
+
+            if (resourceNode.has("date")) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST, "'date' must not be provided during creation");
+            }
+
+            if (resourceNode.has("modified")) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST, "'modified' must not be provided during creation");
             }
 
             String rawId = UUID.randomUUID().toString();
@@ -111,20 +163,21 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             String date = LocalDate.now().toString();
 
             // 1. Prepare payload for Engine and Local Index
-            ObjectNode docNode = payload.deepCopy();
-            docNode.put("id", rawId);
+            resourceNode.put("id", rawId);
 
-            if (docNode.has("name") && !docNode.has("title")) {
-                docNode.put("title", docNode.get("name").asText());
+            if (resourceNode.has("name") && !resourceNode.has("title")) {
+                resourceNode.put("title", resourceNode.get("name").asText());
             }
 
-            docNode.put("date", date);
-            if (!docNode.has("enabled")) docNode.put("enabled", true);
+            resourceNode.put("date", date);
+            if (!resourceNode.has("enabled")) resourceNode.put("enabled", true);
 
             // 2. Engine Validation
-            ObjectNode validationPayload = this.mapper.createObjectNode();
-            validationPayload.put("type", "integration");
-            validationPayload.set("resource", docNode);
+            ObjectNode validationPayload = (ObjectNode) requestBody;
+            if (!validationPayload.has("type")) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST, "Request body must contain 'type' field");
+            }
 
             RestResponse validationResponse = this.engine.validate(validationPayload);
             if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
@@ -133,7 +186,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             }
 
             // 3. SAP Execution
-            Map<String, Object> sapMap = this.mapper.convertValue(docNode, Map.class);
+            Map<String, Object> sapMap = this.mapper.convertValue(resourceNode, Map.class);
             if (sapMap.containsKey("category")) {
                 String rawCategory = (String) sapMap.get("category");
                 sapMap.put("category", this.formatCategory(rawCategory));
@@ -158,9 +211,9 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             // 4. Local Indexing
             ObjectNode rootNode = this.mapper.createObjectNode();
-            rootNode.set("document", docNode);
+            rootNode.set("document", resourceNode);
 
-            String sha256 = HashCalculator.sha256(docNode.toString());
+            String sha256 = HashCalculator.sha256(resourceNode.toString());
             ObjectNode hashNode = this.mapper.createObjectNode();
             hashNode.put("sha256", sha256);
             rootNode.set("hash", hashNode);
@@ -191,6 +244,13 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
     }
 
+    /**
+     * Formats the category string to Title Case to match Security Analytics Plugin expectations.
+     * e.g., "cloud-services" -> "Cloud Services".
+     *
+     * @param category The raw category slug.
+     * @return The formatted category string.
+     */
     private String formatCategory(String category) {
         if (category == null || category.isEmpty()) return "Other";
         if (category.contains("cloud-services")) {
@@ -201,6 +261,13 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 .collect(Collectors.joining(" "));
     }
 
+    /**
+     * Updates the Draft Policy by adding the new integration ID. Also recalculates the policy hash.
+     *
+     * @param client The NodeClient to execute searches and updates.
+     * @param integrationId The ID of the integration to add (should be the draft ID).
+     * @throws IOException If a serialization error occurs.
+     */
     private void updateDraftPolicy(NodeClient client, String integrationId) throws IOException {
         SearchRequest searchRequest =
                 new SearchRequest(CTI_POLICIES_INDEX)

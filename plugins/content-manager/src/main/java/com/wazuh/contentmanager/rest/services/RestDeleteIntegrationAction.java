@@ -51,6 +51,15 @@ import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
+/**
+ * REST Handler for deleting Integrations in the Content Manager.
+ *
+ * <p>This handler processes DELETE requests to remove integrations. It ensures that only
+ * integrations in the "draft" space can be deleted. It handles deletion from the SAP, the local
+ * index, and removes the reference from the draft policy.
+ *
+ * <p><strong>Endpoint:</strong> DELETE /_plugins/_content_manager/integrations/{id}
+ */
 public class RestDeleteIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
@@ -60,6 +69,11 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     private final EngineService engine;
     private final ObjectMapper mapper;
 
+    /**
+     * Constructs a new RestDeleteIntegrationAction.
+     *
+     * @param engine The EngineService (unused in delete but consistent with other actions).
+     */
     public RestDeleteIntegrationAction(EngineService engine) {
         this.engine = engine;
         this.mapper = new ObjectMapper();
@@ -74,7 +88,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     /**
      * Return the route configuration for this handler.
      *
-     * @return route configuration for the update endpoint
+     * @return route configuration for the delete endpoint
      */
     @Override
     public List<Route> routes() {
@@ -89,12 +103,27 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        if (request.hasParam("id")) {
-            request.param("id");
-        }
+        request.param("id");
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
+    /**
+     * Handles the delete request for an integration.
+     *
+     * <p>The flow is as follows:
+     *
+     * <ol>
+     *   <li>Validates the integration exists in the local index and belongs to "draft" space.
+     *   <li>Deletes the integration from the Security Analytics Plugin (SAP).
+     *   <li>Deletes the integration from the local CTI index.
+     *   <li>Removes the integration ID from the Draft Policy and updates the hash.
+     * </ol>
+     *
+     * @param request The REST request.
+     * @param client The OpenSearch client.
+     * @return A BytesRestResponse containing the operation status.
+     * @throws IOException If an I/O error occurs.
+     */
     public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
             throws IOException {
         try {
@@ -164,6 +193,16 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
     }
 
+    /**
+     * Builds a standardized JSON error response.
+     *
+     * <p>Constructs a JSON object containing the error message and the HTTP status code, then wraps
+     * it in a {@link BytesRestResponse}.
+     *
+     * @param status The HTTP status code to return.
+     * @param message The error message description.
+     * @return A BytesRestResponse containing the JSON error details.
+     */
     private BytesRestResponse buildJsonErrorResponse(RestStatus status, String message) {
         ObjectNode errorNode = this.mapper.createObjectNode();
         errorNode.put("message", message);
@@ -171,6 +210,17 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         return new BytesRestResponse(status, errorNode.toString());
     }
 
+    /**
+     * Removes the integration ID from the Draft Policy and updates the policy's hash.
+     *
+     * <p>This method searches for the policy associated with the "draft" space. If found, it checks
+     * if the integration ID is present in the policy's integration list. If present, the ID is
+     * removed, the policy document hash is recalculated, and the policy is updated in the index.
+     *
+     * @param client The NodeClient used to execute search and index requests.
+     * @param integrationId The ID of the integration to remove.
+     * @throws IOException If a serialization error occurs during hash recalculation.
+     */
     private void removeLinkFromPolicy(NodeClient client, String integrationId) throws IOException {
         SearchRequest searchRequest =
                 new SearchRequest(CTI_POLICIES_INDEX)

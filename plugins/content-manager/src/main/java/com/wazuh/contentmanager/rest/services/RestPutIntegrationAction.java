@@ -57,6 +57,15 @@ import com.wazuh.securityanalytics.model.Integration;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
+/**
+ * REST Handler for updating existing Integrations in the Content Manager.
+ *
+ * <p>This handler processes PUT requests to update integrations. It validates consistency between
+ * the URL ID and Body ID, checks for existence, validates the updated content via the Engine, and
+ * updates both the SAP and the local CTI index.
+ *
+ * <p><strong>Endpoint:</strong> PUT /_plugins/_content_manager/integrations/{id}
+ */
 public class RestPutIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_update";
@@ -67,6 +76,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     private final EngineService engine;
     private final ObjectMapper mapper;
 
+    /**
+     * Constructs a new RestPutIntegrationAction.
+     *
+     * @param engine The EngineService used for validating the integration resource.
+     */
     public RestPutIntegrationAction(EngineService engine) {
         this.engine = engine;
         this.mapper = new ObjectMapper();
@@ -90,16 +104,33 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        if (request.hasParam("id")) {
-            request.param("id");
-        }
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+        String id = request.param("id");
+        return channel -> channel.sendResponse(this.handleRequest(request, client, id));
     }
 
-    public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
+    /**
+     * Handles the update request for an integration.
+     *
+     * <p>The flow is as follows:
+     *
+     * <ol>
+     *   <li>Validates consistency between the URL ID (expected d_UUID) and the Body ID (raw UUID).
+     *   <li>Checks if the integration exists in the local index.
+     *   <li>Validates the updated resource using the {@link EngineService}.
+     *   <li>Updates the integration in the Security Analytics Plugin (SAP).
+     *   <li>Updates the local CTI index with the new content and hash.
+     *   <li>Ensures the integration is linked in the Draft Policy (and updates policy hash).
+     * </ol>
+     *
+     * @param request The REST request.
+     * @param client The OpenSearch client.
+     * @param id The integration ID from the URL path.
+     * @return A BytesRestResponse containing the result of the operation.
+     * @throws IOException If an I/O error occurs.
+     */
+    public BytesRestResponse handleRequest(RestRequest request, NodeClient client, String id)
             throws IOException {
         try {
-            String id = request.param("id");
             if (id == null || id.isEmpty()) {
                 return new BytesRestResponse(RestStatus.BAD_REQUEST, "Integration ID is required");
             }
@@ -108,10 +139,17 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                 return new BytesRestResponse(RestStatus.BAD_REQUEST, "Request body is missing");
             }
 
-            JsonNode payload = this.mapper.readTree(request.content().utf8ToString());
+            JsonNode requestBody = this.mapper.readTree(request.content().utf8ToString());
 
-            if (payload.has("id")) {
-                String bodyId = payload.get("id").asText();
+            if (!requestBody.has("resource")) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST, "Request body must contain 'resource' field");
+            }
+
+            ObjectNode resourceNode = (ObjectNode) requestBody.get("resource");
+
+            if (resourceNode.has("id")) {
+                String bodyId = resourceNode.get("id").asText();
                 String expectedUrlId = DRAFT_PREFIX + bodyId;
                 if (!id.equals(expectedUrlId) && !id.equals(bodyId)) {
                     return new BytesRestResponse(
@@ -133,15 +171,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             Map<String, Object> existingDoc = (Map<String, Object>) existingSource.get("document");
             String creationDate = (String) existingDoc.get("date");
 
-            ObjectNode docNode = payload.deepCopy();
-
-            if (docNode.has("name") && !docNode.has("title")) {
-                docNode.put("title", docNode.get("name").asText());
+            if (resourceNode.has("name") && !resourceNode.has("title")) {
+                resourceNode.put("title", resourceNode.get("name").asText());
             }
 
-            ObjectNode validationPayload = this.mapper.createObjectNode();
-            validationPayload.put("type", "integration");
-            validationPayload.set("resource", docNode);
+            ObjectNode validationPayload = (ObjectNode) requestBody;
+            if (!validationPayload.has("type")) {
+                validationPayload.put("type", "integration");
+            }
 
             RestResponse validationResponse = this.engine.validate(validationPayload);
             if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
@@ -149,7 +186,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                         RestStatus.fromCode(validationResponse.getStatus()), validationResponse.getMessage());
             }
 
-            Map<String, Object> sapMap = this.mapper.convertValue(docNode, Map.class);
+            Map<String, Object> sapMap = this.mapper.convertValue(resourceNode, Map.class);
             if (sapMap.containsKey("category")) {
                 String rawCategory = (String) sapMap.get("category");
                 sapMap.put("category", this.formatCategory(rawCategory));
@@ -172,14 +209,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                         sapResponse.status(), "Failed to update integration in Security Analytics Plugin");
             }
 
-            docNode.put("date", creationDate);
-            docNode.put("modified", LocalDate.now().toString());
-            if (!docNode.has("enabled")) docNode.put("enabled", true);
+            resourceNode.put("date", creationDate);
+            resourceNode.put("modified", LocalDate.now().toString());
+            if (!resourceNode.has("enabled")) resourceNode.put("enabled", true);
 
             ObjectNode rootNode = this.mapper.createObjectNode();
-            rootNode.set("document", docNode);
+            rootNode.set("document", resourceNode);
 
-            String sha256 = HashCalculator.sha256(docNode.toString());
+            String sha256 = HashCalculator.sha256(resourceNode.toString());
             ObjectNode hashNode = this.mapper.createObjectNode();
             hashNode.put("sha256", sha256);
             rootNode.set("hash", hashNode);
@@ -209,6 +246,13 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
     }
 
+    /**
+     * Formats the category string to Title Case to match Security Analytics Plugin expectations.
+     * e.g., "cloud-services" -> "Cloud Services".
+     *
+     * @param category The raw category slug.
+     * @return The formatted category string.
+     */
     private String formatCategory(String category) {
         if (category == null || category.isEmpty()) return "Other";
         if (category.contains("cloud-services")) {
@@ -219,6 +263,15 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                 .collect(Collectors.joining(" "));
     }
 
+    /**
+     * Ensures the integration is linked in the Draft Policy and updates the policy's hash. This
+     * checks if the integration ID exists in the policy's list, adds it if missing, recalculates the
+     * policy hash, and updates the policy document.
+     *
+     * @param client The NodeClient to execute searches and updates.
+     * @param integrationId The ID of the integration (d_UUID).
+     * @throws IOException If a serialization error occurs.
+     */
     private void ensureLinkInPolicy(NodeClient client, String integrationId) throws IOException {
         SearchRequest searchRequest =
                 new SearchRequest(CTI_POLICIES_INDEX)
