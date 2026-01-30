@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -95,10 +95,15 @@ public class Resource {
             }
         }
 
-        // 3. Set Space
-        // TODO: Change To the real logic once CTI is ready
+        // 3. Set Space if not present in resource payload
         Map<String, String> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
+        if (payload.has("space") && payload.get("space").isJsonObject()) {
+            JsonObject spaceObj = payload.getAsJsonObject("space");
+            if (spaceObj.has("name")) {
+                spaceName = spaceObj.get("name").getAsString();
+            }
+        }
         spaceMap.put("name", spaceName);
         resource.setSpace(spaceMap);
     }

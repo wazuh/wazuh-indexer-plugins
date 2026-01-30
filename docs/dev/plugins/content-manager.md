@@ -86,8 +86,8 @@ classDiagram
     ContentManagerPlugin --> RestLayer : Registers
     ContentManagerPlugin --> CatalogSyncJob : Schedules
     ContentManagerPlugin --> ContentJobRunner : Registers Jobs
-    
-    
+
+
     %% REST Interactions
     RestLayer --> CtiConsole : Uses
     RestLayer --> CatalogSyncJob : Triggers manually
@@ -97,7 +97,7 @@ classDiagram
     UnifiedConsumerSynchronizer --> ConsumerService : Checks State
     UnifiedConsumerSynchronizer ..> SnapshotServiceImpl : (if offset == 0)
     UnifiedConsumerSynchronizer ..> UpdateServiceImpl : (if offset < remote)
-    
+
     %% SAP Interactions
     SnapshotServiceImpl --> SecurityAnalyticsService : Upserts Content
     UpdateServiceImpl --> SecurityAnalyticsService : Upserts Content
@@ -130,13 +130,13 @@ Retrieves `LocalConsumer` state from `.cti-consumers` and `RemoteConsumer` state
 ##### 3.2 **SnapshotService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/SnapshotServiceImpl.java`
 
-Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content. 
+Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content.
 It supports multiple content types (rules, decoders, etc.) and indexes them into their respective indices.
 
 ##### 3.3 **UpdateService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/UpdateServiceImpl.java`
 
-Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class). 
+Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class).
 It ensures that any modified content is immediately propagated to the Security Analytics plugin.
 
 ##### 3.4 **SecurityAnalyticsService**
@@ -165,7 +165,7 @@ Wraps operations for the `.cti-consumers` index.
 ##### 4.2 **ContentIndex**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/index/ContentIndex.java`
 
-Manages operations for content indices. 
+Manages operations for content indices.
 
 ---
 
@@ -204,9 +204,9 @@ sequenceDiagram
 
     Scheduler->>SyncJob: Trigger Execution
     activate SyncJob
-    
+
     SyncJob->>Synchronizer: synchronize()
-    
+
     Synchronizer->>ConsumerSvc: getLocalConsumer() / getRemoteConsumer()
     ConsumerSvc->>CTI: Fetch Metadata
     ConsumerSvc-->>Synchronizer: Offsets & Metadata
@@ -225,9 +225,9 @@ sequenceDiagram
 
     opt Changes Applied (onSyncComplete)
         Synchronizer->>Indices: Refresh Indices
-        
+
         Note right of Synchronizer: Sync Local Indices to SAP
-        
+
         Synchronizer->>Processors: IntegrationProcessor.process()
         Processors->>Indices: Search Integrations
         loop For each Integration
@@ -414,7 +414,45 @@ sequenceDiagram
     UI-->>User: decoder deleted
 ```
 
+#### Draft Policy Management
+
+The indexer's draft policy management endpoint allows the user to update the Draft-Space policy stored in the Wazuh Indexer.
+
+
+**Diagrams**
+
+```mermaid
 ---
+title: Draft Policy Update - Flowchart
+---
+flowchart TD
+    UI[UI] -->|PUT /policy<br/>JSON payload| Indexer
+    
+    subgraph indexer_node [Indexer node]
+        Indexer -->|Route request| RestPutPolicyAction
+        
+        RestPutPolicyAction -->|1. Validate request| V1{Has content?<br/>Engine available?}
+        V1 -->|No| Error1[Return 400/500 error]
+        V1 -->|Yes| Parse[2. Parse JSON to Policy object]
+        
+        Parse -->|Success| V2{3. Validate Policy<br/>fields}
+        Parse -->|Fail| Error2[Return 400 error:<br/>Invalid JSON]
+        
+        V2 -->|Field is null| Error3[Return 400 error:<br/>Field cannot be null]
+        V2 -->|All fields valid| Store[4. Store Policy]
+        
+        Store -->|Find/generate ID| ContentIndex[ContentIndex.create]
+        ContentIndex -->|Index to| DraftIndex[(.cti-policies.draft)]
+        DraftIndex -->|Success| Success[Return 200 OK<br/>with Policy object]
+        
+        Error1 --> Response
+        Error2 --> Response
+        Error3 --> Response
+        Success --> Response
+    end
+    
+    Response[Response] -.->|HTTP response| UI
+```
 
 ## 🔍 Debugging
 

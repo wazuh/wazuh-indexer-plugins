@@ -181,6 +181,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostDecoderAction(this.engine),
                 new RestPutDecoderAction(this.engine),
                 new RestDeleteDecoderAction(this.engine));
+                new RestPutPolicyAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */
