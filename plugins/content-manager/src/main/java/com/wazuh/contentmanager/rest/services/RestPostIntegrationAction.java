@@ -19,14 +19,7 @@ package com.wazuh.contentmanager.rest.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexIntegrationAction;
-import com.wazuh.securityanalytics.action.WIndexIntegrationRequest;
-import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
-import com.wazuh.securityanalytics.model.Integration;
+
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -51,6 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.securityanalytics.action.WIndexIntegrationAction;
+import com.wazuh.securityanalytics.action.WIndexIntegrationRequest;
+import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
+import com.wazuh.securityanalytics.model.Integration;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -85,11 +87,13 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
-    public BytesRestResponse handleRequest(RestRequest request, NodeClient client) throws IOException {
+    public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
+            throws IOException {
         try {
             if (!request.hasContent()) {
                 return new BytesRestResponse(RestStatus.BAD_REQUEST, "Request body is missing");
@@ -98,7 +102,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             JsonNode payload = this.mapper.readTree(request.content().utf8ToString());
 
             if (payload.has("id")) {
-                return new BytesRestResponse(RestStatus.BAD_REQUEST, "ID must not be provided during creation");
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST, "ID must not be provided during creation");
             }
 
             String rawId = UUID.randomUUID().toString();
@@ -123,7 +128,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             RestResponse validationResponse = this.engine.validate(validationPayload);
             if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-                return new BytesRestResponse(RestStatus.fromCode(validationResponse.getStatus()), validationResponse.getMessage());
+                return new BytesRestResponse(
+                        RestStatus.fromCode(validationResponse.getStatus()), validationResponse.getMessage());
             }
 
             // 3. SAP Execution
@@ -136,16 +142,18 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             Integration integration = new Integration(sapMap);
             integration.setId(draftId);
 
-            WIndexIntegrationRequest sapRequest = new WIndexIntegrationRequest(
-                draftId,
-                WriteRequest.RefreshPolicy.IMMEDIATE,
-                org.opensearch.rest.RestRequest.Method.POST,
-                integration
-            );
+            WIndexIntegrationRequest sapRequest =
+                    new WIndexIntegrationRequest(
+                            draftId,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            org.opensearch.rest.RestRequest.Method.POST,
+                            integration);
 
-            WIndexIntegrationResponse sapResponse = client.execute(WIndexIntegrationAction.INSTANCE, sapRequest).actionGet();
+            WIndexIntegrationResponse sapResponse =
+                    client.execute(WIndexIntegrationAction.INSTANCE, sapRequest).actionGet();
             if (sapResponse.status() != RestStatus.CREATED && sapResponse.status() != RestStatus.OK) {
-                return new BytesRestResponse(sapResponse.status(), "Failed to create integration in Security Analytics Plugin");
+                return new BytesRestResponse(
+                        sapResponse.status(), "Failed to create integration in Security Analytics Plugin");
             }
 
             // 4. Local Indexing
@@ -161,10 +169,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             spaceNode.put("name", "draft");
             rootNode.set("space", spaceNode);
 
-            IndexRequest localIndexRequest = new IndexRequest(CTI_INTEGRATIONS_INDEX)
-                .id(draftId)
-                .source(rootNode.toString(), XContentType.JSON)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            IndexRequest localIndexRequest =
+                    new IndexRequest(CTI_INTEGRATIONS_INDEX)
+                            .id(draftId)
+                            .source(rootNode.toString(), XContentType.JSON)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
             client.index(localIndexRequest).actionGet();
 
@@ -188,15 +197,17 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             category = category.substring(0, 14);
         }
         return Arrays.stream(category.split("-"))
-            .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1))
-            .collect(Collectors.joining(" "));
+                .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1))
+                .collect(Collectors.joining(" "));
     }
 
     private void updateDraftPolicy(NodeClient client, String integrationId) throws IOException {
-        SearchRequest searchRequest = new SearchRequest(CTI_POLICIES_INDEX)
-            .source(new SearchSourceBuilder()
-                .size(1)
-                .query(QueryBuilders.matchQuery("space.name", "draft")));
+        SearchRequest searchRequest =
+                new SearchRequest(CTI_POLICIES_INDEX)
+                        .source(
+                                new SearchSourceBuilder()
+                                        .size(1)
+                                        .query(QueryBuilders.matchQuery("space.name", "draft")));
 
         SearchResponse response = client.search(searchRequest).actionGet();
         if (response.getHits().getHits().length > 0) {
@@ -205,7 +216,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             Map<String, Object> source = hit.getSourceAsMap();
 
             Map<String, Object> document = (Map<String, Object>) source.get("document");
-            List<String> integrations = (List<String>) document.getOrDefault("integrations", new ArrayList<>());
+            List<String> integrations =
+                    (List<String>) document.getOrDefault("integrations", new ArrayList<>());
 
             if (!integrations.contains(integrationId)) {
                 integrations.add(integrationId);
@@ -215,14 +227,16 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 String docString = this.mapper.writeValueAsString(document);
                 String newHash = HashCalculator.sha256(docString);
 
-                Map<String, Object> hash = (Map<String, Object>) source.getOrDefault("hash", new HashMap<>());
+                Map<String, Object> hash =
+                        (Map<String, Object>) source.getOrDefault("hash", new HashMap<>());
                 hash.put("sha256", newHash);
                 source.put("hash", hash);
 
-                IndexRequest updateRequest = new IndexRequest(CTI_POLICIES_INDEX)
-                    .id(policyId)
-                    .source(source)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                IndexRequest updateRequest =
+                        new IndexRequest(CTI_POLICIES_INDEX)
+                                .id(policyId)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
                 client.index(updateRequest).actionGet();
             }

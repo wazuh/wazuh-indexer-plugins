@@ -18,14 +18,8 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WDeleteIntegrationAction;
-import com.wazuh.securityanalytics.action.WDeleteIntegrationRequest;
-import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
+
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -47,6 +41,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationAction;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationRequest;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -86,14 +87,16 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
         if (request.hasParam("id")) {
             request.param("id");
         }
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
-    public BytesRestResponse handleRequest(RestRequest request, NodeClient client) throws IOException {
+    public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
+            throws IOException {
         try {
             String id = request.param("id");
             if (id == null || id.isEmpty()) {
@@ -113,31 +116,36 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                 Map<String, Object> space = (Map<String, Object>) source.get("space");
                 String spaceName = (String) space.get("name");
                 if (!"draft".equals(spaceName)) {
-                    return this.buildJsonErrorResponse(RestStatus.BAD_REQUEST,
-                        "Cannot delete integration from space '" + spaceName + "'. Only 'draft' space is modifiable.");
+                    return this.buildJsonErrorResponse(
+                            RestStatus.BAD_REQUEST,
+                            "Cannot delete integration from space '"
+                                    + spaceName
+                                    + "'. Only 'draft' space is modifiable.");
                 }
             } else {
-                return this.buildJsonErrorResponse(RestStatus.BAD_REQUEST, "Cannot delete integration with undefined space.");
+                return this.buildJsonErrorResponse(
+                        RestStatus.BAD_REQUEST, "Cannot delete integration with undefined space.");
             }
 
             // 2. Delete from SAP
-            WDeleteIntegrationRequest sapRequest = new WDeleteIntegrationRequest(
-                id,
-                WriteRequest.RefreshPolicy.IMMEDIATE
-            );
+            WDeleteIntegrationRequest sapRequest =
+                    new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE);
 
             try {
-                WDeleteIntegrationResponse sapResponse = client.execute(WDeleteIntegrationAction.INSTANCE, sapRequest).actionGet();
+                WDeleteIntegrationResponse sapResponse =
+                        client.execute(WDeleteIntegrationAction.INSTANCE, sapRequest).actionGet();
                 if (sapResponse.status() == RestStatus.INTERNAL_SERVER_ERROR) {
-                    return this.buildJsonErrorResponse(sapResponse.status(), "Failed to delete integration from Security Analytics Plugin");
+                    return this.buildJsonErrorResponse(
+                            sapResponse.status(), "Failed to delete integration from Security Analytics Plugin");
                 }
             } catch (Exception e) {
                 // Ignore missing integration in SAP
             }
 
             // 3. Delete from Local Index
-            DeleteRequest localDeleteRequest = new DeleteRequest(CTI_INTEGRATIONS_INDEX, id)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            DeleteRequest localDeleteRequest =
+                    new DeleteRequest(CTI_INTEGRATIONS_INDEX, id)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
             client.delete(localDeleteRequest).actionGet();
 
@@ -164,10 +172,12 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     }
 
     private void removeLinkFromPolicy(NodeClient client, String integrationId) throws IOException {
-        SearchRequest searchRequest = new SearchRequest(CTI_POLICIES_INDEX)
-            .source(new SearchSourceBuilder()
-                .size(1)
-                .query(QueryBuilders.matchQuery("space.name", "draft")));
+        SearchRequest searchRequest =
+                new SearchRequest(CTI_POLICIES_INDEX)
+                        .source(
+                                new SearchSourceBuilder()
+                                        .size(1)
+                                        .query(QueryBuilders.matchQuery("space.name", "draft")));
 
         SearchResponse response = client.search(searchRequest).actionGet();
         if (response.getHits().getHits().length > 0) {
@@ -176,7 +186,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             Map<String, Object> source = hit.getSourceAsMap();
 
             Map<String, Object> document = (Map<String, Object>) source.get("document");
-            List<String> integrations = (List<String>) document.getOrDefault("integrations", new ArrayList<>());
+            List<String> integrations =
+                    (List<String>) document.getOrDefault("integrations", new ArrayList<>());
 
             if (integrations.contains(integrationId)) {
                 integrations.remove(integrationId);
@@ -186,14 +197,16 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                 String docString = this.mapper.writeValueAsString(document);
                 String newHash = HashCalculator.sha256(docString);
 
-                Map<String, Object> hash = (Map<String, Object>) source.getOrDefault("hash", new HashMap<>());
+                Map<String, Object> hash =
+                        (Map<String, Object>) source.getOrDefault("hash", new HashMap<>());
                 hash.put("sha256", newHash);
                 source.put("hash", hash);
 
-                IndexRequest updateRequest = new IndexRequest(CTI_POLICIES_INDEX)
-                    .id(policyId)
-                    .source(source)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                IndexRequest updateRequest =
+                        new IndexRequest(CTI_POLICIES_INDEX)
+                                .id(policyId)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
                 client.index(updateRequest).actionGet();
             }
