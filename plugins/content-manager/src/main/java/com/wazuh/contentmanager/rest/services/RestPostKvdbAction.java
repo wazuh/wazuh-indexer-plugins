@@ -22,9 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -33,21 +30,20 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.helpers.IntegrationHelper;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static com.wazuh.contentmanager.utils.ContentManagerConstants.*;
 
-/**
+/**d
  * REST handler for creating KVDB resources.
  *
  * <p>Endpoint: POST /_plugins/_content_manager/kvdbs
@@ -65,21 +61,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostKvdbAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostKvdbAction.class);
 
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_create";
-    private static final String KVDB_INDEX = ".cti-kvdbs";
-    private static final String INTEGRATION_INDEX = ".cti-integrations";
-    private static final String INDEX_ID_PREFIX = "d_";
-    private static final String FIELD_INTEGRATION = "integration";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_KVDBS = "kvdbs";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
-    private static final String KVDB_TYPE = "kvdb";
 
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -124,7 +107,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         // Validate prerequisites
-        RestResponse validationError = validatePrerequisites(request);
+        RestResponse validationError = IntegrationHelper.validatePrerequisites(this.engine, request);
         if (validationError != null) {
             return validationError;
         }
@@ -132,25 +115,34 @@ public class RestPostKvdbAction extends BaseRestHandler {
         try {
             JsonNode payload = mapper.readTree(request.content().streamInput());
             // Validate payload structure
-            validationError = validatePayload(payload);
+            validationError = IntegrationHelper.validatePayload(payload);
             if (validationError != null) {
                 return validationError;
             }
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
+            // Validate integration is in draft space
+            RestResponse spaceValidation = IntegrationHelper.validateIntegrationSpace(client, integrationId);
+            if (spaceValidation != null) {
+                return spaceValidation;
+            }
 
-            // Generate UUID and convert to index ID with prefix
-            String kvdbIndexId = toIndexId(UUID.randomUUID().toString());
-            resourceNode.put(FIELD_ID, kvdbIndexId);
+            // Generate UUID and validate with engine
+            resourceNode.put(FIELD_ID, INDEX_ID_PREFIX + UUID.randomUUID().toString());
 
-            // Validate with engine
-            RestResponse engineResponse = validateWithEngine(resourceNode);
+            // Add timestamp metadata
+            IntegrationHelper.addTimestampMetadata(this.mapper, resourceNode, true, null);
+
+            RestResponse engineResponse = IntegrationHelper.validateWithEngine(this.engine, resourceNode, KVDB_TYPE);
             if (engineResponse != null) {
                 return engineResponse;
             }
             // Create KVDB and update integration
+            String kvdbIndexId = resourceNode.get(FIELD_ID).asText();
             createKvdb(client, kvdbIndexId, resourceNode);
-            updateIntegrationWithKvdb(client, integrationId, kvdbIndexId);
+            IntegrationHelper.addResourceToIntegration(
+                client, integrationId, kvdbIndexId, FIELD_KVDBS, KVDB_TYPE
+            );
 
             return new RestResponse(
                 "KVDB created successfully with ID: " + kvdbIndexId,
@@ -164,47 +156,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
                 e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
                 RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /** Validates that the engine service and request content are available. */
-    private RestResponse validatePrerequisites(RestRequest request) {
-        if (this.engine == null) {
-            return new RestResponse(
-                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /** Validates the payload structure and required fields. */
-    private RestResponse validatePayload(JsonNode payload) {
-        if (!payload.has(FIELD_INTEGRATION) || payload.get(FIELD_INTEGRATION).asText("").isBlank()) {
-            return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
-            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (payload.get(FIELD_RESOURCE).hasNonNull(FIELD_ID)) {
-            return new RestResponse(
-                "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, KVDB_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
-            return new RestResponse(
-                "Invalid KVDB body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
     }
 
     /** Creates the KVDB document in the index. */
@@ -223,62 +174,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
         ObjectNode spaceNode = mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
-
         return node;
-    }
-
-    /** Converts a resource ID to an index document ID. */
-    private static String toIndexId(String resourceId) {
-        return INDEX_ID_PREFIX + resourceId;
-    }
-
-    /** Updates the integration document to include the new KVDB reference. */
-    @SuppressWarnings("unchecked")
-    private void updateIntegrationWithKvdb(
-        Client client, String integrationId, String kvdbIndexId) throws IOException {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
-
-        if (!integrationResponse.isExists()) {
-            throw new IOException("Integration [" + integrationId + "] not found when creating KVDB [" + kvdbIndexId + "].");
-        }
-
-        Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_DOCUMENT)) {
-            throw new IOException("Can't find document in integration [" + integrationId + "] when creating KVDB [" + kvdbIndexId + "].");
-        }
-        Object documentObj = source.get(FIELD_DOCUMENT);
-
-        if (documentObj == null || !(documentObj instanceof Map)) {
-            throw new IOException("Integration document [" + integrationId + "] is invalid when creating KVDB [" + kvdbIndexId + "].");
-        }
-
-        Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
-        List<String> kvdbs = extractKvdbsList(document.get(FIELD_KVDBS));
-
-        if (!kvdbs.contains(kvdbIndexId)) {
-            kvdbs.add(kvdbIndexId);
-        }
-
-        document.put(FIELD_KVDBS, kvdbs);
-        source.put(FIELD_DOCUMENT, document);
-
-        client
-            .index(
-                new IndexRequest(INTEGRATION_INDEX)
-                    .id(integrationId)
-                    .source(source)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-            .actionGet();
-    }
-
-    /** Extracts the KVDBs list from the document, handling type conversion. */
-    private List<String> extractKvdbsList(Object existing) {
-        List<String> kvdbs = new ArrayList<>();
-        if (existing instanceof List) {
-            for (Object item : (List<?>) existing) {
-                kvdbs.add(String.valueOf(item));
-            }
-        }
-        return kvdbs;
     }
 }

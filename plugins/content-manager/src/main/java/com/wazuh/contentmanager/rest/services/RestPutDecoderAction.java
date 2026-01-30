@@ -37,10 +37,12 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.helpers.IntegrationHelper;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static com.wazuh.contentmanager.utils.ContentManagerConstants.*;
 
 /**
  * REST handler for updating CTI decoders.
@@ -60,21 +62,8 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  */
 public class RestPutDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
-    private static final String INDEX_ID_PREFIX = "d_";
-    private static final String DECODER_INDEX = ".cti-decoders";
-    private static final String DECODER_TYPE = "decoder";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
-    private static final String FIELD_METADATA = "metadata";
-    private static final String FIELD_AUTHOR = "author";
-    private static final String FIELD_MODIFIED = "modified";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -158,8 +147,35 @@ public class RestPutDecoderAction extends BaseRestHandler {
             String resourceId = RestPutDecoderAction.toResourceId(decoderId);
             resourceNode.put(FIELD_ID, resourceId);
 
+            // Get existing document to preserve metadata
+            ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
+            ObjectNode existingMetadata = null;
+            try {
+                com.google.gson.JsonObject searchResult = decoderIndex.searchByQuery(
+                    org.opensearch.index.query.QueryBuilders.idsQuery().addIds(decoderId)
+                );
+                if (searchResult != null && searchResult.has("hits")) {
+                    com.google.gson.JsonArray hits = searchResult.getAsJsonArray("hits");
+                    if (hits.size() > 0) {
+                        com.google.gson.JsonObject hit = hits.get(0).getAsJsonObject();
+                        if (hit.has("_source")) {
+                            com.google.gson.JsonObject source = hit.getAsJsonObject("_source");
+                            JsonNode sourceNode = this.mapper.readTree(source.toString());
+                            if (sourceNode.has(FIELD_DOCUMENT)) {
+                                JsonNode docNode = sourceNode.get(FIELD_DOCUMENT);
+                                if (docNode.has(FIELD_METADATA) && docNode.get(FIELD_METADATA).isObject()) {
+                                    existingMetadata = (ObjectNode) docNode.get(FIELD_METADATA);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not retrieve existing metadata for decoder [{}]: {}", decoderId, e.getMessage());
+            }
+
             // Update the modified timestamp
-            this.updateTimestampMetadata(resourceNode);
+            IntegrationHelper.addTimestampMetadata(this.mapper, resourceNode, false, existingMetadata);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -266,12 +282,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     /** Ensures the decoder index exists, creating it if necessary. */
     private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, RestPutDecoderAction.DECODER_INDEX)) {
-            ContentIndex index = new ContentIndex(client, RestPutDecoderAction.DECODER_INDEX, null);
+        if (!IndexHelper.indexExists(client, DECODER_INDEX)) {
+            ContentIndex index = new ContentIndex(client, DECODER_INDEX, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + RestPutDecoderAction.DECODER_INDEX, e);
+                throw new IOException("Failed to create index " + DECODER_INDEX, e);
             }
         }
     }
@@ -282,35 +298,5 @@ public class RestPutDecoderAction extends BaseRestHandler {
             return indexId.substring(INDEX_ID_PREFIX.length());
         }
         return indexId;
-    }
-
-    /**
-     * Updates the modified timestamp in the resource node metadata.
-     *
-     * @param resourceNode the resource node to update
-     */
-    private void updateTimestampMetadata(ObjectNode resourceNode) {
-        String currentTimestamp = Instant.now().toString();
-
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
-        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
-        } else {
-            metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
-        }
-
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
-        } else {
-            authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
-        }
-
-        // Set modified timestamp
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 }

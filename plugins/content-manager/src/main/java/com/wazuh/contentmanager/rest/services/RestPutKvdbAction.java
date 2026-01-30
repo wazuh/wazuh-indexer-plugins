@@ -36,10 +36,12 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.helpers.IntegrationHelper;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static com.wazuh.contentmanager.utils.ContentManagerConstants.*;
 
 /**
  * REST handler for updating CTI KVDBs.
@@ -59,18 +61,8 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  */
 public class RestPutKvdbAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutKvdbAction.class);
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
-    private static final String INDEX_ID_PREFIX = "d_";
-    private static final String KVDB_INDEX = ".cti-kvdbs";
-    private static final String KVDB_TYPE = "kvdb";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -153,6 +145,36 @@ public class RestPutKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String resourceId = toResourceId(kvdbId);
             resourceNode.put(FIELD_ID, resourceId);
+
+            // Get existing document to preserve metadata
+            ContentIndex kvdbIndex = new ContentIndex(client, KVDB_INDEX, null);
+            ObjectNode existingMetadata = null;
+            try {
+                com.google.gson.JsonObject searchResult = kvdbIndex.searchByQuery(
+                    org.opensearch.index.query.QueryBuilders.idsQuery().addIds(kvdbId)
+                );
+                if (searchResult != null && searchResult.has("hits")) {
+                    com.google.gson.JsonArray hits = searchResult.getAsJsonArray("hits");
+                    if (hits.size() > 0) {
+                        com.google.gson.JsonObject hit = hits.get(0).getAsJsonObject();
+                        if (hit.has("_source")) {
+                            com.google.gson.JsonObject source = hit.getAsJsonObject("_source");
+                            JsonNode sourceNode = this.mapper.readTree(source.toString());
+                            if (sourceNode.has(FIELD_DOCUMENT)) {
+                                JsonNode docNode = sourceNode.get(FIELD_DOCUMENT);
+                                if (docNode.has(FIELD_METADATA) && docNode.get(FIELD_METADATA).isObject()) {
+                                    existingMetadata = (ObjectNode) docNode.get(FIELD_METADATA);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not retrieve existing metadata for KVDB [{}]: {}", kvdbId, e.getMessage());
+            }
+
+            // Update the modified timestamp
+            IntegrationHelper.addTimestampMetadata(this.mapper, resourceNode, false, existingMetadata);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -259,12 +281,12 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
     /** Ensures the KVDB index exists, creating it if necessary. */
     private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, RestPutKvdbAction.KVDB_INDEX)) {
-            ContentIndex index = new ContentIndex(client, RestPutKvdbAction.KVDB_INDEX, null);
+        if (!IndexHelper.indexExists(client, KVDB_INDEX)) {
+            ContentIndex index = new ContentIndex(client, KVDB_INDEX, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + RestPutKvdbAction.KVDB_INDEX, e);
+                throw new IOException("Failed to create index " + KVDB_INDEX, e);
             }
         }
     }
