@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
@@ -213,16 +214,18 @@ public class RestPostDecoderAction extends BaseRestHandler {
     }
 
     /** Builds the decoder payload with document and space information. */
-    private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
-        ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, DECODER_TYPE);
-        node.set(FIELD_DOCUMENT, resourceNode);
-        // Add draft space
-        ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
-        node.set(FIELD_SPACE, spaceNode);
+    private JsonObject buildDecoderPayload(ObjectNode resourceNode) {
+        // Convert resourceNode (Jackson) to Gson JsonObject
+        com.google.gson.JsonParser parser = new com.google.gson.JsonParser();
+        com.google.gson.JsonObject document = parser.parse(resourceNode.toString()).getAsJsonObject();
 
-        return node;
+        com.google.gson.JsonObject payload = new com.google.gson.JsonObject();
+        payload.addProperty(FIELD_TYPE, DECODER_TYPE);
+        payload.add(FIELD_DOCUMENT, document);
+        com.google.gson.JsonObject spaceObject = new com.google.gson.JsonObject();
+        spaceObject.addProperty(FIELD_NAME, Space.DRAFT.toString());
+        payload.add(FIELD_SPACE, spaceObject);
+        return payload;
     }
 
     /** Converts a resource ID to an index document ID. */

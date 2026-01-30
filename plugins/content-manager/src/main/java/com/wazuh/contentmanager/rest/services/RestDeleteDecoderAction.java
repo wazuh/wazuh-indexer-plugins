@@ -153,8 +153,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             // Check if decoder exists before deleting
             if (!decoderIndex.exists(resolvedDecoderId)) {
                 return new RestResponse(
-                                "Decoder [" + resolvedDecoderId + "] not found.",
-                                RestStatus.NOT_FOUND.getStatus())
+                                "Decoder [" + resolvedDecoderId + "] not found.", RestStatus.NOT_FOUND.getStatus())
                         .toBytesRestResponse();
             }
 
