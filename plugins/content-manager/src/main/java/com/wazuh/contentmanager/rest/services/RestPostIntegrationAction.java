@@ -358,10 +358,14 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             this.log.debug(
                     "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
             TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
-            SearchHit policyHit = this.policiesIndex.searchByQuery(queryBuilder).getHits()[0];
-            JsonNode draftPolicyNode = MAPPER.readTree(policyHit.getSourceAsString());
 
-            if (draftPolicyNode == null) {
+            SearchHit policyHit;
+            JsonNode draftPolicyNode;
+
+            try {
+                policyHit = this.policiesIndex.searchByQuery(queryBuilder).getHits()[0];
+                draftPolicyNode = MAPPER.readTree(policyHit.getSourceAsString());
+            } catch (Exception e) {
                 this.log.error("Draft policy search returned null result; rolling back (id={})", id);
                 // Rollback: delete created integration in CTI index and in SAP
                 this.integrationsIndex.delete(prefixedId);

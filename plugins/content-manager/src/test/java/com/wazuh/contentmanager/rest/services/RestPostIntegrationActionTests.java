@@ -19,13 +19,14 @@ package com.wazuh.contentmanager.rest.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
@@ -36,7 +37,6 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -127,63 +127,55 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock integrations index
         ContentIndex integrationsIndex = mock(ContentIndex.class);
         IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
         when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                              {
-                                "total": {
-                                  "value": 1,
-                                  "relation": "eq"
-                                },
-                                "max_score": 1,
-                                "hits": [
-                                  {
-                                    "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
-                                    "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                                    "_score": 1,
-                                    "_source": {
-                                      "document": {
-                                        "author": "Wazuh Inc.",
-                                        "date": "2025-09-26",
-                                        "description": "",
-                                        "documentation": "",
-                                        "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                                        "integrations": [
-                                          "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
-                                        ],
-                                        "modified": "2026-01-15",
-                                        "references": [
-                                          "https://wazuh.com"
-                                        ],
-                                        "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
-                                        "title": "Development 0.0.1"
-                                      },
-                                      "hash": {
-                                        "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
-                                      },
-                                      "space": {
-                                        "name": "standard",
-                                        "hash": {
-                                          "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
-                                        }
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
-
-        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        String sourceJson =
+            // spotless:off
+            """
+                {
+                  "document": {
+                    "author": "Wazuh Inc.",
+                    "date": "2025-09-26",
+                    "description": "",
+                    "documentation": "",
+                    "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                    "integrations": [
+                      "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                    ],
+                    "modified": "2026-01-15",
+                    "references": [
+                      "https://wazuh.com"
+                    ],
+                    "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
+                    "title": "Development 0.0.1"
+                  },
+                  "hash": {
+                    "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
+                  },
+                  "space": {
+                    "name": "draft",
+                    "hash": {
+                      "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
+                    }
+                  }
+                }
+                """
+            //spotless:on
+            ;
+        SearchHit hit = new SearchHit(0, "24ef0a2d-5c20-403d-b446-60c6656373a0", null, null);
+        hit.sourceRef(new BytesArray(sourceJson));
+        SearchHits hits = new SearchHits(
+            new SearchHit[] { hit },
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            1.0f
+        );
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(hits);
+        IndexResponse indexPolicyResponse = mock(IndexResponse.class);
+        when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
         JsonNode mockedPayload =
             FixtureFactory.from(
@@ -343,7 +335,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_policyDoesNotExist() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Draft policy not found.");
+        expectedResponse.setMessage("Failed to retrieve draft policy document.");
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -372,28 +364,36 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock integrations index
         ContentIndex integrationsIndex = mock(ContentIndex.class);
         IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
         when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-                JsonParser.parseString(
-                                // spotless:off
-                    """
-                            {
-                                "total": {
-                                  "value": 0,
-                                  "relation": "eq"
-                                },
-                                "max_score": null,
-                                "hits": []
-                              }
-                        """
-                    //spotless:on
-                                )
-                        .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+        String sourceJson =
+            // spotless:off
+            """
+            {
+                "total": {
+                  "value": 0,
+                  "relation": "eq"
+                },
+                "max_score": null,
+                "hits": []
+            }
+            """
+            //spotless:on
+            ;
+        SearchHit hit = new SearchHit(0, "24ef0a2d-5c20-403d-b446-60c6656373a0", null, null);
+        hit.sourceRef(new BytesArray(sourceJson));
+        SearchHits hits = new SearchHits(
+            new SearchHit[] { hit },
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            1.0f
+        );
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(hits);
+        IndexResponse indexPolicyResponse = mock(IndexResponse.class);
+        when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
         JsonNode mockedPayload =
                 FixtureFactory.from(
@@ -564,23 +564,30 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                            {
-                                "total": {
-                                  "value": 0,
-                                  "relation": "eq"
-                                },
-                                "max_score": null,
-                                "hits": []
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+        String sourceJson =
+            // spotless:off
+            """
+                    {
+                        "total": {
+                          "value": 0,
+                          "relation": "eq"
+                        },
+                        "max_score": null,
+                        "hits": []
+                      }
+                """
+            //spotless:on
+        ;
+        SearchHit hit = new SearchHit(0);
+        hit.sourceRef(new BytesArray(sourceJson));
+        SearchHits hits = new SearchHits(
+            new SearchHit[] { hit },
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            1.0f
+        );
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(hits);
+
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
 
         JsonNode mockedPayload =
             FixtureFactory.from(
@@ -649,34 +656,31 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock integrations index
         ContentIndex integrationsIndex = mock(ContentIndex.class);
         IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
         when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                            {
-                                "total": {
-                                  "value": 0,
-                                  "relation": "eq"
-                                },
-                                "max_score": null,
-                                "hits": [
-                                    { "_id": "abcde",
-                                        "_source": {
-                                           "document": "corrupt_data"
-                                        }
-                                     }
-                                ]
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+        String sourceJson =
+            // spotless:off
+            """
+            {
+                "document": "corrupt_data"
+            }
+            """
+            //spotless:on
+            ;
+        SearchHit hit = new SearchHit(0, "24ef0a2d-5c20-403d-b446-60c6656373a0", null, null);
+        hit.sourceRef(new BytesArray(sourceJson));
+        SearchHits hits = new SearchHits(
+            new SearchHit[] { hit },
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            1.0f
+        );
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(hits);
+        IndexResponse indexPolicyResponse = mock(IndexResponse.class);
+        when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
         JsonNode mockedPayload =
             FixtureFactory.from(
@@ -745,61 +749,55 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock integrations index
         ContentIndex integrationsIndex = mock(ContentIndex.class);
         IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
         when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                              {
-                                "total": {
-                                  "value": 1,
-                                  "relation": "eq"
-                                },
-                                "max_score": 1,
-                                "hits": [
-                                  {
-                                    "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
-                                    "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                                    "_score": 1,
-                                    "_source": {
-                                      "document": {
-                                        "author": "Wazuh Inc.",
-                                        "date": "2025-09-26",
-                                        "description": "",
-                                        "documentation": "",
-                                        "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                                        "integrations": [
-                                          "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
-                                        ],
-                                        "modified": "2026-01-15",
-                                        "references": [
-                                          "https://wazuh.com"
-                                        ],
-                                        "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
-                                        "title": "Development 0.0.1"
-                                      },
-                                      "hash": {
-                                        "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
-                                      },
-                                      "space": {
-                                        "name": "standard",
-                                        "hash": {
-                                          "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
-                                        }
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+        String sourceJson =
+            // spotless:off
+            """
+            {
+              "document": {
+                "author": "Wazuh Inc.",
+                "date": "2025-09-26",
+                "description": "",
+                "documentation": "",
+                "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                "integrations": [
+                  "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                ],
+                "modified": "2026-01-15",
+                "references": [
+                  "https://wazuh.com"
+                ],
+                "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
+                "title": "Development 0.0.1"
+              },
+              "hash": {
+                "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
+              },
+              "space": {
+                "name": "standard",
+                "hash": {
+                  "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
+                }
+              }
+            }
+           """
+            //spotless:on
+            ;
+        SearchHit hit = new SearchHit(0, "24ef0a2d-5c20-403d-b446-60c6656373a0", null, null);
+        hit.sourceRef(new BytesArray(sourceJson));
+        SearchHits hits = new SearchHits(
+            new SearchHit[] { hit },
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            1.0f
+        );
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(hits);
+        IndexResponse indexPolicyResponse = mock(IndexResponse.class);
+        when(indexPolicyResponse.status()).thenReturn(RestStatus.INTERNAL_SERVER_ERROR);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
         JsonNode mockedPayload =
             FixtureFactory.from(
@@ -831,6 +829,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
         assertEquals(expectedResponse, actualResponse);
@@ -873,56 +873,64 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                              {
-                                "total": {
-                                  "value": 1,
-                                  "relation": "eq"
-                                },
-                                "max_score": 1,
-                                "hits": [
-                                  {
-                                    "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
-                                    "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                                    "_score": 1,
-                                    "_source": {
-                                      "document": {
-                                        "author": "Wazuh Inc.",
-                                        "date": "2025-09-26",
-                                        "description": "",
-                                        "documentation": "",
-                                        "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                                        "integrations": [
-                                          "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
-                                        ],
-                                        "modified": "2026-01-15",
-                                        "references": [
-                                          "https://wazuh.com"
-                                        ],
-                                        "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
-                                        "title": "Development 0.0.1"
-                                      },
-                                      "hash": {
-                                        "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
-                                      },
-                                      "space": {
-                                        "name": "standard",
-                                        "hash": {
-                                          "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
-                                        }
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+            String sourceJson =
+            // spotless:off
+            """
+                     {
+                       "total": {
+                         "value": 1,
+                         "relation": "eq"
+                       },
+                       "max_score": 1,
+                       "hits": [
+                         {
+                           "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
+                           "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                           "_score": 1,
+                           "_source": {
+                             "document": {
+                               "author": "Wazuh Inc.",
+                               "date": "2025-09-26",
+                               "description": "",
+                               "documentation": "",
+                               "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                               "integrations": [
+                                 "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                               ],
+                               "modified": "2026-01-15",
+                               "references": [
+                                 "https://wazuh.com"
+                               ],
+                               "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
+                               "title": "Development 0.0.1"
+                             },
+                             "hash": {
+                               "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
+                             },
+                             "space": {
+                               "name": "standard",
+                               "hash": {
+                                 "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
+                               }
+                             }
+                           }
+                         }
+                       ]
+                     }
+               """
+            //spotless:on
+        ;
+        SearchHit hit = new SearchHit(0);
+        hit.sourceRef(new BytesArray(sourceJson));
+
+        SearchHits hits = new SearchHits(
+            new SearchHit[] {hit},
+            new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+            1.0f
+        );
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(hits);
+
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
 
         JsonNode mockedPayload =
             FixtureFactory.from(
