@@ -331,7 +331,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Assert
         ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(this.client).delete(captor.capture(), any());
+        verify(this.client).delete(captor.capture());
 
         assertEquals(INDEX_NAME, captor.getValue().index());
         assertEquals(id, captor.getValue().id());
