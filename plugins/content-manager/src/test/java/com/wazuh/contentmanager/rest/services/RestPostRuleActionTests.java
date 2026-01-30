@@ -85,9 +85,9 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "type": "rule",
+              "integration_id": "integration-1",
               "resource": {
                   "author": "Florian Roth (Nextron Systems)",
-                  "integration_id": "integration-1",
                   "description": "Detects a core dump of a crashing Nginx worker process.",
                   "detection": {
                     "condition": "selection",
@@ -200,8 +200,8 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "type": "rule",
+              "integration_id": "integration-1",
               "resource": {
-                  "integration_id": "integration-1",
                   "id": "should-not-be-here",
                   "title": "Rule with ID"
               }
@@ -235,8 +235,8 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "type": "rule",
+              "integration_id": "missing-integration",
               "resource": {
-                  "integration_id": "missing-integration",
                   "title": "Rule",
                   "logsource": { "product": "test" }
               }

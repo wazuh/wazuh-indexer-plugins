@@ -59,7 +59,8 @@ public class RestPostRuleAction extends BaseRestHandler {
 
     private static final String CTI_RULES_INDEX = ".cti-rules";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
-    private static final String INTEGRATION_ID_FIELD = "integration_id";
+    private static final String INTEGRATION_ID_FIELD =
+            "                  \"integration_id\": \"missing-integration\",\n";
 
     /** Default constructor. */
     public RestPostRuleAction() {}
@@ -145,11 +146,11 @@ public class RestPostRuleAction extends BaseRestHandler {
                 return new RestResponse(
                         "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
             }
-            if (!resourceNode.has(INTEGRATION_ID_FIELD)) {
+            if (!rootNode.has(INTEGRATION_ID_FIELD)) {
                 return new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            String integrationId = resourceNode.get(INTEGRATION_ID_FIELD).asText();
+            String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
 
             // Validate that the Integration exists
             ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
@@ -164,7 +165,6 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             // Prepare rule object
             ObjectNode ruleNode = resourceNode.deepCopy();
-            ruleNode.remove(INTEGRATION_ID_FIELD);
             ruleNode.put("id", ruleId);
 
             // Metadata operations
