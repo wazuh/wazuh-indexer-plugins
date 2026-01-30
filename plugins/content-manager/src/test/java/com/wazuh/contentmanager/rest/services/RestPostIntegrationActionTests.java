@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,9 +26,9 @@ import com.google.gson.JsonParser;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
-import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -37,8 +38,8 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.securityanalytics.action.WIndexIntegrationAction;
 import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -61,8 +62,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
     private EngineService engine;
     private RestPostIntegrationAction action;
-    private Client client;
     private SecurityAnalyticsServiceImpl saService;
+    private final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * Set up the tests
@@ -74,366 +75,1110 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.engine = mock(EngineService.class);
-        this.client = mock(Client.class);
         this.saService = mock(SecurityAnalyticsServiceImpl.class);
-        this.action = spy(new RestPostIntegrationAction(this.engine, this.saService));
+        this.action = spy(new RestPostIntegrationAction(this.engine));
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when the request
-     * is complete. The expected response is: {200, RestResponse}
+     * If the promotion success, return a 200 response.
+     *
+     * <p>Covered test cases (after promotion):
+     *
+     * <ul>
+     *   <li>A 200 OK response is returned.
+     *   <li>Created integration Id is added to the draft policy's "integrations" list
+     *   <li>Created integration contains a "modified" field (with the current date)
+     *   <li>Created integration contains a "space.name" field containing "draft"
+     *   <li>Created integration contains a date (with the current date)
+     *   <li>Created integration contains a hash
+     *   <li>Created integration has a document Id
+     *   <li>Created document Id contains prefix "d_" (for draft)
+     *   <li>The draft policy's "space.name" field is updated
+     *   <li>The draft policy's hash is updated
+     * </ul>
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostIntegration200() throws IOException {
+    public void testPostIntegration200_success() throws IOException {
 
-        // Integration JSON document to be created
-
-        JsonNode integrationJson =
-                new ObjectMapper()
-                        .readTree(
-                                // spotless:off
-            """
-            {
-              "document": {
-                "author": "Wazuh Inc.",
-                "category": "cloud-services",
-                "date": "2025-10-08",
-                "decoders": [
-                  "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                ],
-                "description": "This integration supports AWS Fargate logs.",
-                "documentation": "",
-                "enabled": true,
-                "kvdbs": [],
-                "references": [
-                  "https://wazuh.com"
-                ],
-                "rules": [],
-                "title": "aws-fargate"
-              },
-              "hash": {
-                "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
-              },
-              "space": {
-                "name": "standard"
-              }
-            }"""
-            // spotless:on
-                                );
-
-        // Set the expected payload as sent to the Wazuh Engine for validation
-        ObjectNode expectedPayload =
-                (ObjectNode)
-                        new ObjectMapper()
-                                .readTree(
-                                        // spotless:off
-            """
-            {
-              "type": "integration",
-              "resource": {}
-            }"""
-            // spotless:on
-                                        );
-
-        expectedPayload.set("resource", integrationJson);
-
-        String integrationId = "d_9e301671-382d-4c1a-9abf-3d9d9544789c";
+        String integrationId = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
         when(this.action.generateId()).thenReturn(integrationId);
 
-        // Prepare the request
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.OK.getStatus());
+        expectedResponse.setMessage("Integration created successfully with ID: " + integrationId);
+
+        // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(expectedPayload.toString().getBytes()));
 
-        WIndexIntegrationResponse mockWindexResponse = mock(WIndexIntegrationResponse.class);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(mockWindexResponse);
-        when(mockWindexResponse.getStatus()).thenReturn(RestStatus.OK);
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
 
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
         this.action.setPoliciesContentIndex(policiesIndex);
-        IndexResponse integrationsIndexResponse = mock(IndexResponse.class);
-        when(integrationsIndexResponse.status()).thenReturn(RestStatus.OK);
 
-        when(integrationsIndex.create(anyString(), any(JsonNode.class)))
-                .thenReturn(integrationsIndexResponse);
-
-        JsonObject searchResult =
-                JsonParser.parseString(
-                                // spotless:off
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn(
+            // spotless: off
             """
                 {
-                    "total": {
-                      "value": 1,
-                      "relation": "eq"
-                    },
-                    "max_score": 1,
-                    "hits": [
-                      {
-                        "_index": ".cti-policies",
-                        "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                        "_score": 1,
-                        "_source": {
-                          "document": {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+            // spotless: on
+        );
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                              {
+                                "total": {
+                                  "value": 1,
+                                  "relation": "eq"
+                                },
+                                "max_score": 1,
+                                "hits": [
+                                  {
+                                    "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
+                                    "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                                    "_score": 1,
+                                    "_source": {
+                                      "document": {
+                                        "author": "Wazuh Inc.",
+                                        "date": "2025-09-26",
+                                        "description": "",
+                                        "documentation": "",
+                                        "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                                        "integrations": [
+                                          "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                                        ],
+                                        "modified": "2026-01-15",
+                                        "references": [
+                                          "https://wazuh.com"
+                                        ],
+                                        "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
+                                        "title": "Development 0.0.1"
+                                      },
+                                      "hash": {
+                                        "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
+                                      },
+                                      "space": {
+                                        "name": "standard",
+                                        "hash": {
+                                          "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
                             "author": "Wazuh Inc.",
-                            "date": "2025-09-26",
-                            "description": "",
-                            "documentation": "",
-                            "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
-                            "integrations": [
-                              "1cc276a0-7670-4957-b814-20ba14df0a6d",
-                              "91dd2edc-9658-49f1-b790-c4c76a5c1bb2",
-                              "21a3c2cc-901d-4e5f-9543-7f0f921747d2",
-                              "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
                             ],
-                            "modified": "2026-01-15",
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
                             "references": [
                               "https://wazuh.com"
                             ],
-                            "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
-                            "title": "Development 0.0.1"
-                          },
-                          "hash": {
-                            "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
-                          },
-                          "space": {
-                            "name": "draft",
-                            "hash": {
-                              "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
-                            }
-                          }
+                            "rules": [],
+                            "title": "aws-fargate"
                         }
-                      }
-                    ]
-                  }
-            """
-            //spotless:on
-                                )
-                        .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any())).thenReturn(searchResult);
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
-        // Make the engine return a successful response for the validation
-        when(this.engine.validate(any(JsonNode.class)))
-                .thenReturn(
-                        new RestResponse(
-                                // spotless:off
-            """
-            {
-              "status": "OK",
-              "error": null
-            }"""
-            // spotless:on
-                                ,
-                                200));
-
-        IndexResponse indexPolicyResponse = mock(IndexResponse.class);
-        when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
-        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
+        this.action.setSecurityAnalyticsService(this.saService);
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
-        doNothing()
-                .when(policyHashService)
-                .calculateAndUpdate(any(), any(), any(), any(), any(), any());
         this.action.setPolicyHashService(policyHashService);
 
-        // Execute the tested method
-        RestResponse response = this.action.handleRequest(request);
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
 
-        assertEquals(200, response.getStatus());
-        assertEquals(
-                "Integration created successfully with ID: " + integrationId + ".", response.getMessage());
 
-        // Verify that the engine service validated the expected payload
-        verify(this.engine, times(1)).validate(any());
-
-        // Verify that the client executed the expected action
-        verify(this.saService, times(1)).upsertIntegration(any(JsonNode.class));
-        verify(this.saService, never()).deleteIntegration(anyString());
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when the
-     * integration has not been created (mock). The expected response is: {400, RestResponse}
+     * If the request payload has an Id, we should return 400
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostIntegration400() throws IOException {
+    public void testPostIntegration400_hasId() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("ID field is not allowed in the request body.");
 
-        // Integration JSON document to be created
-        JsonNode integrationJson =
-                new ObjectMapper()
-                        .readTree(
-                                // spotless:off
-            """
-            {
-              "document": {
-                "author": "Wazuh Inc.",
-                "category": "cloud-services",
-                "date": "2025-10-08",
-                "decoders": [
-                  "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                ],
-                "description": "This integration supports AWS Fargate logs.",
-                "documentation": "",
-                "enabled": true,
-                "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
-                "kvdbs": [],
-                "references": [
-                  "https://wazuh.com"
-                ],
-                "rules": [],
-                "title": "aws-fargate"
-              },
-              "hash": {
-                "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
-              },
-              "space": {
-                "name": "standard"
-              }
-            }"""
-            // spotless:on
-                                );
-
-        // Set the expected payload as sent to the Wazuh Engine for validation
-        ObjectNode expectedPayload =
-                (ObjectNode)
-                        new ObjectMapper()
-                                .readTree(
-                                        // spotless:off
-            """
-            {
-              "type": "integration",
-              "resource": {}
-            }"""
-            // spotless:on
-                                        );
-        expectedPayload.set("resource", integrationJson.get("document"));
-
-        // Prepare the request
+        // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(expectedPayload.toString().getBytes()));
 
-        // Make the engine return a validation error
-        when(this.engine.validate(any(JsonNode.class)))
-                .thenReturn(
-                        new RestResponse(
-                                // spotless:off
-            """
-            {
-              "status": "ERROR",
-              "error": {
-                "message": "Validation failed"
-              }
-            }"""
-            // spotless:on
-                                ,
-                                400));
-
-        // Execute the tested method
-        RestResponse response = this.action.handleRequest(request);
-
-        assertEquals(400, response.getStatus());
-        assertEquals(
-                // spotless:off
-            """
-            {
-              "status": "ERROR",
-              "error": {
-                "message": "Validation failed"
-              }
-            }"""
-            // spotless:on
-                ,
-                response.getMessage());
-
-        // Verify that the engine service validated the expected payload
-        verify(this.engine, times(1)).validate(expectedPayload);
-
-        // Ensure we don't attempt to index the integration when validation fails
-        verify(this.client, times(0)).execute(any(WIndexIntegrationAction.class), any());
-    }
-
-    /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
-     */
-    public void testPostIntegration500() throws IOException {
-
-        // Integration JSON document to be created
-        JsonNode integrationJson =
-                new ObjectMapper()
-                        .readTree(
-                                // spotless:off
-            """
-            {
-              "document": {
-                "author": "Wazuh Inc.",
-                "category": "cloud-services",
-                "date": "2025-10-08",
-                "decoders": [
-                  "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                ],
-                "description": "This integration supports AWS Fargate logs.",
-                "documentation": "",
-                "enabled": true,
-                "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
-                "kvdbs": [],
-                "references": [
-                  "https://wazuh.com"
-                ],
-                "rules": [],
-                "title": "aws-fargate"
-              },
-              "hash": {
-                "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
-              },
-              "space": {
-                "name": "standard"
-              }
-            }"""
-            // spotless:on
-                                );
-
-        // Set the expected payload as sent to the Wazuh Engine for validation
-        ObjectNode expectedPayload =
-                (ObjectNode)
-                        new ObjectMapper()
-                                .readTree(
-                                        // spotless:off
-            """
-                    {
-                      "type": "integration",
-                      "resource": {}
-                    }
+        JsonNode mockedPayload =
+                FixtureFactory.from(
+                        // spotless:off
                 """
-            // spotless:on
-                                        );
-        expectedPayload.set("resource", integrationJson.get("document"));
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate",
+                            "id": "9e301671-382"
+                        }
+                    }
+                    """
+                // spotless:on
+                        );
+        when(request.content())
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
-        // Prepare the request
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Request without content
+     *
+     * @throws IOException
+     */
+    public void testPostIntegration400_noContent() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("JSON request body is required.");
+
+        // Create a RestRequest with no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(false);
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Request has content but missing required fields
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostIntegration400_missingFields() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Missing mandatory field 'author' in /resource.");
+
+        // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray("Internal Server Error".getBytes()));
 
-        // Make the engine return a validation error
-        when(this.engine.validate(any(JsonNode.class)))
-                .thenReturn(new RestResponse("Internal Server Error", 500));
+        JsonNode mockedPayload =
+                FixtureFactory.from(
+                        // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
 
-        // Execute the tested method
-        RestResponse response = this.action.handleRequest(request);
+                        );
+        when(request.content())
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
-        assertEquals(500, response.getStatus());
-        assertEquals("Internal Server Error", response.getMessage());
+        this.action.setSecurityAnalyticsService(this.saService);
 
-        // Verify that the engine service validated the expected payload
-        verify(this.engine, times(1)).validate(expectedPayload);
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
 
-        // Ensure we don't attempt to index the integration when validation fails
-        verify(this.client, times(0)).execute(any(WIndexIntegrationAction.class), any());
+    /**
+     * Draft policy does not exist
+     *
+     * @throws IOException
+     */
+    public void testPostIntegration500_policyDoesNotExist() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Draft policy not found.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+        when(policiesIndex.searchByQuery(any())).thenReturn(null);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn(
+            // spotless: off
+            """
+                {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+            // spotless: on
+        );
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+                JsonParser.parseString(
+                                // spotless:off
+                    """
+                            {
+                                "total": {
+                                  "value": 0,
+                                  "relation": "eq"
+                                },
+                                "max_score": null,
+                                "hits": []
+                              }
+                        """
+                    //spotless:on
+                                )
+                        .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+                FixtureFactory.from(
+                        // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+                        );
+        when(request.content())
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** Invalid resource type */
+    public void testPostIntegration400_invalidType() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Invalid resource type.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "not_integration",
+                        "resource":
+                        {
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** SAP Error */
+    public void testPostIntegration400_sapError() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Failed to create Integration, SAP response: BAD_REQUEST");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+        when(policiesIndex.searchByQuery(any())).thenReturn(null);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                            {
+                                "total": {
+                                  "value": 0,
+                                  "relation": "eq"
+                                },
+                                "max_score": null,
+                                "hits": []
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** If the engine does not respond, return 500 */
+    public void testPostIntegration500_noEngineReply() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to create Integration, Invalid validation response: Non valid response.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+        when(policiesIndex.searchByQuery(any())).thenReturn(null);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn("Non valid response");
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        JsonNode mockedPayload =
+                FixtureFactory.from(
+                        // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+                        );
+        when(request.content())
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** Failed to index CTI Integration */
+    public void testPostIntegration500_failedToIndexIntegration() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to index integration.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+        when(policiesIndex.searchByQuery(any())).thenReturn(null);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn(
+            // spotless: off
+            """
+                {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+            // spotless: on
+        );
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.INTERNAL_SERVER_ERROR);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                            {
+                                "total": {
+                                  "value": 0,
+                                  "relation": "eq"
+                                },
+                                "max_score": null,
+                                "hits": []
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** Null SAP reply */
+    public void testPostIntegration500_nullSAPReply() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to create Integration, SAP response is null.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(null);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+        when(policiesIndex.searchByQuery(any())).thenReturn(null);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                            {
+                                "total": {
+                                  "value": 0,
+                                  "relation": "eq"
+                                },
+                                "max_score": null,
+                                "hits": []
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** Corrupt draft policy */
+    public void testPostIntegration500_corruptDraftPolicy() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to retrieve integrations array from draft policy document.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn(
+            // spotless: off
+            """
+                {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+            // spotless: on
+        );
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                            {
+                                "total": {
+                                  "value": 0,
+                                  "relation": "eq"
+                                },
+                                "max_score": null,
+                                "hits": [
+                                    { "_id": "abcde",
+                                        "_source": { 
+                                           "document": "corrupt_data"
+                                        }
+                                     }
+                                ]
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** Failed to update draft policy */
+    public void testPostIntegration500_draftPolicyFailedUpdate() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to update draft policy.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn(
+            // spotless: off
+            """
+                {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+            // spotless: on
+        );
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                              {
+                                "total": {
+                                  "value": 1,
+                                  "relation": "eq"
+                                },
+                                "max_score": 1,
+                                "hits": [
+                                  {
+                                    "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
+                                    "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                                    "_score": 1,
+                                    "_source": {
+                                      "document": {
+                                        "author": "Wazuh Inc.",
+                                        "date": "2025-09-26",
+                                        "description": "",
+                                        "documentation": "",
+                                        "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                                        "integrations": [
+                                          "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                                        ],
+                                        "modified": "2026-01-15",
+                                        "references": [
+                                          "https://wazuh.com"
+                                        ],
+                                        "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
+                                        "title": "Development 0.0.1"
+                                      },
+                                      "hash": {
+                                        "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
+                                      },
+                                      "space": {
+                                        "name": "standard",
+                                        "hash": {
+                                          "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /** Unexpected error handling Integration */
+    public void testPostIntegration500_unexpectedError() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Unexpected error during processing.");
+
+        // Create a RestRequest with the no payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        // Stub SAP service response
+        this.action.setSecurityAnalyticsService(this.saService);
+        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
+        when(response.getStatus()).thenReturn(RestStatus.OK);
+        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        // Mock wazuh engine validation
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn(
+            // spotless: off
+            """
+                {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+            // spotless: on
+        );
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenThrow(new IOException());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock draft policy search to return a valid response
+        JsonObject searchResult =
+            JsonParser.parseString(
+                    // spotless:off
+                    """
+                              {
+                                "total": {
+                                  "value": 1,
+                                  "relation": "eq"
+                                },
+                                "max_score": 1,
+                                "hits": [
+                                  {
+                                    "_index": ".decoders_development_0.0.2-decoders_development_0.0.2_test-policy",
+                                    "_id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                                    "_score": 1,
+                                    "_source": {
+                                      "document": {
+                                        "author": "Wazuh Inc.",
+                                        "date": "2025-09-26",
+                                        "description": "",
+                                        "documentation": "",
+                                        "id": "24ef0a2d-5c20-403d-b446-60c6656373a0",
+                                        "integrations": [
+                                          "7e87cbde-8e82-41fc-b6ad-29ae789d2e32"
+                                        ],
+                                        "modified": "2026-01-15",
+                                        "references": [
+                                          "https://wazuh.com"
+                                        ],
+                                        "root_decoder": "a1f330f4-8012-48ab-9949-c5d76edaf9b1",
+                                        "title": "Development 0.0.1"
+                                      },
+                                      "hash": {
+                                        "sha256": "50730c07b86446e82b51fabcec21e279451431d6ce40ee87ef2d28055435b301"
+                                      },
+                                      "space": {
+                                        "name": "standard",
+                                        "hash": {
+                                          "sha256": "97946e6bdbe0a846b853d187e67a5d5403b32c7d13a04d25c076280e75234c9d"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                        """
+                    //spotless:on
+                )
+                .getAsJsonObject();
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+
+        JsonNode mockedPayload =
+            FixtureFactory.from(
+                // spotless:off
+                """
+                    {
+                        "type": "integration",
+                        "resource":
+                        {
+                            "author": "Wazuh Inc.",
+                            "category": "cloud-services",
+                            "decoders": [
+                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                            ],
+                            "description": "This integration supports AWS Fargate logs.",
+                            "documentation": "",
+                            "kvdbs": [],
+                            "references": [
+                              "https://wazuh.com"
+                            ],
+                            "rules": [],
+                            "title": "aws-fargate"
+                        }
+                    }
+                    """
+                // spotless:on
+            );
+        when(request.content())
+            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
     }
 }
