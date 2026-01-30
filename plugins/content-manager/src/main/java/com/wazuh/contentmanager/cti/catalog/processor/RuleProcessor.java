@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,9 +26,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleAction;
 import com.wazuh.securityanalytics.action.WIndexRuleRequest;
-import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -115,6 +116,15 @@ public class RuleProcessor extends AbstractProcessor {
             return;
         }
 
+        // Determine if custom based on 'space' field
+        boolean isCustom = false;
+        if (source.has("space") && source.get("space").isJsonObject()) {
+            JsonObject space = source.getAsJsonObject("space");
+            if (space.has("name") && "custom".equalsIgnoreCase(space.get("name").getAsString())) {
+                isCustom = true;
+            }
+        }
+
         JsonObject doc = this.extractDocument(source, hit.getId());
         if (doc == null) {
             return;
@@ -130,15 +140,24 @@ public class RuleProcessor extends AbstractProcessor {
         String product = this.determineProduct(doc);
 
         try {
-            WIndexRuleRequest ruleRequest =
-                    new WIndexRuleRequest(
-                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, doc.toString(), false);
+            if (isCustom) {
+                WIndexCustomRuleRequest ruleRequest =
+                        new WIndexCustomRuleRequest(
+                                id, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, doc.toString(), false);
 
-            WIndexRuleResponse response =
-                    this.client
-                            .execute(WIndexRuleAction.INSTANCE, ruleRequest)
-                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            this.log.debug("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
+                this.client
+                        .execute(WIndexCustomRuleAction.INSTANCE, ruleRequest)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            } else {
+                WIndexRuleRequest ruleRequest =
+                        new WIndexRuleRequest(
+                                id, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, doc.toString(), false);
+
+                this.client
+                        .execute(WIndexRuleAction.INSTANCE, ruleRequest)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            }
+            this.log.debug("Rule [{}] synced successfully. Response ID: {}", id, id);
             this.successCount++;
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             this.log.warn("Failed to sync rule [{}]: {}", id, e.getMessage());
