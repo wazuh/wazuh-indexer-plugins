@@ -256,16 +256,18 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         this.log.debug("Generated integration id={}", id);
 
         // Extract /resource
-        JsonNode integrationNode = requestPayload.at("/resource");
-        if (!integrationNode.isObject()) {
+        JsonNode workingPayload = requestPayload.deepCopy();
+        JsonNode resourceContent = workingPayload.at("/resource");
+        if (!resourceContent.isObject()) {
             this.log.warn(
                     "Request rejected: /resource is not an object (nodeType={})",
-                    integrationNode.getNodeType());
+                    resourceContent.getNodeType());
             return new RestResponse(
                     "Invalid JSON structure: /resource must be an object.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
-        ObjectNode integrationObject = (ObjectNode) integrationNode;
+        ObjectNode integrationObject = (ObjectNode) resourceContent;
+        ObjectNode workingPayloadObject = (ObjectNode) workingPayload;
 
         // Insert ID
         integrationObject.put("id", id);
@@ -280,11 +282,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
 
         // Insert "draft" into /resource/space/name
-        integrationObject.putObject("space").put("name", DRAFT_SPACE_NAME);
+        workingPayloadObject.putObject("space").put("name", DRAFT_SPACE_NAME);
 
         // Calculate and add a hash to the integration
-        String hash = HashCalculator.sha256(integrationNode.toString());
-        integrationObject.putObject("hash").put("sha256", hash);
+        String hash = HashCalculator.sha256(resourceContent.toString());
+        workingPayloadObject.putObject("hash").put("sha256", hash);
         this.log.debug(
                 "Computed integration sha256 hash for id={} (hashPrefix={})",
                 id,
@@ -292,7 +294,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // Create integration in SAP
         this.log.debug("Creating/upserting integration in Security Analytics (id={})", id);
-        final WIndexIntegrationResponse sapResponse = this.service.upsertIntegration(requestPayload);
+        JsonNode documentNode = MAPPER.createObjectNode().set("document", integrationObject);
+        final WIndexIntegrationResponse sapResponse = this.service.upsertIntegration(documentNode);
 
         // Check if SAP response is valid
         if (sapResponse == null || sapResponse.getStatus() == null) {
@@ -349,7 +352,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             // Index the integration into CTI integrations index (sync + check response)
             this.log.debug("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
             IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(prefixedId, integrationNode);
+                    this.integrationsIndex.create(prefixedId, resourceContent);
 
             // Check indexing response. We are expecting for a 200 OK status.
             if (integrationIndexResponse == null || integrationIndexResponse.status() != RestStatus.OK) {
