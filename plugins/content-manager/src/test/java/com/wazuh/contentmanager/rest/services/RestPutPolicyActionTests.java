@@ -110,6 +110,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
+                        + "\"resource\": {"
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration/wazuh-core/0\"],"
@@ -117,6 +118,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
                         + "\"references\": [\"Test references\"]"
+                        + "}"
                         + "}";
 
         Map<String, String> params = new HashMap<>();
@@ -168,6 +170,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
+                        + "\"resource\": {"
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [],"
@@ -175,6 +178,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
                         + "\"references\": []"
+                        + "}"
                         + "}";
 
         Map<String, String> params = new HashMap<>();
@@ -282,6 +286,64 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request is
+     * missing the 'resource' field. The expected response is: {400, RestResponse}
+     */
+    public void testPutPolicy_MissingResourceField_400() {
+        // Arrange
+        String policyJson = "{\"type\": \"policy\"}";
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath("/_plugins/_content_manager/policy")
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertTrue(response.getMessage().contains("Invalid Policy JSON content"));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the resource object
+     * is missing required fields. The expected response is: {400, RestResponse}
+     */
+    public void testPutPolicy_MissingRequiredFields_400() {
+        // Arrange - missing author, description, documentation, and references
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": []"
+                        + "}"
+                        + "}";
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath("/_plugins/_content_manager/policy")
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertTrue(response.getMessage().contains("missing fields"));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
      * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the indexing
      * operation fails. The expected response is: {500, RestResponse}
      */
@@ -298,6 +360,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
+                        + "\"resource\": {"
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [],"
@@ -305,6 +368,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
                         + "\"references\": []"
+                        + "}"
                         + "}";
 
         Map<String, String> params = new HashMap<>();
