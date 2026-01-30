@@ -30,6 +30,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -71,6 +72,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
+    private static final String FIELD_METADATA = "metadata";
+    private static final String FIELD_AUTHOR = "author";
+    private static final String FIELD_MODIFIED = "modified";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -151,8 +155,11 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            String resourceId = toResourceId(decoderId);
+            String resourceId = RestPutDecoderAction.toResourceId(decoderId);
             resourceNode.put(FIELD_ID, resourceId);
+
+            // Update the modified timestamp
+            this.updateTimestampMetadata(resourceNode);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -204,7 +211,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         }
 
         ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        String resourceId = toResourceId(decoderId);
+        String resourceId = RestPutDecoderAction.toResourceId(decoderId);
         if (resourceNode.hasNonNull(FIELD_ID)) {
             String payloadId = resourceNode.get(FIELD_ID).asText();
             if (!payloadId.equals(resourceId) && !payloadId.equals(decoderId)) {
@@ -233,7 +240,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private void updateDecoder(Client client, String decoderId, ObjectNode resourceNode)
             throws IOException {
 
-        ensureIndexExists(client);
+        RestPutDecoderAction.ensureIndexExists(client);
         ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
 
         // Check if decoder exists before updating
@@ -275,5 +282,35 @@ public class RestPutDecoderAction extends BaseRestHandler {
             return indexId.substring(INDEX_ID_PREFIX.length());
         }
         return indexId;
+    }
+
+    /**
+     * Updates the modified timestamp in the resource node metadata.
+     *
+     * @param resourceNode the resource node to update
+     */
+    private void updateTimestampMetadata(ObjectNode resourceNode) {
+        String currentTimestamp = Instant.now().toString();
+
+        // Ensure metadata node exists
+        ObjectNode metadataNode;
+        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        } else {
+            metadataNode = this.mapper.createObjectNode();
+            resourceNode.set(FIELD_METADATA, metadataNode);
+        }
+
+        // Ensure author node exists
+        ObjectNode authorNode;
+        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        } else {
+            authorNode = this.mapper.createObjectNode();
+            metadataNode.set(FIELD_AUTHOR, authorNode);
+        }
+
+        // Set modified timestamp
+        authorNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 }

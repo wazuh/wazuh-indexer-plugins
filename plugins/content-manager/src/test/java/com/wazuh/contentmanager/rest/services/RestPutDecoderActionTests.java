@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -43,14 +44,8 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.ArgumentCaptor;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
@@ -62,6 +57,7 @@ import static org.mockito.Mockito.when;
 public class RestPutDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutDecoderAction action;
+    private final ObjectMapper mapper = new ObjectMapper();
     private static final String DECODER_PAYLOAD =
             "{"
                     + "\"type\": \"decoder\","
@@ -147,6 +143,14 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
 
         JsonNode resource = captured.get("resource");
         assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", resource.get("id").asText());
+
+        // Verify modified timestamp was added TODO
+        //        assertTrue(resource.has("metadata"));
+        //        JsonNode metadata = resource.get("metadata");
+        //        assertTrue(metadata.has("author"));
+        //        JsonNode author = metadata.get("author");
+        //        assertTrue(author.has("modified"));
+        //        assertNotNull(author.get("modified").asText());
     }
 
     /** Test that missing decoder ID returns 400 Bad Request. */

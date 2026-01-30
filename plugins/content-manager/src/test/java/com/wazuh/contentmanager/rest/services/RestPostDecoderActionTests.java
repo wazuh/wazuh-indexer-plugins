@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -27,7 +28,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
@@ -64,6 +64,7 @@ import static org.mockito.Mockito.when;
 public class RestPostDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostDecoderAction action;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String DECODER_PAYLOAD =
             "{"
@@ -148,13 +149,11 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         Client client = this.buildClientForIndex();
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, client);
 
         // Assert
-        assertEquals(RestStatus.CREATED, bytesRestResponse.status());
+        assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
 
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().startsWith("Decoder created successfully with ID:"));
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
@@ -165,6 +164,16 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         JsonNode resource = captured.get("resource");
         assertTrue(resource.hasNonNull("id"));
+
+        // Verify timestamps were added
+        assertTrue(resource.has("metadata"));
+        JsonNode metadata = resource.get("metadata");
+        assertTrue(metadata.has("author"));
+        JsonNode author = metadata.get("author");
+        assertTrue(author.has("date"));
+        assertTrue(author.has("modified"));
+        assertNotNull(author.get("date").asText());
+        assertNotNull(author.get("modified").asText());
     }
 
     /** Test that providing a resource ID on creation returns 400 Bad Request. */
@@ -173,18 +182,15 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID);
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, null);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
         RestResponse expectedResponse =
                 new RestResponse(
                         "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
-
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
@@ -195,16 +201,14 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         // Act
         RestResponse response = this.action.handleRequest(request, null);
-        BytesRestResponse bytesRestResponse = response.toBytesRestResponse();
+        RestResponse actualResponse = response;
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
         RestResponse expectedResponse =
                 new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
-
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
@@ -215,16 +219,14 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, null);
 
         // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
 
         RestResponse expectedResponse =
                 new RestResponse(
                         "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
 
@@ -234,15 +236,14 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, null);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
         RestResponse expectedResponse =
                 new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+
         assertEquals(expectedResponse, actualResponse);
     }
 
@@ -259,13 +260,11 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         Client client = this.buildClientWithMissingIntegration();
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, client);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
@@ -282,14 +281,14 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         Client client = this.buildClientWithIntegrationWithoutDocument();
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, client);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("Can't find document in integration"));
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        assertTrue(
+                actualResponse
+                        .getMessage()
+                        .contains("Integration [integration-1] does not have space information."));
     }
 
     /**
@@ -305,15 +304,32 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         Client client = this.buildClientWithIntegrationInvalidDocument();
 
         // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+        RestResponse actualResponse = this.action.handleRequest(request, client);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
         assertTrue(
-                actualResponse.getMessage().contains("Integration document [integration-1] is invalid"));
+                actualResponse
+                        .getMessage()
+                        .contains("Integration [integration-1] does not have space information."));
+    }
+
+    /**
+     * Test that creating a decoder for an integration not in draft space returns 400 Bad Request.
+     *
+     * @throws Exception When an error occurs
+     */
+    public void testPostDecoderIntegrationNotInDraftSpaceReturns400() throws Exception {
+        // Arrange
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
+        Client client = this.buildClientWithIntegrationNotInDraftSpace();
+
+        // Act
+        RestResponse actualResponse = this.action.handleRequest(request, client);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        assertTrue(actualResponse.getMessage().contains("is not in draft space"));
     }
 
     private RestRequest buildRequest(String payload) {
@@ -321,11 +337,6 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(payload), XContentType.JSON);
         return builder.build();
-    }
-
-    private RestResponse parseResponse(BytesRestResponse response) {
-        JsonNode node = FixtureFactory.from(response.content().utf8ToString());
-        return new RestResponse(node.get("message").asText(), node.get("status").asInt());
     }
 
     private Client buildClientForIndex() throws Exception {
@@ -344,6 +355,10 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Use mutable map since updateIntegrationWithDecoder modifies it
         Map<String, Object> source = new HashMap<>();
         source.put("document", document);
+        // Add space information - integration is in draft space
+        Map<String, Object> space = new HashMap<>();
+        space.put("name", "draft");
+        source.put("space", space);
         when(getResponse.getSourceAsMap()).thenReturn(source);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
 
@@ -399,6 +414,31 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Source with document field but not a Map
         Map<String, Object> source = new HashMap<>();
         source.put("document", "invalid-document-type");
+        when(getResponse.getSourceAsMap()).thenReturn(source);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
+
+        return client;
+    }
+
+    private Client buildClientWithIntegrationNotInDraftSpace() throws Exception {
+        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        @SuppressWarnings("unchecked")
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
+        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> document = new HashMap<>();
+        document.put("decoders", new ArrayList<>());
+        Map<String, Object> source = new HashMap<>();
+        source.put("document", document);
+        // Integration is in standard space, not draft
+        Map<String, Object> space = new HashMap<>();
+        space.put("name", "standard");
+        source.put("space", space);
         when(getResponse.getSourceAsMap()).thenReturn(source);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
 

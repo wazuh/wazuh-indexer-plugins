@@ -34,6 +34,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -81,6 +82,10 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
     private static final String DECODER_TYPE = "decoder";
+    private static final String FIELD_METADATA = "metadata";
+    private static final String FIELD_AUTHOR = "author";
+    private static final String FIELD_DATE = "date";
+    private static final String FIELD_MODIFIED = "modified";
 
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -140,8 +145,18 @@ public class RestPostDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
 
+            // Validate integration is in draft space
+            RestResponse spaceValidation = this.validateIntegrationSpace(client, integrationId);
+            if (spaceValidation != null) {
+                return spaceValidation;
+            }
+
             // Generate UUID and validate with engine
             resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
+
+            // Add timestamp metadata
+            this.addTimestampMetadata(resourceNode, true);
+
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
@@ -296,5 +311,84 @@ public class RestPostDecoderAction extends BaseRestHandler {
             }
         }
         return decoders;
+    }
+
+    /**
+     * Adds or updates timestamp metadata to the resource node.
+     *
+     * @param resourceNode the resource node to update
+     * @param isCreate true if creating (sets both date and modified), false if updating (sets only
+     *     modified)
+     */
+    private void addTimestampMetadata(ObjectNode resourceNode, boolean isCreate) {
+        String currentTimestamp = Instant.now().toString();
+
+        // Ensure metadata node exists
+        ObjectNode metadataNode;
+        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        } else {
+            metadataNode = this.mapper.createObjectNode();
+            resourceNode.set(FIELD_METADATA, metadataNode);
+        }
+
+        // Ensure author node exists
+        ObjectNode authorNode;
+        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        } else {
+            authorNode = this.mapper.createObjectNode();
+            metadataNode.set(FIELD_AUTHOR, authorNode);
+        }
+
+        // Set timestamps
+        if (isCreate) {
+            authorNode.put(FIELD_DATE, currentTimestamp);
+        }
+        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Validates that the integration exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
+        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+
+        if (!integrationResponse.isExists()) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(FIELD_SPACE)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] does not have space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Object spaceObj = source.get(FIELD_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] has invalid space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(FIELD_NAME);
+
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            return new RestResponse(
+                    "Integration ["
+                            + integrationId
+                            + "] is not in draft space. Only integrations in draft space can have decoders created.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
     }
 }
