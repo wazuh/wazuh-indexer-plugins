@@ -32,6 +32,7 @@ import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
@@ -357,9 +358,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             this.log.debug(
                     "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
             TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
-            JsonNode draftPolicyNode =
-                    MAPPER.readTree(
-                            this.policiesIndex.searchByQuery(queryBuilder).getHits()[0].getSourceAsString());
+            SearchHit policyHit = this.policiesIndex.searchByQuery(queryBuilder).getHits()[0];
+            JsonNode draftPolicyNode = MAPPER.readTree(policyHit.getSourceAsString());
 
             if (draftPolicyNode == null) {
                 this.log.error("Draft policy search returned null result; rolling back (id={})", id);
@@ -370,14 +370,12 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            String policyId = draftPolicyNode.get("_id").asText();
+            String policyId = policyHit.getId();
 
-            JsonNode documentJsonObject = draftPolicyNode.at("/_source/document");
+            JsonNode documentJsonObject = draftPolicyNode.at("/document");
             if (documentJsonObject.isMissingNode()) {
                 this.log.error(
-                        "Draft policy hit missing /_source/document (policyId={}), rolling back (id={})",
-                        policyId,
-                        id);
+                        "Draft policy hit missing /document (policyId={}), rolling back (id={})", policyId, id);
                 this.integrationsIndex.delete(prefixedId);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
@@ -409,7 +407,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             String policyHash = HashCalculator.sha256(documentJsonObject.asText());
 
             // Put policyHash inside hash.sha256 key
-            ((ObjectNode) draftPolicyNode.at("/_source/hash")).put("sha256", policyHash);
+            ((ObjectNode) draftPolicyNode.at("/hash")).put("sha256", policyHash);
             this.log.debug(
                     "Updated draft policy hash (policyId={}, hashPrefix={})",
                     policyId,
@@ -420,7 +418,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     "Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, policyId);
             IndexResponse indexPolicyResponse = this.policiesIndex.create(policyId, draftPolicyNode);
 
-            if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.CREATED) {
+            if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.OK) {
                 this.log.error(
                         "Indexing updated draft policy failed (policyId={}, status={}); rolling back SAP integration (id={})",
                         policyId,
