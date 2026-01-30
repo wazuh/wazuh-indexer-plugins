@@ -197,21 +197,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         ((ObjectNode) integrationNode).putObject("hash").put("sha256", hash);
 
         // Update integration in SAP
-        WIndexIntegrationResponse sapResponse = service.upsertIntegration(documentNode);
+        this.service.upsertIntegration(documentNode);
 
-        // Check if SAP response is valid
-        if (sapResponse == null || sapResponse.getStatus() == null) {
-            return new RestResponse(
-                    "Failed to create Integration, SAP response is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // If SAP response is not OK, return error
-        if (sapResponse.getStatus() != RestStatus.OK) {
-            return new RestResponse(
-                    "Failed to create Integration, SAP response: " + sapResponse.getStatus(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
 
         // Validate integration with Wazuh Engine
         RestResponse validationResponse = this.engine.validate(requestPayload);

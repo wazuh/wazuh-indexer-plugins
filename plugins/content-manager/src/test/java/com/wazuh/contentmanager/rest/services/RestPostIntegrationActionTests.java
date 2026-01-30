@@ -105,12 +105,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
 
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
-
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
         this.action.setPoliciesContentIndex(policiesIndex);
@@ -355,12 +349,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
 
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
-
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
         this.action.setPoliciesContentIndex(policiesIndex);
@@ -481,92 +469,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /** SAP Error */
-    public void testPostIntegration400_sapError() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Failed to create Integration, SAP response: BAD_REQUEST");
-
-        // Create a RestRequest with the no payload
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
-
-        // Mock policies index
-        ContentIndex policiesIndex = mock(ContentIndex.class);
-        this.action.setPoliciesContentIndex(policiesIndex);
-        when(policiesIndex.searchByQuery(any())).thenReturn(null);
-
-        // Mock wazuh engine validation
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        // Mock integrations index
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
-        // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                            {
-                                "total": {
-                                  "value": 0,
-                                  "relation": "eq"
-                                },
-                                "max_score": null,
-                                "hits": []
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
-
-        JsonNode mockedPayload =
-            FixtureFactory.from(
-                // spotless:off
-                """
-                    {
-                        "type": "integration",
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """
-                // spotless:on
-            );
-        when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
-    }
 
     /** If the engine does not respond, return 500 */
     public void testPostIntegration500_noEngineReply() throws IOException {
@@ -577,12 +479,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
@@ -639,12 +535,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
@@ -727,93 +617,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /** Null SAP reply */
-    public void testPostIntegration500_nullSAPReply() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to create Integration, SAP response is null.");
-
-        // Create a RestRequest with the no payload
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(null);
-
-        // Mock policies index
-        ContentIndex policiesIndex = mock(ContentIndex.class);
-        this.action.setPoliciesContentIndex(policiesIndex);
-        when(policiesIndex.searchByQuery(any())).thenReturn(null);
-
-        // Mock wazuh engine validation
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        // Mock integrations index
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
-        // Mock draft policy search to return a valid response
-        JsonObject searchResult =
-            JsonParser.parseString(
-                    // spotless:off
-                    """
-                            {
-                                "total": {
-                                  "value": 0,
-                                  "relation": "eq"
-                                },
-                                "max_score": null,
-                                "hits": []
-                              }
-                        """
-                    //spotless:on
-                )
-                .getAsJsonObject();
-        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
-
-        JsonNode mockedPayload =
-            FixtureFactory.from(
-                // spotless:off
-                """
-                    {
-                        "type": "integration",
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """
-                // spotless:on
-            );
-        when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
-    }
-
     /** Corrupt draft policy */
     public void testPostIntegration500_corruptDraftPolicy() throws IOException {
         RestResponse expectedResponse = new RestResponse();
@@ -823,12 +626,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
@@ -925,12 +722,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
@@ -1054,12 +845,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-
-        // Stub SAP service response
-        this.action.setSecurityAnalyticsService(this.saService);
-        WIndexIntegrationResponse response = mock(WIndexIntegrationResponse.class);
-        when(response.getStatus()).thenReturn(RestStatus.OK);
-        when(this.saService.upsertIntegration(any(JsonNode.class))).thenReturn(response);
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);

@@ -242,22 +242,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     "Failed to update draft policy document.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
-        // Update integration in SAP
-        WDeleteIntegrationResponse sapResponse = service.deleteIntegration(id);
-
-        // Check if SAP response is valid
-        if (sapResponse == null || sapResponse.getStatus() == null) {
-            return new RestResponse(
-                    "Failed to create Integration, SAP response is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // If SAP response is not OK, return error
-        if (sapResponse.getStatus() != RestStatus.OK) {
-            return new RestResponse(
-                    "Failed to create Integration, SAP response: " + sapResponse.getStatus(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
+        // Delete integration in SAP
+        this.service.deleteIntegration(id);
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {

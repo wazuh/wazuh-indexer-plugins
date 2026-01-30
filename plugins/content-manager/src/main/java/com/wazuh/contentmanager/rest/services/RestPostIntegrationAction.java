@@ -297,23 +297,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         JsonNode documentNode = MAPPER.createObjectNode().set("document", integrationObject);
         final WIndexIntegrationResponse sapResponse = this.service.upsertIntegration(documentNode);
 
-        // Check if SAP response is valid
-        if (sapResponse == null || sapResponse.getStatus() == null) {
-            this.log.error("SAP upsert integration failed: response/status is null (id={})", id);
-            return new RestResponse(
-                    "Failed to create Integration, SAP response is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // If SAP response is not OK, return error
-        if (sapResponse.getStatus() != RestStatus.OK) {
-            this.log.warn(
-                    "SAP upsert integration returned non-OK status={} (id={})", sapResponse.getStatus(), id);
-            return new RestResponse(
-                    "Failed to create Integration, SAP response: " + sapResponse.getStatus(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
         // Validate integration with Wazuh Engine
         this.log.debug("Validating integration with Engine (id={})", id);
         final RestResponse validationResponse = this.engine.validate(requestPayload);
