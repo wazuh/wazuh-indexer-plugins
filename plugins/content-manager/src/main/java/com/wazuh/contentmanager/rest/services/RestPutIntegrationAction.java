@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -67,16 +68,15 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
     private ContentIndex integrationsIndex;
     private ContentIndex policiesIndex;
+    private PolicyHashService policyHashService;
     private final EngineService engine;
-    private final SecurityAnalyticsService service;
+    private SecurityAnalyticsService service;
 
     /**
      * @param engine The service instance to communicate with the local engine service.
-     * @param service The service instance to communicate with the Security Analytics Plugin.
      */
-    public RestPutIntegrationAction(EngineService engine, SecurityAnalyticsService service) {
+    public RestPutIntegrationAction(EngineService engine) {
         this.engine = engine;
-        this.service = service;
     }
 
     /** Return a short identifier for this handler. */
@@ -108,8 +108,10 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        this.policiesIndex = new ContentIndex(client, CTI_POLICIES_INDEX, null);
-        this.integrationsIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null);
+        this.setPolicyHashService(new PolicyHashService(client));
+        this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
+        this.setPoliciesContentIndex(new ContentIndex(client, CTI_POLICIES_INDEX, null));
+        this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
@@ -249,4 +251,37 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     private JsonObject toJsonObject(JsonNode jsonNode) {
         return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
     }
+
+    /**
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
+
+    /**
+     * Setter for the integrations index, used in tests.
+     *
+     * @param integrationsIndex the integrations index ContentIndex object
+     */
+    public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
+        this.integrationsIndex = integrationsIndex;
+    }
+
+    /**
+     * Setter for the policies index, used in tests.
+     *
+     * @param policiesIndex the integrations index ContentIndex object
+     */
+    public void setPoliciesContentIndex(ContentIndex policiesIndex) {
+        this.policiesIndex = policiesIndex;
+    }
+
+    /**
+     * @param service the security analytics service to set
+     */
+    public void setSecurityAnalyticsService(SecurityAnalyticsService service) {
+        this.service = service;
+    }
+
 }

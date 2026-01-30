@@ -43,6 +43,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -70,19 +71,19 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
 
-    private ContentIndex integrationsIndex;
     private final EngineService engine;
-    private final SecurityAnalyticsService service;
+    private SecurityAnalyticsService service;
+    private PolicyHashService policyHashService;
+    private ContentIndex policiesIndex;
+    private ContentIndex integrationsIndex;
 
     /**
      * Constructs a new TODO !CHANGE_ME.
      *
      * @param engine The service instance to communicate with the local engine service.
-     * @param service The service instance to communicate with the Security Analytics service.
      */
-    public RestDeleteIntegrationAction(EngineService engine, SecurityAnalyticsService service) {
+    public RestDeleteIntegrationAction(EngineService engine) {
         this.engine = engine;
-        this.service = service;
     }
 
     /** Return a short identifier for this handler. */
@@ -116,7 +117,10 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        this.integrationsIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null);
+        this.setPolicyHashService(new PolicyHashService(client));
+        this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
+        this.setPoliciesContentIndex(new ContentIndex(client, CTI_POLICIES_INDEX, null));
+        this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
@@ -292,5 +296,37 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                         .getHits()
                         .getHits();
         return hits;
+    }
+
+    /**
+     * @param service the security analytics service to set
+     */
+    public void setSecurityAnalyticsService(SecurityAnalyticsService service) {
+        this.service = service;
+    }
+
+    /**
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
+
+    /**
+     * Setter for the integrations index, used in tests.
+     *
+     * @param integrationsIndex the integrations index ContentIndex object
+     */
+    public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
+        this.integrationsIndex = integrationsIndex;
+    }
+
+    /**
+     * Setter for the policies index, used in tests.
+     *
+     * @param policiesIndex the integrations index ContentIndex object
+     */
+    public void setPoliciesContentIndex(ContentIndex policiesIndex) {
+        this.policiesIndex = policiesIndex;
     }
 }

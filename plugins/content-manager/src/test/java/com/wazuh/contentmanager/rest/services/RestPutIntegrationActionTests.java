@@ -49,7 +49,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         super.setUp();
         this.service = mock(EngineService.class);
         this.sapService = mock(SecurityAnalyticsService.class);
-        this.action = new RestPutIntegrationAction(this.service, this.sapService);
+        this.action = new RestPutIntegrationAction(this.service);
     }
 
     /**

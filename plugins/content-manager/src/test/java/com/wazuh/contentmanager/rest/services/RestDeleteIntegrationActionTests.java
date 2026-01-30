@@ -66,7 +66,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         securityAnalyticsService = mock(SecurityAnalyticsService.class);
         client = mock(Client.class);
 
-        action = spy(new RestDeleteIntegrationAction(engine, securityAnalyticsService));
+        action = spy(new RestDeleteIntegrationAction(engine));
     }
 
     /**
