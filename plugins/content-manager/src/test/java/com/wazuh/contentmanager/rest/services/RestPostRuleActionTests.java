@@ -84,21 +84,24 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "integration_id": "integration-1",
-              "author": "Florian Roth (Nextron Systems)",
-              "description": "Detects a core dump of a crashing Nginx worker process.",
-              "detection": {
-                "condition": "selection",
-                "selection": {
-                  "event.original": [
-                    "exited on signal 6 (core dumped)"
-                  ]
-                }
-              },
-              "logsource": {
-                "product": "nginx"
-              },
-              "title": "Nginx Core Dump"
+              "type": "rule",
+              "resource": {
+                  "author": "Florian Roth (Nextron Systems)",
+                  "integration_id": "integration-1",
+                  "description": "Detects a core dump of a crashing Nginx worker process.",
+                  "detection": {
+                    "condition": "selection",
+                    "selection": {
+                      "event.original": [
+                        "exited on signal 6 (core dumped)"
+                      ]
+                    }
+                  },
+                  "logsource": {
+                    "product": "nginx"
+                  },
+                  "title": "Nginx Core Dump"
+              }
             }
             """;
         // spotless:on
@@ -161,8 +164,11 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "title": "Rule without integration ID",
-              "logsource": { "product": "test" }
+              "type": "rule",
+              "resource": {
+                  "title": "Rule without integration ID",
+                  "logsource": { "product": "test" }
+              }
             }
             """;
         // spotless:on
@@ -193,9 +199,12 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "id": "should-not-be-here",
-              "integration_id": "integration-1",
-              "title": "Rule with ID"
+              "type": "rule",
+              "resource": {
+                  "integration_id": "integration-1",
+                  "id": "should-not-be-here",
+                  "title": "Rule with ID"
+              }
             }
             """;
         // spotless:on
@@ -225,9 +234,12 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "integration_id": "missing-integration",
-              "title": "Rule",
-              "logsource": { "product": "test" }
+              "type": "rule",
+              "resource": {
+                  "integration_id": "missing-integration",
+                  "title": "Rule",
+                  "logsource": { "product": "test" }
+              }
             }
             """;
         // spotless:on

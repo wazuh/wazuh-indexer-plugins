@@ -108,7 +108,8 @@ public class RestPutRuleAction extends BaseRestHandler {
      *
      * <ol>
      *   <li>Validates the presence of the {@code rule_id} parameter and request body.
-     *   <li>Parses the request body into a JSON structure.
+     *   <li>Parses the request body ensuring it follows the { "type": "rule", "resource": {...} }
+     *       structure.
      *   <li>Injects metadata fields such as {@code modified} timestamp and default {@code enabled}
      *       status.
      *   <li>Calls the Security Analytics Plugin (SAP) to update the rule in the engine.
@@ -139,7 +140,27 @@ public class RestPutRuleAction extends BaseRestHandler {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(request.content().streamInput());
 
-            if (rootNode.has("date") || rootNode.has("modified")) {
+            // 1. Validate Wrapper Structure
+            if (!rootNode.has("type") || !"rule".equals(rootNode.get("type").asText())) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse(
+                                        "Invalid or missing 'type'. Expected 'rule'.",
+                                        RestStatus.BAD_REQUEST.getStatus())
+                                .toXContent());
+            }
+
+            if (!rootNode.has("resource")) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus())
+                                .toXContent());
+            }
+
+            JsonNode resourceNode = rootNode.get("resource");
+
+            // 2. Validate Resource Fields
+            if (resourceNode.has("date") || resourceNode.has("modified")) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse(
@@ -148,7 +169,7 @@ public class RestPutRuleAction extends BaseRestHandler {
                                 .toXContent());
             }
 
-            ObjectNode ruleNode = rootNode.deepCopy();
+            ObjectNode ruleNode = resourceNode.deepCopy();
 
             ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
             String createdDate = null;
@@ -178,7 +199,7 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             String product = ContentIndex.extractProduct(ruleNode);
 
-            // 1. Call SAP
+            // 3. Call SAP
             ruleNode.put("id", ruleId);
             WIndexCustomRuleRequest ruleRequest =
                     new WIndexCustomRuleRequest(
@@ -191,7 +212,7 @@ public class RestPutRuleAction extends BaseRestHandler {
                             );
             client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
 
-            // 2. Update CTI Rules Index
+            // 4. Update CTI Rules Index
             rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
 
             RestResponse response =

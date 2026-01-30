@@ -106,7 +106,8 @@ public class RestPostRuleAction extends BaseRestHandler {
      * <p>This method performs the following steps:
      *
      * <ol>
-     *   <li>Validates the request body and required fields (e.g., {@code integration_id}).
+     *   <li>Validates the request body structure (type: "rule", resource: {...}).
+     *   <li>Validates the resource fields (e.g., {@code integration_id}).
      *   <li>Ensures the payload does not contain an {@code id} field.
      *   <li>Calls the Security Analytics Plugin (SAP) to create the rule in the engine.
      *   <li>Calculates the SHA-256 hash of the rule document.
@@ -127,16 +128,28 @@ public class RestPostRuleAction extends BaseRestHandler {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(request.content().streamInput());
 
-            // 1. Validate payload
-            if (rootNode.has("id")) {
+            // 1. Validate Wrapper Structure
+            if (!rootNode.has("type") || !"rule".equals(rootNode.get("type").asText())) {
+                return new RestResponse(
+                        "Invalid or missing 'type'. Expected 'rule'.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            if (!rootNode.has("resource")) {
+                return new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            JsonNode resourceNode = rootNode.get("resource");
+
+            // 2. Validate Payload (Resource)
+            if (resourceNode.has("id")) {
                 return new RestResponse(
                         "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
             }
-            if (!rootNode.has(INTEGRATION_ID_FIELD)) {
+            if (!resourceNode.has(INTEGRATION_ID_FIELD)) {
                 return new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
+            String integrationId = resourceNode.get(INTEGRATION_ID_FIELD).asText();
 
             // Validate that the Integration exists
             ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
@@ -150,7 +163,7 @@ public class RestPostRuleAction extends BaseRestHandler {
             String ruleId = UUID.randomUUID().toString();
 
             // Prepare rule object
-            ObjectNode ruleNode = rootNode.deepCopy();
+            ObjectNode ruleNode = resourceNode.deepCopy();
             ruleNode.remove(INTEGRATION_ID_FIELD);
             ruleNode.put("id", ruleId);
 
@@ -165,7 +178,7 @@ public class RestPostRuleAction extends BaseRestHandler {
             String product = ContentIndex.extractProduct(ruleNode);
             String payloadString = ruleNode.toString();
 
-            // 2. Call SAP -> Custom Action
+            // 3. Call SAP -> Custom Action
             try {
                 WIndexCustomRuleRequest ruleRequest =
                         new WIndexCustomRuleRequest(
@@ -178,11 +191,11 @@ public class RestPostRuleAction extends BaseRestHandler {
                 throw e;
             }
 
-            // 3. Store in CTI Rules Index
+            // 4. Store in CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
             rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
 
-            // 4. Link in Integration
+            // 5. Link in Integration
             integrationIndex.updateDocumentAppendToList(integrationId, "document.rules", ruleId);
 
             return new RestResponse(
@@ -191,7 +204,7 @@ public class RestPostRuleAction extends BaseRestHandler {
         } catch (Exception e) {
             log.error("Error creating rule: {}", e.getMessage(), e);
             // If validation error return bad request
-            if (e.getMessage().contains("Invalid rule")) {
+            if (e.getMessage() != null && e.getMessage().contains("Invalid rule")) {
                 return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
             }
             return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());

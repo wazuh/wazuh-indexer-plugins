@@ -80,22 +80,25 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "author": "Florian Roth",
-              "description": "Updated Description.",
-              "detection": {
-                "condition": "selection",
-                "selection": {
-                  "event.original": [
-                    "exited on signal 6"
-                  ]
-                }
-              },
-              "enabled": true,
-              "level": "medium",
-              "logsource": {
-                "product": "nginx"
-              },
-              "title": "Nginx Core Dump Updated"
+              "type": "rule",
+              "resource": {
+                  "author": "Florian Roth",
+                  "description": "Updated Description.",
+                  "detection": {
+                    "condition": "selection",
+                    "selection": {
+                      "event.original": [
+                        "exited on signal 6"
+                      ]
+                    }
+                  },
+                  "enabled": true,
+                  "level": "medium",
+                  "logsource": {
+                    "product": "nginx"
+                  },
+                  "title": "Nginx Core Dump Updated"
+              }
             }
             """;
         // spotless:on
@@ -162,7 +165,8 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
     public void testPutRule500() throws IOException {
         // Arrange
         String ruleId = "some-id";
-        String jsonRule = "{}";
+        // Ensure structure is valid so validation passes and exception is hit
+        String jsonRule = "{\"resource\": {}, \"type\": \"rule\"}";
 
         // Mock
         RestRequest request =
