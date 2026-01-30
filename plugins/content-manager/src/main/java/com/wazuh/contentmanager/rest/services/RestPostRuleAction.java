@@ -59,8 +59,7 @@ public class RestPostRuleAction extends BaseRestHandler {
 
     private static final String CTI_RULES_INDEX = ".cti-rules";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
-    private static final String INTEGRATION_ID_FIELD =
-            "                  \"integration_id\": \"missing-integration\",\n";
+    private static final String INTEGRATION_ID_FIELD = "integration_id";
 
     /** Default constructor. */
     public RestPostRuleAction() {}
