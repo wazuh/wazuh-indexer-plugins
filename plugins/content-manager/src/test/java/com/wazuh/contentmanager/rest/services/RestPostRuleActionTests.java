@@ -20,6 +20,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
@@ -36,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
@@ -66,6 +68,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.client = mock(Client.class);
         this.action = new RestPostRuleAction();
     }
@@ -117,7 +120,6 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
         doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
 
-        ActionFuture<GetResponse> getFuture = mock(ActionFuture.class);
         GetResponse getResponse = mock(GetResponse.class);
 
         org.opensearch.action.get.GetRequestBuilder getRequestBuilder =

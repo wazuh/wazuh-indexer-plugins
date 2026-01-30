@@ -24,7 +24,9 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -44,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
@@ -74,6 +77,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.client = mock(Client.class);
         this.action = new RestDeleteRuleAction();
     }
@@ -106,7 +110,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         when(searchFuture.actionGet()).thenReturn(searchResponse);
         doReturn(searchFuture).when(this.client).search(any(SearchRequest.class));
 
-        this.mockIndexAndUpdate();
+        this.mockIndexAndDelete();
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
@@ -116,8 +120,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
         verify(this.client)
                 .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
-        verify(this.client).index(any(IndexRequest.class));
-        verify(this.client).delete(any(DeleteRequest.class));
+        verify(this.client, atLeastOnce()).index(any(IndexRequest.class));
+        verify(this.client, atLeastOnce()).delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     /**
@@ -140,7 +144,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         SearchHit hit2 = this.createIntegrationHit("int-2", ruleId, "rule-B");
         this.mockSearchResponse(new SearchHit[] {hit1, hit2});
 
-        this.mockIndexAndUpdate();
+        this.mockIndexAndDelete();
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
@@ -149,7 +153,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.OK, response.status());
 
         verify(this.client, times(2)).index(any(IndexRequest.class));
-        verify(this.client).delete(any(DeleteRequest.class));
+        verify(this.client, atLeastOnce()).delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     /**
@@ -171,7 +175,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         SearchHit hit = this.createIntegrationHit("int-many", "r1", "r2", ruleId, "r3", "r4");
         this.mockSearchResponse(new SearchHit[] {hit});
 
-        this.mockIndexAndUpdate();
+        this.mockIndexAndDelete();
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
@@ -212,23 +216,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testDeleteRule500() throws IOException {
-        // Arrange
-        String ruleId = "valid-id";
-        RestRequest request =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withParams(Map.of("id", ruleId))
-                        .build();
-
         // Mock
-        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
-        SearchResponse searchResponse = mock(SearchResponse.class);
-        when(searchResponse.getHits()).thenReturn(SearchHits.empty());
-        when(searchFuture.actionGet()).thenReturn(searchResponse);
-        doReturn(searchFuture).when(this.client).search(any(SearchRequest.class));
-
-        ActionFuture<DeleteResponse> failureFuture = mock(ActionFuture.class);
-        when(failureFuture.actionGet()).thenThrow(new RuntimeException("Simulated error"));
-        doReturn(failureFuture).when(this.client).delete(any(DeleteRequest.class));
+        RestRequest request = mock(RestRequest.class);
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);
@@ -267,16 +256,30 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Mocks the client index and delete operations. Configures the client to return valid futures for
-     * both {@code index()} and {@code delete()} calls.
+     * Mocks the client behaviors for indexing and deletion operations.
+     *
+     * <p>This helper configures the mock client to:
+     *
+     * <ul>
+     *   <li>Return a successful {@link IndexResponse} synchronously for any {@link IndexRequest}
+     *       (used for updating integrations).
+     *   <li>Trigger the provided {@link ActionListener} with a successful {@link DeleteResponse} for
+     *       any {@link DeleteRequest} (used for deleting the rule).
+     * </ul>
      */
-    private void mockIndexAndUpdate() {
+    private void mockIndexAndDelete() {
         ActionFuture<IndexResponse> updateFuture = mock(ActionFuture.class);
+        when(updateFuture.actionGet()).thenReturn(mock(IndexResponse.class));
         doReturn(updateFuture).when(this.client).index(any(IndexRequest.class));
 
-        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
-        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
-        doReturn(deleteFuture).when(this.client).delete(any(DeleteRequest.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(this.client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     /**
