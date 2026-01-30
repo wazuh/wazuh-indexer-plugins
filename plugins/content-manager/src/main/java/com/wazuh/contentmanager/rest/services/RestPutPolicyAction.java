@@ -307,34 +307,52 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private String storePolicy(Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(this.client, POLICIES_INDEX, null);
         JsonObject policyJson = this.findDraftPolicy(contentIndex);
-        JsonObject document = policy.toJson();
+        JsonObject policyAsJson = policy.toJson();
         JsonObject payload = new JsonObject();
         String currentDate = Instant.now().toString();
         String policyId;
-        // Prepare the resource payload
+
+        // Extract type from policy and add to payload root
+        String type = policyAsJson.has("type") ? policyAsJson.get("type").getAsString() : "policy";
+        payload.addProperty("type", type);
+
+        // Create document without type field
+        JsonObject document = new JsonObject();
+        policyAsJson
+                .entrySet()
+                .forEach(
+                        entry -> {
+                            if (!"type".equals(entry.getKey())) {
+                                document.add(entry.getKey(), entry.getValue());
+                            }
+                        });
+
+        // Add timestamps to document
         document.addProperty("modified", currentDate);
         if (policyJson != null && policyJson.has(ID_FIELD)) {
             policyId = policyJson.get(ID_FIELD).getAsString();
             JsonObject existingDoc = policyJson.getAsJsonObject("document");
-            if (existingDoc.has("date")) {
+            if (existingDoc != null && existingDoc.has("date")) {
                 document.addProperty("date", existingDoc.get("date").getAsString());
             } else {
-                document.addProperty("date", "aasasAsas");
+                document.addProperty("date", currentDate);
             }
         } else {
             policyId = UUIDs.base64UUID();
             document.addProperty("date", currentDate);
         }
+        // Add document to payload
         payload.add("document", document);
         // Set the Space name to DRAFT
         JsonObject spaceObject = new JsonObject();
         spaceObject.addProperty("name", Space.DRAFT.toString());
         // Generate and set the Space Hash. TODO: Implement real hash calculation
-        JsonObject hashObject = new JsonObject();
-        hashObject.addProperty("sha256", "dummy_space_hash_value");
-        spaceObject.add("hash", hashObject);
+        JsonObject spaceHashObject = new JsonObject();
+        spaceHashObject.addProperty("sha256", "dummy_space_hash_value");
+        spaceObject.add("hash", spaceHashObject);
         // Save space property
         payload.add("space", spaceObject);
+
         // Store the new draft policy
         contentIndex.create(policyId, payload);
         log.info("Policy stored successfully with ID: {}", policyId);

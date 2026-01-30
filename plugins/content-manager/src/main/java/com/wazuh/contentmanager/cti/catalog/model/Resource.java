@@ -48,6 +48,9 @@ public class Resource {
     private static final String JSON_RELATED_KEY = "related";
     private static final String JSON_SIGMA_ID_KEY = "sigma_id";
 
+    @JsonProperty("type")
+    private String type;
+
     @JsonProperty("document")
     private Map<String, Object> document;
 
@@ -79,7 +82,12 @@ public class Resource {
      * @param payload The source JSON payload.
      */
     protected static void populateResource(Resource resource, JsonObject payload) {
-        // 1. Process Document
+        // 1. Extract and set type
+        if (payload.has("type")) {
+            resource.setType(payload.get("type").getAsString());
+        }
+
+        // 2. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
             Resource.preprocessDocument(rawDoc);
@@ -185,6 +193,24 @@ public class Resource {
     }
 
     /**
+     * Gets the type of this resource.
+     *
+     * @return The resource type.
+     */
+    public String getType() {
+        return this.type;
+    }
+
+    /**
+     * Sets the type of this resource.
+     *
+     * @param type The resource type to set.
+     */
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    /**
      * Gets the document content.
      *
      * @return A Map representing the document.
@@ -241,7 +267,10 @@ public class Resource {
     @Override
     public String toString() {
         return "Resource{"
-                + "document="
+                + "type='"
+                + this.type
+                + '\''
+                + ", document="
                 + this.document
                 + ", hash="
                 + this.hash
