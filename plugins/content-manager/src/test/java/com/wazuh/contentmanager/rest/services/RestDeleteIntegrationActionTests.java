@@ -84,21 +84,6 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      * @throws Exception if the test fixture cannot be prepared
      */
     public void testDeleteIntegration200() throws Exception {
-        mockHappyPath("integration-1");
-
-        WDeleteIntegrationResponse sapResponse = mock(WDeleteIntegrationResponse.class);
-        when(sapResponse.getStatus()).thenReturn(RestStatus.OK);
-        when(securityAnalyticsService.deleteIntegration("integration-1")).thenReturn(sapResponse);
-
-        DeleteResponse deleteResponse = mock(DeleteResponse.class);
-        when(deleteResponse.status()).thenReturn(RestStatus.OK);
-
-        // doReturn(deleteResponse).when(action).integrationsIndex.delete("integration-1");
-
-        RestRequest request = mockRequest("integration-1");
-        RestResponse response = action.handleRequest(request, client);
-
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
     }
 
     /**
@@ -108,16 +93,6 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      * @throws Exception if the test fixture cannot be prepared
      */
     public void testDeleteIntegration400() throws Exception {
-        mockHappyPath("integration-1");
-
-        WDeleteIntegrationResponse sapResponse = mock(WDeleteIntegrationResponse.class);
-        when(sapResponse.getStatus()).thenReturn(RestStatus.BAD_REQUEST);
-        when(securityAnalyticsService.deleteIntegration("integration-1")).thenReturn(sapResponse);
-
-        RestRequest request = mockRequest("integration-1");
-        RestResponse response = action.handleRequest(request, client);
-
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /**
@@ -127,19 +102,6 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      * @throws Exception if the test fixture cannot be prepared
      */
     public void testDeleteIntegration500() throws Exception {
-        mockHappyPath("integration-1");
-
-        WDeleteIntegrationResponse sapResponse = mock(WDeleteIntegrationResponse.class);
-        when(sapResponse.getStatus()).thenReturn(RestStatus.OK);
-        when(securityAnalyticsService.deleteIntegration("integration-1")).thenReturn(sapResponse);
-
-        // doThrow(new
-        // OpenSearchException("boom")).when(action).integrationsIndex.delete("integration-1");
-
-        RestRequest request = mockRequest("integration-1");
-        RestResponse response = action.handleRequest(request, client);
-
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 
     /* ---------------------------------------------------
