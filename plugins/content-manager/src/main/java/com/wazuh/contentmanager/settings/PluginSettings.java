@@ -37,6 +37,7 @@ public class PluginSettings {
     public static final String RULES_URI = PLUGINS_BASE_URI + "/rules";
     public static final String INTEGRATIONS_URI = PLUGINS_BASE_URI + "/integrations";
     public static final String PROMOTE_URI = PLUGINS_BASE_URI + "/promote";
+    public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;

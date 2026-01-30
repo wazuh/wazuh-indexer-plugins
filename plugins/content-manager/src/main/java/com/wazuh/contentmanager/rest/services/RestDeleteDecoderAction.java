@@ -16,38 +16,65 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
- * TODO !CHANGE_ME DELETE /_plugins/content-manager/decoder/{decoder_id}
+ * REST handler for deleting CTI decoders.
  *
- * <p>Deletes a decoder
+ * <p>Endpoint: DELETE /_plugins/content-manager/decoder/{decoder_id}
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>This handler processes decoder deletion requests. When a decoder is deleted, it is also
+ * removed from any integrations that reference it.
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Decoder deleted successfully.
+ *   <li>400 Bad Request: Decoder ID is missing or invalid.
+ *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ * </ul>
  */
 public class RestDeleteDecoderAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestDeleteDecoderAction.class);
+    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
+    private static final String DECODER_INDEX = ".cti-decoders";
+    private static final String INTEGRATION_INDEX = ".cti-integrations";
+    private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
+    private static final String FIELD_DOCUMENT = "document";
+    private static final String FIELD_DECODERS = "decoders";
     private final EngineService engine;
 
     /**
-     * Constructs a new TODO !CHANGE_ME.
+     * Constructs a new RestDeleteDecoderAction handler.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param engine the engine service instance for communication with the Wazuh engine
      */
     public RestDeleteDecoderAction(EngineService engine) {
         this.engine = engine;
@@ -75,26 +102,122 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Prepares the REST request for processing.
      *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
+     * @param request the incoming REST request containing the decoder ID
+     * @param client the node client for executing operations
+     * @return a consumer that executes the delete operation and sends the response
+     * @throws IOException if an I/O error occurs during request preparation
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+        // Consume path params early to avoid unrecognized parameter errors.
+        request.param("id");
+        return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Handles the decoder deletion request.
      *
-     * @param request incoming request
-     * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
+     * <p>This method validates the request, deletes the decoder from the index, and removes
+     * references to the decoder from any integrations that include it.
+     *
+     * @param request the incoming REST request containing the decoder ID to delete
+     * @param client the OpenSearch client for index operations
+     * @return a BytesRestResponse indicating success or failure of the deletion
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
-        return null;
+    public BytesRestResponse handleRequest(RestRequest request, Client client) {
+        try {
+            if (this.engine == null) {
+                RestResponse error =
+                        new RestResponse(
+                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                return error.toBytesRestResponse();
+            }
+
+            String decoderId = request.param("id");
+            if (decoderId == null || decoderId.isBlank()) {
+                decoderId = request.param(FIELD_DECODER_ID_PARAM);
+            }
+            if (decoderId == null || decoderId.isBlank()) {
+                return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus())
+                        .toBytesRestResponse();
+            }
+            final String resolvedDecoderId = decoderId;
+
+            String decoderIndexName = DECODER_INDEX;
+            ensureIndexExists(client, decoderIndexName);
+            ContentIndex decoderIndex = new ContentIndex(client, decoderIndexName, null);
+
+            // Check if decoder exists before deleting
+            if (!decoderIndex.exists(resolvedDecoderId)) {
+                return new RestResponse(
+                                "Decoder [" + resolvedDecoderId + "] not found.", RestStatus.NOT_FOUND.getStatus())
+                        .toBytesRestResponse();
+            }
+
+            updateIntegrationsRemovingDecoder(client, resolvedDecoderId);
+            decoderIndex.delete(resolvedDecoderId);
+
+            return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
+                    .toBytesRestResponse();
+        } catch (Exception e) {
+            log.error("Error deleting decoder: {}", e.getMessage(), e);
+            return new RestResponse(
+                            e.getMessage() != null
+                                    ? e.getMessage()
+                                    : "An unexpected error occurred while processing your request.",
+                            RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                    .toBytesRestResponse();
+        }
+    }
+
+    private static void ensureIndexExists(Client client, String indexName) throws IOException {
+        if (!IndexHelper.indexExists(client, indexName)) {
+            ContentIndex index = new ContentIndex(client, indexName, null);
+            try {
+                index.createIndex();
+            } catch (Exception e) {
+                throw new IOException("Failed to create index " + indexName, e);
+            }
+        }
+    }
+
+    private static void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
+        SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
+        searchRequest
+                .source()
+                .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_DECODERS, decoderIndexId));
+        SearchResponse searchResponse = client.search(searchRequest).actionGet();
+        for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
+            Map<String, Object> source = hit.getSourceAsMap();
+            Object documentObj = source.get(FIELD_DOCUMENT);
+            if (!(documentObj instanceof Map)) {
+                log.warn(
+                        "Integration document [{}] is invalid while removing decoder [{}].",
+                        hit.getId(),
+                        decoderIndexId);
+                continue;
+            }
+            Map<String, Object> doc = new java.util.HashMap<>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
+                doc.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+            Object decodersObj = doc.get(FIELD_DECODERS);
+            if (decodersObj instanceof List<?> list) {
+                java.util.List<Object> updated = new java.util.ArrayList<>(list);
+                updated.removeIf(item -> decoderIndexId.equals(String.valueOf(item)));
+                doc.put(FIELD_DECODERS, updated);
+                source.put(FIELD_DOCUMENT, doc);
+                client
+                        .index(
+                                new IndexRequest(INTEGRATION_INDEX)
+                                        .id(hit.getId())
+                                        .source(source)
+                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                        .actionGet();
+            }
+        }
     }
 }
