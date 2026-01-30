@@ -27,10 +27,10 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 
 public class SpaceDiff {
 
-    @JsonProperty("space")
+    @JsonProperty(value = "space", required = true)
     private Space space;
 
-    @JsonProperty("changes")
+    @JsonProperty(value = "changes", required = true)
     private Changes changes;
 
     public Space getSpace() {
@@ -50,19 +50,19 @@ public class SpaceDiff {
     }
 
     public static class Changes {
-        @JsonProperty("policy")
+        @JsonProperty(value = "policy", required = true)
         private List<OperationItem> policy;
 
-        @JsonProperty("integrations")
+        @JsonProperty(value = "integrations", required = true)
         private List<OperationItem> integrations;
 
-        @JsonProperty("kvdbs")
+        @JsonProperty(value = "kvdbs", required = true)
         private List<OperationItem> kvdbs;
 
-        @JsonProperty("decoders")
+        @JsonProperty(value = "decoders", required = true)
         private List<OperationItem> decoders;
 
-        @JsonProperty("filters")
+        @JsonProperty(value = "filters", required = true)
         private List<OperationItem> filters;
 
         public List<OperationItem> getPolicy() {

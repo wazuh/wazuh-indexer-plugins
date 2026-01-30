@@ -25,6 +25,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -320,5 +322,117 @@ public class SpaceService {
      */
     public String getIndexForResourceType(String resourceType) {
         return Constants.RESOURCE_INDICES.get(resourceType);
+    }
+
+    /**
+     * Retrieves a document from the specified index by ID.
+     *
+     * @param indexName The name of the index to search.
+     * @param id The document ID.
+     * @return The document as a Map, or null if not found.
+     * @throws IOException If the retrieval operation fails.
+     */
+    public Map<String, Object> getDocument(String indexName, String id) throws IOException {
+        try {
+            GetRequest request = new GetRequest(indexName, id);
+            GetResponse response =
+                    this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+            if (response.isExists()) {
+                //                return this.objectMapper.readValue(response.getSourceAsBytes(),
+                // Resource.class);
+                return response.getSourceAsMap();
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to get document [{}] from index [{}]: {}", id, indexName, e.getMessage());
+            throw new IOException("Failed to retrieve document: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Fetches the full policy document from the policies index by searching for the space.
+     *
+     * @param space The space of the policy document.
+     * @return The policy document as a Map, or null if not found.
+     * @throws IOException If the retrieval operation fails.
+     */
+    public Map<String, Object> getPolicy(String space) throws IOException {
+        try {
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.termQuery("space.name", space));
+            sourceBuilder.size(1);
+            searchRequest.source(sourceBuilder);
+
+            SearchResponse response = this.client.search(searchRequest).actionGet();
+
+            if (response.getHits().getTotalHits().value() > 0) {
+                SearchHit hit = response.getHits().getAt(0);
+                return hit.getSourceAsMap();
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to get policy for space [{}]: {}", space, e.getMessage());
+            throw new IOException("Failed to retrieve policy: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Deletes resources from the target space after validation.
+     *
+     * @param indexName The index to delete from.
+     * @param resourceIdsToDelete Set of resource IDs to delete.
+     * @param targetSpace The target space (for verification).
+     * @throws IOException If the delete operation fails.
+     */
+    public void deleteResources(
+            String indexName, java.util.Set<String> resourceIdsToDelete, String targetSpace)
+            throws IOException {
+        try {
+            BulkRequest bulkRequest = new BulkRequest();
+
+            for (String docId : resourceIdsToDelete) {
+                // Verify the document exists in target space before deleting
+                Map<String, Object> doc = this.getDocument(indexName, docId);
+                if (doc == null) {
+                    log.warn(
+                            "Document [{}] not found in index [{}] for deletion, skipping", docId, indexName);
+                    continue;
+                }
+
+                @SuppressWarnings("unchecked")
+                Map<String, String> space =
+                        (Map<String, String>) doc.getOrDefault("space", new HashMap<>());
+                String docSpace = space.get("name");
+
+                if (!targetSpace.equals(docSpace)) {
+                    log.warn(
+                            "Document [{}] is in space [{}], expected [{}], skipping deletion",
+                            docId,
+                            docSpace,
+                            targetSpace);
+                    continue;
+                }
+
+                // Add delete request
+                org.opensearch.action.delete.DeleteRequest deleteRequest =
+                        new org.opensearch.action.delete.DeleteRequest(indexName, docId);
+                bulkRequest.add(deleteRequest);
+            }
+
+            if (bulkRequest.numberOfActions() > 0) {
+                BulkResponse response =
+                        this.client
+                                .bulk(bulkRequest)
+                                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                if (response.hasFailures()) {
+                    throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to delete resources: {}", e.getMessage());
+            throw new IOException("Failed to delete resources: " + e.getMessage(), e);
+        }
     }
 }

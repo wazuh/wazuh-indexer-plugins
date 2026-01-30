@@ -42,6 +42,7 @@ public class Constants {
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
+    public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
 
     // Index Constants
     public static final String INDEX_POLICIES = ".cti-policies";
@@ -52,7 +53,7 @@ public class Constants {
     public static final String INDEX_FILTERS = ".engine-filters";
 
     // Resource Types Keys
-    public static final String KEY_POLICY = "policy";
+    public static final String KEY_POLICIES = "policies";
     public static final String KEY_INTEGRATIONS = "integrations";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
@@ -67,7 +68,7 @@ public class Constants {
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
-                    KEY_POLICY, INDEX_POLICIES,
+                    KEY_POLICIES, INDEX_POLICIES,
                     KEY_INTEGRATIONS, INDEX_INTEGRATIONS,
                     KEY_RULES, INDEX_RULES,
                     KEY_KVDBS, INDEX_KVDBS,

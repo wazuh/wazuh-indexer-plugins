@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
@@ -132,10 +133,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.validatePromoteRequest(spaceDiff);
 
             // 2. Gathering Phase - Build the engine payload
-            Space sourceSpace = spaceDiff.getSpace();
-            Space targetSpace = sourceSpace.promote();
-            Map<String, Map<String, String>> targetSpaceMap = this.spaceService.getSpaceResources(targetSpace.toString());
-
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
             // 3. Validation Phase - Invoke engine validation
@@ -152,10 +149,23 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.consolidateChanges(context);
 
             // 5. Response Phase - Reply with success
-            return new RestResponse("Promotion completed successfully", RestStatus.OK.getStatus());
-        } catch (IllegalArgumentException | IOException e) {
+            return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
+        } catch (IllegalArgumentException e) {
             log.warn("Validation error during promotion: {}", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        } catch (com.fasterxml.jackson.databind.exc.ValueInstantiationException e) {
+            log.warn("Invalid value in request: {}", e.getMessage());
+            // Extract the root cause message for better error reporting
+            String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            return new RestResponse(message, RestStatus.BAD_REQUEST.getStatus());
+        } catch (IndexNotFoundException e) {
+            log.error("Index not found during promotion: {}", e.getMessage(), e);
+            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        } catch (IOException e) {
+            log.error("IO error during promotion: {}", e.getMessage(), e);
+            String message =
+                    e.getMessage() != null ? e.getMessage() : "An IO error occurred during promotion";
+            return new RestResponse(message, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
             log.error("Unexpected error during promotion: {}", e.getMessage(), e);
             String message =
@@ -181,6 +191,19 @@ public class RestPostPromoteAction extends BaseRestHandler {
         }
 
         SpaceDiff.Changes changes = spaceDiff.getChanges();
+
+        // Validate that all required change lists are present
+        if (changes == null) {
+            throw new IllegalArgumentException("Changes object is required");
+        }
+        if (changes.getPolicy() == null
+                || changes.getIntegrations() == null
+                || changes.getKvdbs() == null
+                || changes.getDecoders() == null
+                || changes.getFilters() == null) {
+            throw new IllegalArgumentException(
+                    "All resource type lists (policy, integrations, kvdbs, decoders, filters) are required in changes");
+        }
 
         // Validate policy operations - only UPDATE is allowed
         for (SpaceDiff.OperationItem item : changes.getPolicy()) {
@@ -210,10 +233,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
         }
 
         // Maps to track resources to apply (ADD/UPDATE) - from source space
+        Map<String, Map<String, Object>> policyToApply = new HashMap<>();
         Map<String, Map<String, Object>> integrationsToApply = new HashMap<>();
         Map<String, Map<String, Object>> kvdbsToApply = new HashMap<>();
         Map<String, Map<String, Object>> decodersToApply = new HashMap<>();
         Map<String, Map<String, Object>> filtersToApply = new HashMap<>();
+        // TODO promotion of rules
 
         // Sets to track resources to delete
         Set<String> integrationsToDelete = new HashSet<>();
@@ -222,6 +247,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
         Set<String> filtersToDelete = new HashSet<>();
 
         // Process each resource type
+        this.processResourceChanges(
+                changes.getPolicy(),
+                Constants.KEY_POLICIES,
+                policyToApply,
+                HashSet.newHashSet(0), // Policies cannot be removed.
+                sourceSpace.toString(),
+                targetSpace.toString());
+
         this.processResourceChanges(
                 changes.getIntegrations(),
                 Constants.KEY_INTEGRATIONS,
