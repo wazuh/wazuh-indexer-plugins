@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -41,7 +43,6 @@ import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -197,8 +198,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         ((ObjectNode) integrationNode).putObject("hash").put("sha256", hash);
 
         // Update integration in SAP
-        this.service.upsertIntegration(documentNode);
-
+        this.service.upsertIntegration(this.toJsonObject(documentNode));
 
         // Validate integration with Wazuh Engine
         RestResponse validationResponse = this.engine.validate(requestPayload);
@@ -244,5 +244,9 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+    }
+
+    private JsonObject toJsonObject(JsonNode jsonNode) {
+        return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
     }
 }

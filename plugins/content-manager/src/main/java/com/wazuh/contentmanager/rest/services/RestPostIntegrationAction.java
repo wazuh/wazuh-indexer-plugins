@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -47,7 +48,6 @@ import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -295,7 +295,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // Create integration in SAP
         this.log.debug("Creating/upserting integration in Security Analytics (id={})", id);
         JsonNode documentNode = MAPPER.createObjectNode().set("document", integrationObject);
-        final WIndexIntegrationResponse sapResponse = this.service.upsertIntegration(documentNode);
+        this.service.upsertIntegration(this.toJsonObject(documentNode));
 
         // Validate integration with Wazuh Engine
         this.log.debug("Validating integration with Engine (id={})", id);
@@ -480,5 +480,9 @@ public class RestPostIntegrationAction extends BaseRestHandler {
      */
     public String generateId() {
         return UUIDs.base64UUID();
+    }
+
+    private JsonObject toJsonObject(JsonNode jsonNode) {
+        return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2026, Wazuh Inc.
+ * Copyright (C) 2024, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,13 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import com.google.gson.JsonObject;
-
-import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
-import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
 
 /**
  * Service interface for managing interactions with the Security Analytics Plugin (SAP). Defines
@@ -35,14 +29,7 @@ public interface SecurityAnalyticsService {
      *
      * @param doc The JSON document containing the integration data.
      */
-    WIndexIntegrationResponse upsertIntegration(JsonObject doc);
-
-    /**
-     * Creates or updates an Integration in SAP.
-     *
-     * @param doc The JSON document containing the integration data.
-     */
-    WIndexIntegrationResponse upsertIntegration(JsonNode doc) throws JsonProcessingException;
+    void upsertIntegration(JsonObject doc);
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
@@ -50,7 +37,7 @@ public interface SecurityAnalyticsService {
      *
      * @param id The identifier of the integration to delete.
      */
-    WDeleteIntegrationResponse deleteIntegration(String id);
+    void deleteIntegration(String id);
 
     /**
      * Creates or updates a Rule in SAP.

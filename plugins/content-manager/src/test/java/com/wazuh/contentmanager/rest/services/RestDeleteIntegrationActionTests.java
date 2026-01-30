@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.core.rest.RestStatus;
@@ -32,8 +31,6 @@ import org.opensearch.transport.client.Client;
 
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -83,8 +80,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      *
      * @throws Exception if the test fixture cannot be prepared
      */
-    public void testDeleteIntegration200() throws Exception {
-    }
+    public void testDeleteIntegration200() throws Exception {}
 
     /**
      * Verifies that the REST action propagates a {@code 400 BAD REQUEST} when Security Analytics
@@ -92,8 +88,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      *
      * @throws Exception if the test fixture cannot be prepared
      */
-    public void testDeleteIntegration400() throws Exception {
-    }
+    public void testDeleteIntegration400() throws Exception {}
 
     /**
      * Verifies that unexpected failures while deleting the integration document from the integrations
@@ -101,8 +96,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      *
      * @throws Exception if the test fixture cannot be prepared
      */
-    public void testDeleteIntegration500() throws Exception {
-    }
+    public void testDeleteIntegration500() throws Exception {}
 
     /* ---------------------------------------------------
      * Helpers
