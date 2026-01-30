@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -270,12 +271,19 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     private String findDraftPolicyId(ContentIndex contentIndex) {
         QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_NAME_FIELD, Space.DRAFT.toString());
-        JsonObject resource = contentIndex.searchByQuery(queryBuilder);
+        JsonObject result = contentIndex.searchByQuery(queryBuilder);
 
-        if (resource != null && resource.has(ID_FIELD)) {
-            String existingId = resource.get(ID_FIELD).getAsString();
-            log.debug("Found existing draft policy with ID: {}", existingId);
-            return existingId;
+        // searchByQuery returns { "hits": [...], "total": N }
+        if (result != null && result.has("hits")) {
+            JsonArray hits = result.getAsJsonArray("hits");
+            if (!hits.isEmpty()) {
+                JsonObject firstHit = hits.get(0).getAsJsonObject();
+                if (firstHit.has(ID_FIELD)) {
+                    String existingId = firstHit.get(ID_FIELD).getAsString();
+                    log.debug("Found existing draft policy with ID: {}", existingId);
+                    return existingId;
+                }
+            }
         }
 
         String newId = UUIDs.base64UUID();
