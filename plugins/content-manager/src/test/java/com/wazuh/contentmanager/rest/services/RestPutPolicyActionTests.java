@@ -78,11 +78,10 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         this.service = mock(EngineService.class);
         this.client = mock(NodeClient.class, Answers.RETURNS_DEEP_STUBS);
-
         Settings settings = Settings.builder().build();
         PluginSettings.getInstance(settings);
 
-        this.action = new RestPutPolicyAction(this.service);
+        this.action = new RestPutPolicyAction(this.service, this.client);
     }
 
     @After
@@ -95,11 +94,18 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest, NodeClient)} method when the
-     * request is complete and a draft policy already exists. The expected response is: {200,
-     * RestResponse}
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request is
+     * complete and a draft policy already exists. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_UpdateExisting_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -136,7 +142,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request);
 
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
@@ -145,11 +151,19 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest, NodeClient)} method when the
-     * request is complete and no draft policy exists. The expected response is: {200, RestResponse}
-     * with a new policy created.
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request is
+     * complete and no draft policy exists. The expected response is: {200, RestResponse} with a new
+     * policy created.
      */
     public void testPutPolicy_CreateNew_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -184,7 +198,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request);
 
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
@@ -192,12 +206,13 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest, NodeClient)} method when the
-     * engine service is null. The expected response is: {500, RestResponse}
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the engine service
+     * is null. The expected response is: {500, RestResponse}
      */
     public void testPutPolicy_NullEngine_500() {
+
         // Arrange
-        RestPutPolicyAction actionWithNullEngine = new RestPutPolicyAction(null);
+        RestPutPolicyAction actionWithNullEngine = new RestPutPolicyAction(null, this.client);
 
         String policyJson = "{\"type\": \"policy\"}";
         Map<String, String> params = new HashMap<>();
@@ -210,7 +225,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         .build();
 
         // Act
-        RestResponse response = actionWithNullEngine.handleRequest(request, this.client);
+        RestResponse response = actionWithNullEngine.handleRequest(request);
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
@@ -219,8 +234,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest, NodeClient)} method when the
-     * request has no content. The expected response is: {400, RestResponse}
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request has no
+     * content. The expected response is: {400, RestResponse}
      */
     public void testPutPolicy_NoContent_400() {
         // Arrange
@@ -233,7 +248,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         .build();
 
         // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request);
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -242,8 +257,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest, NodeClient)} method when the
-     * request has invalid JSON content. The expected response is: {400, RestResponse}
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request has
+     * invalid JSON content. The expected response is: {400, RestResponse}
      */
     public void testPutPolicy_InvalidJson_400() {
         // Arrange
@@ -258,7 +273,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         .build();
 
         // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request);
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -267,10 +282,18 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest, NodeClient)} method when the
-     * indexing operation fails. The expected response is: {500, RestResponse}
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the indexing
+     * operation fails. The expected response is: {500, RestResponse}
      */
     public void testPutPolicy_IndexingFails_500() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -304,7 +327,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request);
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());

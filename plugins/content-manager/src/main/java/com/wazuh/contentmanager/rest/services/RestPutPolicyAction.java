@@ -34,6 +34,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,10 +62,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
     // Index and field constants
     private static final String POLICIES_INDEX = ".cti-policies";
+    private static final String DECODERS_INDEX = ".cti-decoders";
     private static final String SPACE_NAME_FIELD = "space.name";
     private static final String ID_FIELD = "id";
 
     private final EngineService engine;
+    private NodeClient client;
 
     /**
      * Constructs a new RestPutPolicyAction handler.
@@ -73,6 +76,17 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     public RestPutPolicyAction(EngineService engine) {
         this.engine = engine;
+    }
+
+    /**
+     * Constructs a new RestPutPolicyAction handler with explicit NodeClient (for testing or DI).
+     *
+     * @param engine The service instance to communicate with the local engine service.
+     * @param client The NodeClient to use for index operations.
+     */
+    public RestPutPolicyAction(EngineService engine, NodeClient client) {
+        this.engine = engine;
+        this.client = client;
     }
 
     /** Return a short identifier for this handler. */
@@ -100,13 +114,14 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * Prepares the request by returning a consumer that executes the policy update operation.
      *
      * @param request the incoming REST request containing the policy payload
-     * @param client the node client (unused)
+     * @param client the node client for index operations
      * @return a consumer that executes the policy update operation
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        RestResponse response = this.handleRequest(request, client);
+        this.client = client;
+        RestResponse response = this.handleRequest(request);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
@@ -122,10 +137,9 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * </ol>
      *
      * @param request incoming REST request containing the policy data
-     * @param client the node client
      * @return a RestResponse describing the outcome of the operation
      */
-    public RestResponse handleRequest(RestRequest request, NodeClient client) {
+    public RestResponse handleRequest(RestRequest request) {
         // Validate prerequisites
         RestResponse validationError = this.validateRequest(request);
         if (validationError != null) {
@@ -145,9 +159,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
         if (policyValidationError != null) {
             return policyValidationError;
         }
+        // Validate root decoder existence
+        /**
+         * TODO: Uncomment once merged with Decoders PR RestResponse rootDecoderError =
+         * this.validateRootDecoderExists(policy); if (rootDecoderError != null) { return
+         * rootDecoderError; }
+         */
         // Store or update the policy
         try {
-            this.storePolicy(client, policy);
+            this.storePolicy(policy);
             return new RestResponse("Draft policy updated.", RestStatus.OK.getStatus());
         } catch (IOException e) {
             return new RestResponse(
@@ -239,32 +259,48 @@ public class RestPutPolicyAction extends BaseRestHandler {
         return null;
     }
 
+    private RestResponse validateRootDecoderExists(Policy policy) {
+        // Check if the root decoder exists in the engine
+        String rootDecoder = policy.getRootDecoder();
+        ContentIndex integrationIndex = new ContentIndex(this.client, DECODERS_INDEX, null);
+        if (!integrationIndex.exists(rootDecoder)) {
+            return new RestResponse(
+                    "Decoder with ID " + rootDecoder + " does not exist.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
     /**
      * Stores or updates the policy in the draft space.
      *
      * <p>If a draft policy already exists, it will be updated using its existing ID. Otherwise, a new
      * policy will be created with a generated UUID.
      *
-     * @param client the node client for index operations
      * @param policy the policy to store
      * @throws IOException if storage fails
      */
-    private void storePolicy(NodeClient client, Policy policy) throws IOException {
-        ContentIndex contentIndex = new ContentIndex(client, POLICIES_INDEX, null);
+    private void storePolicy(Policy policy) throws IOException {
+        ContentIndex contentIndex = new ContentIndex(this.client, POLICIES_INDEX, null);
         JsonObject policyJson = this.findDraftPolicy(contentIndex);
         JsonObject resourcePayload = new JsonObject();
         JsonObject document = policy.toJson();
-        Long currentTimeMillis = System.currentTimeMillis();
+        String currentDate = Instant.now().toString();
         String policyId;
         // Prepare the resource payload
-        document.addProperty("modified", currentTimeMillis);
+        document.addProperty("modified", currentDate);
         if (policyJson != null && policyJson.has(ID_FIELD)) {
             policyId = policyJson.get(ID_FIELD).getAsString();
             JsonObject policyDocument = policyJson.get("document").getAsJsonObject();
-            document.addProperty("created", policyDocument.get("created").getAsLong());
+            if (policyDocument.has("date")) {
+                // Always treat as string
+                document.addProperty("date", policyDocument.get("date").getAsString());
+            } else {
+                document.addProperty("date", currentDate);
+            }
         } else {
             policyId = UUIDs.base64UUID();
-            document.addProperty("created", currentTimeMillis);
+            document.addProperty("date", currentDate);
         }
         resourcePayload.add("document", document);
         // Set the space to DRAFT
