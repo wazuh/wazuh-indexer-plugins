@@ -16,10 +16,8 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -39,16 +37,11 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
-import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -291,7 +284,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     /**
      * Request without content
      *
-     * @throws IOException
      */
     public void testPostIntegration400_noContent() throws IOException {
         RestResponse expectedResponse = new RestResponse();
@@ -353,7 +345,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     /**
      * Draft policy does not exist
      *
-     * @throws IOException
      */
     public void testPostIntegration500_policyDoesNotExist() throws IOException {
         RestResponse expectedResponse = new RestResponse();
@@ -451,7 +442,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /** Invalid resource type */
+    /** Invalid resource type
+     * */
     public void testPostIntegration400_invalidType() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
@@ -877,7 +869,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                                 "max_score": null,
                                 "hits": [
                                     { "_id": "abcde",
-                                        "_source": { 
+                                        "_source": {
                                            "document": "corrupt_data"
                                         }
                                      }
