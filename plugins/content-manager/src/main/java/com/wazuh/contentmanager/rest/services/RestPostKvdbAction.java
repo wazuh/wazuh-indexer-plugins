@@ -139,16 +139,16 @@ public class RestPostKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
 
+            // Generate UUID and convert to index ID with prefix
+            String kvdbIndexId = toIndexId(UUID.randomUUID().toString());
+            resourceNode.put(FIELD_ID, kvdbIndexId);
 
-
-            // Generate UUID and validate with engine
-            resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
+            // Validate with engine
             RestResponse engineResponse = validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
             }
             // Create KVDB and update integration
-            String kvdbIndexId = toIndexId(resourceNode.get(FIELD_ID).asText());
             createKvdb(client, kvdbIndexId, resourceNode);
             updateIntegrationWithKvdb(client, integrationId, kvdbIndexId);
 

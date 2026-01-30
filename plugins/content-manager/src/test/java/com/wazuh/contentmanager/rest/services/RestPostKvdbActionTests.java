@@ -164,7 +164,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         JsonNode resource = captured.get("resource");
         assertTrue(resource.hasNonNull("id"));
         String generatedKvdbId = resource.get("id").asText();
-        UUID.fromString(generatedKvdbId); // Validate it's a valid UUID
+        // Validate it starts with "d_" prefix and has a valid UUID after it
+        assertTrue(generatedKvdbId.startsWith("d_"));
+        String uuidPart = generatedKvdbId.substring(2); // Remove "d_" prefix
+        UUID.fromString(uuidPart); // Validate the UUID part is valid
 
         // Verify client.index() was called twice: once for KVDB, once for integration update
         ArgumentCaptor<IndexRequest> indexRequestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
