@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.UUIDs;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
@@ -96,6 +97,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
      *
      * @return String representing current date in YYYY-MM-DD format
      */
+    @SuppressForbidden(reason = "Java Time API is preferred over Date API")
     public String generateDate() {
         return LocalDate.now().toString();
     }
