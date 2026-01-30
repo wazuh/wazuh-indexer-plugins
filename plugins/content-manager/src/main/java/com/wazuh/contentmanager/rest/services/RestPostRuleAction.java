@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
@@ -97,7 +96,8 @@ public class RestPostRuleAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+        RestResponse response = this.handleRequest(request, client);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
     /**
@@ -116,15 +116,12 @@ public class RestPostRuleAction extends BaseRestHandler {
      *
      * @param request the incoming REST request
      * @param client the client to execute actions
-     * @return a {@link BytesRestResponse} indicating the outcome of the operation
+     * @return a {@link RestResponse} indicating the outcome of the operation
      */
-    public BytesRestResponse handleRequest(RestRequest request, Client client) {
+    public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (!request.hasContent()) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus());
             }
 
             ObjectMapper mapper = new ObjectMapper();
@@ -132,17 +129,11 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             // 1. Validate payload
             if (rootNode.has("id")) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                        "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
             }
             if (!rootNode.has(INTEGRATION_ID_FIELD)) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus());
             }
 
             String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
@@ -151,12 +142,9 @@ public class RestPostRuleAction extends BaseRestHandler {
             ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
             if (!integrationIndex.exists(integrationId)) {
                 log.warn("RestPostRuleAction: Integration ID [{}] does not exist.", integrationId);
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Integration with ID " + integrationId + " does not exist.",
-                                        RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                        "Integration with ID " + integrationId + " does not exist.",
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             String ruleId = UUID.randomUUID().toString();
@@ -195,25 +183,18 @@ public class RestPostRuleAction extends BaseRestHandler {
             rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
 
             // 4. Link in Integration
-            integrationIndex.appendToList(integrationId, "document.rules", ruleId);
+            integrationIndex.updateDocumentAppendToList(integrationId, "document.rules", ruleId);
 
-            ObjectNode responseNode = mapper.createObjectNode();
-            responseNode.put("message", "Rule created successfully");
-            responseNode.put("id", ruleId);
-            responseNode.put("status", RestStatus.CREATED.getStatus());
-
-            return new BytesRestResponse(RestStatus.CREATED, responseNode.toString());
+            return new RestResponse(
+                    "Custom rule created successfully with ID " + ruleId, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
             log.error("Error creating rule: {}", e.getMessage(), e);
-            try {
-                return new BytesRestResponse(
-                        RestStatus.INTERNAL_SERVER_ERROR,
-                        new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                                .toXContent());
-            } catch (IOException ex) {
-                return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
+            // If validation error return bad request
+            if (e.getMessage().contains("Invalid rule")) {
+                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
             }
+            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

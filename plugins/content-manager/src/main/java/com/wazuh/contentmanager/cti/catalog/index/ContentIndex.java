@@ -231,6 +231,7 @@ public class ContentIndex {
      * @throws IOException If serialization or indexing fails.
      */
     public void indexCtiContent(String id, JsonNode rawContent, String spaceName) throws IOException {
+        // TODO: Move this method to a dedicated CTI Resource logic class.
         ObjectNode ctiWrapper = this.jsonMapper.createObjectNode();
 
         // 1. Wrap document
@@ -341,7 +342,7 @@ public class ContentIndex {
      * @param listField The path to the list field (e.g. "document.rules").
      * @param valueToAdd The string value to add to the list.
      */
-    public void appendToList(String docId, String listField, String valueToAdd) {
+    public void updateDocumentAppendToList(String docId, String listField, String valueToAdd) {
         try {
             JsonNode doc = this.getDocument(docId);
             if (doc != null && doc.has(JSON_DOCUMENT_KEY)) {
@@ -395,7 +396,8 @@ public class ContentIndex {
      * @param listField The path to the list field (e.g. "document.rules").
      * @param valueToRemove The value to remove.
      */
-    public void removeFromListByQuery(QueryBuilder query, String listField, String valueToRemove) {
+    public void removeFromDocumentListByQuery(
+            QueryBuilder query, String listField, String valueToRemove) {
         SearchRequest searchRequest = new SearchRequest(this.indexName);
         searchRequest.source(new SearchSourceBuilder().query(query));
 
@@ -471,6 +473,7 @@ public class ContentIndex {
      * @return The determined product string.
      */
     public static String extractProduct(JsonNode ruleNode) {
+        // TODO: Move this method to a dedicated CTI Resource logic class.
         String product = "linux";
         if (ruleNode.has("logsource")) {
             JsonNode logsource = ruleNode.get("logsource");

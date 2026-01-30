@@ -22,7 +22,6 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
@@ -95,7 +94,8 @@ public class RestDeleteRuleAction extends BaseRestHandler {
         if (request.hasParam("id")) {
             request.param("id");
         }
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+        RestResponse response = this.handleRequest(request, client);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
     /**
@@ -112,18 +112,15 @@ public class RestDeleteRuleAction extends BaseRestHandler {
      *
      * @param request the incoming REST request containing the rule ID
      * @param client the client to execute OpenSearch actions
-     * @return a {@link BytesRestResponse} indicating the outcome of the operation
+     * @return a {@link RestResponse} indicating the outcome of the operation
      */
-    public BytesRestResponse handleRequest(RestRequest request, Client client) {
+    public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             String ruleId = request.param("id");
             if (ruleId == null || ruleId.isEmpty()) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus());
             }
-
+            // TODO: Add validation to check if the rule exists before trying to delete.
             // 1. Call SAP to delete rule
             try {
                 client
@@ -142,7 +139,7 @@ public class RestDeleteRuleAction extends BaseRestHandler {
 
             // 2. Unlink from Integrations
             ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
-            integrationIndex.removeFromListByQuery(
+            integrationIndex.removeFromDocumentListByQuery(
                     QueryBuilders.termQuery("document.rules", ruleId), "document.rules", ruleId);
 
             // 3. Delete from CTI Rules Index
@@ -151,18 +148,14 @@ public class RestDeleteRuleAction extends BaseRestHandler {
 
             RestResponse response =
                     new RestResponse("Rule deleted successfully", RestStatus.OK.getStatus());
-            return new BytesRestResponse(RestStatus.OK, response.toXContent());
+            // TODO: Create a class CreateRestResponse which extends RestResponse implementing the field
+            // ID.
+            // Example expected object: {"message": "Some success msg", "id": "1234", "status": 201}
+            return new RestResponse(response.getMessage(), RestStatus.OK.getStatus());
 
         } catch (Exception e) {
             log.error("Error deleting rule: {}", e.getMessage(), e);
-            try {
-                return new BytesRestResponse(
-                        RestStatus.INTERNAL_SERVER_ERROR,
-                        new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                                .toXContent());
-            } catch (IOException ex) {
-                return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
-            }
+            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

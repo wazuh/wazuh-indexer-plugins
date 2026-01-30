@@ -25,7 +25,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
@@ -37,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -135,10 +135,10 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         when(getResponse.getSourceAsString()).thenReturn("{\"document\": {\"rules\": []}}");
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
-        assertEquals(RestStatus.CREATED, response.status());
+        assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
 
         verify(this.client, times(1))
                 .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
@@ -174,11 +174,11 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
                         .build();
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("Integration ID is required"));
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertTrue(response.getMessage().contains("Integration ID is required"));
     }
 
     /**
@@ -207,11 +207,10 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
                         .build();
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(
-                response.content().utf8ToString().contains("ID must not be provided during creation"));
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertTrue(response.getMessage().contains("ID must not be provided during creation"));
     }
 
     /**
@@ -249,11 +248,11 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         when(getResponse.isExists()).thenReturn(false);
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("does not exist"));
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertTrue(response.getMessage().contains("does not exist"));
     }
 
     /**
@@ -266,8 +265,8 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenThrow(new RuntimeException("Unexpected error"));
 
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }
