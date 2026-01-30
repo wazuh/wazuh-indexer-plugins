@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2026, Wazuh Inc.
+ * Copyright (C) 2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,14 +16,31 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.rest.FakeRestRequest;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Map;
 
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
+import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
+import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestDeleteRuleAction} class. This test suite validates the REST API
@@ -33,8 +50,9 @@ import static org.mockito.Mockito.mock;
  * codes for successful Rule delete errors.
  */
 public class RestDeleteRuleActionTests extends OpenSearchTestCase {
-    private EngineService service;
+
     private RestDeleteRuleAction action;
+    private Client client;
 
     /**
      * Set up the tests
@@ -45,31 +63,80 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.service = mock(EngineService.class);
-        this.action = new RestDeleteRuleAction(this.service);
+        PluginSettings.getInstance(Settings.EMPTY);
+        this.client = mock(Client.class);
+        this.action = new RestDeleteRuleAction();
     }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(rule)} method when the request is complete.
-     * The expected response is: {201, RestResponse}
+     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException
      */
-    public void testDeleteRule201() throws IOException {}
+    public void testDeleteRule200() throws IOException {
+        // Arrange
+        String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
+
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .build();
+
+        // Mock
+        this.mockSapDelete(ruleId);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request, this.client);
+
+        // Assert
+        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+
+        verify(this.client)
+                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
+    }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(rule)} method when the rule has not been
-     * deleted (mock). The expected response is: {400, RestResponse}
+     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the rule
+     * has not been deleted (mock). The expected response is: {400, RestResponse}
      *
      * @throws IOException
      */
-    public void testDeleteRule400() throws IOException {}
+    public void testDeleteRule400_MissingId() throws IOException {
+        RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
+
+        RestResponse response = this.action.handleRequest(request, this.client);
+
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+    }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
+     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when an
+     * unexpected error occurs. The expected response is: {500, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule500() throws IOException {}
+    public void testDeleteRule500() throws IOException {
+        // Mock
+        RestRequest request = mock(RestRequest.class);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request, this.client);
+
+        // Assert
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Mocks the successful execution of the Security Analytics Plugin (SAP) delete rule action.
+     *
+     * @param ruleId The ID of the rule expected to be deleted.
+     */
+    private void mockSapDelete(String ruleId) {
+        ActionFuture<WDeleteRuleResponse> sapFuture = mock(ActionFuture.class);
+        when(sapFuture.actionGet()).thenReturn(new WDeleteRuleResponse(ruleId, 1L, RestStatus.OK));
+        doReturn(sapFuture)
+                .when(this.client)
+                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
+    }
 }

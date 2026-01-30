@@ -212,27 +212,66 @@ paths:
     post:
       tags: [Decoders]
       summary: Create Decoder
+      description: |
+        Creates a decoder in the draft space. The server generates the UUID for the decoder.
+        The decoder is validated against the Wazuh engine before being stored.
+        The decoder is automatically linked to the specified integration.
       operationId: createDecoder
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DecoderResource"
+              type: object
+              required:
+                - type
+                - integration
+                - resource
+              properties:
+                type:
+                  type: string
+                  enum: [decoder]
+                  example: decoder
+                integration:
+                  type: string
+                  format: uuid
+                  description: The integration ID to which this decoder belongs
+                  example: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+                resource:
+                  $ref: "#/components/schemas/DecoderResourceCreate"
+            examples:
+              create_decoder:
+                summary: Example decoder creation
+                value:
+                  type: decoder
+                  integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+                  resource:
+                    name: "decoder/example/0"
+                    enabled: true
+                    metadata:
+                      title: "Example Decoder"
+                      description: "An example decoder for parsing logs"
+                      author:
+                        name: "Wazuh"
       responses:
         "201":
-          description: Decoder created
+          description: Decoder created successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResourceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /decoders/{decoder_id}:
     put:
       tags: [Decoders]
       summary: Update Decoder
+      description: |
+        Updates an existing decoder in the draft space. The decoder is validated against the Wazuh engine before being stored.
+        The decoder ID in the path must match the resource ID in the payload (if provided).
       operationId: updateDecoder
       parameters:
         - $ref: "#/components/parameters/DecoderId"
@@ -241,26 +280,61 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DecoderResource"
+              type: object
+              required:
+                - type
+                - resource
+              properties:
+                type:
+                  type: string
+                  enum: [decoder]
+                  example: decoder
+                resource:
+                  $ref: "#/components/schemas/DecoderResource"
+            examples:
+              update_decoder:
+                summary: Example decoder update
+                value:
+                  type: decoder
+                  resource:
+                    name: "decoder/example/0"
+                    enabled: false
+                    metadata:
+                      title: "Updated Example Decoder"
+                      description: "Updated decoder description"
+                      author:
+                        name: "Wazuh"
       responses:
         "200":
-          description: Decoder updated
+          description: Decoder updated successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     delete:
       tags: [Decoders]
       summary: Delete Decoder
+      description: |
+        Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
       operationId: deleteDecoder
       parameters:
         - $ref: "#/components/parameters/DecoderId"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Rule management endpoints
   /rules:
@@ -435,6 +509,29 @@ paths:
       responses:
         "200":
           description: Promotion executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /policy:
+    put:
+      tags: [Draft Policy]
+      summary: Update full draft policy
+      operationId: policy_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Policy"
+      responses:
+        "200":
+          description: Policy updated
           content:
             application/json:
               schema:
@@ -689,31 +786,30 @@ components:
                   type: string
                   format: date-time
 
-    # Decoder document schema (engine-specific definitions and metadata)
-    DecoderResource:
+    # Decoder document schema for creation (id is auto-generated)
+    DecoderResourceCreate:
       type: object
       additionalProperties: false
       required:
-        - id
         - name
         - enabled
         - metadata
       properties:
-        id:
-          type: string
-          format: uuid
-
         name:
           type: string
+          description: Decoder name identifier
+          example: "decoder/example/0"
 
         enabled:
           type: boolean
+          description: Whether the decoder is enabled
 
         parents:
           type: array
           items:
             type: string
             format: uuid
+          description: Parent decoder UUIDs
 
         definitions:
           type: array
@@ -742,28 +838,36 @@ components:
           properties:
             title:
               type: string
+              description: Human-readable decoder title
+              example: "Example Decoder"
 
             description:
               type: string
+              description: Decoder description
+              example: "An example decoder for parsing logs"
 
             module:
               type: string
+              description: Module name
 
             compatibility:
               type: array
               items:
                 type: string
+              description: Compatibility versions
 
             references:
               type: array
               items:
                 type: string
                 format: uri
+              description: Reference URLs
 
             versions:
               type: array
               items:
                 type: string
+              description: Version numbers
 
             author:
               type: object
@@ -773,6 +877,118 @@ components:
               properties:
                 name:
                   type: string
+                  example: "Wazuh"
+                email:
+                  type: string
+                  format: email
+                url:
+                  type: string
+                  format: uri
+                date:
+                  type: string
+                  format: date-time
+                modified:
+                  type: string
+                  format: date-time
+
+    # Decoder document schema (engine-specific definitions and metadata)
+    DecoderResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - enabled
+        - metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Decoder UUID (auto-generated on create, required on update)
+
+        name:
+          type: string
+          description: Decoder name identifier
+          example: "decoder/example/0"
+
+        enabled:
+          type: boolean
+          description: Whether the decoder is enabled
+
+        parents:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Parent decoder UUIDs
+
+        definitions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Decoder definitions (engine-specific)
+
+        normalize:
+          type: object
+          additionalProperties: true
+          description: Normalization rules (engine-specific)
+
+        check:
+          type: object
+          additionalProperties: true
+          description: Decoder check logic (engine-specific)
+
+        metadata:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - description
+            - author
+          properties:
+            title:
+              type: string
+              description: Human-readable decoder title
+              example: "Example Decoder"
+
+            description:
+              type: string
+              description: Decoder description
+              example: "An example decoder for parsing logs"
+
+            module:
+              type: string
+              description: Module name
+
+            compatibility:
+              type: array
+              items:
+                type: string
+              description: Compatibility versions
+
+            references:
+              type: array
+              items:
+                type: string
+                format: uri
+              description: Reference URLs
+
+            versions:
+              type: array
+              items:
+                type: string
+              description: Version numbers
+
+            author:
+              type: object
+              additionalProperties: false
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Wazuh"
                 email:
                   type: string
                   format: email
@@ -953,6 +1169,53 @@ components:
         taxonomy:
           type: object
           additionalProperties: true
+
+    # Policy Resource
+    Policy:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - root_decoder
+        - integrations
+      properties:
+        type:
+          type: string
+          enum: [policy]
+          description: Resource type identifier
+          example: "policy"
+
+        root_decoder:
+          type: string
+          description: Reference to the root decoder asset
+          example: "decoder/integrations/0"
+
+        integrations:
+          type: array
+          items:
+            type: string
+          description: List of integration asset references
+          example: ["integration/wazuh-core/0"]
+
+        author:
+          type: string
+          description: Author of the policy
+          example: "Wazuh Inc."
+
+        description:
+          type: string
+          description: Brief description of the policy
+          example: "Policy description"
+
+        documentation:
+          type: string
+          description: Detailed documentation for the policy
+          example: "Detailed documentation"
+
+        references:
+          type: string
+          description: External references or links
+          example: "External references"
 
     # Standard resource creation/update response containing the generated UUID
     ResourceResponse:
