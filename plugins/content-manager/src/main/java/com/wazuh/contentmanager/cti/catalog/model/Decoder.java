@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,7 +26,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Model representing a Decoder resource. */
 public class Decoder extends Resource {
@@ -83,7 +87,7 @@ public class Decoder extends Resource {
      */
     private static String toYamlString(JsonObject payload) {
         try {
-            if (!payload.has("document")) { 
+            if (!payload.has("document")) {
                 return null;
             }
             JsonNode docNode = jsonMapper.readTree(payload.get("document").toString());

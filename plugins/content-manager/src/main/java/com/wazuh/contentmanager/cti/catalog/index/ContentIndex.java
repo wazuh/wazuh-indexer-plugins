@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -276,7 +277,7 @@ public class ContentIndex {
 
         try {
             this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (Exception e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to index document [{}]: {}", id, e.getMessage());
             throw new IOException(e);
         }
@@ -505,14 +506,25 @@ public class ContentIndex {
                             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             // Check if we have results
-            if (searchResponse.getHits().getTotalHits() == null
+            if (searchResponse == null
+                    || searchResponse.getHits() == null
+                    || searchResponse.getHits().getTotalHits() == null
                     || searchResponse.getHits().getTotalHits().value() == 0L) {
                 log.debug(
                         "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
                 return null;
             }
             // Parse all hits and return in JsonObject format
-            return JsonParser.parseString(searchResponse.getHits().toString()).getAsJsonObject();
+            JsonArray hitsArray = new JsonArray();
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                JsonObject hitObject = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                hitObject.addProperty("id", hit.getId());
+                hitsArray.add(hitObject);
+            }
+            JsonObject result = new JsonObject();
+            result.add("hits", hitsArray);
+            result.addProperty("total", searchResponse.getHits().getTotalHits().value());
+            return result;
         } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
             return null;
@@ -554,6 +566,8 @@ public class ContentIndex {
     /**
      * Waits until all pending bulk requests have completed. Use this to ensure all async indexing
      * operations are finished.
+     *
+     * @throws InterruptedException If the thread is interrupted while waiting.
      */
     public void waitForPendingUpdates() throws InterruptedException {
         int permits = this.pluginSettings.getMaximumConcurrentBulks();
@@ -583,7 +597,6 @@ public class ContentIndex {
     public JsonObject processPayload(JsonObject payload) {
         try {
             Resource resource;
-
             // 1. Delegate parsing logic to the appropriate Model
             if (payload.has(JSON_TYPE_KEY)
                     && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
@@ -591,7 +604,6 @@ public class ContentIndex {
             } else {
                 resource = Resource.fromPayload(payload);
             }
-
             // 2. Convert Model back to JsonObject for OpenSearch indexing
             String jsonString = this.jsonMapper.writeValueAsString(resource);
             return JsonParser.parseString(jsonString).getAsJsonObject();
