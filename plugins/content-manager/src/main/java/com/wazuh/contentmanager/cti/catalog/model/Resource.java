@@ -55,7 +55,7 @@ public class Resource {
     private Map<String, String> hash;
 
     @JsonProperty("space")
-    private Map<String, String> space;
+    private Map<String, Object> space;
 
     /** Default constructor. */
     public Resource() {}
@@ -96,12 +96,18 @@ public class Resource {
         }
 
         // 3. Set Space if not present in resource payload
-        Map<String, String> spaceMap = new HashMap<>();
+        Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
         if (payload.has("space") && payload.get("space").isJsonObject()) {
             JsonObject spaceObj = payload.getAsJsonObject("space");
             if (spaceObj.has("name")) {
                 spaceName = spaceObj.get("name").getAsString();
+            }
+            if (spaceObj.has("hash") && spaceObj.get("hash").isJsonObject()) {
+                JsonObject spaceHash = spaceObj.get("hash").getAsJsonObject();
+                // Convert JsonObject to Map for the hash
+                Map<String, String> hashMap = GSON.fromJson(spaceHash, Map.class);
+                spaceMap.put("hash", hashMap);
             }
         }
         spaceMap.put("name", spaceName);
@@ -219,7 +225,7 @@ public class Resource {
      *
      * @return A Map containing space details.
      */
-    public Map<String, String> getSpace() {
+    public Map<String, Object> getSpace() {
         return this.space;
     }
 
@@ -228,7 +234,7 @@ public class Resource {
      *
      * @param space A Map containing space details.
      */
-    public void setSpace(Map<String, String> space) {
+    public void setSpace(Map<String, Object> space) {
         this.space = space;
     }
 
