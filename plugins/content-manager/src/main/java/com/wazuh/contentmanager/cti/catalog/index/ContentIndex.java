@@ -596,17 +596,26 @@ public class ContentIndex {
      */
     public JsonObject processPayload(JsonObject payload) {
         try {
+            // Preserve the type field before processing
+            String type = payload.has(JSON_TYPE_KEY) ? payload.get(JSON_TYPE_KEY).getAsString() : null;
+
             Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
-            if (payload.has(JSON_TYPE_KEY)
-                    && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
+            if (type != null && JSON_DECODER_KEY.equalsIgnoreCase(type)) {
                 resource = Decoder.fromPayload(payload);
             } else {
                 resource = Resource.fromPayload(payload);
             }
             // 2. Convert Model back to JsonObject for OpenSearch indexing
             String jsonString = this.jsonMapper.writeValueAsString(resource);
-            return JsonParser.parseString(jsonString).getAsJsonObject();
+            JsonObject result = JsonParser.parseString(jsonString).getAsJsonObject();
+
+            // 3. Re-add the type field to the result
+            if (type != null) {
+                result.addProperty(JSON_TYPE_KEY, type);
+            }
+
+            return result;
 
         } catch (IOException e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);

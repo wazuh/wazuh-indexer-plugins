@@ -35,11 +35,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -159,6 +155,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
         RestResponse policyValidationError = this.validatePolicy(policy);
         if (policyValidationError != null) {
             return policyValidationError;
+        }
+        // Validate document type is "policy"
+        if (!policy.getType().toLowerCase(Locale.ROOT).equals("policy")) {
+            return new RestResponse(
+                    "Invalid document type: " + policy.getType(), RestStatus.BAD_REQUEST.getStatus());
         }
         // Store or update the policy
         try {
@@ -311,10 +312,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
         JsonObject payload = new JsonObject();
         String currentDate = Instant.now().toString();
         String policyId;
-
-        // Extract type from policy and add to payload root
-        String type = policyAsJson.has("type") ? policyAsJson.get("type").getAsString() : "policy";
-        payload.addProperty("type", type);
 
         // Create document without type field
         JsonObject document = new JsonObject();
