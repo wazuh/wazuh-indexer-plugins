@@ -283,32 +283,33 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private void storePolicy(Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(this.client, POLICIES_INDEX, null);
         JsonObject policyJson = this.findDraftPolicy(contentIndex);
-        JsonObject resourcePayload = new JsonObject();
+        JsonObject resource = new JsonObject();
         JsonObject document = policy.toJson();
+        JsonObject payload = new JsonObject();
         String currentDate = Instant.now().toString();
         String policyId;
         // Prepare the resource payload
         document.addProperty("modified", currentDate);
         if (policyJson != null && policyJson.has(ID_FIELD)) {
             policyId = policyJson.get(ID_FIELD).getAsString();
-            JsonObject policyDocument = policyJson.get("document").getAsJsonObject();
-            if (policyDocument.has("date")) {
-                // Always treat as string
-                document.addProperty("date", policyDocument.get("date").getAsString());
+            JsonObject existingDoc = policyJson.getAsJsonObject("document").getAsJsonObject("resource");
+            if (existingDoc.has("date")) {
+                document.addProperty("date", existingDoc.get("date").getAsString());
             } else {
-                document.addProperty("date", currentDate);
+                document.addProperty("date", "aasasAsas");
             }
         } else {
             policyId = UUIDs.base64UUID();
             document.addProperty("date", currentDate);
         }
-        resourcePayload.add("document", document);
+        resource.add("resource", document);
+        payload.add("document", resource);
         // Set the space to DRAFT
         JsonObject spaceObject = new JsonObject();
         spaceObject.addProperty("name", Space.DRAFT.toString());
-        resourcePayload.add("space", spaceObject);
+        payload.add("space", spaceObject);
         // Store the new draft policy
-        contentIndex.create(policyId, resourcePayload);
+        contentIndex.create(policyId, payload);
         log.info("Policy stored successfully with ID: {}", policyId);
     }
 
