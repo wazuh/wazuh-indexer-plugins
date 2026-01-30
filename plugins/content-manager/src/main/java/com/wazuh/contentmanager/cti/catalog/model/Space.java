@@ -85,6 +85,6 @@ public enum Space {
                 return space;
             }
         }
-        throw new IllegalArgumentException("Unknown operation: " + value);
+        throw new IllegalArgumentException("Unknown space: [" + value + "].");
     }
 }

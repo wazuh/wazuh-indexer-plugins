@@ -36,6 +36,7 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -112,6 +113,18 @@ public class RestPostPromoteAction extends BaseRestHandler {
      * @return a RestResponse
      */
     public RestResponse handleRequest(RestRequest request) {
+        // 1. Check if engine service exists
+        if (this.engine == null) {
+            return new RestResponse(
+                    Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
+        // 2. Check request's payload exists
+        if (request == null || !request.hasContent()) {
+            return new RestResponse(
+                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+        }
+
         try {
             // 1. Validation Phase - Validate payload
             ObjectMapper mapper = new ObjectMapper();
@@ -119,6 +132,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.validatePromoteRequest(spaceDiff);
 
             // 2. Gathering Phase - Build the engine payload
+            Space sourceSpace = spaceDiff.getSpace();
+            Space targetSpace = sourceSpace.promote();
+            Map<String, Map<String, String>> targetSpaceMap = this.spaceService.getSpaceResources(targetSpace.toString());
+
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
             // 3. Validation Phase - Invoke engine validation
@@ -136,15 +153,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
             // 5. Response Phase - Reply with success
             return new RestResponse("Promotion completed successfully", RestStatus.OK.getStatus());
-
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IOException e) {
             log.warn("Validation error during promotion: {}", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        } catch (IOException e) {
-            log.error("IO error during promotion: {}", e.getMessage(), e);
-            return new RestResponse(
-                    "Internal error during promotion: " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
             log.error("Unexpected error during promotion: {}", e.getMessage(), e);
             String message =
@@ -165,7 +176,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         // Validate that the source space can be promoted
         if (sourceSpace == targetSpace) {
-            throw new IllegalArgumentException("Space '" + sourceSpace + "' cannot be promoted");
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, sourceSpace));
         }
 
         SpaceDiff.Changes changes = spaceDiff.getChanges();
@@ -173,7 +185,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Validate policy operations - only UPDATE is allowed
         for (SpaceDiff.OperationItem item : changes.getPolicy()) {
             if (item.getOperation() != SpaceDiff.Operation.UPDATE) {
-                throw new IllegalArgumentException("Only 'update' operation is supported for policy");
+                throw new IllegalArgumentException(Constants.E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY);
             }
         }
     }
@@ -212,7 +224,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Process each resource type
         this.processResourceChanges(
                 changes.getIntegrations(),
-                SpaceService.KEY_INTEGRATIONS,
+                Constants.KEY_INTEGRATIONS,
                 integrationsToApply,
                 integrationsToDelete,
                 sourceSpace.toString(),
@@ -220,7 +232,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         this.processResourceChanges(
                 changes.getKvdbs(),
-                SpaceService.KEY_KVDBS,
+                Constants.KEY_KVDBS,
                 kvdbsToApply,
                 kvdbsToDelete,
                 sourceSpace.toString(),
@@ -228,7 +240,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         this.processResourceChanges(
                 changes.getDecoders(),
-                SpaceService.KEY_DECODERS,
+                Constants.KEY_DECODERS,
                 decodersToApply,
                 decodersToDelete,
                 sourceSpace.toString(),
@@ -236,7 +248,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         this.processResourceChanges(
                 changes.getFilters(),
-                SpaceService.KEY_FILTERS,
+                Constants.KEY_FILTERS,
                 filtersToApply,
                 filtersToDelete,
                 sourceSpace.toString(),
@@ -418,29 +430,29 @@ public class RestPostPromoteAction extends BaseRestHandler {
     private void consolidateChanges(PromotionContext context) throws IOException {
         // Consolidate ADD/UPDATE operations for each resource type
         if (!context.integrationsToApply.isEmpty()) {
-            this.spaceService.consolidateAddUpdateResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_INTEGRATIONS),
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
                     context.integrationsToApply,
                     context.targetSpace);
         }
 
         if (!context.kvdbsToApply.isEmpty()) {
-            this.spaceService.consolidateAddUpdateResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_KVDBS),
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
                     context.kvdbsToApply,
                     context.targetSpace);
         }
 
         if (!context.decodersToApply.isEmpty()) {
-            this.spaceService.consolidateAddUpdateResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_DECODERS),
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
                     context.decodersToApply,
                     context.targetSpace);
         }
 
         if (!context.filtersToApply.isEmpty()) {
-            this.spaceService.consolidateAddUpdateResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_FILTERS),
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
                     context.filtersToApply,
                     context.targetSpace);
         }
@@ -448,28 +460,28 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Process DELETE operations for each resource type
         if (!context.integrationsToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_INTEGRATIONS),
+                    this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
                     context.integrationsToDelete,
                     context.targetSpace);
         }
 
         if (!context.kvdbsToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_KVDBS),
+                    this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
                     context.kvdbsToDelete,
                     context.targetSpace);
         }
 
         if (!context.decodersToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_DECODERS),
+                    this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
                     context.decodersToDelete,
                     context.targetSpace);
         }
 
         if (!context.filtersToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(SpaceService.KEY_FILTERS),
+                    this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
                     context.filtersToDelete,
                     context.targetSpace);
         }
