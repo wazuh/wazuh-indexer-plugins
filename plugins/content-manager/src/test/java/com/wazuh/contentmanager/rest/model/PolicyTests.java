@@ -25,6 +25,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Policy;
+
 /**
  * Unit tests for the {@link Policy} class. This test suite validates Policy model operations
  * including construction, JSON serialization/deserialization, integration management, and data
@@ -62,24 +64,29 @@ public class PolicyTests extends OpenSearchTestCase {
         assertNull(defaultPolicy.getAuthor());
         assertNull(defaultPolicy.getDescription());
         assertNull(defaultPolicy.getDocumentation());
-        assertNull(defaultPolicy.getReferences());
+        assertNotNull(defaultPolicy.getReferences());
+        assertTrue(defaultPolicy.getReferences().isEmpty());
     }
 
     /** Test parameterized constructor with all fields. */
     public void testParameterizedConstructor_AllFields() {
         // Arrange
         List<String> integrations = Arrays.asList("integration1", "integration2");
+        List<String> references = Arrays.asList("https://example.com/refs");
 
         // Act
         Policy testPolicy =
                 new Policy(
-                        "policy",
-                        "decoder/root/0",
+                        "policy", // type
+                        null, // title
+                        null, // date
+                        null, // modified
+                        "decoder/root/0", // rootDecoder
                         integrations,
                         "Wazuh Inc.",
                         "Test policy description",
                         "Documentation content",
-                        "https://example.com/refs");
+                        references);
 
         // Assert
         assertEquals("policy", testPolicy.getType());
@@ -90,13 +97,14 @@ public class PolicyTests extends OpenSearchTestCase {
         assertEquals("Wazuh Inc.", testPolicy.getAuthor());
         assertEquals("Test policy description", testPolicy.getDescription());
         assertEquals("Documentation content", testPolicy.getDocumentation());
-        assertEquals("https://example.com/refs", testPolicy.getReferences());
+        assertEquals(1, testPolicy.getReferences().size());
+        assertEquals("https://example.com/refs", testPolicy.getReferences().get(0));
     }
 
     /** Test parameterized constructor with null values. */
     public void testParameterizedConstructor_NullValues() {
         // Act
-        Policy testPolicy = new Policy(null, null, null, null, null, null, null);
+        Policy testPolicy = new Policy(null, null, null, null, null, null, null, null, null, null);
 
         // Assert
         assertEquals("policy", testPolicy.getType()); // Defaults to "policy"
@@ -104,6 +112,8 @@ public class PolicyTests extends OpenSearchTestCase {
         assertTrue(testPolicy.getIntegrations().isEmpty());
         assertNull(testPolicy.getRootDecoder());
         assertNull(testPolicy.getAuthor());
+        assertNotNull(testPolicy.getReferences());
+        assertTrue(testPolicy.getReferences().isEmpty());
     }
 
     /** Test fromPayload factory method with complete payload. */
@@ -123,7 +133,8 @@ public class PolicyTests extends OpenSearchTestCase {
         assertEquals("Wazuh Inc.", testPolicy.getAuthor());
         assertEquals("Core policy", testPolicy.getDescription());
         assertEquals("Policy documentation", testPolicy.getDocumentation());
-        assertEquals("https://wazuh.com", testPolicy.getReferences());
+        assertEquals(1, testPolicy.getReferences().size());
+        assertEquals("https://wazuh.com", testPolicy.getReferences().get(0));
     }
 
     /** Helper method to create a complete JSON payload for testing. */
@@ -140,7 +151,9 @@ public class PolicyTests extends OpenSearchTestCase {
         payload.addProperty("author", "Wazuh Inc.");
         payload.addProperty("description", "Core policy");
         payload.addProperty("documentation", "Policy documentation");
-        payload.addProperty("references", "https://wazuh.com");
+        JsonArray referencesArray = new JsonArray();
+        referencesArray.add("https://wazuh.com");
+        payload.add("references", referencesArray);
         return payload;
     }
 
@@ -206,7 +219,7 @@ public class PolicyTests extends OpenSearchTestCase {
         this.policy.setAuthor("Wazuh Inc.");
         this.policy.setDescription("Test description");
         this.policy.setDocumentation("Test docs");
-        this.policy.setReferences("https://test.com");
+        this.policy.setReferences(Arrays.asList("https://test.com"));
 
         // Act
         Map<String, Object> map = this.policy.toMap();
@@ -218,7 +231,7 @@ public class PolicyTests extends OpenSearchTestCase {
         assertEquals("Wazuh Inc.", map.get("author"));
         assertEquals("Test description", map.get("description"));
         assertEquals("Test docs", map.get("documentation"));
-        assertEquals("https://test.com", map.get("references"));
+        assertEquals(Arrays.asList("https://test.com"), map.get("references"));
     }
 
     /** Test toMap conversion with minimal policy. */
@@ -387,8 +400,9 @@ public class PolicyTests extends OpenSearchTestCase {
         assertEquals("Test Documentation", this.policy.getDocumentation());
 
         // References
-        this.policy.setReferences("https://references.com");
-        assertEquals("https://references.com", this.policy.getReferences());
+        this.policy.setReferences(Arrays.asList("https://references.com"));
+        assertEquals(1, this.policy.getReferences().size());
+        assertEquals("https://references.com", this.policy.getReferences().get(0));
     }
 
     /** Test toString method. */

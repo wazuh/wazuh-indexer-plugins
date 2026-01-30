@@ -40,9 +40,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.Policy;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -201,6 +201,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
         // Define fields to validate with their display names
         Map<String, String> fieldsToValidate = new LinkedHashMap<>();
         fieldsToValidate.put("getType", "type");
+        fieldsToValidate.put("getTitle", "title");
         fieldsToValidate.put("getRootDecoder", "root_decoder");
         fieldsToValidate.put("getIntegrations", "integrations");
         fieldsToValidate.put("getAuthor", "author");
@@ -250,10 +251,22 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     private void storePolicy(NodeClient client, Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(client, POLICIES_INDEX, null);
-        String policyId = this.findDraftPolicyId(contentIndex);
-        // Prepare the resource payload
+        JsonObject policyJson = this.findDraftPolicy(contentIndex);
         JsonObject resourcePayload = new JsonObject();
-        resourcePayload.add("document", policy.toJson());
+        JsonObject document = policy.toJson();
+        Long currentTimeMillis = System.currentTimeMillis();
+        String policyId;
+        // Prepare the resource payload
+        document.addProperty("modified", currentTimeMillis);
+        if (policyJson != null && policyJson.has(ID_FIELD)) {
+            policyId = policyJson.get(ID_FIELD).getAsString();
+            JsonObject policyDocument = policyJson.get("document").getAsJsonObject();
+            document.addProperty("created", policyDocument.get("created").getAsLong());
+        } else {
+            policyId = UUIDs.base64UUID();
+            document.addProperty("created", currentTimeMillis);
+        }
+        resourcePayload.add("document", document);
         // Set the space to DRAFT
         JsonObject spaceObject = new JsonObject();
         spaceObject.addProperty("name", Space.DRAFT.toString());
@@ -269,7 +282,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @param contentIndex the content index to search
      * @return the existing policy ID or a new UUID
      */
-    private String findDraftPolicyId(ContentIndex contentIndex) {
+    private JsonObject findDraftPolicy(ContentIndex contentIndex) {
         QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_NAME_FIELD, Space.DRAFT.toString());
         JsonObject result = contentIndex.searchByQuery(queryBuilder);
 
@@ -279,15 +292,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
             if (!hits.isEmpty()) {
                 JsonObject firstHit = hits.get(0).getAsJsonObject();
                 if (firstHit.has(ID_FIELD)) {
-                    String existingId = firstHit.get(ID_FIELD).getAsString();
-                    log.debug("Found existing draft policy with ID: {}", existingId);
-                    return existingId;
+                    return firstHit;
                 }
             }
         }
-
-        String newId = UUIDs.base64UUID();
-        log.debug("No existing draft policy found, generated new ID: {}", newId);
-        return newId;
+        return null;
     }
 }

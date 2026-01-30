@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.model;
+package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -43,6 +43,9 @@ import java.util.Map;
 public class Policy {
     // JSON Key Constants
     private static final String TYPE_KEY = "type";
+    private static final String TITLE_KEY = "title";
+    private static final String DATE_KEY = "date";
+    private static final String MODIFIED_KEY = "modified";
     private static final String ROOT_DECODER_KEY = "root_decoder";
     private static final String INTEGRATIONS_KEY = "integrations";
     private static final String AUTHOR_KEY = "author";
@@ -52,6 +55,15 @@ public class Policy {
 
     @JsonProperty(TYPE_KEY)
     private String type;
+
+    @JsonProperty(TITLE_KEY)
+    private String title;
+
+    @JsonProperty(DATE_KEY)
+    private String date;
+
+    @JsonProperty(MODIFIED_KEY)
+    private String modified;
 
     @JsonProperty(ROOT_DECODER_KEY)
     private String rootDecoder;
@@ -69,12 +81,15 @@ public class Policy {
     private String documentation;
 
     @JsonProperty(REFERENCES_KEY)
-    private String references;
+    private List<String> references;
 
     /** Default constructor. */
     public Policy() {
         this.type = "policy";
         this.integrations = new ArrayList<>();
+        this.references = new ArrayList<>();
+        this.date = null;
+        this.modified = null;
     }
 
     /**
@@ -91,19 +106,25 @@ public class Policy {
     @JsonCreator
     public Policy(
             @JsonProperty(TYPE_KEY) String type,
+            @JsonProperty(TITLE_KEY) String title,
+            @JsonProperty(DATE_KEY) String date,
+            @JsonProperty(MODIFIED_KEY) String modified,
             @JsonProperty(ROOT_DECODER_KEY) String rootDecoder,
             @JsonProperty(INTEGRATIONS_KEY) List<String> integrations,
             @JsonProperty(AUTHOR_KEY) String author,
             @JsonProperty(DESCRIPTION_KEY) String description,
             @JsonProperty(DOCUMENTATION_KEY) String documentation,
-            @JsonProperty(REFERENCES_KEY) String references) {
+            @JsonProperty(REFERENCES_KEY) List<String> references) {
         this.type = type != null ? type : "policy";
+        this.title = title;
+        this.date = date;
+        this.modified = modified;
         this.rootDecoder = rootDecoder;
         this.integrations = integrations != null ? integrations : new ArrayList<>();
         this.author = author;
         this.description = description;
         this.documentation = documentation;
-        this.references = references;
+        this.references = references != null ? references : new ArrayList<>();
     }
 
     /**
@@ -114,9 +135,19 @@ public class Policy {
      */
     public static Policy fromPayload(JsonObject payload) {
         Policy policy = new Policy();
+        if (payload.has(DATE_KEY) && !payload.get(DATE_KEY).isJsonNull()) {
+            policy.setDate(payload.get(DATE_KEY).getAsString());
+        }
+        if (payload.has(MODIFIED_KEY) && !payload.get(MODIFIED_KEY).isJsonNull()) {
+            policy.setModified(payload.get(MODIFIED_KEY).getAsString());
+        }
 
         if (payload.has(TYPE_KEY)) {
             policy.setType(payload.get(TYPE_KEY).getAsString());
+        }
+
+        if (payload.has(TITLE_KEY) && !payload.get(TITLE_KEY).isJsonNull()) {
+            policy.title = payload.get(TITLE_KEY).getAsString();
         }
 
         if (payload.has(ROOT_DECODER_KEY) && !payload.get(ROOT_DECODER_KEY).isJsonNull()) {
@@ -146,8 +177,15 @@ public class Policy {
             policy.setDocumentation(payload.get(DOCUMENTATION_KEY).getAsString());
         }
 
-        if (payload.has(REFERENCES_KEY) && !payload.get(REFERENCES_KEY).isJsonNull()) {
-            policy.setReferences(payload.get(REFERENCES_KEY).getAsString());
+        if (payload.has(REFERENCES_KEY) && payload.get(REFERENCES_KEY).isJsonArray()) {
+            JsonArray referencesArray = payload.getAsJsonArray(REFERENCES_KEY);
+            List<String> referencesList = new ArrayList<>();
+            for (JsonElement element : referencesArray) {
+                if (!element.isJsonNull()) {
+                    referencesList.add(element.getAsString());
+                }
+            }
+            policy.setReferences(referencesList);
         }
 
         return policy;
@@ -164,6 +202,15 @@ public class Policy {
         if (this.type != null) {
             map.put(TYPE_KEY, this.type);
         }
+        if (this.title != null) {
+            map.put(TITLE_KEY, this.title);
+        }
+        if (this.date != null) {
+            map.put(DATE_KEY, this.date);
+        }
+        if (this.modified != null) {
+            map.put(MODIFIED_KEY, this.modified);
+        }
         if (this.rootDecoder != null) {
             map.put(ROOT_DECODER_KEY, this.rootDecoder);
         }
@@ -179,7 +226,7 @@ public class Policy {
         if (this.documentation != null) {
             map.put(DOCUMENTATION_KEY, this.documentation);
         }
-        if (this.references != null) {
+        if (this.references != null && !this.references.isEmpty()) {
             map.put(REFERENCES_KEY, this.references);
         }
 
@@ -196,6 +243,15 @@ public class Policy {
 
         if (this.type != null) {
             jsonObject.addProperty(TYPE_KEY, this.type);
+        }
+        if (this.title != null) {
+            jsonObject.addProperty(TITLE_KEY, this.title);
+        }
+        if (this.date != null) {
+            jsonObject.addProperty(DATE_KEY, this.date);
+        }
+        if (this.modified != null) {
+            jsonObject.addProperty(MODIFIED_KEY, this.modified);
         }
         if (this.rootDecoder != null) {
             jsonObject.addProperty(ROOT_DECODER_KEY, this.rootDecoder);
@@ -217,7 +273,11 @@ public class Policy {
             jsonObject.addProperty(DOCUMENTATION_KEY, this.documentation);
         }
         if (this.references != null) {
-            jsonObject.addProperty(REFERENCES_KEY, this.references);
+            JsonArray referencesArray = new JsonArray();
+            for (String reference : this.references) {
+                referencesArray.add(reference);
+            }
+            jsonObject.add(REFERENCES_KEY, referencesArray);
         }
 
         return jsonObject;
@@ -245,6 +305,41 @@ public class Policy {
     }
 
     // Getters and Setters
+    /**
+     * Gets the creation date of this policy.
+     *
+     * @return The creation date as a string.
+     */
+    public String getDate() {
+        return this.date;
+    }
+
+    /**
+     * Sets the creation date of this policy.
+     *
+     * @param date The creation date to set.
+     */
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    /**
+     * Gets the last modified date of this policy.
+     *
+     * @return The last modified date as a string.
+     */
+    public String getModified() {
+        return this.modified;
+    }
+
+    /**
+     * Sets the last modified date of this policy.
+     *
+     * @param modified The last modified date to set.
+     */
+    public void setModified(String modified) {
+        this.modified = modified;
+    }
 
     /**
      * Gets the type of this resource.
@@ -262,6 +357,24 @@ public class Policy {
      */
     public void setType(String type) {
         this.type = type != null ? type : "policy";
+    }
+
+    /**
+     * Gets the title of this policy.
+     *
+     * @return The policy title.
+     */
+    public String getTitle() {
+        return this.title;
+    }
+
+    /**
+     * Sets the title of this policy.
+     *
+     * @param title The policy title to set.
+     */
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     /**
@@ -357,19 +470,19 @@ public class Policy {
     /**
      * Gets the external references or links related to this policy.
      *
-     * @return The policy references.
+     * @return The list of policy references.
      */
-    public String getReferences() {
+    public List<String> getReferences() {
         return this.references;
     }
 
     /**
      * Sets the external references or links related to this policy.
      *
-     * @param references The policy references to set. If null, defaults to empty string.
+     * @param references The list of policy references to set. If null, an empty list is used.
      */
-    public void setReferences(String references) {
-        this.references = references != null ? references : "";
+    public void setReferences(List<String> references) {
+        this.references = references != null ? references : new ArrayList<>();
     }
 
     @Override
@@ -378,6 +491,9 @@ public class Policy {
                 + "type='"
                 + this.type
                 + '\''
+                + (this.title != null ? ", title='" + this.title + '\'' : "")
+                + (this.date != null ? ", date='" + this.date + '\'' : "")
+                + (this.modified != null ? ", modified='" + this.modified + '\'' : "")
                 + ", rootDecoder='"
                 + this.rootDecoder
                 + '\''
@@ -392,9 +508,8 @@ public class Policy {
                 + ", documentation='"
                 + this.documentation
                 + '\''
-                + ", references='"
+                + ", references="
                 + this.references
-                + '\''
                 + '}';
     }
 }

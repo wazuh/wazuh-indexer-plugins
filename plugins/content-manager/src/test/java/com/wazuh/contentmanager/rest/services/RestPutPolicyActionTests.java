@@ -104,12 +104,13 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
+                        + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration/wazuh-core/0\"],"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
-                        + "\"references\": \"Test references\""
+                        + "\"references\": [\"Test references\"]"
                         + "}";
 
         Map<String, String> params = new HashMap<>();
@@ -153,12 +154,13 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
+                        + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [],"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
-                        + "\"references\": \"\""
+                        + "\"references\": []"
                         + "}";
 
         Map<String, String> params = new HashMap<>();
@@ -273,12 +275,13 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
+                        + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [],"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
-                        + "\"references\": \"\""
+                        + "\"references\": []"
                         + "}";
 
         Map<String, String> params = new HashMap<>();
