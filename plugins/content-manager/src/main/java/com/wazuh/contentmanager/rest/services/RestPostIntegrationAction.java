@@ -299,7 +299,10 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // Validate integration with Wazuh Engine
         this.log.debug("Validating integration with Engine (id={})", id);
-        final RestResponse validationResponse = this.engine.validate(requestPayload);
+        ObjectNode enginePayload = MAPPER.createObjectNode();
+        enginePayload.set("resource", integrationObject);
+        enginePayload.put("type", "integration");
+        final RestResponse validationResponse = this.engine.validate(enginePayload);
 
         try {
             MAPPER.readTree(validationResponse.getMessage()).isObject();
