@@ -18,21 +18,22 @@ package com.wazuh.contentmanager.utils;
 
 import java.util.Map;
 
+// spotless:off
 /**
  * Central and unified storage for constants used by the plugin. Follow these guidelines:
  *
  * <ul>
- *   <li>Use uppercase letters only.
- *   <li>Separate words with underscores.
- *   <li>Log strings end with a dot.
- *   <li>Index names are prefixed with <i>INDEX<i/>.
- *   <li>Map keys are prefixed with <i>KEY</i>.
- *   <li>Response strings for the HTTP API are prefixed with the type of message and status code.
- *   <li>When referencing from another class, used static qualifiers: <code>Constants.KEY_HASH
- *       </code>.
- *   <li>Use common sense. Keep this file clean and organized.
+ *   <li>Use uppercase letters only.</li>
+ *   <li>Separate words with underscores.</li>
+ *   <li>Log strings end with a dot.</li>
+ *   <li>Index names are prefixed with <i>INDEX</i>.</li>
+ *   <li>Map keys are prefixed with <i>KEY</i>.</li>
+ *   <li>Response strings for the HTTP API are prefixed with the type of message and status code.</li>
+ *   <li>When referencing from another class, used static qualifiers: <code>Constants.KEY_HASH</code>.</li>
+ *   <li>Use common sense. Keep this file clean and organized.</li>
  * </ul>
  */
+// spotless:on
 public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.

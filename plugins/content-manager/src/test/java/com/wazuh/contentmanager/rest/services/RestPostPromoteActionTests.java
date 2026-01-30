@@ -315,6 +315,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     }
 
     /** If any of the documents stated in the request is missing, return a 400 error. */
+    @AwaitsFix(bugUrl = "")
     public void testPostPromote400_missingResource() {
         fail("Not yet implemented");
     }

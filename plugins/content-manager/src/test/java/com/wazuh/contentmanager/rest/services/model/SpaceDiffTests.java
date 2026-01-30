@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.services.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
@@ -274,11 +275,9 @@ public class SpaceDiffTests extends OpenSearchTestCase {
 
         Exception exception =
                 assertThrows(
-                        Exception.class,
-                        () -> {
-                            this.objectMapper.readValue(payload, SpaceDiff.class);
-                        });
+                        ValueInstantiationException.class,
+                        () -> this.objectMapper.readValue(payload, SpaceDiff.class));
 
-        assertTrue(exception.getMessage().contains("Unknown operation"));
+        assertTrue(exception.getMessage().contains("Unknown space: [invalid]."));
     }
 }
