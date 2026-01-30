@@ -27,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.SuppressForbidden;
-import org.opensearch.common.UUIDs;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
@@ -38,6 +37,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -341,7 +341,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     this.integrationsIndex.create(prefixedId, resourceContent);
 
             // Check indexing response. We are expecting for a 200 OK status.
-            if (integrationIndexResponse == null || integrationIndexResponse.status() != RestStatus.OK) {
+            if (integrationIndexResponse == null
+                    || integrationIndexResponse.status() != RestStatus.CREATED) {
                 this.log.error(
                         "Indexing integration failed (id={}, status={}); rolling back SAP integration",
                         prefixedId,
@@ -356,9 +357,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             this.log.debug(
                     "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
             TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
-            JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
+            JsonNode draftPolicyNode =
+                    MAPPER.readTree(
+                            this.policiesIndex.searchByQuery(queryBuilder).getHits()[0].getSourceAsString());
 
-            if (searchResult == null) {
+            if (draftPolicyNode == null) {
                 this.log.error("Draft policy search returned null result; rolling back (id={})", id);
                 // Rollback: delete created integration in CTI index and in SAP
                 this.integrationsIndex.delete(prefixedId);
@@ -366,30 +369,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 return new RestResponse(
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
-            JsonNode draftPolicy = MAPPER.readTree(searchResult.toString());
 
-            // If we cannot find the draft space policy, rollback and return an error.
-            if (draftPolicy == null) {
-                this.log.error("Draft policy not found; rolling back (id={})", id);
-                // Rollback: delete created integration in CTI index and in SAP
-                this.integrationsIndex.delete(prefixedId);
-                this.service.deleteIntegration(id);
-                return new RestResponse(
-                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-
-            // Get the policy document
-            JsonNode draftPolicyNode = draftPolicy.get("hits").get(0);
-
-            // Get the policy Id
-            if (draftPolicyNode == null) {
-                this.log.error("Draft policy not found; rolling back (id={})", id);
-                // Rollback: delete created integration in CTI index and in SAP
-                this.integrationsIndex.delete(prefixedId);
-                this.service.deleteIntegration(id);
-                return new RestResponse(
-                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
             String policyId = draftPolicyNode.get("_id").asText();
 
             JsonNode documentJsonObject = draftPolicyNode.at("/_source/document");
@@ -440,7 +420,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     "Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, policyId);
             IndexResponse indexPolicyResponse = this.policiesIndex.create(policyId, draftPolicyNode);
 
-            if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.OK) {
+            if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.CREATED) {
                 this.log.error(
                         "Indexing updated draft policy failed (policyId={}, status={}); rolling back SAP integration (id={})",
                         policyId,
@@ -482,7 +462,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
      * @return a unique integration ID string
      */
     public String generateId() {
-        return UUIDs.base64UUID();
+        return UUID.randomUUID().toString();
     }
 
     private JsonObject toJsonObject(JsonNode jsonNode) {

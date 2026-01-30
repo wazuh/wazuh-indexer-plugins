@@ -49,6 +49,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
@@ -273,7 +274,7 @@ public class ContentIndex {
      * @param queryBuilder The query to execute.
      * @return A JsonObject representing the found document, or null if not found or on
      */
-    public JsonObject searchByQuery(QueryBuilder queryBuilder) {
+    public SearchHits searchByQuery(QueryBuilder queryBuilder) {
         try {
             // Create search request
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
@@ -293,7 +294,7 @@ public class ContentIndex {
                 return null;
             }
             // Parse all hits and return in JsonObject format
-            return JsonParser.parseString(searchResponse.getHits().toString()).getAsJsonObject();
+            return searchResponse.getHits();
         } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
             return null;
