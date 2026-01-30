@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -30,6 +30,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +41,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link ContentIndex} class. This test suite validates content index operations
@@ -259,7 +263,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
      * Test updating a document. Simulates fetching an existing document, applying operations, and
      * re-indexing.
      *
-     * @throws Exception
+     * @throws Exception if an error occurs
      */
     public void testUpdate_Operations() throws Exception {
         String id = "58dc8e10-0b69-4b81-a851-7a767e831fff";
@@ -333,5 +337,110 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         assertEquals(INDEX_NAME, captor.getValue().index());
         assertEquals(id, captor.getValue().id());
+    }
+
+    /** Test exists method when document exists. */
+    public void testExists_DocumentExists() {
+        // Arrange
+        String id = "existing-id";
+        when(this.client.prepareGet(INDEX_NAME, id).setFetchSource(false).get().isExists())
+                .thenReturn(true);
+
+        // Act
+        boolean exists = this.contentIndex.exists(id);
+
+        // Assert
+        assertTrue(exists);
+    }
+
+    /** Test exists method when document does not exist. */
+    public void testExists_DocumentNotExists() {
+        // Arrange
+        String id = "non-existing-id";
+        when(this.client.prepareGet(INDEX_NAME, id).setFetchSource(false).get().isExists())
+                .thenReturn(false);
+
+        // Act
+        boolean exists = this.contentIndex.exists(id);
+
+        // Assert
+        assertFalse(exists);
+    }
+
+    /** Test getIndexName method. */
+    public void testGetIndexName() {
+        // Act
+        String indexName = this.contentIndex.getIndexName();
+
+        // Assert
+        assertEquals(INDEX_NAME, indexName);
+    }
+
+    /**
+     * Test that creating a resource produces the expected JSON schema. Validates that the indexed
+     * document contains the required keys: document, hash, and space.
+     */
+    public void testCreate_Resource_ExpectedSchema() {
+        // Mock
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        String jsonPayload =
+                "{"
+                        + "\"type\": \"test\","
+                        + "\"document\": {"
+                        + "  \"id\": \"test-resource-id\","
+                        + "  \"title\": \"Test Resource\","
+                        + "  \"enabled\": true"
+                        + "}"
+                        + "}";
+        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        String id = "test-resource-id";
+
+        // Act
+        try {
+            this.contentIndex.create(id, payload);
+        } catch (IOException e) {
+            fail("Create should not throw exception: " + e.getMessage());
+        }
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        IndexRequest request = captor.getValue();
+        assertEquals(INDEX_NAME, request.index());
+        assertEquals(id, request.id());
+
+        JsonObject source = JsonParser.parseString(request.source().utf8ToString()).getAsJsonObject();
+        assertTrue("Should contain 'document' key", source.has("document"));
+        assertTrue("Should contain 'hash' key", source.has("hash"));
+        assertTrue("Should contain 'space' key", source.has("space"));
+    }
+
+    /** Test update when document does not exist. */
+    public void testUpdate_DocumentNotFound() {
+        // Arrange
+        String id = "non-existing-id";
+
+        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
+        getFuture.onResponse(this.getResponse);
+        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        when(this.getResponse.isExists()).thenReturn(false);
+
+        List<Operation> operations = new ArrayList<>();
+        operations.add(new Operation("add", "/field", null, "value"));
+
+        // Act & Assert
+        Exception exception = null;
+        try {
+            this.contentIndex.update(id, operations);
+        } catch (Exception e) {
+            exception = e;
+        }
+
+        assertNotNull("Should throw exception when document not found", exception);
+        assertTrue(exception.getMessage().contains("not found"));
     }
 }

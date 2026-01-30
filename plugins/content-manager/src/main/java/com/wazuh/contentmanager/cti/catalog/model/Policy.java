@@ -1,0 +1,515 @@
+/*
+ * Copyright (C) 2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.wazuh.contentmanager.cti.catalog.model;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Model representing a Policy resource within the Engine context.
+ *
+ * <p>A Policy defines the configuration and metadata for content processing, including the root
+ * decoder and associated integrations. Policies exist within different spaces (draft, test, custom,
+ * standard) and their resources can be promoted between spaces.
+ *
+ * <p>The policy acts as a container that references integrations by their IDs and specifies the
+ * root decoder to be used for content processing.
+ */
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
+public class Policy {
+    // JSON Key Constants
+    private static final String TYPE_KEY = "type";
+    private static final String TITLE_KEY = "title";
+    private static final String DATE_KEY = "date";
+    private static final String MODIFIED_KEY = "modified";
+    private static final String ROOT_DECODER_KEY = "root_decoder";
+    private static final String INTEGRATIONS_KEY = "integrations";
+    private static final String AUTHOR_KEY = "author";
+    private static final String DESCRIPTION_KEY = "description";
+    private static final String DOCUMENTATION_KEY = "documentation";
+    private static final String REFERENCES_KEY = "references";
+
+    @JsonProperty(TYPE_KEY)
+    private String type;
+
+    @JsonProperty(TITLE_KEY)
+    private String title;
+
+    @JsonProperty(DATE_KEY)
+    private String date;
+
+    @JsonProperty(MODIFIED_KEY)
+    private String modified;
+
+    @JsonProperty(ROOT_DECODER_KEY)
+    private String rootDecoder;
+
+    @JsonProperty(INTEGRATIONS_KEY)
+    private List<String> integrations;
+
+    @JsonProperty(AUTHOR_KEY)
+    private String author;
+
+    @JsonProperty(DESCRIPTION_KEY)
+    private String description;
+
+    @JsonProperty(DOCUMENTATION_KEY)
+    private String documentation;
+
+    @JsonProperty(REFERENCES_KEY)
+    private List<String> references;
+
+    /** Default constructor. */
+    public Policy() {
+        this.type = "policy";
+        this.integrations = new ArrayList<>();
+        this.references = new ArrayList<>();
+        this.date = null;
+        this.modified = null;
+    }
+
+    /**
+     * Constructs a new Policy with the specified parameters.
+     *
+     * @param type The type of resource (should be "policy").
+     * @param rootDecoder The root decoder identifier.
+     * @param integrations List of integration IDs.
+     * @param author The author of the policy.
+     * @param description A brief description of the policy.
+     * @param documentation Detailed documentation for the policy.
+     * @param references External references or links related to the policy.
+     */
+    @JsonCreator
+    public Policy(
+            @JsonProperty(TYPE_KEY) String type,
+            @JsonProperty(TITLE_KEY) String title,
+            @JsonProperty(DATE_KEY) String date,
+            @JsonProperty(MODIFIED_KEY) String modified,
+            @JsonProperty(ROOT_DECODER_KEY) String rootDecoder,
+            @JsonProperty(INTEGRATIONS_KEY) List<String> integrations,
+            @JsonProperty(AUTHOR_KEY) String author,
+            @JsonProperty(DESCRIPTION_KEY) String description,
+            @JsonProperty(DOCUMENTATION_KEY) String documentation,
+            @JsonProperty(REFERENCES_KEY) List<String> references) {
+        this.type = type != null ? type : "policy";
+        this.title = title;
+        this.date = date;
+        this.modified = modified;
+        this.rootDecoder = rootDecoder;
+        this.integrations = integrations != null ? integrations : new ArrayList<>();
+        this.author = author;
+        this.description = description;
+        this.documentation = documentation;
+        this.references = references != null ? references : new ArrayList<>();
+    }
+
+    /**
+     * Factory method to create a Policy instance from a raw Gson JsonObject.
+     *
+     * @param payload The raw JSON object containing the policy data.
+     * @return A fully populated Policy instance.
+     */
+    public static Policy fromPayload(JsonObject payload) {
+        Policy policy = new Policy();
+        if (payload.has(DATE_KEY) && !payload.get(DATE_KEY).isJsonNull()) {
+            policy.setDate(payload.get(DATE_KEY).getAsString());
+        }
+        if (payload.has(MODIFIED_KEY) && !payload.get(MODIFIED_KEY).isJsonNull()) {
+            policy.setModified(payload.get(MODIFIED_KEY).getAsString());
+        }
+
+        if (payload.has(TYPE_KEY)) {
+            policy.setType(payload.get(TYPE_KEY).getAsString());
+        }
+
+        if (payload.has(TITLE_KEY) && !payload.get(TITLE_KEY).isJsonNull()) {
+            policy.title = payload.get(TITLE_KEY).getAsString();
+        }
+
+        if (payload.has(ROOT_DECODER_KEY) && !payload.get(ROOT_DECODER_KEY).isJsonNull()) {
+            policy.setRootDecoder(payload.get(ROOT_DECODER_KEY).getAsString());
+        }
+
+        if (payload.has(INTEGRATIONS_KEY) && payload.get(INTEGRATIONS_KEY).isJsonArray()) {
+            JsonArray integrationsArray = payload.getAsJsonArray(INTEGRATIONS_KEY);
+            List<String> integrationsList = new ArrayList<>();
+            for (JsonElement element : integrationsArray) {
+                if (!element.isJsonNull()) {
+                    integrationsList.add(element.getAsString());
+                }
+            }
+            policy.setIntegrations(integrationsList);
+        }
+
+        if (payload.has(AUTHOR_KEY) && !payload.get(AUTHOR_KEY).isJsonNull()) {
+            policy.setAuthor(payload.get(AUTHOR_KEY).getAsString());
+        }
+
+        if (payload.has(DESCRIPTION_KEY) && !payload.get(DESCRIPTION_KEY).isJsonNull()) {
+            policy.setDescription(payload.get(DESCRIPTION_KEY).getAsString());
+        }
+
+        if (payload.has(DOCUMENTATION_KEY) && !payload.get(DOCUMENTATION_KEY).isJsonNull()) {
+            policy.setDocumentation(payload.get(DOCUMENTATION_KEY).getAsString());
+        }
+
+        if (payload.has(REFERENCES_KEY) && payload.get(REFERENCES_KEY).isJsonArray()) {
+            JsonArray referencesArray = payload.getAsJsonArray(REFERENCES_KEY);
+            List<String> referencesList = new ArrayList<>();
+            for (JsonElement element : referencesArray) {
+                if (!element.isJsonNull()) {
+                    referencesList.add(element.getAsString());
+                }
+            }
+            policy.setReferences(referencesList);
+        }
+
+        return policy;
+    }
+
+    /**
+     * Converts this Policy to a Map representation suitable for indexing.
+     *
+     * @return A Map containing all policy fields.
+     */
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+
+        if (this.type != null) {
+            map.put(TYPE_KEY, this.type);
+        }
+        if (this.title != null) {
+            map.put(TITLE_KEY, this.title);
+        }
+        if (this.date != null) {
+            map.put(DATE_KEY, this.date);
+        }
+        if (this.modified != null) {
+            map.put(MODIFIED_KEY, this.modified);
+        }
+        if (this.rootDecoder != null) {
+            map.put(ROOT_DECODER_KEY, this.rootDecoder);
+        }
+        if (this.integrations != null && !this.integrations.isEmpty()) {
+            map.put(INTEGRATIONS_KEY, this.integrations);
+        }
+        if (this.author != null) {
+            map.put(AUTHOR_KEY, this.author);
+        }
+        if (this.description != null) {
+            map.put(DESCRIPTION_KEY, this.description);
+        }
+        if (this.documentation != null) {
+            map.put(DOCUMENTATION_KEY, this.documentation);
+        }
+        if (this.references != null && !this.references.isEmpty()) {
+            map.put(REFERENCES_KEY, this.references);
+        }
+
+        return map;
+    }
+
+    /**
+     * Converts this Policy to a Gson JsonObject representation.
+     *
+     * @return A JsonObject containing all policy fields.
+     */
+    public JsonObject toJson() {
+        JsonObject jsonObject = new JsonObject();
+
+        if (this.type != null) {
+            jsonObject.addProperty(TYPE_KEY, this.type);
+        }
+        if (this.title != null) {
+            jsonObject.addProperty(TITLE_KEY, this.title);
+        }
+        if (this.date != null) {
+            jsonObject.addProperty(DATE_KEY, this.date);
+        }
+        if (this.modified != null) {
+            jsonObject.addProperty(MODIFIED_KEY, this.modified);
+        }
+        if (this.rootDecoder != null) {
+            jsonObject.addProperty(ROOT_DECODER_KEY, this.rootDecoder);
+        }
+        if (this.integrations != null) {
+            JsonArray integrationsArray = new JsonArray();
+            for (String integration : this.integrations) {
+                integrationsArray.add(integration);
+            }
+            jsonObject.add(INTEGRATIONS_KEY, integrationsArray);
+        }
+        if (this.author != null) {
+            jsonObject.addProperty(AUTHOR_KEY, this.author);
+        }
+        if (this.description != null) {
+            jsonObject.addProperty(DESCRIPTION_KEY, this.description);
+        }
+        if (this.documentation != null) {
+            jsonObject.addProperty(DOCUMENTATION_KEY, this.documentation);
+        }
+        if (this.references != null) {
+            JsonArray referencesArray = new JsonArray();
+            for (String reference : this.references) {
+                referencesArray.add(reference);
+            }
+            jsonObject.add(REFERENCES_KEY, referencesArray);
+        }
+
+        return jsonObject;
+    }
+
+    /**
+     * Adds an integration ID to the policy's integrations list.
+     *
+     * @param integrationId The integration ID to add.
+     */
+    public void addIntegration(String integrationId) {
+        if (integrationId != null && !this.integrations.contains(integrationId)) {
+            this.integrations.add(integrationId);
+        }
+    }
+
+    /**
+     * Removes an integration ID from the policy's integrations list.
+     *
+     * @param integrationId The integration ID to remove.
+     * @return true if the integration was removed, false otherwise.
+     */
+    public boolean removeIntegration(String integrationId) {
+        return this.integrations.remove(integrationId);
+    }
+
+    // Getters and Setters
+    /**
+     * Gets the creation date of this policy.
+     *
+     * @return The creation date as a string.
+     */
+    public String getDate() {
+        return this.date;
+    }
+
+    /**
+     * Sets the creation date of this policy.
+     *
+     * @param date The creation date to set.
+     */
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    /**
+     * Gets the last modified date of this policy.
+     *
+     * @return The last modified date as a string.
+     */
+    public String getModified() {
+        return this.modified;
+    }
+
+    /**
+     * Sets the last modified date of this policy.
+     *
+     * @param modified The last modified date to set.
+     */
+    public void setModified(String modified) {
+        this.modified = modified;
+    }
+
+    /**
+     * Gets the type of this resource.
+     *
+     * @return The resource type (should be "policy").
+     */
+    public String getType() {
+        return this.type;
+    }
+
+    /**
+     * Sets the type of this resource.
+     *
+     * @param type The resource type to set. If null, defaults to "policy".
+     */
+    public void setType(String type) {
+        this.type = type != null ? type : "policy";
+    }
+
+    /**
+     * Gets the title of this policy.
+     *
+     * @return The policy title.
+     */
+    public String getTitle() {
+        return this.title;
+    }
+
+    /**
+     * Sets the title of this policy.
+     *
+     * @param title The policy title to set.
+     */
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    /**
+     * Gets the root decoder identifier.
+     *
+     * @return The root decoder identifier.
+     */
+    public String getRootDecoder() {
+        return this.rootDecoder;
+    }
+
+    /**
+     * Sets the root decoder identifier.
+     *
+     * @param rootDecoder The root decoder identifier to set. If null, defaults to empty string.
+     */
+    public void setRootDecoder(String rootDecoder) {
+        this.rootDecoder = rootDecoder != null ? rootDecoder : "";
+    }
+
+    /**
+     * Gets the list of integration IDs associated with this policy.
+     *
+     * @return The list of integration IDs.
+     */
+    public List<String> getIntegrations() {
+        return this.integrations;
+    }
+
+    /**
+     * Sets the list of integration IDs for this policy.
+     *
+     * @param integrations The list of integration IDs to set. If null, an empty list is used.
+     */
+    public void setIntegrations(List<String> integrations) {
+        this.integrations = integrations != null ? integrations : new ArrayList<>();
+    }
+
+    /**
+     * Gets the author of this policy.
+     *
+     * @return The author name.
+     */
+    public String getAuthor() {
+        return this.author;
+    }
+
+    /**
+     * Sets the author of this policy.
+     *
+     * @param author The author name to set. If null, defaults to empty string.
+     */
+    public void setAuthor(String author) {
+        this.author = author != null ? author : "";
+    }
+
+    /**
+     * Gets the description of this policy.
+     *
+     * @return The policy description.
+     */
+    public String getDescription() {
+        return this.description;
+    }
+
+    /**
+     * Sets the description of this policy.
+     *
+     * @param description The policy description to set. If null, defaults to empty string.
+     */
+    public void setDescription(String description) {
+        this.description = description != null ? description : "";
+    }
+
+    /**
+     * Gets the detailed documentation for this policy.
+     *
+     * @return The policy documentation.
+     */
+    public String getDocumentation() {
+        return this.documentation;
+    }
+
+    /**
+     * Sets the detailed documentation for this policy.
+     *
+     * @param documentation The policy documentation to set. If null, defaults to empty string.
+     */
+    public void setDocumentation(String documentation) {
+        this.documentation = documentation != null ? documentation : "";
+    }
+
+    /**
+     * Gets the external references or links related to this policy.
+     *
+     * @return The list of policy references.
+     */
+    public List<String> getReferences() {
+        return this.references;
+    }
+
+    /**
+     * Sets the external references or links related to this policy.
+     *
+     * @param references The list of policy references to set. If null, an empty list is used.
+     */
+    public void setReferences(List<String> references) {
+        this.references = references != null ? references : new ArrayList<>();
+    }
+
+    @Override
+    public String toString() {
+        return "Policy{"
+                + "type='"
+                + this.type
+                + '\''
+                + (this.title != null ? ", title='" + this.title + '\'' : "")
+                + (this.date != null ? ", date='" + this.date + '\'' : "")
+                + (this.modified != null ? ", modified='" + this.modified + '\'' : "")
+                + ", rootDecoder='"
+                + this.rootDecoder
+                + '\''
+                + ", integrations="
+                + this.integrations
+                + ", author='"
+                + this.author
+                + '\''
+                + ", description='"
+                + this.description
+                + '\''
+                + ", documentation='"
+                + this.documentation
+                + '\''
+                + ", references="
+                + this.references
+                + '}';
+    }
+}

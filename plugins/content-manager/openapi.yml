@@ -435,6 +435,29 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /policy:
+    put:
+      tags: [Draft Policy]
+      summary: Update full draft policy
+      operationId: policy_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Policy"
+      responses:
+        "200":
+          description: Policy updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   # Shared path parameters for resource identifiers (UUIDs)
   parameters:
@@ -932,6 +955,53 @@ components:
         taxonomy:
           type: object
           additionalProperties: true
+
+    # Policy Resource
+    Policy:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - root_decoder
+        - integrations
+      properties:
+        type:
+          type: string
+          enum: [policy]
+          description: Resource type identifier
+          example: "policy"
+
+        root_decoder:
+          type: string
+          description: Reference to the root decoder asset
+          example: "decoder/integrations/0"
+
+        integrations:
+          type: array
+          items:
+            type: string
+          description: List of integration asset references
+          example: ["integration/wazuh-core/0"]
+
+        author:
+          type: string
+          description: Author of the policy
+          example: "Wazuh Inc."
+
+        description:
+          type: string
+          description: Brief description of the policy
+          example: "Policy description"
+
+        documentation:
+          type: string
+          description: Detailed documentation for the policy
+          example: "Detailed documentation"
+
+        references:
+          type: string
+          description: External references or links
+          example: "External references"
 
     # Standard resource creation/update response containing the generated UUID
     ResourceResponse:
