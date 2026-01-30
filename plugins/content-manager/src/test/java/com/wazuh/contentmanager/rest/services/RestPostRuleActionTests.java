@@ -43,6 +43,7 @@ import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -134,8 +135,17 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         when(getResponse.isExists()).thenReturn(true);
         Map<String, Object> docMap = new HashMap<>();
         docMap.put("rules", Collections.emptyList());
-        when(getResponse.getSourceAsMap()).thenReturn(Map.of("document", new HashMap<>(docMap)));
-        when(getResponse.getSourceAsString()).thenReturn("{\"document\": {\"rules\": []}}");
+
+        Map<String, Object> spaceMap = new HashMap<>();
+        spaceMap.put("name", "draft");
+
+        Map<String, Object> sourceMap = new HashMap<>();
+        sourceMap.put("document", docMap);
+        sourceMap.put("space", spaceMap);
+
+        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+        when(getResponse.getSourceAsString())
+                .thenReturn("{\"document\": {\"rules\": []}, \"space\": {\"name\": \"draft\"}}");
 
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);
@@ -264,7 +274,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("does not exist"));
+        assertTrue(response.getMessage().contains("not found"));
     }
 
     /**
