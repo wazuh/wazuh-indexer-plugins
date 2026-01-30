@@ -16,41 +16,52 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationAction;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationRequest;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.settings.PluginSettings;
+import java.util.Map;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
-/**
- * TODO !CHANGE_ME DELETE /_plugins/content-manager/integration/{integration_id}
- *
- * <p>Deletes an integration
- *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
- */
 public class RestDeleteIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
-    private final EngineService engine;
+    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
+    private static final String CTI_POLICIES_INDEX = ".cti-policies";
 
-    /**
-     * Constructs a new TODO !CHANGE_ME.
-     *
-     * @param engine The service instance to communicate with the local engine service.
-     */
+    private final EngineService engine;
+    private final ObjectMapper mapper;
+
     public RestDeleteIntegrationAction(EngineService engine) {
         this.engine = engine;
+        this.mapper = new ObjectMapper();
     }
 
     /** Return a short identifier for this handler. */
@@ -74,27 +85,118 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * TODO !CHANGE_ME.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        if (request.hasParam("id")) {
+            request.param("id");
+        }
+        return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
-    /**
-     * TODO !CHANGE_ME.
-     *
-     * @param request incoming request
-     * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
-        return null;
+    public BytesRestResponse handleRequest(RestRequest request, NodeClient client) throws IOException {
+        try {
+            String id = request.param("id");
+            if (id == null || id.isEmpty()) {
+                return this.buildJsonErrorResponse(RestStatus.BAD_REQUEST, "Integration ID is required");
+            }
+
+            // 1. Validate existence and space in Local Index
+            GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, id);
+            GetResponse getResponse = client.get(getRequest).actionGet();
+
+            if (!getResponse.isExists()) {
+                return this.buildJsonErrorResponse(RestStatus.NOT_FOUND, "Integration not found: " + id);
+            }
+
+            Map<String, Object> source = getResponse.getSourceAsMap();
+            if (source.containsKey("space")) {
+                Map<String, Object> space = (Map<String, Object>) source.get("space");
+                String spaceName = (String) space.get("name");
+                if (!"draft".equals(spaceName)) {
+                    return this.buildJsonErrorResponse(RestStatus.BAD_REQUEST,
+                        "Cannot delete integration from space '" + spaceName + "'. Only 'draft' space is modifiable.");
+                }
+            } else {
+                return this.buildJsonErrorResponse(RestStatus.BAD_REQUEST, "Cannot delete integration with undefined space.");
+            }
+
+            // 2. Delete from SAP
+            WDeleteIntegrationRequest sapRequest = new WDeleteIntegrationRequest(
+                id,
+                WriteRequest.RefreshPolicy.IMMEDIATE
+            );
+
+            try {
+                WDeleteIntegrationResponse sapResponse = client.execute(WDeleteIntegrationAction.INSTANCE, sapRequest).actionGet();
+                if (sapResponse.status() == RestStatus.INTERNAL_SERVER_ERROR) {
+                    return this.buildJsonErrorResponse(sapResponse.status(), "Failed to delete integration from Security Analytics Plugin");
+                }
+            } catch (Exception e) {
+                // Ignore missing integration in SAP
+            }
+
+            // 3. Delete from Local Index
+            DeleteRequest localDeleteRequest = new DeleteRequest(CTI_INTEGRATIONS_INDEX, id)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+            client.delete(localDeleteRequest).actionGet();
+
+            // 4. Update Policy
+            this.removeLinkFromPolicy(client, id);
+
+            // Construct JSON response for success
+            ObjectNode responseNode = this.mapper.createObjectNode();
+            responseNode.put("message", "Integration deleted successfully");
+            responseNode.put("status", RestStatus.OK.getStatus());
+
+            return new BytesRestResponse(RestStatus.OK, responseNode.toString());
+
+        } catch (Exception e) {
+            return this.buildJsonErrorResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    private BytesRestResponse buildJsonErrorResponse(RestStatus status, String message) {
+        ObjectNode errorNode = this.mapper.createObjectNode();
+        errorNode.put("message", message);
+        errorNode.put("status", status.getStatus());
+        return new BytesRestResponse(status, errorNode.toString());
+    }
+
+    private void removeLinkFromPolicy(NodeClient client, String integrationId) throws IOException {
+        SearchRequest searchRequest = new SearchRequest(CTI_POLICIES_INDEX)
+            .source(new SearchSourceBuilder()
+                .size(1)
+                .query(QueryBuilders.matchQuery("space.name", "draft")));
+
+        SearchResponse response = client.search(searchRequest).actionGet();
+        if (response.getHits().getHits().length > 0) {
+            SearchHit hit = response.getHits().getAt(0);
+            String policyId = hit.getId();
+            Map<String, Object> source = hit.getSourceAsMap();
+
+            Map<String, Object> document = (Map<String, Object>) source.get("document");
+            List<String> integrations = (List<String>) document.getOrDefault("integrations", new ArrayList<>());
+
+            if (integrations.contains(integrationId)) {
+                integrations.remove(integrationId);
+                document.put("integrations", integrations);
+
+                // Recalculate Hash
+                String docString = this.mapper.writeValueAsString(document);
+                String newHash = HashCalculator.sha256(docString);
+
+                Map<String, Object> hash = (Map<String, Object>) source.getOrDefault("hash", new HashMap<>());
+                hash.put("sha256", newHash);
+                source.put("hash", hash);
+
+                IndexRequest updateRequest = new IndexRequest(CTI_POLICIES_INDEX)
+                    .id(policyId)
+                    .source(source)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+                client.index(updateRequest).actionGet();
+            }
+        }
     }
 }
