@@ -16,11 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.sun.jdi.InternalException;
-
 import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
@@ -134,7 +133,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     });
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
-            throw new InternalException("Failed to delete Integration");
+            throw new OpenSearchException("Failed to delete Integration");
         }
     }
 
