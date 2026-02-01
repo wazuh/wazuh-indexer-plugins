@@ -16,11 +16,20 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
@@ -35,6 +44,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -55,9 +65,11 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
 
     private ContentIndex integrationsIndex;
+    private ContentIndex policiesIndex;
     private PolicyHashService policyHashService;
     private SecurityAnalyticsService service;
     private final Logger log = LogManager.getLogger(RestDeleteIntegrationAction.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CTI_DECODERS_INDEX = ".cti-decoders";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
     private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
@@ -114,6 +126,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         this.nodeClient = client;
         this.setPolicyHashService(new PolicyHashService(client));
         this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
+        this.setPoliciesContentIndex(new ContentIndex(client, CTI_POLICIES_INDEX, null));
         this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
         return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
     }
@@ -132,6 +145,15 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      */
     public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
         this.integrationsIndex = integrationsIndex;
+    }
+
+    /**
+     * Setter for the policies index, used in tests.
+     *
+     * @param policiesIndex the policies index ContentIndex object
+     */
+    public void setPoliciesContentIndex(ContentIndex policiesIndex) {
+        this.policiesIndex = policiesIndex;
     }
 
     /**
@@ -230,6 +252,92 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             // Delete from CTI integrations index
             this.log.debug("Deleting integration from {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
             this.integrationsIndex.delete(prefixedId);
+
+            // Search for the draft policy to remove the integration ID from its integrations array
+            this.log.debug(
+                    "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
+            TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
+
+            JsonObject draftPolicyHit;
+            JsonNode draftPolicy;
+            String draftPolicyId;
+
+            try {
+                JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
+                if (searchResult == null
+                        || !searchResult.has("hits")
+                        || searchResult.getAsJsonArray("hits").isEmpty()) {
+                    throw new IllegalStateException("No hits found");
+                }
+                JsonArray hitsArray = searchResult.getAsJsonArray("hits");
+                draftPolicyHit = hitsArray.get(0).getAsJsonObject();
+                draftPolicyId = draftPolicyHit.get("id").getAsString();
+                draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
+            } catch (Exception e) {
+                this.log.error(
+                        "Draft policy search failed (id={}); integration already deleted from index", id, e);
+                return new RestResponse(
+                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+
+            JsonNode draftPolicyDocument = draftPolicy.at("/document");
+            if (draftPolicyDocument.isMissingNode()) {
+                this.log.error(
+                        "Draft policy hit missing /document (policyId={}), (id={})", draftPolicyId, id);
+                return new RestResponse(
+                        "Failed to retrieve draft policy document.",
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+
+            this.log.debug(
+                    "Draft policy found (policyId={}); removing integration from array", draftPolicyId);
+
+            // Retrieve the integrations array from the policy document
+            ArrayNode draftPolicyIntegrations = (ArrayNode) draftPolicyDocument.get("integrations");
+            if (draftPolicyIntegrations == null || !draftPolicyIntegrations.isArray()) {
+                this.log.error(
+                        "Draft policy integrations field missing or not array (policyId={}); (id={})",
+                        draftPolicyId,
+                        id);
+                return new RestResponse(
+                        "Failed to retrieve integrations array from draft policy document.",
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+
+            // Remove the integration ID from the integrations array
+            ArrayNode updatedIntegrations = MAPPER.createArrayNode();
+            for (JsonNode integrationId : draftPolicyIntegrations) {
+                if (!integrationId.asText().equals(id)) {
+                    updatedIntegrations.add(integrationId);
+                }
+            }
+            ((ObjectNode) draftPolicyDocument).set("integrations", updatedIntegrations);
+
+            // Update the policy's own hash
+            String draftPolicyHash = HashCalculator.sha256(draftPolicyDocument.asText());
+
+            // Put policyHash inside hash.sha256 key
+            ((ObjectNode) draftPolicy.at("/hash")).put("sha256", draftPolicyHash);
+            this.log.debug(
+                    "Updated draft policy hash (policyId={}, hashPrefix={})",
+                    draftPolicyId,
+                    draftPolicyHash.length() >= 12 ? draftPolicyHash.substring(0, 12) : draftPolicyHash);
+
+            // Index the policy with the updated integrations array
+            this.log.debug(
+                    "Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, draftPolicyId);
+            IndexResponse indexDraftPolicyResponse =
+                    this.policiesIndex.create(draftPolicyId, draftPolicy);
+
+            if (indexDraftPolicyResponse == null || indexDraftPolicyResponse.status() != RestStatus.OK) {
+                this.log.error(
+                        "Indexing updated draft policy failed (policyId={}, status={}); (id={})",
+                        draftPolicyId,
+                        indexDraftPolicyResponse != null ? indexDraftPolicyResponse.status() : null,
+                        id);
+                return new RestResponse(
+                        "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
 
             // Update the space's hash in the policy
             this.log.debug(

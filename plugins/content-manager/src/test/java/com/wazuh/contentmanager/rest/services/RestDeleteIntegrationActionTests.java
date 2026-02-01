@@ -16,9 +16,16 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
@@ -36,6 +43,7 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -99,6 +107,37 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
+     * Helper method to create a mock draft policy search result.
+     *
+     * @param integrationId The integration ID to include in the integrations array
+     * @return A mock JsonObject representing the search result
+     */
+    private JsonObject createMockDraftPolicySearchResult(String integrationId) {
+        JsonObject searchResult = new JsonObject();
+        JsonArray hitsArray = new JsonArray();
+
+        JsonObject policyHit = new JsonObject();
+        policyHit.addProperty("id", "draft-policy-id");
+
+        JsonObject document = new JsonObject();
+        JsonArray integrations = new JsonArray();
+        integrations.add(integrationId);
+        integrations.add("other-integration-id");
+        document.add("integrations", integrations);
+
+        JsonObject hash = new JsonObject();
+        hash.addProperty("sha256", "abc123def456");
+
+        policyHit.add("document", document);
+        policyHit.add("hash", hash);
+
+        hitsArray.add(policyHit);
+        searchResult.add("hits", hitsArray);
+
+        return searchResult;
+    }
+
+    /**
      * Helper method to build a FakeRestRequest with given ID parameter.
      *
      * @param integrationId The integration ID (null for no ID parameter)
@@ -122,6 +161,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      *   <li>Integration exists in draft space
      *   <li>Integration is deleted from Security Analytics Plugin
      *   <li>Integration is deleted from CTI integrations index
+     *   <li>Integration ID is removed from draft policy's integrations array
      *   <li>The draft policy's hash is updated
      * </ul>
      *
@@ -152,6 +192,20 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         doNothing().when(integrationsIndex).delete(any());
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        String integrationIdWithoutPrefix = INTEGRATION_ID.substring(2);
+        JsonObject draftPolicySearchResult =
+                this.createMockDraftPolicySearchResult(integrationIdWithoutPrefix);
+        when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
+                .thenReturn(draftPolicySearchResult);
+
+        // Mock policy index response
+        IndexResponse policyIndexResponse = mock(IndexResponse.class);
+        when(policyIndexResponse.status()).thenReturn(RestStatus.OK);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(policyIndexResponse);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
         // Mock Security Analytics service
         doNothing().when(this.saService).deleteIntegration(any());
         this.action.setSecurityAnalyticsService(this.saService);
@@ -166,6 +220,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         // Verify delete was called
         verify(integrationsIndex).delete(INTEGRATION_ID);
         verify(this.saService).deleteIntegration(INTEGRATION_ID.substring(2));
+        // Verify policy was updated
+        verify(policiesIndex).create(anyString(), any(JsonNode.class));
     }
 
     /**
@@ -404,6 +460,20 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         doNothing().when(integrationsIndex).delete(any());
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        String integrationIdWithoutPrefix = INTEGRATION_ID.substring(2);
+        JsonObject draftPolicySearchResult =
+                this.createMockDraftPolicySearchResult(integrationIdWithoutPrefix);
+        when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
+                .thenReturn(draftPolicySearchResult);
+
+        // Mock policy index response
+        IndexResponse policyIndexResponse = mock(IndexResponse.class);
+        when(policyIndexResponse.status()).thenReturn(RestStatus.OK);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(policyIndexResponse);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
         // Mock policy hash service
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -413,5 +483,203 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Verify delete was still called on integrations index despite SAP failure
         verify(integrationsIndex).delete(INTEGRATION_ID);
+    }
+
+    /**
+     * Draft policy not found during delete operation
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_draftPolicyNotFound() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Draft policy not found.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        // Mock Security Analytics service
+        doNothing().when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doNothing().when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock policies index to return empty result
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        JsonObject emptySearchResult = new JsonObject();
+        emptySearchResult.add("hits", new JsonArray());
+        when(policiesIndex.searchByQuery(any(TermQueryBuilder.class))).thenReturn(emptySearchResult);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Draft policy document is missing
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_draftPolicyDocumentMissing() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to retrieve draft policy document.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        // Mock Security Analytics service
+        doNothing().when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doNothing().when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock policies index to return policy without document field
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        JsonObject searchResult = new JsonObject();
+        JsonArray hitsArray = new JsonArray();
+        JsonObject policyHit = new JsonObject();
+        policyHit.addProperty("id", "draft-policy-id");
+        // No document field
+        hitsArray.add(policyHit);
+        searchResult.add("hits", hitsArray);
+        when(policiesIndex.searchByQuery(any(TermQueryBuilder.class))).thenReturn(searchResult);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Draft policy integrations array is missing
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_draftPolicyIntegrationsArrayMissing() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to retrieve integrations array from draft policy document.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        // Mock Security Analytics service
+        doNothing().when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doNothing().when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock policies index to return policy without integrations array
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        JsonObject searchResult = new JsonObject();
+        JsonArray hitsArray = new JsonArray();
+        JsonObject policyHit = new JsonObject();
+        policyHit.addProperty("id", "draft-policy-id");
+        JsonObject document = new JsonObject();
+        // No integrations array
+        JsonObject hash = new JsonObject();
+        hash.addProperty("sha256", "abc123");
+        policyHit.add("document", document);
+        policyHit.add("hash", hash);
+        hitsArray.add(policyHit);
+        searchResult.add("hits", hitsArray);
+        when(policiesIndex.searchByQuery(any(TermQueryBuilder.class))).thenReturn(searchResult);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Failed to update draft policy
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_failedToUpdateDraftPolicy() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to update draft policy.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        // Mock Security Analytics service
+        doNothing().when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doNothing().when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock policies index
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        String integrationIdWithoutPrefix = INTEGRATION_ID.substring(2);
+        JsonObject draftPolicySearchResult =
+                this.createMockDraftPolicySearchResult(integrationIdWithoutPrefix);
+        when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
+                .thenReturn(draftPolicySearchResult);
+
+        // Mock policy index response to fail
+        IndexResponse policyIndexResponse = mock(IndexResponse.class);
+        when(policyIndexResponse.status()).thenReturn(RestStatus.INTERNAL_SERVER_ERROR);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(policyIndexResponse);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
     }
 }
