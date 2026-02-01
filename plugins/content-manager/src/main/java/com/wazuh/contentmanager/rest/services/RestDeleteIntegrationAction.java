@@ -158,7 +158,9 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        String id = request.param("id");
+        String prefixedId = request.param("id");
+        String id =
+                prefixedId != null && prefixedId.startsWith("d_") ? prefixedId.substring(2) : prefixedId;
         this.log.debug("DELETE integration request received (id={}, uri={})", id, request.uri());
 
         // Check if ID is provided
@@ -176,7 +178,6 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
 
         // Verify integration exists and is in draft space
-        String prefixedId = "d_" + id;
         GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, prefixedId);
         GetResponse getResponse;
         try {
@@ -188,8 +189,9 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
 
         if (!getResponse.isExists()) {
-            this.log.warn("Request rejected: integration not found (id={})", id);
-            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
+            this.log.warn("Request rejected: integration not found (id={})", prefixedId);
+            return new RestResponse(
+                    "Integration not found: " + prefixedId, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Verify integration is in draft space
@@ -231,7 +233,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
             // Update the space's hash in the policy
             this.log.debug(
-                    "Recalculating space hash for draft space after integration deletion (id={})", id);
+                    "Recalculating space hash for draft space after integration deletion (id={})",
+                    prefixedId);
 
             this.policyHashService.calculateAndUpdate(
                     CTI_POLICIES_INDEX,
@@ -243,9 +246,9 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
             this.log.info("Integration deleted successfully (id={})", prefixedId);
             return new RestResponse(
-                    "Integration deleted successfully with ID: " + id, RestStatus.OK.getStatus());
+                    "Integration deleted successfully with ID: " + prefixedId, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            this.log.error("Unexpected error deleting integration (id={})", id, e);
+            this.log.error("Unexpected error deleting integration (id={})", prefixedId, e);
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

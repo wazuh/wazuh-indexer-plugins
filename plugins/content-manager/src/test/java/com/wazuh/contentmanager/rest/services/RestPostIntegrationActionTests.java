@@ -99,7 +99,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.OK.getStatus());
-        expectedResponse.setMessage("Integration created successfully with ID: " + integrationId);
+        expectedResponse.setMessage("Integration created successfully with ID: " + "d_" + integrationId);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);

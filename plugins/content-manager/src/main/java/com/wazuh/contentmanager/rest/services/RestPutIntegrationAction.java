@@ -178,18 +178,21 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        String id = request.param("id");
+        String prefixedId = request.param("id");
         this.log.debug(
                 "PUT integration request received (id={}, hasContent={}, uri={})",
-                id,
+                prefixedId,
                 request.hasContent(),
                 request.uri());
 
         // Check if ID is provided
-        if (id == null || id.isEmpty()) {
+        if (prefixedId == null || prefixedId.isEmpty()) {
             this.log.warn("Request rejected: integration ID is required");
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         }
+
+        // Extract ID without prefix
+        String id = prefixedId.substring(2);
 
         // Check if engine service exists
         if (this.engine == null) {
@@ -258,7 +261,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         // Verify integration exists and is in draft space
-        String prefixedId = "d_" + id;
         GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, prefixedId);
         GetResponse getResponse;
         try {
@@ -270,8 +272,9 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         if (!getResponse.isExists()) {
-            this.log.warn("Request rejected: integration not found (id={})", id);
-            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
+            this.log.warn("Request rejected: integration not found (id={})", prefixedId);
+            return new RestResponse(
+                    "Integration not found: " + prefixedId, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Verify integration is in draft space
@@ -409,7 +412,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
             this.log.info("Integration updated successfully (id={})", prefixedId);
             return new RestResponse(
-                    "Integration updated successfully with ID: " + id, RestStatus.OK.getStatus());
+                    "Integration updated successfully with ID: " + prefixedId, RestStatus.OK.getStatus());
         } catch (Exception e) {
             this.log.error("Unexpected error updating integration (id={})", id, e);
             return new RestResponse(

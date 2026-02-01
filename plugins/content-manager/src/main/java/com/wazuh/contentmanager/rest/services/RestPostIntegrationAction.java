@@ -458,7 +458,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             this.log.info("Integration created successfully (id={})", prefixedId);
             return new RestResponse(
-                    "Integration created successfully with ID: " + id, RestStatus.OK.getStatus());
+                    "Integration created successfully with ID: " + prefixedId, RestStatus.OK.getStatus());
         } catch (Exception e) {
             this.log.error(
                     "Unexpected error creating integration (id={}); rolling back SAP integration", id, e);

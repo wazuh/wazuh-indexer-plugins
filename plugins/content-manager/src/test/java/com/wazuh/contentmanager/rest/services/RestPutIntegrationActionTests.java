@@ -56,7 +56,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     private RestPutIntegrationAction action;
     private SecurityAnalyticsServiceImpl saService;
     private NodeClient nodeClient;
-    private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
+    private static final String INTEGRATION_ID = "d_7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
 
     /**
      * Set up the tests

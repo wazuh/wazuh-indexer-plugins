@@ -56,7 +56,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     private RestDeleteIntegrationAction action;
     private SecurityAnalyticsServiceImpl saService;
     private NodeClient nodeClient;
-    private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
+    private static final String INTEGRATION_ID = "d_7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
 
     /**
      * Set up the tests
@@ -164,8 +164,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
 
         // Verify delete was called
-        verify(integrationsIndex).delete("d_" + INTEGRATION_ID);
-        verify(this.saService).deleteIntegration(INTEGRATION_ID);
+        verify(integrationsIndex).delete(INTEGRATION_ID);
+        verify(this.saService).deleteIntegration(INTEGRATION_ID.substring(2));
     }
 
     /**
@@ -412,6 +412,6 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
 
         // Verify delete was still called on integrations index despite SAP failure
-        verify(integrationsIndex).delete("d_" + INTEGRATION_ID);
+        verify(integrationsIndex).delete(INTEGRATION_ID);
     }
 }
