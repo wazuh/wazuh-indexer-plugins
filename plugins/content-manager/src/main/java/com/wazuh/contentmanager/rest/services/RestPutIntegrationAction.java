@@ -16,26 +16,12 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import static org.opensearch.rest.RestRequest.Method.PUT;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import java.io.IOException;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
@@ -48,15 +34,31 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
+import static org.opensearch.rest.RestRequest.Method.PUT;
+
 /**
  * PUT /_plugins/content-manager/integrations/{id}
  *
  * <p>Updates an existing integration in the local engine.
  *
- * <p>Possible HTTP responses: - 200 OK: Integration updated successfully. -
- * 400 Bad Request: Wazuh Engine replied with an error response or invalid request. -
- * 404 Not Found: Integration with specified ID was not found. -
- * 500 Internal Server Error: Unexpected error during processing.
+ * <p>Possible HTTP responses: - 200 OK: Integration updated successfully. - 400 Bad Request: Wazuh
+ * Engine replied with an error response or invalid request. - 404 Not Found: Integration with
+ * specified ID was not found. - 500 Internal Server Error: Unexpected error during processing.
  */
 public class RestPutIntegrationAction extends BaseRestHandler {
 
@@ -363,9 +365,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // If validation failed, return error (SAP was already updated, may need manual reconciliation)
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
             this.log.error(
-                    "Engine validation failed (id={}, status={})",
-                    id,
-                    validationResponse.getStatus());
+                    "Engine validation failed (id={}, status={})", id, validationResponse.getStatus());
             return new RestResponse(
                     "Failed to update Integration, Validation response: "
                             + validationResponse.getStatus()
@@ -375,7 +375,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         try {
             // Index the integration into CTI integrations index (sync + check response)
-            this.log.debug("Indexing updated integration into {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
+            this.log.debug(
+                    "Indexing updated integration into {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
             integrationsIndexPayload.set("document", resource);
             integrationsIndexPayload.putObject("space").put("name", DRAFT_SPACE_NAME);
@@ -410,13 +411,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Integration updated successfully with ID: " + id, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            this.log.error(
-                    "Unexpected error updating integration (id={})", id, e);
+            this.log.error("Unexpected error updating integration (id={})", id, e);
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
-
 
     private JsonObject toJsonObject(JsonNode jsonNode) {
         return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();

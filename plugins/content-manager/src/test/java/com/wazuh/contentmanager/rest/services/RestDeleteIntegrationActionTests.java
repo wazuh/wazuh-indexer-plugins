@@ -16,153 +16,402 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.update.UpdateResponse;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
-import org.opensearch.transport.client.Client;
+import org.opensearch.test.rest.FakeRestRequest;
+import org.opensearch.transport.client.node.NodeClient;
+import org.junit.Before;
 
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link RestDeleteIntegrationAction}.
+ * Unit tests for the {@link RestDeleteIntegrationAction} class. This test suite validates the REST
+ * API endpoint responsible for deleting CTI Integrations from the draft space.
  *
- * <p>These tests validate the REST action behavior when deleting an integration:
- *
- * <ul>
- *   <li>Interaction with Security Analytics (policy/integration removal)
- *   <li>Deletion from the Content Manager integrations index
- *   <li>HTTP status mapping for success and failure scenarios
- * </ul>
- *
- * <p>All OpenSearch client interactions are mocked; no real cluster is involved.
+ * <p>Tests verify Integration delete requests, proper handling of space validation, and appropriate
+ * HTTP response codes for successful deletions and validation errors.
  */
 public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private EngineService engine;
-    private SecurityAnalyticsService securityAnalyticsService;
-    private Client client;
-
     private RestDeleteIntegrationAction action;
+    private SecurityAnalyticsServiceImpl saService;
+    private NodeClient nodeClient;
+    private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
 
+    /**
+     * Set up the tests
+     *
+     * @throws Exception rethrown from parent method
+     */
+    @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        engine = mock(EngineService.class);
-        securityAnalyticsService = mock(SecurityAnalyticsService.class);
-        client = mock(Client.class);
-
-        action = spy(new RestDeleteIntegrationAction(engine));
+        this.engine = mock(EngineService.class);
+        this.saService = mock(SecurityAnalyticsServiceImpl.class);
+        this.nodeClient = mock(NodeClient.class);
+        this.action = spy(new RestDeleteIntegrationAction(this.engine));
+        this.action.setNodeClient(this.nodeClient);
     }
 
     /**
-     * Verifies that a valid delete request returns {@code 200 OK} when:
+     * Helper method to create a mock GetResponse for an existing draft integration.
+     *
+     * @param spaceName The space name ("draft" or "standard")
+     * @param exists Whether the integration exists
+     * @return A mock GetResponse
+     */
+    private GetResponse createMockGetResponse(String spaceName, boolean exists) {
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(exists);
+        if (exists) {
+            Map<String, Object> sourceMap = new HashMap<>();
+            Map<String, Object> spaceMap = new HashMap<>();
+            spaceMap.put("name", spaceName);
+            sourceMap.put("space", spaceMap);
+            Map<String, Object> documentMap = new HashMap<>();
+            documentMap.put("id", RestDeleteIntegrationActionTests.INTEGRATION_ID);
+            documentMap.put("enabled", true);
+            sourceMap.put("document", documentMap);
+            when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+        }
+        return getResponse;
+    }
+
+    /**
+     * Helper method to build a FakeRestRequest with given ID parameter.
+     *
+     * @param integrationId The integration ID (null for no ID parameter)
+     * @return A FakeRestRequest
+     */
+    private RestRequest buildRequest(String integrationId) {
+        FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
+        if (integrationId != null) {
+            builder.withParams(Map.of("id", integrationId));
+        }
+        return builder.build();
+    }
+
+    /**
+     * If the delete succeeds, return a 200 response.
+     *
+     * <p>Covered test cases:
      *
      * <ul>
-     *   <li>The integration exists in the integrations index
-     *   <li>Security Analytics accepts the deletion request
-     *   <li>The integrations index document is successfully deleted
+     *   <li>A 200 OK response is returned.
+     *   <li>Integration exists in draft space
+     *   <li>Integration is deleted from Security Analytics Plugin
+     *   <li>Integration is deleted from CTI integrations index
+     *   <li>The draft policy's hash is updated
      * </ul>
      *
-     * @throws Exception if the test fixture cannot be prepared
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteIntegration200() throws Exception {}
+    public void testDeleteIntegration200_success() throws IOException {
 
-    /**
-     * Verifies that the REST action propagates a {@code 400 BAD REQUEST} when Security Analytics
-     * rejects the delete integration request.
-     *
-     * @throws Exception if the test fixture cannot be prepared
-     */
-    public void testDeleteIntegration400() throws Exception {}
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.OK.getStatus());
+        expectedResponse.setMessage("Integration deleted successfully with ID: " + INTEGRATION_ID);
 
-    /**
-     * Verifies that unexpected failures while deleting the integration document from the integrations
-     * index are translated into {@code 500 INTERNAL SERVER ERROR}.
-     *
-     * @throws Exception if the test fixture cannot be prepared
-     */
-    public void testDeleteIntegration500() throws Exception {}
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
 
-    /* ---------------------------------------------------
-     * Helpers
-     * --------------------------------------------------- */
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
 
-    private void mockHappyPath(String integrationId) throws Exception {
-        // integrations index exists
-        // action.integrationsIndex = mock(ContentIndex.class);
-        // when(action.integrationsIndex.exists(integrationId)).thenReturn(true);
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doNothing().when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
 
-        // policy search hit
-        SearchHit hit = new SearchHit(0);
-        hit.sourceRef(null);
-        // hit.sourceAsString(createPolicyDocument(integrationId));
-        // hit.setId("policy-1");
+        // Mock Security Analytics service
+        doNothing().when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
 
-        SearchHits hits = new SearchHits(new SearchHit[] {hit}, null, 1f);
-        SearchResponse searchResponse = mock(SearchResponse.class);
-        when(searchResponse.getHits()).thenReturn(hits);
+        // Mock policy hash service
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
-        // when(client.search(any()))
-        //        .thenReturn(
-        //                Mockito.mock(
-        //                        org.opensearch.action.search.SearchRequestBuilder.class,
-        //                        invocation -> {
-        //                            if (invocation.getMethod().getName().equals("actionGet")) {
-        //                                return searchResponse;
-        //                            }
-        //                            return null;
-        //                        }));
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
 
-        UpdateResponse updateResponse = mock(UpdateResponse.class);
-        when(updateResponse.status()).thenReturn(RestStatus.OK);
-
-        // when(client.update(any()))
-        //        .thenReturn(
-        //                Mockito.mock(
-        //                        org.opensearch.action.update.UpdateRequestBuilder.class,
-        //                        invocation -> {
-        //                            if (invocation.getMethod().getName().equals("actionGet")) {
-        //                                return updateResponse;
-        //                            }
-        //                            return null;
-        //                        }));
+        // Verify delete was called
+        verify(integrationsIndex).delete("d_" + INTEGRATION_ID);
+        verify(this.saService).deleteIntegration(INTEGRATION_ID);
     }
 
-    private String createPolicyDocument(String integrationId) throws Exception {
-        ObjectNode root = MAPPER.createObjectNode();
-        ObjectNode source = root.putObject("_source");
+    /**
+     * Integration does not exist
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration404_integrationNotFound() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.NOT_FOUND.getStatus());
+        expectedResponse.setMessage("Integration not found: " + INTEGRATION_ID);
 
-        ObjectNode document = source.putObject("document");
-        ArrayNode integrations = document.putArray("integrations");
-        integrations.add(integrationId);
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
 
-        ObjectNode hash = source.putObject("hash");
-        hash.put("sha256", "old-hash");
+        // Mock GetResponse for non-existing integration
+        GetResponse getResponse = this.createMockGetResponse("draft", false);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
 
-        ObjectNode space = source.putObject("space");
-        space.put("name", "draft");
+        this.action.setSecurityAnalyticsService(this.saService);
 
-        return MAPPER.writeValueAsString(root);
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
     }
 
-    private RestRequest mockRequest(String id) {
-        RestRequest request = mock(RestRequest.class);
-        when(request.param("id")).thenReturn(id);
-        return request;
+    /**
+     * Cannot delete integration in non-draft space
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration400_cannotDeleteNonDraftSpace() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage(
+                "Cannot delete integration from space 'standard'. Only 'draft' space is modifiable.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in standard space (not draft)
+        GetResponse getResponse = this.createMockGetResponse("standard", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Missing ID in path parameter
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration400_missingIdInPath() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Integration ID is required.");
+
+        // Create a RestRequest without ID parameter
+        RestRequest request = this.buildRequest(null);
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Security Analytics service is null
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_securityAnalyticsServiceNull() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Security Analytics service instance is null.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Don't set Security Analytics service (leave it null)
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Failed to retrieve integration from index
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_failedToRetrieveIntegration() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Failed to retrieve existing integration.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse to throw exception
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                throw new RuntimeException("Index not found");
+                            }
+                        });
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Unexpected error during delete operation
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration500_unexpectedError() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        expectedResponse.setMessage("Unexpected error during processing.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        // Mock Security Analytics service
+        doNothing().when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        // Mock integrations index to throw exception
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doThrow(new RuntimeException("Unexpected error")).when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Integration has undefined space
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration400_undefinedSpace() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Cannot delete integration with undefined space.");
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration without space field
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> sourceMap = new HashMap<>();
+        // No space field added
+        Map<String, Object> documentMap = new HashMap<>();
+        documentMap.put("id", INTEGRATION_ID);
+        sourceMap.put("document", documentMap);
+        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Verify that Security Analytics deletion failure doesn't stop the overall deletion process
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteIntegration200_securityAnalyticsFailureDoesNotBlock() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.OK.getStatus());
+        expectedResponse.setMessage("Integration deleted successfully with ID: " + INTEGRATION_ID);
+
+        // Create a RestRequest with ID parameter
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse for existing integration in draft space
+        GetResponse getResponse = this.createMockGetResponse("draft", true);
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        // Mock Security Analytics service to throw exception (but should not block deletion)
+        doThrow(new RuntimeException("SAP error")).when(this.saService).deleteIntegration(any());
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        doNothing().when(integrationsIndex).delete(any());
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Mock policy hash service
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+
+        // Verify delete was still called on integrations index despite SAP failure
+        verify(integrationsIndex).delete("d_" + INTEGRATION_ID);
     }
 }
