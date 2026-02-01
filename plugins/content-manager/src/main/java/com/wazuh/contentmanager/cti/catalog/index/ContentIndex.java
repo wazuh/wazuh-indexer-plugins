@@ -38,7 +38,8 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
@@ -266,9 +267,10 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
+     * @return
      * @throws IOException If the indexing operation fails.
      */
-    public void create(String id, JsonObject payload) throws IOException {
+    public IndexResponse create(String id, JsonObject payload) throws IOException {
         JsonObject processedPayload = this.processPayload(payload);
         IndexRequest request =
                 new IndexRequest(this.indexName)
@@ -276,7 +278,9 @@ public class ContentIndex {
                         .source(processedPayload.toString(), XContentType.JSON);
 
         try {
-            this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            return this.client
+                    .index(request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to index document [{}]: {}", id, e.getMessage());
             throw new IOException(e);
@@ -290,7 +294,7 @@ public class ContentIndex {
      * accepts a Jackson JsonNode and converts it to Gson JsonObject for compatibility with existing
      * processing logic.
      *
-     * @param id      The unique identifier for the document.
+     * @param id The unique identifier for the document.
      * @param payload The Jackson JsonNode representing the document content.
      * @return
      * @throws IOException If the indexing operation fails.
@@ -298,8 +302,8 @@ public class ContentIndex {
     public IndexResponse create(String id, JsonNode payload) throws IOException {
         // Convert Jackson JsonNode to Gson JsonObject for compatibility
         JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
-        this.create(id, gsonPayload);
-    return null;}
+        return this.create(id, gsonPayload);
+    }
 
     /**
      * Updates an existing document by applying a list of patch operations.

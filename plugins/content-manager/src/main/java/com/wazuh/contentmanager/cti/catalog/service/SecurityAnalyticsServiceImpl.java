@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
 import com.sun.jdi.InternalException;
+
+import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
