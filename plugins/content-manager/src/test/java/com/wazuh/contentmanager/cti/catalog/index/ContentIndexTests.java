@@ -33,8 +33,6 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -327,7 +325,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /** Test delete operation. */
-    public void testDelete() throws ExecutionException, InterruptedException, TimeoutException {
+    public void testDelete() {
         String id = "test-id";
 
         // Act
@@ -335,7 +333,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         // Assert
         ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(this.client).delete(captor.capture());
+        verify(this.client).delete(captor.capture(), any());
 
         assertEquals(INDEX_NAME, captor.getValue().index());
         assertEquals(id, captor.getValue().id());
