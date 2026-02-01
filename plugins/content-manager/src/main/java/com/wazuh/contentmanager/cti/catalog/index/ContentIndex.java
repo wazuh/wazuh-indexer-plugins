@@ -38,8 +38,7 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.index.IndexResponse;import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
@@ -53,7 +52,6 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
-import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
@@ -270,7 +268,7 @@ public class ContentIndex {
      * @param payload The JSON object representing the document content.
      * @throws IOException If the indexing operation fails.
      */
-    public IndexResponse create(String id, JsonObject payload) throws IOException {
+    public void create(String id, JsonObject payload) throws IOException {
         JsonObject processedPayload = this.processPayload(payload);
         IndexRequest request =
                 new IndexRequest(this.indexName)
@@ -292,15 +290,16 @@ public class ContentIndex {
      * accepts a Jackson JsonNode and converts it to Gson JsonObject for compatibility with existing
      * processing logic.
      *
-     * @param id The unique identifier for the document.
+     * @param id      The unique identifier for the document.
      * @param payload The Jackson JsonNode representing the document content.
+     * @return
      * @throws IOException If the indexing operation fails.
      */
     public IndexResponse create(String id, JsonNode payload) throws IOException {
         // Convert Jackson JsonNode to Gson JsonObject for compatibility
         JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
-        return this.create(id, gsonPayload);
-    }
+        this.create(id, gsonPayload);
+    return null;}
 
     /**
      * Updates an existing document by applying a list of patch operations.
@@ -495,7 +494,7 @@ public class ContentIndex {
      * @param queryBuilder The query to execute.
      * @return A JsonObject representing the found document, or null if not found or on
      */
-    public SearchHits searchByQuery(QueryBuilder queryBuilder) {
+    public JsonObject searchByQuery(QueryBuilder queryBuilder) {
         try {
             // Create search request
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);

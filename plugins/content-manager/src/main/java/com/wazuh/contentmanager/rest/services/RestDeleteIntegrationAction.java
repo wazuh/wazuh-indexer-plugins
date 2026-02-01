@@ -16,74 +16,70 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.opensearch.action.delete.DeleteResponse;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.action.update.UpdateResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationAction;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationRequest;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationResponse;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
- * TODO !CHANGE_ME DELETE /_plugins/content-manager/integration/{integration_id}
+ * REST Handler for deleting Integrations in the Content Manager.
  *
- * <p>Deletes an integration
+ * <p>This handler processes DELETE requests to remove integrations. It ensures that only
+ * integrations in the "draft" space can be deleted. It handles deletion from the SAP, the local
+ * index, and removes the reference from the draft policy.
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p><strong>Endpoint:</strong> DELETE /_plugins/_content_manager/integrations/{id}
  */
 public class RestDeleteIntegrationAction extends BaseRestHandler {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
-    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
-    private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
-    private static final String CTI_POLICIES_INDEX = ".cti-policies";
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String DRAFT_SPACE_NAME = "draft";
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
+    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
+    private static final String CTI_POLICIES_INDEX = ".cti-policies";
 
     private final EngineService engine;
     private SecurityAnalyticsService service;
-    private PolicyHashService policyHashService;
-    private ContentIndex policiesIndex;
-    private ContentIndex integrationsIndex;
+    private final ObjectMapper mapper;
 
     /**
-     * Constructs a new TODO !CHANGE_ME.
+     * Constructs a new RestDeleteIntegrationAction.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param engine The EngineService (unused in delete but consistent with other actions).
      */
     public RestDeleteIntegrationAction(EngineService engine) {
         this.engine = engine;
+        this.mapper = new ObjectMapper();
     }
 
     /** Return a short identifier for this handler. */
@@ -95,207 +91,171 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     /**
      * Return the route configuration for this handler.
      *
-     * @return route configuration for the update endpoint
+     * @return route configuration for the delete endpoint
      */
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.INTEGRATIONS_URI + "/{id}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+            new NamedRoute.Builder()
+                .path(PluginSettings.INTEGRATIONS_URI + "/{id}")
+                .method(DELETE)
+                .uniqueName(ENDPOINT_UNIQUE_NAME)
+                .build());
     }
 
-    /**
-     * TODO !CHANGE_ME.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        this.setPolicyHashService(new PolicyHashService(client));
-        this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
-        this.setPoliciesContentIndex(new ContentIndex(client, CTI_POLICIES_INDEX, null));
+        throws IOException {
+        request.param("id");
         this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
-        return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+        return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Handles the delete request for an integration.
      *
-     * @param request incoming request
-     * @param client the node client
-     * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
+     * <p>The flow is as follows:
+     *
+     * <ol>
+     *   <li>Validates the integration exists in the local index and belongs to "draft" space.
+     *   <li>Deletes the integration from the Security Analytics Plugin (SAP).
+     *   <li>Deletes the integration from the local CTI index.
+     *   <li>Removes the integration ID from the Draft Policy and updates the hash.
+     * </ol>
+     *
+     * @param request The REST request.
+     * @param client The OpenSearch client.
+     * @return A BytesRestResponse containing the operation status.
+     * @throws IOException If an I/O error occurs.
      */
-    public RestResponse handleRequest(RestRequest request, Client client) throws IOException {
-        // Extract ID from path parameter
-        String id = request.param("id");
-        if (id == null || id.isBlank()) {
-            return new RestResponse(
-                    "Path parameter `id` is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Check if engine service exists
-        if (this.engine == null) {
-            return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check if security analytics service exists
-        if (this.service == null) {
-            return new RestResponse(
-                    "Security Analytics service instance is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check a document with the solicited Id exists in the integrations index
-        if (!this.integrationsIndex.exists(id)) {
-            return new RestResponse(
-                    "Integration with id {id} could not be found", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        SearchHit[] hits = searchPolicyContainingIntegration(client, id, DRAFT_SPACE_NAME);
-        if (hits.length == 0) {
-            return new RestResponse(
-                    "Integration with id {id} is not associated with any policy.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        // Get the Policy ID
-        String policyId = hits[0].getId();
-
-        // Retrieve the draft policy document object
-        JsonNode draftPolicyNode = MAPPER.readTree(hits[0].getSourceAsString());
-        JsonNode documentJsonObject = draftPolicyNode.at("/_source/document");
-        if (documentJsonObject.isMissingNode()) {
-            return new RestResponse(
-                    "Failed to retrieve draft policy document.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Retrieve the integrations array from the policy document
-        ArrayNode integrationsArray = (ArrayNode) documentJsonObject.get("integrations");
-        if (integrationsArray == null || !integrationsArray.isArray()) {
-            return new RestResponse(
-                    "Failed to retrieve integrations array from draft policy document.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check if the integration ID exists in the integrations array
-        boolean integrationFound = false;
-        for (JsonNode integrationNode : integrationsArray) {
-            if (integrationNode.asText().equals(id)) {
-                integrationFound = true;
-                break;
-            }
-        }
-        if (!integrationFound) {
-            return new RestResponse(
-                    "Integration with id {id} is not associated with the draft policy.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Remove the integration ID from the integrations array
-        ArrayNode updatedIntegrationsArray = MAPPER.createArrayNode();
-        for (JsonNode integrationNode : integrationsArray) {
-            if (!integrationNode.asText().equals(id)) {
-                updatedIntegrationsArray.add(integrationNode.asText());
-            }
-        }
-
-        // Update the policy document with the modified integrations array
-        ((ObjectNode) documentJsonObject).set("integrations", updatedIntegrationsArray);
-
-        // Update the policies own hash
-        String policyHash = HashCalculator.sha256(documentJsonObject.asText());
-
-        // Put policyHash inside hash.sha256 key
-        ((ObjectNode) draftPolicyNode.at("/_source/hash")).put("sha256", policyHash);
-
-        // Update the draft policy back into the policies index
-        UpdateResponse policyUpdateResponse =
-                client
-                        .update(
-                                new UpdateRequest(CTI_POLICIES_INDEX, policyId)
-                                        .doc(
-                                                MAPPER.writeValueAsString(draftPolicyNode.get("_source")),
-                                                org.opensearch.common.xcontent.XContentType.JSON))
-                        .actionGet();
-
-        if (policyUpdateResponse == null || policyUpdateResponse.status() != RestStatus.OK) {
-            return new RestResponse(
-                    "Failed to update draft policy document.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
+    public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
+        throws IOException {
         try {
-            client
-                    .prepareIndex(CTI_POLICIES_INDEX)
-                    .setId(policyId)
-                    .setSource(
-                            MAPPER.writeValueAsString(draftPolicyNode.get("_source")),
-                            org.opensearch.common.xcontent.XContentType.JSON)
-                    .get();
-        } catch (Exception e) {
-            return new RestResponse(
-                    "Failed to update draft policy document.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Delete integration in SAP
-        this.service.deleteIntegration(id);
-
-        // From here on, we should roll back SAP integration on any error to avoid partial state.
-        try {
-            // Index the integration into CTI integrations index (sync + check response)
-            DeleteResponse integrationDeleteResponse = this.integrationsIndex.delete(id);
-
-            // Check update response. We are expecting for a 200 OK status.
-            if (integrationDeleteResponse == null
-                    || integrationDeleteResponse.status() != RestStatus.OK) {
-                return new RestResponse(
-                        "Failed to delete integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            String id = request.param("id");
+            if (id == null || id.isEmpty()) {
+                return this.buildJsonErrorResponse(RestStatus.BAD_REQUEST, "Integration ID is required");
             }
 
-            // Update the space's hash in the policy
-            new PolicyHashService(client)
-                    .calculateAndUpdate(
-                            CTI_POLICIES_INDEX,
-                            CTI_INTEGRATIONS_INDEX,
-                            CTI_DECODERS_INDEX,
-                            CTI_KVDBS_INDEX,
-                            CTI_RULES_INDEX,
-                            List.of(Space.DRAFT.toString()));
+            // 1. Validate existence and space in Local Index
+            GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, id);
+            GetResponse getResponse = client.get(getRequest).actionGet();
 
-            return new RestResponse(
-                    "Integration with ID {id} updated successfully : ", RestStatus.OK.getStatus());
+            if (!getResponse.isExists()) {
+                return this.buildJsonErrorResponse(RestStatus.NOT_FOUND, "Integration not found: " + id);
+            }
+
+            Map<String, Object> source = getResponse.getSourceAsMap();
+            if (source.containsKey("space")) {
+                Map<String, Object> space = (Map<String, Object>) source.get("space");
+                String spaceName = (String) space.get("name");
+                if (!"draft".equals(spaceName)) {
+                    return this.buildJsonErrorResponse(
+                        RestStatus.BAD_REQUEST,
+                        "Cannot delete integration from space '"
+                            + spaceName
+                            + "'. Only 'draft' space is modifiable.");
+                }
+            } else {
+                return this.buildJsonErrorResponse(
+                    RestStatus.BAD_REQUEST, "Cannot delete integration with undefined space.");
+            }
+
+            // 2. Delete from SAP
+            WDeleteIntegrationRequest sapRequest =
+                new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE);
+
+            this.service.deleteIntegration(id);
+
+            // 3. Delete from Local Index
+            DeleteRequest localDeleteRequest =
+                new DeleteRequest(CTI_INTEGRATIONS_INDEX, id)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+            client.delete(localDeleteRequest).actionGet();
+
+            // 4. Update Policy
+            this.removeLinkFromPolicy(client, id);
+
+            // Construct JSON response for success
+            ObjectNode responseNode = this.mapper.createObjectNode();
+            responseNode.put("message", "Integration deleted successfully");
+            responseNode.put("status", RestStatus.OK.getStatus());
+
+            return new BytesRestResponse(RestStatus.OK, responseNode.toString());
+
         } catch (Exception e) {
-            service.deleteIntegration(id);
-            return new RestResponse(
-                    "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return this.buildJsonErrorResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
-    private static SearchHit[] searchPolicyContainingIntegration(
-            Client client, String id, String spaceName) {
-        // Get the draft policy document
-        BoolQueryBuilder query =
-                QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("document.integrations", id))
-                        .must(QueryBuilders.termQuery("space.name", spaceName));
-        // TODO: Use a dedicated utils method such as ContentIndex's searchByQuery()
-        SearchHit[] hits =
-                client
-                        .search(
-                                new SearchRequest(CTI_POLICIES_INDEX)
-                                        .source(new SearchSourceBuilder().query(query)))
-                        .actionGet()
-                        .getHits()
-                        .getHits();
-        return hits;
+    /**
+     * Builds a standardized JSON error response.
+     *
+     * <p>Constructs a JSON object containing the error message and the HTTP status code, then wraps
+     * it in a {@link BytesRestResponse}.
+     *
+     * @param status The HTTP status code to return.
+     * @param message The error message description.
+     * @return A BytesRestResponse containing the JSON error details.
+     */
+    private BytesRestResponse buildJsonErrorResponse(RestStatus status, String message) {
+        ObjectNode errorNode = this.mapper.createObjectNode();
+        errorNode.put("message", message);
+        errorNode.put("status", status.getStatus());
+        return new BytesRestResponse(status, errorNode.toString());
+    }
+
+    /**
+     * Removes the integration ID from the Draft Policy and updates the policy's hash.
+     *
+     * <p>This method searches for the policy associated with the "draft" space. If found, it checks
+     * if the integration ID is present in the policy's integration list. If present, the ID is
+     * removed, the policy document hash is recalculated, and the policy is updated in the index.
+     *
+     * @param client The NodeClient used to execute search and index requests.
+     * @param integrationId The ID of the integration to remove.
+     * @throws IOException If a serialization error occurs during hash recalculation.
+     */
+    private void removeLinkFromPolicy(NodeClient client, String integrationId) throws IOException {
+        SearchRequest searchRequest =
+            new SearchRequest(CTI_POLICIES_INDEX)
+                .source(
+                    new SearchSourceBuilder()
+                        .size(1)
+                        .query(QueryBuilders.matchQuery("space.name", "draft")));
+
+        SearchResponse response = client.search(searchRequest).actionGet();
+        if (response.getHits().getHits().length > 0) {
+            SearchHit hit = response.getHits().getAt(0);
+            String policyId = hit.getId();
+            Map<String, Object> source = hit.getSourceAsMap();
+
+            Map<String, Object> document = (Map<String, Object>) source.get("document");
+            List<String> integrations =
+                (List<String>) document.getOrDefault("integrations", new ArrayList<>());
+
+            if (integrations.contains(integrationId)) {
+                integrations.remove(integrationId);
+                document.put("integrations", integrations);
+
+                // Recalculate Hash
+                String docString = this.mapper.writeValueAsString(document);
+                String newHash = HashCalculator.sha256(docString);
+
+                Map<String, Object> hash =
+                    (Map<String, Object>) source.getOrDefault("hash", new HashMap<>());
+                hash.put("sha256", newHash);
+                source.put("hash", hash);
+
+                IndexRequest updateRequest =
+                    new IndexRequest(CTI_POLICIES_INDEX)
+                        .id(policyId)
+                        .source(source)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+                client.index(updateRequest).actionGet();
+            }
+        }
     }
 
     /**
@@ -303,30 +263,5 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      */
     public void setSecurityAnalyticsService(SecurityAnalyticsService service) {
         this.service = service;
-    }
-
-    /**
-     * @param policyHashService the policy hash service to set
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
-    }
-
-    /**
-     * Setter for the integrations index, used in tests.
-     *
-     * @param integrationsIndex the integrations index ContentIndex object
-     */
-    public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
-        this.integrationsIndex = integrationsIndex;
-    }
-
-    /**
-     * Setter for the policies index, used in tests.
-     *
-     * @param policiesIndex the integrations index ContentIndex object
-     */
-    public void setPoliciesContentIndex(ContentIndex policiesIndex) {
-        this.policiesIndex = policiesIndex;
     }
 }

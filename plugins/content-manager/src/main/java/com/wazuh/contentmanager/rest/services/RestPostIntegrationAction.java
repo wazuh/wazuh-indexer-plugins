@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
@@ -32,7 +33,6 @@ import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
@@ -359,12 +359,21 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
             TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
 
-            SearchHit policyHit;
+            JsonObject policyHit;
             JsonNode draftPolicyNode;
+            String policyId;
 
             try {
-                policyHit = this.policiesIndex.searchByQuery(queryBuilder).getHits()[0];
-                draftPolicyNode = MAPPER.readTree(policyHit.getSourceAsString());
+                JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
+                if (searchResult == null
+                        || !searchResult.has("hits")
+                        || searchResult.getAsJsonArray("hits").isEmpty()) {
+                    throw new IllegalStateException("No hits found");
+                }
+                JsonArray hitsArray = searchResult.getAsJsonArray("hits");
+                policyHit = hitsArray.get(0).getAsJsonObject();
+                policyId = policyHit.get("id").getAsString();
+                draftPolicyNode = MAPPER.readTree(policyHit.toString());
             } catch (Exception e) {
                 this.log.error("Draft policy search returned null result; rolling back (id={})", id);
                 // Rollback: delete created integration in CTI index and in SAP
@@ -374,7 +383,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            String policyId = policyHit.getId();
 
             JsonNode documentJsonObject = draftPolicyNode.at("/document");
             if (documentJsonObject.isMissingNode()) {

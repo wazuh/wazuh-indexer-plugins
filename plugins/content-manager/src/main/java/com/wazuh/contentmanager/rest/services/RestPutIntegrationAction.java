@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -40,6 +39,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -283,5 +283,4 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     public void setSecurityAnalyticsService(SecurityAnalyticsService service) {
         this.service = service;
     }
-
 }
