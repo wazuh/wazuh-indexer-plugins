@@ -313,7 +313,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Insert date
         String currentDate = this.generateDate();
-        ((ObjectNode) resource).put("date", currentDate);
+        ((ObjectNode) resource).put("modified", currentDate);
 
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
         if (!resource.has("enabled")) {
