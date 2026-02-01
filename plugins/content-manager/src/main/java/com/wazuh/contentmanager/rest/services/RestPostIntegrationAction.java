@@ -335,9 +335,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             // Index the integration into CTI integrations index (sync + check response)
             this.log.debug("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
+            ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
+            integrationsIndexPayload.set("document", resource);
+            integrationsIndexPayload.putObject("space").put("name", DRAFT_SPACE_NAME);
             IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(
-                            prefixedId, MAPPER.createObjectNode().set("document", resource));
+                    this.integrationsIndex.create(prefixedId, integrationsIndexPayload);
 
             // Check indexing response. We are expecting for a 200 OK status.
             if (integrationIndexResponse == null
@@ -454,7 +456,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     CTI_RULES_INDEX,
                     List.of(Space.DRAFT.toString()));
 
-            this.log.info("Integration created successfully (id={})", id);
+            this.log.info("Integration created successfully (id={})", prefixedId);
             return new RestResponse(
                     "Integration created successfully with ID: " + id, RestStatus.OK.getStatus());
         } catch (Exception e) {
