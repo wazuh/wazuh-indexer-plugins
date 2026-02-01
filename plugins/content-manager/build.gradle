@@ -153,15 +153,15 @@ tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("gener
 
 integTest {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+  if (System.getProperty("test.debug") != null) {
+    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+  }
 }
 
 testClusters.integTest {
   systemProperty "INDEXER_TEST_ENV", "true"
   setting 'plugins.content_manager.catalog.update_on_start', 'false'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
-  if (System.getProperty("test.debug") != null) {
-    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-  }
 
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   configurations.zipArchive.asFileTree.each {
