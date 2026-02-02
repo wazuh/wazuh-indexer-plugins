@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -77,18 +77,18 @@ public class PolicyHashService {
     /**
      * Calculates and updates the aggregate hash for all policies in the given consumer context.
      *
-     * @param policyIndex      The index containing policy document.
+     * @param policyIndex The index containing policy document.
      * @param integrationIndex The index containing integration documents.
-     * @param decoderIndex     The index containing decoder documents.
-     * @param kvdbIndex        The index containing kvdb documents.
-     * @param ruleIndex        The index containing rule documents.
+     * @param decoderIndex The index containing decoder documents.
+     * @param kvdbIndex The index containing kvdb documents.
+     * @param ruleIndex The index containing rule documents.
      */
     public void calculateAndUpdate(
-        String policyIndex,
-        String integrationIndex,
-        String decoderIndex,
-        String kvdbIndex,
-        String ruleIndex) {
+            String policyIndex,
+            String integrationIndex,
+            String decoderIndex,
+            String kvdbIndex,
+            String ruleIndex) {
         try {
             if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
                 log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
@@ -107,7 +107,7 @@ public class PolicyHashService {
                 Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
                 if (space != null) {
                     String spaceName = (String) space.get("name");
-                    if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
+                    if (Space.DRAFT.equals(spaceName) || Space.TEST.equals(spaceName)) {
                         log.info(
                                 "Skipping hash calculation for policy [{}] because it is in space [{}]",
                                 hit.getId(),
