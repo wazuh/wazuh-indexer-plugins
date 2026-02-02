@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,19 +16,34 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.processor.DetectorProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.IntegrationProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -38,6 +53,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  */
 public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
+    private static final Logger log = LogManager.getLogger(UnifiedConsumerSynchronizer.class);
     public static final String POLICY = "policy";
     public static final String RULE = "rule";
     public static final String DECODER = "decoder";
@@ -63,7 +79,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param environment The OpenSearch environment settings.
      */
     public UnifiedConsumerSynchronizer(
-        Client client, ConsumersIndex consumersIndex, Environment environment) {
+            Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
         this.integrationProcessor = new IntegrationProcessor(client);
         this.ruleProcessor = new RuleProcessor(client);
@@ -133,12 +149,85 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             String decoderIndex = this.getIndexName(DECODER);
             String kvdbIndex = this.getIndexName(KVDB);
 
+            // Initialize default spaces if they don't exist
+            this.initializeSpaces(policyIndex);
+
             Map<String, List<String>> integrations = this.integrationProcessor.process(integrationIndex);
             this.ruleProcessor.process(ruleIndex);
             this.detectorProcessor.process(integrations, integrationIndex);
 
             this.policyHashService.calculateAndUpdate(
-                policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
+                    policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
+        }
+    }
+
+    /**
+     * Creates default policy documents for user spaces (draft, testing, custom) if they don't exist.
+     *
+     * @param indexName The policy index name.
+     */
+    private void initializeSpaces(String indexName) {
+        this.initializeSpace(indexName, Space.DRAFT.toString(), "Draft policy", "Draft policy");
+        this.initializeSpace(indexName, Space.TEST.toString(), "Test policy", "Test policy");
+        this.initializeSpace(indexName, Space.CUSTOM.toString(), "Custom policy", "Custom policy");
+    }
+
+    /**
+     * Creates a single space policy document if it does not already exist.
+     *
+     * @param indexName The index name.
+     * @param spaceName The space name.
+     * @param title The policy title.
+     * @param description The policy description.
+     */
+    private void initializeSpace(
+            String indexName, String spaceName, String title, String description) {
+        try {
+            // Check if the space document already exists using a search query
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.termQuery("space.name", spaceName));
+            searchSourceBuilder.size(0);
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+
+            // Proceed only if no document with this space name exists
+            if (searchResponse.getHits().getTotalHits().value() == 0) {
+                Map<String, Object> document = new LinkedHashMap<>();
+                document.put("root_decoder", "");
+                document.put("integrations", Collections.emptyList());
+                document.put("author", "");
+                document.put("description", description);
+                document.put("documentation", "");
+                document.put("references", Collections.emptyList());
+                document.put("title", title);
+
+                XContentBuilder builder = XContentFactory.jsonBuilder().map(document);
+                String docHash = HashCalculator.sha256(builder.toString());
+
+                Map<String, Object> space = new HashMap<>();
+                space.put("name", spaceName);
+                space.put("hash", Map.of("sha256", docHash));
+
+                Map<String, Object> source = new HashMap<>();
+                source.put("document", document);
+                source.put("space", space);
+                source.put("hash", Map.of("sha256", docHash));
+
+                IndexRequest request =
+                        new IndexRequest(indexName)
+                                .id(UUID.randomUUID().toString())
+                                .source(source)
+                                .opType(DocWriteRequest.OpType.CREATE)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+                this.client.index(request).actionGet();
+            } else {
+                log.debug("The policy for the space {} already exists", spaceName);
+            }
+        } catch (Exception e) {
+            log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
         }
     }
 }
