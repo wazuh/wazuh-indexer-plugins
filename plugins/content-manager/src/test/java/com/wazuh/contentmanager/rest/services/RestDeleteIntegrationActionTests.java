@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
@@ -586,7 +585,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_draftPolicyIntegrationsArrayMissing() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to retrieve integrations array from draft policy document.");
+        expectedResponse.setMessage(
+                "Failed to retrieve integrations array from draft policy document.");
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
