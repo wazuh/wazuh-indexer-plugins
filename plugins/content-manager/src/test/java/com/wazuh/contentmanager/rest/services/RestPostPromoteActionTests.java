@@ -72,6 +72,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                 .thenReturn(Constants.INDEX_INTEGRATIONS);
         when(this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS))
                 .thenReturn(Constants.INDEX_KVDBS);
+        when(this.spaceService.getIndexForResourceType(Constants.KEY_RULES))
+                .thenReturn(Constants.INDEX_RULES);
         when(this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS))
                 .thenReturn(Constants.INDEX_DECODERS);
         when(this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS))
@@ -130,6 +132,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         "policy": [],
                         "integrations": [],
                         "kvdbs": [],
+                        "rules": [],
                         "decoders": [{"operation": "add", "id": "12345"}],
                         "filters": []
                     }
@@ -219,6 +222,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         "policy": [],
                         "integrations": [],
                         "kvdbs": [],
+                        "rules": [],
                         "decoders": [{"operation": "add", "id": "12345"}],
                         "filters": []
                     }
@@ -251,6 +255,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         "policy": [],
                         "integrations": [],
                         "kvdbs": [],
+                        "rules": [],
                         "decoders": [{"operation": "add", "id": "12345"}],
                         "filters": []
                     }
@@ -336,6 +341,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         "policy": [{"operation": "add", "id": "12345"}],
                         "integrations": [],
                         "kvdbs": [],
+                        "rules": [],
                         "decoders": [],
                         "filters": []
                     }
@@ -389,9 +395,10 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                   "space": "test",
                   "changes": {
                     "policy": [{"operation": "update", "id": "policy"}],
-                    "integrations": [{"operation": "delete", "id": "integration"}],
+                    "integrations": [{"operation": "remove", "id": "integration"}],
                     "kvdbs": [],
-                    "decoders": [{"operation": "add", "id": "decoder-1"}, {"operation": "delete", "id": "decoder-2"}],
+                    "rules": [],
+                    "decoders": [{"operation": "add", "id": "decoder-1"}, {"operation": "remove", "id": "decoder-2"}],
                     "filters": []
                   }
                 }
@@ -481,9 +488,10 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                   "space": "draft",
                   "changes": {
                     "policy": [{"operation": "update", "id": "policy"}],
-                    "integrations": [{"operation": "delete", "id": "integration"}],
+                    "integrations": [{"operation": "remove", "id": "integration"}],
                     "kvdbs": [],
-                    "decoders": [{"operation": "add", "id": "decoder-1"}, {"operation": "delete", "id": "decoder-2"}],
+                    "rules": [],
+                    "decoders": [{"operation": "add", "id": "decoder-1"}, {"operation": "remove", "id": "decoder-2"}],
                     "filters": []
                   }
                 }

@@ -54,7 +54,7 @@ public class Constants {
     public static final String INDEX_FILTERS = ".engine-filters";
 
     // Resource Types Keys
-    public static final String KEY_POLICIES = "policies";
+    public static final String KEY_POLICIES = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";

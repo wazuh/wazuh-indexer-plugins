@@ -29,7 +29,12 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -200,9 +205,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 || changes.getIntegrations() == null
                 || changes.getKvdbs() == null
                 || changes.getDecoders() == null
-                || changes.getFilters() == null) {
+                || changes.getFilters() == null
+                || changes.getRules() == null) {
             throw new IllegalArgumentException(
-                    "All resource type lists (policy, integrations, kvdbs, decoders, filters) are required in changes");
+                    "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules) are required in changes");
         }
 
         // Validate policy operations - only UPDATE is allowed
@@ -426,8 +432,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     // Add to apply list to overwrite
                     resourcesToApply.put(resourceId, sourceDoc);
                 }
-                case DELETE -> {
-                    // DELETE: Resource has been removed from source space, exists in target
+                case REMOVE -> {
+                    // REMOVE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
                     Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {

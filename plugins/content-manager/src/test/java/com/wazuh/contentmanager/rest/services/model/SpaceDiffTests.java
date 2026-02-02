@@ -47,7 +47,7 @@ public class SpaceDiffTests extends OpenSearchTestCase {
                   "space": "draft",
                   "changes": {
                     "policy": [],
-                    "integrations": [{"operation": "delete", "id": "12345"}],
+                    "integrations": [{"operation": "remove", "id": "12345"}],
                     "kvdbs": [{"operation": "update", "id": "12345"}],
                     "decoders": [{"operation": "add", "id": "12345"}],
                     "filters": []
@@ -72,7 +72,7 @@ public class SpaceDiffTests extends OpenSearchTestCase {
         assertNotNull(spaceDiff.getChanges().getIntegrations());
         assertEquals(1, spaceDiff.getChanges().getIntegrations().size());
         assertEquals(
-                SpaceDiff.Operation.DELETE,
+                SpaceDiff.Operation.REMOVE,
                 spaceDiff.getChanges().getIntegrations().getFirst().getOperation());
         assertEquals("12345", spaceDiff.getChanges().getIntegrations().getFirst().getId());
 
@@ -134,7 +134,7 @@ public class SpaceDiffTests extends OpenSearchTestCase {
                     "decoders": [
                       {"operation": "add", "id": "decoder-1"},
                       {"operation": "update", "id": "decoder-2"},
-                      {"operation": "delete", "id": "decoder-3"}
+                      {"operation": "remove", "id": "decoder-3"}
                     ],
                     "filters": [
                       {"operation": "add", "id": "filter-1"}
@@ -158,7 +158,7 @@ public class SpaceDiffTests extends OpenSearchTestCase {
                 SpaceDiff.Operation.UPDATE, spaceDiff.getChanges().getDecoders().get(1).getOperation());
         assertEquals("decoder-2", spaceDiff.getChanges().getDecoders().get(1).getId());
         assertEquals(
-                SpaceDiff.Operation.DELETE, spaceDiff.getChanges().getDecoders().get(2).getOperation());
+                SpaceDiff.Operation.REMOVE, spaceDiff.getChanges().getDecoders().get(2).getOperation());
         assertEquals("decoder-3", spaceDiff.getChanges().getDecoders().get(2).getId());
 
         // Verify filters
@@ -210,7 +210,7 @@ public class SpaceDiffTests extends OpenSearchTestCase {
                   "space": "draft",
                   "changes": {
                     "policy": [],
-                    "integrations": [{"operation": "DELETE", "id": "1"}],
+                    "integrations": [{"operation": "REMOVE", "id": "1"}],
                     "kvdbs": [{"operation": "Update", "id": "2"}],
                     "decoders": [{"operation": "AdD", "id": "3"}],
                     "filters": []
@@ -223,7 +223,7 @@ public class SpaceDiffTests extends OpenSearchTestCase {
 
         assertNotNull(spaceDiff);
         assertEquals(
-                SpaceDiff.Operation.DELETE,
+                SpaceDiff.Operation.REMOVE,
                 spaceDiff.getChanges().getIntegrations().getFirst().getOperation());
         assertEquals(
                 SpaceDiff.Operation.UPDATE, spaceDiff.getChanges().getKvdbs().getFirst().getOperation());

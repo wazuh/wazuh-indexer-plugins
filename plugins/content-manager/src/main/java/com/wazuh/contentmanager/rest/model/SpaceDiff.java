@@ -65,6 +65,13 @@ public class SpaceDiff {
         @JsonProperty(value = "filters", required = true)
         private List<OperationItem> filters;
 
+        @JsonProperty(value = "rules", required = true)
+        private List<OperationItem> rules;
+
+        public List<OperationItem> getRules() {
+            return this.rules;
+        }
+
         public List<OperationItem> getPolicy() {
             return this.policy;
         }
@@ -91,6 +98,10 @@ public class SpaceDiff {
 
         public List<OperationItem> getDecoders() {
             return this.decoders;
+        }
+
+        public void setRules(List<OperationItem> rules) {
+            this.rules = rules;
         }
 
         public void setDecoders(List<OperationItem> decoders) {
@@ -133,7 +144,7 @@ public class SpaceDiff {
     public enum Operation {
         ADD,
         UPDATE,
-        DELETE;
+        REMOVE;
 
         @JsonValue
         @Override
