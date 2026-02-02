@@ -72,26 +72,29 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action = spy(new RestPostIntegrationAction(this.engine));
     }
 
+    // spotless:off
     /**
      * If the promotion success, return a 200 response.
      *
      * <p>Covered test cases (after promotion):
      *
      * <ul>
-     *   <li>A 200 OK response is returned.
-     *   <li>Created integration Id is added to the draft policy's "integrations" list
-     *   <li>Created integration contains a "modified" field (with the current date)
-     *   <li>Created integration contains a "space.name" field containing "draft"
-     *   <li>Created integration contains a date (with the current date)
-     *   <li>Created integration contains a hash
-     *   <li>Created integration has a document Id
-     *   <li>Created document Id contains prefix "d_" (for draft)
-     *   <li>The draft policy's "space.name" field is updated
-     *   <li>The draft policy's hash is updated
+     *   <li>A 200 OK response is returned.</li>
+     *   <li>Created integration Id is added to the draft policy's "integrations" list</li>
+     *   <li>Created integration contains a "modified" field (with the current date)</li>
+     *   <li>Created integration contains a "space.name" field containing "draft"</li>
+     *   <li>Created integration contains a date (with the current date)</li>
+     *   <li>Created integration contains a hash</li>
+     *   <li>Created integration has a document Id</li>
+     *   <li>Created document Id contains prefix "d_" (for draft)</li>
+     *   <li>The draft policy's "space.name" field is updated</li>
+     *   <li>The draft policy's hash is updated</li>
      * </ul>
+     * </p>
      *
      * @throws IOException if an I/O error occurs during the test
      */
+    // spotless:on
     public void testPostIntegration200_success() throws IOException {
 
         String integrationId = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
@@ -99,7 +102,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.OK.getStatus());
-        expectedResponse.setMessage("Integration created successfully with ID: " + "d_" + integrationId);
+        expectedResponse.setMessage(
+                "Integration created successfully with ID: " + "d_" + integrationId);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -112,16 +116,16 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
         when(restResponse.getMessage()).thenReturn(
-            // spotless: off
             """
                 {
                   "status": "OK",
                   "error": null
                 }
             """
-            // spotless: on
         );
+        // spotless:on
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -132,8 +136,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
+        // spotless:off
         String sourceJson =
-            // spotless:off
             """
                 {
                   "document": {
@@ -162,9 +166,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                     }
                   }
                 }
-                """
-            //spotless:on
-            ;
+                """;
+        //spotless:on
         JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
         hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
         JsonArray hitsArray = new JsonArray();
@@ -177,9 +180,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
+        // spotless:off
         JsonNode mockedPayload =
             FixtureFactory.from(
-                // spotless:off
                 """
                     {
                         "type": "integration",
@@ -201,10 +204,10 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         }
                     }
                     """
-                // spotless:on
             );
+        // spotless:on
         when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
 
@@ -213,8 +216,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse actualResponse = this.action.handleRequest(request);
         assertEquals(expectedResponse, actualResponse);
-
-
     }
 
     /**
@@ -231,9 +232,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
 
+        // spotless:off
         JsonNode mockedPayload =
                 FixtureFactory.from(
-                        // spotless:off
                 """
                     {
                         "type": "integration",
@@ -255,9 +256,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                             "id": "9e301671-382"
                         }
                     }
-                    """
-                // spotless:on
-                        );
+                    """);
+        // spotless:on
         when(request.content())
                 .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
@@ -267,10 +267,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /**
-     * Request without content
-     *
-     */
+    /** Request without content */
     public void testPostIntegration400_noContent() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
@@ -286,11 +283,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-
-    /**
-     * Draft policy does not exist
-     *
-     */
+    /** Draft policy does not exist */
     public void testPostIntegration500_policyDoesNotExist() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -308,16 +301,16 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
         when(restResponse.getMessage()).thenReturn(
-            // spotless: off
             """
                 {
                   "status": "OK",
                   "error": null
                 }
             """
-            // spotless: on
         );
+        // spotless:on
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -327,9 +320,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
+        // spotless:off
         JsonNode mockedPayload =
                 FixtureFactory.from(
-                        // spotless:off
                 """
                     {
                         "type": "integration",
@@ -350,9 +343,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                             "title": "aws-fargate"
                         }
                     }
-                    """
-                // spotless:on
-                        );
+                    """);
+        // spotless:on
         when(request.content())
                 .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
@@ -362,8 +354,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /** Invalid resource type
-     * */
+    /** Invalid resource type */
     public void testPostIntegration400_invalidType() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
@@ -373,9 +364,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
 
+        // spotless:off
         JsonNode mockedPayload =
             FixtureFactory.from(
-                // spotless:off
                 """
                     {
                         "type": "not_integration",
@@ -389,11 +380,11 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         }
                     }
                     """
-                // spotless:on
 
             );
+        // spotless:on
         when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
 
@@ -401,12 +392,12 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-
     /** If the engine does not respond, return 500 */
     public void testPostIntegration500_noEngineReply() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to create Integration, Invalid validation response: Non valid response.");
+        expectedResponse.setMessage(
+                "Failed to create Integration, Invalid validation response: Non valid response.");
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -423,9 +414,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         when(restResponse.getMessage()).thenReturn("Non valid response");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
+        // spotless:off
         JsonNode mockedPayload =
                 FixtureFactory.from(
-                        // spotless:off
                 """
                     {
                         "type": "integration",
@@ -446,9 +437,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                             "title": "aws-fargate"
                         }
                     }
-                    """
-                // spotless:on
-                        );
+                    """);
+        // spotless:on
         when(request.content())
                 .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
@@ -476,16 +466,16 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
         when(restResponse.getMessage()).thenReturn(
-            // spotless: off
             """
                 {
                   "status": "OK",
                   "error": null
                 }
             """
-            // spotless: on
         );
+        // spotless:on
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -496,8 +486,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
+        // spotless:off
         String sourceJson =
-            // spotless:off
             """
                     {
                         "total": {
@@ -507,9 +497,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         "max_score": null,
                         "hits": []
                       }
-                """
-            //spotless:on
-        ;
+                """;
+        //spotless:on
         JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
         hitObject.addProperty("id", "doc-id");
         JsonArray hitsArray = new JsonArray();
@@ -521,9 +510,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
 
+        // spotless:off
         JsonNode mockedPayload =
             FixtureFactory.from(
-                // spotless:off
                 """
                     {
                         "type": "integration",
@@ -545,10 +534,10 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         }
                     }
                     """
-                // spotless:on
             );
+        // spotless:on
         when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
 
@@ -560,7 +549,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_corruptDraftPolicy() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to retrieve integrations array from draft policy document.");
+        expectedResponse.setMessage(
+                "Failed to retrieve integrations array from draft policy document.");
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -573,16 +563,16 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
         when(restResponse.getMessage()).thenReturn(
-            // spotless: off
             """
                 {
                   "status": "OK",
                   "error": null
                 }
             """
-            // spotless: on
         );
+        // spotless:on
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -593,15 +583,14 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
+        // spotless:off
         String sourceJson =
-            // spotless:off
             """
             {
                 "document": "corrupt_data"
             }
-            """
-            //spotless:on
-            ;
+            """;
+        //spotless:on
         JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
         hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
         JsonArray hitsArray = new JsonArray();
@@ -614,9 +603,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
+        // spotless:off
         JsonNode mockedPayload =
             FixtureFactory.from(
-                // spotless:off
                 """
                     {
                         "type": "integration",
@@ -638,10 +627,10 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         }
                     }
                     """
-                // spotless:on
             );
+        // spotless:on
         when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
 
@@ -666,16 +655,16 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
         when(restResponse.getMessage()).thenReturn(
-            // spotless: off
             """
                 {
                   "status": "OK",
                   "error": null
                 }
             """
-            // spotless: on
         );
+        // spotless:on
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -686,8 +675,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
+        // spotless:off
         String sourceJson =
-            // spotless:off
             """
             {
               "document": {
@@ -716,9 +705,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 }
               }
             }
-           """
-            //spotless:on
-            ;
+           """;
+        //spotless:on
         JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
         hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
         JsonArray hitsArray = new JsonArray();
@@ -731,9 +719,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         when(indexPolicyResponse.status()).thenReturn(RestStatus.INTERNAL_SERVER_ERROR);
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
 
+        // spotless:off
         JsonNode mockedPayload =
             FixtureFactory.from(
-                // spotless:off
                 """
                     {
                         "type": "integration",
@@ -755,10 +743,10 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         }
                     }
                     """
-                // spotless:on
             );
+        // spotless:on
         when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
         PolicyHashService policyHashService = mock(PolicyHashService.class);
@@ -785,16 +773,16 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
         when(restResponse.getMessage()).thenReturn(
-            // spotless: off
             """
                 {
                   "status": "OK",
                   "error": null
                 }
             """
-            // spotless: on
         );
+        // spotless:on
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -805,8 +793,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         // Mock draft policy search to return a valid response
-            String sourceJson =
-            // spotless:off
+        // spotless:off
+        String sourceJson =
             """
                      {
                        "total": {
@@ -849,9 +837,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                          }
                        ]
                      }
-               """
-            //spotless:on
-        ;
+               """;
+        // spotless:on
         JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
         hitObject.addProperty("id", "doc-id");
         JsonArray hitsArray = new JsonArray();
@@ -863,9 +850,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
 
+        // spotless:off
         JsonNode mockedPayload =
             FixtureFactory.from(
-                // spotless:off
                 """
                     {
                         "type": "integration",
@@ -887,10 +874,10 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                         }
                     }
                     """
-                // spotless:on
             );
+        // spotless:on
         when(request.content())
-            .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
+                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
 
         this.action.setSecurityAnalyticsService(this.saService);
 
