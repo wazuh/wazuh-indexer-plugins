@@ -382,6 +382,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         expectedResponse.setMessage("Failed to update Integration, Invalid validation response: Non valid response.");
 
+        // Mock integrations index
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        JsonNode getDocumentResponse = mock(JsonNode.class);
+        when(integrationsIndex.getDocument(anyString())).thenReturn(getDocumentResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
         String payload =
                 // spotless:off
                 """

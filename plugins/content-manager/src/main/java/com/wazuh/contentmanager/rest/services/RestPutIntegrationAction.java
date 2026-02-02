@@ -295,8 +295,20 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         String currentDate = this.generateDate();
         ((ObjectNode) resource).put("modified", currentDate);
 
+        // Check if date is present in existing document to preserve it
+        String createdDate = null;
+        JsonNode existingDoc = this.integrationsIndex.getDocument(prefixedId);
+        if (existingDoc != null && existingDoc.has("document")) {
+            JsonNode doc = existingDoc.get("document");
+            if (doc.has("date")) {
+                createdDate = doc.get("date").asText();
+            } else {
+                createdDate = generateDate();
+            }
+        }
+
         // Remove date field if present
-        ((ObjectNode) resource).remove("date");
+        ((ObjectNode) resource).put("date", createdDate);
 
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
         if (!resource.has("enabled")) {
