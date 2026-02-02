@@ -23,6 +23,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
@@ -30,8 +31,6 @@ import java.util.*;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.securityanalytics.action.*;
 import com.wazuh.securityanalytics.model.Integration;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Implementation of the SecurityAnalyticsService. Handles the direct execution of SAP actions using
@@ -59,7 +58,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonObject doc, Space space) {
+    public void upsertIntegration(JsonObject doc, Space space, Method method) {
         try {
             if (!doc.has(JSON_DOCUMENT_KEY)) {
                 return;
@@ -76,7 +75,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     new WIndexIntegrationRequest(
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
-                            POST,
+                            method,
                             new Integration(
                                     id,
                                     null,
@@ -156,7 +155,12 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
             WIndexRuleRequest ruleRequest =
                     new WIndexRuleRequest(
-                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, innerDoc.toString(), true);
+                            id,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            product,
+                            Method.POST,
+                            innerDoc.toString(),
+                            true);
             this.client.execute(
                     WIndexRuleAction.INSTANCE,
                     ruleRequest,

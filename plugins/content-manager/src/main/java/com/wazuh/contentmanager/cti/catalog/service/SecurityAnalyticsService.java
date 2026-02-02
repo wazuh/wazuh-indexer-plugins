@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
+import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 
@@ -30,8 +31,10 @@ public interface SecurityAnalyticsService {
      * Creates or updates an Integration in SAP.
      *
      * @param doc The JSON document containing the integration data.
+     * @param space
+     * @param method
      */
-    void upsertIntegration(JsonObject doc, Space space);
+    void upsertIntegration(JsonObject doc, Space space, Method method);
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector

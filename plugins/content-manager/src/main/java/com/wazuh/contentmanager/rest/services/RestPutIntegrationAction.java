@@ -334,7 +334,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Update integration in SAP (put the contents of "resource" inside "document" key)
         this.log.debug("Updating integration in Security Analytics (id={})", id);
         this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set("document", resource)), Space.DRAFT);
+                this.toJsonObject(MAPPER.createObjectNode().set("document", resource)), Space.DRAFT, PUT);
 
         // Construct engine validation payload
         this.log.debug("Validating integration with Engine (id={})", id);
