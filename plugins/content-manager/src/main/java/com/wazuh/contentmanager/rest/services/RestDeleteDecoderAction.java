@@ -66,6 +66,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
     private static final String DECODER_INDEX = ".cti-decoders";
     private static final String INTEGRATION_INDEX = ".cti-integrations";
+    private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_DECODERS = "decoders";
@@ -157,7 +158,8 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                         .toBytesRestResponse();
             }
 
-            updateIntegrationsRemovingDecoder(client, resolvedDecoderId);
+            String nonPrefixedId = removeDraftPrefix(resolvedDecoderId);
+            updateIntegrationsRemovingDecoder(client, nonPrefixedId);
             decoderIndex.delete(resolvedDecoderId);
 
             return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
@@ -182,6 +184,10 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 throw new IOException("Failed to create index " + indexName, e);
             }
         }
+    }
+
+    private static String removeDraftPrefix(String decoderId) {
+        return decoderId.startsWith(INDEX_ID_PREFIX) ? decoderId.substring(2) : decoderId;
     }
 
     private static void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
