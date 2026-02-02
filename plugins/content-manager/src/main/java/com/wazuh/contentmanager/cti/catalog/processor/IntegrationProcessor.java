@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -120,14 +120,10 @@ public class IntegrationProcessor extends AbstractProcessor {
         String description = doc.has("description") ? doc.get("description").getAsString() : "";
         String category = CategoryFormatter.format(doc, false);
 
+        // Extract related rules to create the Threat Detector later.
         List<String> rules = new ArrayList<>();
         if (doc.has("rules")) {
             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-        }
-
-        if (rules.isEmpty()) {
-            this.skippedCount++;
-            return;
         }
 
         try {
@@ -136,8 +132,7 @@ public class IntegrationProcessor extends AbstractProcessor {
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             POST,
-                            new Integration(
-                                    id, null, name, description, category, "Sigma", rules, new HashMap<>()));
+                            new Integration(id, null, name, description, category, "Sigma", new HashMap<>()));
 
             WIndexIntegrationResponse response =
                     this.client

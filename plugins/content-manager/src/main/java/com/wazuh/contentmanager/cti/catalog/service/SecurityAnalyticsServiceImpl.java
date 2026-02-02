@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -66,17 +66,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String name = innerDoc.get("title").getAsString();
             String description = innerDoc.get("description").getAsString();
             String category = this.getCategory(innerDoc, false);
-            List<String> rules = new ArrayList<>();
-
-            if (innerDoc.has(JSON_RULES_KEY)) {
-                innerDoc
-                        .get(JSON_RULES_KEY)
-                        .getAsJsonArray()
-                        .forEach(item -> rules.add(item.getAsString()));
-            }
-            if (rules.isEmpty()) {
-                return;
-            }
 
             log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
 
@@ -85,8 +74,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             POST,
-                            new Integration(
-                                    id, null, name, description, category, "Sigma", rules, new HashMap<>()));
+                            new Integration(id, null, name, description, category, "Sigma", new HashMap<>()));
             this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
 
         } catch (Exception e) {
