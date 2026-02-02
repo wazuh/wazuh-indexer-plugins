@@ -267,7 +267,7 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
-     * @return
+     * @return The IndexResponse object with the result of the indexing operation.
      * @throws IOException If the indexing operation fails.
      */
     public IndexResponse create(String id, JsonObject payload) throws IOException {
@@ -296,7 +296,7 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The Jackson JsonNode representing the document content.
-     * @return
+     * @return The IndexResponse object with the result of the indexing operation.
      * @throws IOException If the indexing operation fails.
      */
     public IndexResponse create(String id, JsonNode payload) throws IOException {
