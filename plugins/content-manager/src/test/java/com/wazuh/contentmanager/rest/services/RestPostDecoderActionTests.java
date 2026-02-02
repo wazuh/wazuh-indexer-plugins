@@ -144,7 +144,20 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
     public void testPostDecoderSuccess() throws Exception {
         // Arrange
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
-        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+
+        // Mock wazuh engine validation with proper JSON response
+        RestResponse engineResponse = mock(RestResponse.class);
+        when(engineResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        // spotless:off
+        when(engineResponse.getMessage()).thenReturn(
+            """
+                {
+                  "status": "OK",
+                  "error": null
+                }
+            """
+        );
+        // spotless:on
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
 
