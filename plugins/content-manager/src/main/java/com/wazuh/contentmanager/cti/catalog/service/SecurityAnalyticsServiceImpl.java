@@ -245,7 +245,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             log.error("Failed to upsert Detector: {}", e.getMessage());
                         }
                     });
-            log.info("Detector [{}] synced successfully.", name);
 
         } catch (Exception e) {
             log.error("Failed to upsert Detector: {}", e.getMessage());
