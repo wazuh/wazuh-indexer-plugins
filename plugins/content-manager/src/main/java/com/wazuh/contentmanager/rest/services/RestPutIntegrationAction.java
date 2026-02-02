@@ -232,26 +232,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        List<String> mandatoryFields =
-                List.of(
-                        "author",
-                        "category",
-                        "decoders",
-                        "description",
-                        "documentation",
-                        "kvdbs",
-                        "references",
-                        "rules",
-                        "title");
-        for (String field : mandatoryFields) {
-            if (!requestBody.at("/resource").has(field)) {
-                this.log.warn("Request rejected: missing mandatory field '{}' in /resource", field);
-                return new RestResponse(
-                        "Missing mandatory field '" + field + "' in /resource.",
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-        }
-
         // Check that there is no ID field in the request body (ID comes from URL)
         if (!requestBody.at("/resource/id").isMissingNode()) {
             this.log.warn("Request rejected: id field present in request body");
@@ -311,9 +291,13 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Insert ID from URL
         ((ObjectNode) resource).put("id", id);
 
-        // Insert date
+        // Insert modification date
         String currentDate = this.generateDate();
         ((ObjectNode) resource).put("modified", currentDate);
+
+        // Remove date field if present
+        ((ObjectNode) resource).remove("date");
+
 
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
         if (!resource.has("enabled")) {

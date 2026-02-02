@@ -286,47 +286,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /**
-     * Request has content but missing required fields
-     *
-     * @throws IOException if an I/O error occurs during the test
-     */
-    public void testPostIntegration400_missingFields() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Missing mandatory field 'author' in /resource.");
-
-        // Create a RestRequest with the no payload
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-
-        JsonNode mockedPayload =
-                FixtureFactory.from(
-                        // spotless:off
-                """
-                    {
-                        "type": "integration",
-                        "resource":
-                        {
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """
-                // spotless:on
-
-                        );
-        when(request.content())
-                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
-    }
 
     /**
      * Draft policy does not exist

@@ -224,26 +224,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        List<String> mandatoryFields =
-                List.of(
-                        "author",
-                        "category",
-                        "decoders",
-                        "description",
-                        "documentation",
-                        "kvdbs",
-                        "references",
-                        "rules",
-                        "title");
-        for (String field : mandatoryFields) {
-            if (!requestBody.at("/resource").has(field)) {
-                this.log.warn("Request rejected: missing mandatory field '{}' in /resource", field);
-                return new RestResponse(
-                        "Missing mandatory field '" + field + "' in /resource.",
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-        }
-
         // Check that there is no ID field
         if (!requestBody.at("/resource/id").isMissingNode()) {
             this.log.warn("Request rejected: id field present in request body");
@@ -272,6 +252,9 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         String currentDate = this.generateDate();
         ((ObjectNode) resource).put("date", currentDate);
 
+        // Insert modification date
+        ((ObjectNode) resource).put("modified", currentDate);
+
         // Check if enabled is set (if it's not, set it to true by default)
         if (!resource.has("enabled")) {
             ((ObjectNode) resource).put("enabled", true);
@@ -279,6 +262,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // Insert "draft" into /resource/space/name
         ((ObjectNode) requestBody).putObject("space").put("name", DRAFT_SPACE_NAME);
+
+        // Overwrite rules, decoders and kvdbs arrays with empty ones
+        ((ObjectNode) resource).set("rules", MAPPER.createObjectNode());
+        ((ObjectNode) resource).set("decoders", MAPPER.createArrayNode());
+        ((ObjectNode) resource).set("kvdbs", MAPPER.createArrayNode());
 
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());

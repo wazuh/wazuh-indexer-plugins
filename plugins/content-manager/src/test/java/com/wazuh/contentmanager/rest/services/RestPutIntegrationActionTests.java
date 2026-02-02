@@ -282,52 +282,6 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Request has content but missing required fields
-     *
-     * @throws IOException if an I/O error occurs during the test
-     */
-    public void testPutIntegration400_missingFields() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Missing mandatory field 'author' in /resource.");
-
-        String payload =
-                // spotless:off
-                """
-                    {
-                        "type": "integration",
-                        "resource":
-                        {
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-                // spotless:on
-
-        // Create a RestRequest with incomplete payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for existing integration in draft space
-        GetResponse getResponse = this.createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any())).thenReturn(
-            new org.opensearch.action.support.PlainActionFuture<>() {
-                @Override
-                public GetResponse actionGet() {
-                    return getResponse;
-                }
-            });
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
-    }
-
-    /**
      * Integration does not exist
      *
      * @throws IOException if an I/O error occurs during the test
