@@ -16,10 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import java.util.Locale;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-
-import java.util.Locale;
 
 /**
  * Enum representing the content spaces managed by the Content Manager plugin. Each space defines a
@@ -86,5 +86,13 @@ public enum Space {
             }
         }
         throw new IllegalArgumentException("Unknown space: [" + value + "].");
+    }
+    
+    public String asSecurityAnalyticsSource() {
+        if (this.equals(STANDARD)) {
+            return "Sigma";
+        }
+        // Capitalize the first letter to match the queries in the SAP UI.
+        return this.toString().substring(0, 1).toUpperCase(Locale.ROOT) + this.toString().substring(1);
     }
 }
