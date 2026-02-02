@@ -76,8 +76,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             POST,
-                            new Integration(
-                                    id, null, name, description, category, "Sigma", rules, new HashMap<>()));
+                            new Integration(id, null, name, description, category, "Sigma", new HashMap<>()));
             this.client.execute(
                     WIndexIntegrationAction.INSTANCE,
                     request,
