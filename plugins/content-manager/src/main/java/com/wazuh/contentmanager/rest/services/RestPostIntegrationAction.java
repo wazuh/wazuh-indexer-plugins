@@ -160,7 +160,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     /**
      * Setter for the policies index, used in tests.
      *
-     * @param policiesIndex the integrations index ContentIndex object
+     * @param policiesIndex the policies index ContentIndex object
      */
     public void setPoliciesContentIndex(ContentIndex policiesIndex) {
         this.policiesIndex = policiesIndex;
