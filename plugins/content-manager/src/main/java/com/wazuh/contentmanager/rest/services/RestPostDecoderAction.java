@@ -153,7 +153,8 @@ public class RestPostDecoderAction extends BaseRestHandler {
             }
 
             // Generate UUID and validate with engine
-            resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
+            String decoderId = UUID.randomUUID().toString();
+            resourceNode.put(FIELD_ID, decoderId);
 
             // Add timestamp metadata
             this.addTimestampMetadata(resourceNode, true);
@@ -189,9 +190,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
             // Create decoder and update integration
-            String decoderIndexId = toIndexId(resourceNode.get(FIELD_ID).asText());
+            String decoderIndexId = toIndexId(decoderId);
             this.createDecoder(client, decoderIndexId, resourceNode);
-            this.updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
+            this.updateIntegrationWithDecoder(client, integrationId, decoderId);
 
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderIndexId,
