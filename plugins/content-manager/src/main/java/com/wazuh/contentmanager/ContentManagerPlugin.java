@@ -176,18 +176,29 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostSubscriptionAction(this.ctiConsole),
                 new RestDeleteSubscriptionAction(this.ctiConsole),
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
-                // User-generated content endpoints
+                // User-generated content endpoints (Logtest)
                 new RestPostLogtestAction(this.engine),
-                // Kvdb endpoints
-                new RestPostKvdbAction(this.engine),
-                new RestPutKvdbAction(this.engine),
-                new RestDeleteKvdbAction(this.engine),
+                // Policy endpoints
+                new RestPutPolicyAction(this.engine),
+                // Rule endpoints
+                new RestPostRuleAction(),
+                new RestPutRuleAction(),
+                new RestDeleteRuleAction(),
+                // Integration endpoints
+                new RestPostIntegrationAction(this.engine),
+                new RestPutIntegrationAction(this.engine),
+                new RestDeleteIntegrationAction(this.engine),
                 // Decoder endpoints
                 new RestPostDecoderAction(this.engine),
                 new RestPutDecoderAction(this.engine),
                 new RestDeleteDecoderAction(this.engine),
-                // Policy endpoints
-                new RestPutPolicyAction(this.engine));
+                // KVDB endpoints
+                new RestPostKvdbAction(this.engine),
+                new RestPutKvdbAction(this.engine),
+                new RestDeleteKvdbAction(this.engine),
+                // Promote endpoints
+                new RestPostPromoteAction(this.engine),
+                new RestGetPromotePreviewAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */

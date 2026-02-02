@@ -35,10 +35,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -159,16 +156,16 @@ public class RestPutPolicyAction extends BaseRestHandler {
         if (policyValidationError != null) {
             return policyValidationError;
         }
-        // Validate root decoder existence
-        /**
-         * TODO: Uncomment once merged with Decoders PR RestResponse rootDecoderError =
-         * this.validateRootDecoderExists(policy); if (rootDecoderError != null) { return
-         * rootDecoderError; }
-         */
+        // Validate document type is "policy"
+        if (!policy.getType().toLowerCase(Locale.ROOT).equals("policy")) {
+            return new RestResponse(
+                    "Invalid document type: " + policy.getType(), RestStatus.BAD_REQUEST.getStatus());
+        }
         // Store or update the policy
         try {
-            this.storePolicy(policy);
-            return new RestResponse("Draft policy updated.", RestStatus.OK.getStatus());
+            String policyId = this.storePolicy(policy);
+            return new RestResponse(
+                    "Updated draft policy with ID " + policyId, RestStatus.OK.getStatus());
         } catch (IOException e) {
             return new RestResponse(
                     "Failed to store the updated policy: " + e.getMessage(),
@@ -198,13 +195,53 @@ public class RestPutPolicyAction extends BaseRestHandler {
     /**
      * Parses a Policy object from the request content.
      *
+     * <p>The request is expected to have the following structure:
+     *
+     * <pre>
+     * {
+     *   "type": "policy",
+     *   "resource": {
+     *     "root_decoder": "...",
+     *     "integrations": [...],
+     *     "author": "...",
+     *     "description": "...",
+     *     "documentation": "...",
+     *     "references": [...],
+     *     "title": "..."
+     *   }
+     * }
+     * </pre>
+     *
      * @param request the REST request containing the policy JSON
      * @return the parsed Policy object
      * @throws IOException if parsing fails
      */
     private Policy parsePolicy(RestRequest request) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(request.content().utf8ToString(), Policy.class);
+
+        // Parse the request as a generic map to handle nested structure
+        @SuppressWarnings("unchecked")
+        Map<String, Object> requestBody = mapper.readValue(request.content().utf8ToString(), Map.class);
+
+        // Extract the type from the top level
+        String type = (String) requestBody.get("type");
+
+        // Extract the resource object
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resource = (Map<String, Object>) requestBody.get("resource");
+
+        if (resource == null) {
+            throw new IOException("Missing 'resource' field in request body");
+        }
+
+        // Create a flat map with all fields for Policy deserialization
+        Map<String, Object> flattenedPolicy = new HashMap<>();
+        flattenedPolicy.put("type", type);
+        flattenedPolicy.putAll(resource);
+
+        // Convert back to JSON and deserialize into Policy object
+        String flattenedJson = mapper.writeValueAsString(flattenedPolicy);
+        return mapper.readValue(flattenedJson, Policy.class);
     }
 
     /**
@@ -221,13 +258,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
         // Define fields to validate with their display names
         Map<String, String> fieldsToValidate = new LinkedHashMap<>();
         fieldsToValidate.put("getType", "type");
-        fieldsToValidate.put("getTitle", "title");
-        fieldsToValidate.put("getRootDecoder", "root_decoder");
-        fieldsToValidate.put("getIntegrations", "integrations");
-        fieldsToValidate.put("getAuthor", "author");
-        fieldsToValidate.put("getDescription", "description");
-        fieldsToValidate.put("getDocumentation", "documentation");
-        fieldsToValidate.put("getReferences", "references");
+        fieldsToValidate.put("getTitle", "resource.title");
+        fieldsToValidate.put("getRootDecoder", "resource.root_decoder");
+        fieldsToValidate.put("getIntegrations", "resource.integrations");
+        fieldsToValidate.put("getAuthor", "resource.author");
+        fieldsToValidate.put("getDescription", "resource.description");
+        fieldsToValidate.put("getDocumentation", "resource.documentation");
+        fieldsToValidate.put("getReferences", "resource.references");
         // Collect all null fields
         List<String> nullFields = new ArrayList<>();
         // Validate each field dynamically
@@ -259,18 +296,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
         return null;
     }
 
-    private RestResponse validateRootDecoderExists(Policy policy) {
-        // Check if the root decoder exists in the engine
-        String rootDecoder = policy.getRootDecoder();
-        ContentIndex integrationIndex = new ContentIndex(this.client, DECODERS_INDEX, null);
-        if (!integrationIndex.exists(rootDecoder)) {
-            return new RestResponse(
-                    "Decoder with ID " + rootDecoder + " does not exist.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
     /**
      * Stores or updates the policy in the draft space.
      *
@@ -280,21 +305,32 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @param policy the policy to store
      * @throws IOException if storage fails
      */
-    private void storePolicy(Policy policy) throws IOException {
+    private String storePolicy(Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(this.client, POLICIES_INDEX, null);
         JsonObject policyJson = this.findDraftPolicy(contentIndex);
-        JsonObject resourcePayload = new JsonObject();
-        JsonObject document = policy.toJson();
+        JsonObject policyAsJson = policy.toJson();
+        JsonObject payload = new JsonObject();
         String currentDate = Instant.now().toString();
         String policyId;
-        // Prepare the resource payload
+
+        // Create document without type field
+        JsonObject document = new JsonObject();
+        policyAsJson
+                .entrySet()
+                .forEach(
+                        entry -> {
+                            if (!"type".equals(entry.getKey())) {
+                                document.add(entry.getKey(), entry.getValue());
+                            }
+                        });
+
+        // Add timestamps to document
         document.addProperty("modified", currentDate);
         if (policyJson != null && policyJson.has(ID_FIELD)) {
             policyId = policyJson.get(ID_FIELD).getAsString();
-            JsonObject policyDocument = policyJson.get("document").getAsJsonObject();
-            if (policyDocument.has("date")) {
-                // Always treat as string
-                document.addProperty("date", policyDocument.get("date").getAsString());
+            JsonObject existingDoc = policyJson.getAsJsonObject("document");
+            if (existingDoc != null && existingDoc.has("date")) {
+                document.addProperty("date", existingDoc.get("date").getAsString());
             } else {
                 document.addProperty("date", currentDate);
             }
@@ -302,14 +338,22 @@ public class RestPutPolicyAction extends BaseRestHandler {
             policyId = UUIDs.base64UUID();
             document.addProperty("date", currentDate);
         }
-        resourcePayload.add("document", document);
-        // Set the space to DRAFT
+        // Add document to payload
+        payload.add("document", document);
+        // Set the Space name to DRAFT
         JsonObject spaceObject = new JsonObject();
         spaceObject.addProperty("name", Space.DRAFT.toString());
-        resourcePayload.add("space", spaceObject);
+        // Generate and set the Space Hash. TODO: Implement real hash calculation
+        JsonObject spaceHashObject = new JsonObject();
+        spaceHashObject.addProperty("sha256", "dummy_space_hash_value");
+        spaceObject.add("hash", spaceHashObject);
+        // Save space property
+        payload.add("space", spaceObject);
+
         // Store the new draft policy
-        contentIndex.create(policyId, resourcePayload);
+        contentIndex.create(policyId, payload);
         log.info("Policy stored successfully with ID: {}", policyId);
+        return policyId;
     }
 
     /**
