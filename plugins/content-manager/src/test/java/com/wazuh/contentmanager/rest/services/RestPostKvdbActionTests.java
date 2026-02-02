@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -66,6 +67,7 @@ import static org.mockito.Mockito.when;
 public class RestPostKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostKvdbAction action;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String KVDB_PAYLOAD =
         "{"
@@ -168,6 +170,16 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertTrue(generatedKvdbId.startsWith("d_"));
         String uuidPart = generatedKvdbId.substring(2); // Remove "d_" prefix
         UUID.fromString(uuidPart); // Validate the UUID part is valid
+
+        // Verify timestamps were added
+        assertTrue(resource.has("metadata"));
+        JsonNode metadata = resource.get("metadata");
+        assertTrue(metadata.has("author"));
+        JsonNode author = metadata.get("author");
+        assertTrue(author.has("date"));
+        assertTrue(author.has("modified"));
+        assertNotNull(author.get("date").asText());
+        assertNotNull(author.get("modified").asText());
 
         // Verify client.index() was called twice: once for KVDB, once for integration update
         ArgumentCaptor<IndexRequest> indexRequestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
