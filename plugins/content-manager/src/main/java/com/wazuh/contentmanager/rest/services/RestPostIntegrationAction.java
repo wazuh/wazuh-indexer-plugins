@@ -264,7 +264,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         ((ObjectNode) requestBody).putObject("space").put("name", DRAFT_SPACE_NAME);
 
         // Overwrite rules, decoders and kvdbs arrays with empty ones
-        ((ObjectNode) resource).set("rules", MAPPER.createObjectNode());
+        ((ObjectNode) resource).set("rules", MAPPER.createArrayNode());
         ((ObjectNode) resource).set("decoders", MAPPER.createArrayNode());
         ((ObjectNode) resource).set("kvdbs", MAPPER.createArrayNode());
 
