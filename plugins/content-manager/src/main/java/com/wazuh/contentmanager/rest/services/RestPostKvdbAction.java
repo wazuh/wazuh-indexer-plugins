@@ -144,21 +144,22 @@ public class RestPostKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
 
-            // Generate UUID and convert to index ID with prefix
-            String kvdbIndexId = toIndexId(UUID.randomUUID().toString());
-            resourceNode.put(FIELD_ID, kvdbIndexId);
+            // Generate UUID without prefix for resource node and integration
+            String kvdbId = UUID.randomUUID().toString();
+            resourceNode.put(FIELD_ID, kvdbId);
 
             // Add timestamp metadata
             addTimestampMetadata(resourceNode, true);
 
-            // Validate with engine
+            // Validate with engine (uses ID without prefix)
             RestResponse engineResponse = validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
             }
-            // Create KVDB and update integration
+            // Create KVDB with prefixed ID in the index, and update integration with unprefixed ID
+            String kvdbIndexId = toIndexId(kvdbId);
             createKvdb(client, kvdbIndexId, resourceNode);
-            updateIntegrationWithKvdb(client, integrationId, kvdbIndexId);
+            updateIntegrationWithKvdb(client, integrationId, kvdbId);
 
             return new RestResponse(
                 "KVDB created successfully with ID: " + kvdbIndexId,

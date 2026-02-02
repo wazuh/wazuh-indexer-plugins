@@ -155,6 +155,11 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().startsWith("KVDB created successfully with ID:"));
+        
+        // Extract the returned ID from response message
+        String returnedId = actualResponse.getMessage().substring("KVDB created successfully with ID: ".length());
+        // Verify response returns ID WITH prefix
+        assertTrue(returnedId.startsWith("d_"));
 
         // Verify engine validation was called with correct payload
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
@@ -165,11 +170,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         JsonNode resource = captured.get("resource");
         assertTrue(resource.hasNonNull("id"));
-        String generatedKvdbId = resource.get("id").asText();
-        // Validate it starts with "d_" prefix and has a valid UUID after it
-        assertTrue(generatedKvdbId.startsWith("d_"));
-        String uuidPart = generatedKvdbId.substring(2); // Remove "d_" prefix
-        UUID.fromString(uuidPart); // Validate the UUID part is valid
+        String engineKvdbId = resource.get("id").asText();
+        // Validate engine receives UUID WITHOUT prefix
+        assertFalse(engineKvdbId.startsWith("d_"));
+        UUID.fromString(engineKvdbId); // Validate it's a valid UUID
 
         // Verify timestamps were added
         assertTrue(resource.has("metadata"));
@@ -211,7 +215,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         java.util.List<String> kvdbs = (java.util.List<String>) document.get("kvdbs");
         assertNotNull(kvdbs);
         assertEquals(1, kvdbs.size());
-        assertEquals(generatedKvdbId, kvdbs.get(0));
+        String integrationKvdbId = kvdbs.get(0);
+        // Verify integration receives ID WITHOUT prefix
+        assertFalse(integrationKvdbId.startsWith("d_"));
+        assertEquals(engineKvdbId, integrationKvdbId); // Should match engine ID
     }
 
     /** Test that providing a resource ID on creation returns 400 Bad Request. */
