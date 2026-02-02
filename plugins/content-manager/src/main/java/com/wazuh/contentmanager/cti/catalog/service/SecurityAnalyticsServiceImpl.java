@@ -68,17 +68,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String name = innerDoc.get("title").getAsString();
             String description = innerDoc.get("description").getAsString();
             String category = this.getCategory(innerDoc, false);
-            List<String> rules = new ArrayList<>();
-
-            if (innerDoc.has(JSON_RULES_KEY)) {
-                innerDoc
-                        .get(JSON_RULES_KEY)
-                        .getAsJsonArray()
-                        .forEach(item -> rules.add(item.getAsString()));
-            }
-            if (rules.isEmpty()) {
-                return;
-            }
 
             log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
 
