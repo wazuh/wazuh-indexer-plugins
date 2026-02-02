@@ -75,6 +75,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private static final String FIELD_METADATA = "metadata";
     private static final String FIELD_AUTHOR = "author";
     private static final String FIELD_MODIFIED = "modified";
+    private static final String FIELD_DATE = "date";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -158,8 +159,8 @@ public class RestPutDecoderAction extends BaseRestHandler {
             String resourceId = RestPutDecoderAction.toResourceId(decoderId);
             resourceNode.put(FIELD_ID, resourceId);
 
-            // Update the modified timestamp
-            this.updateTimestampMetadata(resourceNode);
+            // Preserve metadata from existing document and update modified timestamp
+            this.preserveMetadataAndUpdateTimestamp(client, decoderId, resourceNode);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -285,32 +286,83 @@ public class RestPutDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * Updates the modified timestamp in the resource node metadata.
+     * Preserves only the date field from existing metadata and allows other metadata fields to be updated.
+     * The metadata.author.date is preserved from the existing document and cannot be modified.
+     * All other metadata fields (title, description, author.name) can be updated from the request.
+     * The metadata.author.modified timestamp is always updated to the current time.
      *
+     * @param client the OpenSearch client
+     * @param decoderId the decoder ID
      * @param resourceNode the resource node to update
+     * @throws IOException if an error occurs retrieving the existing document
      */
-    private void updateTimestampMetadata(ObjectNode resourceNode) {
-        String currentTimestamp = Instant.now().toString();
+    private void preserveMetadataAndUpdateTimestamp(Client client, String decoderId, ObjectNode resourceNode)
+            throws IOException {
+        RestPutDecoderAction.ensureIndexExists(client);
+        ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
 
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
+        // Get existing document
+        JsonNode existingDocument = decoderIndex.getDocument(decoderId);
+        if (existingDocument == null) {
+            throw new IOException("Decoder [" + decoderId + "] not found.");
+        }
+
+        // Extract existing metadata from document.metadata
+        JsonNode existingMetadata = null;
+        String preservedDate = null;
+        if (existingDocument.has(FIELD_DOCUMENT) && existingDocument.get(FIELD_DOCUMENT).isObject()) {
+            JsonNode existingDoc = existingDocument.get(FIELD_DOCUMENT);
+            if (existingDoc.has(FIELD_METADATA) && existingDoc.get(FIELD_METADATA).isObject()) {
+                existingMetadata = existingDoc.get(FIELD_METADATA);
+                // Extract the date from existing metadata.author.date
+                if (existingMetadata.has(FIELD_AUTHOR) && existingMetadata.get(FIELD_AUTHOR).isObject()) {
+                    JsonNode existingAuthor = existingMetadata.get(FIELD_AUTHOR);
+                    if (existingAuthor.has(FIELD_DATE)) {
+                        preservedDate = existingAuthor.get(FIELD_DATE).asText();
+                    }
+                }
+            }
+        }
+
+        // Get metadata from request (if provided)
+        ObjectNode requestMetadata = null;
         if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+            requestMetadata = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        }
+
+        // Build the final metadata object
+        ObjectNode finalMetadata;
+        if (requestMetadata != null) {
+            // Start with metadata from request (allows updates to title, description, author.name, etc.)
+            finalMetadata = (ObjectNode) this.mapper.readTree(
+                    this.mapper.writeValueAsString(requestMetadata));
+        } else if (existingMetadata != null) {
+            // If no metadata in request, start with existing metadata
+            finalMetadata = (ObjectNode) this.mapper.readTree(
+                    this.mapper.writeValueAsString(existingMetadata));
         } else {
-            metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
+            // If no existing metadata and no request metadata, create new
+            finalMetadata = this.mapper.createObjectNode();
         }
 
         // Ensure author node exists
         ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        if (finalMetadata.has(FIELD_AUTHOR) && finalMetadata.get(FIELD_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) finalMetadata.get(FIELD_AUTHOR);
         } else {
             authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
+            finalMetadata.set(FIELD_AUTHOR, authorNode);
         }
 
-        // Set modified timestamp
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        // Preserve the date from existing document (if it exists)
+        if (preservedDate != null) {
+            authorNode.put(FIELD_DATE, preservedDate);
+        }
+
+        // Always update modified timestamp
+        authorNode.put(FIELD_MODIFIED, Instant.now().toString());
+
+        // Set the final metadata in resourceNode
+        resourceNode.set(FIELD_METADATA, finalMetadata);
     }
 }

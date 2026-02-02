@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -57,7 +56,6 @@ import static org.mockito.Mockito.*;
 public class RestPutDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutDecoderAction action;
-    private final ObjectMapper mapper = new ObjectMapper();
     private static final String DECODER_PAYLOAD =
             "{"
                     + "\"type\": \"decoder\","
@@ -144,13 +142,16 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         JsonNode resource = captured.get("resource");
         assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", resource.get("id").asText());
 
-        // Verify modified timestamp was added TODO
-        //        assertTrue(resource.has("metadata"));
-        //        JsonNode metadata = resource.get("metadata");
-        //        assertTrue(metadata.has("author"));
-        //        JsonNode author = metadata.get("author");
-        //        assertTrue(author.has("modified"));
-        //        assertNotNull(author.get("modified").asText());
+        // Verify metadata was preserved and modified timestamp was added
+        assertTrue(resource.has("metadata"));
+        JsonNode metadata = resource.get("metadata");
+        assertTrue(metadata.has("author"));
+        JsonNode author = metadata.get("author");
+        assertTrue(author.has("modified"));
+        assertNotNull(author.get("modified").asText());
+        // Verify date was preserved
+        assertTrue(author.has("date"));
+        assertEquals("2026-01-01T00:00:00.000Z", author.get("date").asText());
     }
 
     /** Test that missing decoder ID returns 400 Bad Request. */
@@ -309,11 +310,37 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock ContentIndex.exists() - decoder exists
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
+        // Mock ContentIndex.exists() - decoder exists (for setFetchSource(false))
+        GetResponse existsResponse = mock(GetResponse.class);
+        when(existsResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(getResponse);
+                .thenReturn(existsResponse);
+
+        // Mock ContentIndex.getDocument() - decoder exists with metadata
+        GetResponse getDocumentResponse = mock(GetResponse.class);
+        when(getDocumentResponse.isExists()).thenReturn(true);
+        String existingDocumentJson = "{"
+                + "\"document\": {"
+                + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
+                + "  \"name\": \"decoder/example/0\","
+                + "  \"enabled\": true,"
+                + "  \"metadata\": {"
+                + "    \"title\": \"Example decoder\","
+                + "    \"description\": \"Example decoder description\","
+                + "    \"author\": {"
+                + "      \"name\": \"Wazuh\","
+                + "      \"date\": \"2026-01-01T00:00:00.000Z\","
+                + "      \"modified\": \"2026-01-01T00:00:00.000Z\""
+                + "    }"
+                + "  }"
+                + "},"
+                + "\"space\": {"
+                + "  \"name\": \"draft\""
+                + "}"
+                + "}";
+        when(getDocumentResponse.getSourceAsString()).thenReturn(existingDocumentJson);
+        when(client.prepareGet(anyString(), anyString()).get())
+                .thenReturn(getDocumentResponse);
 
         return client;
     }
@@ -334,5 +361,126 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
                 .thenReturn(getResponse);
 
         return client;
+    }
+
+    /**
+     * Test that metadata.author.date is preserved while other metadata fields can be updated.
+     *
+     * @throws Exception When an error occurs during test execution.
+     */
+    public void testPutDecoderPreservesOnlyDateAndUpdatesOtherMetadata() throws Exception {
+        // Arrange
+        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String updatePayload = "{"
+                + "\"type\": \"decoder\","
+                + "\"resource\": {"
+                + "  \"name\": \"decoder/example/0\","
+                + "  \"enabled\": false,"
+                + "  \"metadata\": {"
+                + "    \"title\": \"UPDATED Title\","
+                + "    \"description\": \"UPDATED Description\","
+                + "    \"author\": {"
+                + "      \"name\": \"UPDATED Author\""
+                + "    }"
+                + "  }"
+                + "}"
+                + "}";
+        RestRequest request = this.buildRequest(updatePayload, decoderId);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = this.buildClientForIndex();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.OK, bytesRestResponse.status());
+
+        // Verify what was sent to the engine (should have updated metadata but preserved date)
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.service).validate(payloadCaptor.capture());
+        JsonNode captured = payloadCaptor.getValue();
+        JsonNode resource = captured.get("resource");
+        JsonNode metadata = resource.get("metadata");
+
+        // Verify updated fields
+        assertEquals("UPDATED Title", metadata.get("title").asText());
+        assertEquals("UPDATED Description", metadata.get("description").asText());
+        assertEquals("UPDATED Author", metadata.get("author").get("name").asText());
+
+        // Verify date was preserved (not updated)
+        assertEquals("2026-01-01T00:00:00.000Z", metadata.get("author").get("date").asText());
+
+        // Verify modified timestamp was updated
+        assertTrue(metadata.get("author").has("modified"));
+        String modified = metadata.get("author").get("modified").asText();
+        assertNotNull(modified);
+        assertFalse(modified.equals("2026-01-01T00:00:00.000Z")); // Should be different from date
+
+        // Verify what was indexed (should match what was validated)
+        ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(client).index(indexCaptor.capture());
+        IndexRequest indexRequest = indexCaptor.getValue();
+        String indexedSource = indexRequest.source().utf8ToString();
+        JsonNode indexedDoc = FixtureFactory.from(indexedSource);
+        JsonNode indexedResource = indexedDoc.get("document");
+        JsonNode indexedMetadata = indexedResource.get("metadata");
+
+        // Verify indexed document has updated metadata
+        assertEquals("UPDATED Title", indexedMetadata.get("title").asText());
+        assertEquals("UPDATED Description", indexedMetadata.get("description").asText());
+        assertEquals("UPDATED Author", indexedMetadata.get("author").get("name").asText());
+        // Verify date was preserved in indexed document
+        assertEquals("2026-01-01T00:00:00.000Z", indexedMetadata.get("author").get("date").asText());
+    }
+
+    /**
+     * Test that metadata.author.date is preserved even when no metadata is provided in request.
+     *
+     * @throws Exception When an error occurs during test execution.
+     */
+    public void testPutDecoderPreservesDateWhenNoMetadataInRequest() throws Exception {
+        // Arrange
+        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String updatePayload = "{"
+                + "\"type\": \"decoder\","
+                + "\"resource\": {"
+                + "  \"name\": \"decoder/example/0\","
+                + "  \"enabled\": false"
+                + "}"
+                + "}";
+        RestRequest request = this.buildRequest(updatePayload, decoderId);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = this.buildClientForIndex();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.OK, bytesRestResponse.status());
+
+        // Verify what was sent to the engine (should preserve existing metadata including date)
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.service).validate(payloadCaptor.capture());
+        JsonNode captured = payloadCaptor.getValue();
+        JsonNode resource = captured.get("resource");
+        JsonNode metadata = resource.get("metadata");
+
+        // Verify existing metadata was preserved
+        assertEquals("Example decoder", metadata.get("title").asText());
+        assertEquals("Example decoder description", metadata.get("description").asText());
+        assertEquals("Wazuh", metadata.get("author").get("name").asText());
+
+        // Verify date was preserved
+        assertEquals("2026-01-01T00:00:00.000Z", metadata.get("author").get("date").asText());
+
+        // Verify modified timestamp was updated
+        assertTrue(metadata.get("author").has("modified"));
+        String modified = metadata.get("author").get("modified").asText();
+        assertNotNull(modified);
+        assertFalse(modified.equals("2026-01-01T00:00:00.000Z")); // Should be different from date
     }
 }
