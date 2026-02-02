@@ -27,6 +27,7 @@ import org.opensearch.transport.client.Client;
 
 import java.util.*;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.securityanalytics.action.*;
 import com.wazuh.securityanalytics.model.Integration;
 
@@ -58,7 +59,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonObject doc) {
+    public void upsertIntegration(JsonObject doc, Space space) {
         try {
             if (!doc.has(JSON_DOCUMENT_KEY)) {
                 return;
@@ -76,7 +77,14 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             POST,
-                            new Integration(id, null, name, description, category, "Sigma", new HashMap<>()));
+                            new Integration(
+                                    id,
+                                    null,
+                                    name,
+                                    description,
+                                    category,
+                                    space.asSecurityAnalyticsSource(),
+                                    new HashMap<>()));
             this.client.execute(
                     WIndexIntegrationAction.INSTANCE,
                     request,

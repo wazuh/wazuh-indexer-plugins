@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+
 /**
  * Service interface for managing interactions with the Security Analytics Plugin (SAP). Defines
  * operations for synchronizing Integrations, Rules, and Detectors.
@@ -29,7 +31,7 @@ public interface SecurityAnalyticsService {
      *
      * @param doc The JSON document containing the integration data.
      */
-    void upsertIntegration(JsonObject doc);
+    void upsertIntegration(JsonObject doc, Space space);
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector

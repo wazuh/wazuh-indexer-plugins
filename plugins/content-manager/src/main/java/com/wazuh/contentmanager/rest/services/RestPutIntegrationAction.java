@@ -27,7 +27,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.common.SuppressForbidden;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -38,6 +37,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -94,9 +94,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      *
      * @return String representing current date in YYYY-MM-DD format
      */
-    @SuppressForbidden(reason = "Java Time API is preferred over Date API")
-    public String generateDate() {
-        return LocalDate.now().toString();
+    public static String generateDate() {
+        return LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
     }
 
     /** Return a short identifier for this handler. */
@@ -292,7 +291,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         ((ObjectNode) resource).put("id", id);
 
         // Insert modification date
-        String currentDate = this.generateDate();
+        String currentDate = RestPutIntegrationAction.generateDate();
         ((ObjectNode) resource).put("modified", currentDate);
 
         // Check if date is present in existing document to preserve it
@@ -303,7 +302,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             if (doc.has("date")) {
                 createdDate = doc.get("date").asText();
             } else {
-                createdDate = generateDate();
+                createdDate = RestPutIntegrationAction.generateDate();
             }
         }
 
@@ -335,7 +334,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Update integration in SAP (put the contents of "resource" inside "document" key)
         this.log.debug("Updating integration in Security Analytics (id={})", id);
         this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set("document", resource)));
+                this.toJsonObject(MAPPER.createObjectNode().set("document", resource)), Space.DRAFT);
 
         // Construct engine validation payload
         this.log.debug("Validating integration with Engine (id={})", id);
