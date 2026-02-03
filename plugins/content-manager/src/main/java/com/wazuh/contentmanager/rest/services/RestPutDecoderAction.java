@@ -16,9 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.List;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,19 +26,21 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
-import static org.opensearch.rest.RestRequest.Method.PUT;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.List;
+
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+
+import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /**
  * REST handler for updating CTI decoders.
