@@ -52,6 +52,7 @@ public class Policy {
     private static final String DESCRIPTION_KEY = "description";
     private static final String DOCUMENTATION_KEY = "documentation";
     private static final String REFERENCES_KEY = "references";
+    private static final String ID_KEY = "id";
 
     @JsonProperty(TYPE_KEY)
     private String type;
@@ -82,6 +83,9 @@ public class Policy {
 
     @JsonProperty(REFERENCES_KEY)
     private List<String> references;
+
+    @JsonProperty(ID_KEY)
+    private String id;
 
     /** Default constructor. */
     public Policy() {
@@ -483,6 +487,24 @@ public class Policy {
      */
     public void setReferences(List<String> references) {
         this.references = references != null ? references : new ArrayList<>();
+    }
+
+    /**
+     * Gets the id related to this policy.
+     *
+     * @return The id of the policy document.
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Sets the id related to this policy.
+     *
+     * @param id The new id of the policy documet.
+     */
+    public void setId(String id) {
+        this.id = id;
     }
 
     @Override
