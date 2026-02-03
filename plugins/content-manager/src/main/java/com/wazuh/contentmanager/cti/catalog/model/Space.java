@@ -88,6 +88,7 @@ public enum Space {
         throw new IllegalArgumentException("Unknown space: [" + value + "].");
     }
 
+
     public String asSecurityAnalyticsSource() {
         if (this.equals(STANDARD)) {
             return "Sigma";
