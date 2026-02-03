@@ -35,10 +35,12 @@ import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -173,6 +175,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
             // Update decoder
             this.updateDecoder(client, decoderId, resourceNode);
 
+            // Regenerate space hash because decoder content changed
+            this.regenerateSpaceHash(client, Space.DRAFT.toString());
+
             return new RestResponse(
                     "Decoder updated successfully with ID: " + decoderId, RestStatus.OK.getStatus());
 
@@ -271,6 +276,27 @@ public class RestPutDecoderAction extends BaseRestHandler {
             return indexId.substring(INDEX_ID_PREFIX.length());
         }
         return indexId;
+    }
+
+    /**
+     * Regenerates the space hash.
+     *
+     * @param client the OpenSearch client
+     * @param spaceName the name of the space to regenerate hash for
+     */
+    private void regenerateSpaceHash(Client client, String spaceName) {
+        PolicyHashService policyHashService = new PolicyHashService(client);
+
+        // Use PolicyHashService to recalculate space hash for the given space
+        policyHashService.calculateAndUpdate(
+                Constants.INDEX_POLICIES,
+                Constants.INDEX_INTEGRATIONS,
+                Constants.INDEX_DECODERS,
+                Constants.INDEX_KVDBS,
+                Constants.INDEX_RULES,
+                List.of(spaceName));
+
+        this.log.debug("Regenerated space hash for space={}", spaceName);
     }
 
     /**

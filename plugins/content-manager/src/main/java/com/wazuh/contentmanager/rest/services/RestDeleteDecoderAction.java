@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -36,10 +39,14 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -71,6 +78,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_DECODERS = "decoders";
     private final EngineService engine;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Constructs a new RestDeleteDecoderAction handler.
@@ -162,6 +170,9 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             updateIntegrationsRemovingDecoder(client, nonPrefixedId);
             decoderIndex.delete(resolvedDecoderId);
 
+            // Regenerate space hash because decoder was removed from space
+            regenerateSpaceHash(client, Space.DRAFT.toString());
+
             return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
                     .toBytesRestResponse();
         } catch (Exception e) {
@@ -190,7 +201,28 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
         return decoderId.startsWith(INDEX_ID_PREFIX) ? decoderId.substring(2) : decoderId;
     }
 
-    private static void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
+    /**
+     * Regenerates the space hash by using PolicyHashService.
+     *
+     * @param client the OpenSearch client
+     * @param spaceName the name of the space to regenerate hash for
+     */
+    private static void regenerateSpaceHash(Client client, String spaceName) {
+        PolicyHashService policyHashService = new PolicyHashService(client);
+
+        // Use PolicyHashService to recalculate space hash for the given space
+        policyHashService.calculateAndUpdate(
+                Constants.INDEX_POLICIES,
+                Constants.INDEX_INTEGRATIONS,
+                Constants.INDEX_DECODERS,
+                Constants.INDEX_KVDBS,
+                Constants.INDEX_RULES,
+                List.of(spaceName));
+
+        log.debug("Regenerated space hash for space={}", spaceName);
+    }
+
+    private void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
         SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
         searchRequest
                 .source()
@@ -216,13 +248,16 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 updated.removeIf(item -> decoderIndexId.equals(String.valueOf(item)));
                 doc.put(FIELD_DECODERS, updated);
                 source.put(FIELD_DOCUMENT, doc);
-                client
-                        .index(
-                                new IndexRequest(INTEGRATION_INDEX)
-                                        .id(hit.getId())
-                                        .source(source)
-                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                        .actionGet();
+
+                // Regenerate integration hash and persist
+                try {
+                    RestPostDecoderAction.regenerateIntegrationHash(client, hit.getId(), doc, source);
+                } catch (IOException e) {
+                    log.error(
+                            "Failed to regenerate hash for integration [{}]: {}",
+                            hit.getId(),
+                            e.getMessage());
+                }
             }
         }
     }

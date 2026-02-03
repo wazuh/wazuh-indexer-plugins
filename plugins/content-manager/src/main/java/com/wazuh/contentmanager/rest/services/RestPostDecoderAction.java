@@ -43,9 +43,12 @@ import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -172,6 +175,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
             this.createDecoder(client, decoderIndexId, resourceNode);
             this.updateIntegrationWithDecoder(client, integrationId, decoderId);
 
+            // Regenerate space hash because space composition changed
+            this.regenerateSpaceHash(client, Space.DRAFT.toString());
+
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderIndexId,
                     RestStatus.CREATED.getStatus());
@@ -285,13 +291,8 @@ public class RestPostDecoderAction extends BaseRestHandler {
         document.put(FIELD_DECODERS, decoders);
         source.put(FIELD_DOCUMENT, document);
 
-        client
-                .index(
-                        new IndexRequest(INTEGRATION_INDEX)
-                                .id(integrationId)
-                                .source(source)
-                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                .actionGet();
+        // Regenerate integration hash and persist
+        regenerateIntegrationHash(client, integrationId, document, source);
     }
 
     /** Extracts the decoders list from the document, handling type conversion. */
@@ -338,6 +339,63 @@ public class RestPostDecoderAction extends BaseRestHandler {
             authorNode.put(FIELD_DATE, currentTimestamp);
         }
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Regenerates the space hash by using PolicyHashService.
+     *
+     * @param client the OpenSearch client
+     * @param spaceName the name of the space to regenerate hash for
+     */
+    private void regenerateSpaceHash(Client client, String spaceName) {
+        PolicyHashService policyHashService = new PolicyHashService(client);
+
+        // Use PolicyHashService to recalculate space hash for the given space
+        // Pass only the target space (draft or test) to recalculate
+        policyHashService.calculateAndUpdate(
+                Constants.INDEX_POLICIES,
+                Constants.INDEX_INTEGRATIONS,
+                Constants.INDEX_DECODERS,
+                Constants.INDEX_KVDBS,
+                Constants.INDEX_RULES,
+                List.of(spaceName));
+
+        this.log.debug("Regenerated space hash for space={}", spaceName);
+    }
+
+    /**
+     * Regenerates the integration hash after its document has changed and persists it.
+     * This is a complete operation that updates the hash and saves to the index.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID
+     * @param document the updated document content
+     * @param source the integration source map to update with the new hash
+     * @throws IOException if persistence fails
+     */
+    static void regenerateIntegrationHash(
+            Client client, String integrationId, Map<String, Object> document, Map<String, Object> source)
+            throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode documentNode = mapper.valueToTree(document);
+        String newIntegrationHash = HashCalculator.sha256(documentNode.toString());
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put("sha256", newIntegrationHash);
+        source.put("hash", hashMap);
+
+        log.debug(
+                "Regenerated integration hash for id={} (hashPrefix={})",
+                integrationId,
+                newIntegrationHash.length() >= 12 ? newIntegrationHash.substring(0, 12) : newIntegrationHash);
+
+        // Persist the updated integration with new hash
+        client
+                .index(
+                        new IndexRequest(INTEGRATION_INDEX)
+                                .id(integrationId)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                .actionGet();
     }
 
     /**
