@@ -69,6 +69,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                     + "\"resource\": {"
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
+                    + "  \"space\": {\"name\": \"draft\"},"
                     + "  \"metadata\": {"
                     + "    \"title\": \"Example KVDB\","
                     + "    \"description\": \"Example KVDB description\","

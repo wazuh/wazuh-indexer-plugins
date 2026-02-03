@@ -171,6 +171,15 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 return validationResponse;
             }
 
+            // Validate KVDB space - only draft allowed
+            ObjectNode spaceNode = (ObjectNode) resourceNode.get(FIELD_SPACE);
+            if (spaceNode == null
+                    || !spaceNode.hasNonNull(FIELD_NAME)
+                    || !Space.DRAFT.equals(spaceNode.get(FIELD_NAME).asText())) {
+                return new RestResponse(
+                        "KVDBs can only be updated in draft space.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
             // Update KVDB
             this.updateKvdb(client, kvdbId, resourceNode);
 
