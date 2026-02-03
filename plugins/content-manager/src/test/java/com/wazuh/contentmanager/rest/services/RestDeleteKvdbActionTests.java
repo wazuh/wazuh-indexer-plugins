@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -100,7 +101,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         Client client = buildClientForDelete();
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
         RestResponse expectedResponse =
@@ -127,7 +129,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         RestRequest request = buildRequest(null, null);
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         RestResponse expectedResponse =
@@ -149,7 +152,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         RestRequest request = buildRequest(null, "k_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         RestResponse expectedResponse =
@@ -179,6 +183,16 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     private Client buildClientForDelete() throws IOException {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+
+        // Mock KVDB exists check with space information (draft space)
+        GetResponse kvdbGetResponse = mock(GetResponse.class);
+        when(kvdbGetResponse.isExists()).thenReturn(true);
+        Map<String, Object> kvdbSource = new java.util.HashMap<>();
+        Map<String, Object> kvdbSpace = new java.util.HashMap<>();
+        kvdbSpace.put("name", "draft");
+        kvdbSource.put("space", kvdbSpace);
+        when(kvdbGetResponse.getSourceAsMap()).thenReturn(kvdbSource);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(kvdbGetResponse);
 
         doAnswer(
                         invocation -> {
