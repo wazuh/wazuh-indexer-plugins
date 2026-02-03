@@ -39,8 +39,13 @@ import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_DECODERS;
+import static com.wazuh.contentmanager.utils.Constants.KEY_DECODERS;
+import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
 
 /**
  * REST handler for updating CTI decoders.
@@ -64,14 +69,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
     private static final String INDEX_ID_PREFIX = "d_";
-    private static final String DECODER_INDEX = ".cti-decoders";
-    private static final String DECODER_TYPE = "decoder";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
     private static final String FIELD_TYPE = "type";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
     private static final String FIELD_METADATA = "metadata";
     private static final String FIELD_AUTHOR = "author";
     private static final String FIELD_MODIFIED = "modified";
@@ -158,10 +158,17 @@ public class RestPutDecoderAction extends BaseRestHandler {
             String resourceId = RestPutDecoderAction.toResourceId(decoderId);
             resourceNode.put(FIELD_ID, resourceId);
 
+            // Validate decoder is in draft space
+            String spaceValidationError =
+                    DocumentValidations.validateDocumentInSpace(client, INDEX_DECODERS, decoderId, "Decoder");
+            if (spaceValidationError != null) {
+                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
+            }
+
             // Update the modified timestamp
             this.updateTimestampMetadata(resourceNode);
 
-            // Validate integration with Wazuh Engine
+            // Validate decoder with Wazuh Engine
             ObjectNode enginePayload = mapper.createObjectNode();
             enginePayload.set("resource", resourceNode);
             enginePayload.put("type", "decoder");
@@ -230,7 +237,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             throws IOException {
 
         RestPutDecoderAction.ensureIndexExists(client);
-        ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
+        ContentIndex decoderIndex = new ContentIndex(client, INDEX_DECODERS, null);
 
         // Check if decoder exists before updating
         if (!decoderIndex.exists(decoderId)) {
@@ -243,24 +250,24 @@ public class RestPutDecoderAction extends BaseRestHandler {
     /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, DECODER_TYPE);
-        node.set(FIELD_DOCUMENT, resourceNode);
+        node.put(FIELD_TYPE, KEY_DECODERS);
+        node.set(KEY_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
-        node.set(FIELD_SPACE, spaceNode);
+        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        node.set(Constants.KEY_SPACE, spaceNode);
 
         return node;
     }
 
     /** Ensures the decoder index exists, creating it if necessary. */
     private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, RestPutDecoderAction.DECODER_INDEX)) {
-            ContentIndex index = new ContentIndex(client, RestPutDecoderAction.DECODER_INDEX, null);
+        if (!IndexHelper.indexExists(client, INDEX_DECODERS)) {
+            ContentIndex index = new ContentIndex(client, INDEX_DECODERS, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + RestPutDecoderAction.DECODER_INDEX, e);
+                throw new IOException("Failed to create index " + INDEX_DECODERS, e);
             }
         }
     }
