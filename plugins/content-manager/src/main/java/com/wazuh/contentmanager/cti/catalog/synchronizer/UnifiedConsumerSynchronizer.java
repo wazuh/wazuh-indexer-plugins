@@ -175,9 +175,9 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param indexName The policy index name.
      */
     private void initializeSpaces(String indexName) {
-        initializeSpace(indexName, Space.DRAFT.toString(), "Draft policy", "Draft policy");
-        initializeSpace(indexName, Space.TEST.toString(), "Test policy", "Test policy");
-        initializeSpace(indexName, Space.CUSTOM.toString(), "Custom policy", "Custom policy");
+        initializeSpace(indexName, Space.DRAFT.toString());
+        initializeSpace(indexName, Space.TEST.toString());
+        initializeSpace(indexName, Space.CUSTOM.toString());
     }
 
     /**
@@ -185,11 +185,8 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      *
      * @param indexName The index name.
      * @param spaceName The space name.
-     * @param title The policy title.
-     * @param description The policy description.
      */
-    private void initializeSpace(
-            String indexName, String spaceName, String title, String description) {
+    private void initializeSpace(String indexName, String spaceName) {
         try {
             // Check if the space document already exists using a search query
             SearchRequest searchRequest = new SearchRequest(indexName);
@@ -204,11 +201,12 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             if (searchResponse.getHits().getTotalHits().value() == 0) {
                 String uuid = UUID.randomUUID().toString();
                 String date = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
+                String title = "Custom policy";
 
                 Policy policy = new Policy();
                 policy.setId(uuid);
                 policy.setTitle(title);
-                policy.setDescription(description);
+                policy.setDescription(title);
                 policy.setAuthor("");
                 policy.setRootDecoder("");
                 policy.setDocumentation("");
