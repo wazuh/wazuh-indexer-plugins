@@ -637,5 +637,4 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         return client;
     }
->>>>>>> origin/3424-content-manager-api
 }
