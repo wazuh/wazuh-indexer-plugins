@@ -40,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -149,6 +150,15 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
 
             String decoderIndexName = DECODER_INDEX;
             ensureIndexExists(client, decoderIndexName);
+            // Validate decoder is in draft space
+            String validationError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, DECODER_INDEX, resolvedDecoderId, "Decoder");
+            if (validationError != null) {
+                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus())
+                        .toBytesRestResponse();
+            }
+
             ContentIndex decoderIndex = new ContentIndex(client, decoderIndexName, null);
 
             // Check if decoder exists before deleting

@@ -119,8 +119,15 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         when(getResponse.isExists()).thenReturn(true);
         Map<String, Object> docMap = new HashMap<>();
         docMap.put("date", "2021-05-31");
-        when(getResponse.getSourceAsMap()).thenReturn(Map.of("document", docMap));
-        when(getResponse.getSourceAsString()).thenReturn("{\"document\": {\"date\": \"2021-05-31\"}}");
+        // Add space information for draft space validation
+        Map<String, Object> spaceMap = new HashMap<>();
+        spaceMap.put("name", "draft");
+        Map<String, Object> sourceMap = new HashMap<>();
+        sourceMap.put("document", docMap);
+        sourceMap.put("space", spaceMap);
+        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+        when(getResponse.getSourceAsString())
+                .thenReturn("{\"document\": {\"date\": \"2021-05-31\"}, \"space\": {\"name\": \"draft\"}}");
 
         ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
         when(sapFuture.actionGet()).thenReturn(new WIndexRuleResponse(ruleId, 2L, RestStatus.OK));

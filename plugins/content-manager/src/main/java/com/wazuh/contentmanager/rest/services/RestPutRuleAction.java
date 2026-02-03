@@ -39,6 +39,7 @@ import java.util.Objects;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 
@@ -129,6 +130,15 @@ public class RestPutRuleAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST,
                         new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus())
                                 .toXContent());
+            }
+
+            // Validate rule exists and is in draft space
+            String validationError =
+                    DocumentValidations.validateDocumentInSpace(client, CTI_RULES_INDEX, ruleId, "Rule");
+            if (validationError != null) {
+                return new BytesRestResponse(
+                        RestStatus.BAD_REQUEST,
+                        new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus()).toXContent());
             }
 
             if (!request.hasContent()) {
