@@ -189,6 +189,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
+=======
+>>>>>>> origin/3424-content-manager-api
     private RestRequest buildRequest(String payload, String kvdbId) {
         FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
         if (payload != null) {

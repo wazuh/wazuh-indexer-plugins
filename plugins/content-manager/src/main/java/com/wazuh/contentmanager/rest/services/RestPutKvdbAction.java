@@ -24,7 +24,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
@@ -79,6 +82,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
     private static final String FIELD_INTEGRATION = "integration";
+    private static final String FIELD_KVDBS = "kvdbs";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -173,10 +177,19 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 return engineResponse;
             }
 
+            // Find integration associated with this KVDB and validate its space
+            String integrationId = this.findIntegrationForKvdb(client, kvdbId);
+            if (integrationId != null) {
+                RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
+                if (validationResponse != null) {
+                    return validationResponse;
+                }
+            }
+
             // Validate KVDB space - only draft allowed
             GetResponse getResponse = client.prepareGet(KVDB_INDEX, kvdbId).get();
             if (getResponse.getSourceAsMap() == null
-                    || getResponse.getSourceAsMap().get(FIELD_SPACE) == null
+                || getResponse.getSourceAsMap().get(FIELD_SPACE) == null
                     || !(getResponse.getSourceAsMap().get(FIELD_SPACE) instanceof Map)
                     || !Space.DRAFT.equals(
                             String.valueOf(
@@ -299,6 +312,73 @@ public class RestPutKvdbAction extends BaseRestHandler {
             return indexId.substring(INDEX_ID_PREFIX.length());
         }
         return indexId;
+    }
+
+    /**
+     * Finds the integration ID associated with a KVDB by searching for integrations that reference it.
+     *
+     * @param client the OpenSearch client
+     * @param kvdbId the KVDB ID to search for
+     * @return the integration ID if found, null otherwise
+     */
+    private String findIntegrationForKvdb(Client client, String kvdbId) {
+        try {
+            SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
+            searchRequest
+                    .source()
+                    .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_KVDBS, kvdbId));
+            SearchResponse searchResponse = client.search(searchRequest).actionGet();
+            if (searchResponse.getHits().getHits().length > 0) {
+                return searchResponse.getHits().getHits()[0].getId();
+            }
+        } catch (Exception e) {
+            log.warn("Error finding integration for KVDB [{}]: {}", kvdbId, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Validates that the integration exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
+        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+
+        if (!integrationResponse.isExists()) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(FIELD_SPACE)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] does not have space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Object spaceObj = source.get(FIELD_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] has invalid space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(FIELD_NAME);
+
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            return new RestResponse(
+                    "Integration ["
+                            + integrationId
+                            + "] is not in draft space. KVDBs can only be updated when their associated integration is in draft space.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
     }
 
 }
