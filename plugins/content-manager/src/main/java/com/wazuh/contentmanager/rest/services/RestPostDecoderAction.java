@@ -213,20 +213,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
         return null;
     }
 
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, DECODER_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
-            return new RestResponse(
-                    "Invalid decoder body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
     /** Creates the decoder document in the index. */
     private void createDecoder(Client client, String decoderIndexId, ObjectNode resourceNode)
             throws IOException {
