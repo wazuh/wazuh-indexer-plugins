@@ -145,7 +145,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
         }
 
         try {
-            String kvdbId = this.extractKvdbId(request);
+            String kvdbId = request.param("id");
             if (kvdbId == null || kvdbId.isBlank()) {
                 return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -175,7 +175,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             // Validate KVDB space - only draft allowed
-            GetResponse getResponse = client.prepareGet(KVDB_INDEX, kvdbId).setFetchSource(false).get();
+            GetResponse getResponse = client.prepareGet(KVDB_INDEX, kvdbId).get();
             if (!getResponse.isExists() || getResponse.getSourceAsMap() == null) {
                 return new RestResponse(
                         "KVDB [" + kvdbId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
@@ -216,15 +216,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
             return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
-    }
-
-    /** Extracts the KVDB ID from the request path parameters. */
-    private String extractKvdbId(RestRequest request) {
-        String kvdbId = request.param("id");
-        if (kvdbId == null || kvdbId.isBlank()) {
-            kvdbId = request.param("kvdb_id");
-        }
-        return kvdbId;
     }
 
     /** Validates the payload structure and required fields. */
