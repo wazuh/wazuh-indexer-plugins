@@ -86,9 +86,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final String FIELD_AUTHOR = "author";
     private static final String FIELD_DATE = "date";
     private static final String FIELD_MODIFIED = "modified";
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private final EngineService engine;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Constructs a new RestPostDecoderAction handler.
@@ -152,19 +152,25 @@ public class RestPostDecoderAction extends BaseRestHandler {
             }
 
             // Generate UUID and validate with engine
-            resourceNode.put(FIELD_ID, UUID.randomUUID().toString());
+            String decoderId = UUID.randomUUID().toString();
+            resourceNode.put(FIELD_ID, decoderId);
 
             // Add timestamp metadata
             this.addTimestampMetadata(resourceNode, true);
 
-            RestResponse engineResponse = this.validateWithEngine(resourceNode);
-            if (engineResponse != null) {
-                return engineResponse;
+            // Validate integration with Wazuh Engine
+            ObjectNode enginePayload = mapper.createObjectNode();
+            enginePayload.set("resource", resourceNode);
+            enginePayload.put("type", "decoder");
+            final RestResponse engineValidation = this.engine.validate(enginePayload);
+            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
+                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
+
             // Create decoder and update integration
-            String decoderIndexId = toIndexId(resourceNode.get(FIELD_ID).asText());
+            String decoderIndexId = toIndexId(decoderId);
             this.createDecoder(client, decoderIndexId, resourceNode);
-            this.updateIntegrationWithDecoder(client, integrationId, decoderIndexId);
+            this.updateIntegrationWithDecoder(client, integrationId, decoderId);
 
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderIndexId,
@@ -203,20 +209,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
         if (payload.get(FIELD_RESOURCE).hasNonNull(FIELD_ID)) {
             return new RestResponse(
                     "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, DECODER_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
-            return new RestResponse(
-                    "Invalid decoder body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }

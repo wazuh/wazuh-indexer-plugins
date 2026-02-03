@@ -161,10 +161,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
             // Update the modified timestamp
             this.updateTimestampMetadata(resourceNode);
 
-            // Validate with engine
-            RestResponse engineResponse = this.validateWithEngine(resourceNode);
-            if (engineResponse != null) {
-                return engineResponse;
+            // Validate integration with Wazuh Engine
+            ObjectNode enginePayload = mapper.createObjectNode();
+            enginePayload.set("resource", resourceNode);
+            enginePayload.put("type", "decoder");
+            final RestResponse engineValidation = this.engine.validate(enginePayload);
+            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
+                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
             // Update decoder
@@ -218,20 +221,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return new RestResponse(
                         "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
             }
-        }
-        return null;
-    }
-
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, DECODER_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
-            return new RestResponse(
-                    "Invalid decoder body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }
