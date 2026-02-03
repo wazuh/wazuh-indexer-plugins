@@ -203,28 +203,16 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
         try {
             Map<String, Object> sourcePolicy = this.spaceService.getPolicy(sourceSpace);
-            // If source policy doesn't exist, we can't promote anything.
-            if (sourcePolicy == null) {
-                return changes;
-            }
 
-            @SuppressWarnings("unchecked")
             Map<String, Object> sourceDoc = (Map<String, Object>) sourcePolicy.get("document");
             String sourceId = (String) sourceDoc.get("id");
 
             Map<String, Object> targetPolicy = this.spaceService.getPolicy(targetSpace);
+            Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get("document");
 
-            if (targetPolicy == null) {
-                // Target missing -> UPDATE (treated as setting the single policy)
+            // Compare content ignoring ID
+            if (isPolicyDifferent(sourceDoc, targetDoc)) {
                 changes.add(Map.of("operation", OP_UPDATE, "id", sourceId));
-            } else {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get("document");
-
-                // Compare content ignoring ID
-                if (isPolicyDifferent(sourceDoc, targetDoc)) {
-                    changes.add(Map.of("operation", OP_UPDATE, "id", sourceId));
-                }
             }
         } catch (IOException e) {
             log.error("Failed to fetch policies for diff calculation", e);
