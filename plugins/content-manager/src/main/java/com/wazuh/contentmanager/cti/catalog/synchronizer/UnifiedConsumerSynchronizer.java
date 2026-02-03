@@ -16,19 +16,33 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Policy;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.processor.DetectorProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.IntegrationProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -37,6 +51,15 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  * calculating policy hashes.
  */
 public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
+
+    private static final Logger log = LogManager.getLogger(UnifiedConsumerSynchronizer.class);
+    private final ObjectMapper mapper;
+
+    public static final String POLICY = "policy";
+    public static final String RULE = "rule";
+    public static final String DECODER = "decoder";
+    public static final String KVDB = "kvdb";
+    public static final String INTEGRATION = "integration";
 
     /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
@@ -63,6 +86,13 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         this.ruleProcessor = new RuleProcessor(client);
         this.detectorProcessor = new DetectorProcessor(client);
         this.policyHashService = new PolicyHashService(client);
+
+        this.mapper = new ObjectMapper();
+        this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        this.mapper
+                .configOverride(Policy.class)
+                .setInclude(
+                        JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
     }
 
     @Override
@@ -92,6 +122,24 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         return Collections.emptyMap();
     }
 
+    /**
+     * Overrides index naming to utilize the alias name convention directly.
+     *
+     * @param type The type identifier for the index.
+     * @return The unified index name.
+     */
+    @Override
+    public String getIndexName(String type) {
+        return switch (type) {
+            case RULE -> ".cti-rules";
+            case DECODER -> ".cti-decoders";
+            case KVDB -> ".cti-kvdbs";
+            case INTEGRATION -> ".cti-integrations";
+            case POLICY -> ".cti-policies";
+            default -> super.getIndexName(type);
+        };
+    }
+
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
@@ -103,12 +151,93 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             String decoderIndex = this.getIndexName(DECODER);
             String kvdbIndex = this.getIndexName(KVDB);
 
+            // Initialize default spaces if they don't exist
+            this.initializeSpaces(policyIndex);
+
             Map<String, List<String>> integrations = this.integrationProcessor.process(integrationIndex);
             this.ruleProcessor.process(ruleIndex);
             this.detectorProcessor.process(integrations, integrationIndex);
 
             this.policyHashService.calculateAndUpdate(
                     policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
+        }
+    }
+
+    /**
+     * Creates default policy documents for user spaces (draft, testing, custom) if they don't exist.
+     *
+     * @param indexName The policy index name.
+     */
+    private void initializeSpaces(String indexName) {
+        initializeSpace(indexName, Space.DRAFT.toString());
+        initializeSpace(indexName, Space.TEST.toString());
+        initializeSpace(indexName, Space.CUSTOM.toString());
+    }
+
+    /**
+     * Creates a single space policy document if it does not already exist.
+     *
+     * @param indexName The index name.
+     * @param spaceName The space name.
+     */
+    private void initializeSpace(String indexName, String spaceName) {
+        try {
+            // Check if the space document already exists using a search query
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.termQuery("space.name", spaceName));
+            searchSourceBuilder.size(0); // We only care about the count
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+
+            // Proceed only if no document with this space name exists
+            if (searchResponse.getHits().getTotalHits().value() == 0) {
+                String uuid = UUID.randomUUID().toString();
+                String date = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
+                String title = "Custom policy";
+
+                Policy policy = new Policy();
+                policy.setId(uuid);
+                policy.setTitle(title);
+                policy.setDescription(title);
+                policy.setAuthor("");
+                policy.setRootDecoder("");
+                policy.setDocumentation("");
+                policy.setIntegrations(Collections.emptyList());
+                policy.setReferences(Collections.emptyList());
+                policy.setDate(date);
+                policy.setModified(date);
+
+                // TODO: Study the model policy and delete the extra fields
+                Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
+                docMap.remove("type"); // Delete the field type inside the document
+
+                String docJson = this.mapper.writeValueAsString(docMap);
+                String docHash = HashCalculator.sha256(docJson);
+
+                Map<String, Object> space = new HashMap<>();
+                space.put("name", spaceName);
+                space.put("hash", Map.of("sha256", docHash));
+
+                Map<String, Object> source = new HashMap<>();
+                source.put("document", docMap);
+                source.put("space", space);
+                // TODO: change to usage of method to calculate space hash
+                source.put("hash", Map.of("sha256", docHash));
+                source.put("type", "policy");
+
+                IndexRequest request =
+                        new IndexRequest(indexName)
+                                .id(uuid)
+                                .source(this.mapper.writeValueAsString(source), XContentType.JSON)
+                                .opType(DocWriteRequest.OpType.CREATE)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+                this.client.index(request).actionGet();
+            }
+        } catch (Exception e) {
+            log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
         }
     }
 }
