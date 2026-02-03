@@ -28,9 +28,11 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
@@ -75,7 +77,8 @@ public class PolicyHashService {
     }
 
     /**
-     * Calculates and updates the aggregate hash for all policies in the given consumer context.
+     * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
+     * processes only production spaces.
      *
      * @param policyIndex The index containing policy document.
      * @param integrationIndex The index containing integration documents.
@@ -89,6 +92,34 @@ public class PolicyHashService {
             String decoderIndex,
             String kvdbIndex,
             String ruleIndex) {
+
+        List<String> productionSpaces =
+                Arrays.stream(Space.values())
+                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TEST))
+                        .map(Space::toString)
+                        .collect(Collectors.toList());
+
+        this.calculateAndUpdate(
+                policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex, productionSpaces);
+    }
+
+    /**
+     * Calculates and updates the aggregate hash for all policies in the given consumer context.
+     *
+     * @param policyIndex The index containing policy document.
+     * @param integrationIndex The index containing integration documents.
+     * @param decoderIndex The index containing decoder documents.
+     * @param kvdbIndex The index containing kvdb documents.
+     * @param ruleIndex The index containing rule documents.
+     * @param targetSpaces The list of target spaces to process.
+     */
+    public void calculateAndUpdate(
+            String policyIndex,
+            String integrationIndex,
+            String decoderIndex,
+            String kvdbIndex,
+            String ruleIndex,
+            List<String> targetSpaces) {
         try {
             if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
                 log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
@@ -107,7 +138,8 @@ public class PolicyHashService {
                 Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
                 if (space != null) {
                     String spaceName = (String) space.get("name");
-                    if (Space.DRAFT.equals(spaceName) || Space.TEST.equals(spaceName)) {
+                    // Check if the policy is in one of the target spaces
+                    if (!targetSpaces.contains(spaceName)) {
                         log.info(
                                 "Skipping hash calculation for policy [{}] because it is in space [{}]",
                                 hit.getId(),

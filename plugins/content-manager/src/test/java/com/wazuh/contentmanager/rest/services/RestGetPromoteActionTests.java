@@ -217,8 +217,7 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test validation failure when the 'space' parameter is empty. Expected outcome: 400 Bad
-     * Request.
+     * Test validation failure when the 'space' parameter is empty. Expected outcome: 400 Bad Request.
      */
     public void testGetPromote400_EmptySpace() {
         RestRequest request =

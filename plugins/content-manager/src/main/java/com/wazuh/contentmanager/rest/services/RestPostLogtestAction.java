@@ -31,6 +31,7 @@ import java.util.List;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -104,12 +105,13 @@ public class RestPostLogtestAction extends BaseRestHandler {
         // 1. Check if engine service exists
         if (this.engine == null) {
             return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // 2. Check request's payload exists
         if (request == null || !request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 3. Check request's payload is valid JSON
@@ -118,7 +120,8 @@ public class RestPostLogtestAction extends BaseRestHandler {
         try {
             jsonNode = mapper.readTree(request.content().streamInput());
         } catch (IOException ex) {
-            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_JSON_CONTENT, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 4. Logtest accepted

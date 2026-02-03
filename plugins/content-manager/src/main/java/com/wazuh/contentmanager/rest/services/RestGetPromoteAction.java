@@ -94,7 +94,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
             String spaceParam = request.param("space");
             if (spaceParam == null || spaceParam.isEmpty()) {
                 return new RestResponse(
-                    "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus());
+                        "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus());
             }
 
             Space sourceSpace;
@@ -102,15 +102,15 @@ public class RestGetPromoteAction extends BaseRestHandler {
                 sourceSpace = Space.fromValue(spaceParam);
             } catch (IllegalArgumentException e) {
                 return new RestResponse(
-                    "Invalid space parameter: " + spaceParam, RestStatus.BAD_REQUEST.getStatus());
+                        "Invalid space parameter: " + spaceParam, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 2. Determine Target Space
             Space targetSpace = sourceSpace.promote();
             if (targetSpace == sourceSpace) {
                 return new RestResponse(
-                    "Space [" + sourceSpace + "] cannot be promoted further.",
-                    RestStatus.BAD_REQUEST.getStatus());
+                        "Space [" + sourceSpace + "] cannot be promoted further.",
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 3. Fetch Resources for both spaces using SpaceService
@@ -138,8 +138,8 @@ public class RestGetPromoteAction extends BaseRestHandler {
         } catch (Exception e) {
             log.error("Error processing promote preview: {}", e.getMessage(), e);
             return new RestResponse(
-                e.getMessage() != null ? e.getMessage() : "Internal Server Error",
-                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    e.getMessage() != null ? e.getMessage() : "Internal Server Error",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 

@@ -66,6 +66,10 @@ public class ContentManagerPlugin extends Plugin
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String JOB_ID = "wazuh-catalog-sync-job";
 
+    // Index and mapping constants
+    private static final String CTI_RULES_INDEX = ".cti-rules";
+    private static final String RULES_MAPPING_PATH = "/mappings/cti-rules-mappings.json";
+
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
@@ -202,7 +206,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestPutKvdbAction(this.engine),
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
-                new RestPostPromoteAction(this.engine),
+                new RestPostPromoteAction(this.engine, this.spaceService),
                 new RestGetPromoteAction(this.spaceService));
     }
 

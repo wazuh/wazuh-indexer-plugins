@@ -85,6 +85,14 @@ public enum Space {
                 return space;
             }
         }
-        throw new IllegalArgumentException("Unknown operation: " + value);
+        throw new IllegalArgumentException("Unknown space: [" + value + "].");
+    }
+
+    public String asSecurityAnalyticsSource() {
+        if (this.equals(STANDARD)) {
+            return "Sigma";
+        }
+        // Capitalize the first letter to match the queries in the SAP UI.
+        return this.toString().substring(0, 1).toUpperCase(Locale.ROOT) + this.toString().substring(1);
     }
 }
