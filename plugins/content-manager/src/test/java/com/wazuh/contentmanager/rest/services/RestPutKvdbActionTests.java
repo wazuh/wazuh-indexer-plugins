@@ -150,6 +150,17 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         JsonNode resource = captured.get("resource");
         assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", resource.get("id").asText());
+
+        // Verify metadata was preserved and modified timestamp was added
+        assertTrue(resource.has("metadata"));
+        JsonNode metadata = resource.get("metadata");
+        assertTrue(metadata.has("author"));
+        JsonNode author = metadata.get("author");
+        assertTrue(author.has("modified"));
+        assertNotNull(author.get("modified").asText());
+        // Verify date was preserved
+        assertTrue(author.has("date"));
+        assertEquals("2026-01-01T00:00:00.000Z", author.get("date").asText());
     }
 
     /** Test that missing KVDB ID returns 400 Bad Request. */
@@ -299,6 +310,10 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     }
 
     private Client buildClientForIndex() throws Exception {
+        return this.buildClientForIndexWithMetadata();
+    }
+
+    private Client buildClientForIndexWithMetadata() throws Exception {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
@@ -318,6 +333,30 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
 
+        // Mock ContentIndex.getDocument() - kvdb exists with metadata (for metadata preservation)
+        GetResponse getDocumentResponse = mock(GetResponse.class);
+        when(getDocumentResponse.isExists()).thenReturn(true);
+        String existingDocumentJson = "{"
+                + "\"document\": {"
+                + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
+                + "  \"name\": \"kvdb/example/0\","
+                + "  \"enabled\": true,"
+                + "  \"metadata\": {"
+                + "    \"title\": \"Example KVDB\","
+                + "    \"description\": \"Example KVDB description\","
+                + "    \"author\": {"
+                + "      \"name\": \"Wazuh\","
+                + "      \"date\": \"2026-01-01T00:00:00.000Z\","
+                + "      \"modified\": \"2026-01-01T00:00:00.000Z\""
+                + "    }"
+                + "  }"
+                + "},"
+                + "\"space\": {"
+                + "  \"name\": \"draft\""
+                + "}"
+                + "}";
+        when(getDocumentResponse.getSourceAsString()).thenReturn(existingDocumentJson);
+
         // Mock integration response with space information
         GetResponse integrationGetResponse = mock(GetResponse.class);
         when(integrationGetResponse.isExists()).thenReturn(true);
@@ -326,7 +365,11 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         space.put("name", "draft");
         integrationSource.put("space", space);
         when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
+
+        when(client.prepareGet(anyString(), anyString()).get())
+                .thenReturn(getDocumentResponse)
+                .thenReturn(integrationGetResponse)
+                .thenReturn(kvdbGetResponse);
 
         return client;
     }
@@ -359,4 +402,113 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         return client;
     }
+
+    /**
+     * Test that metadata.author.date is preserved while other metadata fields can be updated.
+     *
+     * @throws Exception When an error occurs during test execution.
+     */
+    public void testPutKvdbPreservesOnlyDateAndUpdatesOtherMetadata() throws Exception {
+        // Arrange
+        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String updatePayload = "{"
+                + "\"type\": \"kvdb\","
+                + "\"integration\": \"integration-1\","
+                + "\"resource\": {"
+                + "  \"name\": \"kvdb/example/0\","
+                + "  \"enabled\": false,"
+                + "  \"metadata\": {"
+                + "    \"title\": \"UPDATED Title\","
+                + "    \"description\": \"UPDATED Description\","
+                + "    \"author\": {"
+                + "      \"name\": \"UPDATED Author\""
+                + "    }"
+                + "  }"
+                + "}"
+                + "}";
+        RestRequest request = this.buildRequest(updatePayload, kvdbId);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = this.buildClientForIndexWithMetadata();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        assertEquals(RestStatus.OK, bytesRestResponse.status());
+
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.service).validate(payloadCaptor.capture());
+        JsonNode captured = payloadCaptor.getValue();
+        JsonNode resource = captured.get("resource");
+        JsonNode metadata = resource.get("metadata");
+
+        assertEquals("UPDATED Title", metadata.get("title").asText());
+        assertEquals("UPDATED Description", metadata.get("description").asText());
+        assertEquals("UPDATED Author", metadata.get("author").get("name").asText());
+        assertEquals("2026-01-01T00:00:00.000Z", metadata.get("author").get("date").asText());
+
+        assertTrue(metadata.get("author").has("modified"));
+        String modified = metadata.get("author").get("modified").asText();
+        assertNotNull(modified);
+        assertFalse(modified.equals("2026-01-01T00:00:00.000Z"));
+
+        ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(client).index(indexCaptor.capture());
+        IndexRequest indexRequest = indexCaptor.getValue();
+        String indexedSource = indexRequest.source().utf8ToString();
+        JsonNode indexedDoc = FixtureFactory.from(indexedSource);
+        JsonNode indexedResource = indexedDoc.get("document");
+        JsonNode indexedMetadata = indexedResource.get("metadata");
+
+        assertEquals("UPDATED Title", indexedMetadata.get("title").asText());
+        assertEquals("UPDATED Description", indexedMetadata.get("description").asText());
+        assertEquals("UPDATED Author", indexedMetadata.get("author").get("name").asText());
+        assertEquals("2026-01-01T00:00:00.000Z", indexedMetadata.get("author").get("date").asText());
+    }
+
+    /**
+     * Test that metadata.author.date is preserved even when no metadata is provided in request.
+     *
+     * @throws Exception When an error occurs during test execution.
+     */
+    public void testPutKvdbPreservesDateWhenNoMetadataInRequest() throws Exception {
+        // Arrange
+        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String updatePayload = "{"
+                + "\"type\": \"kvdb\","
+                + "\"integration\": \"integration-1\","
+                + "\"resource\": {"
+                + "  \"name\": \"kvdb/example/0\","
+                + "  \"enabled\": false"
+                + "}"
+                + "}";
+        RestRequest request = this.buildRequest(updatePayload, kvdbId);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        Client client = this.buildClientForIndexWithMetadata();
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, client).toBytesRestResponse();
+
+        assertEquals(RestStatus.OK, bytesRestResponse.status());
+
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.service).validate(payloadCaptor.capture());
+        JsonNode captured = payloadCaptor.getValue();
+        JsonNode resource = captured.get("resource");
+        JsonNode metadata = resource.get("metadata");
+
+        assertEquals("Example KVDB", metadata.get("title").asText());
+        assertEquals("Example KVDB description", metadata.get("description").asText());
+        assertEquals("Wazuh", metadata.get("author").get("name").asText());
+        assertEquals("2026-01-01T00:00:00.000Z", metadata.get("author").get("date").asText());
+
+        assertTrue(metadata.get("author").has("modified"));
+        String modified = metadata.get("author").get("modified").asText();
+        assertNotNull(modified);
+        assertFalse(modified.equals("2026-01-01T00:00:00.000Z"));
+    }
+
 }

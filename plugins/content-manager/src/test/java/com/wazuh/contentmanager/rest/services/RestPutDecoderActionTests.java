@@ -394,31 +394,24 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
-        // Assert
         assertEquals(RestStatus.OK, bytesRestResponse.status());
 
-        // Verify what was sent to the engine (should have updated metadata but preserved date)
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validate(payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
         JsonNode resource = captured.get("resource");
         JsonNode metadata = resource.get("metadata");
 
-        // Verify updated fields
         assertEquals("UPDATED Title", metadata.get("title").asText());
         assertEquals("UPDATED Description", metadata.get("description").asText());
         assertEquals("UPDATED Author", metadata.get("author").get("name").asText());
-
-        // Verify date was preserved (not updated)
         assertEquals("2026-01-01T00:00:00.000Z", metadata.get("author").get("date").asText());
 
-        // Verify modified timestamp was updated
         assertTrue(metadata.get("author").has("modified"));
         String modified = metadata.get("author").get("modified").asText();
         assertNotNull(modified);
-        assertFalse(modified.equals("2026-01-01T00:00:00.000Z")); // Should be different from date
+        assertFalse(modified.equals("2026-01-01T00:00:00.000Z"));
 
-        // Verify what was indexed (should match what was validated)
         ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(client).index(indexCaptor.capture());
         IndexRequest indexRequest = indexCaptor.getValue();
@@ -427,11 +420,9 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         JsonNode indexedResource = indexedDoc.get("document");
         JsonNode indexedMetadata = indexedResource.get("metadata");
 
-        // Verify indexed document has updated metadata
         assertEquals("UPDATED Title", indexedMetadata.get("title").asText());
         assertEquals("UPDATED Description", indexedMetadata.get("description").asText());
         assertEquals("UPDATED Author", indexedMetadata.get("author").get("name").asText());
-        // Verify date was preserved in indexed document
         assertEquals("2026-01-01T00:00:00.000Z", indexedMetadata.get("author").get("date").asText());
     }
 
@@ -459,28 +450,22 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
-        // Assert
         assertEquals(RestStatus.OK, bytesRestResponse.status());
 
-        // Verify what was sent to the engine (should preserve existing metadata including date)
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validate(payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
         JsonNode resource = captured.get("resource");
         JsonNode metadata = resource.get("metadata");
 
-        // Verify existing metadata was preserved
         assertEquals("Example decoder", metadata.get("title").asText());
         assertEquals("Example decoder description", metadata.get("description").asText());
         assertEquals("Wazuh", metadata.get("author").get("name").asText());
-
-        // Verify date was preserved
         assertEquals("2026-01-01T00:00:00.000Z", metadata.get("author").get("date").asText());
 
-        // Verify modified timestamp was updated
         assertTrue(metadata.get("author").has("modified"));
         String modified = metadata.get("author").get("modified").asText();
         assertNotNull(modified);
-        assertFalse(modified.equals("2026-01-01T00:00:00.000Z")); // Should be different from date
+        assertFalse(modified.equals("2026-01-01T00:00:00.000Z"));
     }
 }

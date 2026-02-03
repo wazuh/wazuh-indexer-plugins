@@ -40,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
+import com.wazuh.contentmanager.cti.catalog.utils.MetadataPreservationHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -162,6 +163,11 @@ public class RestPutKvdbAction extends BaseRestHandler {
             String resourceId = toResourceId(kvdbId);
             resourceNode.put(FIELD_ID, resourceId);
 
+            ensureIndexExists(client);
+            ContentIndex kvdbIndex = new ContentIndex(client, KVDB_INDEX, null);
+            MetadataPreservationHelper.preserveMetadataAndUpdateTimestamp(
+                    this.mapper, kvdbIndex, kvdbId, resourceNode);
+
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
@@ -176,12 +182,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
             // Validate KVDB space - only draft allowed
             GetResponse getResponse = client.prepareGet(KVDB_INDEX, kvdbId).get();
-            if (!getResponse.isExists() || getResponse.getSourceAsMap() == null) {
-                return new RestResponse(
-                        "KVDB [" + kvdbId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            if (getResponse.getSourceAsMap().get(FIELD_SPACE) == null
+            if (getResponse.getSourceAsMap() == null
+                    || getResponse.getSourceAsMap().get(FIELD_SPACE) == null
                     || !(getResponse.getSourceAsMap().get(FIELD_SPACE) instanceof Map)
                     || !Space.DRAFT.equals(
                             String.valueOf(
@@ -197,7 +199,11 @@ public class RestPutKvdbAction extends BaseRestHandler {
                     "KVDB updated successfully with ID: " + kvdbId, RestStatus.OK.getStatus());
 
         } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Document [") && errorMessage.contains("] not found.")) {
+                errorMessage = errorMessage.replace("Document [", "KVDB [");
+            }
+            return new RestResponse(errorMessage, RestStatus.BAD_REQUEST.getStatus());
         } catch (OpenSearchParseException e) {
             log.error("Error updating KVDB: {}", e.getMessage(), e);
             return new RestResponse(
