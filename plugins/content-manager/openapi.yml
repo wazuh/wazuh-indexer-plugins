@@ -576,10 +576,13 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   # Promotion endpoints: move content from draft/test into next space
-  /promote_preview:
+  /promote:
     get:
       tags: [Promotion]
       summary: Preview promotion differences
+      description: |
+        Calculates the differences between the current space and the next space in the promotion chain.
+        Returns a list of operations (add, update, remove) that would be performed during promotion.
       operationId: promotePreview
       parameters:
         - name: space
@@ -591,13 +594,17 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/PromotionPreviewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /promote:
     post:
       tags: [Promotion]
       summary: Execute promotion
+      description: |
+        Executes the promotion of content from the source space to the target space based on the
+        provided changes.
       operationId: promote
       requestBody:
         required: true
@@ -610,11 +617,13 @@ paths:
 
       responses:
         "200":
-          description: Promotion executed
+          description: Promotion executed successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -761,33 +770,45 @@ components:
     PolicyDiff:
       type: object
       properties:
-        full_policy:
+        changes:
+          type: object
           properties:
             policy:
-              $ref: "#/components/schemas/PromotionDiffItem"
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
             integrations:
-              $ref: "#/components/schemas/PromotionDiffItem"
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
             kvdbs:
-              $ref: "#/components/schemas/PromotionDiffItem"
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
             decoders:
-              $ref: "#/components/schemas/PromotionDiffItem"
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
             filters:
-              $ref: "#/components/schemas/PromotionDiffItem"
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
 
     PromotionDiffItem:
       type: object
       additionalProperties: false
       required:
         - id
-        - action
+        - operation
       properties:
         id:
           type: string
           description: Resource identifier (UUID)
           example: "m98uk4kBlb9cbROIpEj2"
-        action:
+        operation:
           type: string
-          description: Action to be performed (e.g., "add", "update", "delete")
+          description: Operation to be performed (add, update, remove)
+          enum: [add, update, remove]
           example: "update"
 
     # Request body to execute promotion from a given space with full policy
@@ -796,7 +817,7 @@ components:
       properties:
         space:
           type: string
-          description: The space to promote.
+          description: The source space to promote from.
           enum: [draft, test]
           example: draft
 
@@ -1398,7 +1419,7 @@ components:
         message:
           type: string
         status:
-          type: string
+          type: integer
       required:
         - message
         - status

@@ -50,6 +50,7 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
@@ -65,12 +66,17 @@ public class ContentManagerPlugin extends Plugin
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String JOB_ID = "wazuh-catalog-sync-job";
 
+    // Index and mapping constants
+    private static final String CTI_RULES_INDEX = ".cti-rules";
+    private static final String RULES_MAPPING_PATH = "/mappings/cti-rules-mappings.json";
+
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
     private EngineServiceImpl engine;
+    private SpaceService spaceService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -121,6 +127,9 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize Engine service
         this.engine = new EngineServiceImpl();
+
+        // Initialize Space Service
+        this.spaceService = new SpaceService(this.client);
 
         return Collections.emptyList();
     }
@@ -197,8 +206,8 @@ public class ContentManagerPlugin extends Plugin
                 new RestPutKvdbAction(this.engine),
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
-                new RestPostPromoteAction(this.engine),
-                new RestGetPromotePreviewAction(this.engine));
+                new RestPostPromoteAction(this.engine, this.spaceService),
+                new RestGetPromoteAction(this.spaceService));
     }
 
     /** Performs initialization tasks for the plugin. */
