@@ -65,6 +65,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private static final String KVDB_PAYLOAD =
             "{"
                     + "\"type\": \"kvdb\","
+                    + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
@@ -81,6 +82,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private static final String KVDB_PAYLOAD_WITH_ID_MISMATCH =
             "{"
                     + "\"type\": \"kvdb\","
+                    + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"id\": \"different-uuid-12345\","
                     + "  \"name\": \"kvdb/example/0\","
@@ -95,7 +97,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                     + "}";
 
     private static final String KVDB_PAYLOAD_MISSING_RESOURCE =
-            "{" + "\"type\": \"kvdb\"" + "}";
+            "{" + "\"type\": \"kvdb\"," + "\"integration\": \"integration-1\"" + "}";
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -228,8 +230,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse(
-                        "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse("KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -306,10 +307,20 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         // Mock ContentIndex.exists() - KVDB exists
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
+        GetResponse kvdbGetResponse = mock(GetResponse.class);
+        when(kvdbGetResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(getResponse);
+                .thenReturn(kvdbGetResponse);
+
+        // Mock integration response with space information
+        GetResponse integrationGetResponse = mock(GetResponse.class);
+        when(integrationGetResponse.isExists()).thenReturn(true);
+        Map<String, Object> integrationSource = new java.util.HashMap<>();
+        Map<String, Object> space = new java.util.HashMap<>();
+        space.put("name", "draft");
+        integrationSource.put("space", space);
+        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
 
         return client;
     }
@@ -324,10 +335,20 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         // Mock ContentIndex.exists() - KVDB does not exist
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(false);
+        GetResponse kvdbGetResponse = mock(GetResponse.class);
+        when(kvdbGetResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(getResponse);
+                .thenReturn(kvdbGetResponse);
+
+        // Mock integration response with space information
+        GetResponse integrationGetResponse = mock(GetResponse.class);
+        when(integrationGetResponse.isExists()).thenReturn(true);
+        Map<String, Object> integrationSource = new java.util.HashMap<>();
+        Map<String, Object> space = new java.util.HashMap<>();
+        space.put("name", "draft");
+        integrationSource.put("space", space);
+        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
 
         return client;
     }

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -31,6 +32,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -46,8 +48,8 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  *
  * <p>Endpoint: PUT /_plugins/content-manager/kvdbs/{kvdb_id}
  *
- * <p>This handler processes KVDB update requests. The KVDB is validated against the Wazuh
- * engine before being stored in the index with DRAFT space.
+ * <p>This handler processes KVDB update requests. The KVDB is validated against the Wazuh engine
+ * before being stored in the index with DRAFT space.
  *
  * <p>Possible HTTP responses:
  *
@@ -63,6 +65,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
     private static final String INDEX_ID_PREFIX = "d_";
+    private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String KVDB_INDEX = ".cti-kvdbs";
     private static final String KVDB_TYPE = "kvdb";
     private static final String FIELD_RESOURCE = "resource";
@@ -71,6 +74,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
+    private static final String FIELD_INTEGRATION = "integration";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -123,8 +127,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
     /**
      * Handles the KVDB update request.
      *
-     * <p>This method validates the request payload, ensures the KVDB ID matches, validates the
-     * KVDB with the Wazuh engine, and stores the updated KVDB in the index.
+     * <p>This method validates the request payload, ensures the KVDB ID matches, validates the KVDB
+     * with the Wazuh engine, and stores the updated KVDB in the index.
      *
      * @param request the incoming REST request containing the KVDB data to update
      * @param client the OpenSearch client for index operations
@@ -144,6 +148,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
+            String integrationId = payload.get(FIELD_INTEGRATION).asText();
             // Validate payload structure
             validationError = this.validatePayload(payload, kvdbId);
             if (validationError != null) {
@@ -158,6 +163,12 @@ public class RestPutKvdbAction extends BaseRestHandler {
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
+            }
+
+            // Validate that the Integration exists and is in draft space
+            RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
+            if (validationResponse != null) {
+                return validationResponse;
             }
 
             // Update KVDB
@@ -275,5 +286,49 @@ public class RestPutKvdbAction extends BaseRestHandler {
             return indexId.substring(INDEX_ID_PREFIX.length());
         }
         return indexId;
+    }
+
+    /**
+     * Validates that the integration exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
+        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+
+        if (!integrationResponse.isExists()) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(FIELD_SPACE)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] does not have space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Object spaceObj = source.get(FIELD_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] has invalid space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(FIELD_NAME);
+
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            return new RestResponse(
+                    "Integration ["
+                            + integrationId
+                            + "] is not in draft space. Only integrations in draft space can have rules created.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
     }
 }

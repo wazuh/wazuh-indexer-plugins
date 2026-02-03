@@ -70,55 +70,55 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String KVDB_PAYLOAD =
-        "{"
-            + "\"type\": \"kvdb\","
-            + "\"integration\": \"integration-1\","
-            + "\"resource\": {"
-            + "  \"name\": \"kvdb/example/0\","
-            + "  \"enabled\": true,"
-            + "  \"metadata\": {"
-            + "    \"title\": \"Example KVDB\","
-            + "    \"description\": \"Example KVDB description\","
-            + "    \"author\": {"
-            + "      \"name\": \"Wazuh\""
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+            "{"
+                    + "\"type\": \"kvdb\","
+                    + "\"integration\": \"integration-1\","
+                    + "\"resource\": {"
+                    + "  \"name\": \"kvdb/example/0\","
+                    + "  \"enabled\": true,"
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example KVDB\","
+                    + "    \"description\": \"Example KVDB description\","
+                    + "    \"author\": {"
+                    + "      \"name\": \"Wazuh\""
+                    + "    }"
+                    + "  }"
+                    + "}"
+                    + "}";
 
     private static final String KVDB_PAYLOAD_WITH_ID =
-        "{"
-            + "\"type\": \"kvdb\","
-            + "\"integration\": \"integration-1\","
-            + "\"resource\": {"
-            + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
-            + "  \"name\": \"kvdb/example/0\","
-            + "  \"enabled\": true,"
-            + "  \"metadata\": {"
-            + "    \"title\": \"Example KVDB\","
-            + "    \"description\": \"Example KVDB description\","
-            + "    \"author\": {"
-            + "      \"name\": \"Wazuh\""
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+            "{"
+                    + "\"type\": \"kvdb\","
+                    + "\"integration\": \"integration-1\","
+                    + "\"resource\": {"
+                    + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
+                    + "  \"name\": \"kvdb/example/0\","
+                    + "  \"enabled\": true,"
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example KVDB\","
+                    + "    \"description\": \"Example KVDB description\","
+                    + "    \"author\": {"
+                    + "      \"name\": \"Wazuh\""
+                    + "    }"
+                    + "  }"
+                    + "}"
+                    + "}";
 
     private static final String KVDB_PAYLOAD_MISSING_INTEGRATION =
-        "{"
-            + "\"type\": \"kvdb\","
-            + "\"resource\": {"
-            + "  \"name\": \"kvdb/example/0\","
-            + "  \"enabled\": true,"
-            + "  \"metadata\": {"
-            + "    \"title\": \"Example KVDB\","
-            + "    \"description\": \"Example KVDB description\","
-            + "    \"author\": {"
-            + "      \"name\": \"Wazuh\""
-            + "    }"
-            + "  }"
-            + "}"
-            + "}";
+            "{"
+                    + "\"type\": \"kvdb\","
+                    + "\"resource\": {"
+                    + "  \"name\": \"kvdb/example/0\","
+                    + "  \"enabled\": true,"
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example KVDB\","
+                    + "    \"description\": \"Example KVDB description\","
+                    + "    \"author\": {"
+                    + "      \"name\": \"Wazuh\""
+                    + "    }"
+                    + "  }"
+                    + "}"
+                    + "}";
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -148,16 +148,17 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, client).toBytesRestResponse();
+                this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert - Verify response status and message
         assertEquals(RestStatus.CREATED, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().startsWith("KVDB created successfully with ID:"));
-        
+
         // Extract the returned ID from response message
-        String returnedId = actualResponse.getMessage().substring("KVDB created successfully with ID: ".length());
+        String returnedId =
+                actualResponse.getMessage().substring("KVDB created successfully with ID: ".length());
         // Verify response returns ID WITH prefix
         assertTrue(returnedId.startsWith("d_"));
 
@@ -228,14 +229,14 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, null).toBytesRestResponse();
+                this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-            new RestResponse(
-                "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -255,7 +256,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-            new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -270,14 +271,14 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, null).toBytesRestResponse();
+                this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-            new RestResponse(
-                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                new RestResponse(
+                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
@@ -289,13 +290,13 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, null).toBytesRestResponse();
+                this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-            new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
@@ -310,7 +311,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, client).toBytesRestResponse();
+                this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
@@ -319,7 +320,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
-    /** Test that integration without document field returns 400 Bad Request. */
+    /** Test that integration without space field returns 400 Bad Request. */
     public void testPostKvdbIntegrationWithoutDocumentReturns400() throws Exception {
         // Arrange
         RestRequest request = buildRequest(KVDB_PAYLOAD, null);
@@ -329,16 +330,19 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, client).toBytesRestResponse();
+                this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("Can't find document in integration"));
+        assertTrue(
+                actualResponse
+                        .getMessage()
+                        .contains("Integration [integration-1] does not have space information."));
     }
 
-    /** Test that integration with invalid document returns 400 Bad Request. */
+    /** Test that integration with invalid space returns 400 Bad Request. */
     public void testPostKvdbIntegrationInvalidDocumentReturns400() throws Exception {
         // Arrange
         RestRequest request = buildRequest(KVDB_PAYLOAD, null);
@@ -348,19 +352,22 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Act
         BytesRestResponse bytesRestResponse =
-            this.action.handleRequest(request, client).toBytesRestResponse();
+                this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("Integration document [integration-1] is invalid"));
+        assertTrue(
+                actualResponse
+                        .getMessage()
+                        .contains("Integration [integration-1] has invalid space information."));
     }
 
     private RestRequest buildRequest(String payload, String kvdbId) {
         FakeRestRequest.Builder builder =
-            new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                .withContent(new BytesArray(payload), XContentType.JSON);
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(payload), XContentType.JSON);
         if (kvdbId != null) {
             builder.withParams(Map.of("id", kvdbId, "kvdb_id", kvdbId));
         }
@@ -388,6 +395,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Use mutable map since updateIntegrationWithKvdb modifies it
         Map<String, Object> source = new HashMap<>();
         source.put("document", document);
+        // Add space information - integration is in draft space
+        Map<String, Object> space = new HashMap<>();
+        space.put("name", "draft");
+        source.put("space", space);
         when(getResponse.getSourceAsMap()).thenReturn(source);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
 
@@ -440,9 +451,9 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(true);
-        // Source with document field but not a Map
+        // Source with space field but not a Map (invalid type)
         Map<String, Object> source = new HashMap<>();
-        source.put("document", "invalid-document-type");
+        source.put("space", "invalid-space-type");
         when(getResponse.getSourceAsMap()).thenReturn(source);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
 

@@ -48,8 +48,8 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *
  * <p>Endpoint: DELETE /_plugins/_content_manager/kvdbs/{kvdb_id}
  *
- * <p>This handler processes KVDB deletion requests. When a KVDB is deleted, it is also removed
- * from any integrations that reference it.
+ * <p>This handler processes KVDB deletion requests. When a KVDB is deleted, it is also removed from
+ * any integrations that reference it.
  *
  * <p>Possible HTTP responses:
  *
@@ -94,11 +94,11 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-            new NamedRoute.Builder()
-                .path(PluginSettings.KVDBS_URI + "/{id}")
-                .method(DELETE)
-                .uniqueName(ENDPOINT_UNIQUE_NAME)
-                .build());
+                new NamedRoute.Builder()
+                        .path(PluginSettings.KVDBS_URI + "/{id}")
+                        .method(DELETE)
+                        .uniqueName(ENDPOINT_UNIQUE_NAME)
+                        .build());
     }
 
     /**
@@ -111,7 +111,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-        throws IOException {
+            throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
         return channel -> channel.sendResponse(this.handleRequest(request, client));
@@ -131,8 +131,8 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
         try {
             if (this.engine == null) {
                 RestResponse error =
-                    new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        new RestResponse(
+                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
                 return error.toBytesRestResponse();
             }
 
@@ -142,31 +142,30 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
             }
             if (kvdbId == null || kvdbId.isBlank()) {
                 return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus())
-                    .toBytesRestResponse();
+                        .toBytesRestResponse();
             }
 
             String kvdbIndexName = KVDB_ALIAS;
             ensureIndexExists(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
-            ContentIndex kvdbIndex =
-                new ContentIndex(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
+            ContentIndex kvdbIndex = new ContentIndex(client, kvdbIndexName, KVDB_MAPPINGS, KVDB_ALIAS);
             updateIntegrationsRemovingKvdb(client, kvdbId);
             kvdbIndex.delete(kvdbId);
 
             return new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus())
-                .toBytesRestResponse();
+                    .toBytesRestResponse();
         } catch (Exception e) {
             log.error("Error deleting KVDB: {}", e.getMessage(), e);
             return new RestResponse(
-                e.getMessage() != null
-                    ? e.getMessage()
-                    : "An unexpected error occurred while processing your request.",
-                RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                .toBytesRestResponse();
+                            e.getMessage() != null
+                                    ? e.getMessage()
+                                    : "An unexpected error occurred while processing your request.",
+                            RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                    .toBytesRestResponse();
         }
     }
 
     private static void ensureIndexExists(
-        Client client, String indexName, String mappingsPath, String alias) throws IOException {
+            Client client, String indexName, String mappingsPath, String alias) throws IOException {
         if (!IndexHelper.indexExists(client, indexName)) {
             ContentIndex index = new ContentIndex(client, indexName, mappingsPath, alias);
             try {
@@ -180,17 +179,17 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     private static void updateIntegrationsRemovingKvdb(Client client, String kvdbIndexId) {
         SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
         searchRequest
-            .source()
-            .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_KVDBS, kvdbIndexId));
+                .source()
+                .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_KVDBS, kvdbIndexId));
         SearchResponse searchResponse = client.search(searchRequest).actionGet();
         for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
             Map<String, Object> source = hit.getSourceAsMap();
             Object documentObj = source.get(FIELD_DOCUMENT);
             if (!(documentObj instanceof Map)) {
                 log.warn(
-                    "Integration document [{}] is invalid while removing KVDB [{}].",
-                    hit.getId(),
-                    kvdbIndexId);
+                        "Integration document [{}] is invalid while removing KVDB [{}].",
+                        hit.getId(),
+                        kvdbIndexId);
                 continue;
             }
             Map<String, Object> doc = new java.util.HashMap<>();
@@ -205,12 +204,12 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                 doc.put(FIELD_KVDBS, updated);
                 source.put(FIELD_DOCUMENT, doc);
                 client
-                    .index(
-                        new IndexRequest(INTEGRATION_INDEX)
-                            .id(hit.getId())
-                            .source(source)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                    .actionGet();
+                        .index(
+                                new IndexRequest(INTEGRATION_INDEX)
+                                        .id(hit.getId())
+                                        .source(source)
+                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                        .actionGet();
             }
         }
     }

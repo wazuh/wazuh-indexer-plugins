@@ -89,8 +89,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest, Client)} method when the request is
-     * complete. The expected response is: {201, RestResponse}
+     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {201, RestResponse}
      *
      * @throws IOException
      */
@@ -104,7 +104,7 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
 
         // Assert
         RestResponse expectedResponse =
-            new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus());
+                new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.CREATED, bytesRestResponse.status());
@@ -117,8 +117,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest, Client)} method when the kvdb has not
-     * been deleted (mock). The expected response is: {400, RestResponse}
+     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest, Client)} method when the kvdb
+     * has not been deleted (mock). The expected response is: {400, RestResponse}
      *
      * @throws IOException
      */
@@ -131,15 +131,15 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
 
         // Assert
         RestResponse expectedResponse =
-            new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
     }
 
     /**
-     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest, Client)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
+     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest, Client)} method when an
+     * unexpected error occurs. The expected response is: {500, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
@@ -153,8 +153,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
 
         // Assert
         RestResponse expectedResponse =
-            new RestResponse(
-                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                new RestResponse(
+                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
@@ -181,11 +181,11 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
         doAnswer(
-            invocation -> {
-                return null;
-            })
-            .when(client)
-            .delete(any(DeleteRequest.class), any());
+                        invocation -> {
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any());
 
         @SuppressWarnings("unchecked")
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
@@ -194,16 +194,15 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
 
         SearchResponse searchResponse = mock(SearchResponse.class);
         org.opensearch.search.SearchHit hit =
-            new org.opensearch.search.SearchHit(
-                0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
+                new org.opensearch.search.SearchHit(
+                        0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
         hit.sourceRef(
-            new BytesArray(
-                "{\"document\":{\"kvdbs\":[\"k_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
+                new BytesArray("{\"document\":{\"kvdbs\":[\"k_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
         org.opensearch.search.SearchHits hits =
-            new org.opensearch.search.SearchHits(
-                new org.opensearch.search.SearchHit[] {hit},
-                new TotalHits(1, TotalHits.Relation.EQUAL_TO),
-                1.0f);
+                new org.opensearch.search.SearchHits(
+                        new org.opensearch.search.SearchHit[] {hit},
+                        new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+                        1.0f);
         when(searchResponse.getHits()).thenReturn(hits);
         when(client.search(any(SearchRequest.class)).actionGet()).thenReturn(searchResponse);
 
