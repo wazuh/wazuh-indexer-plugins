@@ -454,6 +454,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         mockPolicy.put(Constants.KEY_DOCUMENT, mockPolicyDoc);
         when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), eq("policy")))
                 .thenReturn(mockPolicy);
+        when(this.spaceService.getPolicy(eq("draft"))).thenReturn(mockPolicy);
 
         // Mock integration for DELETE operation (integration exists in test space - target)
         Map<String, Object> mockIntegration = new HashMap<>();
