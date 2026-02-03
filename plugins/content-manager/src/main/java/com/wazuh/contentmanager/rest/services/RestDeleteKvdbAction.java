@@ -93,7 +93,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     /**
      * Return the route configuration for this handler.
      *
-     * @return route configuration for the update endpoint
+     * @return route configuration for the DELETE endpoint
      */
     @Override
     public List<Route> routes() {
@@ -161,7 +161,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                             String.valueOf(
                                     ((Map<?, ?>) getResponse.getSourceAsMap().get(FIELD_SPACE)).get(FIELD_NAME)))) {
                 return new RestResponse(
-                        "KVDBs can only be updated in draft space.", RestStatus.BAD_REQUEST.getStatus());
+                        "KVDBs can only be deleted from draft space.", RestStatus.BAD_REQUEST.getStatus());
             }
 
             ensureIndexExists(client);
