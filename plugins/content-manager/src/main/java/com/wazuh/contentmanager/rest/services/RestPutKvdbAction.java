@@ -46,28 +46,10 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
-/**
- * REST handler for updating CTI KVDBs.
- *
- * <p>Endpoint: PUT /_plugins/content-manager/kvdbs/{kvdb_id}
- *
- * <p>This handler processes KVDB update requests. The KVDB is validated against the Wazuh engine
- * before being stored in the index with DRAFT space.
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>200 OK: KVDB updated successfully after engine validation.
- *   <li>400 Bad Request: Missing or invalid request body, KVDB ID mismatch, or validation error.
- *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
- * </ul>
- */
 public class RestPutKvdbAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutKvdbAction.class);
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
-    private static final String INDEX_ID_PREFIX = "d_";
     private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String KVDB_INDEX = ".cti-kvdbs";
     private static final String KVDB_TYPE = "kvdb";
@@ -81,26 +63,15 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /**
-     * Constructs a new RestPutKvdbAction handler.
-     *
-     * @param engine the engine service instance for communication with the Wazuh engine
-     */
     public RestPutKvdbAction(EngineService engine) {
         this.engine = engine;
     }
 
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -111,34 +82,15 @@ public class RestPutKvdbAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for processing.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
 
-    /**
-     * Handles the KVDB update request.
-     *
-     * <p>This method validates the request payload, ensures the KVDB ID matches, validates the KVDB
-     * with the Wazuh engine, and stores the updated KVDB in the index.
-     *
-     * @param request the incoming REST request containing the KVDB data to update
-     * @param client the OpenSearch client for index operations
-     * @return a RestResponse indicating success or failure of the update
-     */
     public RestResponse handleRequest(RestRequest request, Client client) {
-        // Validate prerequisites
         RestResponse validationError = this.validatePrerequisites(request);
         if (validationError != null) {
             return validationError;
@@ -152,29 +104,25 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
-            // Validate payload structure
             validationError = this.validatePayload(payload, kvdbId);
             if (validationError != null) {
                 return validationError;
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            String resourceId = toResourceId(kvdbId);
-            resourceNode.put(FIELD_ID, resourceId);
+            // Use ID directly without prefix
+            resourceNode.put(FIELD_ID, kvdbId);
 
-            // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
             }
 
-            // Validate that the Integration exists and is in draft space
             RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
             if (validationResponse != null) {
                 return validationResponse;
             }
 
-            // Validate KVDB space - only draft allowed
             GetResponse getResponse = client.prepareGet(KVDB_INDEX, kvdbId).get();
             if (!getResponse.isExists() || getResponse.getSourceAsMap() == null) {
                 return new RestResponse(
@@ -190,7 +138,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
                         "KVDBs can only be updated in draft space.", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Update KVDB
             this.updateKvdb(client, kvdbId, resourceNode);
 
             return new RestResponse(
@@ -206,7 +153,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
         }
     }
 
-    /** Validates that the engine service and request content are available. */
     private RestResponse validatePrerequisites(RestRequest request) {
         if (this.engine == null) {
             return new RestResponse(
@@ -218,17 +164,15 @@ public class RestPutKvdbAction extends BaseRestHandler {
         return null;
     }
 
-    /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String kvdbId) {
         if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        String resourceId = toResourceId(kvdbId);
         if (resourceNode.hasNonNull(FIELD_ID)) {
             String payloadId = resourceNode.get(FIELD_ID).asText();
-            if (!payloadId.equals(resourceId) && !payloadId.equals(kvdbId)) {
+            if (!payloadId.equals(kvdbId)) {
                 return new RestResponse(
                         "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -236,7 +180,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
         return null;
     }
 
-    /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
         ObjectNode enginePayload = this.mapper.createObjectNode();
         enginePayload.put(FIELD_TYPE, KVDB_TYPE);
@@ -250,14 +193,12 @@ public class RestPutKvdbAction extends BaseRestHandler {
         return null;
     }
 
-    /** Updates the KVDB document in the index. */
     private void updateKvdb(Client client, String kvdbId, ObjectNode resourceNode)
             throws IOException {
 
         ensureIndexExists(client);
         ContentIndex kvdbIndex = new ContentIndex(client, KVDB_INDEX, null);
 
-        // Check if KVDB exists before updating
         if (!kvdbIndex.exists(kvdbId)) {
             throw new IOException("KVDB [" + kvdbId + "] not found.");
         }
@@ -265,12 +206,10 @@ public class RestPutKvdbAction extends BaseRestHandler {
         kvdbIndex.create(kvdbId, this.buildKvdbPayload(resourceNode));
     }
 
-    /** Builds the KVDB payload with document and space information. */
     private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
         node.put(FIELD_TYPE, KVDB_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
-        // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
@@ -278,7 +217,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
         return node;
     }
 
-    /** Ensures the KVDB index exists, creating it if necessary. */
     private static void ensureIndexExists(Client client) throws IOException {
         if (!IndexHelper.indexExists(client, RestPutKvdbAction.KVDB_INDEX)) {
             ContentIndex index = new ContentIndex(client, RestPutKvdbAction.KVDB_INDEX, null);
@@ -290,21 +228,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
         }
     }
 
-    /** Converts an index document ID to a resource ID by removing the prefix. */
-    private static String toResourceId(String indexId) {
-        if (indexId != null && indexId.startsWith(INDEX_ID_PREFIX)) {
-            return indexId.substring(INDEX_ID_PREFIX.length());
-        }
-        return indexId;
-    }
-
-    /**
-     * Validates that the integration exists and is in the draft space.
-     *
-     * @param client the OpenSearch client
-     * @param integrationId the integration ID to validate
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
     private RestResponse validateIntegrationSpace(Client client, String integrationId) {
         GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
 
