@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Extend OpenAPI document with user-generated content management endpoints [(#736)](https://github.com/wazuh/wazuh-indexer-plugins/pull/736)
 - Define Index schema for IoC content [(#744)](https://github.com/wazuh/wazuh-indexer-plugins/pull/744)
 - Add API endpoints for Logtest executions [(#746)](https://github.com/wazuh/wazuh-indexer-plugins/pull/746)
+- Add API endpoints for promote preview [(#759)](https://github.com/wazuh/wazuh-indexer-plugins/pull/759)
 - Implement Integrations endpoints [(#749)](https://github.com/wazuh/wazuh-indexer-plugins/pull/749)
 - Add API endpoints for Rules management [(#757)](https://github.com/wazuh/wazuh-indexer-plugins/pull/757)
 - Add decoder management endpoints [(#751)](https://github.com/wazuh/wazuh-indexer-plugins/pull/751)

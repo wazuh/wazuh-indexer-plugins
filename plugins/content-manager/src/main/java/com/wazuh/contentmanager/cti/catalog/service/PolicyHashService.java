@@ -95,7 +95,7 @@ public class PolicyHashService {
 
         List<String> productionSpaces =
                 Arrays.stream(Space.values())
-                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TESTING))
+                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TEST))
                         .map(Space::toString)
                         .collect(Collectors.toList());
 

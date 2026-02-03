@@ -276,7 +276,6 @@ public class ContentIndex {
                 new IndexRequest(this.indexName)
                         .id(id)
                         .source(processedPayload.toString(), XContentType.JSON);
-
         try {
             return this.client
                     .index(request)
