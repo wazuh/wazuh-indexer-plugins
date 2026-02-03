@@ -307,9 +307,14 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock ContentIndex.exists() - KVDB exists
+        // Mock KVDB exists check with space information
         GetResponse kvdbGetResponse = mock(GetResponse.class);
         when(kvdbGetResponse.isExists()).thenReturn(true);
+        Map<String, Object> kvdbSource = new java.util.HashMap<>();
+        Map<String, Object> kvdbSpace = new java.util.HashMap<>();
+        kvdbSpace.put("name", "draft");
+        kvdbSource.put("space", kvdbSpace);
+        when(kvdbGetResponse.getSourceAsMap()).thenReturn(kvdbSource);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
 
@@ -335,9 +340,10 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock ContentIndex.exists() - KVDB does not exist
+        // Mock KVDB does not exist
         GetResponse kvdbGetResponse = mock(GetResponse.class);
         when(kvdbGetResponse.isExists()).thenReturn(false);
+        when(kvdbGetResponse.getSourceAsMap()).thenReturn(null);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
 

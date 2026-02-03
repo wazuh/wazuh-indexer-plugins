@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchParseException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -33,6 +34,8 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -172,10 +175,17 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             // Validate KVDB space - only draft allowed
-            ObjectNode spaceNode = (ObjectNode) resourceNode.get(FIELD_SPACE);
-            if (spaceNode == null
-                    || !spaceNode.hasNonNull(FIELD_NAME)
-                    || !Space.DRAFT.equals(spaceNode.get(FIELD_NAME).asText())) {
+            GetResponse getResponse = client.prepareGet(KVDB_INDEX, kvdbId).setFetchSource(false).get();
+            if (!getResponse.isExists() || getResponse.getSourceAsMap() == null) {
+                return new RestResponse(
+                        "KVDB [" + kvdbId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            if (getResponse.getSourceAsMap().get(FIELD_SPACE) == null
+                    || !(getResponse.getSourceAsMap().get(FIELD_SPACE) instanceof Map)
+                    || !Space.DRAFT.equals(
+                            String.valueOf(
+                                    ((Map<?, ?>) getResponse.getSourceAsMap().get(FIELD_SPACE)).get(FIELD_NAME)))) {
                 return new RestResponse(
                         "KVDBs can only be updated in draft space.", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -188,7 +198,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
         } catch (IOException e) {
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        } catch (Exception e) {
+        } catch (OpenSearchParseException e) {
             log.error("Error updating KVDB: {}", e.getMessage(), e);
             return new RestResponse(
                     e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
@@ -283,7 +293,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             ContentIndex index = new ContentIndex(client, RestPutKvdbAction.KVDB_INDEX, null);
             try {
                 index.createIndex();
-            } catch (Exception e) {
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new IOException("Failed to create index " + RestPutKvdbAction.KVDB_INDEX, e);
             }
         }
