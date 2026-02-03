@@ -26,6 +26,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class EngineServiceImpl implements EngineService {
     public static final String LOGTEST = "logtest";
     static final String VALIDATE = "/content/validate/resource";
+    static final String PROMOTE = "/content/validate/policy";
 
     private final EngineSocketClient socket;
 
@@ -55,7 +56,6 @@ public class EngineServiceImpl implements EngineService {
 
     @Override
     public RestResponse promote(JsonNode policy) {
-        // TODO pending implementation
-        return null;
+        return this.socket.sendRequest(PROMOTE, POST.name(), policy);
     }
 }
