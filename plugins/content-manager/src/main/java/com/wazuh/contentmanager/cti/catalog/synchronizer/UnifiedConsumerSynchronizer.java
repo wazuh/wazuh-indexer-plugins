@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
@@ -25,11 +26,13 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +57,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     private static final Logger log = LogManager.getLogger(UnifiedConsumerSynchronizer.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
 
     public static final String POLICY = "policy";
     public static final String RULE = "rule";
@@ -87,6 +90,13 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         this.ruleProcessor = new RuleProcessor(client);
         this.detectorProcessor = new DetectorProcessor(client);
         this.policyHashService = new PolicyHashService(client);
+
+        this.mapper = new ObjectMapper();
+        this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        this.mapper
+                .configOverride(Policy.class)
+                .setInclude(
+                        JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
     }
 
     @Override
@@ -196,7 +206,11 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
             // Proceed only if no document with this space name exists
             if (searchResponse.getHits().getTotalHits().value() == 0) {
+                String uuid = UUID.randomUUID().toString();
+                String date = LocalDate.now().toString();
+
                 Policy policy = new Policy();
+                policy.setId(uuid);
                 policy.setTitle(title);
                 policy.setDescription(description);
                 policy.setAuthor("");
@@ -204,8 +218,14 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 policy.setDocumentation("");
                 policy.setIntegrations(Collections.emptyList());
                 policy.setReferences(Collections.emptyList());
+                policy.setDate(date);
+                policy.setModified(date);
 
-                String docJson = mapper.writeValueAsString(policy);
+                // TODO: Study the model policy and delete the extra fields
+                Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
+                docMap.remove("type"); // Delete the field type inside the document
+
+                String docJson = this.mapper.writeValueAsString(docMap);
                 String docHash = HashCalculator.sha256(docJson);
 
                 Map<String, Object> space = new HashMap<>();
@@ -213,15 +233,16 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 space.put("hash", Map.of("sha256", docHash));
 
                 Map<String, Object> source = new HashMap<>();
-                source.put("document", mapper.convertValue(policy, Map.class));
+                source.put("document", docMap);
                 source.put("space", space);
                 // TODO: change to usage of method to calculate space hash
                 source.put("hash", Map.of("sha256", docHash));
+                source.put("type", "policy");
 
                 IndexRequest request =
                         new IndexRequest(indexName)
-                                .id(UUID.randomUUID().toString())
-                                .source(source)
+                                .id(uuid)
+                                .source(this.mapper.writeValueAsString(source), XContentType.JSON)
                                 .opType(DocWriteRequest.OpType.CREATE)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
