@@ -130,20 +130,14 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      */
     @Override
     public String getIndexName(String type) {
-        switch (type) {
-            case RULE:
-                return ".cti-rules";
-            case DECODER:
-                return ".cti-decoders";
-            case KVDB:
-                return ".cti-kvdbs";
-            case INTEGRATION:
-                return ".cti-integrations";
-            case POLICY:
-                return ".cti-policies";
-            default:
-                return super.getIndexName(type);
-        }
+        return switch (type) {
+            case RULE -> ".cti-rules";
+            case DECODER -> ".cti-decoders";
+            case KVDB -> ".cti-kvdbs";
+            case INTEGRATION -> ".cti-integrations";
+            case POLICY -> ".cti-policies";
+            default -> super.getIndexName(type);
+        };
     }
 
     @Override
