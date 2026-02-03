@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -32,6 +33,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -157,6 +159,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String resourceId = RestPutDecoderAction.toResourceId(decoderId);
             resourceNode.put(FIELD_ID, resourceId);
+
+            // Validate decoder is in draft space
+            RestResponse spaceValidation = this.validateDecoderSpace(client, decoderId);
+            if (spaceValidation != null) {
+                return spaceValidation;
+            }
 
             // Update the modified timestamp
             this.updateTimestampMetadata(resourceNode);
@@ -301,5 +309,49 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
         // Set modified timestamp
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Validates that the decoder exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param decoderId the decoder ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    private RestResponse validateDecoderSpace(Client client, String decoderId) {
+        GetResponse decoderResponse = client.prepareGet(DECODER_INDEX, decoderId).get();
+
+        if (!decoderResponse.isExists()) {
+            return new RestResponse(
+                    "Decoder [" + decoderId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Map<String, Object> source = decoderResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(FIELD_SPACE)) {
+            return new RestResponse(
+                    "Decoder [" + decoderId + "] does not have space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Object spaceObj = source.get(FIELD_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return new RestResponse(
+                    "Decoder [" + decoderId + "] has invalid space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(FIELD_NAME);
+
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            return new RestResponse(
+                    "Decoder ["
+                            + decoderId
+                            + "] is not in draft space. Only decoders in draft space can be updated.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
     }
 }

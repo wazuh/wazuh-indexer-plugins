@@ -275,6 +275,21 @@ public class RestPostDecoderAction extends BaseRestHandler {
                             + "].");
         }
 
+        Object spaceObj = source.get(FIELD_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            throw new IOException("Integration [" + integrationId + "] has invalid space information.");
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(FIELD_NAME);
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            throw new IOException(
+                    "Integration ["
+                            + integrationId
+                            + "] is not in draft space. Only integrations in draft space can have rules created.");
+        }
+
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
         List<String> decoders = this.extractDecodersList(document.get(FIELD_DECODERS));
 
