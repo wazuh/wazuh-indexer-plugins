@@ -16,9 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,21 +26,19 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import static org.opensearch.rest.RestRequest.Method.PUT;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-
-import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /**
  * REST handler for updating CTI decoders.
@@ -161,10 +159,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
             // Update the modified timestamp
             this.updateTimestampMetadata(resourceNode);
 
-            // Validate with engine
-            RestResponse engineResponse = this.validateWithEngine(resourceNode);
-            if (engineResponse != null) {
-                return engineResponse;
+            // Validate integration with Wazuh Engine
+            ObjectNode enginePayload = mapper.createObjectNode();
+            enginePayload.set("resource", resourceNode);
+            enginePayload.put("type", "decoder");
+            final RestResponse engineValidation = this.engine.validate(enginePayload);
+            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
+                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
             // Update decoder
@@ -218,20 +219,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return new RestResponse(
                         "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
             }
-        }
-        return null;
-    }
-
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, DECODER_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response == null || response.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    "Invalid decoder body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }

@@ -86,10 +86,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final String FIELD_AUTHOR = "author";
     private static final String FIELD_DATE = "date";
     private static final String FIELD_MODIFIED = "modified";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private final EngineService engine;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Constructs a new RestPostDecoderAction handler.
@@ -160,35 +159,14 @@ public class RestPostDecoderAction extends BaseRestHandler {
             this.addTimestampMetadata(resourceNode, true);
 
             // Validate integration with Wazuh Engine
-            ObjectNode enginePayload = MAPPER.createObjectNode();
+            ObjectNode enginePayload = mapper.createObjectNode();
             enginePayload.set("resource", resourceNode);
             enginePayload.put("type", "decoder");
-            final RestResponse validationResponse = this.engine.validate(enginePayload);
-
-            try {
-                MAPPER.readTree(validationResponse.getMessage()).isObject();
-            } catch (Exception e) {
-                if (validationResponse.getStatus() == RestStatus.BAD_REQUEST.getStatus()) {
-                    return new RestResponse(
-                            "Invalid Decoder body, " + validationResponse.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus());
-                }
-                return new RestResponse(
-                        "Failed to create Decoder, Invalid validation response: "
-                                + validationResponse.getMessage()
-                                + "."
-                                + validationResponse.getStatus(),
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            final RestResponse engineValidation = this.engine.validate(enginePayload);
+            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
+                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
-            // If validation failed, delete the created Decoder in SAP
-            if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(
-                        "Failed to create Decoder, Validation response: "
-                                + validationResponse.getStatus()
-                                + ".",
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
             // Create decoder and update integration
             String decoderIndexId = toIndexId(decoderId);
             this.createDecoder(client, decoderIndexId, resourceNode);
