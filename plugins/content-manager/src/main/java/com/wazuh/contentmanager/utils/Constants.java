@@ -56,6 +56,7 @@ public class Constants {
     // Resource Types Keys
     public static final String KEY_POLICIES = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
+    public static final String KEY_INTEGRATION = "integration";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
     public static final String KEY_DECODERS = "decoders";
@@ -65,6 +66,8 @@ public class Constants {
     public static final String KEY_DOCUMENT = "document";
     public static final String KEY_HASH = "hash";
     public static final String KEY_SPACE = "space";
+    public static final String KEY_NAME = "name";
+    ;
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
