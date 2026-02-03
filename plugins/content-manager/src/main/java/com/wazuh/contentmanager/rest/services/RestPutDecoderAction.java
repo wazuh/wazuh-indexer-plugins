@@ -229,7 +229,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         enginePayload.set(FIELD_RESOURCE, resourceNode);
 
         RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
+        if (response == null || response.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
                     "Invalid decoder body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
         }
