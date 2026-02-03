@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.util.Locale;
 
 /**
@@ -40,6 +43,7 @@ public enum Space {
      *
      * @return The space name in lowercase.
      */
+    @JsonValue
     @Override
     public String toString() {
         return this.name().toLowerCase(Locale.ROOT);
@@ -54,6 +58,36 @@ public enum Space {
     public boolean equals(String s) {
         return this.toString().equalsIgnoreCase(s);
     }
+
+    /**
+     * Provides the next space to which the current space can transition to. Only DRAFT and TEST
+     * spaces can be promoted.
+     *
+     * <pre>
+     *  - DRAFT -> TEST
+     *  - TEST -> CUSTOM
+     * </pre>
+     *
+     * @return the next space transition.
+     */
+    public Space promote() {
+        return switch (this) {
+            case DRAFT -> TEST;
+            case TEST -> CUSTOM;
+            default -> this;
+        };
+    }
+
+    @JsonCreator
+    public static Space fromValue(String value) {
+        for (Space space : Space.values()) {
+            if (space.toString().equalsIgnoreCase(value)) {
+                return space;
+            }
+        }
+        throw new IllegalArgumentException("Unknown space: [" + value + "].");
+    }
+
 
     public String asSecurityAnalyticsSource() {
         if (this.equals(STANDARD)) {
