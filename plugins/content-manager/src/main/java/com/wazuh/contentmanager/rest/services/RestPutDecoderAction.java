@@ -212,6 +212,10 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String decoderId) {
+        if (payload.has("integration")) {
+            return new RestResponse(
+                    "Integration field is not allowed in PUT requests.", RestStatus.BAD_REQUEST.getStatus());
+        }
         if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }

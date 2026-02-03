@@ -27,6 +27,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -144,6 +145,32 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
+    }
+
+    /**
+     * Test that integration field in DELETE request body returns 400 Bad Request.
+     */
+    public void testDeleteDecoderWithIntegrationInBodyReturns400() {
+        // Arrange
+        String payloadWithIntegration = "{\"integration\": \"integration-1\"}";
+        FakeRestRequest.Builder builder =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(payloadWithIntegration), XContentType.JSON)
+                        .withParams(Map.of("id", "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f"));
+        RestRequest request = builder.build();
+
+        // Act
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Integration field is not allowed in DELETE requests.",
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
     }
 
     private RestRequest buildRequest(String decoderId) {

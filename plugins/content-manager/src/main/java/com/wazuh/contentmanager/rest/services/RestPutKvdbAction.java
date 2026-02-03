@@ -152,7 +152,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
-            String integrationId = payload.get(FIELD_INTEGRATION).asText();
             // Validate payload structure
             validationError = this.validatePayload(payload, kvdbId);
             if (validationError != null) {
@@ -172,12 +171,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
-            }
-
-            // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
-            if (validationResponse != null) {
-                return validationResponse;
             }
 
             // Validate KVDB space - only draft allowed
@@ -226,6 +219,10 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String kvdbId) {
+        if (payload.has(FIELD_INTEGRATION)) {
+            return new RestResponse(
+                    "Integration field is not allowed in PUT requests.", RestStatus.BAD_REQUEST.getStatus());
+        }
         if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
@@ -304,47 +301,4 @@ public class RestPutKvdbAction extends BaseRestHandler {
         return indexId;
     }
 
-    /**
-     * Validates that the integration exists and is in the draft space.
-     *
-     * @param client the OpenSearch client
-     * @param integrationId the integration ID to validate
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
-    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
-
-        if (!integrationResponse.isExists()) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_SPACE)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] does not have space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Object spaceObj = source.get(FIELD_SPACE);
-        if (!(spaceObj instanceof Map)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] has invalid space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(FIELD_NAME);
-
-        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            return new RestResponse(
-                    "Integration ["
-                            + integrationId
-                            + "] is not in draft space. Only integrations in draft space can have rules created.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        return null;
-    }
 }

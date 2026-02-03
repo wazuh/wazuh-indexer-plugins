@@ -137,6 +137,26 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 return error.toBytesRestResponse();
             }
 
+            if (request.hasContent()) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper =
+                            new com.fasterxml.jackson.databind.ObjectMapper();
+                    com.fasterxml.jackson.databind.JsonNode payload =
+                            mapper.readTree(request.content().streamInput());
+                    if (payload.has("integration")) {
+                        return new RestResponse(
+                                        "Integration field is not allowed in DELETE requests.",
+                                        RestStatus.BAD_REQUEST.getStatus())
+                                .toBytesRestResponse();
+                    }
+                } catch (Exception e) {
+                    return new RestResponse(
+                                    "Invalid request body in DELETE request.",
+                                    RestStatus.BAD_REQUEST.getStatus())
+                            .toBytesRestResponse();
+                }
+            }
+
             String decoderId = request.param("id");
             if (decoderId == null || decoderId.isBlank()) {
                 decoderId = request.param(FIELD_DECODER_ID_PARAM);

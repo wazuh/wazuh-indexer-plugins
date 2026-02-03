@@ -65,7 +65,6 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private static final String KVDB_PAYLOAD =
             "{"
                     + "\"type\": \"kvdb\","
-                    + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
@@ -83,7 +82,6 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private static final String KVDB_PAYLOAD_WITH_ID_MISMATCH =
             "{"
                     + "\"type\": \"kvdb\","
-                    + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"id\": \"different-uuid-12345\","
                     + "  \"name\": \"kvdb/example/0\","
@@ -98,7 +96,23 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                     + "}";
 
     private static final String KVDB_PAYLOAD_MISSING_RESOURCE =
-            "{" + "\"type\": \"kvdb\"," + "\"integration\": \"integration-1\"" + "}";
+            "{" + "\"type\": \"kvdb\"" + "}";
+
+    private static final String KVDB_PAYLOAD_WITH_INTEGRATION =
+            "{"
+                    + "\"type\": \"kvdb\","
+                    + "\"integration\": \"integration-1\","
+                    + "\"resource\": {"
+                    + "  \"name\": \"kvdb/example/0\","
+                    + "  \"enabled\": true,"
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example KVDB\","
+                    + "    \"author\": {"
+                    + "      \"name\": \"Wazuh\""
+                    + "    }"
+                    + "  }"
+                    + "}"
+                    + "}";
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -294,6 +308,29 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
+    /** Test that integration field in PUT request returns 400 Bad Request. */
+    public void testPutKvdbWithIntegrationReturns400() {
+        // Arrange
+        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD_WITH_INTEGRATION, kvdbId);
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, null).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Integration field is not allowed in PUT requests.",
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(this.service, never()).validate(any(JsonNode.class));
+    }
+
     private RestRequest buildRequest(String payload, String kvdbId) {
         FakeRestRequest.Builder builder =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -413,7 +450,6 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         String updatePayload = "{"
                 + "\"type\": \"kvdb\","
-                + "\"integration\": \"integration-1\","
                 + "\"resource\": {"
                 + "  \"name\": \"kvdb/example/0\","
                 + "  \"enabled\": false,"
@@ -477,7 +513,6 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         String updatePayload = "{"
                 + "\"type\": \"kvdb\","
-                + "\"integration\": \"integration-1\","
                 + "\"resource\": {"
                 + "  \"name\": \"kvdb/example/0\","
                 + "  \"enabled\": false"

@@ -286,6 +286,44 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
+    /** Test that integration field in PUT request returns 400 Bad Request. */
+    public void testPutDecoderWithIntegrationReturns400() {
+        // Arrange
+        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String payloadWithIntegration =
+                "{"
+                        + "\"type\": \"decoder\","
+                        + "\"integration\": \"integration-1\","
+                        + "\"resource\": {"
+                        + "  \"name\": \"decoder/example/0\","
+                        + "  \"enabled\": true,"
+                        + "  \"metadata\": {"
+                        + "    \"title\": \"Example decoder\","
+                        + "    \"author\": {"
+                        + "      \"name\": \"Wazuh\""
+                        + "    }"
+                        + "  }"
+                        + "}"
+                        + "}";
+        RestRequest request = this.buildRequest(payloadWithIntegration, decoderId);
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, null).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Integration field is not allowed in PUT requests.",
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(this.service, never()).validate(any(JsonNode.class));
+    }
+
     private RestRequest buildRequest(String payload, String decoderId) {
         FakeRestRequest.Builder builder =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)

@@ -140,6 +140,23 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                         "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
+            if (request.hasContent()) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper =
+                            new com.fasterxml.jackson.databind.ObjectMapper();
+                    com.fasterxml.jackson.databind.JsonNode payload =
+                            mapper.readTree(request.content().streamInput());
+                    if (payload.has("integration")) {
+                        return new RestResponse(
+                                "Integration field is not allowed in DELETE requests.",
+                                RestStatus.BAD_REQUEST.getStatus());
+                    }
+                } catch (Exception e) {
+                    return new RestResponse(
+                            "Invalid request body in DELETE request.", RestStatus.BAD_REQUEST.getStatus());
+                }
+            }
+
             String kvdbId = request.param("id");
             if (kvdbId == null || kvdbId.isBlank()) {
                 kvdbId = request.param(FIELD_KVDB_ID_PARAM);

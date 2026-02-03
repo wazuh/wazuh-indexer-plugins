@@ -164,6 +164,31 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
     }
 
+    /**
+     * Test that integration field in DELETE request body returns 400 Bad Request.
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteKvdbWithIntegrationInBodyReturns400() throws IOException {
+        // Arrange
+        String payloadWithIntegration = "{\"integration\": \"integration-1\"}";
+        RestRequest request = buildRequest(payloadWithIntegration, "k_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+
+        // Act
+        BytesRestResponse bytesRestResponse =
+                this.action.handleRequest(request, null).toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Integration field is not allowed in DELETE requests.",
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
     private RestRequest buildRequest(String payload, String kvdbId) {
         FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
         if (payload != null) {
