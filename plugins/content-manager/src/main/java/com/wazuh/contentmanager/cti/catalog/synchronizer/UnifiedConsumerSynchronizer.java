@@ -33,11 +33,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -207,7 +203,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             // Proceed only if no document with this space name exists
             if (searchResponse.getHits().getTotalHits().value() == 0) {
                 String uuid = UUID.randomUUID().toString();
-                String date = LocalDate.now().toString();
+                String date = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
 
                 Policy policy = new Policy();
                 policy.setId(uuid);
