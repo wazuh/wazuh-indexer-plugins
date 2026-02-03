@@ -129,15 +129,15 @@ public class RestPostKvdbAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         // Validate prerequisites
-        RestResponse validationError = validatePrerequisites(request);
+        RestResponse validationError = this.validatePrerequisites(request);
         if (validationError != null) {
             return validationError;
         }
 
         try {
-            JsonNode payload = mapper.readTree(request.content().streamInput());
+            JsonNode payload = this.mapper.readTree(request.content().streamInput());
             // Validate payload structure
-            validationError = validatePayload(payload);
+            validationError = this.validatePayload(payload);
             if (validationError != null) {
                 return validationError;
             }
@@ -149,10 +149,10 @@ public class RestPostKvdbAction extends BaseRestHandler {
             resourceNode.put(FIELD_ID, kvdbId);
 
             // Add timestamp metadata
-            addTimestampMetadata(resourceNode, true);
+            this.addTimestampMetadata(resourceNode);
 
             // Validate with engine (uses ID without prefix)
-            RestResponse engineResponse = validateWithEngine(resourceNode);
+            RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
             }
@@ -165,8 +165,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
             // Create KVDB with prefixed ID in the index, and update integration with unprefixed ID
             String kvdbIndexId = toIndexId(kvdbId);
-            createKvdb(client, kvdbIndexId, resourceNode);
-            updateIntegrationWithKvdb(client, integrationId, kvdbId);
+            this.createKvdb(client, kvdbIndexId, resourceNode);
+            this.updateIntegrationWithKvdb(client, integrationId, kvdbId);
 
             return new RestResponse(
                     "KVDB created successfully with ID: " + kvdbIndexId, RestStatus.CREATED.getStatus());
@@ -210,7 +210,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
     /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = mapper.createObjectNode();
+        ObjectNode enginePayload = this.mapper.createObjectNode();
         enginePayload.put(FIELD_TYPE, KVDB_TYPE);
         enginePayload.set(FIELD_RESOURCE, resourceNode);
 
@@ -226,16 +226,16 @@ public class RestPostKvdbAction extends BaseRestHandler {
     private void createKvdb(Client client, String kvdbIndexId, ObjectNode resourceNode)
             throws IOException {
         ContentIndex kvdbIndex = new ContentIndex(client, KVDB_INDEX, null);
-        kvdbIndex.create(kvdbIndexId, buildKvdbPayload(resourceNode));
+        kvdbIndex.create(kvdbIndexId, this.buildKvdbPayload(resourceNode));
     }
 
     /** Builds the KVDB payload with document and space information. */
     private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
-        ObjectNode node = mapper.createObjectNode();
+        ObjectNode node = this.mapper.createObjectNode();
         node.put(FIELD_TYPE, KVDB_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
         // Add draft space
-        ObjectNode spaceNode = mapper.createObjectNode();
+        ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
 
@@ -273,7 +273,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
         }
         Object documentObj = source.get(FIELD_DOCUMENT);
 
-        if (documentObj == null || !(documentObj instanceof Map)) {
+        if (!(documentObj instanceof Map)) {
             throw new IOException(
                     "Integration document ["
                             + integrationId
@@ -283,7 +283,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
         }
 
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
-        List<String> kvdbs = extractKvdbsList(document.get(FIELD_KVDBS));
+        List<String> kvdbs = this.extractKvdbsList(document.get(FIELD_KVDBS));
 
         if (!kvdbs.contains(kvdbIndexId)) {
             kvdbs.add(kvdbIndexId);
@@ -316,10 +316,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
      * Adds or updates timestamp metadata to the resource node.
      *
      * @param resourceNode the resource node to update
-     * @param isCreate true if creating (sets both date and modified), false if updating (sets only
-     *     modified)
      */
-    private void addTimestampMetadata(ObjectNode resourceNode, boolean isCreate) {
+    private void addTimestampMetadata(ObjectNode resourceNode) {
         String currentTimestamp = Instant.now().toString();
 
         // Ensure metadata node exists
@@ -327,7 +325,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
         if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
             metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
         } else {
-            metadataNode = mapper.createObjectNode();
+            metadataNode = this.mapper.createObjectNode();
             resourceNode.set(FIELD_METADATA, metadataNode);
         }
 
@@ -336,14 +334,12 @@ public class RestPostKvdbAction extends BaseRestHandler {
         if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
             authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
         } else {
-            authorNode = mapper.createObjectNode();
+            authorNode = this.mapper.createObjectNode();
             metadataNode.set(FIELD_AUTHOR, authorNode);
         }
 
         // Set timestamps
-        if (isCreate) {
-            authorNode.put(FIELD_DATE, currentTimestamp);
-        }
+        authorNode.put(FIELD_DATE, currentTimestamp);
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 
