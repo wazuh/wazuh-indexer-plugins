@@ -35,6 +35,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -128,7 +129,14 @@ public class RestGetPromoteAction extends BaseRestHandler {
                 Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
                 Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
 
-                List<Map<String, String>> resourceChanges = this.calculateDiff(sourceItems, targetItems);
+                List<Map<String, String>> resourceChanges;
+                if (Constants.KEY_POLICIES.equals(resourceType)) {
+                    // For policies, we perform a deep comparison ignoring ID
+                    resourceChanges =
+                            this.calculatePolicyDiff(sourceSpace.toString(), targetSpace.toString());
+                } else {
+                    resourceChanges = this.calculateDiff(sourceItems, targetItems);
+                }
                 changes.put(resourceType, resourceChanges);
             }
 
@@ -180,6 +188,71 @@ public class RestGetPromoteAction extends BaseRestHandler {
         }
 
         return changes;
+    }
+
+    /**
+     * Calculates the difference for the 'policy' resource type. Policies are singletons per space. We
+     * fetch the full documents and compare their content ignoring the 'id' field.
+     *
+     * @param sourceSpace Name of the source space
+     * @param targetSpace Name of the target space
+     * @return List of change operations
+     */
+    private List<Map<String, String>> calculatePolicyDiff(String sourceSpace, String targetSpace) {
+        List<Map<String, String>> changes = new ArrayList<>();
+
+        try {
+            Map<String, Object> sourcePolicy = this.spaceService.getPolicy(sourceSpace);
+            // If source policy doesn't exist, we can't promote anything.
+            if (sourcePolicy == null) {
+                return changes;
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> sourceDoc = (Map<String, Object>) sourcePolicy.get("document");
+            String sourceId = (String) sourceDoc.get("id");
+
+            Map<String, Object> targetPolicy = this.spaceService.getPolicy(targetSpace);
+
+            if (targetPolicy == null) {
+                // Target missing -> UPDATE (treated as setting the single policy)
+                changes.add(Map.of("operation", OP_UPDATE, "id", sourceId));
+            } else {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get("document");
+
+                // Compare content ignoring ID
+                if (isPolicyDifferent(sourceDoc, targetDoc)) {
+                    changes.add(Map.of("operation", OP_UPDATE, "id", sourceId));
+                }
+            }
+        } catch (IOException e) {
+            log.error("Failed to fetch policies for diff calculation", e);
+        }
+
+        return changes;
+    }
+
+    /**
+     * Checks if two policy documents are different, ignoring their 'id' field.
+     *
+     * @param sourceDoc Source policy document map
+     * @param targetDoc Target policy document map
+     * @return true if content differs, false otherwise
+     */
+    private boolean isPolicyDifferent(Map<String, Object> sourceDoc, Map<String, Object> targetDoc) {
+        if (sourceDoc == null || targetDoc == null) {
+            return true;
+        }
+
+        // Create shallow copies to remove ID without affecting original maps
+        Map<String, Object> s = new HashMap<>(sourceDoc);
+        Map<String, Object> t = new HashMap<>(targetDoc);
+
+        s.remove("id");
+        t.remove("id");
+
+        return !s.equals(t);
     }
 
     /** Inner class to extend RestResponse and provide the custom 'changes' payload */
