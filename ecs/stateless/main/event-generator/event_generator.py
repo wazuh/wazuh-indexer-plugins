@@ -31,7 +31,6 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = {
             "@timestamp": generate_random_date(),
-            "agent": generate_random_agent(),
             'policy': generate_random_policy(),
             'check': generate_random_check(),
             "wazuh": generate_random_wazuh(),
@@ -90,6 +89,7 @@ def generate_random_check():
 
 def generate_random_wazuh():
     return {
+        "agent": generate_random_agent(),
         "decoders": [f"decoder-{random.randint(0, 5)}" for _ in range(random.randint(1, 3))],
         "rules": [f"rule-{random.randint(0, 5)}" for _ in range(random.randint(1, 3))],
         "cluster": {
