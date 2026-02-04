@@ -1,0 +1,13 @@
+---
+- name: wazuh
+  title: Wazuh
+  description: >
+    Wazuh Inc. custom fields
+  fields:
+    - name: space.name
+      type: keyword
+      level: custom
+      description: >
+        The space on which the event processing took place.
+      example: "default"
+
