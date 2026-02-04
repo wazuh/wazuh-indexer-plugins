@@ -22,10 +22,10 @@ The detail of the fields can be found in csv file [States inventory ports Fields
 
 | Field Name     | Type    | Description                                                    | Destination Field          | Custom |
 |----------------|---------|----------------------------------------------------------------|----------------------------|--------|
-| agent_id       | string  | Unique ID of the agent.                                        | agent.id                   | FALSE  |
-| agent_ip       | string  | IP address of the agent.                                       | agent.host.ip              | TRUE   |
-| agent_name     | string  | Name of the agent.                                             | agent.name                 | FALSE  |
-| agent_version  | string  | Agent version.                                                 | agent.version              | FALSE  |
+| agent_id       | string  | Unique ID of the agent.                                        | wazuh.agent.id                   | FALSE  |
+| agent_ip       | string  | IP address of the agent.                                       | wazuh.agent.host.ip              | TRUE   |
+| agent_name     | string  | Name of the agent.                                             | wazuh.agent.name                 | FALSE  |
+| agent_version  | string  | Agent version.                                                 | wazuh.agent.version              | FALSE  |
 | local_ip       | string  | Local IP address.                                              | destination.ip             | FALSE  |
 | local_port     | long    | Local port number.                                             | destination.port           | FALSE  |
 | inode          | long    | Inode associated with the connection.                          | file.inode                 | FALSE  |

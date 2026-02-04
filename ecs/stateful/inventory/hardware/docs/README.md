@@ -17,10 +17,10 @@ The detail of the fields can be found in csv file [States inventory hardware Fie
 
 | Field Name      | Type         | Description                                                    | Destination Field    | Custom |
 |-----------------|--------------|----------------------------------------------------------------|----------------------|--------|
-| agent_id        | string       | Unique ID of the agent.                                        | agent.id             | FALSE  |
-| agent_ip        | string       | IP address of the agent.                                       | agent.host.ip        | TRUE   |
-| agent_name      | string       | Name of the agent.                                             | agent.name           | FALSE  |
-| agent_version   | string       | Agent version.                                                 | agent.version        | FALSE  |
+| agent_id        | string       | Unique ID of the agent.                                        | wazuh.agent.id             | FALSE  |
+| agent_ip        | string       | IP address of the agent.                                       | wazuh.agent.host.ip        | TRUE   |
+| agent_name      | string       | Name of the agent.                                             | wazuh.agent.name           | FALSE  |
+| agent_version   | string       | Agent version.                                                 | wazuh.agent.version        | FALSE  |
 | board_serial    | string       | Serial Number of the device.                                   | host.serial_number   | TRUE   |
 | cpu_name        | string       | Name/model of the CPU.                                         | host.cpu.name        | TRUE   |
 | cpu_cores       | long         | Number of CPU cores.                                           | host.cpu.cores       | TRUE   |

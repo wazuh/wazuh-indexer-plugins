@@ -18,10 +18,10 @@ The detail of the fields can be found in csv file [States inventory system Field
 
 | Field Name         | Type    | Description                                                                       | Destination Field            | Custom |
 |--------------------|---------|-----------------------------------------------------------------------------------|------------------------------|--------|
-| agent_id           | string  | Unique ID of the agent.                                                           | agent.id                     | FALSE  |
-| agent_ip           | string  | IP address of the agent.                                                          | agent.host.ip                | TRUE   |
-| agent_name         | string  | Name of the agent.                                                                | agent.name                   | FALSE  |
-| agent_version      | string  | Agent version.                                                                    | agent.version                | FALSE  |
+| agent_id           | string  | Unique ID of the agent.                                                           | wazuh.agent.id                     | FALSE  |
+| agent_ip           | string  | IP address of the agent.                                                          | wazuh.agent.host.ip                | TRUE   |
+| agent_name         | string  | Name of the agent.                                                                | wazuh.agent.name                   | FALSE  |
+| agent_version      | string  | Agent version.                                                                    | wazuh.agent.version                | FALSE  |
 | hostname           | string  | System hostname.                                                                  | host.hostname                | FALSE  |
 | architecture       | string  | CPU architecture (e.g., x86_64, ARM).                                             | host.architecture            | FALSE  |
 | os_name            | string  | Operating system name.                                                            | host.os.name                 | FALSE  |

@@ -18,11 +18,11 @@ The detail of the fields can be found in csv file [States FIM registries Fields]
 
 | Field Name        | Type   | Description                                         | Destination Field         | Custom |
 | ----------------- | ------ | :-------------------------------------------------- | ------------------------- | ------ |
-| agent_id          | string | Unique identifier of the agent, e.g., "001".        | agent.id                  |        |
-| agent_ip          | string | IP address of the agent.                            | agent.host.ip             | TRUE   |
-| agent_name        | string | Name assigned to the agent.                         | agent.name                |        |
-| agent_version     | string | Version of the agent software, e.g., "v4.10.2".     | agent.version             |        |
-| architecture      | string | Registry architecture type, e.g., "[x86]", "[x64]". | agent.host.architecture   | TRUE   |
+| agent_id          | string | Unique identifier of the agent, e.g., "001".        | wazuh.agent.id                  |        |
+| agent_ip          | string | IP address of the agent.                            | wazuh.agent.host.ip             | TRUE   |
+| agent_name        | string | Name assigned to the agent.                         | wazuh.agent.name                |        |
+| agent_version     | string | Version of the agent software, e.g., "v4.10.2".     | wazuh.agent.version             |        |
+| architecture      | string | Registry architecture type, e.g., "[x86]", "[x64]". | wazuh.agent.host.architecture   | TRUE   |
 | cluster_name      | string | Wazuh cluster name                                  | wazuh.cluster.name        | TRUE   |
 | cluster_node      | string | Wazuh cluster node                                  | wazuh.cluster.node        | TRUE   |
 | architecture      | string | Architecture associated with the entity             | registry.architecture     | TRUE   |

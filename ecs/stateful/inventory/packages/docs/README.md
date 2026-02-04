@@ -17,10 +17,10 @@ The detail of the fields can be found in csv file [States inventory packages Fie
 
 | Field Name     | Type    | Description                                                    | Destination Field    | Custom |
 |----------------|---------|----------------------------------------------------------------|----------------------|--------|
-| agent_id       | string  | Unique ID of the agent.                                        | agent.id             | FALSE  |
-| agent_ip       | string  | IP address of the agent.                                       | agent.host.ip        | TRUE   |
-| agent_name     | string  | Name of the agent.                                             | agent.name           | FALSE  |
-| agent_version  | string  | Agent version.                                                 | agent.version        | FALSE  |
+| agent_id       | string  | Unique ID of the agent.                                        | wazuh.agent.id             | FALSE  |
+| agent_ip       | string  | IP address of the agent.                                       | wazuh.agent.host.ip        | TRUE   |
+| agent_name     | string  | Name of the agent.                                             | wazuh.agent.name           | FALSE  |
+| agent_version  | string  | Agent version.                                                 | wazuh.agent.version        | FALSE  |
 | architecture   | string  | Package architecture.                                          | package.architecture | FALSE  |
 | description    | string  | Description of the package.                                    | package.description  | FALSE  |
 | groups         | string  | Package category or group.                                     | package.category     | TRUE   |

@@ -18,10 +18,10 @@ The detail of the fields can be found in csv file [States inventory interfaces F
 
 | Field Name     | Type    | Description                                                    | Destination Field            | Custom |
 |----------------|---------|----------------------------------------------------------------|------------------------------|--------|
-| agent_id       | string  | Unique ID of the agent.                                        | agent.id                     | FALSE  |
-| agent_ip       | string  | IP address of the agent.                                       | agent.host.ip                | TRUE   |
-| agent_name     | string  | Name of the agent.                                             | agent.name                   | FALSE  |
-| agent_version  | string  | Agent version.                                                 | agent.version                | FALSE  |
+| agent_id       | string  | Unique ID of the agent.                                        | wazuh.agent.id                     | FALSE  |
+| agent_ip       | string  | IP address of the agent.                                       | wazuh.agent.host.ip                | TRUE   |
+| agent_name     | string  | Name of the agent.                                             | wazuh.agent.name                   | FALSE  |
+| agent_version  | string  | Agent version.                                                 | wazuh.agent.version                | FALSE  |
 | name           | string  | Interface name.                                                | interface.name               | FALSE  |
 | adapter        | string  | Adapter type (e.g., Ethernet, WiFi).                           | interface.alias              | FALSE  |
 | type           | string  | Network interface type.                                        | interface.type               | TRUE   |
