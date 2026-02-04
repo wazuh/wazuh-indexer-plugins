@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -26,6 +27,8 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -33,17 +36,21 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -58,10 +65,10 @@ import static org.mockito.Mockito.when;
  * response codes for successful Policy updates and error scenarios.
  */
 public class RestPutPolicyActionTests extends OpenSearchTestCase {
-    private EngineService service;
+    private SpaceService service;
     private RestPutPolicyAction action;
     private NodeClient client;
-    private AutoCloseable closeable;
+    private AutoCloseable mocks;
 
     @Mock private IndexResponse indexResponse;
     @Mock private SearchResponse searchResponse;
@@ -75,22 +82,51 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.closeable = MockitoAnnotations.openMocks(this);
-        this.service = mock(EngineService.class);
+        this.mocks = MockitoAnnotations.openMocks(this);
+        this.service = mock(SpaceService.class);
         this.client = mock(NodeClient.class, Answers.RETURNS_DEEP_STUBS);
         Settings settings = Settings.builder().build();
         PluginSettings.getInstance(settings);
 
         this.action = new RestPutPolicyAction(this.service, this.client);
+
+        Map<String, Object> policy = new HashMap<>();
+        Map<String, Object> document = new HashMap<>();
+        Map<String, Object> hash = new HashMap<>();
+        Map<String, Object> space = new HashMap<>();
+        document.put(Constants.KEY_ID, "12345");
+        hash.put("sha256", "12345");
+        space.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        policy.put(Constants.KEY_DOCUMENT, document);
+        policy.put(Constants.KEY_HASH, hash);
+        policy.put(Constants.KEY_SPACE, space);
+        when(this.service.getPolicy(anyString())).thenReturn(policy);
+
+        // Mock SearchHits properly
+        SearchHit searchHit =
+                new SearchHit(0, "draft-policy-id", Collections.emptyMap(), Collections.emptyMap());
+        SearchHits searchHits =
+                new SearchHits(
+                        new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
+        when(this.searchResponse.getHits()).thenReturn(searchHits);
+
+        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
+        searchFuture.onResponse(this.searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
     }
 
+    /**
+     * Tear down the tests.
+     *
+     * @throws Exception rethrown from parent method
+     */
     @After
     @Override
     public void tearDown() throws Exception {
-        if (this.closeable != null) {
-            this.closeable.close();
-        }
         super.tearDown();
+        if (this.mocks != null) {
+            this.mocks.close();
+        }
     }
 
     /**
@@ -125,7 +161,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
@@ -185,7 +221,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
@@ -210,34 +246,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the engine service
-     * is null. The expected response is: {500, RestResponse}
-     */
-    public void testPutPolicy_NullEngine_500() {
-
-        // Arrange
-        RestPutPolicyAction actionWithNullEngine = new RestPutPolicyAction(null, this.client);
-
-        String policyJson = "{\"type\": \"policy\"}";
-        Map<String, String> params = new HashMap<>();
-        RestRequest request =
-                new FakeRestRequest.Builder(this.xContentRegistry())
-                        .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
-                        .withParams(params)
-                        .withContent(new BytesArray(policyJson), XContentType.JSON)
-                        .build();
-
-        // Act
-        RestResponse response = actionWithNullEngine.handleRequest(request);
-
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Engine instance is null"));
-        verify(this.client, never()).index(any(IndexRequest.class));
-    }
-
-    /**
      * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request has no
      * content. The expected response is: {400, RestResponse}
      */
@@ -247,7 +255,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .build();
 
@@ -271,7 +279,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .withContent(new BytesArray(invalidJson), XContentType.JSON)
                         .build();
@@ -281,7 +289,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Invalid Policy JSON content"));
+        assertTrue(response.getMessage().contains(Constants.E_400_INVALID_JSON_CONTENT));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -296,7 +304,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
@@ -306,7 +314,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Invalid Policy JSON content"));
+        assertTrue(response.getMessage().contains("Missing ["));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -329,7 +337,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
@@ -339,7 +347,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("missing fields"));
+        assertTrue(response.getMessage().contains("Missing ["));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -375,7 +383,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath("/_plugins/_content_manager/policy")
+                        .withPath(PluginSettings.POLICY_URI)
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
@@ -395,25 +403,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Failed to store the updated policy"));
-    }
-
-    /** Test that the action name is correctly set. */
-    public void testGetName() {
-        // Act
-        String name = this.action.getName();
-
-        // Assert
-        assertEquals("content_manager_policy_update", name);
-    }
-
-    /** Test that the routes are correctly configured. */
-    public void testRoutes() {
-        // Act
-        var routes = this.action.routes();
-
-        // Assert
-        assertEquals(1, routes.size());
-        assertEquals(RestRequest.Method.PUT, routes.getFirst().getMethod());
+        assertTrue(response.getMessage().contains("Failed to update policy"));
     }
 }

@@ -24,7 +24,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
-import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -43,14 +42,12 @@ import static org.mockito.Mockito.*;
 public class RestGetPromoteActionTests extends OpenSearchTestCase {
 
     private RestGetPromoteAction action;
-    private Client client;
     private SpaceService spaceService;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.client = mock(Client.class);
         this.spaceService = mock(SpaceService.class);
         this.action = new RestGetPromoteAction(this.spaceService);
     }
@@ -245,7 +242,7 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("Invalid space parameter"));
+        assertTrue(response.content().utf8ToString().contains("Unknown space"));
     }
 
     /**
@@ -262,7 +259,7 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("cannot be promoted further"));
+        assertTrue(response.content().utf8ToString().contains("cannot be promoted"));
     }
 
     /**

@@ -66,7 +66,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         this.spaceService = mock(SpaceService.class);
 
         // Mock space service.
-        when(this.spaceService.getIndexForResourceType(Constants.KEY_POLICIES))
+        when(this.spaceService.getIndexForResourceType(Constants.KEY_POLICY))
                 .thenReturn(Constants.INDEX_POLICIES);
         when(this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS))
                 .thenReturn(Constants.INDEX_INTEGRATIONS);
