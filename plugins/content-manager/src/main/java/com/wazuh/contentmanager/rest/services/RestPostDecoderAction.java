@@ -49,9 +49,25 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
+/**
+ * REST handler for creating decoder resources.
+ *
+ * <p>Endpoint: POST /_plugins/_content_manager/decoders
+ *
+ * <p>Creates a decoder in the draft space and associates it with an integration.
+ *
+ * <p>HTTP responses:
+ *
+ * <ul>
+ *   <li>202 Accepted: Decoder created successfully
+ *   <li>400 Bad Request: Invalid payload or validation error
+ *   <li>500 Internal Server Error: Engine unavailable or unexpected error
+ * </ul>
+ */
 public class RestPostDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
 
+    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
     private static final String DECODER_INDEX = ".cti-decoders";
@@ -73,6 +89,11 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
     private final EngineService engine;
 
+    /**
+     * Constructs a new RestPostDecoderAction handler.
+     *
+     * @param engine The service instance to communicate with the local engine service.
+     */
     public RestPostDecoderAction(EngineService engine) {
         this.engine = engine;
     }
@@ -99,7 +120,15 @@ public class RestPostDecoderAction extends BaseRestHandler {
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
+    /**
+     * Handles the decoder creation request.
+     *
+     * @param request incoming REST request containing decoder payload
+     * @param client the node client for index operations
+     * @return a RestResponse describing the outcome
+     */
     public RestResponse handleRequest(RestRequest request, Client client) {
+        // Validate prerequisites
         RestResponse validationError = this.validatePrerequisites(request);
         if (validationError != null) {
             return validationError;
@@ -107,6 +136,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
         try {
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
+            // Validate payload structure
             validationError = this.validatePayload(payload);
             if (validationError != null) {
                 return validationError;
@@ -114,16 +144,20 @@ public class RestPostDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
 
+            // Validate integration is in draft space
             RestResponse spaceValidation = this.validateIntegrationSpace(client, integrationId);
             if (spaceValidation != null) {
                 return spaceValidation;
             }
 
+            // Generate UUID and validate with engine
             String decoderId = UUID.randomUUID().toString();
             resourceNode.put(FIELD_ID, decoderId);
 
+            // Add timestamp metadata
             this.addTimestampMetadata(resourceNode, true);
 
+            // Validate integration with Wazuh Engine
             ObjectNode enginePayload = mapper.createObjectNode();
             enginePayload.set("resource", resourceNode);
             enginePayload.put("type", "decoder");
@@ -149,6 +183,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
     }
 
+    /** Validates that the engine service and request content are available. */
     private RestResponse validatePrerequisites(RestRequest request) {
         if (this.engine == null) {
             return new RestResponse(
@@ -160,6 +195,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         return null;
     }
 
+    /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload) {
         if (!payload.has(FIELD_INTEGRATION) || payload.get(FIELD_INTEGRATION).asText("").isBlank()) {
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
@@ -174,13 +210,16 @@ public class RestPostDecoderAction extends BaseRestHandler {
         return null;
     }
 
+    /** Creates the decoder document in the index. */
     private void createDecoder(Client client, String decoderIndexId, ObjectNode resourceNode)
             throws IOException {
         ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
         decoderIndex.create(decoderIndexId, this.buildDecoderPayload(resourceNode));
     }
 
+    /** Builds the decoder payload with document and space information. */
     private JsonObject buildDecoderPayload(ObjectNode resourceNode) {
+        // Convert resourceNode (Jackson) to Gson JsonObject
         com.google.gson.JsonParser parser = new com.google.gson.JsonParser();
         com.google.gson.JsonObject document = parser.parse(resourceNode.toString()).getAsJsonObject();
 
@@ -193,6 +232,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         return payload;
     }
 
+    /** Updates the integration document to include the new decoder reference. */
     @SuppressWarnings("unchecked")
     private void updateIntegrationWithDecoder(
             Client client, String integrationId, String decoderIndexId) throws IOException {
@@ -246,6 +286,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
                 .actionGet();
     }
 
+    /** Extracts the decoders list from the document, handling type conversion. */
     private List<String> extractDecodersList(Object existing) {
         List<String> decoders = new ArrayList<>();
         if (existing instanceof List) {
@@ -256,9 +297,17 @@ public class RestPostDecoderAction extends BaseRestHandler {
         return decoders;
     }
 
+    /**
+     * Adds or updates timestamp metadata to the resource node.
+     *
+     * @param resourceNode the resource node to update
+     * @param isCreate true if creating (sets both date and modified), false if updating (sets only
+     *     modified)
+     */
     private void addTimestampMetadata(ObjectNode resourceNode, boolean isCreate) {
         String currentTimestamp = Instant.now().toString();
 
+        // Ensure metadata node exists
         ObjectNode metadataNode;
         if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
             metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
@@ -267,6 +316,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             resourceNode.set(FIELD_METADATA, metadataNode);
         }
 
+        // Ensure author node exists
         ObjectNode authorNode;
         if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
             authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
@@ -275,12 +325,20 @@ public class RestPostDecoderAction extends BaseRestHandler {
             metadataNode.set(FIELD_AUTHOR, authorNode);
         }
 
+        // Set timestamps
         if (isCreate) {
             authorNode.put(FIELD_DATE, currentTimestamp);
         }
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 
+    /**
+     * Validates that the integration exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
     private RestResponse validateIntegrationSpace(Client client, String integrationId) {
         GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
 

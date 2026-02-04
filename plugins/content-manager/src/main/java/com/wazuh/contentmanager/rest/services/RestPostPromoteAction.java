@@ -52,9 +52,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * <p>Execute promotion process in the local engine. Possible HTTP responses:
  *
  * <pre>
- * - 200 Accepted: Wazuh Engine replied with a successful response.
- * - 400 Bad Request: Wazuh Engine replied with an error response.
- * - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
+ *  - 200 Accepted: Wazuh Engine replied with a successful response.
+ *  - 400 Bad Request: Wazuh Engine replied with an error response.
+ *  - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
  * </pre>
  */
 public class RestPostPromoteAction extends BaseRestHandler {
@@ -141,17 +141,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
             // 3. Validation Phase - Invoke engine validation
-            /*
             RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
             // Check if engine validation was successful
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                    && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+                && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
                 log.warn("Engine validation failed: {}", engineResponse.getMessage());
                 return engineResponse;
             }
-            */
-            log.info("Skipping Engine validation (mechanism test mode).");
 
             // 4. Consolidation Phase - Apply changes to target space
             this.consolidateChanges(context);
@@ -312,7 +309,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         return new PromotionContext(
             enginePayload,
-            policyToApply,
             integrationsToApply,
             kvdbsToApply,
             decodersToApply,
@@ -356,28 +352,48 @@ public class RestPostPromoteAction extends BaseRestHandler {
             switch (operation) {
                 case ADD -> {
                     // ADD: Resource exists in source space but NOT in target space
-                    // We must fetch from source space using document.id
-                    Map<String, Object> sourceDoc =
-                        this.spaceService.getDocument(indexName, sourceSpace, resourceId);
+                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
                             "Resource '"
                                 + resourceId
                                 + "' not found in "
                                 + resourceType
-                                + " source space for ADD operation");
+                                + " for ADD operation");
                     }
 
-                    // Verify it does NOT exist in target space using document.id
-                    Map<String, Object> targetDoc =
-                        this.spaceService.getDocument(indexName, targetSpace, resourceId);
-                    if (targetDoc != null) {
+                    // Verify it's in the source space
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> sourceDocSpace =
+                        (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
+                    String docSpace = sourceDocSpace.get("name");
+                    if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
                             "Resource '"
                                 + resourceId
-                                + "' already exists in target space '"
-                                + targetSpace
-                                + "', use UPDATE operation instead");
+                                + "' is in space '"
+                                + docSpace
+                                + "', expected source space '"
+                                + sourceSpace
+                                + "'");
+                    }
+
+                    // Verify it does NOT exist in target space
+                    // We check all docs with same ID regardless of space
+                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
+                    if (targetDoc != null) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> targetDocSpace =
+                            (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
+                        String targetDocSpaceName = targetDocSpace.get("name");
+                        if (targetSpace.equals(targetDocSpaceName)) {
+                            throw new IllegalArgumentException(
+                                "Resource '"
+                                    + resourceId
+                                    + "' already exists in target space '"
+                                    + targetSpace
+                                    + "', use UPDATE operation instead");
+                        }
                     }
 
                     // Add to apply list
@@ -385,41 +401,59 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 }
                 case UPDATE -> {
                     // UPDATE: Resource exists in BOTH source and target spaces
-                    Map<String, Object> sourceDoc =
-                        this.spaceService.getDocument(indexName, sourceSpace, resourceId);
+                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
                             "Resource '"
                                 + resourceId
                                 + "' not found in "
                                 + resourceType
-                                + " source space for UPDATE operation");
+                                + " for UPDATE operation");
                     }
 
-                    // For UPDATE, we usually expect it to exist in target space, but we don't strictly enforce it
-                    // as UPDATE could also serve as an upsert in some logical contexts, though Diff logic
-                    // implies existence.
+                    // Verify it's in the source space
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> sourceDocSpace =
+                        (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
+                    String docSpace = sourceDocSpace.get("name");
+                    if (!sourceSpace.equals(docSpace)) {
+                        throw new IllegalArgumentException(
+                            "Resource '"
+                                + resourceId
+                                + "' is in space '"
+                                + docSpace
+                                + "', expected source space '"
+                                + sourceSpace
+                                + "'");
+                    }
+
+                    // For UPDATE, we expect it might exist in target space
+                    // (but we don't strictly require it)
                     // Add to apply list to overwrite
                     resourcesToApply.put(resourceId, sourceDoc);
                 }
                 case REMOVE -> {
                     // REMOVE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
-                    Map<String, Object> targetDoc =
-                        this.spaceService.getDocument(indexName, targetSpace, resourceId);
-                    if (targetDoc == null) {
-                        log.warn(
-                            "Resource '{}' to delete not found in target space '{}', skipping",
-                            resourceId,
-                            targetSpace);
-                    } else {
-                        // Mark for deletion
-                        resourcesToDelete.add(resourceId);
-                        log.debug(
-                            "Resource '{}' marked for deletion from target space {}",
-                            resourceId,
-                            targetSpace);
+                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
+                    if (targetDoc != null) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> targetDocSpace =
+                            (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
+                        String targetDocSpaceName = targetDocSpace.get("name");
+                        if (!targetSpace.equals(targetDocSpaceName)) {
+                            log.warn(
+                                "Resource '{}' to delete is in space '{}', not target space '{}'",
+                                resourceId,
+                                targetDocSpaceName,
+                                targetSpace);
+                        }
                     }
+
+                    // Mark for deletion
+                    resourcesToDelete.add(resourceId);
+                    log.debug(
+                        "Resource '{}' marked for deletion from target space {}", resourceId, targetSpace);
                 }
             }
         }
@@ -434,13 +468,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     private void consolidateChanges(PromotionContext context) throws IOException {
         // Consolidate ADD/UPDATE operations for each resource type
-        if (!context.policyToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                this.spaceService.getIndexForResourceType(Constants.KEY_POLICIES),
-                context.policyToApply,
-                context.targetSpace);
-        }
-
         if (!context.integrationsToApply.isEmpty()) {
             this.spaceService.promoteSpace(
                 this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
@@ -502,7 +529,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
     /** Internal context class to hold promotion data. */
     private static class PromotionContext {
         final JsonNode enginePayload;
-        final Map<String, Map<String, Object>> policyToApply;
         final Map<String, Map<String, Object>> integrationsToApply;
         final Map<String, Map<String, Object>> kvdbsToApply;
         final Map<String, Map<String, Object>> decodersToApply;
@@ -515,7 +541,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         PromotionContext(
             JsonNode enginePayload,
-            Map<String, Map<String, Object>> policyToApply,
             Map<String, Map<String, Object>> integrationsToApply,
             Map<String, Map<String, Object>> kvdbsToApply,
             Map<String, Map<String, Object>> decodersToApply,
@@ -526,7 +551,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
             Set<String> filtersToDelete,
             String targetSpace) {
             this.enginePayload = enginePayload;
-            this.policyToApply = policyToApply;
             this.integrationsToApply = integrationsToApply;
             this.kvdbsToApply = kvdbsToApply;
             this.decodersToApply = decodersToApply;

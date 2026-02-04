@@ -212,8 +212,22 @@ public class SpaceService {
     }
 
     /**
-     * Builds the engine payload for validation by gathering all required resources. (No functional
-     * changes needed here, relies on getResourcesBySpace which was updated)
+     * Builds the engine payload for validation by gathering all required resources. This method
+     * starts with all resources from the target space and applies the modifications from the source
+     * space according to the provided resource maps.
+     *
+     * @param policyDocument The base policy document from target space.
+     * @param targetSpace The target space name.
+     * @param integrationsToApply Map of integration IDs to their documents (from source space).
+     * @param kvdbsToApply Map of kvdb IDs to their documents (from source space).
+     * @param decodersToApply Map of decoder IDs to their documents (from source space).
+     * @param filtersToApply Map of filter IDs to their documents (from source space).
+     * @param integrationsToDelete Set of integration IDs to exclude.
+     * @param kvdbsToDelete Set of kvdb IDs to exclude.
+     * @param decodersToDelete Set of decoder IDs to exclude.
+     * @param filtersToDelete Set of filter IDs to exclude.
+     * @return A JsonNode representing the engine payload.
+     * @throws IOException If any document retrieval fails.
      */
     public JsonNode buildEnginePayload(
             Map<String, Object> policyDocument,
@@ -293,7 +307,12 @@ public class SpaceService {
         return enginePayload;
     }
 
-    /** Helper method to build a JSON array from a map of resources. */
+    /**
+     * Helper method to build a JSON array from a map of resources.
+     *
+     * @param resources Map of resource ID to resource document.
+     * @return An ArrayNode containing the document content of each resource.
+     */
     private ArrayNode buildResourceArray(Map<String, Map<String, Object>> resources) {
         ArrayNode array = this.objectMapper.createArrayNode();
         for (Map<String, Object> resource : resources.values()) {
@@ -307,12 +326,24 @@ public class SpaceService {
         return array;
     }
 
-    /** Gets the index name for a given resource type. */
+    /**
+     * Gets the index name for a given resource type.
+     *
+     * @param resourceType The resource type key (e.g., "decoders", "kvdbs").
+     * @return The index name, or null if not found.
+     */
     public String getIndexForResourceType(String resourceType) {
         return Constants.RESOURCE_INDICES.get(resourceType);
     }
 
-    /** Retrieves a document from the specified index by ID (the real _id). */
+    /**
+     * Retrieves a document from the specified index by ID.
+     *
+     * @param indexName The name of the index to search.
+     * @param id The document ID.
+     * @return The document as a Map, or null if not found.
+     * @throws IOException If the retrieval operation fails.
+     */
     public Map<String, Object> getDocument(String indexName, String id) throws IOException {
         try {
             GetRequest request = new GetRequest(indexName, id);
@@ -347,7 +378,13 @@ public class SpaceService {
         return null;
     }
 
-    /** Fetches the full policy document from the policies index by searching for the space. */
+    /**
+     * Fetches the full policy document from the policies index by searching for the space.
+     *
+     * @param space The space of the policy document.
+     * @return The policy document as a Map, or null if not found.
+     * @throws IOException If the retrieval operation fails.
+     */
     public Map<String, Object> getPolicy(String space) throws IOException {
         try {
             SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
@@ -413,7 +450,12 @@ public class SpaceService {
         }
     }
 
-    /** Helper method to extract document.id from source. */
+    /**
+     * Extract document.id from a source document
+     *
+     * @param source Document object that contains the field ID
+     * @return ID of the document in string format
+     */
     @SuppressWarnings("unchecked")
     private String getDocumentId(Map<String, Object> source) {
         if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {

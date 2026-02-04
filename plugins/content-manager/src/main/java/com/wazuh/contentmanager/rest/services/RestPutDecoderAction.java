@@ -42,8 +42,25 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
+/**
+ * REST handler for updating CTI decoders.
+ *
+ * <p>Endpoint: PUT /_plugins/content-manager/decoders/{decoder_id}
+ *
+ * <p>This handler processes decoder update requests. The decoder is validated against the Wazuh
+ * engine before being stored in the index with DRAFT space.
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Decoder updated successfully after engine validation.
+ *   <li>400 Bad Request: Missing or invalid request body, decoder ID mismatch, or validation error.
+ *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ * </ul>
+ */
 public class RestPutDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
+    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
     private static final String DECODER_INDEX = ".cti-decoders";
@@ -60,15 +77,26 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /**
+     * Constructs a new RestPutDecoderAction handler.
+     *
+     * @param engine the engine service instance for communication with the Wazuh engine
+     */
     public RestPutDecoderAction(EngineService engine) {
         this.engine = engine;
     }
 
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for the update endpoint
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -79,15 +107,34 @@ public class RestPutDecoderAction extends BaseRestHandler {
                         .build());
     }
 
+    /**
+     * Prepares the REST request for processing.
+     *
+     * @param request the incoming REST request
+     * @param client the node client
+     * @return a consumer that executes the update operation
+     */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
 
+    /**
+     * Handles the decoder update request.
+     *
+     * <p>This method validates the request payload, ensures the decoder ID matches, validates the
+     * decoder with the Wazuh engine, and stores the updated decoder in the index.
+     *
+     * @param request the incoming REST request containing the decoder data to update
+     * @param client the OpenSearch client for index operations
+     * @return a RestResponse indicating success or failure of the update
+     */
     public RestResponse handleRequest(RestRequest request, Client client) {
+        // Validate prerequisites
         RestResponse validationError = this.validatePrerequisites(request);
         if (validationError != null) {
             return validationError;
@@ -100,17 +147,19 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
+            // Validate payload structure
             validationError = this.validatePayload(payload, decoderId);
             if (validationError != null) {
                 return validationError;
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            // Use decoderId directly (no prefixing)
             resourceNode.put(FIELD_ID, decoderId);
 
+            // Update the modified timestamp
             this.updateTimestampMetadata(resourceNode);
 
+            // Validate integration with Wazuh Engine
             ObjectNode enginePayload = mapper.createObjectNode();
             enginePayload.set("resource", resourceNode);
             enginePayload.put("type", "decoder");
@@ -119,6 +168,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
+            // Update decoder
             this.updateDecoder(client, decoderId, resourceNode);
 
             return new RestResponse(
@@ -134,6 +184,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         }
     }
 
+    /** Validates that the engine service and request content are available. */
     private RestResponse validatePrerequisites(RestRequest request) {
         if (this.engine == null) {
             return new RestResponse(
@@ -145,6 +196,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         return null;
     }
 
+    /** Extracts the decoder ID from the request path parameters. */
     private String extractDecoderId(RestRequest request) {
         String decoderId = request.param("id");
         if (decoderId == null || decoderId.isBlank()) {
@@ -153,13 +205,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
         return decoderId;
     }
 
+    /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String decoderId) {
         if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        // Direct comparison without prefix logic
         if (resourceNode.hasNonNull(FIELD_ID)) {
             String payloadId = resourceNode.get(FIELD_ID).asText();
             if (!payloadId.equals(decoderId)) {
@@ -170,12 +222,14 @@ public class RestPutDecoderAction extends BaseRestHandler {
         return null;
     }
 
+    /** Updates the decoder document in the index. */
     private void updateDecoder(Client client, String decoderId, ObjectNode resourceNode)
             throws IOException {
 
         RestPutDecoderAction.ensureIndexExists(client);
         ContentIndex decoderIndex = new ContentIndex(client, DECODER_INDEX, null);
 
+        // Check if decoder exists before updating
         if (!decoderIndex.exists(decoderId)) {
             throw new IOException("Decoder [" + decoderId + "] not found.");
         }
@@ -183,10 +237,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
         decoderIndex.create(decoderId, this.buildDecoderPayload(resourceNode));
     }
 
+    /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
         node.put(FIELD_TYPE, DECODER_TYPE);
         node.set(FIELD_DOCUMENT, resourceNode);
+        // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
         node.set(FIELD_SPACE, spaceNode);
@@ -194,6 +250,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         return node;
     }
 
+    /** Ensures the decoder index exists, creating it if necessary. */
     private static void ensureIndexExists(Client client) throws IOException {
         if (!IndexHelper.indexExists(client, RestPutDecoderAction.DECODER_INDEX)) {
             ContentIndex index = new ContentIndex(client, RestPutDecoderAction.DECODER_INDEX, null);
@@ -205,9 +262,15 @@ public class RestPutDecoderAction extends BaseRestHandler {
         }
     }
 
+    /**
+     * Updates the modified timestamp in the resource node metadata.
+     *
+     * @param resourceNode the resource node to update
+     */
     private void updateTimestampMetadata(ObjectNode resourceNode) {
         String currentTimestamp = Instant.now().toString();
 
+        // Ensure metadata node exists
         ObjectNode metadataNode;
         if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
             metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
@@ -216,6 +279,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             resourceNode.set(FIELD_METADATA, metadataNode);
         }
 
+        // Ensure author node exists
         ObjectNode authorNode;
         if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
             authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
@@ -224,6 +288,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             metadataNode.set(FIELD_AUTHOR, authorNode);
         }
 
+        // Set modified timestamp
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 }
