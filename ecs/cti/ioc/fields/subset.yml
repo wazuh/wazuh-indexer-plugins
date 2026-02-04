@@ -4,6 +4,8 @@ fields:
   base:
     fields:
       message: {}
+  enrichments:
+    fields: "*"
   threat:
     fields:
       feed:
