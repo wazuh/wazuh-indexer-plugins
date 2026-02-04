@@ -16,15 +16,12 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
@@ -41,7 +38,6 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -264,9 +260,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                     RestPostDecoderAction.regenerateIntegrationHash(client, hit.getId(), doc, source);
                 } catch (IOException e) {
                     log.error(
-                            "Failed to regenerate hash for integration [{}]: {}",
-                            hit.getId(),
-                            e.getMessage());
+                            "Failed to regenerate hash for integration [{}]: {}", hit.getId(), e.getMessage());
                 }
             }
         }

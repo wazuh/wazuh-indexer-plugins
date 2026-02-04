@@ -383,8 +383,8 @@ public class RestPostDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * Regenerates the integration hash after its document has changed and persists it.
-     * This is a complete operation that updates the hash and saves to the index.
+     * Regenerates the integration hash after its document has changed and persists it. This is a
+     * complete operation that updates the hash and saves to the index.
      *
      * @param client the OpenSearch client
      * @param integrationId the integration ID
@@ -405,7 +405,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
         log.debug(
                 "Regenerated integration hash for id={} (hashPrefix={})",
                 integrationId,
-                newIntegrationHash.length() >= 12 ? newIntegrationHash.substring(0, 12) : newIntegrationHash);
+                newIntegrationHash.length() >= 12
+                        ? newIntegrationHash.substring(0, 12)
+                        : newIntegrationHash);
 
         // Persist the updated integration with new hash
         client
