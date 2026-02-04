@@ -19,9 +19,14 @@
           "agent.id",
           "agent.name",
           "agent.version",
+          "enrichments.custom.id",
+          "enrichments.indicator.name",
+          "enrichments.indicator.type",
+          "enrichments.source",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
-          "wazuh.schema.version"
+          "wazuh.schema.version",
+          "wazuh.space.name"
         ]
       },
       "mapping.nested_fields.limit": 50

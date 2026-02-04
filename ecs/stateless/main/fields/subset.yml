@@ -91,6 +91,8 @@ fields:
     fields: "*"
   error:
     fields: "*"
+  enrichments:
+    fields: "*"
   event:
     fields: "*"
   faas:
