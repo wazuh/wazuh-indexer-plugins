@@ -26,10 +26,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -52,11 +49,6 @@ public class RestGetPromoteAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_promote_preview";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote_preview";
     private static final Logger log = LogManager.getLogger(RestGetPromoteAction.class);
-
-    // Operations
-    private static final String OP_ADD = "add";
-    private static final String OP_REMOVE_VAL = "remove";
-    private static final String OP_UPDATE = "update";
 
     private final SpaceService spaceService;
 
@@ -82,9 +74,9 @@ public class RestGetPromoteAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        if (request.hasParam("space")) {
-            request.param("space");
-        }
+        //        if (request.hasParam(Constants.KEY_SPACE)) {
+        //            request.param(Constants.KEY_SPACE);
+        //        }
         RestResponse response = this.handleRequest(request);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
@@ -92,26 +84,19 @@ public class RestGetPromoteAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request) {
         try {
             // 1. Validate Space Parameter
-            String spaceParam = request.param("space");
-            if (spaceParam == null || spaceParam.isEmpty()) {
+            String spaceParam = request.param(Constants.KEY_SPACE);
+            if (spaceParam == null || spaceParam.isBlank()) {
                 return new RestResponse(
                         "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus());
             }
-
-            Space sourceSpace;
-            try {
-                sourceSpace = Space.fromValue(spaceParam);
-            } catch (IllegalArgumentException e) {
-                return new RestResponse(
-                        "Invalid space parameter: " + spaceParam, RestStatus.BAD_REQUEST.getStatus());
-            }
+            Space sourceSpace = Space.fromValue(spaceParam);
 
             // 2. Determine Target Space
             Space targetSpace = sourceSpace.promote();
+            // Validate that the source space can be promoted
             if (targetSpace == sourceSpace) {
-                return new RestResponse(
-                        "Space [" + sourceSpace + "] cannot be promoted further.",
-                        RestStatus.BAD_REQUEST.getStatus());
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, sourceSpace));
             }
 
             // 3. Fetch Resources for both spaces using SpaceService
@@ -130,7 +115,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
                 Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
 
                 List<Map<String, String>> resourceChanges;
-                if (Constants.KEY_POLICIES.equals(resourceType)) {
+                if (Constants.KEY_POLICY.equals(resourceType)) {
                     // For policies, we perform a deep comparison ignoring ID
                     resourceChanges =
                             this.calculatePolicyDiff(sourceSpace.toString(), targetSpace.toString());
@@ -142,7 +127,8 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
             // 5. Build Response
             return new PromoteResponse(changes);
-
+        } catch (IOException | IllegalArgumentException e) {
+            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error processing promote preview: {}", e.getMessage(), e);
             return new RestResponse(
@@ -169,12 +155,12 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
             if (!targetItems.containsKey(id)) {
                 // Case 2: Promoted space doesn't have that UUID -> ADD
-                changes.add(Map.of("operation", OP_ADD, "id", id));
+                changes.add(Map.of("operation", Constants.OP_ADD, Constants.KEY_ID, id));
             } else {
                 // Case 1: Promoted space has different hash -> UPDATE
                 String targetHash = targetItems.get(id);
                 if (!sourceHash.equals(targetHash)) {
-                    changes.add(Map.of("operation", OP_UPDATE, "id", id));
+                    changes.add(Map.of("operation", Constants.OP_UPDATE, Constants.KEY_ID, id));
                 }
             }
         }
@@ -183,7 +169,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
         // Case 3: UUID is in promoted space but not in current one -> DELETE
         for (String targetId : targetItems.keySet()) {
             if (!sourceItems.containsKey(targetId)) {
-                changes.add(Map.of("operation", OP_REMOVE_VAL, "id", targetId));
+                changes.add(Map.of("operation", Constants.OP_REMOVE, Constants.KEY_ID, targetId));
             }
         }
 
@@ -197,25 +183,29 @@ public class RestGetPromoteAction extends BaseRestHandler {
      * @param sourceSpace Name of the source space
      * @param targetSpace Name of the target space
      * @return List of change operations
+     * @throws IOException error reading the policy document
+     * @throws IllegalStateException missing internal id in the policy document
      */
-    private List<Map<String, String>> calculatePolicyDiff(String sourceSpace, String targetSpace) {
+    @SuppressWarnings("unchecked")
+    private List<Map<String, String>> calculatePolicyDiff(String sourceSpace, String targetSpace)
+            throws IOException, IllegalStateException {
         List<Map<String, String>> changes = new ArrayList<>();
 
-        try {
-            Map<String, Object> sourcePolicy = this.spaceService.getPolicy(sourceSpace);
+        Map<String, Object> sourcePolicy = this.spaceService.getPolicy(sourceSpace);
 
-            Map<String, Object> sourceDoc = (Map<String, Object>) sourcePolicy.get("document");
-            String sourceId = (String) sourceDoc.get("id");
+        Map<String, Object> sourceDoc = (Map<String, Object>) sourcePolicy.get(Constants.KEY_DOCUMENT);
+        String sourceId = (String) sourceDoc.get(Constants.KEY_ID);
 
-            Map<String, Object> targetPolicy = this.spaceService.getPolicy(targetSpace);
-            Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get("document");
+        Map<String, Object> targetPolicy = this.spaceService.getPolicy(targetSpace);
+        Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get(Constants.KEY_DOCUMENT);
 
-            // Compare content ignoring ID
-            if (isPolicyDifferent(sourceDoc, targetDoc)) {
-                changes.add(Map.of("operation", OP_UPDATE, "id", sourceId));
-            }
-        } catch (IOException e) {
-            log.error("Failed to fetch policies for diff calculation", e);
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalStateException(Constants.E_500_POLICY_ID_IS_NULL_OR_BLANK);
+        }
+
+        // Compare content ignoring ID
+        if (this.isPolicyDifferent(sourceDoc, targetDoc)) {
+            changes.add(Map.of("operation", Constants.OP_UPDATE, Constants.KEY_ID, sourceId));
         }
 
         return changes;
@@ -227,20 +217,23 @@ public class RestGetPromoteAction extends BaseRestHandler {
      * @param sourceDoc Source policy document map
      * @param targetDoc Target policy document map
      * @return true if content differs, false otherwise
+     * @throws IllegalStateException any of the policies is null.
      */
-    private boolean isPolicyDifferent(Map<String, Object> sourceDoc, Map<String, Object> targetDoc) {
+    private boolean isPolicyDifferent(Map<String, Object> sourceDoc, Map<String, Object> targetDoc)
+            throws IllegalStateException {
         if (sourceDoc == null || targetDoc == null) {
-            return true;
+            throw new IllegalStateException(Constants.E_500_POLICIES_ARE_NULL);
         }
 
         // Create shallow copies to remove ID without affecting original maps
-        Map<String, Object> s = new HashMap<>(sourceDoc);
-        Map<String, Object> t = new HashMap<>(targetDoc);
+        Map<String, Object> source = new HashMap<>(sourceDoc);
+        Map<String, Object> target = new HashMap<>(targetDoc);
 
-        s.remove("id");
-        t.remove("id");
+        // TODO remove when we have the new relational model
+        source.remove(Constants.KEY_ID);
+        target.remove(Constants.KEY_ID);
 
-        return !s.equals(t);
+        return !source.equals(target);
     }
 
     /** Inner class to extend RestResponse and provide the custom 'changes' payload */

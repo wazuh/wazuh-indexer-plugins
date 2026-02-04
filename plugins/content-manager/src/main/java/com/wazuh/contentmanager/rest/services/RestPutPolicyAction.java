@@ -16,33 +16,37 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.UUIDs;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -57,32 +61,29 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_policy_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/policy_update";
 
-    // Index and field constants
-    private static final String POLICIES_INDEX = ".cti-policies";
-    private static final String DECODERS_INDEX = ".cti-decoders";
-    private static final String SPACE_NAME_FIELD = "space.name";
-    private static final String ID_FIELD = "id";
-
-    private final EngineService engine;
+    private final SpaceService spaceService;
     private NodeClient client;
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Constructs a new RestPutPolicyAction handler.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param spaceService The space service instance to fetch policies.
      */
-    public RestPutPolicyAction(EngineService engine) {
-        this.engine = engine;
+    public RestPutPolicyAction(SpaceService spaceService) {
+        this.spaceService = spaceService;
     }
 
     /**
      * Constructs a new RestPutPolicyAction handler with explicit NodeClient (for testing or DI).
      *
-     * @param engine The service instance to communicate with the local engine service.
-     * @param client The NodeClient to use for index operations.
+     * @param spaceService The space service instance to fetch policies.
+     * @param client The NodeClient to use for index operations. TODO should not be required to pass
+     *     the client
      */
-    public RestPutPolicyAction(EngineService engine, NodeClient client) {
-        this.engine = engine;
+    public RestPutPolicyAction(SpaceService spaceService, NodeClient client) {
+        this.spaceService = spaceService;
         this.client = client;
     }
 
@@ -137,163 +138,76 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return a RestResponse describing the outcome of the operation
      */
     public RestResponse handleRequest(RestRequest request) {
-        // Validate prerequisites
-        RestResponse validationError = this.validateRequest(request);
-        if (validationError != null) {
-            return validationError;
-        }
-        // Parse policy from request
-        Policy policy;
-        try {
-            policy = this.parsePolicy(request);
-        } catch (IOException e) {
+        // 1. Check request's payload exists
+        if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    "Invalid Policy JSON content: " + request.content().utf8ToString(),
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
         }
-        // Validate policy fields
-        RestResponse policyValidationError = this.validatePolicy(policy);
-        if (policyValidationError != null) {
-            return policyValidationError;
-        }
-        // Validate document type is "policy"
-        if (!policy.getType().toLowerCase(Locale.ROOT).equals("policy")) {
-            return new RestResponse(
-                    "Invalid document type: " + policy.getType(), RestStatus.BAD_REQUEST.getStatus());
-        }
-        // Store or update the policy
         try {
-            String policyId = this.storePolicy(policy);
+            // 2. Validate request content
+            JsonNode jsonContent = mapper.readTree(request.content().utf8ToString());
+
+            // Validate "type"
+            if (!jsonContent.has(Constants.KEY_TYPE)) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TYPE));
+            }
+            String resourceType = jsonContent.get(Constants.KEY_TYPE).asText();
+            if (resourceType.isBlank() && !resourceType.equals(Constants.KEY_TYPE)) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                Locale.ROOT,
+                                "Invalid '%s' field. Expected '%s'.",
+                                Constants.KEY_TYPE,
+                                Constants.KEY_POLICY));
+            }
+
+            // Validate "resource"
+            if (!jsonContent.has(Constants.KEY_RESOURCE)) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE));
+            }
+            JsonNode resource = jsonContent.get(Constants.KEY_RESOURCE);
+            log.info(resource.toString());
+            Policy policy = mapper.readValue(resource.toString(), Policy.class);
+
+            // Validate required Policy fields
+            List<String> missingFields = new ArrayList<>();
+            if (policy.getAuthor() == null || policy.getAuthor().isEmpty()) {
+                missingFields.add("author");
+            }
+            if (policy.getDescription() == null || policy.getDescription().isEmpty()) {
+                missingFields.add("description");
+            }
+            if (policy.getDocumentation() == null) {
+                missingFields.add("documentation");
+            }
+            if (policy.getReferences() == null) {
+                missingFields.add("references");
+            }
+
+            if (!missingFields.isEmpty()) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                Locale.ROOT, Constants.E_400_MISSING_FIELD, String.join(", ", missingFields)));
+            }
+
+            // 3. Update policy
+            String policyId = this.updatePolicy(policy);
+
             return new RestResponse(
                     "Updated draft policy with ID " + policyId, RestStatus.OK.getStatus());
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
+            log.warn("Validation error during policy update: {}", e.getMessage());
             return new RestResponse(
-                    "Failed to store the updated policy: " + e.getMessage(),
+                    Constants.E_400_INVALID_JSON_CONTENT + ": " + e.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return new RestResponse(
+                    Constants.E_500_POLICY_UPDATE_FAILED + " " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /**
-     * Validates the incoming request for required conditions.
-     *
-     * @param request the REST request to validate
-     * @return a RestResponse with error details if validation fails, null otherwise
-     */
-    private RestResponse validateRequest(RestRequest request) {
-        if (this.engine == null) {
-            return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        return null;
-    }
-
-    /**
-     * Parses a Policy object from the request content.
-     *
-     * <p>The request is expected to have the following structure:
-     *
-     * <pre>
-     * {
-     *   "type": "policy",
-     *   "resource": {
-     *     "root_decoder": "...",
-     *     "integrations": [...],
-     *     "author": "...",
-     *     "description": "...",
-     *     "documentation": "...",
-     *     "references": [...],
-     *     "title": "..."
-     *   }
-     * }
-     * </pre>
-     *
-     * @param request the REST request containing the policy JSON
-     * @return the parsed Policy object
-     * @throws IOException if parsing fails
-     */
-    private Policy parsePolicy(RestRequest request) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-
-        // Parse the request as a generic map to handle nested structure
-        @SuppressWarnings("unchecked")
-        Map<String, Object> requestBody = mapper.readValue(request.content().utf8ToString(), Map.class);
-
-        // Extract the type from the top level
-        String type = (String) requestBody.get("type");
-
-        // Extract the resource object
-        @SuppressWarnings("unchecked")
-        Map<String, Object> resource = (Map<String, Object>) requestBody.get("resource");
-
-        if (resource == null) {
-            throw new IOException("Missing 'resource' field in request body");
-        }
-
-        // Create a flat map with all fields for Policy deserialization
-        Map<String, Object> flattenedPolicy = new HashMap<>();
-        flattenedPolicy.put("type", type);
-        flattenedPolicy.putAll(resource);
-
-        // Convert back to JSON and deserialize into Policy object
-        String flattenedJson = mapper.writeValueAsString(flattenedPolicy);
-        return mapper.readValue(flattenedJson, Policy.class);
-    }
-
-    /**
-     * Validates that the policy fields meet the required constraints.
-     *
-     * <p>Uses a dynamic reflection-based approach to validate all policy fields. Fields must not be
-     * null, but can be empty strings or empty arrays. This ensures the policy structure is valid
-     * before storage.
-     *
-     * @param policy the policy to validate
-     * @return a RestResponse with error details if validation fails, null otherwise
-     */
-    private RestResponse validatePolicy(Policy policy) {
-        // Define fields to validate with their display names
-        Map<String, String> fieldsToValidate = new LinkedHashMap<>();
-        fieldsToValidate.put("getType", "type");
-        fieldsToValidate.put("getTitle", "resource.title");
-        fieldsToValidate.put("getRootDecoder", "resource.root_decoder");
-        fieldsToValidate.put("getIntegrations", "resource.integrations");
-        fieldsToValidate.put("getAuthor", "resource.author");
-        fieldsToValidate.put("getDescription", "resource.description");
-        fieldsToValidate.put("getDocumentation", "resource.documentation");
-        fieldsToValidate.put("getReferences", "resource.references");
-        // Collect all null fields
-        List<String> nullFields = new ArrayList<>();
-        // Validate each field dynamically
-        for (Map.Entry<String, String> entry : fieldsToValidate.entrySet()) {
-            String methodName = entry.getKey();
-            String fieldName = entry.getValue();
-            try {
-                Method getter = Policy.class.getMethod(methodName);
-                Object value = getter.invoke(policy);
-                if (value == null) {
-                    nullFields.add(fieldName);
-                }
-            } catch (IllegalAccessException
-                    | NoSuchMethodException
-                    | SecurityException
-                    | InvocationTargetException e) {
-                log.error("Error validating field '{}': {}", fieldName, e.getMessage());
-                return new RestResponse(
-                        "Internal validation error for field: " + fieldName,
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-        }
-        // If there are null fields, return error with all missing fields listed
-        if (!nullFields.isEmpty()) {
-            return new RestResponse(
-                    "Invalid request body, missing fields: " + nullFields,
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
     }
 
     /**
@@ -305,77 +219,62 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @param policy the policy to store
      * @throws IOException if storage fails
      */
-    private String storePolicy(Policy policy) throws IOException {
-        ContentIndex contentIndex = new ContentIndex(this.client, POLICIES_INDEX, null);
-        JsonObject policyJson = this.findDraftPolicy(contentIndex);
-        JsonObject policyAsJson = policy.toJson();
-        JsonObject payload = new JsonObject();
-        String currentDate = Instant.now().toString();
-        String policyId;
+    @SuppressWarnings("unchecked")
+    private String updatePolicy(Policy policy) throws IOException, IllegalStateException {
+        // Get policy in the draft space
+        Map<String, Object> currentPolicy = this.spaceService.getPolicy(Space.DRAFT.toString());
 
-        // Create document without type field
-        JsonObject document = new JsonObject();
-        policyAsJson
-                .entrySet()
-                .forEach(
-                        entry -> {
-                            if (!"type".equals(entry.getKey())) {
-                                document.add(entry.getKey(), entry.getValue());
-                            }
-                        });
-
-        // Add timestamps to document
-        document.addProperty("modified", currentDate);
-        if (policyJson != null && policyJson.has(ID_FIELD)) {
-            policyId = policyJson.get(ID_FIELD).getAsString();
-            JsonObject existingDoc = policyJson.getAsJsonObject("document");
-            if (existingDoc != null && existingDoc.has("date")) {
-                document.addProperty("date", existingDoc.get("date").getAsString());
-            } else {
-                document.addProperty("date", currentDate);
-            }
-        } else {
-            policyId = UUIDs.base64UUID();
-            document.addProperty("date", currentDate);
+        // Safekeep unmodifiable values
+        Map<String, Object> currentPolicyDoc =
+                (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
+        if (currentPolicyDoc == null) {
+            throw new IllegalStateException(
+                    String.format(
+                            Locale.ROOT,
+                            Constants.E_500_UNEXPECTED_INDEX_STATE,
+                            Constants.KEY_DOCUMENT,
+                            Space.DRAFT,
+                            Constants.INDEX_POLICIES));
         }
-        // Add document to payload
-        payload.add("document", document);
-        // Set the Space name to DRAFT
-        JsonObject spaceObject = new JsonObject();
-        spaceObject.addProperty("name", Space.DRAFT.toString());
-        // Generate and set the Space Hash. TODO: Implement real hash calculation
-        JsonObject spaceHashObject = new JsonObject();
-        spaceHashObject.addProperty("sha256", "dummy_space_hash_value");
-        spaceObject.add("hash", spaceHashObject);
-        // Save space property
-        payload.add("space", spaceObject);
+        String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
+        String docCreationDate = currentPolicyDoc.getOrDefault(Constants.KEY_DATE, "").toString();
+        String docModificationDate = Instant.now().toString();
 
-        // Store the new draft policy
-        contentIndex.create(policyId, payload);
-        log.info("Policy stored successfully with ID: {}", policyId);
-        return policyId;
-    }
+        // Update (set or overwrite unmodifiable values in incoming policy document)
+        policy.setId(docId);
+        policy.setDate(docCreationDate);
+        policy.setModified(docModificationDate);
+        currentPolicy.put(Constants.KEY_DOCUMENT, policy.toMap());
+        // TODO implement policy and space hash calculation
+        // currentPolicy.setHash();
 
-    /**
-     * Finds the ID of the existing draft policy, or generates a new one.
-     *
-     * @param contentIndex the content index to search
-     * @return the existing policy ID or a new UUID
-     */
-    private JsonObject findDraftPolicy(ContentIndex contentIndex) {
-        QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_NAME_FIELD, Space.DRAFT.toString());
-        JsonObject result = contentIndex.searchByQuery(queryBuilder);
+        // Update in index
+        ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
+        QueryBuilder query = QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
+        SearchRequest searchRequest =
+                new SearchRequest()
+                        .indices(Constants.INDEX_POLICIES)
+                        .source(new SearchSourceBuilder().query(query));
+        try {
+            // TODO replace with SpaceService::findDocumentId()
+            SearchResponse searchResponse =
+                    this.client
+                            .search(searchRequest)
+                            .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
 
-        // searchByQuery returns { "hits": [...], "total": N }
-        if (result != null && result.has("hits")) {
-            JsonArray hits = result.getAsJsonArray("hits");
-            if (!hits.isEmpty()) {
-                JsonObject firstHit = hits.get(0).getAsJsonObject();
-                if (firstHit.has(ID_FIELD)) {
-                    return firstHit;
-                }
+            if (searchResponse == null || searchResponse.getHits() == null) {
+                throw new IllegalStateException("no hits");
             }
+
+            String draftPolicyId = searchResponse.getHits().getAt(0).getId();
+            // Convert Map to Gson JsonObject via JSON string
+            String jsonString = mapper.writeValueAsString(currentPolicy);
+            JsonObject gsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+            IndexResponse indexResponse = index.create(draftPolicyId, gsonObject);
+
+            return indexResponse.getId();
+        } catch (Exception e) {
+            throw new IllegalStateException("Draft policy not found: " + e.getMessage());
         }
-        return null;
     }
 }
