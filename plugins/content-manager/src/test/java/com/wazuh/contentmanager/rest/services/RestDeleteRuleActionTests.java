@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
@@ -36,7 +37,9 @@ import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -83,7 +86,20 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("id", ruleId))
                         .build();
 
-        // Mock
+        // Mock client with RETURNS_DEEP_STUBS for chained calls
+        this.client = mock(Client.class, RETURNS_DEEP_STUBS);
+
+        // Mock draft space validation
+        GetResponse ruleGetResponse = mock(GetResponse.class);
+        when(ruleGetResponse.isExists()).thenReturn(true);
+        java.util.Map<String, Object> ruleSource = new java.util.HashMap<>();
+        java.util.Map<String, Object> ruleSpace = new java.util.HashMap<>();
+        ruleSpace.put("name", "draft");
+        ruleSource.put("space", ruleSpace);
+        when(ruleGetResponse.getSourceAsMap()).thenReturn(ruleSource);
+        when(this.client.prepareGet(anyString(), anyString()).get()).thenReturn(ruleGetResponse);
+
+        // Mock SAP delete
         this.mockSapDelete(ruleId);
 
         // Act

@@ -191,10 +191,16 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
         // Mock ContentIndex.exists() - decoder exists
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
+        GetResponse existsResponse = mock(GetResponse.class);
+        when(existsResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(getResponse);
+                .thenReturn(existsResponse);
+
+        // Mock validateDecoderSpace - decoder exists and is in draft space
+        GetResponse spaceResponse = mock(GetResponse.class);
+        when(spaceResponse.isExists()).thenReturn(true);
+        when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
         doAnswer(invocation -> null).when(client).delete(any(DeleteRequest.class), any());
 

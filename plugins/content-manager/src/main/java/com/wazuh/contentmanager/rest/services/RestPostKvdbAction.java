@@ -45,8 +45,11 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 
 /**
  * REST handler for creating KVDB resources.
@@ -69,8 +72,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_create";
-    private static final String KVDB_INDEX = ".cti-kvdbs";
-    private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_INTEGRATION = "integration";
     private static final String FIELD_RESOURCE = "resource";
@@ -158,7 +159,9 @@ public class RestPostKvdbAction extends BaseRestHandler {
             }
 
             // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
+            RestResponse validationResponse =
+                    DocumentValidations.validateDocumentInSpaceWithResponse(
+                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
             if (validationResponse != null) {
                 return validationResponse;
             }
@@ -225,7 +228,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
     /** Creates the KVDB document in the index. */
     private void createKvdb(Client client, String kvdbIndexId, ObjectNode resourceNode)
             throws IOException {
-        ContentIndex kvdbIndex = new ContentIndex(client, KVDB_INDEX, null);
+        ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
         kvdbIndex.create(kvdbIndexId, this.buildKvdbPayload(resourceNode));
     }
 
@@ -251,7 +254,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
     @SuppressWarnings("unchecked")
     private void updateIntegrationWithKvdb(Client client, String integrationId, String kvdbIndexId)
             throws IOException {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
             throw new IOException(
@@ -294,7 +297,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
         client
                 .index(
-                        new IndexRequest(INTEGRATION_INDEX)
+                        new IndexRequest(INDEX_INTEGRATIONS)
                                 .id(integrationId)
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
@@ -341,49 +344,5 @@ public class RestPostKvdbAction extends BaseRestHandler {
         // Set timestamps
         authorNode.put(FIELD_DATE, currentTimestamp);
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
-    }
-
-    /**
-     * Validates that the integration exists and is in the draft space.
-     *
-     * @param client the OpenSearch client
-     * @param integrationId the integration ID to validate
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
-    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
-
-        if (!integrationResponse.isExists()) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_SPACE)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] does not have space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Object spaceObj = source.get(FIELD_SPACE);
-        if (!(spaceObj instanceof Map)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] has invalid space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(FIELD_NAME);
-
-        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            return new RestResponse(
-                    "Integration ["
-                            + integrationId
-                            + "] is not in draft space. Only integrations in draft space can have rules created.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        return null;
     }
 }

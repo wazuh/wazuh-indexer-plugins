@@ -33,6 +33,7 @@ import java.util.List;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 
@@ -120,7 +121,14 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             if (ruleId == null || ruleId.isEmpty()) {
                 return new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus());
             }
-            // TODO: Add validation to check if the rule exists before trying to delete.
+
+            // Validate rule is in draft space
+            String validationError =
+                    DocumentValidations.validateDocumentInSpace(client, CTI_RULES_INDEX, ruleId, "Rule");
+            if (validationError != null) {
+                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
+            }
+
             // 1. Call SAP to delete rule
             try {
                 client

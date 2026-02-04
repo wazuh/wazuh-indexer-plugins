@@ -16,8 +16,21 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
@@ -32,19 +45,13 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
-import org.junit.Before;
-import org.junit.BeforeClass;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import org.mockito.ArgumentCaptor;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
@@ -122,6 +129,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
+        this.action.setDecoderIndex(this.buildMockDecoderIndex(client));
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -377,6 +385,8 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
                 + "}"
                 + "}";
         when(getDocumentResponse.getSourceAsString()).thenReturn(existingDocumentJson);
+        // Mock getSourceAsMap for DocumentValidations.validateDocumentInSpace
+        when(getDocumentResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
         when(client.prepareGet(anyString(), anyString()).get())
                 .thenReturn(getDocumentResponse);
 
@@ -393,10 +403,15 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         // Mock ContentIndex.exists() - decoder does not exist
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(false);
+        GetResponse existsResponse = mock(GetResponse.class);
+        when(existsResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(getResponse);
+                .thenReturn(existsResponse);
+
+        // Mock validateDecoderSpace - decoder does not exist
+        GetResponse spaceResponse = mock(GetResponse.class);
+        when(spaceResponse.isExists()).thenReturn(false);
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
         return client;
     }
@@ -427,6 +442,8 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
+        ContentIndex mockDecoderIndex = this.buildMockDecoderIndex(client);
+        this.action.setDecoderIndex(mockDecoderIndex);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -450,11 +467,10 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         assertNotNull(modified);
         assertFalse(modified.equals("2026-01-01T00:00:00.000Z"));
 
-        ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(client).index(indexCaptor.capture());
-        IndexRequest indexRequest = indexCaptor.getValue();
-        String indexedSource = indexRequest.source().utf8ToString();
-        JsonNode indexedDoc = FixtureFactory.from(indexedSource);
+        // Verify the decoder index was used to create the document
+        ArgumentCaptor<JsonNode> indexCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(mockDecoderIndex).create(anyString(), indexCaptor.capture());
+        JsonNode indexedDoc = indexCaptor.getValue();
         JsonNode indexedResource = indexedDoc.get("document");
         JsonNode indexedMetadata = indexedResource.get("metadata");
 
@@ -483,6 +499,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
+        this.action.setDecoderIndex(this.buildMockDecoderIndex(client));
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -505,5 +522,35 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         String modified = metadata.get("author").get("modified").asText();
         assertNotNull(modified);
         assertFalse(modified.equals("2026-01-01T00:00:00.000Z"));
+    }
+
+    private ContentIndex buildMockDecoderIndex(Client client) throws IOException {
+        ContentIndex mockIndex = mock(ContentIndex.class);
+        when(mockIndex.exists(anyString())).thenReturn(true);
+
+        String existingDocumentJson = "{"
+                + "\"document\": {"
+                + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
+                + "  \"name\": \"decoder/example/0\","
+                + "  \"enabled\": true,"
+                + "  \"metadata\": {"
+                + "    \"title\": \"Example decoder\","
+                + "    \"description\": \"Example decoder description\","
+                + "    \"author\": {"
+                + "      \"name\": \"Wazuh\","
+                + "      \"date\": \"2026-01-01T00:00:00.000Z\","
+                + "      \"modified\": \"2026-01-01T00:00:00.000Z\""
+                + "    }"
+                + "  }"
+                + "},"
+                + "\"space\": {"
+                + "  \"name\": \"draft\""
+                + "}"
+                + "}";
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode documentNode = mapper.readTree(existingDocumentJson);
+        when(mockIndex.getDocument(anyString())).thenReturn(documentNode);
+
+        return mockIndex;
     }
 }
