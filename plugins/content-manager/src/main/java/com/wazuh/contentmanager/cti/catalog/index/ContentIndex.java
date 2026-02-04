@@ -88,7 +88,7 @@ public class ContentIndex {
     private final String mappingsPath;
     private final String alias;
 
-    private final ObjectMapper jsonMapper;
+    private final ObjectMapper mapper;
 
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DECODER_KEY = "decoder";
@@ -134,7 +134,7 @@ public class ContentIndex {
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
         this.alias = alias;
-        this.jsonMapper = new ObjectMapper();
+        this.mapper = new ObjectMapper();
     }
 
     /**
@@ -214,7 +214,7 @@ public class ContentIndex {
         try {
             GetResponse response = this.client.prepareGet(this.indexName, id).get();
             if (response.isExists() && response.getSourceAsString() != null) {
-                return this.jsonMapper.readTree(response.getSourceAsString());
+                return this.mapper.readTree(response.getSourceAsString());
             }
         } catch (Exception e) {
             log.error("Error retrieving document [{}] from [{}]: {}", id, this.indexName, e.getMessage());
@@ -234,19 +234,19 @@ public class ContentIndex {
      */
     public void indexCtiContent(String id, JsonNode rawContent, String spaceName) throws IOException {
         // TODO: Move this method to a dedicated CTI Resource logic class.
-        ObjectNode ctiWrapper = this.jsonMapper.createObjectNode();
+        ObjectNode ctiWrapper = this.mapper.createObjectNode();
 
         // 1. Wrap document
         ctiWrapper.set(JSON_DOCUMENT_KEY, rawContent);
 
         // 2. Calculate Hash
         String hash = HashCalculator.sha256(rawContent.toString());
-        ObjectNode hashNode = this.jsonMapper.createObjectNode();
+        ObjectNode hashNode = this.mapper.createObjectNode();
         hashNode.put(JSON_SHA256_KEY, hash);
         ctiWrapper.set(JSON_HASH_KEY, hashNode);
 
         // 3. Set Space
-        ObjectNode spaceNode = this.jsonMapper.createObjectNode();
+        ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(JSON_NAME_KEY, spaceName);
         ctiWrapper.set(JSON_SPACE_KEY, spaceNode);
 
@@ -411,7 +411,7 @@ public class ContentIndex {
             String fieldName = listField.contains(".") ? listField.split("\\.")[1] : listField;
 
             for (SearchHit hit : searchResponse.getHits().getHits()) {
-                JsonNode root = this.jsonMapper.readTree(hit.getSourceAsString());
+                JsonNode root = this.mapper.readTree(hit.getSourceAsString());
                 if (root.has(JSON_DOCUMENT_KEY)) {
                     JsonNode innerDoc = root.get(JSON_DOCUMENT_KEY);
                     if (innerDoc instanceof ObjectNode objectNode && objectNode.has(fieldName)) {
@@ -605,13 +605,13 @@ public class ContentIndex {
 
             Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
-            if (type != null && JSON_DECODER_KEY.equalsIgnoreCase(type)) {
-                resource = Decoder.fromPayload(payload);
-            } else {
-                resource = Resource.fromPayload(payload);
-            }
+            resource =
+                    (JSON_DECODER_KEY.equalsIgnoreCase(type))
+                            ? Decoder.fromPayload(payload)
+                            : Resource.fromPayload(payload);
+
             // 2. Convert Model back to JsonObject for OpenSearch indexing
-            String jsonString = this.jsonMapper.writeValueAsString(resource);
+            String jsonString = this.mapper.writeValueAsString(resource);
             JsonObject result = JsonParser.parseString(jsonString).getAsJsonObject();
 
             // 3. Re-add the type field to the result
@@ -620,7 +620,6 @@ public class ContentIndex {
             }
 
             return result;
-
         } catch (IOException e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);
             return new JsonObject();

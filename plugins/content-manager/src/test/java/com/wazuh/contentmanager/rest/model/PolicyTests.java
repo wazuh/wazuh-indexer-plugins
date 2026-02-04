@@ -57,7 +57,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Policy defaultPolicy = new Policy();
 
         // Assert
-        assertEquals("policy", defaultPolicy.getType());
         assertNotNull(defaultPolicy.getIntegrations());
         assertTrue(defaultPolicy.getIntegrations().isEmpty());
         assertNull(defaultPolicy.getRootDecoder());
@@ -77,7 +76,7 @@ public class PolicyTests extends OpenSearchTestCase {
         // Act
         Policy testPolicy =
                 new Policy(
-                        "policy", // type
+                        "12345",
                         null, // title
                         null, // date
                         null, // modified
@@ -89,7 +88,6 @@ public class PolicyTests extends OpenSearchTestCase {
                         references);
 
         // Assert
-        assertEquals("policy", testPolicy.getType());
         assertEquals("decoder/root/0", testPolicy.getRootDecoder());
         assertEquals(2, testPolicy.getIntegrations().size());
         assertEquals("integration1", testPolicy.getIntegrations().get(0));
@@ -107,7 +105,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Policy testPolicy = new Policy(null, null, null, null, null, null, null, null, null, null);
 
         // Assert
-        assertEquals("policy", testPolicy.getType()); // Defaults to "policy"
         assertNotNull(testPolicy.getIntegrations()); // Defaults to empty list
         assertTrue(testPolicy.getIntegrations().isEmpty());
         assertNull(testPolicy.getRootDecoder());
@@ -125,7 +122,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Policy testPolicy = Policy.fromPayload(payload);
 
         // Assert
-        assertEquals("policy", testPolicy.getType());
         assertEquals("decoder/integrations/0", testPolicy.getRootDecoder());
         assertEquals(2, testPolicy.getIntegrations().size());
         assertEquals("integration/wazuh-core/0", testPolicy.getIntegrations().get(0));
@@ -140,7 +136,6 @@ public class PolicyTests extends OpenSearchTestCase {
     /** Helper method to create a complete JSON payload for testing. */
     private static JsonObject getPayload() {
         JsonObject payload = new JsonObject();
-        payload.addProperty("type", "policy");
         payload.addProperty("root_decoder", "decoder/integrations/0");
 
         JsonArray integrationsArray = new JsonArray();
@@ -167,7 +162,6 @@ public class PolicyTests extends OpenSearchTestCase {
 
         // Assert
         assertNotNull(testPolicy);
-        assertEquals("policy", testPolicy.getType()); // Default constructor sets type to "policy"
         assertNull(testPolicy.getRootDecoder());
         assertNotNull(testPolicy.getIntegrations());
         assertTrue(testPolicy.getIntegrations().isEmpty());
@@ -177,7 +171,6 @@ public class PolicyTests extends OpenSearchTestCase {
     public void testFromPayload_NullValues() {
         // Arrange
         JsonObject payload = new JsonObject();
-        payload.addProperty("type", "policy");
         payload.add("root_decoder", null);
         payload.add("author", null);
 
@@ -185,7 +178,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Policy testPolicy = Policy.fromPayload(payload);
 
         // Assert
-        assertEquals("policy", testPolicy.getType());
         assertNull(testPolicy.getRootDecoder());
         assertNull(testPolicy.getAuthor());
     }
@@ -213,7 +205,6 @@ public class PolicyTests extends OpenSearchTestCase {
     public void testToMap_CompletePolicy() {
         // Arrange
         List<String> integrations = Arrays.asList("int1", "int2");
-        this.policy.setType("policy");
         this.policy.setRootDecoder("decoder/root/0");
         this.policy.setIntegrations(integrations);
         this.policy.setAuthor("Wazuh Inc.");
@@ -225,7 +216,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Map<String, Object> map = this.policy.toMap();
 
         // Assert
-        assertEquals("policy", map.get("type"));
         assertEquals("decoder/root/0", map.get("root_decoder"));
         assertEquals(integrations, map.get("integrations"));
         assertEquals("Wazuh Inc.", map.get("author"));
@@ -243,7 +233,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Map<String, Object> map = minimalPolicy.toMap();
 
         // Assert
-        assertEquals("policy", map.get("type"));
         assertFalse(map.containsKey("root_decoder"));
         assertFalse(map.containsKey("integrations")); // Empty list not included
         assertFalse(map.containsKey("author"));
@@ -253,7 +242,6 @@ public class PolicyTests extends OpenSearchTestCase {
     public void testToJson_CompletePolicy() {
         // Arrange
         List<String> integrations = Arrays.asList("int1", "int2");
-        this.policy.setType("policy");
         this.policy.setRootDecoder("decoder/root/0");
         this.policy.setIntegrations(integrations);
         this.policy.setAuthor("Wazuh Inc.");
@@ -263,7 +251,6 @@ public class PolicyTests extends OpenSearchTestCase {
         JsonObject json = this.policy.toJson();
 
         // Assert
-        assertEquals("policy", json.get("type").getAsString());
         assertEquals("decoder/root/0", json.get("root_decoder").getAsString());
         assertTrue(json.get("integrations").isJsonArray());
         assertEquals(2, json.getAsJsonArray("integrations").size());
@@ -276,14 +263,12 @@ public class PolicyTests extends OpenSearchTestCase {
     /** Test toJson conversion with empty integrations after setting to null. */
     public void testToJson_NullIntegrations() {
         // Arrange
-        this.policy.setType("policy");
         this.policy.setIntegrations(null); // Will be converted to empty list
 
         // Act
         JsonObject json = this.policy.toJson();
 
         // Assert
-        assertEquals("policy", json.get("type").getAsString());
         // Empty list creates an empty array in JSON
         assertTrue(json.has("integrations"));
         assertTrue(json.get("integrations").isJsonArray());
@@ -379,10 +364,6 @@ public class PolicyTests extends OpenSearchTestCase {
 
     /** Test all getters and setters. */
     public void testGettersAndSetters() {
-        // Act & Assert - Type
-        this.policy.setType("custom-type");
-        assertEquals("custom-type", this.policy.getType());
-
         // Root Decoder
         this.policy.setRootDecoder("decoder/test/0");
         assertEquals("decoder/test/0", this.policy.getRootDecoder());
@@ -405,31 +386,10 @@ public class PolicyTests extends OpenSearchTestCase {
         assertEquals("https://references.com", this.policy.getReferences().get(0));
     }
 
-    /** Test toString method. */
-    public void testToString() {
-        // Arrange
-        this.policy.setType("policy");
-        this.policy.setRootDecoder("decoder/root/0");
-        this.policy.addIntegration("integration1");
-        this.policy.setAuthor("Wazuh Inc.");
-
-        // Act
-        String result = this.policy.toString();
-
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.contains("Policy{"));
-        assertTrue(result.contains("type='policy'"));
-        assertTrue(result.contains("rootDecoder='decoder/root/0'"));
-        assertTrue(result.contains("integrations="));
-        assertTrue(result.contains("author='Wazuh Inc.'"));
-    }
-
     /** Test round-trip conversion: toJson -> fromPayload. */
     public void testRoundTrip_JsonConversion() {
         // Arrange
         List<String> integrations = Arrays.asList("int1", "int2");
-        this.policy.setType("policy");
         this.policy.setRootDecoder("decoder/root/0");
         this.policy.setIntegrations(integrations);
         this.policy.setAuthor("Wazuh Inc.");
@@ -440,7 +400,6 @@ public class PolicyTests extends OpenSearchTestCase {
         Policy reconstructed = Policy.fromPayload(json);
 
         // Assert
-        assertEquals(this.policy.getType(), reconstructed.getType());
         assertEquals(this.policy.getRootDecoder(), reconstructed.getRootDecoder());
         assertEquals(this.policy.getIntegrations().size(), reconstructed.getIntegrations().size());
         assertEquals(this.policy.getAuthor(), reconstructed.getAuthor());

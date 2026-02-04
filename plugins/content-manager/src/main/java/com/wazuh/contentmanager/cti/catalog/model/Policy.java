@@ -42,7 +42,6 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Policy {
     // JSON Key Constants
-    private static final String TYPE_KEY = "type";
     private static final String TITLE_KEY = "title";
     private static final String DATE_KEY = "date";
     private static final String MODIFIED_KEY = "modified";
@@ -53,9 +52,6 @@ public class Policy {
     private static final String DOCUMENTATION_KEY = "documentation";
     private static final String REFERENCES_KEY = "references";
     private static final String ID_KEY = "id";
-
-    @JsonProperty(TYPE_KEY)
-    private String type;
 
     @JsonProperty(TITLE_KEY)
     private String title;
@@ -89,7 +85,6 @@ public class Policy {
 
     /** Default constructor. */
     public Policy() {
-        this.type = "policy";
         this.integrations = new ArrayList<>();
         this.references = new ArrayList<>();
         this.date = null;
@@ -99,7 +94,6 @@ public class Policy {
     /**
      * Constructs a new Policy with the specified parameters.
      *
-     * @param type The type of resource (should be "policy").
      * @param rootDecoder The root decoder identifier.
      * @param integrations List of integration IDs.
      * @param author The author of the policy.
@@ -109,7 +103,7 @@ public class Policy {
      */
     @JsonCreator
     public Policy(
-            @JsonProperty(TYPE_KEY) String type,
+            @JsonProperty(ID_KEY) String id,
             @JsonProperty(TITLE_KEY) String title,
             @JsonProperty(DATE_KEY) String date,
             @JsonProperty(MODIFIED_KEY) String modified,
@@ -119,7 +113,7 @@ public class Policy {
             @JsonProperty(DESCRIPTION_KEY) String description,
             @JsonProperty(DOCUMENTATION_KEY) String documentation,
             @JsonProperty(REFERENCES_KEY) List<String> references) {
-        this.type = type != null ? type : "policy";
+        this.id = id;
         this.title = title;
         this.date = date;
         this.modified = modified;
@@ -139,15 +133,16 @@ public class Policy {
      */
     public static Policy fromPayload(JsonObject payload) {
         Policy policy = new Policy();
+        if (payload.has(ID_KEY) && !payload.get(ID_KEY).isJsonNull()) {
+            policy.setId(payload.get(ID_KEY).getAsString());
+        }
+
         if (payload.has(DATE_KEY) && !payload.get(DATE_KEY).isJsonNull()) {
             policy.setDate(payload.get(DATE_KEY).getAsString());
         }
+
         if (payload.has(MODIFIED_KEY) && !payload.get(MODIFIED_KEY).isJsonNull()) {
             policy.setModified(payload.get(MODIFIED_KEY).getAsString());
-        }
-
-        if (payload.has(TYPE_KEY)) {
-            policy.setType(payload.get(TYPE_KEY).getAsString());
         }
 
         if (payload.has(TITLE_KEY) && !payload.get(TITLE_KEY).isJsonNull()) {
@@ -203,8 +198,8 @@ public class Policy {
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
 
-        if (this.type != null) {
-            map.put(TYPE_KEY, this.type);
+        if (this.id != null) {
+            map.put(ID_KEY, this.id);
         }
         if (this.title != null) {
             map.put(TITLE_KEY, this.title);
@@ -245,8 +240,8 @@ public class Policy {
     public JsonObject toJson() {
         JsonObject jsonObject = new JsonObject();
 
-        if (this.type != null) {
-            jsonObject.addProperty(TYPE_KEY, this.type);
+        if (this.id != null) {
+            jsonObject.addProperty(ID_KEY, this.id);
         }
         if (this.title != null) {
             jsonObject.addProperty(TITLE_KEY, this.title);
@@ -343,24 +338,6 @@ public class Policy {
      */
     public void setModified(String modified) {
         this.modified = modified;
-    }
-
-    /**
-     * Gets the type of this resource.
-     *
-     * @return The resource type (should be "policy").
-     */
-    public String getType() {
-        return this.type;
-    }
-
-    /**
-     * Sets the type of this resource.
-     *
-     * @param type The resource type to set. If null, defaults to "policy".
-     */
-    public void setType(String type) {
-        this.type = type != null ? type : "policy";
     }
 
     /**
@@ -495,13 +472,13 @@ public class Policy {
      * @return The id of the policy document.
      */
     public String getId() {
-        return id;
+        return this.id;
     }
 
     /**
      * Sets the id related to this policy.
      *
-     * @param id The new id of the policy documet.
+     * @param id The new id of the policy document.
      */
     public void setId(String id) {
         this.id = id;
@@ -510,12 +487,15 @@ public class Policy {
     @Override
     public String toString() {
         return "Policy{"
-                + "type='"
-                + this.type
+                + "title='"
+                + this.title
                 + '\''
-                + (this.title != null ? ", title='" + this.title + '\'' : "")
-                + (this.date != null ? ", date='" + this.date + '\'' : "")
-                + (this.modified != null ? ", modified='" + this.modified + '\'' : "")
+                + ", date='"
+                + this.date
+                + '\''
+                + ", modified='"
+                + this.modified
+                + '\''
                 + ", rootDecoder='"
                 + this.rootDecoder
                 + '\''
@@ -532,6 +512,9 @@ public class Policy {
                 + '\''
                 + ", references="
                 + this.references
+                + ", id='"
+                + this.id
+                + '\''
                 + '}';
     }
 }

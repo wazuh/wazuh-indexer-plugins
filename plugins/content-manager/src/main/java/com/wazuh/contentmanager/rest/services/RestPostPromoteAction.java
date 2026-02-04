@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -154,7 +155,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         } catch (IllegalArgumentException e) {
             log.warn("Validation error during promotion: {}", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        } catch (com.fasterxml.jackson.databind.exc.ValueInstantiationException e) {
+        } catch (ValueInstantiationException e) {
             log.warn("Invalid value in request: {}", e.getMessage());
             // Extract the root cause message for better error reporting
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
@@ -251,7 +252,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Process each resource type
         this.processResourceChanges(
                 changes.getPolicy(),
-                Constants.KEY_POLICIES,
+                Constants.KEY_POLICY,
                 policyToApply,
                 HashSet.newHashSet(0), // Policies cannot be removed.
                 sourceSpace.toString(),
