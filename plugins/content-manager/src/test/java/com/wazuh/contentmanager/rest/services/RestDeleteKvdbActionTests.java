@@ -172,7 +172,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     public void testDeleteKvdbWithIntegrationInBodyReturns400() throws IOException {
         // Arrange
         String payloadWithIntegration = "{\"integration\": \"integration-1\"}";
-        RestRequest request = buildRequest(payloadWithIntegration, "k_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        RestRequest request =
+                buildRequest(payloadWithIntegration, "k_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
 
         // Act
         BytesRestResponse bytesRestResponse =

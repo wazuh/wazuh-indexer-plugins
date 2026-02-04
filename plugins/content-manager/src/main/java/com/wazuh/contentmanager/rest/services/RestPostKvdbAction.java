@@ -332,17 +332,14 @@ public class RestPostKvdbAction extends BaseRestHandler {
             resourceNode.set(FIELD_METADATA, metadataNode);
         }
 
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
-        } else {
-            authorNode = this.mapper.createObjectNode();
+        // Ensure author node exists (only contains name, not timestamps)
+        if (!metadataNode.has(FIELD_AUTHOR) || !metadataNode.get(FIELD_AUTHOR).isObject()) {
+            ObjectNode authorNode = this.mapper.createObjectNode();
             metadataNode.set(FIELD_AUTHOR, authorNode);
         }
 
-        // Set timestamps
-        authorNode.put(FIELD_DATE, currentTimestamp);
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        // Set timestamps at metadata level (not inside author)
+        metadataNode.put(FIELD_DATE, currentTimestamp);
+        metadataNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 }

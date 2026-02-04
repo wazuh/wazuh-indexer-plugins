@@ -179,12 +179,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Verify timestamps were added
         assertTrue(resource.has("metadata"));
         JsonNode metadata = resource.get("metadata");
-        assertTrue(metadata.has("author"));
-        JsonNode author = metadata.get("author");
-        assertTrue(author.has("date"));
-        assertTrue(author.has("modified"));
-        assertNotNull(author.get("date").asText());
-        assertNotNull(author.get("modified").asText());
+        assertTrue(metadata.has("date"));
+        assertTrue(metadata.has("modified"));
+        assertNotNull(metadata.get("date").asText());
+        assertNotNull(metadata.get("modified").asText());
 
         // Verify client.index() was called twice: once for KVDB, once for integration update
         ArgumentCaptor<IndexRequest> indexRequestCaptor = ArgumentCaptor.forClass(IndexRequest.class);

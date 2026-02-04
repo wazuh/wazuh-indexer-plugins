@@ -28,9 +28,16 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 /**
  * Utility class for preserving metadata during PUT operations.
  *
- * <p>This class provides a common method to preserve the {@code metadata.author.date} field from
- * existing documents while allowing other metadata fields to be updated. The {@code
- * metadata.author.modified} timestamp is always updated to the current time.
+ * <p>This class provides methods to preserve the {@code date} field from existing documents while
+ * allowing other metadata fields to be updated. The {@code modified} timestamp is always updated to
+ * the current time.
+ *
+ * <p>Two formats are supported:
+ *
+ * <ul>
+ *   <li>Decoders: {@code metadata.author.date} and {@code metadata.author.modified}
+ *   <li>Other resources (KVDBs, Rules, etc.): {@code metadata.date} and {@code metadata.modified}
+ * </ul>
  */
 public final class MetadataPreservationHelper {
 
@@ -46,12 +53,8 @@ public final class MetadataPreservationHelper {
 
     /**
      * Preserves only the date field from existing metadata and allows other metadata fields to be
-     * updated.
-     *
-     * <p>The {@code metadata.author.date} is preserved from the existing document and cannot be
-     * modified. All other metadata fields ({@code title}, {@code description}, {@code author.name})
-     * can be updated from the request. The {@code metadata.author.modified} timestamp is always
-     * updated to the current time.
+     * updated. Uses the default format with timestamps at {@code metadata.date} and {@code
+     * metadata.modified}.
      *
      * @param mapper the ObjectMapper instance for JSON operations
      * @param contentIndex the ContentIndex instance to retrieve the existing document
@@ -61,6 +64,33 @@ public final class MetadataPreservationHelper {
      */
     public static void preserveMetadataAndUpdateTimestamp(
             ObjectMapper mapper, ContentIndex contentIndex, String documentId, ObjectNode resourceNode)
+            throws IOException {
+        preserveMetadataAndUpdateTimestamp(mapper, contentIndex, documentId, resourceNode, false);
+    }
+
+    /**
+     * Preserves only the date field from existing metadata and allows other metadata fields to be
+     * updated.
+     *
+     * <p>The {@code date} field is preserved from the existing document and cannot be modified. All
+     * other metadata fields ({@code title}, {@code description}, {@code author.name}) can be updated
+     * from the request. The {@code modified} timestamp is always updated to the current time.
+     *
+     * @param mapper the ObjectMapper instance for JSON operations
+     * @param contentIndex the ContentIndex instance to retrieve the existing document
+     * @param documentId the document ID to retrieve from the index
+     * @param resourceNode the resource node to update with preserved metadata
+     * @param timestampsInsideAuthor if true, timestamps are stored at {@code metadata.author.date}
+     *     and {@code metadata.author.modified}; if false, at {@code metadata.date} and {@code
+     *     metadata.modified}
+     * @throws IOException if an error occurs retrieving the existing document
+     */
+    public static void preserveMetadataAndUpdateTimestamp(
+            ObjectMapper mapper,
+            ContentIndex contentIndex,
+            String documentId,
+            ObjectNode resourceNode,
+            boolean timestampsInsideAuthor)
             throws IOException {
         JsonNode existingDocument = contentIndex.getDocument(documentId);
         if (existingDocument == null) {
@@ -73,10 +103,16 @@ public final class MetadataPreservationHelper {
             JsonNode existingDoc = existingDocument.get(FIELD_DOCUMENT);
             if (existingDoc.has(FIELD_METADATA) && existingDoc.get(FIELD_METADATA).isObject()) {
                 existingMetadata = existingDoc.get(FIELD_METADATA);
-                if (existingMetadata.has(FIELD_AUTHOR) && existingMetadata.get(FIELD_AUTHOR).isObject()) {
-                    JsonNode existingAuthor = existingMetadata.get(FIELD_AUTHOR);
-                    if (existingAuthor.has(FIELD_DATE)) {
-                        preservedDate = existingAuthor.get(FIELD_DATE).asText();
+                // Extract date from appropriate location based on format
+                if (timestampsInsideAuthor) {
+                    if (existingMetadata.has(FIELD_AUTHOR)
+                            && existingMetadata.get(FIELD_AUTHOR).isObject()
+                            && existingMetadata.get(FIELD_AUTHOR).has(FIELD_DATE)) {
+                        preservedDate = existingMetadata.get(FIELD_AUTHOR).get(FIELD_DATE).asText();
+                    }
+                } else {
+                    if (existingMetadata.has(FIELD_DATE)) {
+                        preservedDate = existingMetadata.get(FIELD_DATE).asText();
                     }
                 }
             }
@@ -89,14 +125,14 @@ public final class MetadataPreservationHelper {
 
         ObjectNode finalMetadata;
         if (requestMetadata != null) {
-            finalMetadata =
-                    (ObjectNode) mapper.readTree(mapper.writeValueAsString(requestMetadata));
+            finalMetadata = (ObjectNode) mapper.readTree(mapper.writeValueAsString(requestMetadata));
         } else if (existingMetadata != null) {
             finalMetadata = (ObjectNode) mapper.readTree(mapper.writeValueAsString(existingMetadata));
         } else {
             finalMetadata = mapper.createObjectNode();
         }
 
+        // Ensure author node exists
         ObjectNode authorNode;
         if (finalMetadata.has(FIELD_AUTHOR) && finalMetadata.get(FIELD_AUTHOR).isObject()) {
             authorNode = (ObjectNode) finalMetadata.get(FIELD_AUTHOR);
@@ -105,12 +141,21 @@ public final class MetadataPreservationHelper {
             finalMetadata.set(FIELD_AUTHOR, authorNode);
         }
 
-        if (preservedDate != null) {
-            authorNode.put(FIELD_DATE, preservedDate);
+        String currentTimestamp = Instant.now().toString();
+        if (timestampsInsideAuthor) {
+            // Set timestamps inside author node (Decoder format)
+            if (preservedDate != null) {
+                authorNode.put(FIELD_DATE, preservedDate);
+            }
+            authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        } else {
+            // Set timestamps at metadata level (KVDB, Rules, etc. format)
+            if (preservedDate != null) {
+                finalMetadata.put(FIELD_DATE, preservedDate);
+            }
+            finalMetadata.put(FIELD_MODIFIED, currentTimestamp);
         }
 
-        authorNode.put(FIELD_MODIFIED, Instant.now().toString());
         resourceNode.set(FIELD_METADATA, finalMetadata);
     }
 }
-

@@ -152,8 +152,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                     }
                 } catch (Exception e) {
                     return new RestResponse(
-                                    "Invalid request body in DELETE request.",
-                                    RestStatus.BAD_REQUEST.getStatus())
+                                    "Invalid request body in DELETE request.", RestStatus.BAD_REQUEST.getStatus())
                             .toBytesRestResponse();
                 }
             }

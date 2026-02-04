@@ -50,7 +50,6 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-
 import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
@@ -205,7 +204,9 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
         } catch (IOException e) {
             String errorMessage = e.getMessage();
-            if (errorMessage != null && errorMessage.contains("Document [") && errorMessage.contains("] not found.")) {
+            if (errorMessage != null
+                    && errorMessage.contains("Document [")
+                    && errorMessage.contains("] not found.")) {
                 errorMessage = errorMessage.replace("Document [", "KVDB [");
             }
             return new RestResponse(errorMessage, RestStatus.BAD_REQUEST.getStatus());
@@ -314,7 +315,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
     }
 
     /**
-     * Finds the integration ID associated with a KVDB by searching for integrations that reference it.
+     * Finds the integration ID associated with a KVDB by searching for integrations that reference
+     * it.
      *
      * @param client the OpenSearch client
      * @param kvdbId the KVDB ID to search for
@@ -323,9 +325,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private String findIntegrationForKvdb(Client client, String kvdbId) {
         try {
             SearchRequest searchRequest = new SearchRequest(INDEX_INTEGRATIONS);
-            searchRequest
-                    .source()
-                    .query(QueryBuilders.termQuery(KEY_DOCUMENT + "." + KEY_KVDBS, kvdbId));
+            searchRequest.source().query(QueryBuilders.termQuery(KEY_DOCUMENT + "." + KEY_KVDBS, kvdbId));
             SearchResponse searchResponse = client.search(searchRequest).actionGet();
             if (searchResponse.getHits().getHits().length > 0) {
                 return searchResponse.getHits().getHits()[0].getId();
@@ -379,5 +379,4 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
         return null;
     }
-
 }

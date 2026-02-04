@@ -147,9 +147,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
     }
 
-    /**
-     * Test that integration field in DELETE request body returns 400 Bad Request.
-     */
+    /** Test that integration field in DELETE request body returns 400 Bad Request. */
     public void testDeleteDecoderWithIntegrationInBodyReturns400() {
         // Arrange
         String payloadWithIntegration = "{\"integration\": \"integration-1\"}";
