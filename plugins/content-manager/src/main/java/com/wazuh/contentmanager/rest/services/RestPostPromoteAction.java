@@ -408,7 +408,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     Map<String, Object> sourceDoc;
                     // TODO fix when policies use the same document.id in different spaces
                     // Fetch the source policy
-                    if (resourceType.equals(Constants.KEY_POLICIES)) {
+                    if (resourceType.equals(Constants.KEY_POLICY)) {
                         sourceDoc = this.spaceService.getPolicy(sourceSpace);
                     } else {
                         // UPDATE: Resource exists in BOTH source and target spaces
@@ -486,7 +486,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Consolidate ADD/UPDATE operations for each resource type
         if (!context.policyToApply.isEmpty()) {
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_POLICIES),
+                    this.spaceService.getIndexForResourceType(Constants.KEY_POLICY),
                     context.policyToApply,
                     context.targetSpace);
         }
