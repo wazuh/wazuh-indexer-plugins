@@ -30,12 +30,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -148,6 +143,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
                     && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
                 log.warn("Engine validation failed: {}", engineResponse.getMessage());
+                log.error(mapper.writeValueAsString(context.enginePayload));
                 return engineResponse;
             }
 
@@ -233,10 +229,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
         Space targetSpace = sourceSpace.promote();
         SpaceDiff.Changes changes = spaceDiff.getChanges();
 
-        // Fetch the target policy
-        Map<String, Object> policyDocument = this.spaceService.getPolicy(targetSpace.toString());
+        // Fetch the source policy
+        Map<String, Object> policyDocument = this.spaceService.getPolicy(sourceSpace.toString());
         if (policyDocument == null) {
-            throw new IOException("Policy document not found for target space: " + targetSpace);
+            throw new IOException("Policy document not found for source space: " + sourceSpace);
         }
 
         // Maps to track resources to apply (ADD/UPDATE) - from source space
@@ -310,6 +306,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         return new PromotionContext(
                 enginePayload,
+                policyToApply,
                 integrationsToApply,
                 kvdbsToApply,
                 decodersToApply,
@@ -339,7 +336,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
             Set<String> resourcesToDelete,
             String sourceSpace,
             String targetSpace)
-            throws IOException {
+            throws IOException, IllegalArgumentException {
+        // TODO fix when we have no prefixes
+        String sourcePrefix = (Objects.equals(targetSpace, "test")) ? "d_" : "t_";
+        String targetPrefix = (Objects.equals(targetSpace, "test")) ? "t_" : "c_";
 
         String indexName = this.spaceService.getIndexForResourceType(resourceType);
         if (indexName == null) {
@@ -352,6 +352,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
             switch (operation) {
                 case ADD -> {
+                    resourceId = sourcePrefix + resourceId; // TODO remove when we have no prefixes
                     // ADD: Resource exists in source space but NOT in target space
                     Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
@@ -381,6 +382,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
                     // Verify it does NOT exist in target space
                     // We check all docs with same ID regardless of space
+                    resourceId =
+                            resourceId.replace(
+                                    sourcePrefix, targetPrefix); // TODO remove when we have no prefixes
                     Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
@@ -401,8 +405,16 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     resourcesToApply.put(resourceId, sourceDoc);
                 }
                 case UPDATE -> {
-                    // UPDATE: Resource exists in BOTH source and target spaces
-                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> sourceDoc;
+                    // TODO fix when policies use the same document.id in different spaces
+                    // Fetch the source policy
+                    if (resourceType.equals(Constants.KEY_POLICY)) {
+                        sourceDoc = this.spaceService.getPolicy(sourceSpace);
+                    } else {
+                        // UPDATE: Resource exists in BOTH source and target spaces
+                        resourceId = sourcePrefix + resourceId; // TODO remove when we have no prefixes
+                        sourceDoc = this.spaceService.getDocument(indexName, resourceId);
+                    }
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -427,7 +439,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
                                         + sourceSpace
                                         + "'");
                     }
-
+                    resourceId =
+                            resourceId.replace(
+                                    sourcePrefix, targetPrefix); // TODO remove when we have no prefixes
                     // For UPDATE, we expect it might exist in target space
                     // (but we don't strictly require it)
                     // Add to apply list to overwrite
@@ -436,6 +450,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 case REMOVE -> {
                     // REMOVE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
+                    resourceId = targetPrefix + resourceId; // TODO remove when we have no prefixes
                     Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
@@ -469,6 +484,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     private void consolidateChanges(PromotionContext context) throws IOException {
         // Consolidate ADD/UPDATE operations for each resource type
+        if (!context.policyToApply.isEmpty()) {
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_POLICY),
+                    context.policyToApply,
+                    context.targetSpace);
+        }
+
         if (!context.integrationsToApply.isEmpty()) {
             this.spaceService.promoteSpace(
                     this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
@@ -530,6 +552,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
     /** Internal context class to hold promotion data. */
     private static class PromotionContext {
         final JsonNode enginePayload;
+        final Map<String, Map<String, Object>> policyToApply;
         final Map<String, Map<String, Object>> integrationsToApply;
         final Map<String, Map<String, Object>> kvdbsToApply;
         final Map<String, Map<String, Object>> decodersToApply;
@@ -542,6 +565,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         PromotionContext(
                 JsonNode enginePayload,
+                Map<String, Map<String, Object>> policyToApply,
                 Map<String, Map<String, Object>> integrationsToApply,
                 Map<String, Map<String, Object>> kvdbsToApply,
                 Map<String, Map<String, Object>> decodersToApply,
@@ -552,6 +576,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 Set<String> filtersToDelete,
                 String targetSpace) {
             this.enginePayload = enginePayload;
+            this.policyToApply = policyToApply;
             this.integrationsToApply = integrationsToApply;
             this.kvdbsToApply = kvdbsToApply;
             this.decodersToApply = decodersToApply;
