@@ -48,8 +48,11 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 
 /**
  * REST handler for creating KVDB resources.
@@ -72,8 +75,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_create";
-    private static final String KVDB_INDEX = ".cti-kvdbs";
-    private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_INTEGRATION = "integration";
     private static final String FIELD_RESOURCE = "resource";
@@ -161,7 +162,9 @@ public class RestPostKvdbAction extends BaseRestHandler {
             }
 
             // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
+            RestResponse validationResponse =
+                    DocumentValidations.validateDocumentInSpaceWithResponse(
+                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
             if (validationResponse != null) {
                 return validationResponse;
             }
@@ -231,7 +234,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
     /** Creates the KVDB document in the index. */
     private void createKvdb(Client client, String kvdbIndexId, ObjectNode resourceNode)
             throws IOException {
-        ContentIndex kvdbIndex = new ContentIndex(client, KVDB_INDEX, null);
+        ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
         kvdbIndex.create(kvdbIndexId, this.buildKvdbPayload(resourceNode));
     }
 
@@ -257,7 +260,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
     @SuppressWarnings("unchecked")
     private void updateIntegrationWithKvdb(Client client, String integrationId, String kvdbIndexId)
             throws IOException {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
             throw new IOException(
@@ -300,6 +303,13 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
         // Regenerate integration hash and persist (complete operation)
         RestPostDecoderAction.regenerateIntegrationHash(client, integrationId, document, source);
+        client
+                .index(
+                        new IndexRequest(INDEX_INTEGRATIONS)
+                                .id(integrationId)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                .actionGet();
     }
 
     /** Extracts the KVDBs list from the document, handling type conversion. */
