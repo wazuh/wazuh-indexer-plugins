@@ -10,6 +10,12 @@
       description: >
         Name of the Wazuh integration.
       example: "Cisco Aironet"
+    - name: space.name
+      type: keyword
+      level: custom
+      description: >
+        The space on which the event processing took place.
+      example: "default"
     - name: integration.decoders
       type: keyword
       description: >
