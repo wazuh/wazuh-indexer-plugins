@@ -42,9 +42,12 @@ import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -167,6 +170,9 @@ public class RestPostKvdbAction extends BaseRestHandler {
             String kvdbIndexId = toIndexId(kvdbId);
             this.createKvdb(client, kvdbIndexId, resourceNode);
             this.updateIntegrationWithKvdb(client, integrationId, kvdbId);
+
+            // Regenerate space hash because space composition changed
+            this.regenerateSpaceHash(client, Space.DRAFT.toString());
 
             return new RestResponse(
                     "KVDB created successfully with ID: " + kvdbIndexId, RestStatus.CREATED.getStatus());
@@ -292,13 +298,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
         document.put(FIELD_KVDBS, kvdbs);
         source.put(FIELD_DOCUMENT, document);
 
-        client
-                .index(
-                        new IndexRequest(INTEGRATION_INDEX)
-                                .id(integrationId)
-                                .source(source)
-                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                .actionGet();
+        // Regenerate integration hash and persist (complete operation)
+        RestPostDecoderAction.regenerateIntegrationHash(client, integrationId, document, source);
     }
 
     /** Extracts the KVDBs list from the document, handling type conversion. */
@@ -341,6 +342,27 @@ public class RestPostKvdbAction extends BaseRestHandler {
         // Set timestamps
         authorNode.put(FIELD_DATE, currentTimestamp);
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Regenerates the space hash by using PolicyHashService.
+     *
+     * @param client the OpenSearch client
+     * @param spaceName the name of the space to regenerate hash for
+     */
+    private void regenerateSpaceHash(Client client, String spaceName) {
+        PolicyHashService policyHashService = new PolicyHashService(client);
+
+        // Use PolicyHashService to recalculate space hash for the given space
+        policyHashService.calculateAndUpdate(
+                Constants.INDEX_POLICIES,
+                Constants.INDEX_INTEGRATIONS,
+                Constants.INDEX_DECODERS,
+                Constants.INDEX_KVDBS,
+                Constants.INDEX_RULES,
+                List.of(spaceName));
+
+        this.log.debug("Regenerated space hash for space={}", spaceName);
     }
 
     /**
