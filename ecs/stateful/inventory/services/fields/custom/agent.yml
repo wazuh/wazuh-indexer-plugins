@@ -1,11 +1,11 @@
 ---
-- name: agent
-  title: Wazuh Agents
+- name: wazuh
+  title: Wazuh
   short: Wazuh Inc. custom fields.
   type: group
   group: 2
   fields:
-    - name: groups
+    - name: agent.groups
       type: keyword
       level: custom
       description: >
@@ -13,3 +13,70 @@
       normalize:
         - array
       example: "[\"group1\", \"group2\"]"
+    - name: agent.id
+      type: keyword
+      level: core
+      description: >
+        Unique identifier of this agent.
+    - name: agent.name
+      type: keyword
+      level: core
+      description: >
+        Custom name of the agent.
+    - name: agent.version
+      type: keyword
+      level: core
+      description: >
+        Version of the agent.
+    - name: agent.ephemeral_id
+      type: keyword
+      level: extended
+      description: >
+        Ephemeral identifier of this agent.
+    - name: agent.type
+      type: keyword
+      level: core
+      description: >
+        Type of the agent.
+    - name: agent.build.original
+      type: keyword
+      level: core
+      description: >
+        Extended build information for the agent.
+    - name: agent.host.architecture
+      type: keyword
+      level: core
+      description: >
+        Operating system architecture.
+    - name: agent.host.hostname
+      type: keyword
+      level: core
+      description: >
+        Hostname of the host.
+    - name: agent.host.ip
+      type: ip
+      level: core
+      description: >
+        Host ip addresses.
+      normalize:
+        - array
+    - name: agent.host.os.name
+      type: keyword
+      level: extended
+      description: >
+        Operating system name.
+    - name: agent.host.os.platform
+      type: keyword
+      level: extended
+      description: >
+        Operating system platform.
+    - name: agent.host.os.type
+      type: keyword
+      level: extended
+      description: >
+        Operating system type.
+    - name: agent.host.os.version
+      type: keyword
+      level: extended
+      description: >
+        Operating system version.
