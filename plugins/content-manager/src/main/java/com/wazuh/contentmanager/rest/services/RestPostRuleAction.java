@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -34,17 +33,18 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_RULES;
 
 /**
  * POST /_plugins/content-manager/rules
@@ -58,13 +58,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_rule_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
-    private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
-
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
     private static final String INTEGRATION_ID_FIELD = "integration_id";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
+
+    private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
 
     /** Default constructor. */
     public RestPostRuleAction() {}
@@ -157,9 +153,11 @@ public class RestPostRuleAction extends BaseRestHandler {
             String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
 
             // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse = this.validateIntegrationSpace(client, integrationId);
-            if (validationResponse != null) {
-                return validationResponse;
+            String spaceValidationError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
+            if (spaceValidationError != null) {
+                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
             String ruleId = UUID.randomUUID().toString();
@@ -193,11 +191,11 @@ public class RestPostRuleAction extends BaseRestHandler {
             }
 
             // 4. Store in CTI Rules Index
-            ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
+            ContentIndex rulesIndex = new ContentIndex(client, INDEX_RULES);
             rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
 
             // 5. Link in Integration
-            ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
+            ContentIndex integrationIndex = new ContentIndex(client, INDEX_INTEGRATIONS);
             integrationIndex.updateDocumentAppendToList(integrationId, "document.rules", ruleId);
 
             return new RestResponse(
@@ -211,50 +209,5 @@ public class RestPostRuleAction extends BaseRestHandler {
             }
             return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /**
-     * Validates that the integration exists and is in the draft space.
-     *
-     * @param client the OpenSearch client
-     * @param integrationId the integration ID to validate
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
-    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse =
-                client.prepareGet(CTI_INTEGRATIONS_INDEX, integrationId).get();
-
-        if (!integrationResponse.isExists()) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_SPACE)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] does not have space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Object spaceObj = source.get(FIELD_SPACE);
-        if (!(spaceObj instanceof Map)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] has invalid space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(FIELD_NAME);
-
-        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            return new RestResponse(
-                    "Integration ["
-                            + integrationId
-                            + "] is not in draft space. Only integrations in draft space can have rules created.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        return null;
     }
 }
