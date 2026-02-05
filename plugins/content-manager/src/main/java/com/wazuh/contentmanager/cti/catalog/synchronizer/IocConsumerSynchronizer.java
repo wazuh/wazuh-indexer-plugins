@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,15 +16,16 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import org.opensearch.env.Environment;
+import org.opensearch.transport.client.Client;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.processor.IocProcessor;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.opensearch.env.Environment;
-import org.opensearch.transport.client.Client;
 
 /**
  * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
@@ -33,6 +34,7 @@ import org.opensearch.transport.client.Client;
  */
 public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
+    /** The unified IOC type identifier. */
     public static final String IOC = "ioc";
 
     /** The unified context identifier. */
@@ -51,7 +53,7 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param environment The OpenSearch environment settings.
      */
     public IocConsumerSynchronizer(
-        Client client, ConsumersIndex consumersIndex, Environment environment) {
+            Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
         this.iocProcessor = new IocProcessor(client);
     }
@@ -87,12 +89,10 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
      */
     @Override
     protected String getIndexName(String type) {
-        switch (type) {
-            case IOC:
-                return ".cti-iocs";
-            default:
-                return super.getIndexName(type);
+        if (type.equals(IOC)) {
+            return ".cti-iocs";
         }
+        return super.getIndexName(type);
     }
 
     @Override
@@ -104,7 +104,8 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
             this.iocProcessor.process(iocIndex);
 
-            // TODO: Remove the code below. I'm keeping it for reference while implementing the IOC processor.
+            // TODO: Remove the code below. I'm keeping it for reference while implementing the IOC
+            // processor.
             // this.refreshIndices(RULE, DECODER, KVDB, INTEGRATION, IOC);
 
             // String integrationIndex = this.getIndexName(INTEGRATION);
