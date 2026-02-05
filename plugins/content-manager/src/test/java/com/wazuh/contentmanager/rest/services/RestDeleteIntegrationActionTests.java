@@ -218,7 +218,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Verify delete was called
         verify(integrationsIndex).delete(INTEGRATION_ID);
-        verify(this.saService).deleteIntegration(INTEGRATION_ID.substring(2));
+        verify(this.saService).deleteIntegration(INTEGRATION_ID);
         // Verify policy was updated
         verify(policiesIndex).create(anyString(), any(JsonNode.class));
     }

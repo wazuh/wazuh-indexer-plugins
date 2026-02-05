@@ -47,6 +47,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -70,12 +71,6 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     private SecurityAnalyticsService service;
     private final Logger log = LogManager.getLogger(RestDeleteIntegrationAction.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
-    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
-    private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
-    private static final String CTI_POLICIES_INDEX = ".cti-policies";
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String DRAFT_SPACE_NAME = "draft";
 
     private NodeClient nodeClient;
 
@@ -122,11 +117,11 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        request.param("id");
+        request.param(Constants.KEY_ID);
         this.nodeClient = client;
         this.setPolicyHashService(new PolicyHashService(client));
-        this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
-        this.setPoliciesContentIndex(new ContentIndex(client, CTI_POLICIES_INDEX, null));
+        this.setIntegrationsContentIndex(new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null));
+        this.setPoliciesContentIndex(new ContentIndex(client, Constants.INDEX_POLICIES, null));
         this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
         return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
     }
@@ -180,7 +175,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        String id = request.param("id");
+        String id = request.param(Constants.KEY_ID);
         this.log.debug("DELETE integration request received (id={}, uri={})", id, request.uri());
 
         // Check if ID is provided
@@ -198,7 +193,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
 
         // Verify integration exists and is in draft space
-        GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, id);
+        GetRequest getRequest = new GetRequest(Constants.INDEX_INTEGRATIONS, id);
         GetResponse getResponse;
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
@@ -215,11 +210,11 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
         // Verify integration is in draft space
         Map<String, Object> existingSource = getResponse.getSourceAsMap();
-        if (existingSource.containsKey("space")) {
+        if (existingSource.containsKey(Constants.KEY_SPACE)) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> space = (Map<String, Object>) existingSource.get("space");
-            String spaceName = (String) space.get("name");
-            if (!DRAFT_SPACE_NAME.equals(spaceName)) {
+            Map<String, Object> space = (Map<String, Object>) existingSource.get(Constants.KEY_SPACE);
+            String spaceName = (String) space.get(Constants.KEY_NAME);
+            if (!Space.DRAFT.equals(spaceName)) {
                 this.log.warn(
                         "Request rejected: cannot delete integration in space '{}' (id={})", spaceName, id);
                 return new RestResponse(
@@ -235,23 +230,24 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
 
         // Check for dependent resources
-        if (existingSource.containsKey("document")) {
+        if (existingSource.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> document = (Map<String, Object>) existingSource.get("document");
+            Map<String, Object> document =
+                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
 
-            if (this.isListNotEmpty(document.get("decoders"))) {
+            if (this.isListNotEmpty(document.get(Constants.KEY_DECODERS))) {
                 this.log.warn("Request rejected: integration has decoders attached (id={})", id);
                 return new RestResponse(
                         "Cannot delete integration because it has decoders attached.",
                         RestStatus.BAD_REQUEST.getStatus());
             }
-            if (this.isListNotEmpty(document.get("rules"))) {
+            if (this.isListNotEmpty(document.get(Constants.KEY_RULES))) {
                 this.log.warn("Request rejected: integration has rules attached (id={})", id);
                 return new RestResponse(
                         "Cannot delete integration because it has rules attached.",
                         RestStatus.BAD_REQUEST.getStatus());
             }
-            if (this.isListNotEmpty(document.get("kvdbs"))) {
+            if (this.isListNotEmpty(document.get(Constants.KEY_KVDBS))) {
                 this.log.warn("Request rejected: integration has kvdbs attached (id={})", id);
                 return new RestResponse(
                         "Cannot delete integration because it has kvdbs attached.",
@@ -272,13 +268,13 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             }
 
             // Delete from CTI integrations index
-            this.log.debug("Deleting integration from {} (id={})", CTI_INTEGRATIONS_INDEX, id);
+            this.log.debug("Deleting integration from {} (id={})", Constants.INDEX_INTEGRATIONS, id);
             this.integrationsIndex.delete(id);
 
             // Search for the draft policy to remove the integration ID from its integrations array
             this.log.debug(
-                    "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
-            TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
+                    "Searching for draft policy in {} (space={})", Constants.INDEX_POLICIES, Space.DRAFT);
+            TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT);
 
             JsonObject draftPolicyHit;
             JsonNode draftPolicy;
@@ -287,13 +283,13 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             try {
                 JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
                 if (searchResult == null
-                        || !searchResult.has("hits")
-                        || searchResult.getAsJsonArray("hits").isEmpty()) {
+                        || !searchResult.has(Constants.Q_HITS)
+                        || searchResult.getAsJsonArray(Constants.Q_HITS).isEmpty()) {
                     throw new IllegalStateException("No hits found");
                 }
-                JsonArray hitsArray = searchResult.getAsJsonArray("hits");
+                JsonArray hitsArray = searchResult.getAsJsonArray(Constants.Q_HITS);
                 draftPolicyHit = hitsArray.get(0).getAsJsonObject();
-                draftPolicyId = draftPolicyHit.get("id").getAsString();
+                draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).getAsString();
                 draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
             } catch (Exception e) {
                 this.log.error(
@@ -315,7 +311,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     "Draft policy found (policyId={}); removing integration from array", draftPolicyId);
 
             // Retrieve the integrations array from the policy document
-            ArrayNode draftPolicyIntegrations = (ArrayNode) draftPolicyDocument.get("integrations");
+            ArrayNode draftPolicyIntegrations =
+                    (ArrayNode) draftPolicyDocument.get(Constants.KEY_INTEGRATIONS);
             if (draftPolicyIntegrations == null || !draftPolicyIntegrations.isArray()) {
                 this.log.error(
                         "Draft policy integrations field missing or not array (policyId={}); (id={})",
@@ -333,7 +330,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     updatedIntegrations.add(integrationId);
                 }
             }
-            ((ObjectNode) draftPolicyDocument).set("integrations", updatedIntegrations);
+            ((ObjectNode) draftPolicyDocument).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
 
             // Update the policy's own hash
             String draftPolicyHash = HashCalculator.sha256(draftPolicyDocument.asText());
@@ -347,7 +344,9 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
             // Index the policy with the updated integrations array
             this.log.debug(
-                    "Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, draftPolicyId);
+                    "Indexing updated draft policy into {} (policyId={})",
+                    Constants.INDEX_POLICIES,
+                    draftPolicyId);
             IndexResponse indexDraftPolicyResponse =
                     this.policiesIndex.create(draftPolicyId, draftPolicy);
 
@@ -366,11 +365,11 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     "Recalculating space hash for draft space after integration deletion (id={})", id);
 
             this.policyHashService.calculateAndUpdate(
-                    CTI_POLICIES_INDEX,
-                    CTI_INTEGRATIONS_INDEX,
-                    CTI_DECODERS_INDEX,
-                    CTI_KVDBS_INDEX,
-                    CTI_RULES_INDEX,
+                    Constants.INDEX_POLICIES,
+                    Constants.INDEX_INTEGRATIONS,
+                    Constants.INDEX_DECODERS,
+                    Constants.INDEX_KVDBS,
+                    Constants.INDEX_RULES,
                     List.of(Space.DRAFT.toString()));
 
             this.log.info("Integration deleted successfully (id={})", id);
