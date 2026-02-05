@@ -172,9 +172,9 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     private void initializeSpaces(String indexName) {
         // Generate a single ID to be shared across all default policies so they are linked
         String sharedDocumentId = UUID.randomUUID().toString();
-        initializeSpace(indexName, Space.DRAFT.toString(), sharedDocumentId);
-        initializeSpace(indexName, Space.TEST.toString(), sharedDocumentId);
-        initializeSpace(indexName, Space.CUSTOM.toString(), sharedDocumentId);
+        this.initializeSpace(indexName, Space.DRAFT.toString(), sharedDocumentId);
+        this.initializeSpace(indexName, Space.TEST.toString(), sharedDocumentId);
+        this.initializeSpace(indexName, Space.CUSTOM.toString(), sharedDocumentId);
     }
 
     /**
@@ -188,7 +188,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-            searchSourceBuilder.size(0); 
+            searchSourceBuilder.size(0);
 
             searchRequest.source(searchSourceBuilder);
 

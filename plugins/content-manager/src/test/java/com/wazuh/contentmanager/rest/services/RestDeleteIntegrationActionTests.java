@@ -682,4 +682,109 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
         assertEquals(expectedResponse, actualResponse);
     }
+
+    public void testDeleteIntegration400_hasDecoders() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Cannot delete integration because it has decoders attached.");
+
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse with decoders
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> sourceMap = new HashMap<>();
+        Map<String, Object> spaceMap = new HashMap<>();
+        spaceMap.put("name", "draft");
+        sourceMap.put("space", spaceMap);
+        Map<String, Object> documentMap = new HashMap<>();
+        documentMap.put("id", INTEGRATION_ID);
+        documentMap.put("decoders", java.util.List.of("decoder_1"));
+        sourceMap.put("document", documentMap);
+        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    public void testDeleteIntegration400_hasRules() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Cannot delete integration because it has rules attached.");
+
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse with rules
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> sourceMap = new HashMap<>();
+        Map<String, Object> spaceMap = new HashMap<>();
+        spaceMap.put("name", "draft");
+        sourceMap.put("space", spaceMap);
+        Map<String, Object> documentMap = new HashMap<>();
+        documentMap.put("id", INTEGRATION_ID);
+        documentMap.put("rules", java.util.List.of("rule_1"));
+        sourceMap.put("document", documentMap);
+        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    public void testDeleteIntegration400_hasKvdbs() throws IOException {
+        RestResponse expectedResponse = new RestResponse();
+        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        expectedResponse.setMessage("Cannot delete integration because it has kvdbs attached.");
+
+        RestRequest request = this.buildRequest(INTEGRATION_ID);
+
+        // Mock GetResponse with kvdbs
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(true);
+        Map<String, Object> sourceMap = new HashMap<>();
+        Map<String, Object> spaceMap = new HashMap<>();
+        spaceMap.put("name", "draft");
+        sourceMap.put("space", spaceMap);
+        Map<String, Object> documentMap = new HashMap<>();
+        documentMap.put("id", INTEGRATION_ID);
+        documentMap.put("kvdbs", java.util.List.of("kvdb_1"));
+        sourceMap.put("document", documentMap);
+        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+
+        when(this.nodeClient.get(any()))
+                .thenReturn(
+                        new org.opensearch.action.support.PlainActionFuture<>() {
+                            @Override
+                            public GetResponse actionGet() {
+                                return getResponse;
+                            }
+                        });
+
+        this.action.setSecurityAnalyticsService(this.saService);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        assertEquals(expectedResponse, actualResponse);
+    }
 }

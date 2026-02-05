@@ -180,9 +180,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        String prefixedId = request.param("id");
-        String id =
-                prefixedId != null && prefixedId.startsWith("d_") ? prefixedId.substring(2) : prefixedId;
+        String id = request.param("id");
         this.log.debug("DELETE integration request received (id={}, uri={})", id, request.uri());
 
         // Check if ID is provided
@@ -200,7 +198,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
 
         // Verify integration exists and is in draft space
-        GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, prefixedId);
+        GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, id);
         GetResponse getResponse;
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
@@ -211,9 +209,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         }
 
         if (!getResponse.isExists()) {
-            this.log.warn("Request rejected: integration not found (id={})", prefixedId);
-            return new RestResponse(
-                    "Integration not found: " + prefixedId, RestStatus.NOT_FOUND.getStatus());
+            this.log.warn("Request rejected: integration not found (id={})", id);
+            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Verify integration is in draft space
@@ -237,6 +234,31 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     "Cannot delete integration with undefined space.", RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Check for dependent resources
+        if (existingSource.containsKey("document")) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> document = (Map<String, Object>) existingSource.get("document");
+
+            if (this.isListNotEmpty(document.get("decoders"))) {
+                this.log.warn("Request rejected: integration has decoders attached (id={})", id);
+                return new RestResponse(
+                        "Cannot delete integration because it has decoders attached.",
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (this.isListNotEmpty(document.get("rules"))) {
+                this.log.warn("Request rejected: integration has rules attached (id={})", id);
+                return new RestResponse(
+                        "Cannot delete integration because it has rules attached.",
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (this.isListNotEmpty(document.get("kvdbs"))) {
+                this.log.warn("Request rejected: integration has kvdbs attached (id={})", id);
+                return new RestResponse(
+                        "Cannot delete integration because it has kvdbs attached.",
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
         try {
             // Delete integration from Security Analytics Plugin
             this.log.debug("Deleting integration from Security Analytics (id={})", id);
@@ -250,8 +272,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             }
 
             // Delete from CTI integrations index
-            this.log.debug("Deleting integration from {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
-            this.integrationsIndex.delete(prefixedId);
+            this.log.debug("Deleting integration from {} (id={})", CTI_INTEGRATIONS_INDEX, id);
+            this.integrationsIndex.delete(id);
 
             // Search for the draft policy to remove the integration ID from its integrations array
             this.log.debug(
@@ -341,8 +363,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
             // Update the space's hash in the policy
             this.log.debug(
-                    "Recalculating space hash for draft space after integration deletion (id={})",
-                    prefixedId);
+                    "Recalculating space hash for draft space after integration deletion (id={})", id);
 
             this.policyHashService.calculateAndUpdate(
                     CTI_POLICIES_INDEX,
@@ -352,13 +373,23 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                     CTI_RULES_INDEX,
                     List.of(Space.DRAFT.toString()));
 
-            this.log.info("Integration deleted successfully (id={})", prefixedId);
+            this.log.info("Integration deleted successfully (id={})", id);
             return new RestResponse(
-                    "Integration deleted successfully with ID: " + prefixedId, RestStatus.OK.getStatus());
+                    "Integration deleted successfully with ID: " + id, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            this.log.error("Unexpected error deleting integration (id={})", prefixedId, e);
+            this.log.error("Unexpected error deleting integration (id={})", id, e);
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+    }
+
+    /**
+     * Checks if an object is a non-empty list.
+     *
+     * @param obj The object to check.
+     * @return true if the object is a List and is not empty, false otherwise.
+     */
+    private boolean isListNotEmpty(Object obj) {
+        return obj instanceof List && !((List<?>) obj).isEmpty();
     }
 }
