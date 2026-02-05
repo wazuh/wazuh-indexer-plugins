@@ -33,8 +33,3 @@ fields:
         fields:
           name: {}
           alias: {}
-  wazuh:
-    fields:
-      space:
-        fields:
-          name: {}
