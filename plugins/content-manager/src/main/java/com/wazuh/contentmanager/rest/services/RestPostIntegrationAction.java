@@ -392,15 +392,15 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             // Add the new integration ID to the integrations array
             draftPolicyIntegrations.add(id);
 
-            // Update the policies own hash
-            String draftPolicyHash = HashCalculator.sha256(draftPolicyDocument.asText());
+            // Update the hash
+            String integrationHash = HashCalculator.sha256(draftPolicyDocument.asText());
 
             // Put policyHash inside hash.sha256 key
-            ((ObjectNode) draftPolicy.at("/hash")).put("sha256", draftPolicyHash);
+            ((ObjectNode) draftPolicy.at("/hash")).put("sha256", integrationHash);
             this.log.debug(
                     "Updated draft policy hash (policyId={}, hashPrefix={})",
                     draftPolicyId,
-                    draftPolicyHash.length() >= 12 ? draftPolicyHash.substring(0, 12) : draftPolicyHash);
+                    integrationHash.length() >= 12 ? integrationHash.substring(0, 12) : integrationHash);
 
             // Index the policy with the updated integrations array
             this.log.debug(
@@ -424,13 +424,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             this.log.debug(
                     "Recalculating space hash for draft space after integration create (id={})", id);
 
-            this.policyHashService.calculateAndUpdate(
-                    CTI_POLICIES_INDEX,
-                    CTI_INTEGRATIONS_INDEX,
-                    CTI_DECODERS_INDEX,
-                    CTI_KVDBS_INDEX,
-                    CTI_RULES_INDEX,
-                    List.of(Space.DRAFT.toString()));
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             this.log.info("Integration created successfully (id={})", prefixedId);
             return new RestResponse(

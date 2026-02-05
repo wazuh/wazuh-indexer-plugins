@@ -46,12 +46,13 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
+import static com.wazuh.contentmanager.utils.Constants.KEY_NAME;
+import static com.wazuh.contentmanager.utils.Constants.KEY_SPACE;
 
 /**
  * REST handler for creating KVDB resources.
@@ -91,6 +92,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPostKvdbAction handler.
@@ -119,8 +121,18 @@ public class RestPostKvdbAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -174,7 +186,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
             this.updateIntegrationWithKvdb(client, integrationId, kvdbId);
 
             // Regenerate space hash because space composition changed
-            this.regenerateSpaceHash(client, Space.DRAFT.toString());
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "KVDB created successfully with ID: " + kvdbIndexId, RestStatus.CREATED.getStatus());
@@ -354,27 +366,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
     }
 
     /**
-     * Regenerates the space hash by using PolicyHashService.
-     *
-     * @param client the OpenSearch client
-     * @param spaceName the name of the space to regenerate hash for
-     */
-    private void regenerateSpaceHash(Client client, String spaceName) {
-        PolicyHashService policyHashService = new PolicyHashService(client);
-
-        // Use PolicyHashService to recalculate space hash for the given space
-        policyHashService.calculateAndUpdate(
-                Constants.INDEX_POLICIES,
-                Constants.INDEX_INTEGRATIONS,
-                Constants.INDEX_DECODERS,
-                Constants.INDEX_KVDBS,
-                Constants.INDEX_RULES,
-                List.of(spaceName));
-
-        this.log.debug("Regenerated space hash for space={}", spaceName);
-    }
-
-    /**
      * Validates that the integration exists and is in the draft space.
      *
      * @param client the OpenSearch client
@@ -382,7 +373,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
      * @return a RestResponse with error if validation fails, null otherwise
      */
     private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
             return new RestResponse(
@@ -390,13 +381,13 @@ public class RestPostKvdbAction extends BaseRestHandler {
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_SPACE)) {
+        if (source == null || !source.containsKey(KEY_SPACE)) {
             return new RestResponse(
                     "Integration [" + integrationId + "] does not have space information.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        Object spaceObj = source.get(FIELD_SPACE);
+        Object spaceObj = source.get(KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
             return new RestResponse(
                     "Integration [" + integrationId + "] has invalid space information.",
@@ -405,7 +396,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(FIELD_NAME);
+        Object spaceName = spaceMap.get(KEY_NAME);
 
         if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
             return new RestResponse(

@@ -37,6 +37,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -79,6 +80,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private static final String FIELD_INTEGRATION = "integration";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPutKvdbAction handler.
@@ -87,6 +89,15 @@ public class RestPutKvdbAction extends BaseRestHandler {
      */
     public RestPutKvdbAction(EngineService engine) {
         this.engine = engine;
+    }
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /** Return a short identifier for this handler. */
@@ -122,6 +133,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
+        this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
@@ -185,6 +197,9 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
             // Update KVDB
             this.updateKvdb(client, kvdbId, resourceNode);
+
+            // Regenerate space hash because KVDB content changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "KVDB updated successfully with ID: " + kvdbId, RestStatus.OK.getStatus());

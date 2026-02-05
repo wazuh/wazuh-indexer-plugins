@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -498,6 +499,9 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                 """;
         // spotless:on
         RestRequest request = this.createRestRequest(payload);
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Invoke method to test
         RestResponse actualResponse = this.action.handleRequest(request);

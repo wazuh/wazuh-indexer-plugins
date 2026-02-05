@@ -87,6 +87,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private final EngineService engine;
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPostDecoderAction handler.
@@ -115,8 +116,18 @@ public class RestPostDecoderAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -173,7 +184,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             this.updateIntegrationWithDecoder(client, integrationId, decoderId);
 
             // Regenerate space hash because space composition changed
-            this.regenerateSpaceHash(client, Space.DRAFT.toString());
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderIndexId,
@@ -361,28 +372,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * Regenerates the space hash by using PolicyHashService.
-     *
-     * @param client the OpenSearch client
-     * @param spaceName the name of the space to regenerate hash for
-     */
-    private void regenerateSpaceHash(Client client, String spaceName) {
-        PolicyHashService policyHashService = new PolicyHashService(client);
-
-        // Use PolicyHashService to recalculate space hash for the given space
-        // Pass only the target space (draft or test) to recalculate
-        policyHashService.calculateAndUpdate(
-                Constants.INDEX_POLICIES,
-                Constants.INDEX_INTEGRATIONS,
-                Constants.INDEX_DECODERS,
-                Constants.INDEX_KVDBS,
-                Constants.INDEX_RULES,
-                List.of(spaceName));
-
-        this.log.debug("Regenerated space hash for space={}", spaceName);
-    }
-
-    /**
      * Regenerates the integration hash after its document has changed and persists it. This is a
      * complete operation that updates the hash and saves to the index.
      *
@@ -412,7 +401,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         // Persist the updated integration with new hash
         client
                 .index(
-                        new IndexRequest(INTEGRATION_INDEX)
+                        new IndexRequest(INDEX_INTEGRATIONS)
                                 .id(integrationId)
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
@@ -427,7 +416,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
      * @return a RestResponse with error if validation fails, null otherwise
      */
     private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse = client.prepareGet(INTEGRATION_INDEX, integrationId).get();
+        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
             return new RestResponse(
@@ -435,13 +424,13 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_SPACE)) {
+        if (source == null || !source.containsKey(KEY_SPACE)) {
             return new RestResponse(
                     "Integration [" + integrationId + "] does not have space information.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        Object spaceObj = source.get(FIELD_SPACE);
+        Object spaceObj = source.get(KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
             return new RestResponse(
                     "Integration [" + integrationId + "] has invalid space information.",
@@ -450,7 +439,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(FIELD_NAME);
+        Object spaceName = spaceMap.get(KEY_NAME);
 
         if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
             return new RestResponse(

@@ -294,13 +294,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         PolicyHashService policyHashService = new PolicyHashService(client);
 
         // Use PolicyHashService to recalculate space hash for the given space
-        policyHashService.calculateAndUpdate(
-                Constants.INDEX_POLICIES,
-                Constants.INDEX_INTEGRATIONS,
-                Constants.INDEX_DECODERS,
-                Constants.INDEX_KVDBS,
-                Constants.INDEX_RULES,
-                List.of(spaceName));
+        policyHashService.calculateAndUpdate(List.of(spaceName));
 
         this.log.debug("Regenerated space hash for space={}", spaceName);
     }

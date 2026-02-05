@@ -41,6 +41,7 @@ import org.junit.BeforeClass;
 import java.util.Collections;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -94,6 +95,9 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Mock
         RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
         Client client = this.buildClientForDelete();
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);

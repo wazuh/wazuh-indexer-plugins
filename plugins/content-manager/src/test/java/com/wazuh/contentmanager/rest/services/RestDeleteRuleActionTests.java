@@ -30,6 +30,7 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
@@ -101,6 +102,9 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
         // Mock SAP delete
         this.mockSapDelete(ruleId);
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);

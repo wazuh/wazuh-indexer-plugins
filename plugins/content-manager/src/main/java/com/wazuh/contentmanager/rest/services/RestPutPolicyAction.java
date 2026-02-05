@@ -35,11 +35,17 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -65,6 +71,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
     private final EngineService engine;
     private NodeClient client;
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPutPolicyAction handler.
@@ -84,6 +91,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
     public RestPutPolicyAction(EngineService engine, NodeClient client) {
         this.engine = engine;
         this.client = client;
+    }
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /** Return a short identifier for this handler. */
@@ -118,6 +134,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         this.client = client;
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
@@ -164,6 +181,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
         // Store or update the policy
         try {
             String policyId = this.storePolicy(policy);
+
+            // Regenerate space hash because policy content changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+
             return new RestResponse(
                     "Updated draft policy with ID " + policyId, RestStatus.OK.getStatus());
         } catch (IOException e) {

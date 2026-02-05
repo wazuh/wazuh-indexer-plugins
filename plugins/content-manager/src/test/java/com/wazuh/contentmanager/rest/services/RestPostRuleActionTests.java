@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
@@ -46,7 +47,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestPostRuleAction} class. This test suite validates the REST API
@@ -146,6 +151,9 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
         when(getResponse.getSourceAsString())
                 .thenReturn("{\"document\": {\"rules\": []}, \"space\": {\"name\": \"draft\"}}");
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);

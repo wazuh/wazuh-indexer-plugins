@@ -68,14 +68,11 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
-    private static final String DECODER_INDEX = ".cti-decoders";
-    private static final String INTEGRATION_INDEX = ".cti-integrations";
     private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_DECODERS = "decoders";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestDeleteDecoderAction handler.
@@ -120,7 +117,17 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
+        this.policyHashService = new PolicyHashService(client);
         return channel -> channel.sendResponse(this.handleRequest(request, client));
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -152,18 +159,17 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             }
             final String resolvedDecoderId = decoderId;
 
-            String decoderIndexName = DECODER_INDEX;
-            ensureIndexExists(client, decoderIndexName);
+            this.ensureIndexExists(client);
             // Validate decoder is in draft space
             String validationError =
                     DocumentValidations.validateDocumentInSpace(
-                            client, DECODER_INDEX, resolvedDecoderId, "Decoder");
+                            client, Constants.INDEX_DECODERS, resolvedDecoderId, "Decoder");
             if (validationError != null) {
                 return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus())
                         .toBytesRestResponse();
             }
 
-            ContentIndex decoderIndex = new ContentIndex(client, decoderIndexName, null);
+            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
 
             // Check if decoder exists before deleting
             if (!decoderIndex.exists(resolvedDecoderId)) {
@@ -172,12 +178,12 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                         .toBytesRestResponse();
             }
 
-            String nonPrefixedId = removeDraftPrefix(resolvedDecoderId);
-            updateIntegrationsRemovingDecoder(client, nonPrefixedId);
+            String nonPrefixedId = this.removeDraftPrefix(resolvedDecoderId);
+            this.updateIntegrationsRemovingDecoder(client, nonPrefixedId);
             decoderIndex.delete(resolvedDecoderId);
 
             // Regenerate space hash because decoder was removed from space
-            regenerateSpaceHash(client, Space.DRAFT.toString());
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
                     .toBytesRestResponse();
@@ -192,51 +198,32 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
         }
     }
 
-    private static void ensureIndexExists(Client client, String indexName) throws IOException {
-        if (!IndexHelper.indexExists(client, indexName)) {
-            ContentIndex index = new ContentIndex(client, indexName, null);
+    private void ensureIndexExists(Client client) throws IOException {
+        if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
+            ContentIndex index = new ContentIndex(client, Constants.INDEX_DECODERS, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + indexName, e);
+                throw new IOException("Failed to create index " + Constants.INDEX_DECODERS, e);
             }
         }
     }
 
-    private static String removeDraftPrefix(String decoderId) {
+    private String removeDraftPrefix(String decoderId) {
         return decoderId.startsWith(INDEX_ID_PREFIX) ? decoderId.substring(2) : decoderId;
     }
 
-    /**
-     * Regenerates the space hash by using PolicyHashService.
-     *
-     * @param client the OpenSearch client
-     * @param spaceName the name of the space to regenerate hash for
-     */
-    private static void regenerateSpaceHash(Client client, String spaceName) {
-        PolicyHashService policyHashService = new PolicyHashService(client);
-
-        // Use PolicyHashService to recalculate space hash for the given space
-        policyHashService.calculateAndUpdate(
-                Constants.INDEX_POLICIES,
-                Constants.INDEX_INTEGRATIONS,
-                Constants.INDEX_DECODERS,
-                Constants.INDEX_KVDBS,
-                Constants.INDEX_RULES,
-                List.of(spaceName));
-
-        log.debug("Regenerated space hash for space={}", spaceName);
-    }
-
     private void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
-        SearchRequest searchRequest = new SearchRequest(INTEGRATION_INDEX);
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
         searchRequest
                 .source()
-                .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_DECODERS, decoderIndexId));
+                .query(
+                        QueryBuilders.termQuery(
+                                Constants.KEY_DOCUMENT + "." + Constants.KEY_DECODERS, decoderIndexId));
         SearchResponse searchResponse = client.search(searchRequest).actionGet();
         for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
             Map<String, Object> source = hit.getSourceAsMap();
-            Object documentObj = source.get(FIELD_DOCUMENT);
+            Object documentObj = source.get(Constants.KEY_DOCUMENT);
             if (!(documentObj instanceof Map)) {
                 log.warn(
                         "Integration document [{}] is invalid while removing decoder [{}].",
@@ -248,12 +235,12 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
                 doc.put(String.valueOf(entry.getKey()), entry.getValue());
             }
-            Object decodersObj = doc.get(FIELD_DECODERS);
+            Object decodersObj = doc.get(Constants.KEY_DECODERS);
             if (decodersObj instanceof List<?> list) {
                 java.util.List<Object> updated = new java.util.ArrayList<>(list);
                 updated.removeIf(item -> decoderIndexId.equals(String.valueOf(item)));
-                doc.put(FIELD_DECODERS, updated);
-                source.put(FIELD_DOCUMENT, doc);
+                doc.put(Constants.KEY_DECODERS, updated);
+                source.put(Constants.KEY_DOCUMENT, doc);
 
                 // Regenerate integration hash and persist
                 try {

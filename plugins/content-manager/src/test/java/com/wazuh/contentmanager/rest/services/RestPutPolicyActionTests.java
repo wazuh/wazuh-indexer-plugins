@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -143,6 +144,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
         // Act
         RestResponse response = this.action.handleRequest(request);
 
@@ -200,6 +204,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request);

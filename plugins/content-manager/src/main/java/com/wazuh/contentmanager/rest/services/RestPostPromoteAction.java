@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -64,6 +65,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
     private final EngineService engine;
     private final SpaceService spaceService;
+    private PolicyHashService policyHashService;
 
     /**
      * Constructor.
@@ -106,10 +108,20 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        this.policyHashService = new PolicyHashService(client);
         return channel -> {
             RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());
         };
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -152,6 +164,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
             // 4. Consolidation Phase - Apply changes to target space
             this.consolidateChanges(context);
+
+            // After successful promotion, recalculate policy hashes for the promoted space
+            this.policyHashService.calculateAndUpdate(
+                    List.of(spaceDiff.getSpace().promote().asSecurityAnalyticsSource()));
 
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
