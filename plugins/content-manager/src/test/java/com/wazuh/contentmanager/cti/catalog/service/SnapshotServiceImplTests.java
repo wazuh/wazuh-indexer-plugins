@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -30,9 +30,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -49,7 +47,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link SnapshotServiceImpl} class. This test suite validates the snapshot
@@ -100,7 +104,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         this.snapshotService =
                 new SnapshotServiceImpl(
-                    context, consumer, indicesMap, this.consumersIndex, this.environment);
+                        context, consumer, indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.processPayload(any(JsonObject.class)))
