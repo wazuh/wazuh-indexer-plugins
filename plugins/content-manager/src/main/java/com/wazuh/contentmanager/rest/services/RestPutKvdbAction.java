@@ -45,7 +45,6 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 
 /**
@@ -76,7 +75,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
-    private static final String FIELD_INTEGRATION = "integration";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
     private PolicyHashService policyHashService;
@@ -161,7 +159,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
-            String integrationId = payload.get(FIELD_INTEGRATION).asText();
+
             // Validate payload structure
             validationError = this.validatePayload(payload, kvdbId);
             if (validationError != null) {
@@ -177,16 +175,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 return engineResponse;
             }
 
-            // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse =
-                    DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
-            if (validationResponse != null) {
-                return validationResponse;
-            }
-
             // Validate KVDB exists and is in draft space
-            validationResponse =
+            RestResponse validationResponse =
                     DocumentValidations.validateDocumentInSpaceWithResponse(
                             client, INDEX_KVDBS, kvdbId, "KVDB");
             if (validationResponse != null) {
