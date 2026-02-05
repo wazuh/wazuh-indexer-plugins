@@ -92,6 +92,7 @@ public class Constants {
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
+    public static final String Q_HITS = "hits";
 
     // Operations
     public static final String OP_ADD = "add";
