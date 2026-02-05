@@ -188,7 +188,7 @@ public class ContentManagerPlugin extends Plugin
                 // User-generated content endpoints (Logtest)
                 new RestPostLogtestAction(this.engine),
                 // Policy endpoints
-                new RestPutPolicyAction(this.engine),
+                new RestPutPolicyAction(this.spaceService),
                 // Rule endpoints
                 new RestPostRuleAction(),
                 new RestPutRuleAction(),

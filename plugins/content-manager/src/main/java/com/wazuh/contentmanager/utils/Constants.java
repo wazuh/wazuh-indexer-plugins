@@ -37,9 +37,15 @@ import java.util.Map;
 public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
+    public static final String E_500_UNEXPECTED_INDEX_STATE =
+            "Missing [%s] field for document [%s] in [%s] index.";
+    public static final String E_500_POLICIES_ARE_NULL = "Source or target policies are null.";
+    public static final String E_500_POLICY_ID_IS_NULL_OR_BLANK = "Policy ID is null or blank.";
+    public static final String E_500_POLICY_UPDATE_FAILED = "Failed to update policy.";
     public static final String E_500_ENGINE_INSTANCE_IS_NULL = "Engine instance is null.";
     public static final String E_400_JSON_REQUEST_BODY_IS_REQUIRED = "JSON request body is required.";
     public static final String E_400_INVALID_JSON_CONTENT = "Invalid JSON content.";
+    public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
@@ -54,9 +60,8 @@ public class Constants {
     public static final String INDEX_FILTERS = ".engine-filters";
 
     // Resource Types Keys
-    public static final String KEY_POLICIES = "policy";
+    public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
-    public static final String KEY_INTEGRATION = "integration";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
     public static final String KEY_DECODERS = "decoders";
@@ -67,15 +72,29 @@ public class Constants {
     public static final String KEY_HASH = "hash";
     public static final String KEY_SPACE = "space";
     public static final String KEY_NAME = "name";
-    ;
+    public static final String KEY_ID = "id";
+    public static final String KEY_DATE = "date";
+
+    // API request content fields
+    public static final String KEY_TYPE = "type";
+    public static final String KEY_RESOURCE = "resource";
+    public static final String KEY_INTEGRATION = "integration";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
-                    KEY_POLICIES, INDEX_POLICIES,
+                    KEY_POLICY, INDEX_POLICIES,
                     KEY_INTEGRATIONS, INDEX_INTEGRATIONS,
                     KEY_RULES, INDEX_RULES,
                     KEY_KVDBS, INDEX_KVDBS,
                     KEY_DECODERS, INDEX_DECODERS,
                     KEY_FILTERS, INDEX_FILTERS);
+
+    // Queries
+    public static final String Q_SPACE_NAME = "space.name";
+
+    // Operations
+    public static final String OP_ADD = "add";
+    public static final String OP_REMOVE = "remove";
+    public static final String OP_UPDATE = "update";
 }

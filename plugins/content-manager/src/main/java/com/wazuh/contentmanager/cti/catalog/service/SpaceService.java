@@ -242,16 +242,26 @@ public class SpaceService {
             java.util.Set<String> filtersToDelete)
             throws IOException {
 
-        ObjectNode enginePayload = this.objectMapper.createObjectNode();
+        // Root payload structure
+        ObjectNode rootPayload = this.objectMapper.createObjectNode();
+        rootPayload.put("load_in_tester", true);
 
-        // Add policy document content if available
+        // Create the full_policy object
+        ObjectNode fullPolicyNode = this.objectMapper.createObjectNode();
+
+        // Build the policy object
+        ObjectNode policyNode = this.objectMapper.createObjectNode();
         if (policyDocument != null && policyDocument.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> policyDoc =
                     (Map<String, Object>) policyDocument.get(Constants.KEY_DOCUMENT);
-            JsonNode policyNode = this.objectMapper.valueToTree(policyDoc);
-            enginePayload.setAll((ObjectNode) policyNode);
+            JsonNode policyContentNode = this.objectMapper.valueToTree(policyDoc);
+            policyNode.setAll((ObjectNode) policyContentNode);
         }
+        fullPolicyNode.set("policy", policyNode);
+
+        // Build the resources object
+        ObjectNode resourcesNode = this.objectMapper.createObjectNode();
 
         // Fetch all integrations from target space
         Map<String, Map<String, Object>> targetIntegrations =
@@ -264,9 +274,7 @@ public class SpaceService {
         }
         // Build array
         ArrayNode integrationsArray = this.buildResourceArray(targetIntegrations);
-        if (integrationsArray.size() > 0) {
-            enginePayload.set(Constants.KEY_INTEGRATIONS, integrationsArray);
-        }
+        resourcesNode.set(Constants.KEY_INTEGRATIONS, integrationsArray);
 
         // Fetch all kvdbs from target space
         Map<String, Map<String, Object>> targetKvdbs =
@@ -276,9 +284,7 @@ public class SpaceService {
             targetKvdbs.remove(id);
         }
         ArrayNode kvdbsArray = this.buildResourceArray(targetKvdbs);
-        if (kvdbsArray.size() > 0) {
-            enginePayload.set(Constants.KEY_KVDBS, kvdbsArray);
-        }
+        resourcesNode.set(Constants.KEY_KVDBS, kvdbsArray);
 
         // Fetch all decoders from target space
         Map<String, Map<String, Object>> targetDecoders =
@@ -288,9 +294,7 @@ public class SpaceService {
             targetDecoders.remove(id);
         }
         ArrayNode decodersArray = this.buildResourceArray(targetDecoders);
-        if (decodersArray.size() > 0) {
-            enginePayload.set(Constants.KEY_DECODERS, decodersArray);
-        }
+        resourcesNode.set(Constants.KEY_DECODERS, decodersArray);
 
         // Fetch all filters from target space
         Map<String, Map<String, Object>> targetFilters =
@@ -300,11 +304,15 @@ public class SpaceService {
             targetFilters.remove(id);
         }
         ArrayNode filtersArray = this.buildResourceArray(targetFilters);
-        if (filtersArray.size() > 0) {
-            enginePayload.set(Constants.KEY_FILTERS, filtersArray);
-        }
+        resourcesNode.set(Constants.KEY_FILTERS, filtersArray);
 
-        return enginePayload;
+        // Add resources to full_policy
+        fullPolicyNode.set("resources", resourcesNode);
+
+        // Add full_policy to root
+        rootPayload.set("full_policy", fullPolicyNode);
+
+        return rootPayload;
     }
 
     /**
