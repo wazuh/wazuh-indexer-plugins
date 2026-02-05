@@ -143,7 +143,7 @@ public class PluginSettings {
     /** Unified Context for Content. */
     public static final Setting<String> IOC_CONTEXT =
             Setting.simpleString(
-                    "plugins.content_manager.catalog.content.context",
+                    "plugins.content_manager.ioc.content.context",
                     DEFAULT_IOC_CONTEXT,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
@@ -151,7 +151,7 @@ public class PluginSettings {
     /** Unified Consumer for Content. */
     public static final Setting<String> IOC_CONSUMER =
             Setting.simpleString(
-                    "plugins.content_manager.catalog.content.consumer",
+                    "plugins.content_manager.ioc.content.consumer",
                     DEFAULT_IOC_CONSUMER,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
