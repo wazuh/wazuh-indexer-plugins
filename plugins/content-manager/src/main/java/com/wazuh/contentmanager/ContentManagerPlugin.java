@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -50,14 +50,13 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
+import com.wazuh.contentmanager.rest.services.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Main class of the Content Manager Plugin */
@@ -67,11 +66,17 @@ public class ContentManagerPlugin extends Plugin
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String JOB_ID = "wazuh-catalog-sync-job";
 
+    // Index and mapping constants
+    private static final String CTI_RULES_INDEX = ".cti-rules";
+    private static final String RULES_MAPPING_PATH = "/mappings/cti-rules-mappings.json";
+
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
+    private EngineServiceImpl engine;
+    private SpaceService spaceService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -119,6 +124,12 @@ public class ContentManagerPlugin extends Plugin
 
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
+
+        // Initialize Engine service
+        this.engine = new EngineServiceImpl();
+
+        // Initialize Space Service
+        this.spaceService = new SpaceService(this.client);
 
         return Collections.emptyList();
     }
@@ -169,10 +180,34 @@ public class ContentManagerPlugin extends Plugin
             org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
             java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
         return List.of(
+                // CTI subscription endpoints
                 new RestGetSubscriptionAction(this.ctiConsole),
                 new RestPostSubscriptionAction(this.ctiConsole),
                 new RestDeleteSubscriptionAction(this.ctiConsole),
-                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob));
+                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
+                // User-generated content endpoints (Logtest)
+                new RestPostLogtestAction(this.engine),
+                // Policy endpoints
+                new RestPutPolicyAction(this.spaceService),
+                // Rule endpoints
+                new RestPostRuleAction(),
+                new RestPutRuleAction(),
+                new RestDeleteRuleAction(),
+                // Integration endpoints
+                new RestPostIntegrationAction(this.engine),
+                new RestPutIntegrationAction(this.engine),
+                new RestDeleteIntegrationAction(this.engine),
+                // Decoder endpoints
+                new RestPostDecoderAction(this.engine),
+                new RestPutDecoderAction(this.engine),
+                new RestDeleteDecoderAction(this.engine),
+                // KVDB endpoints
+                new RestPostKvdbAction(this.engine),
+                new RestPutKvdbAction(this.engine),
+                new RestDeleteKvdbAction(this.engine),
+                // Promote endpoints
+                new RestPostPromoteAction(this.engine, this.spaceService),
+                new RestGetPromoteAction(this.spaceService));
     }
 
     /** Performs initialization tasks for the plugin. */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -30,6 +30,9 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.List;
+
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -95,7 +98,7 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
         when(this.indicesExistsResponse.isExists()).thenReturn(false);
 
-        this.policyHashService.calculateAndUpdate(POLICY_IDX, INTEGRATION_IDX, DECODER_IDX, KVDB_IDX, RULE_IDX);
+        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
         verify(this.client, never()).search(any(SearchRequest.class));
     }
@@ -118,7 +121,7 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         when(this.searchResponse.getHits()).thenReturn(emptyHits);
 
         // Should not throw any exception
-        this.policyHashService.calculateAndUpdate(POLICY_IDX, INTEGRATION_IDX, DECODER_IDX, KVDB_IDX, RULE_IDX);
+        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
         verify(this.client).search(any(SearchRequest.class));
         // No bulk update should be performed when there are no policies
@@ -130,6 +133,6 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         when(this.client.admin()).thenThrow(new RuntimeException("Test exception"));
 
         // Should not throw any exception - it should be caught internally
-        this.policyHashService.calculateAndUpdate(POLICY_IDX, INTEGRATION_IDX, DECODER_IDX, KVDB_IDX, RULE_IDX);
+        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
     }
 }

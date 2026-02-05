@@ -1,0 +1,287 @@
+/*
+ * Copyright (C) 2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.wazuh.contentmanager.rest.services;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchParseException;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.NamedRoute;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
+import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.DocumentValidations;
+
+import static org.opensearch.rest.RestRequest.Method.PUT;
+import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
+
+/**
+ * REST handler for updating CTI KVDBs.
+ *
+ * <p>Endpoint: PUT /_plugins/content-manager/kvdbs/{kvdb_id}
+ *
+ * <p>This handler processes KVDB update requests. The KVDB is validated against the Wazuh engine
+ * before being stored in the index with DRAFT space.
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: KVDB updated successfully after engine validation.
+ *   <li>400 Bad Request: Missing or invalid request body, KVDB ID mismatch, or validation error.
+ *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ * </ul>
+ */
+public class RestPutKvdbAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPutKvdbAction.class);
+    // TODO: Move to a common constants class
+    private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
+    private static final String KVDB_TYPE = "kvdb";
+    private static final String FIELD_RESOURCE = "resource";
+    private static final String FIELD_ID = "id";
+    private static final String FIELD_TYPE = "type";
+    private static final String FIELD_DOCUMENT = "document";
+    private static final String FIELD_SPACE = "space";
+    private static final String FIELD_NAME = "name";
+    private final EngineService engine;
+    private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
+
+    /**
+     * Constructs a new RestPutKvdbAction handler.
+     *
+     * @param engine the engine service instance for communication with the Wazuh engine
+     */
+    public RestPutKvdbAction(EngineService engine) {
+        this.engine = engine;
+    }
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
+
+    /** Return a short identifier for this handler. */
+    @Override
+    public String getName() {
+        return ENDPOINT_NAME;
+    }
+
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for the update endpoint
+     */
+    @Override
+    public List<Route> routes() {
+        return List.of(
+                new NamedRoute.Builder()
+                        .path(PluginSettings.KVDBS_URI + "/{id}")
+                        .method(PUT)
+                        .uniqueName(ENDPOINT_UNIQUE_NAME)
+                        .build());
+    }
+
+    /**
+     * Prepares the REST request for processing.
+     *
+     * @param request the incoming REST request
+     * @param client the node client
+     * @return a consumer that executes the update operation
+     */
+    @Override
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
+        // Consume path params early to avoid unrecognized parameter errors.
+        request.param("id");
+        this.policyHashService = new PolicyHashService(client);
+        return channel ->
+                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    }
+
+    /**
+     * Handles the KVDB update request.
+     *
+     * <p>This method validates the request payload, ensures the KVDB ID matches, validates the KVDB
+     * with the Wazuh engine, and stores the updated KVDB in the index.
+     *
+     * @param request the incoming REST request containing the KVDB data to update
+     * @param client the OpenSearch client for index operations
+     * @return a RestResponse indicating success or failure of the update
+     */
+    public RestResponse handleRequest(RestRequest request, Client client) {
+        // Validate prerequisites
+        RestResponse validationError = this.validatePrerequisites(request);
+        if (validationError != null) {
+            return validationError;
+        }
+
+        try {
+            String kvdbId = request.param("id");
+            if (kvdbId == null || kvdbId.isBlank()) {
+                return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            JsonNode payload = this.mapper.readTree(request.content().streamInput());
+
+            // Validate payload structure
+            validationError = this.validatePayload(payload, kvdbId);
+            if (validationError != null) {
+                return validationError;
+            }
+
+            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
+            resourceNode.put(FIELD_ID, kvdbId);
+
+            // Validate with engine
+            RestResponse engineResponse = this.validateWithEngine(resourceNode);
+            if (engineResponse != null) {
+                return engineResponse;
+            }
+
+            // Validate KVDB exists and is in draft space
+            RestResponse validationResponse =
+                    DocumentValidations.validateDocumentInSpaceWithResponse(
+                            client, INDEX_KVDBS, kvdbId, "KVDB");
+            if (validationResponse != null) {
+                return validationResponse;
+            }
+
+            // Update KVDB
+            this.updateKvdb(client, kvdbId, resourceNode);
+
+            // Regenerate space hash because KVDB content changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+
+            return new RestResponse(
+                    "KVDB updated successfully with ID: " + kvdbId, RestStatus.OK.getStatus());
+
+        } catch (IOException e) {
+            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        } catch (OpenSearchParseException e) {
+            log.error("Error updating KVDB: {}", e.getMessage(), e);
+            return new RestResponse(
+                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+    }
+
+    /** Validates that the engine service and request content are available. */
+    private RestResponse validatePrerequisites(RestRequest request) {
+        if (this.engine == null) {
+            return new RestResponse(
+                    "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+        if (!request.hasContent()) {
+            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /** Validates the payload structure and required fields. */
+    private RestResponse validatePayload(JsonNode payload, String kvdbId) {
+        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
+        if (resourceNode.hasNonNull(FIELD_ID)) {
+            String payloadId = resourceNode.get(FIELD_ID).asText();
+            if (!payloadId.equals(kvdbId)) {
+                return new RestResponse(
+                        "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+        return null;
+    }
+
+    /** Validates the resource with the engine service. */
+    private RestResponse validateWithEngine(ObjectNode resourceNode) {
+        ObjectNode enginePayload = this.mapper.createObjectNode();
+        enginePayload.put(FIELD_TYPE, KVDB_TYPE);
+        enginePayload.set(FIELD_RESOURCE, resourceNode);
+
+        RestResponse response = this.engine.validate(enginePayload);
+        if (response == null) {
+            return new RestResponse(
+                    "Invalid KVDB body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /** Updates the KVDB document in the index. */
+    private void updateKvdb(Client client, String kvdbId, ObjectNode resourceNode)
+            throws IOException {
+
+        ensureIndexExists(client);
+        ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
+
+        // Check if KVDB exists before updating
+        if (!kvdbIndex.exists(kvdbId)) {
+            throw new IOException("KVDB [" + kvdbId + "] not found.");
+        }
+
+        kvdbIndex.create(kvdbId, this.buildKvdbPayload(resourceNode));
+    }
+
+    /** Builds the KVDB payload with document and space information. */
+    private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
+        ObjectNode node = this.mapper.createObjectNode();
+        node.put(FIELD_TYPE, KVDB_TYPE);
+        node.set(FIELD_DOCUMENT, resourceNode);
+        // Add draft space
+        ObjectNode spaceNode = this.mapper.createObjectNode();
+        spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
+        node.set(FIELD_SPACE, spaceNode);
+
+        return node;
+    }
+
+    /** Ensures the KVDB index exists, creating it if necessary. */
+    private static void ensureIndexExists(Client client) throws IOException {
+        if (!IndexHelper.indexExists(client, INDEX_KVDBS)) {
+            ContentIndex index = new ContentIndex(client, INDEX_KVDBS, null);
+            try {
+                index.createIndex();
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new IOException("Failed to create index " + INDEX_KVDBS, e);
+            }
+        }
+    }
+}

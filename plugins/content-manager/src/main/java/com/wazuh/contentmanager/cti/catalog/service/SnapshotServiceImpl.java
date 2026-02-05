@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -186,7 +186,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         BulkRequest bulkRequest = new BulkRequest();
 
         // Use any available index to execute the bulk request
-        ContentIndex executorIndex = this.indicesMap.isEmpty() ? null : this.indicesMap.values().iterator().next();
+        ContentIndex executorIndex =
+                this.indicesMap.isEmpty() ? null : this.indicesMap.values().iterator().next();
         if (executorIndex == null) {
             return;
         }
@@ -216,7 +217,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                         log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
-
                     JsonObject processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
