@@ -170,9 +170,11 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param indexName The policy index name.
      */
     private void initializeSpaces(String indexName) {
-        this.initializeSpace(indexName, Space.DRAFT.toString());
-        this.initializeSpace(indexName, Space.TEST.toString());
-        this.initializeSpace(indexName, Space.CUSTOM.toString());
+        // Generate a single ID to be shared across all default policies so they are linked
+        String sharedDocumentId = UUID.randomUUID().toString();
+        initializeSpace(indexName, Space.DRAFT.toString(), sharedDocumentId);
+        initializeSpace(indexName, Space.TEST.toString(), sharedDocumentId);
+        initializeSpace(indexName, Space.CUSTOM.toString(), sharedDocumentId);
     }
 
     /**
@@ -181,25 +183,24 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param indexName The index name.
      * @param spaceName The space name.
      */
-    private void initializeSpace(String indexName, String spaceName) {
+    private void initializeSpace(String indexName, String spaceName, String documentId) {
         try {
-            // Check if the space document already exists using a search query
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-            searchSourceBuilder.size(0); // We only care about the count
+            searchSourceBuilder.size(0); 
+
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
 
             // Proceed only if no document with this space name exists
             if (searchResponse.getHits().getTotalHits().value() == 0) {
-                String uuid = UUID.randomUUID().toString();
                 String date = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
                 String title = "Custom policy";
 
                 Policy policy = new Policy();
-                policy.setId(uuid);
+                policy.setId(documentId);
                 policy.setTitle(title);
                 policy.setDescription(title);
                 policy.setAuthor("Wazuh Inc.");
@@ -230,7 +231,6 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
                 IndexRequest request =
                         new IndexRequest(indexName)
-                                .id(uuid)
                                 .source(this.mapper.writeValueAsString(source), XContentType.JSON)
                                 .opType(DocWriteRequest.OpType.CREATE)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);

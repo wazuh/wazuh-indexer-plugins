@@ -156,12 +156,6 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertTrue(actualResponse.getMessage().startsWith("KVDB created successfully with ID:"));
 
-        // Extract the returned ID from response message
-        String returnedId =
-                actualResponse.getMessage().substring("KVDB created successfully with ID: ".length());
-        // Verify response returns ID WITH prefix
-        assertTrue(returnedId.startsWith("d_"));
-
         // Verify engine validation was called with correct payload
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validate(payloadCaptor.capture());

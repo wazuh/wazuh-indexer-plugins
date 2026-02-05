@@ -68,7 +68,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
-    private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
     private static final String FIELD_TYPE = "type";
@@ -155,8 +154,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            String resourceId = RestPutDecoderAction.toResourceId(decoderId);
-            resourceNode.put(FIELD_ID, resourceId);
+            resourceNode.put(FIELD_ID, decoderId);
 
             // Validate decoder is in draft space
             String spaceValidationError =
@@ -221,10 +219,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
         }
 
         ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        String resourceId = RestPutDecoderAction.toResourceId(decoderId);
         if (resourceNode.hasNonNull(FIELD_ID)) {
             String payloadId = resourceNode.get(FIELD_ID).asText();
-            if (!payloadId.equals(resourceId) && !payloadId.equals(decoderId)) {
+            if (!payloadId.equals(decoderId)) {
                 return new RestResponse(
                         "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -270,14 +267,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 throw new IOException("Failed to create index " + INDEX_DECODERS, e);
             }
         }
-    }
-
-    /** Converts an index document ID to a resource ID by removing the prefix. */
-    private static String toResourceId(String indexId) {
-        if (indexId != null && indexId.startsWith(INDEX_ID_PREFIX)) {
-            return indexId.substring(INDEX_ID_PREFIX.length());
-        }
-        return indexId;
     }
 
     /**
