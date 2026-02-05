@@ -75,7 +75,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
-    private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
     private static final String FIELD_TYPE = "type";
@@ -178,17 +177,15 @@ public class RestPostDecoderAction extends BaseRestHandler {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
-            // Create decoder and update integration
-            String decoderIndexId = toIndexId(decoderId);
-            this.createDecoder(client, decoderIndexId, resourceNode);
+            // Create decoder using raw UUID
+            this.createDecoder(client, decoderId, resourceNode);
             this.updateIntegrationWithDecoder(client, integrationId, decoderId);
 
             // Regenerate space hash because space composition changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
-                    "Decoder created successfully with ID: " + decoderIndexId,
-                    RestStatus.CREATED.getStatus());
+                    "Decoder created successfully with ID: " + decoderId, RestStatus.CREATED.getStatus());
 
         } catch (IOException e) {
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
@@ -247,11 +244,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
         spaceObject.addProperty(Constants.KEY_NAME, Space.DRAFT.toString());
         payload.add(Constants.KEY_SPACE, spaceObject);
         return payload;
-    }
-
-    /** Converts a resource ID to an index document ID. */
-    private static String toIndexId(String resourceId) {
-        return INDEX_ID_PREFIX + resourceId;
     }
 
     /** Updates the integration document to include the new decoder reference. */

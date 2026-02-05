@@ -71,6 +71,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     private final EngineService engine;
     private final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    // TODO: Move to a common constants class
     private static final String CTI_DECODERS_INDEX = ".cti-decoders";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
     private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
@@ -177,21 +178,18 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        String prefixedId = request.param("id");
+        String id = request.param("id");
         this.log.debug(
                 "PUT integration request received (id={}, hasContent={}, uri={})",
-                prefixedId,
+                id,
                 request.hasContent(),
                 request.uri());
 
         // Check if ID is provided
-        if (prefixedId == null || prefixedId.isEmpty()) {
+        if (id == null || id.isEmpty()) {
             this.log.warn("Request rejected: integration ID is required");
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         }
-
-        // Extract ID without prefix
-        String id = prefixedId.substring(2);
 
         // Check if engine service exists
         if (this.engine == null) {
@@ -240,7 +238,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         // Verify integration exists and is in draft space
-        GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, prefixedId);
+        GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, id);
         GetResponse getResponse;
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
@@ -251,9 +249,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         if (!getResponse.isExists()) {
-            this.log.warn("Request rejected: integration not found (id={})", prefixedId);
-            return new RestResponse(
-                    "Integration not found: " + prefixedId, RestStatus.NOT_FOUND.getStatus());
+            this.log.warn("Request rejected: integration not found (id={})", id);
+            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Verify integration is in draft space
@@ -296,7 +293,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Check if date is present in existing document to preserve it
         String createdDate = null;
-        JsonNode existingDoc = this.integrationsIndex.getDocument(prefixedId);
+        JsonNode existingDoc = this.integrationsIndex.getDocument(id);
         if (existingDoc != null && existingDoc.has("document")) {
             JsonNode doc = existingDoc.get("document");
             if (doc.has("date")) {
@@ -371,14 +368,12 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         try {
-            // Index the integration into CTI integrations index (sync + check response)
-            this.log.debug(
-                    "Indexing updated integration into {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
+            this.log.debug("Indexing updated integration into {} (id={})", CTI_INTEGRATIONS_INDEX, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
             integrationsIndexPayload.set("document", resource);
             integrationsIndexPayload.putObject("space").put("name", DRAFT_SPACE_NAME);
             IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(prefixedId, integrationsIndexPayload);
+                    this.integrationsIndex.create(id, integrationsIndexPayload);
 
             // Check indexing response. We are expecting for a 200 OK status for update.
             if (integrationIndexResponse == null
@@ -386,7 +381,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                             && integrationIndexResponse.status() != RestStatus.CREATED)) {
                 this.log.error(
                         "Indexing integration failed (id={}, status={})",
-                        prefixedId,
+                        id,
                         integrationIndexResponse != null ? integrationIndexResponse.status() : null);
                 return new RestResponse(
                         "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -398,9 +393,9 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            this.log.info("Integration updated successfully (id={})", prefixedId);
+            this.log.info("Integration updated successfully (id={})", id);
             return new RestResponse(
-                    "Integration updated successfully with ID: " + prefixedId, RestStatus.OK.getStatus());
+                    "Integration updated successfully with ID: " + id, RestStatus.OK.getStatus());
         } catch (Exception e) {
             this.log.error("Unexpected error updating integration (id={})", id, e);
             return new RestResponse(

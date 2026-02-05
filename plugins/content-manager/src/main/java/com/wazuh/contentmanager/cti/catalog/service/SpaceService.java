@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -61,11 +62,11 @@ public class SpaceService {
     }
 
     /**
-     * Fetches all resources (ID and Hash) for a given space. Iterates over all managed resource types
-     * and their corresponding indices.
+     * Fetches all resources (document.id and Hash) for a given space. Iterates over all managed
+     * resource types and their corresponding indices.
      *
      * @param spaceName The space to filter by (e.g., "draft", "test")
-     * @return A map where Key=ResourceType (e.g. "decoders") and Value=Map(ID -> Hash)
+     * @return A map where Key=ResourceType (e.g. "decoders") and Value=Map(document.id -> Hash)
      */
     public Map<String, Map<String, String>> getSpaceResources(String spaceName) {
         Map<String, Map<String, String>> spaceResources = new HashMap<>();
@@ -82,9 +83,9 @@ public class SpaceService {
                     SearchRequest searchRequest = new SearchRequest(indexName);
                     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
-                    // Filter by space
+                    // Filter by space and fetch document.id
                     sourceBuilder.query(QueryBuilders.termQuery("space.name", spaceName));
-                    sourceBuilder.fetchSource(new String[] {"hash.sha256"}, null);
+                    sourceBuilder.fetchSource(new String[] {"hash.sha256", "document.id"}, null);
                     sourceBuilder.size(10000);
 
                     searchRequest.source(sourceBuilder);
@@ -92,7 +93,10 @@ public class SpaceService {
 
                     for (SearchHit hit : response.getHits().getHits()) {
                         String hash = HashCalculator.extractHash(hit.getSourceAsMap());
-                        items.put(hit.getId(), hash);
+                        String docId = this.getDocumentId(hit.getSourceAsMap());
+                        if (docId != null) {
+                            items.put(docId, hash);
+                        }
                     }
                 } else {
                     throw new IndexNotFoundException("Index [" + indexName + "] not found.");
@@ -117,7 +121,8 @@ public class SpaceService {
      * documents from source space to target space and updates the space field.
      *
      * @param indexName The index to update.
-     * @param resourcesToConsolidate Map of resource ID to resource document (from source space).
+     * @param resourcesToConsolidate Map of resource ID (document.id) to resource document (from
+     *     source space).
      * @param targetSpace The target space name.
      * @throws IOException If the bulk update operation fails.
      */
@@ -138,11 +143,15 @@ public class SpaceService {
                 spaceMap.put("name", targetSpace);
                 doc.put("space", spaceMap);
 
-                // Add to bulk request (will overwrite if exists)
-                IndexRequest indexRequest =
-                        new IndexRequest(indexName)
-                                .id(docId)
-                                .source(this.objectMapper.writeValueAsString(doc), XContentType.JSON);
+                // Find existing _id in target space to overwrite it, otherwise create new
+                String targetId = this.findDocumentId(indexName, targetSpace, docId);
+
+                IndexRequest indexRequest = new IndexRequest(indexName);
+                if (targetId != null) {
+                    indexRequest.id(targetId);
+                }
+
+                indexRequest.source(this.objectMapper.writeValueAsString(doc), XContentType.JSON);
                 bulkRequest.add(indexRequest);
             }
 
@@ -162,11 +171,11 @@ public class SpaceService {
     }
 
     /**
-     * Fetches all documents from a specific index that belong to a given space.
+     * Fetches all documents from a specific index that belong to a given space, keyed by document.id.
      *
      * @param indexName The index to search.
      * @param spaceName The space to filter by.
-     * @return A map of document ID to document content.
+     * @return A map of document.id to document content.
      * @throws IOException If the search operation fails.
      */
     public Map<String, Map<String, Object>> getResourcesBySpace(String indexName, String spaceName)
@@ -184,7 +193,10 @@ public class SpaceService {
                 SearchResponse response = this.client.search(searchRequest).actionGet();
 
                 for (SearchHit hit : response.getHits().getHits()) {
-                    resources.put(hit.getId(), hit.getSourceAsMap());
+                    String docId = this.getDocumentId(hit.getSourceAsMap());
+                    if (docId != null) {
+                        resources.put(docId, hit.getSourceAsMap());
+                    }
                 }
             }
         } catch (Exception e) {
@@ -230,16 +242,26 @@ public class SpaceService {
             java.util.Set<String> filtersToDelete)
             throws IOException {
 
-        ObjectNode enginePayload = this.objectMapper.createObjectNode();
+        // Root payload structure
+        ObjectNode rootPayload = this.objectMapper.createObjectNode();
+        rootPayload.put("load_in_tester", true);
 
-        // Add policy document content if available
+        // Create the full_policy object
+        ObjectNode fullPolicyNode = this.objectMapper.createObjectNode();
+
+        // Build the policy object
+        ObjectNode policyNode = this.objectMapper.createObjectNode();
         if (policyDocument != null && policyDocument.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> policyDoc =
                     (Map<String, Object>) policyDocument.get(Constants.KEY_DOCUMENT);
-            JsonNode policyNode = this.objectMapper.valueToTree(policyDoc);
-            enginePayload.setAll((ObjectNode) policyNode);
+            JsonNode policyContentNode = this.objectMapper.valueToTree(policyDoc);
+            policyNode.setAll((ObjectNode) policyContentNode);
         }
+        fullPolicyNode.set("policy", policyNode);
+
+        // Build the resources object
+        ObjectNode resourcesNode = this.objectMapper.createObjectNode();
 
         // Fetch all integrations from target space
         Map<String, Map<String, Object>> targetIntegrations =
@@ -252,9 +274,7 @@ public class SpaceService {
         }
         // Build array
         ArrayNode integrationsArray = this.buildResourceArray(targetIntegrations);
-        if (integrationsArray.size() > 0) {
-            enginePayload.set(Constants.KEY_INTEGRATIONS, integrationsArray);
-        }
+        resourcesNode.set(Constants.KEY_INTEGRATIONS, integrationsArray);
 
         // Fetch all kvdbs from target space
         Map<String, Map<String, Object>> targetKvdbs =
@@ -264,9 +284,7 @@ public class SpaceService {
             targetKvdbs.remove(id);
         }
         ArrayNode kvdbsArray = this.buildResourceArray(targetKvdbs);
-        if (kvdbsArray.size() > 0) {
-            enginePayload.set(Constants.KEY_KVDBS, kvdbsArray);
-        }
+        resourcesNode.set(Constants.KEY_KVDBS, kvdbsArray);
 
         // Fetch all decoders from target space
         Map<String, Map<String, Object>> targetDecoders =
@@ -276,9 +294,7 @@ public class SpaceService {
             targetDecoders.remove(id);
         }
         ArrayNode decodersArray = this.buildResourceArray(targetDecoders);
-        if (decodersArray.size() > 0) {
-            enginePayload.set(Constants.KEY_DECODERS, decodersArray);
-        }
+        resourcesNode.set(Constants.KEY_DECODERS, decodersArray);
 
         // Fetch all filters from target space
         Map<String, Map<String, Object>> targetFilters =
@@ -288,11 +304,15 @@ public class SpaceService {
             targetFilters.remove(id);
         }
         ArrayNode filtersArray = this.buildResourceArray(targetFilters);
-        if (filtersArray.size() > 0) {
-            enginePayload.set(Constants.KEY_FILTERS, filtersArray);
-        }
+        resourcesNode.set(Constants.KEY_FILTERS, filtersArray);
 
-        return enginePayload;
+        // Add resources to full_policy
+        fullPolicyNode.set("resources", resourcesNode);
+
+        // Add full_policy to root
+        rootPayload.set("full_policy", fullPolicyNode);
+
+        return rootPayload;
     }
 
     /**
@@ -339,8 +359,6 @@ public class SpaceService {
                     this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             if (response.isExists()) {
-                //                return this.objectMapper.readValue(response.getSourceAsBytes(),
-                // Resource.class);
                 return response.getSourceAsMap();
             }
             return null;
@@ -348,6 +366,24 @@ public class SpaceService {
             log.error("Failed to get document [{}] from index [{}]: {}", id, indexName, e.getMessage());
             throw new IOException("Failed to retrieve document: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Retrieves a document from the specified index by its logical ID (document.id) within a space.
+     *
+     * @param indexName The name of the index to search.
+     * @param space The space name.
+     * @param documentId The logical document ID.
+     * @return The document as a Map, or null if not found.
+     * @throws IOException If the retrieval operation fails.
+     */
+    public Map<String, Object> getDocument(String indexName, String space, String documentId)
+            throws IOException {
+        String realId = this.findDocumentId(indexName, space, documentId);
+        if (realId != null) {
+            return this.getDocument(indexName, realId);
+        }
+        return null;
     }
 
     /**
@@ -382,7 +418,7 @@ public class SpaceService {
      * Deletes resources from the target space after validation.
      *
      * @param indexName The index to delete from.
-     * @param resourceIdsToDelete Set of resource IDs to delete.
+     * @param resourceIdsToDelete Set of resource IDs (document.id) to delete.
      * @param targetSpace The target space (for verification).
      * @throws IOException If the delete operation fails.
      */
@@ -393,32 +429,18 @@ public class SpaceService {
             BulkRequest bulkRequest = new BulkRequest();
 
             for (String docId : resourceIdsToDelete) {
-                // Verify the document exists in target space before deleting
-                Map<String, Object> doc = this.getDocument(indexName, docId);
-                if (doc == null) {
-                    log.warn(
-                            "Document [{}] not found in index [{}] for deletion, skipping", docId, indexName);
-                    continue;
-                }
+                // Find the document in the target space using the logical ID
+                String targetId = this.findDocumentId(indexName, targetSpace, docId);
 
-                @SuppressWarnings("unchecked")
-                Map<String, String> space =
-                        (Map<String, String>) doc.getOrDefault("space", new HashMap<>());
-                String docSpace = space.get("name");
-
-                if (!targetSpace.equals(docSpace)) {
+                if (targetId != null) {
+                    DeleteRequest deleteRequest = new DeleteRequest(indexName, targetId);
+                    bulkRequest.add(deleteRequest);
+                } else {
                     log.warn(
-                            "Document [{}] is in space [{}], expected [{}], skipping deletion",
+                            "Document with document.id [{}] not found in space [{}] for deletion",
                             docId,
-                            docSpace,
                             targetSpace);
-                    continue;
                 }
-
-                // Add delete request
-                org.opensearch.action.delete.DeleteRequest deleteRequest =
-                        new org.opensearch.action.delete.DeleteRequest(indexName, docId);
-                bulkRequest.add(deleteRequest);
             }
 
             if (bulkRequest.numberOfActions() > 0) {
@@ -434,5 +456,54 @@ public class SpaceService {
             log.error("Failed to delete resources: {}", e.getMessage());
             throw new IOException("Failed to delete resources: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Extract document.id from a source document
+     *
+     * @param source Document object that contains the field ID
+     * @return ID of the document in string format
+     */
+    @SuppressWarnings("unchecked")
+    private String getDocumentId(Map<String, Object> source) {
+        if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
+            Map<String, Object> doc = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+            return (String) doc.get("id");
+        }
+        return null;
+    }
+
+    /**
+     * Finds the real _id of a document given its logical document.id and space.
+     *
+     * @param indexName The index to search.
+     * @param spaceName The space name.
+     * @param documentId The logical document ID.
+     * @return The real _id, or null if not found.
+     */
+    private String findDocumentId(String indexName, String spaceName, String documentId) {
+        try {
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(
+                    QueryBuilders.boolQuery()
+                            .must(QueryBuilders.termQuery("space.name", spaceName))
+                            .must(QueryBuilders.termQuery("document.id", documentId)));
+            sourceBuilder.size(1);
+            sourceBuilder.fetchSource(false); // We only need the _id
+            searchRequest.source(sourceBuilder);
+
+            SearchResponse response = this.client.search(searchRequest).actionGet();
+            if (response.getHits().getTotalHits().value() > 0) {
+                return response.getHits().getAt(0).getId();
+            }
+        } catch (Exception e) {
+            log.error(
+                    "Error finding document ID for space [{}] and docId [{}]: {}",
+                    spaceName,
+                    documentId,
+                    e.getMessage());
+        }
+        return null;
     }
 }

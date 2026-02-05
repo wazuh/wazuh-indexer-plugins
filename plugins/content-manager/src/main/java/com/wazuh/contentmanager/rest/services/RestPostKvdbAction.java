@@ -75,7 +75,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_create";
-    private static final String INDEX_ID_PREFIX = "d_";
     private static final String FIELD_INTEGRATION = "integration";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
@@ -159,14 +158,14 @@ public class RestPostKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
             String integrationId = payload.get(FIELD_INTEGRATION).asText();
 
-            // Generate UUID without prefix for resource node and integration
+            // Generate UUID
             String kvdbId = UUID.randomUUID().toString();
             resourceNode.put(FIELD_ID, kvdbId);
 
             // Add timestamp metadata
             this.addTimestampMetadata(resourceNode);
 
-            // Validate with engine (uses ID without prefix)
+            // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
             if (engineResponse != null) {
                 return engineResponse;
@@ -180,16 +179,15 @@ public class RestPostKvdbAction extends BaseRestHandler {
                 return validationResponse;
             }
 
-            // Create KVDB with prefixed ID in the index, and update integration with unprefixed ID
-            String kvdbIndexId = toIndexId(kvdbId);
-            this.createKvdb(client, kvdbIndexId, resourceNode);
+            // Create KVDB
+            this.createKvdb(client, kvdbId, resourceNode);
             this.updateIntegrationWithKvdb(client, integrationId, kvdbId);
 
             // Regenerate space hash because space composition changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
-                    "KVDB created successfully with ID: " + kvdbIndexId, RestStatus.CREATED.getStatus());
+                    "KVDB created successfully with ID: " + kvdbId, RestStatus.CREATED.getStatus());
 
         } catch (IOException e) {
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
@@ -260,11 +258,6 @@ public class RestPostKvdbAction extends BaseRestHandler {
         node.set(FIELD_SPACE, spaceNode);
 
         return node;
-    }
-
-    /** Converts a resource ID to an index document ID. */
-    private static String toIndexId(String resourceId) {
-        return INDEX_ID_PREFIX + resourceId;
     }
 
     /** Updates the integration document to include the new KVDB reference. */

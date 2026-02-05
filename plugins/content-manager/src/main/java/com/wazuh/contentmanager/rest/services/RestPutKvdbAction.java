@@ -69,7 +69,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
-    private static final String INDEX_ID_PREFIX = "d_";
     private static final String KVDB_TYPE = "kvdb";
     private static final String FIELD_RESOURCE = "resource";
     private static final String FIELD_ID = "id";
@@ -170,8 +169,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            String resourceId = toResourceId(kvdbId);
-            resourceNode.put(FIELD_ID, resourceId);
+            resourceNode.put(FIELD_ID, kvdbId);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -233,10 +231,9 @@ public class RestPutKvdbAction extends BaseRestHandler {
         }
 
         ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        String resourceId = toResourceId(kvdbId);
         if (resourceNode.hasNonNull(FIELD_ID)) {
             String payloadId = resourceNode.get(FIELD_ID).asText();
-            if (!payloadId.equals(resourceId) && !payloadId.equals(kvdbId)) {
+            if (!payloadId.equals(kvdbId)) {
                 return new RestResponse(
                         "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -296,13 +293,5 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 throw new IOException("Failed to create index " + INDEX_KVDBS, e);
             }
         }
-    }
-
-    /** Converts an index document ID to a resource ID by removing the prefix. */
-    private static String toResourceId(String indexId) {
-        if (indexId != null && indexId.startsWith(INDEX_ID_PREFIX)) {
-            return indexId.substring(INDEX_ID_PREFIX.length());
-        }
-        return indexId;
     }
 }

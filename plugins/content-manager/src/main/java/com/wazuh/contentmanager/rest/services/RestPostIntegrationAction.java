@@ -51,13 +51,19 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * TODO !CHANGE_ME POST /_plugins/content-manager/integrations
+ * REST handler for creating integration resources.
  *
- * <p>Creates an integration in the local engine.
+ * <p>Endpoint: POST /_plugins/_content_manager/integrations
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>Creates an integration in the draft space.
+ *
+ * <p>HTTP responses:
+ *
+ * <ul>
+ *   <li>202 Accepted: Decoder created successfully
+ *   <li>400 Bad Request: Invalid payload or validation error
+ *   <li>500 Internal Server Error: Engine unavailable or unexpected error
+ * </ul>
  */
 public class RestPostIntegrationAction extends BaseRestHandler {
 
@@ -74,33 +80,38 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     private SecurityAnalyticsService service;
     private final EngineService engine;
     private final Logger log = LogManager.getLogger(RestPostIntegrationAction.class);
+    // TODO: Move to a common constants class
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
+    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
     private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
     private static final String CTI_POLICIES_INDEX = ".cti-policies";
     private static final String CTI_RULES_INDEX = ".cti-rules";
     private static final String DRAFT_SPACE_NAME = "draft";
 
     /**
-     * Constructs a new TODO !CHANGE_ME.
+     * Constructs the action with the required engine service.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param engine The engine service used for resource validation.
      */
     public RestPostIntegrationAction(EngineService engine) {
         this.engine = engine;
     }
 
-    /** Return a short identifier for this handler. */
+    /**
+     * Returns the name of this action.
+     *
+     * @return The action name {@code content_manager_integration_create}.
+     */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
     /**
-     * Return the route configuration for this handler.
+     * Defines the routes supported by this REST handler.
      *
-     * @return route configuration for the update endpoint
+     * @return An immutable list containing the POST route for creating integrations.
      */
     @Override
     public List<Route> routes() {
@@ -113,11 +124,16 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Prepares the request for execution.
      *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
+     * <p>Initializes the necessary services and indices (PolicyHashService, ContentIndex,
+     * SecurityAnalyticsService) using the provided client, and sets up the consumer to handle the
+     * response from the business logic.
+     *
+     * @param request The incoming REST request.
+     * @param client The node client to interface with OpenSearch.
+     * @return A consumer that sends the REST response.
+     * @throws IOException If an I/O error occurs during preparation.
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
@@ -130,43 +146,64 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     }
 
     /**
-     * @param policyHashService the policy hash service to set
+     * Sets the policy hash service.
+     *
+     * @param policyHashService The service responsible for calculating policy hashes.
      */
     public void setPolicyHashService(PolicyHashService policyHashService) {
         this.policyHashService = policyHashService;
     }
 
     /**
-     * Setter for the integrations index, used in tests.
+     * Sets the content index for integrations.
      *
-     * @param integrationsIndex the integrations index ContentIndex object
+     * @param integrationsIndex The index wrapper for integration documents.
      */
     public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
         this.integrationsIndex = integrationsIndex;
     }
 
     /**
-     * Setter for the policies index, used in tests.
+     * Sets the content index for policies.
      *
-     * @param policiesIndex the policies index ContentIndex object
+     * @param policiesIndex The index wrapper for policy documents.
      */
     public void setPoliciesContentIndex(ContentIndex policiesIndex) {
         this.policiesIndex = policiesIndex;
     }
 
     /**
-     * @param service the security analytics service to set
+     * Sets the Security Analytics service.
+     *
+     * @param service The service interface for Security Analytics operations.
      */
     public void setSecurityAnalyticsService(SecurityAnalyticsService service) {
         this.service = service;
     }
 
     /**
-     * Handles the incoming POST integration request.
+     * Handles the core business logic for creating an integration.
      *
-     * @param request incoming request
-     * @return a RestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
+     * <p>This method performs the following steps:
+     *
+     * <ol>
+     *   <li>Validates dependencies and the incoming request payload.
+     *   <li>Generates a UUID and timestamps for the new integration.
+     *   <li>Upserts the integration into the Security Analytics service.
+     *   <li>Validates the integration payload using the Engine service.
+     *   <li>Indexes the integration into the {@code .cti-integrations} index.
+     *   <li>Updates the associated draft policy in {@code .cti-policies} to include the new
+     *       integration ID.
+     *   <li>Recalculates the space hash for the draft space.
+     * </ol>
+     *
+     * <p>If any step fails, appropriate rollback mechanisms (deletions) are triggered to maintain
+     * consistency.
+     *
+     * @param request The REST request containing the integration JSON body.
+     * @return A {@link RestResponse} indicating the outcome (Created, Bad Request, or Internal
+     *     Error).
+     * @throws IOException If an I/O error occurs during JSON parsing or response handling.
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
         this.log.debug(
@@ -221,7 +258,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // Generate ID
         String id = this.generateId();
-        String prefixedId = "d_" + id;
 
         // Extract /resource
         JsonNode resource = requestBody.at("/resource");
@@ -309,20 +345,20 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {
-            // Index the integration into CTI integrations index (sync + check response)
-            this.log.debug("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, prefixedId);
+            this.log.debug("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
             integrationsIndexPayload.set("document", resource);
             integrationsIndexPayload.putObject("space").put("name", DRAFT_SPACE_NAME);
+            // Use UUID as document ID
             IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(prefixedId, integrationsIndexPayload);
+                    this.integrationsIndex.create(id, integrationsIndexPayload);
 
             // Check indexing response. We are expecting for a 200 OK status.
             if (integrationIndexResponse == null
                     || integrationIndexResponse.status() != RestStatus.CREATED) {
                 this.log.error(
                         "Indexing integration failed (id={}, status={}); rolling back SAP integration",
-                        prefixedId,
+                        id,
                         integrationIndexResponse != null ? integrationIndexResponse.status() : null);
                 // otherwise, we delete the created SAP integration and return an error.
                 this.service.deleteIntegration(id);
@@ -353,7 +389,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             } catch (Exception e) {
                 this.log.error("Draft policy search returned null result; rolling back (id={})", id);
                 // Rollback: delete created integration in CTI index and in SAP
-                this.integrationsIndex.delete(prefixedId);
+                this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -365,14 +401,13 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         "Draft policy hit missing /document (policyId={}), rolling back (id={})",
                         draftPolicyId,
                         id);
-                this.integrationsIndex.delete(prefixedId);
+                this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to retrieve draft policy document.",
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            //   String policyId = searchResponse.getHits().getAt(0).getId();
             this.log.debug("Draft policy found (policyId={}); updating integrations", draftPolicyId);
 
             // Retrieve the integrations array from the policy document
@@ -382,7 +417,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         "Draft policy integrations field missing or not array (policyId={}); rolling back SAP integration (id={})",
                         draftPolicyId,
                         id);
-                this.integrationsIndex.delete(prefixedId);
+                this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to retrieve integrations array from draft policy document.",
@@ -415,7 +450,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         indexDraftPolicyResponse != null ? indexDraftPolicyResponse.status() : null,
                         id);
                 this.service.deleteIntegration(id);
-                this.integrationsIndex.delete(prefixedId);
+                this.integrationsIndex.delete(id);
                 return new RestResponse(
                         "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -426,9 +461,9 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            this.log.info("Integration created successfully (id={})", prefixedId);
+            this.log.info("Integration created successfully (id={})", id);
             return new RestResponse(
-                    "Integration created successfully with ID: " + prefixedId, RestStatus.OK.getStatus());
+                    "Integration created successfully with ID: " + id, RestStatus.CREATED.getStatus());
         } catch (Exception e) {
             this.log.error(
                     "Unexpected error creating integration (id={}); rolling back SAP integration", id, e);
@@ -438,15 +473,22 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
     }
 
+    // TODO: Delete this method in a cleanup issue
     /**
-     * Generates a unique identifier for an integration.
+     * Generates a unique identifier for a new integration.
      *
-     * @return a unique integration ID string
+     * @return A random UUID string.
      */
     public String generateId() {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * Utility method to convert a Jackson JsonNode to a Gson JsonObject.
+     *
+     * @param jsonNode The Jackson JsonNode to convert.
+     * @return The resulting Gson JsonObject.
+     */
     private JsonObject toJsonObject(JsonNode jsonNode) {
         return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
     }

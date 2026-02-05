@@ -169,9 +169,11 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param indexName The policy index name.
      */
     private void initializeSpaces(String indexName) {
-        initializeSpace(indexName, Space.DRAFT.toString());
-        initializeSpace(indexName, Space.TEST.toString());
-        initializeSpace(indexName, Space.CUSTOM.toString());
+        // Generate a single ID to be shared across all default policies so they are linked
+        String sharedDocumentId = UUID.randomUUID().toString();
+        initializeSpace(indexName, Space.DRAFT.toString(), sharedDocumentId);
+        initializeSpace(indexName, Space.TEST.toString(), sharedDocumentId);
+        initializeSpace(indexName, Space.CUSTOM.toString(), sharedDocumentId);
     }
 
     /**
@@ -180,56 +182,54 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param indexName The index name.
      * @param spaceName The space name.
      */
-    private void initializeSpace(String indexName, String spaceName) {
+    private void initializeSpace(String indexName, String spaceName, String documentId) {
         try {
-            // Check if the space document already exists using a search query
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.termQuery("space.name", spaceName));
-            searchSourceBuilder.size(0); // We only care about the count
+            searchSourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+            searchSourceBuilder.size(0); 
+
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
 
             // Proceed only if no document with this space name exists
             if (searchResponse.getHits().getTotalHits().value() == 0) {
-                String uuid = UUID.randomUUID().toString();
                 String date = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
                 String title = "Custom policy";
 
                 Policy policy = new Policy();
-                policy.setId(uuid);
+                policy.setId(documentId);
                 policy.setTitle(title);
                 policy.setDescription(title);
-                policy.setAuthor("");
+                policy.setAuthor("Wazuh Inc.");
                 policy.setRootDecoder("");
                 policy.setDocumentation("");
                 policy.setIntegrations(Collections.emptyList());
-                policy.setReferences(Collections.emptyList());
+                policy.setReferences(List.of("https://wazuh.com"));
                 policy.setDate(date);
                 policy.setModified(date);
 
                 // TODO: Study the model policy and delete the extra fields
                 Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
-                docMap.remove("type"); // Delete the field type inside the document
+                docMap.remove(Constants.KEY_TYPE); // Delete the field type inside the document
 
                 String docJson = this.mapper.writeValueAsString(docMap);
                 String docHash = HashCalculator.sha256(docJson);
 
                 Map<String, Object> space = new HashMap<>();
-                space.put("name", spaceName);
-                space.put("hash", Map.of("sha256", docHash));
+                space.put(Constants.KEY_NAME, spaceName);
+                space.put(Constants.KEY_HASH, Map.of("sha256", docHash));
 
                 Map<String, Object> source = new HashMap<>();
-                source.put("document", docMap);
-                source.put("space", space);
+                source.put(Constants.KEY_DOCUMENT, docMap);
+                source.put(Constants.KEY_SPACE, space);
                 // TODO: change to usage of method to calculate space hash
-                source.put("hash", Map.of("sha256", docHash));
-                source.put("type", "policy");
+                source.put(Constants.KEY_HASH, Map.of("sha256", docHash));
+                source.put(Constants.KEY_TYPE, Constants.KEY_POLICY);
 
                 IndexRequest request =
                         new IndexRequest(indexName)
-                                .id(uuid)
                                 .source(this.mapper.writeValueAsString(source), XContentType.JSON)
                                 .opType(DocWriteRequest.OpType.CREATE)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);

@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,12 +30,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -92,11 +88,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.PROMOTE_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+            new NamedRoute.Builder()
+                .path(PluginSettings.PROMOTE_URI)
+                .method(POST)
+                .uniqueName(ENDPOINT_UNIQUE_NAME)
+                .build());
     }
 
     /**
@@ -134,13 +130,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // 1. Check if engine service exists
         if (this.engine == null) {
             return new RestResponse(
-                    Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // 2. Check request's payload exists
         if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+                Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
@@ -157,8 +153,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
             // Check if engine validation was successful
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                    && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+                && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
                 log.warn("Engine validation failed: {}", engineResponse.getMessage());
+                log.error(mapper.writeValueAsString(context.enginePayload));
                 return engineResponse;
             }
 
@@ -174,7 +171,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         } catch (IllegalArgumentException e) {
             log.warn("Validation error during promotion: {}", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        } catch (com.fasterxml.jackson.databind.exc.ValueInstantiationException e) {
+        } catch (ValueInstantiationException e) {
             log.warn("Invalid value in request: {}", e.getMessage());
             // Extract the root cause message for better error reporting
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
@@ -185,12 +182,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
         } catch (IOException e) {
             log.error("IO error during promotion: {}", e.getMessage(), e);
             String message =
-                    e.getMessage() != null ? e.getMessage() : "An IO error occurred during promotion";
+                e.getMessage() != null ? e.getMessage() : "An IO error occurred during promotion";
             return new RestResponse(message, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
             log.error("Unexpected error during promotion: {}", e.getMessage(), e);
             String message =
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred during promotion";
+                e.getMessage() != null ? e.getMessage() : "An unexpected error occurred during promotion";
             return new RestResponse(message, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
@@ -208,7 +205,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Validate that the source space can be promoted
         if (sourceSpace == targetSpace) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, sourceSpace));
+                String.format(Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, sourceSpace));
         }
 
         SpaceDiff.Changes changes = spaceDiff.getChanges();
@@ -218,13 +215,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
             throw new IllegalArgumentException("Changes object is required");
         }
         if (changes.getPolicy() == null
-                || changes.getIntegrations() == null
-                || changes.getKvdbs() == null
-                || changes.getDecoders() == null
-                || changes.getFilters() == null
-                || changes.getRules() == null) {
+            || changes.getIntegrations() == null
+            || changes.getKvdbs() == null
+            || changes.getDecoders() == null
+            || changes.getFilters() == null
+            || changes.getRules() == null) {
             throw new IllegalArgumentException(
-                    "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules) are required in changes");
+                "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules) are required in changes");
         }
 
         // Validate policy operations - only UPDATE is allowed
@@ -248,10 +245,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
         Space targetSpace = sourceSpace.promote();
         SpaceDiff.Changes changes = spaceDiff.getChanges();
 
-        // Fetch the target policy
-        Map<String, Object> policyDocument = this.spaceService.getPolicy(targetSpace.toString());
+        // Fetch the source policy
+        Map<String, Object> policyDocument = this.spaceService.getPolicy(sourceSpace.toString());
         if (policyDocument == null) {
-            throw new IOException("Policy document not found for target space: " + targetSpace);
+            throw new IOException("Policy document not found for source space: " + sourceSpace);
         }
 
         // Maps to track resources to apply (ADD/UPDATE) - from source space
@@ -271,60 +268,49 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // Process each resource type
         this.processResourceChanges(
                 changes.getPolicy(),
-                Constants.KEY_POLICIES,
+                Constants.KEY_POLICY,
                 policyToApply,
                 HashSet.newHashSet(0), // Policies cannot be removed.
                 sourceSpace.toString(),
                 targetSpace.toString());
 
         this.processResourceChanges(
-                changes.getIntegrations(),
-                Constants.KEY_INTEGRATIONS,
-                integrationsToApply,
-                integrationsToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
+            changes.getIntegrations(),
+            Constants.KEY_INTEGRATIONS,
+            integrationsToApply,
+            integrationsToDelete,
+            sourceSpace.toString(),
+            targetSpace.toString());
 
         this.processResourceChanges(
-                changes.getKvdbs(),
-                Constants.KEY_KVDBS,
-                kvdbsToApply,
-                kvdbsToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
+            changes.getKvdbs(),
+            Constants.KEY_KVDBS,
+            kvdbsToApply,
+            kvdbsToDelete,
+            sourceSpace.toString(),
+            targetSpace.toString());
 
         this.processResourceChanges(
-                changes.getDecoders(),
-                Constants.KEY_DECODERS,
-                decodersToApply,
-                decodersToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
+            changes.getDecoders(),
+            Constants.KEY_DECODERS,
+            decodersToApply,
+            decodersToDelete,
+            sourceSpace.toString(),
+            targetSpace.toString());
 
         this.processResourceChanges(
-                changes.getFilters(),
-                Constants.KEY_FILTERS,
-                filtersToApply,
-                filtersToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
+            changes.getFilters(),
+            Constants.KEY_FILTERS,
+            filtersToApply,
+            filtersToDelete,
+            sourceSpace.toString(),
+            targetSpace.toString());
 
         // Build engine payload with all target space resources + modifications
         JsonNode enginePayload =
-                this.spaceService.buildEnginePayload(
-                        policyDocument,
-                        targetSpace.toString(),
-                        integrationsToApply,
-                        kvdbsToApply,
-                        decodersToApply,
-                        filtersToApply,
-                        integrationsToDelete,
-                        kvdbsToDelete,
-                        decodersToDelete,
-                        filtersToDelete);
-
-        return new PromotionContext(
-                enginePayload,
+            this.spaceService.buildEnginePayload(
+                policyDocument,
+                targetSpace.toString(),
                 integrationsToApply,
                 kvdbsToApply,
                 decodersToApply,
@@ -332,8 +318,20 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 integrationsToDelete,
                 kvdbsToDelete,
                 decodersToDelete,
-                filtersToDelete,
-                targetSpace.toString());
+                filtersToDelete);
+
+        return new PromotionContext(
+            enginePayload,
+            policyToApply,
+            integrationsToApply,
+            kvdbsToApply,
+            decodersToApply,
+            filtersToApply,
+            integrationsToDelete,
+            kvdbsToDelete,
+            decodersToDelete,
+            filtersToDelete,
+            targetSpace.toString());
     }
 
     /**
@@ -348,13 +346,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
      * @throws IOException If resource validation fails.
      */
     private void processResourceChanges(
-            List<SpaceDiff.OperationItem> items,
-            String resourceType,
-            Map<String, Map<String, Object>> resourcesToApply,
-            Set<String> resourcesToDelete,
-            String sourceSpace,
-            String targetSpace)
-            throws IOException {
+        List<SpaceDiff.OperationItem> items,
+        String resourceType,
+        Map<String, Map<String, Object>> resourcesToApply,
+        Set<String> resourcesToDelete,
+        String sourceSpace,
+        String targetSpace)
+        throws IOException {
 
         String indexName = this.spaceService.getIndexForResourceType(resourceType);
         if (indexName == null) {
@@ -371,27 +369,27 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' not found in "
-                                        + resourceType
-                                        + " for ADD operation");
+                            "Resource '"
+                                + resourceId
+                                + "' not found in "
+                                + resourceType
+                                + " for ADD operation");
                     }
 
                     // Verify it's in the source space
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
+                        (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
                     String docSpace = sourceDocSpace.get("name");
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' is in space '"
-                                        + docSpace
-                                        + "', expected source space '"
-                                        + sourceSpace
-                                        + "'");
+                            "Resource '"
+                                + resourceId
+                                + "' is in space '"
+                                + docSpace
+                                + "', expected source space '"
+                                + sourceSpace
+                                + "'");
                     }
 
                     // Verify it does NOT exist in target space
@@ -400,15 +398,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
+                            (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
                         String targetDocSpaceName = targetDocSpace.get("name");
                         if (targetSpace.equals(targetDocSpaceName)) {
                             throw new IllegalArgumentException(
-                                    "Resource '"
-                                            + resourceId
-                                            + "' already exists in target space '"
-                                            + targetSpace
-                                            + "', use UPDATE operation instead");
+                                "Resource '"
+                                    + resourceId
+                                    + "' already exists in target space '"
+                                    + targetSpace
+                                    + "', use UPDATE operation instead");
                         }
                     }
 
@@ -416,33 +414,39 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     resourcesToApply.put(resourceId, sourceDoc);
                 }
                 case UPDATE -> {
-                    // UPDATE: Resource exists in BOTH source and target spaces
-                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> sourceDoc;
+                    // TODO fix when policies use the same document.id in different spaces
+                    // Fetch the source policy
+                    if (resourceType.equals(Constants.KEY_POLICY)) {
+                        sourceDoc = this.spaceService.getPolicy(sourceSpace);
+                    } else {
+                        // UPDATE: Resource exists in BOTH source and target spaces
+                        sourceDoc = this.spaceService.getDocument(indexName, resourceId);
+                    }
                     if (sourceDoc == null) {
                         throw new IOException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' not found in "
-                                        + resourceType
-                                        + " for UPDATE operation");
+                            "Resource '"
+                                + resourceId
+                                + "' not found in "
+                                + resourceType
+                                + " for UPDATE operation");
                     }
 
                     // Verify it's in the source space
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
+                        (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
                     String docSpace = sourceDocSpace.get("name");
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' is in space '"
-                                        + docSpace
-                                        + "', expected source space '"
-                                        + sourceSpace
-                                        + "'");
+                            "Resource '"
+                                + resourceId
+                                + "' is in space '"
+                                + docSpace
+                                + "', expected source space '"
+                                + sourceSpace
+                                + "'");
                     }
-
                     // For UPDATE, we expect it might exist in target space
                     // (but we don't strictly require it)
                     // Add to apply list to overwrite
@@ -455,21 +459,21 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
+                            (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
                         String targetDocSpaceName = targetDocSpace.get("name");
                         if (!targetSpace.equals(targetDocSpaceName)) {
                             log.warn(
-                                    "Resource '{}' to delete is in space '{}', not target space '{}'",
-                                    resourceId,
-                                    targetDocSpaceName,
-                                    targetSpace);
+                                "Resource '{}' to delete is in space '{}', not target space '{}'",
+                                resourceId,
+                                targetDocSpaceName,
+                                targetSpace);
                         }
                     }
 
                     // Mark for deletion
                     resourcesToDelete.add(resourceId);
                     log.debug(
-                            "Resource '{}' marked for deletion from target space {}", resourceId, targetSpace);
+                        "Resource '{}' marked for deletion from target space {}", resourceId, targetSpace);
                 }
             }
         }
@@ -484,67 +488,75 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     private void consolidateChanges(PromotionContext context) throws IOException {
         // Consolidate ADD/UPDATE operations for each resource type
+        if (!context.policyToApply.isEmpty()) {
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_POLICY),
+                    context.policyToApply,
+                    context.targetSpace);
+        }
+
         if (!context.integrationsToApply.isEmpty()) {
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
-                    context.integrationsToApply,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
+                context.integrationsToApply,
+                context.targetSpace);
         }
 
         if (!context.kvdbsToApply.isEmpty()) {
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
-                    context.kvdbsToApply,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
+                context.kvdbsToApply,
+                context.targetSpace);
         }
 
         if (!context.decodersToApply.isEmpty()) {
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
-                    context.decodersToApply,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
+                context.decodersToApply,
+                context.targetSpace);
         }
 
         if (!context.filtersToApply.isEmpty()) {
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
-                    context.filtersToApply,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
+                context.filtersToApply,
+                context.targetSpace);
         }
 
         // Process DELETE operations for each resource type
         if (!context.integrationsToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
-                    context.integrationsToDelete,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
+                context.integrationsToDelete,
+                context.targetSpace);
         }
 
         if (!context.kvdbsToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
-                    context.kvdbsToDelete,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
+                context.kvdbsToDelete,
+                context.targetSpace);
         }
 
         if (!context.decodersToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
-                    context.decodersToDelete,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
+                context.decodersToDelete,
+                context.targetSpace);
         }
 
         if (!context.filtersToDelete.isEmpty()) {
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
-                    context.filtersToDelete,
-                    context.targetSpace);
+                this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
+                context.filtersToDelete,
+                context.targetSpace);
         }
     }
 
     /** Internal context class to hold promotion data. */
     private static class PromotionContext {
         final JsonNode enginePayload;
+        final Map<String, Map<String, Object>> policyToApply;
         final Map<String, Map<String, Object>> integrationsToApply;
         final Map<String, Map<String, Object>> kvdbsToApply;
         final Map<String, Map<String, Object>> decodersToApply;
@@ -557,6 +569,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         PromotionContext(
                 JsonNode enginePayload,
+                Map<String, Map<String, Object>> policyToApply,
                 Map<String, Map<String, Object>> integrationsToApply,
                 Map<String, Map<String, Object>> kvdbsToApply,
                 Map<String, Map<String, Object>> decodersToApply,
@@ -567,6 +580,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 Set<String> filtersToDelete,
                 String targetSpace) {
             this.enginePayload = enginePayload;
+            this.policyToApply = policyToApply;
             this.integrationsToApply = integrationsToApply;
             this.kvdbsToApply = kvdbsToApply;
             this.decodersToApply = decodersToApply;

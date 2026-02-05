@@ -127,7 +127,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
      */
     public void testPutKvdbSuccess() throws Exception {
         // Arrange
-        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD, kvdbId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
