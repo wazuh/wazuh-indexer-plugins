@@ -1,14 +1,4 @@
 {
-  "dynamic": "false_allow_templates",
-  "dynamic_templates": [
-    {
-      "strings": {
-        "path_match": "enrichments.custom.*",
-        "match_mapping_type": "string",
-        "mapping": {
-          "type": "keyword"
-        }
-      }
-    }
-  ]
+  "dynamic": "false",
+  "date_detection": false
 }
