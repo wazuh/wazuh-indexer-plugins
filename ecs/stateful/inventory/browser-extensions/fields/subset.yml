@@ -55,7 +55,8 @@ fields:
                   platform: {}
                   type: {}
                   version: {}
-      cluster.name: {}
-      cluster.node: {}
-      schema.version: {}
+      cluster:
+        fields: "*"
+      schema:
+        fields: "*"
 
