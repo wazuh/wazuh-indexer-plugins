@@ -3,6 +3,7 @@
 ### Fields summary
 
 The fields are based on:
+
 - [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2914305496) (included in 5.0.0)
 
@@ -41,4 +42,3 @@ The detail of the fields can be found in csv file [States FIM files Fields](fiel
 | attributes       | string | List of attributes related to the file.             | file.attributes               |        |
 | dev/device       | string | Device that is the source of the file.              | file.device                   |        |
 | perm/permissions | string | List of permissions related to the file.            | file.permissions              | TRUE   |
-

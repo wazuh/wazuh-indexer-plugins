@@ -3,6 +3,7 @@
 ### Fields summary
 
 The fields are based on:
+
 - [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
 
@@ -17,11 +18,11 @@ The detail of the fields can be found in csv file [States inventory system Field
 ### Transition table
 
 | Field Name         | Type    | Description                                                                       | Destination Field            | Custom |
-|--------------------|---------|-----------------------------------------------------------------------------------|------------------------------|--------|
-| agent_id           | string  | Unique ID of the agent.                                                           | wazuh.agent.id                     | FALSE  |
-| agent_ip           | string  | IP address of the agent.                                                          | wazuh.agent.host.ip                | TRUE   |
-| agent_name         | string  | Name of the agent.                                                                | wazuh.agent.name                   | FALSE  |
-| agent_version      | string  | Agent version.                                                                    | wazuh.agent.version                | FALSE  |
+| ------------------ | ------- | --------------------------------------------------------------------------------- | ---------------------------- | ------ |
+| agent_id           | string  | Unique ID of the agent.                                                           | wazuh.agent.id               | FALSE  |
+| agent_ip           | string  | IP address of the agent.                                                          | wazuh.agent.host.ip          | TRUE   |
+| agent_name         | string  | Name of the agent.                                                                | wazuh.agent.name             | FALSE  |
+| agent_version      | string  | Agent version.                                                                    | wazuh.agent.version          | FALSE  |
 | hostname           | string  | System hostname.                                                                  | host.hostname                | FALSE  |
 | architecture       | string  | CPU architecture (e.g., x86_64, ARM).                                             | host.architecture            | FALSE  |
 | os_name            | string  | Operating system name.                                                            | host.os.name                 | FALSE  |
