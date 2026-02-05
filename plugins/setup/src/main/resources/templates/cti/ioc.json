@@ -33,8 +33,18 @@
       "plugins.index_state_management.rollover_alias": ".cti-iocs"
     },
     "mappings": {
-      "date_detection": false,
-      "dynamic": "false",
+      "dynamic": "false_allow_templates",
+      "dynamic_templates": [
+        {
+          "strings": {
+            "mapping": {
+              "type": "keyword"
+            },
+            "match_mapping_type": "string",
+            "path_match": "enrichments.custom.*"
+          }
+        }
+      ],
       "properties": {
         "enrichments": {
           "properties": {
