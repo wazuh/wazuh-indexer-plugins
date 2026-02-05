@@ -3,7 +3,7 @@
   reusable:
     top_level: true
     expected:
-      - { at: agent, as: host }
+      - { at: wazuh.agent, as: host }
   fields:
     - name: network.ingress.queue
       type: long

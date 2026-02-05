@@ -171,6 +171,7 @@ def generate_random_os():
 
 def generate_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": random.choice(["cluster-alpha", "cluster-beta"]),
             "node": random.choice(["node-1", "node-2", "node-3"])
@@ -186,7 +187,6 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = generate_browser_extension()
         # Add agent and Wazuh data
-        event_data["agent"] = generate_random_agent()
         event_data["checksum"] = generate_random_checksum(),
         event_data["wazuh"] = generate_wazuh()
         event_data["state"] = {

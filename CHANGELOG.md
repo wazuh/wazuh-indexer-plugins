@@ -96,6 +96,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)
 - Improve spotless implementation [(#740)](https://github.com/wazuh/wazuh-indexer-plugins/pull/740)
 - Unify CTI context [(#747)](https://github.com/wazuh/wazuh-indexer-plugins/pull/747)
+- Relocate agent fields under wazuh object for stateless and stateful indices [(#778)](https://github.com/wazuh/wazuh-indexer-plugins/pull/778)
 
 ### Deprecated
 -
