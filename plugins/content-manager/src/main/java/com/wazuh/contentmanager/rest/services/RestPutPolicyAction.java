@@ -219,7 +219,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
         } catch (IOException | IllegalArgumentException e) {
             log.warn("Validation error during policy update: {}", e.getMessage());
             return new RestResponse(
-                    Constants.E_400_INVALID_JSON_CONTENT + ": " + e.getMessage(),
+                    Constants.E_400_INVALID_JSON_CONTENT + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -255,6 +255,22 @@ public class RestPutPolicyAction extends BaseRestHandler {
                             Space.DRAFT,
                             Constants.INDEX_POLICIES));
         }
+
+        // Validate integrations: allow reordering but prevent addition/removal
+        List<String> currentIntegrations =
+                (List<String>)
+                        currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList());
+        List<String> newIntegrations = policy.getIntegrations();
+
+        Set<String> currentSet = new HashSet<>(currentIntegrations);
+        Set<String> newSet = new HashSet<>(newIntegrations);
+
+        if (!currentSet.equals(newSet)) {
+            throw new IllegalArgumentException(
+                    "Integrations cannot be added or removed via policy update. "
+                            + "Please use the integration endpoints.");
+        }
+
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
         String docCreationDate = currentPolicyDoc.getOrDefault(Constants.KEY_DATE, "").toString();
         String docModificationDate = Instant.now().toString();
