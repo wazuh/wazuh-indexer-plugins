@@ -306,6 +306,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
         return new PromotionContext(
             enginePayload,
+            policyToApply,
             integrationsToApply,
             kvdbsToApply,
             decodersToApply,
@@ -348,7 +349,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
             switch (operation) {
                 case ADD -> {
-                    resourceId = sourcePrefix + resourceId; // TODO remove when we have no prefixes
                     // ADD: Resource exists in source space but NOT in target space
                     Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (sourceDoc == null) {
@@ -378,9 +378,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
                     // Verify it does NOT exist in target space
                     // We check all docs with same ID regardless of space
-                    resourceId =
-                            resourceId.replace(
-                                    sourcePrefix, targetPrefix); // TODO remove when we have no prefixes
                     Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
@@ -408,7 +405,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         sourceDoc = this.spaceService.getPolicy(sourceSpace);
                     } else {
                         // UPDATE: Resource exists in BOTH source and target spaces
-                        resourceId = sourcePrefix + resourceId; // TODO remove when we have no prefixes
                         sourceDoc = this.spaceService.getDocument(indexName, resourceId);
                     }
                     if (sourceDoc == null) {
@@ -435,9 +431,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                                 + sourceSpace
                                 + "'");
                     }
-                    resourceId =
-                            resourceId.replace(
-                                    sourcePrefix, targetPrefix); // TODO remove when we have no prefixes
                     // For UPDATE, we expect it might exist in target space
                     // (but we don't strictly require it)
                     // Add to apply list to overwrite
@@ -446,7 +439,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 case REMOVE -> {
                     // REMOVE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
-                    resourceId = targetPrefix + resourceId; // TODO remove when we have no prefixes
                     Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")

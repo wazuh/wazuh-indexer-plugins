@@ -408,7 +408,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            // String policyId = searchResponse.getHits().getAt(0).getId();
             this.log.debug("Draft policy found (policyId={}); updating integrations", draftPolicyId);
 
             // Retrieve the integrations array from the policy document
@@ -478,6 +477,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
     }
 
+    // TODO: Delete this method in a cleanup issue
     /**
      * Generates a unique identifier for a new integration.
      *
