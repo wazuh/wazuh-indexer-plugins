@@ -391,13 +391,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.log.debug(
                     "Recalculating space hash for draft space after integration update (id={})", id);
 
-            this.policyHashService.calculateAndUpdate(
-                    CTI_POLICIES_INDEX,
-                    CTI_INTEGRATIONS_INDEX,
-                    CTI_DECODERS_INDEX,
-                    CTI_KVDBS_INDEX,
-                    CTI_RULES_INDEX,
-                    List.of(Space.DRAFT.toString()));
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             this.log.info("Integration updated successfully (id={})", id);
             return new RestResponse(

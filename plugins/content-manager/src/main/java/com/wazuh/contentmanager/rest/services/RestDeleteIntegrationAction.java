@@ -364,13 +364,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             this.log.debug(
                     "Recalculating space hash for draft space after integration deletion (id={})", id);
 
-            this.policyHashService.calculateAndUpdate(
-                    Constants.INDEX_POLICIES,
-                    Constants.INDEX_INTEGRATIONS,
-                    Constants.INDEX_DECODERS,
-                    Constants.INDEX_KVDBS,
-                    Constants.INDEX_RULES,
-                    List.of(Space.DRAFT.toString()));
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             this.log.info("Integration deleted successfully (id={})", id);
             return new RestResponse(

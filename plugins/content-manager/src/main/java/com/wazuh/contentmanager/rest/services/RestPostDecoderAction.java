@@ -43,6 +43,8 @@ import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -84,6 +86,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private final EngineService engine;
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPostDecoderAction handler.
@@ -112,8 +115,18 @@ public class RestPostDecoderAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -167,6 +180,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
             // Create decoder using raw UUID
             this.createDecoder(client, decoderId, resourceNode);
             this.updateIntegrationWithDecoder(client, integrationId, decoderId);
+
+            // Regenerate space hash because space composition changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Decoder created successfully with ID: " + decoderId, RestStatus.CREATED.getStatus());
@@ -290,6 +306,8 @@ public class RestPostDecoderAction extends BaseRestHandler {
         document.put(KEY_DECODERS, decoders);
         source.put(KEY_DOCUMENT, document);
 
+        // Regenerate integration hash and persist
+        regenerateIntegrationHash(client, integrationId, document, source);
         client
                 .index(
                         new IndexRequest(INDEX_INTEGRATIONS)
@@ -343,5 +361,86 @@ public class RestPostDecoderAction extends BaseRestHandler {
             authorNode.put(FIELD_DATE, currentTimestamp);
         }
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Regenerates the integration hash after its document has changed and persists it. This is a
+     * complete operation that updates the hash and saves to the index.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID
+     * @param document the updated document content
+     * @param source the integration source map to update with the new hash
+     * @throws IOException if persistence fails
+     */
+    static void regenerateIntegrationHash(
+            Client client, String integrationId, Map<String, Object> document, Map<String, Object> source)
+            throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode documentNode = mapper.valueToTree(document);
+        String newIntegrationHash = HashCalculator.sha256(documentNode.toString());
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put("sha256", newIntegrationHash);
+        source.put("hash", hashMap);
+
+        log.debug(
+                "Regenerated integration hash for id={} (hashPrefix={})",
+                integrationId,
+                newIntegrationHash.length() >= 12
+                        ? newIntegrationHash.substring(0, 12)
+                        : newIntegrationHash);
+
+        // Persist the updated integration with new hash
+        client
+                .index(
+                        new IndexRequest(INDEX_INTEGRATIONS)
+                                .id(integrationId)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                .actionGet();
+    }
+
+    /**
+     * Validates that the integration exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
+        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
+
+        if (!integrationResponse.isExists()) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(KEY_SPACE)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] does not have space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Object spaceObj = source.get(KEY_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] has invalid space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(KEY_NAME);
+
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            return new RestResponse(
+                    "Integration ["
+                            + integrationId
+                            + "] is not in draft space. Only integrations in draft space can have decoders created.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
     }
 }

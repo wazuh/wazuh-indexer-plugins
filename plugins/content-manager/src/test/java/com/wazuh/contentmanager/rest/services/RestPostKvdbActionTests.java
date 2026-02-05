@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -146,6 +147,9 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = buildClientForIndex();
 
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
         // Act
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
@@ -180,19 +184,24 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertNotNull(author.get("date").asText());
         assertNotNull(author.get("modified").asText());
 
-        // Verify client.index() was called twice: once for KVDB, once for integration update
+        // Verify client.index() was called three times: once for KVDB, once for regenerating
+        // integration hash, once for updating the integration with the new KVDB
         ArgumentCaptor<IndexRequest> indexRequestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(client, org.mockito.Mockito.times(2)).index(indexRequestCaptor.capture());
+        verify(client, org.mockito.Mockito.times(3)).index(indexRequestCaptor.capture());
 
         java.util.List<IndexRequest> indexRequests = indexRequestCaptor.getAllValues();
-        assertEquals(2, indexRequests.size());
+        assertEquals(3, indexRequests.size());
 
         // First call should be for creating the KVDB
         IndexRequest kvdbIndexRequest = indexRequests.get(0);
         assertTrue(kvdbIndexRequest.index().contains("kvdb"));
 
-        // Second call should be for updating the integration
-        IndexRequest integrationUpdateRequest = indexRequests.get(1);
+        // Second call should be for regenerating integration hash
+        IndexRequest hashRegenerationRequest = indexRequests.get(1);
+        assertEquals(".cti-integrations", hashRegenerationRequest.index());
+
+        // Third call should be for updating the integration with the new KVDB
+        IndexRequest integrationUpdateRequest = indexRequests.get(2);
         assertEquals(".cti-integrations", integrationUpdateRequest.index());
         assertEquals("integration-1", integrationUpdateRequest.id());
 

@@ -37,6 +37,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -44,7 +45,6 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 
 /**
@@ -75,9 +75,9 @@ public class RestPutKvdbAction extends BaseRestHandler {
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_SPACE = "space";
     private static final String FIELD_NAME = "name";
-    private static final String FIELD_INTEGRATION = "integration";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPutKvdbAction handler.
@@ -86,6 +86,15 @@ public class RestPutKvdbAction extends BaseRestHandler {
      */
     public RestPutKvdbAction(EngineService engine) {
         this.engine = engine;
+    }
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /** Return a short identifier for this handler. */
@@ -121,6 +130,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
+        this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
@@ -149,7 +159,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
-            String integrationId = payload.get(FIELD_INTEGRATION).asText();
+
             // Validate payload structure
             validationError = this.validatePayload(payload, kvdbId);
             if (validationError != null) {
@@ -165,16 +175,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 return engineResponse;
             }
 
-            // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse =
-                    DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
-            if (validationResponse != null) {
-                return validationResponse;
-            }
-
             // Validate KVDB exists and is in draft space
-            validationResponse =
+            RestResponse validationResponse =
                     DocumentValidations.validateDocumentInSpaceWithResponse(
                             client, INDEX_KVDBS, kvdbId, "KVDB");
             if (validationResponse != null) {
@@ -183,6 +185,9 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
             // Update KVDB
             this.updateKvdb(client, kvdbId, resourceNode);
+
+            // Regenerate space hash because KVDB content changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "KVDB updated successfully with ID: " + kvdbId, RestStatus.OK.getStatus());

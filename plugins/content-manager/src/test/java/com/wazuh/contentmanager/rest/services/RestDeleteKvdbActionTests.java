@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -99,6 +100,9 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         // Mock
         RestRequest request = buildRequest(null, "k_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
         Client client = buildClientForDelete();
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         BytesRestResponse bytesRestResponse =

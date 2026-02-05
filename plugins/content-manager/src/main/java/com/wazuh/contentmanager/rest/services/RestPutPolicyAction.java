@@ -38,11 +38,16 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -63,6 +68,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
     private final SpaceService spaceService;
     private NodeClient client;
+    private PolicyHashService policyHashService;
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -85,6 +91,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
     public RestPutPolicyAction(SpaceService spaceService, NodeClient client) {
         this.spaceService = spaceService;
         this.client = client;
+    }
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /** Return a short identifier for this handler. */
@@ -119,6 +134,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         this.client = client;
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
@@ -194,6 +210,9 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             // 3. Update policy
             String policyId = this.updatePolicy(policy);
+
+            // Regenerate space hash because policy content changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Updated draft policy with ID " + policyId, RestStatus.OK.getStatus());

@@ -42,6 +42,7 @@ import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -50,6 +51,8 @@ import com.wazuh.contentmanager.utils.DocumentValidations;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
 import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
+import static com.wazuh.contentmanager.utils.Constants.KEY_NAME;
+import static com.wazuh.contentmanager.utils.Constants.KEY_SPACE;
 
 /**
  * REST handler for creating KVDB resources.
@@ -88,6 +91,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPostKvdbAction handler.
@@ -116,8 +120,18 @@ public class RestPostKvdbAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -168,6 +182,9 @@ public class RestPostKvdbAction extends BaseRestHandler {
             // Create KVDB
             this.createKvdb(client, kvdbId, resourceNode);
             this.updateIntegrationWithKvdb(client, integrationId, kvdbId);
+
+            // Regenerate space hash because space composition changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "KVDB created successfully with ID: " + kvdbId, RestStatus.CREATED.getStatus());
@@ -288,6 +305,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
         document.put(FIELD_KVDBS, kvdbs);
         source.put(FIELD_DOCUMENT, document);
 
+        // Regenerate integration hash and persist (complete operation)
+        RestPostDecoderAction.regenerateIntegrationHash(client, integrationId, document, source);
         client
                 .index(
                         new IndexRequest(INDEX_INTEGRATIONS)
@@ -337,5 +356,49 @@ public class RestPostKvdbAction extends BaseRestHandler {
         // Set timestamps
         authorNode.put(FIELD_DATE, currentTimestamp);
         authorNode.put(FIELD_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Validates that the integration exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param integrationId the integration ID to validate
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
+        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
+
+        if (!integrationResponse.isExists()) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Map<String, Object> source = integrationResponse.getSourceAsMap();
+        if (source == null || !source.containsKey(KEY_SPACE)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] does not have space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        Object spaceObj = source.get(KEY_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return new RestResponse(
+                    "Integration [" + integrationId + "] has invalid space information.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(KEY_NAME);
+
+        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+            return new RestResponse(
+                    "Integration ["
+                            + integrationId
+                            + "] is not in draft space. Only integrations in draft space can have rules created.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        return null;
     }
 }

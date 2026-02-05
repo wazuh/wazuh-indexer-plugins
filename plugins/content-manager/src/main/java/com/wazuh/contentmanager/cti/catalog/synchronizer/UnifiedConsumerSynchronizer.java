@@ -144,23 +144,22 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
-            this.refreshIndices(RULE, DECODER, KVDB, INTEGRATION, POLICY);
-
-            String integrationIndex = this.getIndexName(INTEGRATION);
-            String ruleIndex = this.getIndexName(RULE);
-            String policyIndex = this.getIndexName(POLICY);
-            String decoderIndex = this.getIndexName(DECODER);
-            String kvdbIndex = this.getIndexName(KVDB);
+            this.refreshIndices(
+                    Constants.INDEX_RULES,
+                    Constants.INDEX_DECODERS,
+                    Constants.INDEX_KVDBS,
+                    Constants.INDEX_INTEGRATIONS,
+                    Constants.INDEX_POLICIES);
 
             // Initialize default spaces if they don't exist
-            this.initializeSpaces(policyIndex);
+            this.initializeSpaces(Constants.INDEX_POLICIES);
 
-            Map<String, List<String>> integrations = this.integrationProcessor.process(integrationIndex);
-            this.ruleProcessor.process(ruleIndex);
-            this.detectorProcessor.process(integrations, integrationIndex);
+            Map<String, List<String>> integrations =
+                    this.integrationProcessor.process(Constants.INDEX_INTEGRATIONS);
+            this.ruleProcessor.process(Constants.INDEX_RULES);
+            this.detectorProcessor.process(integrations, Constants.INDEX_INTEGRATIONS);
 
-            this.policyHashService.calculateAndUpdate(
-                    policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
+            this.policyHashService.calculateAndUpdate();
         }
     }
 

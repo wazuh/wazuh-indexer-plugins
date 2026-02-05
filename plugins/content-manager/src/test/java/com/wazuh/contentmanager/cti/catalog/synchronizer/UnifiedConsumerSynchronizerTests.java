@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -48,7 +48,7 @@ public class UnifiedConsumerSynchronizerTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
-            new UnifiedConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
+                new UnifiedConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
     }
 
     @After
@@ -101,11 +101,19 @@ public class UnifiedConsumerSynchronizerTests extends OpenSearchTestCase {
         Assert.assertEquals(".cti-kvdbs", this.synchronizer.getIndexName("kvdb"));
         Assert.assertEquals(".cti-integrations", this.synchronizer.getIndexName("integration"));
         Assert.assertEquals(".cti-policies", this.synchronizer.getIndexName("policy"));
+    }
 
-        // Test fallback
-        Assert.assertEquals(
-            "." + PluginSettings.getInstance().getContentContext() + "-"
-                + PluginSettings.getInstance().getContentConsumer() + "-unknown",
-            this.synchronizer.getIndexName("unknown"));
+    public void testGetIndexNameReturnsErrorOnInvalidType() {
+        Exception exception =
+                expectThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            this.synchronizer.getIndexName("invalid_resource");
+                        });
+
+        String expectedMessage = "Unknown type: invalid_resource";
+        String actualMessage = exception.getMessage();
+
+        Assert.assertTrue(actualMessage.contains(expectedMessage));
     }
 }

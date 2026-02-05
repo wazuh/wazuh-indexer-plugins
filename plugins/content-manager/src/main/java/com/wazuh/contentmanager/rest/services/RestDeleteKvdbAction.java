@@ -37,6 +37,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -71,6 +73,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     private static final String FIELD_DOCUMENT = "document";
     private static final String FIELD_KVDBS = "kvdbs";
     private final EngineService engine;
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestDeleteKvdbAction handler.
@@ -115,8 +118,18 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
+        this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -157,6 +170,8 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
             ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
             updateIntegrationsRemovingKvdb(client, kvdbId);
             kvdbIndex.delete(kvdbId);
+            // Recalculate policy hashes for draft space
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus());
         } catch (Exception e) {

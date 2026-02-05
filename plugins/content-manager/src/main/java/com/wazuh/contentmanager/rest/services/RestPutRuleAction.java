@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.DocumentValidations;
@@ -60,9 +62,19 @@ public class RestPutRuleAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutRuleAction.class);
 
     private static final String CTI_RULES_INDEX = ".cti-rules";
+    private PolicyHashService policyHashService;
 
     /** Default constructor. */
     public RestPutRuleAction() {}
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -99,6 +111,7 @@ public class RestPutRuleAction extends BaseRestHandler {
         if (request.hasParam("id")) {
             request.param("id");
         }
+        this.policyHashService = new PolicyHashService(client);
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
@@ -224,6 +237,9 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             // 4. Update CTI Rules Index
             rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
+
+            // 5. Regenerate space hash because rule content changed
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             RestResponse response =
                     new RestResponse("Rule updated successfully", RestStatus.OK.getStatus());

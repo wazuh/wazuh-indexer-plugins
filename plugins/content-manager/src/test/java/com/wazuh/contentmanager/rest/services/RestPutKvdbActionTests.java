@@ -38,6 +38,7 @@ import org.junit.BeforeClass;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -131,6 +132,9 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         BytesRestResponse bytesRestResponse =

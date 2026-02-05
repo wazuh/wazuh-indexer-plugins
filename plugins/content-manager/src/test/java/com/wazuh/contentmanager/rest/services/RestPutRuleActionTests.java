@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -138,6 +139,9 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
         when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
         doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
 
         // Act
         BytesRestResponse response = this.action.handleRequest(request, this.client);

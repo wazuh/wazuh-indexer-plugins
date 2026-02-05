@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.DocumentValidations;
@@ -61,9 +63,19 @@ public class RestPostRuleAction extends BaseRestHandler {
     private static final String INTEGRATION_ID_FIELD = "integration_id";
 
     private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
+    private PolicyHashService policyHashService;
 
     /** Default constructor. */
     public RestPostRuleAction() {}
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -97,6 +109,7 @@ public class RestPostRuleAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
@@ -197,6 +210,9 @@ public class RestPostRuleAction extends BaseRestHandler {
             // 5. Link in Integration
             ContentIndex integrationIndex = new ContentIndex(client, INDEX_INTEGRATIONS);
             integrationIndex.updateDocumentAppendToList(integrationId, "document.rules", ruleId);
+
+            // 6. Regenerate space hash because rule was added to space
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Custom rule created successfully with ID " + ruleId, RestStatus.CREATED.getStatus());

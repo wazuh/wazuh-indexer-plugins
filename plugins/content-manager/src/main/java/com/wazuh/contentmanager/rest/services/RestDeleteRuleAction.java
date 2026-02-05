@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.DocumentValidations;
@@ -56,6 +58,7 @@ public class RestDeleteRuleAction extends BaseRestHandler {
 
     private static final String CTI_RULES_INDEX = ".cti-rules";
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
+    private PolicyHashService policyHashService;
 
     /** Default constructor. */
     public RestDeleteRuleAction() {}
@@ -95,8 +98,18 @@ public class RestDeleteRuleAction extends BaseRestHandler {
         if (request.hasParam("id")) {
             request.param("id");
         }
+        this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service for testing purposes.
+     *
+     * @param policyHashService the PolicyHashService instance to use
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -153,6 +166,9 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             // 3. Delete from CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
             rulesIndex.delete(ruleId);
+
+            // Recalculate policy hashes for draft space
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             RestResponse response =
                     new RestResponse("Rule deleted successfully", RestStatus.OK.getStatus());
