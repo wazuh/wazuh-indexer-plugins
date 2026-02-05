@@ -36,9 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -96,6 +94,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         Map<String, Object> hash = new HashMap<>();
         Map<String, Object> space = new HashMap<>();
         document.put(Constants.KEY_ID, "12345");
+        document.put(Constants.KEY_INTEGRATIONS, List.of("integration-1"));
         hash.put("sha256", "12345");
         space.put(Constants.KEY_NAME, Space.DRAFT.toString());
         policy.put(Constants.KEY_DOCUMENT, document);
@@ -130,6 +129,67 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         }
     }
 
+    /** If the request adds or removes integrations to the policy, then return a 400 error. */
+    public void testPutPolicy_UpdateModifiesIntegrations_400() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+        // Arrange
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration/wazuh-core/0\"],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        // Mock search response to return existing draft policy
+        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
+        searchFuture.onResponse(this.searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+        // We need to mock getHits() but SearchHits is final, so the test will handle
+        // NullPointerException
+        // The actual method in RestPutPolicyAction will catch any exception from searchByQuery
+
+        // Mock index response
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertTrue(
+                response
+                        .getMessage()
+                        .contains("Integrations cannot be added or removed via policy update."));
+    }
+
     /**
      * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request is
      * complete and a draft policy already exists. The expected response is: {200, RestResponse}
@@ -150,7 +210,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"resource\": {"
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
-                        + "\"integrations\": [\"integration/wazuh-core/0\"],"
+                        + "\"integrations\": [\"integration-1\"],"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -213,7 +273,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"resource\": {"
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
-                        + "\"integrations\": [],"
+                        + "\"integrations\": [\"integration-1\"],"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
@@ -378,7 +438,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"resource\": {"
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
-                        + "\"integrations\": [],"
+                        + "\"integrations\": [\"integration-1\"],"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
