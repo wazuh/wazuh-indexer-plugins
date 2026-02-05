@@ -13,12 +13,16 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,registry,registry.uid,keyword,custom,,,User ID associated with the entity
 9.1.0,true,state,state.document_version,integer,custom,,,Version of the document.
 9.1.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
-9.1.0,true,wazuh,wazuh.agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
-9.1.0,true,wazuh,wazuh.agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
 9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
+9.1.0,true,wazuh,wazuh.agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
+9.1.0,true,wazuh,wazuh.agent.host.hostname,keyword,core,,,Hostname of the host.
+9.1.0,true,wazuh,wazuh.agent.host.ip,ip,core,array,,Host ip addresses.
+9.1.0,true,wazuh,wazuh.agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
+9.1.0,true,wazuh,wazuh.agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
+9.1.0,true,wazuh,wazuh.agent.host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
+9.1.0,true,wazuh,wazuh.agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
 9.1.0,true,wazuh,wazuh.agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 9.1.0,true,wazuh,wazuh.agent.name,keyword,core,,foo,Custom name of the agent.
-9.1.0,true,wazuh,wazuh.agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,wazuh,wazuh.agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
 9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
 9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
