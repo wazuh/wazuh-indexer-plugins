@@ -33,89 +33,9 @@
       "plugins.index_state_management.rollover_alias": ".cti-iocs"
     },
     "mappings": {
-      "dynamic": "false_allow_templates",
-      "dynamic_templates": [
-        {
-          "strings": {
-            "mapping": {
-              "type": "keyword"
-            },
-            "match_mapping_type": "string",
-            "path_match": "enrichments.custom.*"
-          }
-        }
-      ],
+      "date_detection": false,
+      "dynamic": "false",
       "properties": {
-        "enrichments": {
-          "properties": {
-            "custom": {
-              "properties": {
-                "anonymous": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "malware": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "malware_alias": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "malware_printable": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "tags": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "threat_type": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            },
-            "indicator": {
-              "properties": {
-                "confidence": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "first_seen": {
-                  "type": "date"
-                },
-                "last_seen": {
-                  "type": "date"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "provider": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "reference": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "type": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            },
-            "source": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
         "message": {
           "ignore_above": 1024,
           "type": "keyword"
@@ -228,18 +148,6 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            }
-          }
-        },
-        "wazuh": {
-          "properties": {
-            "space": {
-              "properties": {
                 "name": {
                   "ignore_above": 1024,
                   "type": "keyword"
