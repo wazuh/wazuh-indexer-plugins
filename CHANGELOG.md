@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Extend OpenAPI document with user-generated content management endpoints [(#736)](https://github.com/wazuh/wazuh-indexer-plugins/pull/736)
 - Define Index schema for IoC content [(#744)](https://github.com/wazuh/wazuh-indexer-plugins/pull/744)
 - Create integrations with no rules in the SAP [(#765)](https://github.com/wazuh/wazuh-indexer-plugins/pull/765)
+- Download IoC from CTI API [(#779)](https://github.com/wazuh/wazuh-indexer-plugins/pull/779)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
