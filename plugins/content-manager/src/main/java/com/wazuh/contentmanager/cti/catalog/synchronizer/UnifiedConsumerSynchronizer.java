@@ -188,7 +188,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-            searchSourceBuilder.size(0); 
+            searchSourceBuilder.size(0);
 
             searchRequest.source(searchSourceBuilder);
 
