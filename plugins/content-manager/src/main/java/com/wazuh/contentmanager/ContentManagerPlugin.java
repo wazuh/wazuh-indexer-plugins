@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -292,7 +292,9 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
                 PluginSettings.CONTENT_CONTEXT,
-                PluginSettings.CONTENT_CONSUMER);
+                PluginSettings.CONTENT_CONSUMER,
+                PluginSettings.IOC_CONTEXT,
+                PluginSettings.IOC_CONSUMER);
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -142,19 +142,19 @@ public class PluginSettings {
 
     /** Unified Context for Content. */
     public static final Setting<String> IOC_CONTEXT =
-        Setting.simpleString(
-            "plugins.content_manager.catalog.content.context",
-            DEFAULT_IOC_CONTEXT,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.content.context",
+                    DEFAULT_IOC_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /** Unified Consumer for Content. */
     public static final Setting<String> IOC_CONSUMER =
-        Setting.simpleString(
-            "plugins.content_manager.catalog.content.consumer",
-            DEFAULT_IOC_CONSUMER,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.content.consumer",
+                    DEFAULT_IOC_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
@@ -183,7 +183,7 @@ public class PluginSettings {
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
         this.contentContext = CONTENT_CONTEXT.get(settings);
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
-        this.iocContext =  IOC_CONTEXT.get(settings);
+        this.iocContext = IOC_CONTEXT.get(settings);
         this.iocConsumer = IOC_CONSUMER.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
