@@ -456,7 +456,17 @@ flowchart TD
 
 #### Policy Schema
 
-The `.cti-policies` index stores policy configurations that define how the Wazuh Engine processes events. Each policy document contains the following fields:
+The `.cti-policies` index stores policy configurations that define how the Wazuh Engine processes events. Each indexed document has the following structure:
+
+**Top-level fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `document` | object | Contains the policy configuration fields |
+| `hash` | object | Contains the policy content hash (`sha256`) |
+| `space` | object | Contains the space information (`name`, `hash`) |
+
+**Fields within `document` object:**
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -477,21 +487,33 @@ The `.cti-policies` index stores policy configurations that define how the Wazuh
 
 ```json
 {
-  "title": "Production Policy",
-  "root_decoder": "decoder/core/0",
-  "integrations": [
-    "integration/wazuh-core/0",
-    "integration/wazuh-fim/0"
-  ],
-  "filters": [
-    "5c1df6b6-1458-4b2e-9001-96f67a8b12c8",
-    "f61133f5-90b9-49ed-b1d5-0b88cb04355e"
-  ],
-  "enrichments": ["file", "domain-name", "ip", "url", "geo"],
-  "author": "security-team",
-  "description": "Production environment policy with file and network enrichments",
-  "documentation": "https://docs.wazuh.com/policies/production",
-  "references": ["https://example.com/security-policy"]
+  "document": {
+    "id": "policy-123",
+    "title": "Production Policy",
+    "root_decoder": "decoder/core/0",
+    "integrations": [
+      "integration/wazuh-core/0",
+      "integration/wazuh-fim/0"
+    ],
+    "filters": [
+      "5c1df6b6-1458-4b2e-9001-96f67a8b12c8",
+      "f61133f5-90b9-49ed-b1d5-0b88cb04355e"
+    ],
+    "enrichments": ["file", "domain-name", "ip", "url", "geo"],
+    "author": "security-team",
+    "description": "Production environment policy with file and network enrichments",
+    "documentation": "https://docs.wazuh.com/policies/production",
+    "references": ["https://example.com/security-policy"]
+  },
+  "hash": {
+    "sha256": "abc123..."
+  },
+  "space": {
+    "name": "draft",
+    "hash": {
+      "sha256": "xyz789..."
+    }
+  }
 }
 ```
 
