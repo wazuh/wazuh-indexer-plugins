@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
@@ -72,22 +73,8 @@ import static com.wazuh.contentmanager.utils.Constants.KEY_SPACE;
 public class RestPostKvdbAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostKvdbAction.class);
 
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_create";
-    private static final String FIELD_INTEGRATION = "integration";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_KVDBS = "kvdbs";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
-    private static final String KVDB_TYPE = "kvdb";
-    private static final String FIELD_METADATA = "metadata";
-    private static final String FIELD_AUTHOR = "author";
-    private static final String FIELD_DATE = "date";
-    private static final String FIELD_MODIFIED = "modified";
 
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -155,12 +142,12 @@ public class RestPostKvdbAction extends BaseRestHandler {
             if (validationError != null) {
                 return validationError;
             }
-            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            String integrationId = payload.get(FIELD_INTEGRATION).asText();
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
 
             // Generate UUID
             String kvdbId = UUID.randomUUID().toString();
-            resourceNode.put(FIELD_ID, kvdbId);
+            resourceNode.put(Constants.KEY_ID, kvdbId);
 
             // Add timestamp metadata
             this.addTimestampMetadata(resourceNode);
@@ -174,7 +161,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
             // Validate that the Integration exists and is in draft space
             RestResponse validationResponse =
                     DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
+                            client, INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
             if (validationResponse != null) {
                 return validationResponse;
             }
@@ -213,13 +200,13 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload) {
-        if (!payload.has(FIELD_INTEGRATION) || payload.get(FIELD_INTEGRATION).asText("").isBlank()) {
+        if (!payload.has(Constants.KEY_INTEGRATION) || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         }
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
-        if (payload.get(FIELD_RESOURCE).hasNonNull(FIELD_ID)) {
+        if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
             return new RestResponse(
                     "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
         }
@@ -229,13 +216,12 @@ public class RestPostKvdbAction extends BaseRestHandler {
     /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
         ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, KVDB_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
+        enginePayload.put(Constants.KEY_TYPE, Constants.KEY_KVDB);
+        enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
 
         RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
-            return new RestResponse(
-                    "Invalid KVDB body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
+        if (response.getStatus() != RestStatus.OK.getStatus()) {
+            return new RestResponse(response.getMessage(), response.getStatus());
         }
         return null;
     }
@@ -250,12 +236,12 @@ public class RestPostKvdbAction extends BaseRestHandler {
     /** Builds the KVDB payload with document and space information. */
     private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, KVDB_TYPE);
-        node.set(FIELD_DOCUMENT, resourceNode);
+        node.put(Constants.KEY_TYPE, Constants.KEY_KVDB);
+        node.set(Constants.KEY_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
-        node.set(FIELD_SPACE, spaceNode);
+        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        node.set(Constants.KEY_SPACE, spaceNode);
 
         return node;
     }
@@ -276,7 +262,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(FIELD_DOCUMENT)) {
+        if (source == null || !source.containsKey(Constants.KEY_DOCUMENT)) {
             throw new IOException(
                     "Can't find document in integration ["
                             + integrationId
@@ -284,7 +270,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
                             + kvdbIndexId
                             + "].");
         }
-        Object documentObj = source.get(FIELD_DOCUMENT);
+        Object documentObj = source.get(Constants.KEY_DOCUMENT);
 
         if (!(documentObj instanceof Map)) {
             throw new IOException(
@@ -296,14 +282,14 @@ public class RestPostKvdbAction extends BaseRestHandler {
         }
 
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
-        List<String> kvdbs = this.extractKvdbsList(document.get(FIELD_KVDBS));
+        List<String> kvdbs = this.extractKvdbsList(document.get(Constants.KEY_KVDBS));
 
         if (!kvdbs.contains(kvdbIndexId)) {
             kvdbs.add(kvdbIndexId);
         }
 
-        document.put(FIELD_KVDBS, kvdbs);
-        source.put(FIELD_DOCUMENT, document);
+        document.put(Constants.KEY_KVDBS, kvdbs);
+        source.put(Constants.KEY_DOCUMENT, document);
 
         // Regenerate integration hash and persist (complete operation)
         RestPostDecoderAction.regenerateIntegrationHash(client, integrationId, document, source);
@@ -337,25 +323,25 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
         // Ensure metadata node exists
         ObjectNode metadataNode;
-        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        if (resourceNode.has(Constants.KEY_METADATA) && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
         } else {
             metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
+            resourceNode.set(Constants.KEY_METADATA, metadataNode);
         }
 
         // Ensure author node exists
         ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        if (metadataNode.has(Constants.KEY_AUTHOR) && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
         } else {
             authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
+            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
         }
 
         // Set timestamps
-        authorNode.put(FIELD_DATE, currentTimestamp);
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        authorNode.put(Constants.KEY_DATE, currentTimestamp);
+        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
     }
 
     /**

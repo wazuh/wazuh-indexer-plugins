@@ -320,7 +320,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
+        assertTrue(actualResponse.getMessage().contains("integration [integration-1] not found"));
     }
 
     /** Test that integration without space field returns 400 Bad Request. */
@@ -342,7 +342,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertTrue(
                 actualResponse
                         .getMessage()
-                        .contains("Integration [integration-1] does not have space information."));
+                        .contains("integration [integration-1] does not have space information."));
     }
 
     /** Test that integration with invalid space returns 400 Bad Request. */
@@ -364,7 +364,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertTrue(
                 actualResponse
                         .getMessage()
-                        .contains("Integration [integration-1] has invalid space information."));
+                        .contains("integration [integration-1] has invalid space information."));
     }
 
     private RestRequest buildRequest(String payload, String kvdbId) {

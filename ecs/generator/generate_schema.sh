@@ -52,7 +52,7 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ ( $file == ecs/state* || $file == ecs/cti* ) && ( $file == *.yml || $file == *.json ) ]]; then
+    if [[ ($file == ecs/state* || $file == ecs/cti*) && ($file == *.yml || $file == *.json) ]]; then
       # Try to match the file to one of the known module keys for exact detection
       for key in "${!module_to_file[@]}"; do
         if [[ $file == ecs/$key/* || $file == ecs/$key ]]; then
@@ -180,11 +180,11 @@ function copy_files() {
   for ecs_module in "${modules_to_update[@]}"; do
     # Flat ECS is only required for the stateless modules
     if [[ "$ecs_module" =~ stateless/* ]]; then
-        # Copying flat ECS template to the ecs/<module>/docs/ folder
-        docs_ecs_path="$repo_path/ecs/$ecs_module/docs"
-        mkdir -p "$docs_ecs_path"
-        cp "$repo_path/ecs/$ecs_module/$flat_ecs_path" "$docs_ecs_path/ecs_flat.yml"
-        echo "  - '$ecs_module' ecs_flat.yml"
+      # Copying flat ECS template to the ecs/<module>/docs/ folder
+      docs_ecs_path="$repo_path/ecs/$ecs_module/docs"
+      mkdir -p "$docs_ecs_path"
+      cp "$repo_path/ecs/$ecs_module/$flat_ecs_path" "$docs_ecs_path/ecs_flat.yml"
+      echo "  - '$ecs_module' ecs_flat.yml"
     fi
   done
 }
