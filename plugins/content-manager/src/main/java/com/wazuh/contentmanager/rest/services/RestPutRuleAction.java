@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
@@ -42,6 +41,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -120,8 +120,8 @@ public class RestPutRuleAction extends BaseRestHandler {
      *
      * <ol>
      *   <li>Validates the presence of the {@code rule_id} parameter and request body.
-     *   <li>Parses the request body ensuring it follows the { Constants.KEY_TYPE: "rule", Constants.KEY_RESOURCE: {...} }
-     *       structure.
+     *   <li>Parses the request body ensuring it follows the { Constants.KEY_TYPE: "rule",
+     *       Constants.KEY_RESOURCE: {...} } structure.
      *   <li>Injects metadata fields such as {@code modified} timestamp and default {@code enabled}
      *       status.
      *   <li>Calls the Security Analytics Plugin (SAP) to update the rule in the engine.
@@ -145,7 +145,8 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             // Validate rule exists and is in draft space
             String validationError =
-                    DocumentValidations.validateDocumentInSpace(client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
             if (validationError != null) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
@@ -162,7 +163,8 @@ public class RestPutRuleAction extends BaseRestHandler {
             JsonNode rootNode = mapper.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_TYPE) || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
+            if (!rootNode.has(Constants.KEY_TYPE)
+                    || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse(
@@ -208,14 +210,16 @@ public class RestPutRuleAction extends BaseRestHandler {
             }
 
             ruleNode.put(
-                    Constants.KEY_DATE, Objects.requireNonNullElseGet(createdDate, () -> Instant.now().toString()));
+                    Constants.KEY_DATE,
+                    Objects.requireNonNullElseGet(createdDate, () -> Instant.now().toString()));
             ruleNode.put(Constants.KEY_MODIFIED, Instant.now().toString());
 
             if (!ruleNode.has(Constants.KEY_ENABLED)) {
                 ruleNode.put(Constants.KEY_ENABLED, true);
             }
             if (!ruleNode.has(Constants.KEY_AUTHOR)) {
-                ruleNode.put(Constants.KEY_AUTHOR, existingAuthor != null ? existingAuthor : "Wazuh (generated)");
+                ruleNode.put(
+                        Constants.KEY_AUTHOR, existingAuthor != null ? existingAuthor : "Wazuh (generated)");
             }
 
             String product = ContentIndex.extractProduct(ruleNode);

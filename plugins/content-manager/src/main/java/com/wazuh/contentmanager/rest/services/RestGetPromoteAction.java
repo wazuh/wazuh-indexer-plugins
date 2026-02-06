@@ -169,7 +169,8 @@ public class RestGetPromoteAction extends BaseRestHandler {
         // Case 3: UUID is in promoted space but not in current one -> DELETE
         for (String targetId : targetItems.keySet()) {
             if (!sourceItems.containsKey(targetId)) {
-                changes.add(Map.of(Constants.KEY_OPERATION, Constants.OP_REMOVE, Constants.KEY_ID, targetId));
+                changes.add(
+                        Map.of(Constants.KEY_OPERATION, Constants.OP_REMOVE, Constants.KEY_ID, targetId));
             }
         }
 

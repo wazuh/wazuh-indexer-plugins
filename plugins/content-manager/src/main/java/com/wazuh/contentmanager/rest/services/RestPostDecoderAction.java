@@ -34,7 +34,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +48,7 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -128,7 +128,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         // Validate prerequisites
-        RestResponse validationError = this.validatePrerequisites(request);
+        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
         if (validationError != null) {
             return validationError;
         }
@@ -136,7 +136,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         try {
             JsonNode payload = mapper.readTree(request.content().streamInput());
             // Validate payload structure
-            validationError = this.validatePayload(payload);
+            validationError = DocumentValidations.validateResourcePayload(payload, null, true);
             if (validationError != null) {
                 return validationError;
             }
@@ -156,7 +156,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             resourceNode.put(Constants.KEY_ID, decoderId);
 
             // Add timestamp metadata
-            this.addTimestampMetadata(resourceNode, true);
+            ContentUtils.updateTimestampMetadata(resourceNode, true);
 
             // Validate integration with Wazuh Engine
             ObjectNode enginePayload = mapper.createObjectNode();
@@ -187,38 +187,15 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
     }
 
-    /** Validates that the engine service and request content are available. */
-    private RestResponse validatePrerequisites(RestRequest request) {
-        if (this.engine == null) {
-            return new RestResponse(
-                    "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /** Validates the payload structure and required fields. */
-    private RestResponse validatePayload(JsonNode payload) {
-        if (!payload.has(Constants.KEY_INTEGRATION) || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
-            return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
-            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
-            return new RestResponse(
-                    "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
     /** Creates the decoder document in the index. */
     private void createDecoder(Client client, String decoderIndexId, ObjectNode resourceNode)
             throws IOException {
-        ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-        decoderIndex.create(decoderIndexId, this.buildDecoderPayload(resourceNode));
+        try {
+            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
+            decoderIndex.create(decoderIndexId, this.buildDecoderPayload(resourceNode));
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     /** Builds the decoder payload with document and space information. */
@@ -240,50 +217,27 @@ public class RestPostDecoderAction extends BaseRestHandler {
     @SuppressWarnings("unchecked")
     private void updateIntegrationWithDecoder(
             Client client, String integrationId, String decoderIndexId) throws IOException {
-        GetResponse integrationResponse = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
+        GetResponse integrationResponse =
+                client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
-            throw new IOException(
-                    "Integration ["
-                            + integrationId
-                            + "] not found when creating decoder ["
-                            + decoderIndexId
-                            + "].");
+            throw new IOException("Integration [" + integrationId + "] not found.");
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
         if (source == null || !source.containsKey(Constants.KEY_DOCUMENT)) {
-            throw new IOException(
-                    "Can't find document in integration ["
-                            + integrationId
-                            + "] when creating decoder ["
-                            + decoderIndexId
-                            + "].");
+            throw new IOException("Can't find document in integration [" + integrationId + "].");
         }
         Object documentObj = source.get(Constants.KEY_DOCUMENT);
 
         if (!(documentObj instanceof Map)) {
-            throw new IOException(
-                    "Integration document ["
-                            + integrationId
-                            + "] is invalid when creating decoder ["
-                            + decoderIndexId
-                            + "].");
-        }
-
-        Object spaceObj = source.get(Constants.KEY_SPACE);
-        if (!(spaceObj instanceof Map)) {
-            throw new IOException("Integration [" + integrationId + "] has invalid space information.");
+            throw new IOException("Integration document [" + integrationId + "] is invalid.");
         }
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(Constants.KEY_NAME);
-        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            throw new IOException(
-                    "Integration ["
-                            + integrationId
-                            + "] is not in draft space. Only integrations in draft space can have rules created.");
+        Map<String, Object> spaceMap = (Map<String, Object>) source.get(Constants.KEY_SPACE);
+        if (spaceMap == null || !Space.DRAFT.equals(String.valueOf(spaceMap.get(Constants.KEY_NAME)))) {
+            throw new IOException("Integration [" + integrationId + "] is not in draft space.");
         }
 
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
@@ -298,13 +252,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
         // Regenerate integration hash and persist
         regenerateIntegrationHash(client, integrationId, document, source);
-        client
-                .index(
-                        new IndexRequest(Constants.INDEX_INTEGRATIONS)
-                                .id(integrationId)
-                                .source(source)
-                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                .actionGet();
     }
 
     /** Extracts the decoders list from the document, handling type conversion. */
@@ -319,41 +266,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * Adds or updates timestamp metadata to the resource node.
-     *
-     * @param resourceNode the resource node to update
-     * @param isCreate true if creating (sets both date and modified), false if updating (sets only
-     *     modified)
-     */
-    private void addTimestampMetadata(ObjectNode resourceNode, boolean isCreate) {
-        String currentTimestamp = Instant.now().toString();
-
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
-        if (resourceNode.has(Constants.KEY_METADATA) && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-        } else {
-            metadataNode = mapper.createObjectNode();
-            resourceNode.set(Constants.KEY_METADATA, metadataNode);
-        }
-
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(Constants.KEY_AUTHOR) && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-        } else {
-            authorNode = mapper.createObjectNode();
-            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-        }
-
-        // Set timestamps
-        if (isCreate) {
-            authorNode.put(Constants.KEY_DATE, currentTimestamp);
-        }
-        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-    }
-
-    /**
      * Regenerates the integration hash after its document has changed and persists it. This is a
      * complete operation that updates the hash and saves to the index.
      *
@@ -363,7 +275,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
      * @param source the integration source map to update with the new hash
      * @throws IOException if persistence fails
      */
-    static void regenerateIntegrationHash(
+    public static void regenerateIntegrationHash(
             Client client, String integrationId, Map<String, Object> document, Map<String, Object> source)
             throws IOException {
         ObjectMapper mapper = new ObjectMapper();
@@ -373,14 +285,6 @@ public class RestPostDecoderAction extends BaseRestHandler {
         hashMap.put("sha256", newIntegrationHash);
         source.put("hash", hashMap);
 
-        log.debug(
-                "Regenerated integration hash for id={} (hashPrefix={})",
-                integrationId,
-                newIntegrationHash.length() >= 12
-                        ? newIntegrationHash.substring(0, 12)
-                        : newIntegrationHash);
-
-        // Persist the updated integration with new hash
         client
                 .index(
                         new IndexRequest(Constants.INDEX_INTEGRATIONS)
@@ -388,49 +292,5 @@ public class RestPostDecoderAction extends BaseRestHandler {
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
                 .actionGet();
-    }
-
-    /**
-     * Validates that the integration exists and is in the draft space.
-     *
-     * @param client the OpenSearch client
-     * @param integrationId the integration ID to validate
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
-    private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
-
-        if (!integrationResponse.isExists()) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] not found.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(Constants.KEY_SPACE)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] does not have space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        Object spaceObj = source.get(Constants.KEY_SPACE);
-        if (!(spaceObj instanceof Map)) {
-            return new RestResponse(
-                    "Integration [" + integrationId + "] has invalid space information.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(Constants.KEY_NAME);
-
-        if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            return new RestResponse(
-                    "Integration ["
-                            + integrationId
-                            + "] is not in draft space. Only integrations in draft space can have decoders created.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        return null;
     }
 }

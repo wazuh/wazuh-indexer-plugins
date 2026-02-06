@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
@@ -39,6 +42,7 @@ import static com.wazuh.contentmanager.utils.Constants.KEY_SPACE;
  *   <li>Validating documents exist and are in draft space
  *   <li>Validating engine service availability
  *   <li>Validating request content presence
+ *   <li>Validates the standard structure of a resource payload
  * </ul>
  *
  * <p>Error messages are normalized to follow the pattern: "[DocType] [ID] [action/state]."
@@ -161,6 +165,50 @@ public class DocumentValidations {
     public static RestResponse validateRequiredParam(String value, String paramName) {
         if (value == null || value.isBlank()) {
             return new RestResponse(paramName + " is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /**
+     * Validates the standard structure of a resource payload.
+     *
+     * @param payload The raw JSON payload.
+     * @param expectedId (Optional) The ID expected in the resource (for Updates).
+     * @param requireIntegrationId If true, checks for 'integration' field (for Creates).
+     * @return RestResponse if error, null if valid.
+     */
+    public static RestResponse validateResourcePayload(
+            JsonNode payload, String expectedId, boolean requireIntegrationId) {
+        // Validation for Integration ID presence
+        if (requireIntegrationId) {
+            if (!payload.has(Constants.KEY_INTEGRATION)
+                    || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
+                return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
+        // Validation for Resource object presence
+        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
+            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validation for Resource ID
+        if (expectedId != null) {
+            // For updates: ID in payload must match path ID
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            if (resourceNode.hasNonNull(Constants.KEY_ID)) {
+                String payloadId = resourceNode.get(Constants.KEY_ID).asText();
+                if (!payloadId.equals(expectedId)) {
+                    return new RestResponse(
+                            "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                }
+            }
+        } else {
+            // For creates: Resource ID should typically not be provided by user
+            if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
+                return new RestResponse(
+                        "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+            }
         }
         return null;
     }

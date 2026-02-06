@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -44,6 +43,7 @@ import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -215,7 +215,9 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
         SearchRequest searchRequest = new SearchRequest(INDEX_INTEGRATIONS);
         searchRequest
                 .source()
-                .query(QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + Constants.KEY_KVDBS, kvdbIndexId));
+                .query(
+                        QueryBuilders.termQuery(
+                                Constants.KEY_DOCUMENT + "." + Constants.KEY_KVDBS, kvdbIndexId));
         SearchResponse searchResponse = client.search(searchRequest).actionGet();
         for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
             Map<String, Object> source = hit.getSourceAsMap();

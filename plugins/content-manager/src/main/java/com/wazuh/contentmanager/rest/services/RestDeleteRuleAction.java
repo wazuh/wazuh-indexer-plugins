@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
@@ -36,6 +35,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
@@ -134,7 +134,8 @@ public class RestDeleteRuleAction extends BaseRestHandler {
 
             // Validate rule is in draft space
             String validationError =
-                    DocumentValidations.validateDocumentInSpace(client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
             if (validationError != null) {
                 return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
             }
@@ -158,7 +159,9 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             // 2. Unlink from Integrations
             ContentIndex integrationIndex = new ContentIndex(client, Constants.INDEX_INTEGRATIONS);
             integrationIndex.removeFromDocumentListByQuery(
-                    QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES, ruleId), Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES, ruleId);
+                    QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES, ruleId),
+                    Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES,
+                    ruleId);
 
             // 3. Delete from CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
@@ -171,7 +174,8 @@ public class RestDeleteRuleAction extends BaseRestHandler {
                     new RestResponse("Rule deleted successfully", RestStatus.OK.getStatus());
             // TODO: Create a class CreateRestResponse which extends RestResponse implementing the field
             // ID.
-            // Example expected object: {"message": "Some success msg", Constants.KEY_ID: "1234", "status": 201}
+            // Example expected object: {"message": "Some success msg", Constants.KEY_ID: "1234",
+            // "status": 201}
             return new RestResponse(response.getMessage(), RestStatus.OK.getStatus());
 
         } catch (Exception e) {

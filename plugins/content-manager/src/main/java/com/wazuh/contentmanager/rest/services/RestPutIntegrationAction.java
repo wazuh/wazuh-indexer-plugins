@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
@@ -49,6 +48,7 @@ import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -216,10 +216,13 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         // Verify request is of type "integration"
-        if (!requestBody.has(Constants.KEY_TYPE) || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
+        if (!requestBody.has(Constants.KEY_TYPE)
+                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
             this.log.warn(
                     "Request rejected: invalid resource type (type={})",
-                    requestBody.has(Constants.KEY_TYPE) ? requestBody.get(Constants.KEY_TYPE).asText() : null);
+                    requestBody.has(Constants.KEY_TYPE)
+                            ? requestBody.get(Constants.KEY_TYPE).asText()
+                            : null);
             return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -303,16 +306,20 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
         if (!resource.has(Constants.KEY_ENABLED)) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> existingDocument = (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
+            Map<String, Object> existingDocument =
+                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
             if (existingDocument != null && existingDocument.containsKey(Constants.KEY_ENABLED)) {
-                ((ObjectNode) resource).put(Constants.KEY_ENABLED, (Boolean) existingDocument.get(Constants.KEY_ENABLED));
+                ((ObjectNode) resource)
+                        .put(Constants.KEY_ENABLED, (Boolean) existingDocument.get(Constants.KEY_ENABLED));
             } else {
                 ((ObjectNode) resource).put(Constants.KEY_ENABLED, true);
             }
         }
 
         // Insert "draft" into /resource/space/name
-        ((ObjectNode) requestBody).putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Space.DRAFT.toString());
+        ((ObjectNode) requestBody)
+                .putObject(Constants.KEY_SPACE)
+                .put(Constants.KEY_NAME, Space.DRAFT.toString());
 
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());
@@ -325,7 +332,9 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
         this.log.debug("Updating integration in Security Analytics (id={})", id);
         this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)), Space.DRAFT, PUT);
+                this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
+                Space.DRAFT,
+                PUT);
 
         // Construct engine validation payload
         this.log.debug("Validating integration with Engine (id={})", id);
@@ -362,10 +371,13 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         try {
-            this.log.debug("Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
+            this.log.debug(
+                    "Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
             integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload.putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Space.DRAFT.toString());
+            integrationsIndexPayload
+                    .putObject(Constants.KEY_SPACE)
+                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
             IndexResponse integrationIndexResponse =
                     this.integrationsIndex.create(id, integrationsIndexPayload);
 
