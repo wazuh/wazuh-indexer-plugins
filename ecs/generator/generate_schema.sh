@@ -84,7 +84,7 @@ function detect_modified_modules() {
   echo "---> Modified modules"
   modules_to_update=()
 
-  local is_main_module_modified=false
+  local is_main_module_modified=true
 
   for ecs_module in "${modified_modules[@]}"; do
     echo "  - $ecs_module"

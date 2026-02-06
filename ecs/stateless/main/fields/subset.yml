@@ -6,26 +6,7 @@ fields:
       "@timestamp": {}
       message: {}
   enrichments:
-    fields:
-      indicator:
-        fields:
-          name: {}
-          type: {}
-          first_seen: {}
-          last_seen: {}
-          confidence: {}
-          reference: {}
-          provider: {}
-      custom:
-        fields:
-          id: {}
-          tags: {}
-          anonymous: {}
-          threat_type: {}
-          malware: {}
-          malware_alias: {}
-          malware_printable: {}
-      source: {}
+    fields: "*"
   agent:
     fields: "*"
   as:

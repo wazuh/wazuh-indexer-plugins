@@ -1,8 +1,5 @@
 ---
 - name: enrichments
-  reusable:
-    top_level: true
-    expected: []
   title: Enrichments
   description: >
     Enrichment data for events.
