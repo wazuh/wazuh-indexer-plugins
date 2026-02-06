@@ -130,7 +130,8 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD, kvdbId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+                .thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
@@ -147,13 +148,9 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertTrue(actualResponse.getMessage().startsWith("KVDB updated successfully with ID:"));
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.service).validate(payloadCaptor.capture());
+        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
-        assertEquals("kvdb", captured.get("type").asText());
-        assertFalse(captured.has("integration"));
-
-        JsonNode resource = captured.get("resource");
-        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", resource.get("id").asText());
+        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", captured.get("id").asText());
     }
 
     /** Test that missing KVDB ID returns 400 Bad Request. */
@@ -235,7 +232,8 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        "Resource ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -252,7 +250,8 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         String kvdbId = "d_non-existent-12345";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD, kvdbId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+                .thenReturn(engineResponse);
         Client client = this.buildClientWithNonExistentKvdb();
 
         // Act
@@ -260,10 +259,11 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("KVDB [" + kvdbId + "] not found"));
+        assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
+        assertTrue(
+                this.parseResponse(bytesRestResponse)
+                        .getMessage()
+                        .contains("KVDB [" + kvdbId + "] not found"));
     }
 
     /** Test that null engine service returns 500 Internal Server Error. */

@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
@@ -35,6 +34,8 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
@@ -56,8 +57,6 @@ public class RestDeleteRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_delete";
     private static final Logger log = LogManager.getLogger(RestDeleteRuleAction.class);
 
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
     private PolicyHashService policyHashService;
 
     /** Default constructor. */
@@ -95,9 +94,7 @@ public class RestDeleteRuleAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        if (request.hasParam("id")) {
-            request.param("id");
-        }
+        request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
@@ -130,14 +127,15 @@ public class RestDeleteRuleAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         try {
-            String ruleId = request.param("id");
+            String ruleId = request.param(Constants.KEY_ID);
             if (ruleId == null || ruleId.isEmpty()) {
                 return new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Validate rule is in draft space
             String validationError =
-                    DocumentValidations.validateDocumentInSpace(client, CTI_RULES_INDEX, ruleId, "Rule");
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
             if (validationError != null) {
                 return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
             }
@@ -159,12 +157,10 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             }
 
             // 2. Unlink from Integrations
-            ContentIndex integrationIndex = new ContentIndex(client, CTI_INTEGRATIONS_INDEX);
-            integrationIndex.removeFromDocumentListByQuery(
-                    QueryBuilders.termQuery("document.rules", ruleId), "document.rules", ruleId);
+            ContentUtils.unlinkResourceFromIntegrations(client, ruleId, Constants.KEY_RULES);
 
             // 3. Delete from CTI Rules Index
-            ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
+            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
             rulesIndex.delete(ruleId);
 
             // Recalculate policy hashes for draft space
@@ -174,7 +170,8 @@ public class RestDeleteRuleAction extends BaseRestHandler {
                     new RestResponse("Rule deleted successfully", RestStatus.OK.getStatus());
             // TODO: Create a class CreateRestResponse which extends RestResponse implementing the field
             // ID.
-            // Example expected object: {"message": "Some success msg", "id": "1234", "status": 201}
+            // Example expected object: {"message": "Some success msg", Constants.KEY_ID: "1234",
+            // "status": 201}
             return new RestResponse(response.getMessage(), RestStatus.OK.getStatus());
 
         } catch (Exception e) {

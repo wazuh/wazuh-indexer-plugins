@@ -379,8 +379,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     // Verify it's in the source space
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
-                    String docSpace = sourceDocSpace.get("name");
+                            (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                    String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
                                 "Resource '"
@@ -398,8 +398,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
-                        String targetDocSpaceName = targetDocSpace.get("name");
+                                (Map<String, String>) targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                        String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
                         if (targetSpace.equals(targetDocSpaceName)) {
                             throw new IllegalArgumentException(
                                     "Resource '"
@@ -435,8 +435,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     // Verify it's in the source space
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>) sourceDoc.getOrDefault("space", new HashMap<>());
-                    String docSpace = sourceDocSpace.get("name");
+                            (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                    String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
                                 "Resource '"
@@ -459,8 +459,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>) targetDoc.getOrDefault("space", new HashMap<>());
-                        String targetDocSpaceName = targetDocSpace.get("name");
+                                (Map<String, String>) targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                        String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
                         if (!targetSpace.equals(targetDocSpaceName)) {
                             log.warn(
                                     "Resource '{}' to delete is in space '{}', not target space '{}'",

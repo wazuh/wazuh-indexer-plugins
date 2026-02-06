@@ -27,4 +27,6 @@ public interface EngineService {
     RestResponse validate(JsonNode resource);
 
     RestResponse promote(JsonNode policy);
+
+    RestResponse validateResource(String type, JsonNode resource);
 }

@@ -37,11 +37,13 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -96,13 +98,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
      */
     // spotless:on
     public void testPostIntegration200_success() throws IOException {
-
-        String integrationId = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
-        when(this.action.generateId()).thenReturn(integrationId);
-
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.CREATED.getStatus());
-        expectedResponse.setMessage("Integration created successfully with ID: " + integrationId);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -214,7 +209,15 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(policyHashService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        // Verify creation was called and capture the generated ID
+        verify(integrationsIndex).create(idCaptor.capture(), any(JsonNode.class));
+        String generatedId = idCaptor.getValue();
+
+        assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        assertEquals(
+                "Integration created successfully with ID: " + generatedId, actualResponse.getMessage());
     }
 
     /**
