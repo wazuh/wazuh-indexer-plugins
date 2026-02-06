@@ -3,6 +3,7 @@
 ### Fields summary
 
 The fields are based on:
+
 - [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
 
@@ -19,13 +20,13 @@ The detail of the fields can be found in csv file [States vulnerabilities Fields
 ### Transition table
 
 | Field Name                        | Type    | Description                                                                                                         | Destination Field                 | Custom |
-|-----------------------------------|---------|---------------------------------------------------------------------------------------------------------------------|-----------------------------------|--------|
-| agent.build.original              | keyword | Extended build information for the agent.                                                                           | agent.build.original              | TRUE   |
-| agent.ephemeral_id                | keyword | Ephemeral identifier of this agent.                                                                                 | agent.ephemeral_id                | TRUE   |
-| agent.id                          | keyword | Unique identifier of this agent.                                                                                    | agent.id                          | TRUE   |
-| agent.name                        | keyword | Custom name of the agent.                                                                                           | agent.name                        | TRUE   |
-| agent.type                        | keyword | Type of the agent.                                                                                                  | agent.type                        | TRUE   |
-| agent.version                     | keyword | Version of the agent.                                                                                               | agent.version                     | TRUE   |
+| --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------ |
+| agent.build.original              | keyword | Extended build information for the agent.                                                                           | wazuh.agent.build.original        | TRUE   |
+| agent.ephemeral_id                | keyword | Ephemeral identifier of this agent.                                                                                 | wazuh.agent.ephemeral_id          | TRUE   |
+| agent.id                          | keyword | Unique identifier of this agent.                                                                                    | wazuh.agent.id                    | TRUE   |
+| agent.name                        | keyword | Custom name of the agent.                                                                                           | wazuh.agent.name                  | TRUE   |
+| agent.type                        | keyword | Type of the agent.                                                                                                  | wazuh.agent.type                  | TRUE   |
+| agent.version                     | keyword | Version of the agent.                                                                                               | wazuh.agent.version               | TRUE   |
 | host.os.full                      | keyword | Operating system name, including the version or code name.                                                          | host.os.full                      | TRUE   |
 | host.os.full.text                 | keyword | Operating system name, including the version or code name.                                                          | host.os.full.text                 | TRUE   |
 | host.os.kernel                    | keyword | Operating system kernel version as a raw string.                                                                    | host.os.kernel                    | TRUE   |

@@ -30,7 +30,6 @@ def generate_random_data(number):
     data = []
     for _ in range(number):
         event_data = {
-            "agent": generate_random_agent(),
             "checksum": generate_random_checksum(),
             "destination": generate_random_destination(),
             "file": generate_random_file(),
@@ -127,6 +126,7 @@ def generate_random_source():
 
 def generate_random_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": f"wazuh-cluster-{random.randint(0, 10)}",
             "node": f"wazuh-cluster-node-{random.randint(0, 10)}",

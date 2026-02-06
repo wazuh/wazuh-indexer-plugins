@@ -3,6 +3,7 @@
 ### Fields summary
 
 The fields are based on:
+
 - [Inventory - Services mappings](https://github.com/wazuh/wazuh-agent/issues/807#issuecomment-3212090933) (included in 4.14.0)
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
 
@@ -22,11 +23,11 @@ The detail of the fields can be found in csv file [Inventory Services Fields](fi
 | 1   | 0      | `service.id`                            | `text`    | `services.name` / `systemd_units.id` / `label`              | Windows / Linux / macOS | Service/job unique identifier (Windows name, systemd id, launchd label). |
 | 2   | 0      | `service.name`                          | `text`    | `services.display_name` / `name`                            | Windows / macOS         | Display name (Windows) or plist filename (macOS).                        |
 | 3   | 1      | `service.description`                   | `text`    | `services.description` / `systemd_units.description`        | Windows / Linux         | Description of the service/unit.                                         |
-| 4   | 0      | `service.type`                          | `text`    | `services.service_type` / `process_type`                    | Windows / macOS         | Type of service: OWN\_PROCESS, driver, intended process type.            |
+| 4   | 0      | `service.type`                          | `text`    | `services.service_type` / `process_type`                    | Windows / macOS         | Type of service: OWN_PROCESS, driver, intended process type.             |
 | 5   | 0      | `service.state`                         | `text`    | `services.status` / `systemd_units.active_state` / runtime  | Windows / Linux / macOS | Current state: RUNNING, STOPPED, active, running, etc.                   |
 | 6   | 1      | `service.sub_state`                     | `text`    | `systemd_units.sub_state`                                   | Linux                   | Low-level systemd substate.                                              |
 | 7   | 1      | `service.enabled`                       | `text`    | `systemd_units.unit_file_state` / `disabled` (invert)       | Linux / macOS           | Whether the unit/job is enabled.                                         |
-| 8   | 1      | `service.start_type`                    | `text`    | `services.start_type` / `run_at_load`                       | Windows / macOS         | Start type: AUTO\_START, DEMAND\_START, or run\_at\_load.                |
+| 8   | 1      | `service.start_type`                    | `text`    | `services.start_type` / `run_at_load`                       | Windows / macOS         | Start type: AUTO_START, DEMAND_START, or run_at_load.                    |
 | 9   | 1      | `service.restart`                       | `text`    | `keep_alive`                                                | macOS                   | Restart policy: always / on-failure / never.                             |
 | 10  | 1      | `service.frequency`                     | `long`    | `start_interval`                                            | macOS                   | Run frequency in seconds.                                                |
 | 11  | 1      | `service.starts.on_mount`               | `boolean` | `start_on_mount`                                            | macOS                   | Launches every time a filesystem is mounted.                             |

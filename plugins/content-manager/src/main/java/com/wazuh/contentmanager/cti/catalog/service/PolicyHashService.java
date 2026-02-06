@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,13 +28,16 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Service responsible for calculating and updating policy hashes. Computes aggregate hashes (hash
@@ -75,27 +78,35 @@ public class PolicyHashService {
     }
 
     /**
+     * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
+     * processes only production spaces.
+     */
+    public void calculateAndUpdate() {
+
+        List<String> productionSpaces =
+                Arrays.stream(Space.values())
+                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TEST))
+                        .map(Space::toString)
+                        .collect(Collectors.toList());
+
+        this.calculateAndUpdate(productionSpaces);
+    }
+
+    /**
      * Calculates and updates the aggregate hash for all policies in the given consumer context.
      *
-     * @param policyIndex      The index containing policy document.
-     * @param integrationIndex The index containing integration documents.
-     * @param decoderIndex     The index containing decoder documents.
-     * @param kvdbIndex        The index containing kvdb documents.
-     * @param ruleIndex        The index containing rule documents.
+     * @param targetSpaces The list of target spaces to process.
      */
-    public void calculateAndUpdate(
-        String policyIndex,
-        String integrationIndex,
-        String decoderIndex,
-        String kvdbIndex,
-        String ruleIndex) {
+    public void calculateAndUpdate(List<String> targetSpaces) {
         try {
-            if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
-                log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
+            if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
+                log.warn(
+                        "Policy index [{}] does not exist. Skipping hash calculation.",
+                        Constants.INDEX_POLICIES);
                 return;
             }
 
-            SearchRequest searchRequest = new SearchRequest(policyIndex);
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
             searchRequest.source().query(QueryBuilders.matchAllQuery()).size(5);
             SearchResponse response = this.client.search(searchRequest).actionGet();
 
@@ -107,7 +118,8 @@ public class PolicyHashService {
                 Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
                 if (space != null) {
                     String spaceName = (String) space.get("name");
-                    if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
+                    // Check if the policy is in one of the target spaces
+                    if (!targetSpaces.contains(spaceName)) {
                         log.info(
                                 "Skipping hash calculation for policy [{}] because it is in space [{}]",
                                 hit.getId(),
@@ -125,7 +137,8 @@ public class PolicyHashService {
 
                     for (String integrationId : integrationIds) {
                         Map<String, Object> integrationSource =
-                                IndexHelper.getDocumentSource(this.client, integrationIndex, integrationId);
+                                IndexHelper.getDocumentSource(
+                                        this.client, Constants.INDEX_INTEGRATIONS, integrationId);
                         if (integrationSource == null) {
                             continue;
                         }
@@ -134,9 +147,9 @@ public class PolicyHashService {
 
                         Map<String, Object> integration = (Map<String, Object>) integrationSource.get(DOCUMENT);
                         if (integration != null) {
-                            this.addHashes(integration, DECODERS, decoderIndex, spaceHashes);
-                            this.addHashes(integration, KVDBS, kvdbIndex, spaceHashes);
-                            this.addHashes(integration, RULES, ruleIndex, spaceHashes);
+                            this.addHashes(integration, DECODERS, Constants.INDEX_DECODERS, spaceHashes);
+                            this.addHashes(integration, KVDBS, Constants.INDEX_KVDBS, spaceHashes);
+                            this.addHashes(integration, RULES, Constants.INDEX_RULES, spaceHashes);
                         }
                     }
                 }
@@ -154,7 +167,8 @@ public class PolicyHashService {
                 updateMap.put(SPACE, spaceMap);
 
                 bulkUpdateRequest.add(
-                        new UpdateRequest(policyIndex, hit.getId()).doc(updateMap, XContentType.JSON));
+                        new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())
+                                .doc(updateMap, XContentType.JSON));
             }
 
             if (bulkUpdateRequest.numberOfActions() > 0) {

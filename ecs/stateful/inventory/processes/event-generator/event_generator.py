@@ -30,7 +30,6 @@ def generate_random_data(number):
     data = []
     for _ in range(number):
         event_data = {
-            "agent": generate_random_agent(),
             "checksum": generate_random_checksum(),
             "process": generate_random_process(),
             "wazuh": generate_random_wazuh(),
@@ -120,6 +119,7 @@ def generate_random_unix_timestamp():
 
 def generate_random_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": f"wazuh-cluster-{random.randint(0, 10)}",
             "node": f"wazuh-cluster-node-{random.randint(0, 10)}",

@@ -3,6 +3,7 @@
 ### Fields summary
 
 The fields are based on:
+
 - [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
 
@@ -17,11 +18,11 @@ The detail of the fields can be found in csv file [States inventory protocols Fi
 ### Transition table
 
 | Field Name     | Type    | Description                                                    | Destination Field    | Custom |
-|----------------|---------|----------------------------------------------------------------|----------------------|--------|
-| agent_id       | string  | Unique ID of the agent.                                        | agent.id             | FALSE  |
-| agent_ip       | string  | IP address of the agent.                                       | agent.host.ip        | TRUE   |
-| agent_name     | string  | Name of the agent.                                             | agent.name           | FALSE  |
-| agent_version  | string  | Agent version.                                                 | agent.version        | FALSE  |
+| -------------- | ------- | -------------------------------------------------------------- | -------------------- | ------ |
+| agent_id       | string  | Unique ID of the agent.                                        | wazuh.agent.id       | FALSE  |
+| agent_ip       | string  | IP address of the agent.                                       | wazuh.agent.host.ip  | TRUE   |
+| agent_name     | string  | Name of the agent.                                             | wazuh.agent.name     | FALSE  |
+| agent_version  | string  | Agent version.                                                 | wazuh.agent.version  | FALSE  |
 | iface          | string  | Interface name.                                                | interface.name       | FALSE  |
 | type           | string  | Protocol type (e.g., static, dynamic).                         | network.type         | FALSE  |
 | gateway        | string  | Default gateway address.                                       | network.gateway      | TRUE   |
