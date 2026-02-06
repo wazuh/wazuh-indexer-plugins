@@ -78,7 +78,6 @@ public class Constants {
     public static final String KEY_METADATA = "metadata";
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
-    public static final String KEY_DRAFT = "draft";
     public static final String KEY_ENABLED = "enabled";
 
     // API request content fields

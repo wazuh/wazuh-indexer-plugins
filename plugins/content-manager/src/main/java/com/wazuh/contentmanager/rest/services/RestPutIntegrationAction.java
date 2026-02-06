@@ -253,7 +253,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             @SuppressWarnings("unchecked")
             Map<String, Object> space = (Map<String, Object>) existingSource.get(Constants.KEY_SPACE);
             String spaceName = (String) space.get(Constants.KEY_NAME);
-            if (!Constants.KEY_DRAFT.equals(spaceName)) {
+            if (!Space.DRAFT.equals(spaceName)) {
                 this.log.warn(
                         "Request rejected: cannot update integration in space '{}' (id={})", spaceName, id);
                 return new RestResponse(
@@ -312,7 +312,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         // Insert "draft" into /resource/space/name
-        ((ObjectNode) requestBody).putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Constants.KEY_DRAFT);
+        ((ObjectNode) requestBody).putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Space.DRAFT.toString());
 
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());
@@ -365,7 +365,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.log.debug("Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
             integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload.putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Constants.KEY_DRAFT);
+            integrationsIndexPayload.putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Space.DRAFT.toString());
             IndexResponse integrationIndexResponse =
                     this.integrationsIndex.create(id, integrationsIndexPayload);
 

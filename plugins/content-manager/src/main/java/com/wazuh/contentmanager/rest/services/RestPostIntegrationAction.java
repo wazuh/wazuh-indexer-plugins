@@ -279,7 +279,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
 
         // Insert "draft" into /resource/space/name
-        ((ObjectNode) requestBody).putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Constants.KEY_DRAFT);
+        ((ObjectNode) requestBody).putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Space.DRAFT.toString());
 
         // Overwrite rules, decoders and kvdbs arrays with empty ones
         ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
@@ -342,7 +342,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             this.log.debug("Indexing integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
             integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload.putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Constants.KEY_DRAFT);
+            integrationsIndexPayload.putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, Space.DRAFT.toString());
             // Use UUID as document ID
             IndexResponse integrationIndexResponse =
                     this.integrationsIndex.create(id, integrationsIndexPayload);
@@ -362,8 +362,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             // Search for the draft policy (scoped to policies index, limit 1)
             this.log.debug(
-                    "Searching for draft policy in {} (space={})", Constants.INDEX_POLICIES, Constants.KEY_DRAFT);
-            TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, Constants.KEY_DRAFT);
+                    "Searching for draft policy in {} (space={})", Constants.INDEX_POLICIES, Space.DRAFT.toString());
+            TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
 
             JsonObject draftPolicyHit;
             JsonNode draftPolicy;

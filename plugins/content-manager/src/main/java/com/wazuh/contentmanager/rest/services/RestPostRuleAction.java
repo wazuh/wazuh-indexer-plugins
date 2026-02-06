@@ -206,7 +206,7 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             // 4. Store in CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, INDEX_RULES);
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Constants.KEY_DRAFT);
+            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
 
             // 5. Link in Integration
             ContentIndex integrationIndex = new ContentIndex(client, INDEX_INTEGRATIONS);

@@ -234,7 +234,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
 
             // 4. Update CTI Rules Index
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Constants.KEY_DRAFT);
+            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
 
             // 5. Regenerate space hash because rule content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
