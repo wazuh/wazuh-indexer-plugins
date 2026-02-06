@@ -44,9 +44,6 @@ import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_DECODERS;
-import static com.wazuh.contentmanager.utils.Constants.KEY_DECODERS;
-import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
 
 /**
  * REST handler for updating CTI decoders.
@@ -66,15 +63,10 @@ import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
  */
 public class RestPutDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
-    // TODO: Move to a common constants class
+
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_METADATA = "metadata";
-    private static final String FIELD_AUTHOR = "author";
-    private static final String FIELD_MODIFIED = "modified";
+
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -119,7 +111,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
-        request.param("id");
+        request.param(Constants.KEY_ID);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
@@ -154,12 +146,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return validationError;
             }
 
-            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            resourceNode.put(FIELD_ID, decoderId);
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            resourceNode.put(Constants.KEY_ID, decoderId);
 
             // Validate decoder is in draft space
             String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(client, INDEX_DECODERS, decoderId, "Decoder");
+                    DocumentValidations.validateDocumentInSpace(client, Constants.INDEX_DECODERS, decoderId, Constants.KEY_DECODER);
             if (spaceValidationError != null) {
                 return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
@@ -169,8 +161,8 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
             // Validate decoder with Wazuh Engine
             ObjectNode enginePayload = mapper.createObjectNode();
-            enginePayload.set("resource", resourceNode);
-            enginePayload.put("type", "decoder");
+            enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
+            enginePayload.put(Constants.KEY_TYPE, Constants.KEY_DECODER);
             final RestResponse engineValidation = this.engine.validate(enginePayload);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
@@ -209,22 +201,18 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     /** Extracts the decoder ID from the request path parameters. */
     private String extractDecoderId(RestRequest request) {
-        String decoderId = request.param("id");
-        if (decoderId == null || decoderId.isBlank()) {
-            decoderId = request.param("decoder_id");
-        }
-        return decoderId;
+        return request.param(Constants.KEY_ID);
     }
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String decoderId) {
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        if (resourceNode.hasNonNull(FIELD_ID)) {
-            String payloadId = resourceNode.get(FIELD_ID).asText();
+        ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+        if (resourceNode.hasNonNull(Constants.KEY_ID)) {
+            String payloadId = resourceNode.get(Constants.KEY_ID).asText();
             if (!payloadId.equals(decoderId)) {
                 return new RestResponse(
                         "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
@@ -238,7 +226,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             throws IOException {
 
         RestPutDecoderAction.ensureIndexExists(client);
-        ContentIndex decoderIndex = new ContentIndex(client, INDEX_DECODERS, null);
+        ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
 
         // Check if decoder exists before updating
         if (!decoderIndex.exists(decoderId)) {
@@ -251,8 +239,8 @@ public class RestPutDecoderAction extends BaseRestHandler {
     /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, KEY_DECODERS);
-        node.set(KEY_DOCUMENT, resourceNode);
+        node.put(Constants.KEY_TYPE, Constants.KEY_DECODERS);
+        node.set(Constants.KEY_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
@@ -263,12 +251,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     /** Ensures the decoder index exists, creating it if necessary. */
     private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, INDEX_DECODERS)) {
-            ContentIndex index = new ContentIndex(client, INDEX_DECODERS, null);
+        if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
+            ContentIndex index = new ContentIndex(client, Constants.INDEX_DECODERS, null);
             try {
                 index.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + INDEX_DECODERS, e);
+                throw new IOException("Failed to create index " + Constants.INDEX_DECODERS, e);
             }
         }
     }
@@ -285,7 +273,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
         // Use PolicyHashService to recalculate space hash for the given space
         policyHashService.calculateAndUpdate(List.of(spaceName));
 
-        this.log.debug("Regenerated space hash for space={}", spaceName);
+        log.debug("Regenerated space hash for space={}", spaceName);
     }
 
     /**
@@ -298,23 +286,23 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
         // Ensure metadata node exists
         ObjectNode metadataNode;
-        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        if (resourceNode.has(Constants.KEY_METADATA) && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
         } else {
             metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
+            resourceNode.set(Constants.KEY_METADATA, metadataNode);
         }
 
         // Ensure author node exists
         ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        if (metadataNode.has(Constants.KEY_AUTHOR) && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
         } else {
             authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
+            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
         }
 
         // Set modified timestamp
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
     }
 }

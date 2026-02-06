@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
@@ -143,19 +144,19 @@ public class RestPostRuleAction extends BaseRestHandler {
             JsonNode rootNode = mapper.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has("type") || !"rule".equals(rootNode.get("type").asText())) {
+            if (!rootNode.has(Constants.KEY_TYPE) || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
                 return new RestResponse(
                         "Invalid or missing 'type'. Expected 'rule'.", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            if (!rootNode.has("resource")) {
+            if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            JsonNode resourceNode = rootNode.get("resource");
+            JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
 
             // 2. Validate Payload (Resource)
-            if (resourceNode.has("id")) {
+            if (resourceNode.has(Constants.KEY_ID)) {
                 return new RestResponse(
                         "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -168,7 +169,7 @@ public class RestPostRuleAction extends BaseRestHandler {
             // Validate that the Integration exists and is in draft space
             String spaceValidationError =
                     DocumentValidations.validateDocumentInSpace(
-                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
+                            client, INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
             if (spaceValidationError != null) {
                 return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
@@ -177,14 +178,14 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             // Prepare rule object
             ObjectNode ruleNode = resourceNode.deepCopy();
-            ruleNode.put("id", ruleId);
+            ruleNode.put(Constants.KEY_ID, ruleId);
 
             // Metadata operations
-            if (!ruleNode.has("date")) {
-                ruleNode.put("date", Instant.now().toString());
+            if (!ruleNode.has(Constants.KEY_DATE)) {
+                ruleNode.put(Constants.KEY_DATE, Instant.now().toString());
             }
-            if (!ruleNode.has("enabled")) {
-                ruleNode.put("enabled", true);
+            if (!ruleNode.has(Constants.KEY_ENABLED)) {
+                ruleNode.put(Constants.KEY_ENABLED, true);
             }
 
             String product = ContentIndex.extractProduct(ruleNode);
@@ -205,11 +206,11 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             // 4. Store in CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, INDEX_RULES);
-            rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
+            rulesIndex.indexCtiContent(ruleId, ruleNode, Constants.KEY_DRAFT);
 
             // 5. Link in Integration
             ContentIndex integrationIndex = new ContentIndex(client, INDEX_INTEGRATIONS);
-            integrationIndex.updateDocumentAppendToList(integrationId, "document.rules", ruleId);
+            integrationIndex.updateDocumentAppendToList(integrationId, Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES, ruleId);
 
             // 6. Regenerate space hash because rule was added to space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

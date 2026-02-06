@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
@@ -65,13 +63,11 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  */
 public class RestDeleteDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestDeleteDecoderAction.class);
-    // TODO: Move to a common constants class
+
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
-    private static final String INDEX_ID_PREFIX = "d_";
-    private static final String FIELD_DECODER_ID_PARAM = "decoder_id";
+
     private final EngineService engine;
-    private final ObjectMapper mapper = new ObjectMapper();
     private PolicyHashService policyHashService;
 
     /**
@@ -116,7 +112,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
-        request.param("id");
+        request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
@@ -149,21 +145,17 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 return error.toBytesRestResponse();
             }
 
-            String decoderId = request.param("id");
-            if (decoderId == null || decoderId.isBlank()) {
-                decoderId = request.param(FIELD_DECODER_ID_PARAM);
-            }
+            String decoderId = request.param(Constants.KEY_ID);
             if (decoderId == null || decoderId.isBlank()) {
                 return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus())
                         .toBytesRestResponse();
             }
-            final String resolvedDecoderId = decoderId;
 
             this.ensureIndexExists(client);
             // Validate decoder is in draft space
             String validationError =
                     DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_DECODERS, resolvedDecoderId, "Decoder");
+                            client, Constants.INDEX_DECODERS, decoderId, Constants.KEY_DECODER);
             if (validationError != null) {
                 return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus())
                         .toBytesRestResponse();
@@ -172,15 +164,14 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
 
             // Check if decoder exists before deleting
-            if (!decoderIndex.exists(resolvedDecoderId)) {
+            if (!decoderIndex.exists(decoderId)) {
                 return new RestResponse(
-                                "Decoder [" + resolvedDecoderId + "] not found.", RestStatus.NOT_FOUND.getStatus())
+                                "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus())
                         .toBytesRestResponse();
             }
 
-            String nonPrefixedId = this.removeDraftPrefix(resolvedDecoderId);
-            this.updateIntegrationsRemovingDecoder(client, nonPrefixedId);
-            decoderIndex.delete(resolvedDecoderId);
+            this.updateIntegrationsRemovingDecoder(client, decoderId);
+            decoderIndex.delete(decoderId);
 
             // Regenerate space hash because decoder was removed from space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
@@ -207,10 +198,6 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                 throw new IOException("Failed to create index " + Constants.INDEX_DECODERS, e);
             }
         }
-    }
-
-    private String removeDraftPrefix(String decoderId) {
-        return decoderId.startsWith(INDEX_ID_PREFIX) ? decoderId.substring(2) : decoderId;
     }
 
     private void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {

@@ -70,6 +70,7 @@ public class Constants {
     // Resource Metadata Keys
     public static final String KEY_DOCUMENT = "document";
     public static final String KEY_HASH = "hash";
+    public static final String KEY_SHA256 = "sha256";
     public static final String KEY_SPACE = "space";
     public static final String KEY_NAME = "name";
     public static final String KEY_ID = "id";
@@ -77,12 +78,16 @@ public class Constants {
     public static final String KEY_METADATA = "metadata";
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
+    public static final String KEY_DRAFT = "draft";
+    public static final String KEY_ENABLED = "enabled";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
     public static final String KEY_RESOURCE = "resource";
     public static final String KEY_INTEGRATION = "integration";
     public static final String KEY_KVDB = "kvdb";
+    public static final String KEY_DECODER = "decoder";
+    public static final String KEY_RULE = "rule";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
@@ -99,6 +104,8 @@ public class Constants {
     public static final String Q_HITS = "hits";
 
     // Operations
+    public static final String KEY_OPERATION = "operation";
+    public static final String KEY_CHANGES = "changes";
     public static final String OP_ADD = "add";
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";

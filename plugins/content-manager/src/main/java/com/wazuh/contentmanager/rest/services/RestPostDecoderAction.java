@@ -52,7 +52,6 @@ import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static com.wazuh.contentmanager.utils.Constants.*;
 
 /**
  * REST handler for creating decoder resources.
@@ -72,19 +71,10 @@ import static com.wazuh.contentmanager.utils.Constants.*;
 public class RestPostDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
 
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_METADATA = "metadata";
-    private static final String DECODER_TYPE = "decoder";
-    private static final String FIELD_AUTHOR = "author";
-    private static final String FIELD_DATE = "date";
-    private static final String FIELD_MODIFIED = "modified";
-    private static final ObjectMapper mapper = new ObjectMapper();
 
+    private static final ObjectMapper mapper = new ObjectMapper();
     private final EngineService engine;
     private PolicyHashService policyHashService;
 
@@ -144,34 +134,34 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
 
         try {
-            JsonNode payload = this.mapper.readTree(request.content().streamInput());
+            JsonNode payload = mapper.readTree(request.content().streamInput());
             // Validate payload structure
             validationError = this.validatePayload(payload);
             if (validationError != null) {
                 return validationError;
             }
-            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            String integrationId = payload.get(KEY_INTEGRATION).asText();
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
 
             // Validate integration is in draft space
             String spaceValidationError =
                     DocumentValidations.validateDocumentInSpace(
-                            client, INDEX_INTEGRATIONS, integrationId, "Integration");
+                            client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
             if (spaceValidationError != null) {
                 return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Generate UUID and validate with engine
             String decoderId = UUID.randomUUID().toString();
-            resourceNode.put(FIELD_ID, decoderId);
+            resourceNode.put(Constants.KEY_ID, decoderId);
 
             // Add timestamp metadata
             this.addTimestampMetadata(resourceNode, true);
 
             // Validate integration with Wazuh Engine
             ObjectNode enginePayload = mapper.createObjectNode();
-            enginePayload.set("resource", resourceNode);
-            enginePayload.put("type", "decoder");
+            enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
+            enginePayload.put(Constants.KEY_TYPE, Constants.KEY_DECODER);
             final RestResponse engineValidation = this.engine.validate(enginePayload);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
@@ -211,13 +201,13 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload) {
-        if (!payload.has(KEY_INTEGRATION) || payload.get(KEY_INTEGRATION).asText("").isBlank()) {
+        if (!payload.has(Constants.KEY_INTEGRATION) || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         }
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
-        if (payload.get(FIELD_RESOURCE).hasNonNull(FIELD_ID)) {
+        if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
             return new RestResponse(
                     "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
         }
@@ -227,7 +217,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
     /** Creates the decoder document in the index. */
     private void createDecoder(Client client, String decoderIndexId, ObjectNode resourceNode)
             throws IOException {
-        ContentIndex decoderIndex = new ContentIndex(client, INDEX_DECODERS, null);
+        ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
         decoderIndex.create(decoderIndexId, this.buildDecoderPayload(resourceNode));
     }
 
@@ -238,8 +228,8 @@ public class RestPostDecoderAction extends BaseRestHandler {
         com.google.gson.JsonObject document = parser.parse(resourceNode.toString()).getAsJsonObject();
 
         com.google.gson.JsonObject payload = new com.google.gson.JsonObject();
-        payload.addProperty(FIELD_TYPE, DECODER_TYPE);
-        payload.add(KEY_DOCUMENT, document);
+        payload.addProperty(Constants.KEY_TYPE, Constants.KEY_DECODER);
+        payload.add(Constants.KEY_DOCUMENT, document);
         com.google.gson.JsonObject spaceObject = new com.google.gson.JsonObject();
         spaceObject.addProperty(Constants.KEY_NAME, Space.DRAFT.toString());
         payload.add(Constants.KEY_SPACE, spaceObject);
@@ -250,7 +240,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
     @SuppressWarnings("unchecked")
     private void updateIntegrationWithDecoder(
             Client client, String integrationId, String decoderIndexId) throws IOException {
-        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
+        GetResponse integrationResponse = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
             throw new IOException(
@@ -262,7 +252,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(KEY_DOCUMENT)) {
+        if (source == null || !source.containsKey(Constants.KEY_DOCUMENT)) {
             throw new IOException(
                     "Can't find document in integration ["
                             + integrationId
@@ -270,9 +260,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
                             + decoderIndexId
                             + "].");
         }
-        Object documentObj = source.get(KEY_DOCUMENT);
+        Object documentObj = source.get(Constants.KEY_DOCUMENT);
 
-        if (documentObj == null || !(documentObj instanceof Map)) {
+        if (!(documentObj instanceof Map)) {
             throw new IOException(
                     "Integration document ["
                             + integrationId
@@ -297,20 +287,20 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
 
         Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
-        List<String> decoders = this.extractDecodersList(document.get(KEY_DECODERS));
+        List<String> decoders = this.extractDecodersList(document.get(Constants.KEY_DECODERS));
 
         if (!decoders.contains(decoderIndexId)) {
             decoders.add(decoderIndexId);
         }
 
-        document.put(KEY_DECODERS, decoders);
-        source.put(KEY_DOCUMENT, document);
+        document.put(Constants.KEY_DECODERS, decoders);
+        source.put(Constants.KEY_DOCUMENT, document);
 
         // Regenerate integration hash and persist
         regenerateIntegrationHash(client, integrationId, document, source);
         client
                 .index(
-                        new IndexRequest(INDEX_INTEGRATIONS)
+                        new IndexRequest(Constants.INDEX_INTEGRATIONS)
                                 .id(integrationId)
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
@@ -340,27 +330,27 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
         // Ensure metadata node exists
         ObjectNode metadataNode;
-        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        if (resourceNode.has(Constants.KEY_METADATA) && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
         } else {
-            metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
+            metadataNode = mapper.createObjectNode();
+            resourceNode.set(Constants.KEY_METADATA, metadataNode);
         }
 
         // Ensure author node exists
         ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        if (metadataNode.has(Constants.KEY_AUTHOR) && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
         } else {
-            authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
+            authorNode = mapper.createObjectNode();
+            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
         }
 
         // Set timestamps
         if (isCreate) {
-            authorNode.put(FIELD_DATE, currentTimestamp);
+            authorNode.put(Constants.KEY_DATE, currentTimestamp);
         }
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
     }
 
     /**
@@ -393,7 +383,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
         // Persist the updated integration with new hash
         client
                 .index(
-                        new IndexRequest(INDEX_INTEGRATIONS)
+                        new IndexRequest(Constants.INDEX_INTEGRATIONS)
                                 .id(integrationId)
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
@@ -408,7 +398,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
      * @return a RestResponse with error if validation fails, null otherwise
      */
     private RestResponse validateIntegrationSpace(Client client, String integrationId) {
-        GetResponse integrationResponse = client.prepareGet(INDEX_INTEGRATIONS, integrationId).get();
+        GetResponse integrationResponse = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
 
         if (!integrationResponse.isExists()) {
             return new RestResponse(
@@ -416,13 +406,13 @@ public class RestPostDecoderAction extends BaseRestHandler {
         }
 
         Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(KEY_SPACE)) {
+        if (source == null || !source.containsKey(Constants.KEY_SPACE)) {
             return new RestResponse(
                     "Integration [" + integrationId + "] does not have space information.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        Object spaceObj = source.get(KEY_SPACE);
+        Object spaceObj = source.get(Constants.KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
             return new RestResponse(
                     "Integration [" + integrationId + "] has invalid space information.",
@@ -431,7 +421,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(KEY_NAME);
+        Object spaceName = spaceMap.get(Constants.KEY_NAME);
 
         if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
             return new RestResponse(

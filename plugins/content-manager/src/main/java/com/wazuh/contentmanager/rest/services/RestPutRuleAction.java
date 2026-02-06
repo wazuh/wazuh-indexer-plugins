@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
@@ -61,7 +62,6 @@ public class RestPutRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_update";
     private static final Logger log = LogManager.getLogger(RestPutRuleAction.class);
 
-    private static final String CTI_RULES_INDEX = ".cti-rules";
     private PolicyHashService policyHashService;
 
     /** Default constructor. */
@@ -108,9 +108,7 @@ public class RestPutRuleAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        if (request.hasParam("id")) {
-            request.param("id");
-        }
+        request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
         return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
@@ -122,7 +120,7 @@ public class RestPutRuleAction extends BaseRestHandler {
      *
      * <ol>
      *   <li>Validates the presence of the {@code rule_id} parameter and request body.
-     *   <li>Parses the request body ensuring it follows the { "type": "rule", "resource": {...} }
+     *   <li>Parses the request body ensuring it follows the { Constants.KEY_TYPE: "rule", Constants.KEY_RESOURCE: {...} }
      *       structure.
      *   <li>Injects metadata fields such as {@code modified} timestamp and default {@code enabled}
      *       status.
@@ -137,7 +135,7 @@ public class RestPutRuleAction extends BaseRestHandler {
      */
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
-            String ruleId = request.param("id");
+            String ruleId = request.param(Constants.KEY_ID);
             if (ruleId == null || ruleId.isEmpty()) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
@@ -147,7 +145,7 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             // Validate rule exists and is in draft space
             String validationError =
-                    DocumentValidations.validateDocumentInSpace(client, CTI_RULES_INDEX, ruleId, "Rule");
+                    DocumentValidations.validateDocumentInSpace(client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
             if (validationError != null) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
@@ -164,7 +162,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             JsonNode rootNode = mapper.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has("type") || !"rule".equals(rootNode.get("type").asText())) {
+            if (!rootNode.has(Constants.KEY_TYPE) || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse(
@@ -173,17 +171,17 @@ public class RestPutRuleAction extends BaseRestHandler {
                                 .toXContent());
             }
 
-            if (!rootNode.has("resource")) {
+            if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus())
                                 .toXContent());
             }
 
-            JsonNode resourceNode = rootNode.get("resource");
+            JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
 
             // 2. Validate Resource Fields
-            if (resourceNode.has("date") || resourceNode.has("modified")) {
+            if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
                         new RestResponse(
@@ -194,36 +192,36 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             ObjectNode ruleNode = resourceNode.deepCopy();
 
-            ContentIndex rulesIndex = new ContentIndex(client, CTI_RULES_INDEX);
+            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
             String createdDate = null;
             String existingAuthor = null;
 
             JsonNode existingDoc = rulesIndex.getDocument(ruleId);
-            if (existingDoc != null && existingDoc.has("document")) {
-                JsonNode doc = existingDoc.get("document");
-                if (doc.has("date")) {
-                    createdDate = doc.get("date").asText();
+            if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
+                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                if (doc.has(Constants.KEY_DATE)) {
+                    createdDate = doc.get(Constants.KEY_DATE).asText();
                 }
-                if (doc.has("author")) {
-                    existingAuthor = doc.get("author").asText();
+                if (doc.has(Constants.KEY_AUTHOR)) {
+                    existingAuthor = doc.get(Constants.KEY_AUTHOR).asText();
                 }
             }
 
             ruleNode.put(
-                    "date", Objects.requireNonNullElseGet(createdDate, () -> Instant.now().toString()));
-            ruleNode.put("modified", Instant.now().toString());
+                    Constants.KEY_DATE, Objects.requireNonNullElseGet(createdDate, () -> Instant.now().toString()));
+            ruleNode.put(Constants.KEY_MODIFIED, Instant.now().toString());
 
-            if (!ruleNode.has("enabled")) {
-                ruleNode.put("enabled", true);
+            if (!ruleNode.has(Constants.KEY_ENABLED)) {
+                ruleNode.put(Constants.KEY_ENABLED, true);
             }
-            if (!ruleNode.has("author")) {
-                ruleNode.put("author", existingAuthor != null ? existingAuthor : "Wazuh (generated)");
+            if (!ruleNode.has(Constants.KEY_AUTHOR)) {
+                ruleNode.put(Constants.KEY_AUTHOR, existingAuthor != null ? existingAuthor : "Wazuh (generated)");
             }
 
             String product = ContentIndex.extractProduct(ruleNode);
 
             // 3. Call SAP
-            ruleNode.put("id", ruleId);
+            ruleNode.put(Constants.KEY_ID, ruleId);
             WIndexCustomRuleRequest ruleRequest =
                     new WIndexCustomRuleRequest(
                             ruleId,
@@ -236,7 +234,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
 
             // 4. Update CTI Rules Index
-            rulesIndex.indexCtiContent(ruleId, ruleNode, "draft");
+            rulesIndex.indexCtiContent(ruleId, ruleNode, Constants.KEY_DRAFT);
 
             // 5. Regenerate space hash because rule content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

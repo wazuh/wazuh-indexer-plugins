@@ -282,7 +282,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
-        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
+        assertTrue(actualResponse.getMessage().contains("integration [integration-1] not found"));
     }
 
     /**
@@ -305,7 +305,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         assertTrue(
                 actualResponse
                         .getMessage()
-                        .contains("Integration [integration-1] does not have space information."));
+                        .contains("integration [integration-1] does not have space information."));
     }
 
     /**
@@ -328,7 +328,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         assertTrue(
                 actualResponse
                         .getMessage()
-                        .contains("Integration [integration-1] does not have space information."));
+                        .contains("integration [integration-1] does not have space information."));
     }
 
     /**
