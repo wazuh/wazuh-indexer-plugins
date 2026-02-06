@@ -4,23 +4,6 @@ fields:
   base:
     fields:
       message: {}
-  agent:
-    fields:
-      groups: []
-      id: {}
-      name: {}
-      version: {}
-      host:
-        fields:
-          architecture: {}
-          hostname: {}
-          ip: {}
-          os:
-            fields:
-              name: {}
-              platform: {}
-              type: {}
-              version: {}
   checksum:
     fields: "*"
   host:
@@ -36,4 +19,25 @@ fields:
   state:
     fields: "*"
   wazuh:
-    fields: "*"
+    fields:
+      agent:
+        fields:
+          groups: []
+          id: {}
+          name: {}
+          version: {}
+          host:
+            fields:
+              architecture: {}
+              hostname: {}
+              ip: {}
+              os:
+                fields:
+                  name: {}
+                  platform: {}
+                  type: {}
+                  version: {}
+      cluster:
+        fields: "*"
+      schema:
+        fields: "*"

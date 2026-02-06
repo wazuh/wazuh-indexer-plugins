@@ -200,6 +200,7 @@ def generate_service(os_type=OS.LINUX):
 
 def generate_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": random.choice(["cluster-alpha", "cluster-beta"]),
             "node": random.choice(["node-1", "node-2", "node-3"])
@@ -244,7 +245,6 @@ def generate_random_data(number):
         os_choice = random.choice(list(OS))
         service_data = generate_service(os_type=os_choice)
         event_data = {
-            "agent": generate_random_agent(),
             "checksum": generate_random_checksum(),
             "process": generate_process(os_type=os_choice, state=service_data["state"]),
             "service": service_data,

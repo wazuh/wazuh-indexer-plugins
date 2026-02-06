@@ -31,7 +31,6 @@ def generate_random_user():
     timestamp = now.strftime(DATE_FORMAT)
 
     return {
-        "agent": generate_random_agent(),
         "checksum": generate_random_checksum(),
         "user": {
             "id": random.randint(1000, 9999),
@@ -132,6 +131,7 @@ def generate_random_os():
 
 def generate_random_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": f"wazuh-cluster-{random.randint(0, 10)}",
             "node": f"wazuh-cluster-node-{random.randint(0, 10)}",

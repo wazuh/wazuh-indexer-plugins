@@ -73,724 +73,6 @@ agent.groups:
   - array
   short: List of groups the agent belongs to.
   type: keyword
-agent.host.architecture:
-  dashed_name: agent-host-architecture
-  description: Operating system architecture.
-  example: x86_64
-  flat_name: agent.host.architecture
-  ignore_above: 1024
-  level: core
-  name: architecture
-  normalize: []
-  original_fieldset: host
-  short: Operating system architecture.
-  type: keyword
-agent.host.boot.id:
-  dashed_name: agent-host-boot-id
-  description: Linux boot uuid taken from /proc/sys/kernel/random/boot_id. Note the
-    boot_id value from /proc may or may not be the same in containers as on the host.
-    Some container runtimes will bind mount a new boot_id value onto the proc file
-    in each container.
-  example: 88a1f0ed-5ae5-41ee-af6b-41921c311872
-  flat_name: agent.host.boot.id
-  ignore_above: 1024
-  level: extended
-  name: boot.id
-  normalize: []
-  original_fieldset: host
-  short: Linux boot uuid taken from /proc/sys/kernel/random/boot_id
-  type: keyword
-agent.host.cpu:
-  dashed_name: agent-host-cpu
-  description: CPU-related data.
-  example: '"name": "Intel(R) Core(TM) i7-7700HQ CPU", "cores": 4, "speed": 2800'
-  flat_name: agent.host.cpu
-  level: custom
-  name: cpu
-  normalize: []
-  original_fieldset: host
-  short: CPU-related data.
-  type: object
-agent.host.cpu.cores:
-  dashed_name: agent-host-cpu-cores
-  description: Number of CPU cores.
-  example: 4
-  flat_name: agent.host.cpu.cores
-  level: custom
-  name: cpu.cores
-  normalize: []
-  original_fieldset: host
-  short: Number of CPU cores.
-  type: long
-agent.host.cpu.name:
-  dashed_name: agent-host-cpu-name
-  description: CPU Model name.
-  example: Intel(R) Core(TM) i7-7700HQ CPU
-  flat_name: agent.host.cpu.name
-  ignore_above: 1024
-  level: custom
-  name: cpu.name
-  normalize: []
-  original_fieldset: host
-  short: CPU Model name.
-  type: keyword
-agent.host.cpu.speed:
-  dashed_name: agent-host-cpu-speed
-  description: CPU clock speed.
-  example: 2800
-  flat_name: agent.host.cpu.speed
-  level: custom
-  name: cpu.speed
-  normalize: []
-  original_fieldset: host
-  short: CPU clock speed.
-  type: long
-agent.host.cpu.usage:
-  dashed_name: agent-host-cpu-usage
-  description: 'Percent CPU used which is normalized by the number of CPU cores and
-    it ranges from 0 to 1.
-
-    Scaling factor: 1000.
-
-    For example: For a two core host, this value should be the average of the two
-    cores, between 0 and 1.'
-  flat_name: agent.host.cpu.usage
-  level: extended
-  name: cpu.usage
-  normalize: []
-  original_fieldset: host
-  scaling_factor: 1000
-  short: Percent CPU used, between 0 and 1.
-  type: scaled_float
-agent.host.disk.read.bytes:
-  dashed_name: agent-host-disk-read-bytes
-  description: The total number of bytes (gauge) read successfully (aggregated from
-    all disks) since the last metric collection.
-  flat_name: agent.host.disk.read.bytes
-  level: extended
-  name: disk.read.bytes
-  normalize: []
-  original_fieldset: host
-  short: The number of bytes read by all disks.
-  type: long
-agent.host.disk.write.bytes:
-  dashed_name: agent-host-disk-write-bytes
-  description: The total number of bytes (gauge) written successfully (aggregated
-    from all disks) since the last metric collection.
-  flat_name: agent.host.disk.write.bytes
-  level: extended
-  name: disk.write.bytes
-  normalize: []
-  original_fieldset: host
-  short: The number of bytes written on all disks.
-  type: long
-agent.host.domain:
-  dashed_name: agent-host-domain
-  description: 'Name of the domain of which the host is a member.
-
-    For example, on Windows this could be the host''s Active Directory domain or NetBIOS
-    domain name. For Linux this could be the domain of the host''s LDAP provider.'
-  example: CONTOSO
-  flat_name: agent.host.domain
-  ignore_above: 1024
-  level: extended
-  name: domain
-  normalize: []
-  original_fieldset: host
-  short: Name of the directory the group is a member of.
-  type: keyword
-agent.host.geo.city_name:
-  dashed_name: agent-host-geo-city-name
-  description: City name.
-  example: Montreal
-  flat_name: agent.host.geo.city_name
-  ignore_above: 1024
-  level: core
-  name: city_name
-  normalize: []
-  original_fieldset: geo
-  short: City name.
-  type: keyword
-agent.host.geo.continent_code:
-  dashed_name: agent-host-geo-continent-code
-  description: Two-letter code representing continent's name.
-  example: NA
-  flat_name: agent.host.geo.continent_code
-  ignore_above: 1024
-  level: core
-  name: continent_code
-  normalize: []
-  original_fieldset: geo
-  short: Continent code.
-  type: keyword
-agent.host.geo.continent_name:
-  dashed_name: agent-host-geo-continent-name
-  description: Name of the continent.
-  example: North America
-  flat_name: agent.host.geo.continent_name
-  ignore_above: 1024
-  level: core
-  name: continent_name
-  normalize: []
-  original_fieldset: geo
-  short: Name of the continent.
-  type: keyword
-agent.host.geo.country_iso_code:
-  dashed_name: agent-host-geo-country-iso-code
-  description: Country ISO code.
-  example: CA
-  flat_name: agent.host.geo.country_iso_code
-  ignore_above: 1024
-  level: core
-  name: country_iso_code
-  normalize: []
-  original_fieldset: geo
-  short: Country ISO code.
-  type: keyword
-agent.host.geo.country_name:
-  dashed_name: agent-host-geo-country-name
-  description: Country name.
-  example: Canada
-  flat_name: agent.host.geo.country_name
-  ignore_above: 1024
-  level: core
-  name: country_name
-  normalize: []
-  original_fieldset: geo
-  short: Country name.
-  type: keyword
-agent.host.geo.location:
-  dashed_name: agent-host-geo-location
-  description: Longitude and latitude.
-  example: '{ "lon": -73.614830, "lat": 45.505918 }'
-  flat_name: agent.host.geo.location
-  level: core
-  name: location
-  normalize: []
-  original_fieldset: geo
-  short: Longitude and latitude.
-  type: geo_point
-agent.host.geo.name:
-  dashed_name: agent-host-geo-name
-  description: 'User-defined description of a location, at the level of granularity
-    they care about.
-
-    Could be the name of their data centers, the floor number, if this describes a
-    local physical entity, city names.
-
-    Not typically used in automated geolocation.'
-  example: boston-dc
-  flat_name: agent.host.geo.name
-  ignore_above: 1024
-  level: extended
-  name: name
-  normalize: []
-  original_fieldset: geo
-  short: User-defined description of a location.
-  type: keyword
-agent.host.geo.postal_code:
-  dashed_name: agent-host-geo-postal-code
-  description: 'Postal code associated with the location.
-
-    Values appropriate for this field may also be known as a postcode or ZIP code
-    and will vary widely from country to country.'
-  example: 94040
-  flat_name: agent.host.geo.postal_code
-  ignore_above: 1024
-  level: core
-  name: postal_code
-  normalize: []
-  original_fieldset: geo
-  short: Postal code.
-  type: keyword
-agent.host.geo.region_iso_code:
-  dashed_name: agent-host-geo-region-iso-code
-  description: Region ISO code.
-  example: CA-QC
-  flat_name: agent.host.geo.region_iso_code
-  ignore_above: 1024
-  level: core
-  name: region_iso_code
-  normalize: []
-  original_fieldset: geo
-  short: Region ISO code.
-  type: keyword
-agent.host.geo.region_name:
-  dashed_name: agent-host-geo-region-name
-  description: Region name.
-  example: Quebec
-  flat_name: agent.host.geo.region_name
-  ignore_above: 1024
-  level: core
-  name: region_name
-  normalize: []
-  original_fieldset: geo
-  short: Region name.
-  type: keyword
-agent.host.geo.timezone:
-  dashed_name: agent-host-geo-timezone
-  description: The time zone of the location, such as IANA time zone name.
-  example: America/Argentina/Buenos_Aires
-  flat_name: agent.host.geo.timezone
-  ignore_above: 1024
-  level: core
-  name: timezone
-  normalize: []
-  original_fieldset: geo
-  short: Time zone.
-  type: keyword
-agent.host.hostname:
-  dashed_name: agent-host-hostname
-  description: 'Hostname of the host.
-
-    It normally contains what the `hostname` command returns on the host machine.'
-  flat_name: agent.host.hostname
-  ignore_above: 1024
-  level: core
-  name: hostname
-  normalize: []
-  original_fieldset: host
-  short: Hostname of the host.
-  type: keyword
-agent.host.id:
-  dashed_name: agent-host-id
-  description: 'Unique host id.
-
-    As hostname is not always unique, use values that are meaningful in your environment.
-
-    Example: The current usage of `beat.name`.'
-  flat_name: agent.host.id
-  ignore_above: 1024
-  level: core
-  name: id
-  normalize: []
-  original_fieldset: host
-  short: Unique host id.
-  type: keyword
-agent.host.ip:
-  dashed_name: agent-host-ip
-  description: Host ip addresses.
-  flat_name: agent.host.ip
-  level: core
-  name: ip
-  normalize:
-  - array
-  original_fieldset: host
-  short: Host ip addresses.
-  type: ip
-agent.host.mac:
-  dashed_name: agent-host-mac
-  description: 'Host MAC addresses.
-
-    The notation format from RFC 7042 is suggested: Each octet (that is, 8-bit byte)
-    is represented by two [uppercase] hexadecimal digits giving the value of the octet
-    as an unsigned integer. Successive octets are separated by a hyphen.'
-  example: '["00-00-5E-00-53-23", "00-00-5E-00-53-24"]'
-  flat_name: agent.host.mac
-  ignore_above: 1024
-  level: core
-  name: mac
-  normalize:
-  - array
-  original_fieldset: host
-  pattern: ^[A-F0-9]{2}(-[A-F0-9]{2}){5,}$
-  short: Host MAC addresses.
-  type: keyword
-agent.host.memory:
-  dashed_name: agent-host-memory
-  description: Memory-related data.
-  example: '"total": 100000, "free": 90000, "used": {"percentage": 10}'
-  flat_name: agent.host.memory
-  level: custom
-  name: memory
-  normalize: []
-  original_fieldset: host
-  short: Memory-related data.
-  type: object
-agent.host.memory.free:
-  dashed_name: agent-host-memory-free
-  description: Free memory in MB.
-  example: 1024
-  flat_name: agent.host.memory.free
-  level: custom
-  name: memory.free
-  normalize: []
-  original_fieldset: host
-  short: Free memory in MB.
-  type: long
-agent.host.memory.total:
-  dashed_name: agent-host-memory-total
-  description: Total memory in MB.
-  example: 1024
-  flat_name: agent.host.memory.total
-  level: custom
-  name: memory.total
-  normalize: []
-  original_fieldset: host
-  short: Total memory in MB.
-  type: long
-agent.host.memory.used:
-  dashed_name: agent-host-memory-used
-  description: Used memory-related data.
-  example: '"percentage": 10'
-  flat_name: agent.host.memory.used
-  level: custom
-  name: memory.used
-  normalize: []
-  original_fieldset: host
-  short: Used memory-related data.
-  type: object
-agent.host.memory.used.percentage:
-  dashed_name: agent-host-memory-used-percentage
-  description: Used memory percentage.
-  example: 10
-  flat_name: agent.host.memory.used.percentage
-  level: custom
-  name: memory.used.percentage
-  normalize: []
-  original_fieldset: host
-  short: Used memory percentage.
-  type: long
-agent.host.name:
-  dashed_name: agent-host-name
-  description: 'Name of the host.
-
-    It can contain what hostname returns on Unix systems, the fully qualified domain
-    name (FQDN), or a name specified by the user. The recommended value is the lowercase
-    FQDN of the host.'
-  flat_name: agent.host.name
-  ignore_above: 1024
-  level: core
-  name: name
-  normalize: []
-  original_fieldset: host
-  short: Name of the host.
-  type: keyword
-agent.host.network.egress.bytes:
-  dashed_name: agent-host-network-egress-bytes
-  description: The number of bytes (gauge) sent out on all network interfaces by the
-    host since the last metric collection.
-  flat_name: agent.host.network.egress.bytes
-  level: extended
-  name: network.egress.bytes
-  normalize: []
-  original_fieldset: host
-  short: The number of bytes sent on all network interfaces.
-  type: long
-agent.host.network.egress.drops:
-  dashed_name: agent-host-network-egress-drops
-  description: Number of dropped transmitted packets.
-  example: 10
-  flat_name: agent.host.network.egress.drops
-  level: custom
-  name: network.egress.drops
-  normalize: []
-  original_fieldset: host
-  short: Number of dropped transmitted packets.
-  type: long
-agent.host.network.egress.errors:
-  dashed_name: agent-host-network-egress-errors
-  description: Number of transmission errors.
-  example: 10
-  flat_name: agent.host.network.egress.errors
-  level: custom
-  name: network.egress.errors
-  normalize: []
-  original_fieldset: host
-  short: Number of transmission errors.
-  type: long
-agent.host.network.egress.packets:
-  dashed_name: agent-host-network-egress-packets
-  description: The number of packets (gauge) sent out on all network interfaces by
-    the host since the last metric collection.
-  flat_name: agent.host.network.egress.packets
-  level: extended
-  name: network.egress.packets
-  normalize: []
-  original_fieldset: host
-  short: The number of packets sent on all network interfaces.
-  type: long
-agent.host.network.egress.queue:
-  dashed_name: agent-host-network-egress-queue
-  description: Transmit queue length.
-  example: 10
-  flat_name: agent.host.network.egress.queue
-  level: custom
-  name: network.egress.queue
-  normalize: []
-  original_fieldset: host
-  short: Transmit queue length.
-  type: long
-agent.host.network.ingress.bytes:
-  dashed_name: agent-host-network-ingress-bytes
-  description: The number of bytes received (gauge) on all network interfaces by the
-    host since the last metric collection.
-  flat_name: agent.host.network.ingress.bytes
-  level: extended
-  name: network.ingress.bytes
-  normalize: []
-  original_fieldset: host
-  short: The number of bytes received on all network interfaces.
-  type: long
-agent.host.network.ingress.drops:
-  dashed_name: agent-host-network-ingress-drops
-  description: Number of dropped received packets.
-  example: 10
-  flat_name: agent.host.network.ingress.drops
-  level: custom
-  name: network.ingress.drops
-  normalize: []
-  original_fieldset: host
-  short: Number of dropped received packets.
-  type: long
-agent.host.network.ingress.errors:
-  dashed_name: agent-host-network-ingress-errors
-  description: Number of reception errors.
-  example: 10
-  flat_name: agent.host.network.ingress.errors
-  level: custom
-  name: network.ingress.errors
-  normalize: []
-  original_fieldset: host
-  short: Number of reception errors.
-  type: long
-agent.host.network.ingress.packets:
-  dashed_name: agent-host-network-ingress-packets
-  description: The number of packets (gauge) received on all network interfaces by
-    the host since the last metric collection.
-  flat_name: agent.host.network.ingress.packets
-  level: extended
-  name: network.ingress.packets
-  normalize: []
-  original_fieldset: host
-  short: The number of packets received on all network interfaces.
-  type: long
-agent.host.network.ingress.queue:
-  dashed_name: agent-host-network-ingress-queue
-  description: Receive queue length.
-  example: 10
-  flat_name: agent.host.network.ingress.queue
-  level: custom
-  name: network.ingress.queue
-  normalize: []
-  original_fieldset: host
-  short: Receive queue length.
-  type: long
-agent.host.os.family:
-  dashed_name: agent-host-os-family
-  description: OS family (such as redhat, debian, freebsd, windows).
-  example: debian
-  flat_name: agent.host.os.family
-  ignore_above: 1024
-  level: extended
-  name: family
-  normalize: []
-  original_fieldset: os
-  short: OS family (such as redhat, debian, freebsd, windows).
-  type: keyword
-agent.host.os.full:
-  dashed_name: agent-host-os-full
-  description: Operating system name, including the version or code name.
-  example: Mac OS Mojave
-  flat_name: agent.host.os.full
-  ignore_above: 1024
-  level: extended
-  name: full
-  normalize: []
-  original_fieldset: os
-  short: Operating system name, including the version or code name.
-  type: keyword
-agent.host.os.kernel:
-  dashed_name: agent-host-os-kernel
-  description: Operating system kernel version as a raw string.
-  example: 4.4.0-112-generic
-  flat_name: agent.host.os.kernel
-  ignore_above: 1024
-  level: extended
-  name: kernel
-  normalize: []
-  original_fieldset: os
-  short: Operating system kernel version as a raw string.
-  type: keyword
-agent.host.os.name:
-  dashed_name: agent-host-os-name
-  description: Operating system name, without the version.
-  example: Mac OS X
-  flat_name: agent.host.os.name
-  ignore_above: 1024
-  level: extended
-  name: name
-  normalize: []
-  original_fieldset: os
-  short: Operating system name, without the version.
-  type: keyword
-agent.host.os.platform:
-  dashed_name: agent-host-os-platform
-  description: Operating system platform (such centos, ubuntu, windows).
-  example: darwin
-  flat_name: agent.host.os.platform
-  ignore_above: 1024
-  level: extended
-  name: platform
-  normalize: []
-  original_fieldset: os
-  short: Operating system platform (such centos, ubuntu, windows).
-  type: keyword
-agent.host.os.type:
-  dashed_name: agent-host-os-type
-  description: 'Use the `os.type` field to categorize the operating system into one
-    of the broad commercial families.
-
-    If the OS you''re dealing with is not listed as an expected value, the field should
-    not be populated. Please let us know by opening an issue with ECS, to propose
-    its addition.'
-  example: macos
-  expected_values:
-  - linux
-  - macos
-  - unix
-  - windows
-  - ios
-  - android
-  flat_name: agent.host.os.type
-  ignore_above: 1024
-  level: extended
-  name: type
-  normalize: []
-  original_fieldset: os
-  short: 'Which commercial OS family (one of: linux, macos, unix, windows, ios or
-    android).'
-  type: keyword
-agent.host.os.version:
-  dashed_name: agent-host-os-version
-  description: Operating system version as a raw string.
-  example: 10.14.1
-  flat_name: agent.host.os.version
-  ignore_above: 1024
-  level: extended
-  name: version
-  normalize: []
-  original_fieldset: os
-  short: Operating system version as a raw string.
-  type: keyword
-agent.host.pid_ns_ino:
-  dashed_name: agent-host-pid-ns-ino
-  description: This is the inode number of the namespace in the namespace file system
-    (nsfs). Unsigned int inum in include/linux/ns_common.h.
-  example: 256383
-  flat_name: agent.host.pid_ns_ino
-  ignore_above: 1024
-  level: extended
-  name: pid_ns_ino
-  normalize: []
-  original_fieldset: host
-  short: Pid namespace inode
-  type: keyword
-agent.host.risk.calculated_level:
-  dashed_name: agent-host-risk-calculated-level
-  description: A risk classification level calculated by an internal system as part
-    of entity analytics and entity risk scoring.
-  example: High
-  flat_name: agent.host.risk.calculated_level
-  ignore_above: 1024
-  level: extended
-  name: calculated_level
-  normalize: []
-  original_fieldset: risk
-  short: A risk classification level calculated by an internal system as part of entity
-    analytics and entity risk scoring.
-  type: keyword
-agent.host.risk.calculated_score:
-  dashed_name: agent-host-risk-calculated-score
-  description: A risk classification score calculated by an internal system as part
-    of entity analytics and entity risk scoring.
-  example: 880.73
-  flat_name: agent.host.risk.calculated_score
-  level: extended
-  name: calculated_score
-  normalize: []
-  original_fieldset: risk
-  short: A risk classification score calculated by an internal system as part of entity
-    analytics and entity risk scoring.
-  type: float
-agent.host.risk.calculated_score_norm:
-  dashed_name: agent-host-risk-calculated-score-norm
-  description: A risk classification score calculated by an internal system as part
-    of entity analytics and entity risk scoring, and normalized to a range of 0 to
-    100.
-  example: 88.73
-  flat_name: agent.host.risk.calculated_score_norm
-  level: extended
-  name: calculated_score_norm
-  normalize: []
-  original_fieldset: risk
-  short: A normalized risk score calculated by an internal system.
-  type: float
-agent.host.risk.static_level:
-  dashed_name: agent-host-risk-static-level
-  description: A risk classification level obtained from outside the system, such
-    as from some external Threat Intelligence Platform.
-  example: High
-  flat_name: agent.host.risk.static_level
-  ignore_above: 1024
-  level: extended
-  name: static_level
-  normalize: []
-  original_fieldset: risk
-  short: A risk classification level obtained from outside the system, such as from
-    some external Threat Intelligence Platform.
-  type: keyword
-agent.host.risk.static_score:
-  dashed_name: agent-host-risk-static-score
-  description: A risk classification score obtained from outside the system, such
-    as from some external Threat Intelligence Platform.
-  example: 830.0
-  flat_name: agent.host.risk.static_score
-  level: extended
-  name: static_score
-  normalize: []
-  original_fieldset: risk
-  short: A risk classification score obtained from outside the system, such as from
-    some external Threat Intelligence Platform.
-  type: float
-agent.host.risk.static_score_norm:
-  dashed_name: agent-host-risk-static-score-norm
-  description: A risk classification score obtained from outside the system, such
-    as from some external Threat Intelligence Platform, and normalized to a range
-    of 0 to 100.
-  example: 83.0
-  flat_name: agent.host.risk.static_score_norm
-  level: extended
-  name: static_score_norm
-  normalize: []
-  original_fieldset: risk
-  short: A normalized risk score calculated by an external system.
-  type: float
-agent.host.type:
-  dashed_name: agent-host-type
-  description: 'Type of host.
-
-    For Cloud providers this can be the machine type like `t2.medium`. If vm, this
-    could be the container, for example, or other information meaningful in your environment.'
-  flat_name: agent.host.type
-  ignore_above: 1024
-  level: core
-  name: type
-  normalize: []
-  original_fieldset: host
-  short: Type of host.
-  type: keyword
-agent.host.uptime:
-  dashed_name: agent-host-uptime
-  description: Seconds the host has been up.
-  example: 1325
-  flat_name: agent.host.uptime
-  level: extended
-  name: uptime
-  normalize: []
-  original_fieldset: host
-  short: Seconds the host has been up.
-  type: long
 agent.id:
   dashed_name: agent-id
   description: 'Unique identifier of this agent (if one exists).
@@ -3895,6 +3177,160 @@ email.x_mailer:
   name: x_mailer
   normalize: []
   short: Application that drafted email.
+  type: keyword
+enrichments.custom.anonymous:
+  dashed_name: enrichments-custom-anonymous
+  description: Indicates whether the indicator was reported anonymously by the submitter.
+  flat_name: enrichments.custom.anonymous
+  ignore_above: 1024
+  level: custom
+  name: custom.anonymous
+  normalize: []
+  short: Indicates whether the indicator was reported anonymously by the submitter.
+  type: keyword
+enrichments.custom.id:
+  dashed_name: enrichments-custom-id
+  description: Unique identifier of the indicator.
+  flat_name: enrichments.custom.id
+  ignore_above: 1024
+  level: custom
+  name: custom.id
+  normalize: []
+  short: Unique identifier of the indicator.
+  type: keyword
+enrichments.custom.malware:
+  dashed_name: enrichments-custom-malware
+  description: Malware family or identifier associated with the indicator.
+  flat_name: enrichments.custom.malware
+  ignore_above: 1024
+  level: custom
+  name: custom.malware
+  normalize: []
+  short: Malware family or identifier associated with the indicator.
+  type: keyword
+enrichments.custom.malware_alias:
+  dashed_name: enrichments-custom-malware-alias
+  description: Alternative or secondary name used to refer to the same malware family.
+  flat_name: enrichments.custom.malware_alias
+  ignore_above: 1024
+  level: custom
+  name: custom.malware_alias
+  normalize:
+  - array
+  short: Alternative or secondary name used to refer to the same malware family.
+  type: keyword
+enrichments.custom.malware_printable:
+  dashed_name: enrichments-custom-malware-printable
+  description: Human-readable or normalized malware name intended for display purposes.
+  flat_name: enrichments.custom.malware_printable
+  ignore_above: 1024
+  level: custom
+  name: custom.malware_printable
+  normalize: []
+  short: Human-readable or normalized malware name intended for display purposes.
+  type: keyword
+enrichments.custom.tags:
+  dashed_name: enrichments-custom-tags
+  description: List of tags associated with the indicator used to classify or group
+    related threats or campaigns.
+  flat_name: enrichments.custom.tags
+  ignore_above: 1024
+  level: custom
+  name: custom.tags
+  normalize:
+  - array
+  short: List of tags associated with the indicator used to classify or group related
+    threats or campaigns.
+  type: keyword
+enrichments.custom.threat_type:
+  dashed_name: enrichments-custom-threat-type
+  description: High-level classification of the threat associated with the indicator.
+  flat_name: enrichments.custom.threat_type
+  ignore_above: 1024
+  level: custom
+  name: custom.threat_type
+  normalize: []
+  short: High-level classification of the threat associated with the indicator.
+  type: keyword
+enrichments.indicator.confidence:
+  dashed_name: enrichments-indicator-confidence
+  description: Indicator confidence rating.
+  flat_name: enrichments.indicator.confidence
+  ignore_above: 1024
+  level: custom
+  name: indicator.confidence
+  normalize: []
+  short: Indicator confidence rating.
+  type: keyword
+enrichments.indicator.first_seen:
+  dashed_name: enrichments-indicator-first-seen
+  description: Date/time indicator was first reported.
+  flat_name: enrichments.indicator.first_seen
+  level: custom
+  name: indicator.first_seen
+  normalize: []
+  short: Date/time indicator was first reported.
+  type: date
+enrichments.indicator.last_seen:
+  dashed_name: enrichments-indicator-last-seen
+  description: Date/time indicator was last reported.
+  flat_name: enrichments.indicator.last_seen
+  level: custom
+  name: indicator.last_seen
+  normalize: []
+  short: Date/time indicator was last reported.
+  type: date
+enrichments.indicator.name:
+  dashed_name: enrichments-indicator-name
+  description: Indicator display name.
+  flat_name: enrichments.indicator.name
+  ignore_above: 1024
+  level: custom
+  name: indicator.name
+  normalize: []
+  short: Indicator display name.
+  type: keyword
+enrichments.indicator.provider:
+  dashed_name: enrichments-indicator-provider
+  description: Indicator provider.
+  flat_name: enrichments.indicator.provider
+  ignore_above: 1024
+  level: custom
+  name: indicator.provider
+  normalize: []
+  short: Indicator provider.
+  type: keyword
+enrichments.indicator.reference:
+  dashed_name: enrichments-indicator-reference
+  description: Indicator reference URL.
+  flat_name: enrichments.indicator.reference
+  ignore_above: 1024
+  level: custom
+  name: indicator.reference
+  normalize: []
+  short: Indicator reference URL.
+  type: keyword
+enrichments.indicator.type:
+  dashed_name: enrichments-indicator-type
+  description: Type of indicator.
+  flat_name: enrichments.indicator.type
+  ignore_above: 1024
+  level: custom
+  name: indicator.type
+  normalize: []
+  short: Type of indicator.
+  type: keyword
+enrichments.source:
+  dashed_name: enrichments-source
+  description: Source of the enrichment data identifying the external provider that
+    supplied the indicator.
+  flat_name: enrichments.source
+  ignore_above: 1024
+  level: custom
+  name: source
+  normalize: []
+  short: Source of the enrichment data identifying the external provider that supplied
+    the indicator.
   type: keyword
 error.code:
   dashed_name: error-code
@@ -26689,6 +26125,825 @@ vulnerability.severity:
   normalize: []
   short: Severity of the vulnerability.
   type: keyword
+wazuh.agent.build.original:
+  dashed_name: wazuh-agent-build-original
+  description: 'Extended build information for the agent.
+
+    This field is intended to contain any build information that a data source may
+    provide, no specific formatting is required.'
+  example: metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c
+    built 2020-02-05 23:10:10 +0000 UTC]
+  flat_name: wazuh.agent.build.original
+  ignore_above: 1024
+  level: core
+  name: build.original
+  normalize: []
+  original_fieldset: agent
+  short: Extended build information for the agent.
+  type: keyword
+wazuh.agent.ephemeral_id:
+  dashed_name: wazuh-agent-ephemeral-id
+  description: 'Ephemeral identifier of this agent (if one exists).
+
+    This id normally changes across restarts, but `agent.id` does not.'
+  example: 8a4f500f
+  flat_name: wazuh.agent.ephemeral_id
+  ignore_above: 1024
+  level: extended
+  name: ephemeral_id
+  normalize: []
+  original_fieldset: agent
+  short: Ephemeral identifier of this agent.
+  type: keyword
+wazuh.agent.groups:
+  dashed_name: wazuh-agent-groups
+  description: List of groups the agent belongs to.
+  example: '["group1", "group2"]'
+  flat_name: wazuh.agent.groups
+  ignore_above: 1024
+  level: custom
+  name: groups
+  normalize:
+  - array
+  original_fieldset: agent
+  short: List of groups the agent belongs to.
+  type: keyword
+wazuh.agent.host.architecture:
+  dashed_name: wazuh-agent-host-architecture
+  description: Operating system architecture.
+  example: x86_64
+  flat_name: wazuh.agent.host.architecture
+  ignore_above: 1024
+  level: core
+  name: architecture
+  normalize: []
+  original_fieldset: host
+  short: Operating system architecture.
+  type: keyword
+wazuh.agent.host.boot.id:
+  dashed_name: wazuh-agent-host-boot-id
+  description: Linux boot uuid taken from /proc/sys/kernel/random/boot_id. Note the
+    boot_id value from /proc may or may not be the same in containers as on the host.
+    Some container runtimes will bind mount a new boot_id value onto the proc file
+    in each container.
+  example: 88a1f0ed-5ae5-41ee-af6b-41921c311872
+  flat_name: wazuh.agent.host.boot.id
+  ignore_above: 1024
+  level: extended
+  name: boot.id
+  normalize: []
+  original_fieldset: host
+  short: Linux boot uuid taken from /proc/sys/kernel/random/boot_id
+  type: keyword
+wazuh.agent.host.cpu:
+  dashed_name: wazuh-agent-host-cpu
+  description: CPU-related data.
+  example: '"name": "Intel(R) Core(TM) i7-7700HQ CPU", "cores": 4, "speed": 2800'
+  flat_name: wazuh.agent.host.cpu
+  level: custom
+  name: cpu
+  normalize: []
+  original_fieldset: host
+  short: CPU-related data.
+  type: object
+wazuh.agent.host.cpu.cores:
+  dashed_name: wazuh-agent-host-cpu-cores
+  description: Number of CPU cores.
+  example: 4
+  flat_name: wazuh.agent.host.cpu.cores
+  level: custom
+  name: cpu.cores
+  normalize: []
+  original_fieldset: host
+  short: Number of CPU cores.
+  type: long
+wazuh.agent.host.cpu.name:
+  dashed_name: wazuh-agent-host-cpu-name
+  description: CPU Model name.
+  example: Intel(R) Core(TM) i7-7700HQ CPU
+  flat_name: wazuh.agent.host.cpu.name
+  ignore_above: 1024
+  level: custom
+  name: cpu.name
+  normalize: []
+  original_fieldset: host
+  short: CPU Model name.
+  type: keyword
+wazuh.agent.host.cpu.speed:
+  dashed_name: wazuh-agent-host-cpu-speed
+  description: CPU clock speed.
+  example: 2800
+  flat_name: wazuh.agent.host.cpu.speed
+  level: custom
+  name: cpu.speed
+  normalize: []
+  original_fieldset: host
+  short: CPU clock speed.
+  type: long
+wazuh.agent.host.cpu.usage:
+  dashed_name: wazuh-agent-host-cpu-usage
+  description: 'Percent CPU used which is normalized by the number of CPU cores and
+    it ranges from 0 to 1.
+
+    Scaling factor: 1000.
+
+    For example: For a two core host, this value should be the average of the two
+    cores, between 0 and 1.'
+  flat_name: wazuh.agent.host.cpu.usage
+  level: extended
+  name: cpu.usage
+  normalize: []
+  original_fieldset: host
+  scaling_factor: 1000
+  short: Percent CPU used, between 0 and 1.
+  type: scaled_float
+wazuh.agent.host.disk.read.bytes:
+  dashed_name: wazuh-agent-host-disk-read-bytes
+  description: The total number of bytes (gauge) read successfully (aggregated from
+    all disks) since the last metric collection.
+  flat_name: wazuh.agent.host.disk.read.bytes
+  level: extended
+  name: disk.read.bytes
+  normalize: []
+  original_fieldset: host
+  short: The number of bytes read by all disks.
+  type: long
+wazuh.agent.host.disk.write.bytes:
+  dashed_name: wazuh-agent-host-disk-write-bytes
+  description: The total number of bytes (gauge) written successfully (aggregated
+    from all disks) since the last metric collection.
+  flat_name: wazuh.agent.host.disk.write.bytes
+  level: extended
+  name: disk.write.bytes
+  normalize: []
+  original_fieldset: host
+  short: The number of bytes written on all disks.
+  type: long
+wazuh.agent.host.domain:
+  dashed_name: wazuh-agent-host-domain
+  description: 'Name of the domain of which the host is a member.
+
+    For example, on Windows this could be the host''s Active Directory domain or NetBIOS
+    domain name. For Linux this could be the domain of the host''s LDAP provider.'
+  example: CONTOSO
+  flat_name: wazuh.agent.host.domain
+  ignore_above: 1024
+  level: extended
+  name: domain
+  normalize: []
+  original_fieldset: host
+  short: Name of the directory the group is a member of.
+  type: keyword
+wazuh.agent.host.geo.city_name:
+  dashed_name: wazuh-agent-host-geo-city-name
+  description: City name.
+  example: Montreal
+  flat_name: wazuh.agent.host.geo.city_name
+  ignore_above: 1024
+  level: core
+  name: city_name
+  normalize: []
+  original_fieldset: geo
+  short: City name.
+  type: keyword
+wazuh.agent.host.geo.continent_code:
+  dashed_name: wazuh-agent-host-geo-continent-code
+  description: Two-letter code representing continent's name.
+  example: NA
+  flat_name: wazuh.agent.host.geo.continent_code
+  ignore_above: 1024
+  level: core
+  name: continent_code
+  normalize: []
+  original_fieldset: geo
+  short: Continent code.
+  type: keyword
+wazuh.agent.host.geo.continent_name:
+  dashed_name: wazuh-agent-host-geo-continent-name
+  description: Name of the continent.
+  example: North America
+  flat_name: wazuh.agent.host.geo.continent_name
+  ignore_above: 1024
+  level: core
+  name: continent_name
+  normalize: []
+  original_fieldset: geo
+  short: Name of the continent.
+  type: keyword
+wazuh.agent.host.geo.country_iso_code:
+  dashed_name: wazuh-agent-host-geo-country-iso-code
+  description: Country ISO code.
+  example: CA
+  flat_name: wazuh.agent.host.geo.country_iso_code
+  ignore_above: 1024
+  level: core
+  name: country_iso_code
+  normalize: []
+  original_fieldset: geo
+  short: Country ISO code.
+  type: keyword
+wazuh.agent.host.geo.country_name:
+  dashed_name: wazuh-agent-host-geo-country-name
+  description: Country name.
+  example: Canada
+  flat_name: wazuh.agent.host.geo.country_name
+  ignore_above: 1024
+  level: core
+  name: country_name
+  normalize: []
+  original_fieldset: geo
+  short: Country name.
+  type: keyword
+wazuh.agent.host.geo.location:
+  dashed_name: wazuh-agent-host-geo-location
+  description: Longitude and latitude.
+  example: '{ "lon": -73.614830, "lat": 45.505918 }'
+  flat_name: wazuh.agent.host.geo.location
+  level: core
+  name: location
+  normalize: []
+  original_fieldset: geo
+  short: Longitude and latitude.
+  type: geo_point
+wazuh.agent.host.geo.name:
+  dashed_name: wazuh-agent-host-geo-name
+  description: 'User-defined description of a location, at the level of granularity
+    they care about.
+
+    Could be the name of their data centers, the floor number, if this describes a
+    local physical entity, city names.
+
+    Not typically used in automated geolocation.'
+  example: boston-dc
+  flat_name: wazuh.agent.host.geo.name
+  ignore_above: 1024
+  level: extended
+  name: name
+  normalize: []
+  original_fieldset: geo
+  short: User-defined description of a location.
+  type: keyword
+wazuh.agent.host.geo.postal_code:
+  dashed_name: wazuh-agent-host-geo-postal-code
+  description: 'Postal code associated with the location.
+
+    Values appropriate for this field may also be known as a postcode or ZIP code
+    and will vary widely from country to country.'
+  example: 94040
+  flat_name: wazuh.agent.host.geo.postal_code
+  ignore_above: 1024
+  level: core
+  name: postal_code
+  normalize: []
+  original_fieldset: geo
+  short: Postal code.
+  type: keyword
+wazuh.agent.host.geo.region_iso_code:
+  dashed_name: wazuh-agent-host-geo-region-iso-code
+  description: Region ISO code.
+  example: CA-QC
+  flat_name: wazuh.agent.host.geo.region_iso_code
+  ignore_above: 1024
+  level: core
+  name: region_iso_code
+  normalize: []
+  original_fieldset: geo
+  short: Region ISO code.
+  type: keyword
+wazuh.agent.host.geo.region_name:
+  dashed_name: wazuh-agent-host-geo-region-name
+  description: Region name.
+  example: Quebec
+  flat_name: wazuh.agent.host.geo.region_name
+  ignore_above: 1024
+  level: core
+  name: region_name
+  normalize: []
+  original_fieldset: geo
+  short: Region name.
+  type: keyword
+wazuh.agent.host.geo.timezone:
+  dashed_name: wazuh-agent-host-geo-timezone
+  description: The time zone of the location, such as IANA time zone name.
+  example: America/Argentina/Buenos_Aires
+  flat_name: wazuh.agent.host.geo.timezone
+  ignore_above: 1024
+  level: core
+  name: timezone
+  normalize: []
+  original_fieldset: geo
+  short: Time zone.
+  type: keyword
+wazuh.agent.host.hostname:
+  dashed_name: wazuh-agent-host-hostname
+  description: 'Hostname of the host.
+
+    It normally contains what the `hostname` command returns on the host machine.'
+  flat_name: wazuh.agent.host.hostname
+  ignore_above: 1024
+  level: core
+  name: hostname
+  normalize: []
+  original_fieldset: host
+  short: Hostname of the host.
+  type: keyword
+wazuh.agent.host.id:
+  dashed_name: wazuh-agent-host-id
+  description: 'Unique host id.
+
+    As hostname is not always unique, use values that are meaningful in your environment.
+
+    Example: The current usage of `beat.name`.'
+  flat_name: wazuh.agent.host.id
+  ignore_above: 1024
+  level: core
+  name: id
+  normalize: []
+  original_fieldset: host
+  short: Unique host id.
+  type: keyword
+wazuh.agent.host.ip:
+  dashed_name: wazuh-agent-host-ip
+  description: Host ip addresses.
+  flat_name: wazuh.agent.host.ip
+  level: core
+  name: ip
+  normalize:
+  - array
+  original_fieldset: host
+  short: Host ip addresses.
+  type: ip
+wazuh.agent.host.mac:
+  dashed_name: wazuh-agent-host-mac
+  description: 'Host MAC addresses.
+
+    The notation format from RFC 7042 is suggested: Each octet (that is, 8-bit byte)
+    is represented by two [uppercase] hexadecimal digits giving the value of the octet
+    as an unsigned integer. Successive octets are separated by a hyphen.'
+  example: '["00-00-5E-00-53-23", "00-00-5E-00-53-24"]'
+  flat_name: wazuh.agent.host.mac
+  ignore_above: 1024
+  level: core
+  name: mac
+  normalize:
+  - array
+  original_fieldset: host
+  pattern: ^[A-F0-9]{2}(-[A-F0-9]{2}){5,}$
+  short: Host MAC addresses.
+  type: keyword
+wazuh.agent.host.memory:
+  dashed_name: wazuh-agent-host-memory
+  description: Memory-related data.
+  example: '"total": 100000, "free": 90000, "used": {"percentage": 10}'
+  flat_name: wazuh.agent.host.memory
+  level: custom
+  name: memory
+  normalize: []
+  original_fieldset: host
+  short: Memory-related data.
+  type: object
+wazuh.agent.host.memory.free:
+  dashed_name: wazuh-agent-host-memory-free
+  description: Free memory in MB.
+  example: 1024
+  flat_name: wazuh.agent.host.memory.free
+  level: custom
+  name: memory.free
+  normalize: []
+  original_fieldset: host
+  short: Free memory in MB.
+  type: long
+wazuh.agent.host.memory.total:
+  dashed_name: wazuh-agent-host-memory-total
+  description: Total memory in MB.
+  example: 1024
+  flat_name: wazuh.agent.host.memory.total
+  level: custom
+  name: memory.total
+  normalize: []
+  original_fieldset: host
+  short: Total memory in MB.
+  type: long
+wazuh.agent.host.memory.used:
+  dashed_name: wazuh-agent-host-memory-used
+  description: Used memory-related data.
+  example: '"percentage": 10'
+  flat_name: wazuh.agent.host.memory.used
+  level: custom
+  name: memory.used
+  normalize: []
+  original_fieldset: host
+  short: Used memory-related data.
+  type: object
+wazuh.agent.host.memory.used.percentage:
+  dashed_name: wazuh-agent-host-memory-used-percentage
+  description: Used memory percentage.
+  example: 10
+  flat_name: wazuh.agent.host.memory.used.percentage
+  level: custom
+  name: memory.used.percentage
+  normalize: []
+  original_fieldset: host
+  short: Used memory percentage.
+  type: long
+wazuh.agent.host.name:
+  dashed_name: wazuh-agent-host-name
+  description: 'Name of the host.
+
+    It can contain what hostname returns on Unix systems, the fully qualified domain
+    name (FQDN), or a name specified by the user. The recommended value is the lowercase
+    FQDN of the host.'
+  flat_name: wazuh.agent.host.name
+  ignore_above: 1024
+  level: core
+  name: name
+  normalize: []
+  original_fieldset: host
+  short: Name of the host.
+  type: keyword
+wazuh.agent.host.network.egress.bytes:
+  dashed_name: wazuh-agent-host-network-egress-bytes
+  description: The number of bytes (gauge) sent out on all network interfaces by the
+    host since the last metric collection.
+  flat_name: wazuh.agent.host.network.egress.bytes
+  level: extended
+  name: network.egress.bytes
+  normalize: []
+  original_fieldset: host
+  short: The number of bytes sent on all network interfaces.
+  type: long
+wazuh.agent.host.network.egress.drops:
+  dashed_name: wazuh-agent-host-network-egress-drops
+  description: Number of dropped transmitted packets.
+  example: 10
+  flat_name: wazuh.agent.host.network.egress.drops
+  level: custom
+  name: network.egress.drops
+  normalize: []
+  original_fieldset: host
+  short: Number of dropped transmitted packets.
+  type: long
+wazuh.agent.host.network.egress.errors:
+  dashed_name: wazuh-agent-host-network-egress-errors
+  description: Number of transmission errors.
+  example: 10
+  flat_name: wazuh.agent.host.network.egress.errors
+  level: custom
+  name: network.egress.errors
+  normalize: []
+  original_fieldset: host
+  short: Number of transmission errors.
+  type: long
+wazuh.agent.host.network.egress.packets:
+  dashed_name: wazuh-agent-host-network-egress-packets
+  description: The number of packets (gauge) sent out on all network interfaces by
+    the host since the last metric collection.
+  flat_name: wazuh.agent.host.network.egress.packets
+  level: extended
+  name: network.egress.packets
+  normalize: []
+  original_fieldset: host
+  short: The number of packets sent on all network interfaces.
+  type: long
+wazuh.agent.host.network.egress.queue:
+  dashed_name: wazuh-agent-host-network-egress-queue
+  description: Transmit queue length.
+  example: 10
+  flat_name: wazuh.agent.host.network.egress.queue
+  level: custom
+  name: network.egress.queue
+  normalize: []
+  original_fieldset: host
+  short: Transmit queue length.
+  type: long
+wazuh.agent.host.network.ingress.bytes:
+  dashed_name: wazuh-agent-host-network-ingress-bytes
+  description: The number of bytes received (gauge) on all network interfaces by the
+    host since the last metric collection.
+  flat_name: wazuh.agent.host.network.ingress.bytes
+  level: extended
+  name: network.ingress.bytes
+  normalize: []
+  original_fieldset: host
+  short: The number of bytes received on all network interfaces.
+  type: long
+wazuh.agent.host.network.ingress.drops:
+  dashed_name: wazuh-agent-host-network-ingress-drops
+  description: Number of dropped received packets.
+  example: 10
+  flat_name: wazuh.agent.host.network.ingress.drops
+  level: custom
+  name: network.ingress.drops
+  normalize: []
+  original_fieldset: host
+  short: Number of dropped received packets.
+  type: long
+wazuh.agent.host.network.ingress.errors:
+  dashed_name: wazuh-agent-host-network-ingress-errors
+  description: Number of reception errors.
+  example: 10
+  flat_name: wazuh.agent.host.network.ingress.errors
+  level: custom
+  name: network.ingress.errors
+  normalize: []
+  original_fieldset: host
+  short: Number of reception errors.
+  type: long
+wazuh.agent.host.network.ingress.packets:
+  dashed_name: wazuh-agent-host-network-ingress-packets
+  description: The number of packets (gauge) received on all network interfaces by
+    the host since the last metric collection.
+  flat_name: wazuh.agent.host.network.ingress.packets
+  level: extended
+  name: network.ingress.packets
+  normalize: []
+  original_fieldset: host
+  short: The number of packets received on all network interfaces.
+  type: long
+wazuh.agent.host.network.ingress.queue:
+  dashed_name: wazuh-agent-host-network-ingress-queue
+  description: Receive queue length.
+  example: 10
+  flat_name: wazuh.agent.host.network.ingress.queue
+  level: custom
+  name: network.ingress.queue
+  normalize: []
+  original_fieldset: host
+  short: Receive queue length.
+  type: long
+wazuh.agent.host.os.family:
+  dashed_name: wazuh-agent-host-os-family
+  description: OS family (such as redhat, debian, freebsd, windows).
+  example: debian
+  flat_name: wazuh.agent.host.os.family
+  ignore_above: 1024
+  level: extended
+  name: family
+  normalize: []
+  original_fieldset: os
+  short: OS family (such as redhat, debian, freebsd, windows).
+  type: keyword
+wazuh.agent.host.os.full:
+  dashed_name: wazuh-agent-host-os-full
+  description: Operating system name, including the version or code name.
+  example: Mac OS Mojave
+  flat_name: wazuh.agent.host.os.full
+  ignore_above: 1024
+  level: extended
+  name: full
+  normalize: []
+  original_fieldset: os
+  short: Operating system name, including the version or code name.
+  type: keyword
+wazuh.agent.host.os.kernel:
+  dashed_name: wazuh-agent-host-os-kernel
+  description: Operating system kernel version as a raw string.
+  example: 4.4.0-112-generic
+  flat_name: wazuh.agent.host.os.kernel
+  ignore_above: 1024
+  level: extended
+  name: kernel
+  normalize: []
+  original_fieldset: os
+  short: Operating system kernel version as a raw string.
+  type: keyword
+wazuh.agent.host.os.name:
+  dashed_name: wazuh-agent-host-os-name
+  description: Operating system name, without the version.
+  example: Mac OS X
+  flat_name: wazuh.agent.host.os.name
+  ignore_above: 1024
+  level: extended
+  name: name
+  normalize: []
+  original_fieldset: os
+  short: Operating system name, without the version.
+  type: keyword
+wazuh.agent.host.os.platform:
+  dashed_name: wazuh-agent-host-os-platform
+  description: Operating system platform (such centos, ubuntu, windows).
+  example: darwin
+  flat_name: wazuh.agent.host.os.platform
+  ignore_above: 1024
+  level: extended
+  name: platform
+  normalize: []
+  original_fieldset: os
+  short: Operating system platform (such centos, ubuntu, windows).
+  type: keyword
+wazuh.agent.host.os.type:
+  dashed_name: wazuh-agent-host-os-type
+  description: 'Use the `os.type` field to categorize the operating system into one
+    of the broad commercial families.
+
+    If the OS you''re dealing with is not listed as an expected value, the field should
+    not be populated. Please let us know by opening an issue with ECS, to propose
+    its addition.'
+  example: macos
+  expected_values:
+  - linux
+  - macos
+  - unix
+  - windows
+  - ios
+  - android
+  flat_name: wazuh.agent.host.os.type
+  ignore_above: 1024
+  level: extended
+  name: type
+  normalize: []
+  original_fieldset: os
+  short: 'Which commercial OS family (one of: linux, macos, unix, windows, ios or
+    android).'
+  type: keyword
+wazuh.agent.host.os.version:
+  dashed_name: wazuh-agent-host-os-version
+  description: Operating system version as a raw string.
+  example: 10.14.1
+  flat_name: wazuh.agent.host.os.version
+  ignore_above: 1024
+  level: extended
+  name: version
+  normalize: []
+  original_fieldset: os
+  short: Operating system version as a raw string.
+  type: keyword
+wazuh.agent.host.pid_ns_ino:
+  dashed_name: wazuh-agent-host-pid-ns-ino
+  description: This is the inode number of the namespace in the namespace file system
+    (nsfs). Unsigned int inum in include/linux/ns_common.h.
+  example: 256383
+  flat_name: wazuh.agent.host.pid_ns_ino
+  ignore_above: 1024
+  level: extended
+  name: pid_ns_ino
+  normalize: []
+  original_fieldset: host
+  short: Pid namespace inode
+  type: keyword
+wazuh.agent.host.risk.calculated_level:
+  dashed_name: wazuh-agent-host-risk-calculated-level
+  description: A risk classification level calculated by an internal system as part
+    of entity analytics and entity risk scoring.
+  example: High
+  flat_name: wazuh.agent.host.risk.calculated_level
+  ignore_above: 1024
+  level: extended
+  name: calculated_level
+  normalize: []
+  original_fieldset: risk
+  short: A risk classification level calculated by an internal system as part of entity
+    analytics and entity risk scoring.
+  type: keyword
+wazuh.agent.host.risk.calculated_score:
+  dashed_name: wazuh-agent-host-risk-calculated-score
+  description: A risk classification score calculated by an internal system as part
+    of entity analytics and entity risk scoring.
+  example: 880.73
+  flat_name: wazuh.agent.host.risk.calculated_score
+  level: extended
+  name: calculated_score
+  normalize: []
+  original_fieldset: risk
+  short: A risk classification score calculated by an internal system as part of entity
+    analytics and entity risk scoring.
+  type: float
+wazuh.agent.host.risk.calculated_score_norm:
+  dashed_name: wazuh-agent-host-risk-calculated-score-norm
+  description: A risk classification score calculated by an internal system as part
+    of entity analytics and entity risk scoring, and normalized to a range of 0 to
+    100.
+  example: 88.73
+  flat_name: wazuh.agent.host.risk.calculated_score_norm
+  level: extended
+  name: calculated_score_norm
+  normalize: []
+  original_fieldset: risk
+  short: A normalized risk score calculated by an internal system.
+  type: float
+wazuh.agent.host.risk.static_level:
+  dashed_name: wazuh-agent-host-risk-static-level
+  description: A risk classification level obtained from outside the system, such
+    as from some external Threat Intelligence Platform.
+  example: High
+  flat_name: wazuh.agent.host.risk.static_level
+  ignore_above: 1024
+  level: extended
+  name: static_level
+  normalize: []
+  original_fieldset: risk
+  short: A risk classification level obtained from outside the system, such as from
+    some external Threat Intelligence Platform.
+  type: keyword
+wazuh.agent.host.risk.static_score:
+  dashed_name: wazuh-agent-host-risk-static-score
+  description: A risk classification score obtained from outside the system, such
+    as from some external Threat Intelligence Platform.
+  example: 830.0
+  flat_name: wazuh.agent.host.risk.static_score
+  level: extended
+  name: static_score
+  normalize: []
+  original_fieldset: risk
+  short: A risk classification score obtained from outside the system, such as from
+    some external Threat Intelligence Platform.
+  type: float
+wazuh.agent.host.risk.static_score_norm:
+  dashed_name: wazuh-agent-host-risk-static-score-norm
+  description: A risk classification score obtained from outside the system, such
+    as from some external Threat Intelligence Platform, and normalized to a range
+    of 0 to 100.
+  example: 83.0
+  flat_name: wazuh.agent.host.risk.static_score_norm
+  level: extended
+  name: static_score_norm
+  normalize: []
+  original_fieldset: risk
+  short: A normalized risk score calculated by an external system.
+  type: float
+wazuh.agent.host.type:
+  dashed_name: wazuh-agent-host-type
+  description: 'Type of host.
+
+    For Cloud providers this can be the machine type like `t2.medium`. If vm, this
+    could be the container, for example, or other information meaningful in your environment.'
+  flat_name: wazuh.agent.host.type
+  ignore_above: 1024
+  level: core
+  name: type
+  normalize: []
+  original_fieldset: host
+  short: Type of host.
+  type: keyword
+wazuh.agent.host.uptime:
+  dashed_name: wazuh-agent-host-uptime
+  description: Seconds the host has been up.
+  example: 1325
+  flat_name: wazuh.agent.host.uptime
+  level: extended
+  name: uptime
+  normalize: []
+  original_fieldset: host
+  short: Seconds the host has been up.
+  type: long
+wazuh.agent.id:
+  dashed_name: wazuh-agent-id
+  description: 'Unique identifier of this agent (if one exists).
+
+    Example: For Beats this would be beat.id.'
+  example: 8a4f500d
+  flat_name: wazuh.agent.id
+  ignore_above: 1024
+  level: core
+  name: id
+  normalize: []
+  original_fieldset: agent
+  short: Unique identifier of this agent.
+  type: keyword
+wazuh.agent.name:
+  dashed_name: wazuh-agent-name
+  description: 'Custom name of the agent.
+
+    This is a name that can be given to an agent. This can be helpful if for example
+    two Filebeat instances are running on the same host but a human readable separation
+    is needed on which Filebeat instance data is coming from.'
+  example: foo
+  flat_name: wazuh.agent.name
+  ignore_above: 1024
+  level: core
+  name: name
+  normalize: []
+  original_fieldset: agent
+  short: Custom name of the agent.
+  type: keyword
+wazuh.agent.type:
+  dashed_name: wazuh-agent-type
+  description: 'Type of the agent.
+
+    The agent type always stays the same and should be given by the agent used. In
+    case of Filebeat the agent would always be Filebeat also if two Filebeat instances
+    are run on the same machine.'
+  example: filebeat
+  flat_name: wazuh.agent.type
+  ignore_above: 1024
+  level: core
+  name: type
+  normalize: []
+  original_fieldset: agent
+  short: Type of the agent.
+  type: keyword
+wazuh.agent.version:
+  dashed_name: wazuh-agent-version
+  description: Version of the agent.
+  example: 6.0.0-rc2
+  flat_name: wazuh.agent.version
+  ignore_above: 1024
+  level: core
+  name: version
+  normalize: []
+  original_fieldset: agent
+  short: Version of the agent.
+  type: keyword
 wazuh.cluster.name:
   dashed_name: wazuh-cluster-name
   description: Wazuh cluster name.
@@ -26788,6 +27043,17 @@ wazuh.schema.version:
   name: schema.version
   normalize: []
   short: Wazuh schema version.
+  type: keyword
+wazuh.space.name:
+  dashed_name: wazuh-space-name
+  description: Wazuh space name.
+  example: default
+  flat_name: wazuh.space.name
+  ignore_above: 1024
+  level: custom
+  name: space.name
+  normalize: []
+  short: Wazuh space name.
   type: keyword
 zeek.capture_loss_acks:
   dashed_name: zeek-capture-loss-acks
