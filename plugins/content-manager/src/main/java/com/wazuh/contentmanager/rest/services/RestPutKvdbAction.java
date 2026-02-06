@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchParseException;
@@ -67,9 +68,15 @@ import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
  */
 public class RestPutKvdbAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutKvdbAction.class);
-    // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
+    private static final String KVDB_TYPE = "kvdb";
+    private static final String FIELD_RESOURCE = "resource";
+    private static final String FIELD_ID = "id";
+    private static final String FIELD_TYPE = "type";
+    private static final String FIELD_DOCUMENT = "document";
+    private static final String FIELD_SPACE = "space";
+    private static final String FIELD_NAME = "name";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
     private PolicyHashService policyHashService;
@@ -124,7 +131,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
-        request.param("id");
+        request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
@@ -148,7 +155,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
         }
 
         try {
-            String kvdbId = request.param("id");
+            String kvdbId = request.param(Constants.KEY_ID);
             if (kvdbId == null || kvdbId.isBlank()) {
                 return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
             }
@@ -173,7 +180,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             // Validate KVDB exists and is in draft space
             RestResponse validationResponse =
                     DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, INDEX_KVDBS, kvdbId, "KVDB");
+                            client, INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
             if (validationResponse != null) {
                 return validationResponse;
             }
@@ -235,13 +242,12 @@ public class RestPutKvdbAction extends BaseRestHandler {
     /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
         ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(Constants.KEY_TYPE, "kvdb");
-        enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
+        enginePayload.put(FIELD_TYPE, KVDB_TYPE);
+        enginePayload.set(FIELD_RESOURCE, resourceNode);
 
         RestResponse response = this.engine.validate(enginePayload);
-        if (response == null) {
-            return new RestResponse(
-                    "Invalid KVDB body, engine validation failed.", RestStatus.BAD_REQUEST.getStatus());
+        if (response.getStatus() != RestStatus.OK.getStatus()) {
+            return new RestResponse(response.getMessage(), response.getStatus());
         }
         return null;
     }
@@ -264,7 +270,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
     /** Builds the KVDB payload with document and space information. */
     private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
-        node.set(Constants.KEY_DOCUMENT, resourceNode);
+        node.put(FIELD_TYPE, KVDB_TYPE);
+        node.set(FIELD_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());

@@ -263,7 +263,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("KVDB [" + kvdbId + "] not found"));
+        assertTrue(actualResponse.getMessage().contains("kvdb [" + kvdbId + "] not found"));
     }
 
     /** Test that null engine service returns 500 Internal Server Error. */
