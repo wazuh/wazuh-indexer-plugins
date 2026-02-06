@@ -74,11 +74,15 @@ public class Constants {
     public static final String KEY_NAME = "name";
     public static final String KEY_ID = "id";
     public static final String KEY_DATE = "date";
+    public static final String KEY_METADATA = "metadata";
+    public static final String KEY_AUTHOR = "author";
+    public static final String KEY_MODIFIED = "modified";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
     public static final String KEY_RESOURCE = "resource";
     public static final String KEY_INTEGRATION = "integration";
+    public static final String KEY_KVDB = "kvdb";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
