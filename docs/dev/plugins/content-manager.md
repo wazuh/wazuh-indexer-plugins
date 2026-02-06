@@ -427,31 +427,72 @@ title: Draft Policy Update - Flowchart
 ---
 flowchart TD
     UI[UI] -->|PUT /policy<br/>JSON payload| Indexer
-    
+
     subgraph indexer_node [Indexer node]
         Indexer -->|Route request| RestPutPolicyAction
-        
+
         RestPutPolicyAction -->|1. Validate request| V1{Has content?<br/>Engine available?}
         V1 -->|No| Error1[Return 400/500 error]
         V1 -->|Yes| Parse[2. Parse JSON to Policy object]
-        
+
         Parse -->|Success| V2{3. Validate Policy<br/>fields}
         Parse -->|Fail| Error2[Return 400 error:<br/>Invalid JSON]
-        
+
         V2 -->|Field is null| Error3[Return 400 error:<br/>Field cannot be null]
         V2 -->|All fields valid| Store[4. Store Policy]
-        
+
         Store -->|Find/generate ID| ContentIndex[ContentIndex.create]
         ContentIndex -->|Index to| DraftIndex[(.cti-policies.draft)]
         DraftIndex -->|Success| Success[Return 200 OK<br/>with Policy object]
-        
+
         Error1 --> Response
         Error2 --> Response
         Error3 --> Response
         Success --> Response
     end
-    
+
     Response[Response] -.->|HTTP response| UI
+```
+
+#### Policy Schema
+
+The `.cti-policies` index stores policy configurations that define how the Wazuh Engine processes events. Each policy document contains the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | keyword | Unique identifier for the policy document |
+| `title` | keyword | Human-readable name for the policy |
+| `date` | date | Creation timestamp |
+| `modified` | date | Last modification timestamp |
+| `root_decoder` | keyword | Identifier of the root decoder to use for event processing |
+| `integrations` | keyword | Array of integration IDs that define which content modules are active |
+| `filters` | keyword | Array of filter UUIDs for user-generated filtering rules |
+| `enrichments` | keyword | Array of enrichment types (e.g., `"file"`, `"domain-name"`, `"ip"`, `"url"`, `"geo"`) |
+| `author` | keyword | Policy author identifier |
+| `description` | text | Brief description of the policy purpose |
+| `documentation` | keyword | Link or reference to detailed documentation |
+| `references` | keyword | Array of external reference URLs |
+
+**Example Policy Document:**
+
+```json
+{
+  "title": "Production Policy",
+  "root_decoder": "decoder/core/0",
+  "integrations": [
+    "integration/wazuh-core/0",
+    "integration/wazuh-fim/0"
+  ],
+  "filters": [
+    "5c1df6b6-1458-4b2e-9001-96f67a8b12c8",
+    "f61133f5-90b9-49ed-b1d5-0b88cb04355e"
+  ],
+  "enrichments": ["file", "domain-name", "ip", "url", "geo"],
+  "author": "security-team",
+  "description": "Production environment policy with file and network enrichments",
+  "documentation": "https://docs.wazuh.com/policies/production",
+  "references": ["https://example.com/security-policy"]
+}
 ```
 
 ## 🔍 Debugging
