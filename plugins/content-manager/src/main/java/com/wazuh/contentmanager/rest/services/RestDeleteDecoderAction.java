@@ -18,10 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -31,7 +28,6 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -41,6 +37,7 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -139,10 +136,9 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
-                RestResponse error =
-                        new RestResponse(
-                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                return error.toBytesRestResponse();
+                return new RestResponse(
+                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                        .toBytesRestResponse();
             }
 
             String decoderId = request.param(Constants.KEY_ID);
@@ -151,7 +147,12 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                         .toBytesRestResponse();
             }
 
-            this.ensureIndexExists(client);
+            // Ensure Index Exists
+            if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
+                return new RestResponse("Decoder index not found.", RestStatus.NOT_FOUND.getStatus())
+                        .toBytesRestResponse();
+            }
+
             // Validate decoder is in draft space
             String validationError =
                     DocumentValidations.validateDocumentInSpace(
@@ -170,7 +171,10 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                         .toBytesRestResponse();
             }
 
-            this.updateIntegrationsRemovingDecoder(client, decoderId);
+            // Unlink from Integrations
+            ContentUtils.unlinkResourceFromIntegrations(client, decoderId, Constants.KEY_DECODERS);
+
+            // Delete
             decoderIndex.delete(decoderId);
 
             // Regenerate space hash because decoder was removed from space
@@ -186,57 +190,6 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
                                     : "An unexpected error occurred while processing your request.",
                             RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                     .toBytesRestResponse();
-        }
-    }
-
-    private void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
-            ContentIndex index = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-            try {
-                index.createIndex();
-            } catch (Exception e) {
-                throw new IOException("Failed to create index " + Constants.INDEX_DECODERS, e);
-            }
-        }
-    }
-
-    private void updateIntegrationsRemovingDecoder(Client client, String decoderIndexId) {
-        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
-        searchRequest
-                .source()
-                .query(
-                        QueryBuilders.termQuery(
-                                Constants.KEY_DOCUMENT + "." + Constants.KEY_DECODERS, decoderIndexId));
-        SearchResponse searchResponse = client.search(searchRequest).actionGet();
-        for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
-            Map<String, Object> source = hit.getSourceAsMap();
-            Object documentObj = source.get(Constants.KEY_DOCUMENT);
-            if (!(documentObj instanceof Map)) {
-                log.warn(
-                        "Integration document [{}] is invalid while removing decoder [{}].",
-                        hit.getId(),
-                        decoderIndexId);
-                continue;
-            }
-            Map<String, Object> doc = new java.util.HashMap<>();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
-                doc.put(String.valueOf(entry.getKey()), entry.getValue());
-            }
-            Object decodersObj = doc.get(Constants.KEY_DECODERS);
-            if (decodersObj instanceof List<?> list) {
-                java.util.List<Object> updated = new java.util.ArrayList<>(list);
-                updated.removeIf(item -> decoderIndexId.equals(String.valueOf(item)));
-                doc.put(Constants.KEY_DECODERS, updated);
-                source.put(Constants.KEY_DOCUMENT, doc);
-
-                // Regenerate integration hash and persist
-                try {
-                    RestPostDecoderAction.regenerateIntegrationHash(client, hit.getId(), doc, source);
-                } catch (IOException e) {
-                    log.error(
-                            "Failed to regenerate hash for integration [{}]: {}", hit.getId(), e.getMessage());
-                }
-            }
         }
     }
 }

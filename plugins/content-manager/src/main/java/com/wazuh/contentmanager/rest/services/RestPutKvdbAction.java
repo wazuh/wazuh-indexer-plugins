@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchParseException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -44,7 +43,6 @@ import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 
 /**
  * REST handler for updating CTI KVDBs.
@@ -165,21 +163,29 @@ public class RestPutKvdbAction extends BaseRestHandler {
             ContentUtils.updateTimestampMetadata(resourceNode, false);
 
             // Validate with engine
-            RestResponse engineResponse = this.validateWithEngine(resourceNode);
-            if (engineResponse != null) {
-                return engineResponse;
+            RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
+            if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
+                return new RestResponse(engineResponse.getMessage(), engineResponse.getStatus());
             }
 
             // Validate KVDB exists and is in draft space
-            RestResponse validationResponse =
-                    DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
-            if (validationResponse != null) {
-                return validationResponse;
+            String spaceError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
+            if (spaceError != null) {
+                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Update KVDB
-            this.updateKvdb(client, kvdbId, resourceNode);
+            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
+            if (!kvdbIndex.exists(kvdbId)) {
+                return new RestResponse(
+                        "KVDB [" + kvdbId + "] not found.", RestStatus.NOT_FOUND.getStatus());
+            }
+
+            kvdbIndex.create(
+                    kvdbId,
+                    ContentUtils.buildCtiWrapper(Constants.KEY_KVDB, resourceNode, Space.DRAFT.toString()));
 
             // Regenerate space hash because KVDB content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
@@ -189,54 +195,11 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
         } catch (IOException e) {
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        } catch (OpenSearchParseException e) {
+        } catch (Exception e) {
             log.error("Error updating KVDB: {}", e.getMessage(), e);
             return new RestResponse(
                     e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(Constants.KEY_TYPE, Constants.KEY_KVDB);
-        enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(response.getMessage(), response.getStatus());
-        }
-        return null;
-    }
-
-    /** Updates the KVDB document in the index. */
-    private void updateKvdb(Client client, String kvdbId, ObjectNode resourceNode)
-            throws IOException {
-        try {
-            ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
-
-            // Check if KVDB exists before updating
-            if (!kvdbIndex.exists(kvdbId)) {
-                throw new IOException("KVDB [" + kvdbId + "] not found.");
-            }
-
-            kvdbIndex.create(kvdbId, this.buildKvdbPayload(resourceNode));
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-    }
-
-    /** Builds the KVDB payload with document and space information. */
-    private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
-        ObjectNode node = this.mapper.createObjectNode();
-        node.put(Constants.KEY_TYPE, Constants.KEY_KVDB);
-        node.set(Constants.KEY_DOCUMENT, resourceNode);
-        // Add draft space
-        ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
-        node.set(Constants.KEY_SPACE, spaceNode);
-
-        return node;
     }
 }

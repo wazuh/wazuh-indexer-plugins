@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
@@ -36,6 +35,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
@@ -157,11 +157,7 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             }
 
             // 2. Unlink from Integrations
-            ContentIndex integrationIndex = new ContentIndex(client, Constants.INDEX_INTEGRATIONS);
-            integrationIndex.removeFromDocumentListByQuery(
-                    QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES, ruleId),
-                    Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES,
-                    ruleId);
+            ContentUtils.unlinkResourceFromIntegrations(client, ruleId, Constants.KEY_RULES);
 
             // 3. Delete from CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);

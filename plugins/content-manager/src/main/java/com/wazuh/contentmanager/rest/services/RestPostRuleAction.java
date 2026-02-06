@@ -41,6 +41,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -208,9 +209,7 @@ public class RestPostRuleAction extends BaseRestHandler {
             rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
 
             // 5. Link in Integration
-            ContentIndex integrationIndex = new ContentIndex(client, Constants.INDEX_INTEGRATIONS);
-            integrationIndex.updateDocumentAppendToList(
-                    integrationId, Constants.KEY_DOCUMENT + "." + Constants.KEY_RULES, ruleId);
+            ContentUtils.linkResourceToIntegration(client, integrationId, ruleId, Constants.KEY_RULES);
 
             // 6. Regenerate space hash because rule was added to space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

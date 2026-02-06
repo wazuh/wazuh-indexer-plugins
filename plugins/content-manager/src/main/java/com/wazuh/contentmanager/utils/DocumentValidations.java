@@ -200,7 +200,7 @@ public class DocumentValidations {
                 String payloadId = resourceNode.get(Constants.KEY_ID).asText();
                 if (!payloadId.equals(expectedId)) {
                     return new RestResponse(
-                            "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                            "Resource ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
                 }
             }
         } else {

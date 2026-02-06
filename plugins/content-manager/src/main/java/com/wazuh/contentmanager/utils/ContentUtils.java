@@ -16,14 +16,34 @@
  */
 package com.wazuh.contentmanager.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.SearchHit;
+import org.opensearch.transport.client.Client;
+
+import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 
 /** Common utility methods for Content Manager REST actions. */
 public class ContentUtils {
 
+    private static final Logger log = LogManager.getLogger(ContentUtils.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private ContentUtils() {}
@@ -62,5 +82,133 @@ public class ContentUtils {
             authorNode.put(Constants.KEY_DATE, currentTimestamp);
         }
         authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Builds the standard CTI wrapper payload containing type, document, space, and hash.
+     *
+     * @param type The resource type (e.g., "decoder", "kvdb").
+     * @param resourceNode The content of the resource.
+     * @param spaceName The space name (e.g., "draft").
+     * @return The constructed JsonNode wrapper.
+     */
+    public static JsonNode buildCtiWrapper(String type, JsonNode resourceNode, String spaceName) {
+        ObjectNode wrapper = mapper.createObjectNode();
+        wrapper.put(Constants.KEY_TYPE, type);
+        wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
+
+        // Space
+        ObjectNode space = mapper.createObjectNode();
+        space.put(Constants.KEY_NAME, spaceName);
+        wrapper.set(Constants.KEY_SPACE, space);
+
+        // Hash
+        String hash = HashCalculator.sha256(resourceNode.toString());
+        ObjectNode hashNode = mapper.createObjectNode();
+        hashNode.put(Constants.KEY_SHA256, hash);
+        wrapper.set(Constants.KEY_HASH, hashNode);
+
+        return wrapper;
+    }
+
+    /**
+     * Links a resource to an integration by adding its ID to the specified list field.
+     *
+     * @param client OpenSearch client.
+     * @param integrationId The ID of the integration to update.
+     * @param resourceId The ID of the resource to link.
+     * @param listKey The key of the list field in the integration document (e.g., "rules").
+     * @throws IOException If the integration cannot be found or updated.
+     */
+    @SuppressWarnings("unchecked")
+    public static void linkResourceToIntegration(
+            Client client, String integrationId, String resourceId, String listKey) throws IOException {
+        GetResponse response = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
+
+        if (!response.isExists()) {
+            throw new IOException("Integration [" + integrationId + "] not found.");
+        }
+
+        Map<String, Object> source = response.getSourceAsMap();
+        Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+
+        List<String> list = (List<String>) document.getOrDefault(listKey, new ArrayList<>());
+
+        // Ensure list is mutable
+        if (!(list instanceof ArrayList)) {
+            list = new ArrayList<>(list);
+        }
+
+        if (!list.contains(resourceId)) {
+            list.add(resourceId);
+            document.put(listKey, list);
+            updateIntegrationSource(client, integrationId, document, source);
+        }
+    }
+
+    /**
+     * Unlinks a resource from all integrations that reference it.
+     *
+     * @param client OpenSearch client.
+     * @param resourceId The ID of the resource to unlink.
+     * @param listKey The key of the list field in the integration document (e.g., "rules").
+     */
+    public static void unlinkResourceFromIntegrations(
+            Client client, String resourceId, String listKey) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
+        searchRequest
+                .source()
+                .query(QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + listKey, resourceId));
+
+        try {
+            SearchResponse searchResponse = client.search(searchRequest).actionGet();
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                Map<String, Object> source = hit.getSourceAsMap();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+
+                @SuppressWarnings("unchecked")
+                List<String> list = (List<String>) document.get(listKey);
+
+                if (list != null) {
+                    List<String> updatedList = new ArrayList<>(list);
+                    if (updatedList.remove(resourceId)) {
+                        document.put(listKey, updatedList);
+                        updateIntegrationSource(client, hit.getId(), document, source);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error unlinking resource [{}] from integrations: {}", resourceId, e.getMessage());
+        }
+    }
+
+    /**
+     * Updates the integration document in the index with a recalculated hash.
+     *
+     * @param client OpenSearch client.
+     * @param id Integration ID.
+     * @param document The updated document content.
+     * @param source The full source map including metadata.
+     * @throws IOException If indexing fails.
+     */
+    public static void updateIntegrationSource(
+            Client client, String id, Map<String, Object> document, Map<String, Object> source)
+            throws IOException {
+        JsonNode documentNode = mapper.valueToTree(document);
+        String newHash = HashCalculator.sha256(documentNode.toString());
+
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put(Constants.KEY_SHA256, newHash);
+        source.put(Constants.KEY_HASH, hashMap);
+        source.put(Constants.KEY_DOCUMENT, document);
+
+        client
+                .index(
+                        new IndexRequest(Constants.INDEX_INTEGRATIONS)
+                                .id(id)
+                                .source(source)
+                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
+                .actionGet();
     }
 }

@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -31,10 +30,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -140,6 +136,14 @@ public class RestPostKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
 
+            // Validate that the Integration exists and is in draft space
+            String spaceError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
+            if (spaceError != null) {
+                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+            }
+
             // Generate UUID
             String kvdbId = UUID.randomUUID().toString();
             resourceNode.put(Constants.KEY_ID, kvdbId);
@@ -148,24 +152,21 @@ public class RestPostKvdbAction extends BaseRestHandler {
             ContentUtils.updateTimestampMetadata(resourceNode, true);
 
             // Validate with engine
-            RestResponse engineResponse = this.validateWithEngine(resourceNode);
-            if (engineResponse != null) {
-                return engineResponse;
+            RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
+            if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
+                return new RestResponse(engineResponse.getMessage(), engineResponse.getStatus());
             }
 
-            // Validate that the Integration exists and is in draft space
-            RestResponse validationResponse =
-                    DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-            if (validationResponse != null) {
-                return validationResponse;
-            }
+            // Create KVDB in Index
+            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
+            kvdbIndex.create(
+                    kvdbId,
+                    ContentUtils.buildCtiWrapper(Constants.KEY_KVDB, resourceNode, Space.DRAFT.toString()));
 
-            // Create KVDB
-            this.createKvdb(client, kvdbId, resourceNode);
-            this.updateIntegrationWithKvdb(client, integrationId, kvdbId);
+            // Link to Integration
+            ContentUtils.linkResourceToIntegration(client, integrationId, kvdbId, Constants.KEY_KVDBS);
 
-            // Regenerate space hash because space composition changed
+            // Regenerate space hash
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
@@ -179,88 +180,5 @@ public class RestPostKvdbAction extends BaseRestHandler {
                     e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /** Validates the resource with the engine service. */
-    private RestResponse validateWithEngine(ObjectNode resourceNode) {
-        ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(Constants.KEY_TYPE, Constants.KEY_KVDB);
-        enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
-
-        RestResponse response = this.engine.validate(enginePayload);
-        if (response.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(response.getMessage(), response.getStatus());
-        }
-        return null;
-    }
-
-    /** Creates the KVDB document in the index. */
-    private void createKvdb(Client client, String kvdbIndexId, ObjectNode resourceNode)
-            throws IOException {
-        try {
-            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
-            kvdbIndex.create(kvdbIndexId, this.buildKvdbPayload(resourceNode));
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-    }
-
-    /** Builds the KVDB payload with document and space information. */
-    private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
-        ObjectNode node = this.mapper.createObjectNode();
-        node.put(Constants.KEY_TYPE, Constants.KEY_KVDB);
-        node.set(Constants.KEY_DOCUMENT, resourceNode);
-        // Add draft space
-        ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
-        node.set(Constants.KEY_SPACE, spaceNode);
-
-        return node;
-    }
-
-    /** Updates the integration document to include the new KVDB reference. */
-    @SuppressWarnings("unchecked")
-    private void updateIntegrationWithKvdb(Client client, String integrationId, String kvdbIndexId)
-            throws IOException {
-        GetResponse integrationResponse =
-                client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
-
-        if (!integrationResponse.isExists()) {
-            throw new IOException("Integration [" + integrationId + "] not found.");
-        }
-
-        Map<String, Object> source = integrationResponse.getSourceAsMap();
-        if (source == null || !source.containsKey(Constants.KEY_DOCUMENT)) {
-            throw new IOException("Can't find document in integration [" + integrationId + "].");
-        }
-        Object documentObj = source.get(Constants.KEY_DOCUMENT);
-
-        if (!(documentObj instanceof Map)) {
-            throw new IOException("Integration document [" + integrationId + "] is invalid.");
-        }
-
-        Map<String, Object> document = new HashMap<>((Map<String, Object>) documentObj);
-        List<String> kvdbs = this.extractKvdbsList(document.get(Constants.KEY_KVDBS));
-
-        if (!kvdbs.contains(kvdbIndexId)) {
-            kvdbs.add(kvdbIndexId);
-        }
-
-        document.put(Constants.KEY_KVDBS, kvdbs);
-        source.put(Constants.KEY_DOCUMENT, document);
-
-        // Regenerate integration hash and persist (complete operation)
-        RestPostDecoderAction.regenerateIntegrationHash(client, integrationId, document, source);
-    }
-
-    /** Extracts the KVDBs list from the document, handling type conversion. */
-    private List<String> extractKvdbsList(Object existing) {
-        List<String> kvdbs = new ArrayList<>();
-        if (existing instanceof List) {
-            for (Object item : (List<?>) existing) {
-                kvdbs.add(String.valueOf(item));
-            }
-        }
-        return kvdbs;
     }
 }

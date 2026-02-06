@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -122,10 +123,15 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+
+        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+
         Client client = this.buildClientForIndex();
 
-        // Act
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
@@ -136,21 +142,11 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         assertTrue(actualResponse.getMessage().startsWith("Decoder updated successfully with ID:"));
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.service).validate(payloadCaptor.capture());
+        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
-        assertEquals("decoder", captured.get("type").asText());
-        assertFalse(captured.has("integration"));
+        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", captured.get("id").asText());
 
-        JsonNode resource = captured.get("resource");
-        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", resource.get("id").asText());
-
-        // Verify modified timestamp was added TODO
-        //        assertTrue(resource.has("metadata"));
-        //        JsonNode metadata = resource.get("metadata");
-        //        assertTrue(metadata.has("author"));
-        //        JsonNode author = metadata.get("author");
-        //        assertTrue(author.has("modified"));
-        //        assertNotNull(author.get("modified").asText());
+        verify(policyHashService).calculateAndUpdate(anyList());
     }
 
     /** Test that missing decoder ID returns 400 Bad Request. */
@@ -230,14 +226,10 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse expectedResponse =
-                new RestResponse(
-                        "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
-
-        verify(this.service, never()).validate(any(JsonNode.class));
+        assertEquals(
+                "Resource ID does not match resource ID.",
+                this.parseResponse(bytesRestResponse).getMessage());
+        verify(this.service, never()).validateResource(anyString(), any(JsonNode.class));
     }
 
     /**

@@ -17,9 +17,12 @@
 package com.wazuh.contentmanager.engine.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -29,10 +32,12 @@ public class EngineServiceImpl implements EngineService {
     static final String PROMOTE = "/content/validate/policy";
 
     private final EngineSocketClient socket;
+    private final ObjectMapper mapper;
 
     /** Default constructor. */
     public EngineServiceImpl() {
         this.socket = new EngineSocketClient();
+        this.mapper = new ObjectMapper();
     }
 
     /**
@@ -42,6 +47,7 @@ public class EngineServiceImpl implements EngineService {
      */
     public EngineServiceImpl(EngineSocketClient socket) {
         this.socket = socket;
+        this.mapper = new ObjectMapper();
     }
 
     @Override
@@ -57,5 +63,13 @@ public class EngineServiceImpl implements EngineService {
     @Override
     public RestResponse promote(JsonNode policy) {
         return this.socket.sendRequest(PROMOTE, POST.name(), policy);
+    }
+
+    @Override
+    public RestResponse validateResource(String type, JsonNode resource) {
+        ObjectNode payload = this.mapper.createObjectNode();
+        payload.put(Constants.KEY_TYPE, type);
+        payload.set(Constants.KEY_RESOURCE, resource);
+        return this.validate(payload);
     }
 }

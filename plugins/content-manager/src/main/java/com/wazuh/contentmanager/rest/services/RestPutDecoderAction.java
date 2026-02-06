@@ -68,6 +68,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPutDecoderAction handler.
@@ -111,8 +112,18 @@ public class RestPutDecoderAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param(Constants.KEY_ID);
+        this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service.
+     *
+     * @param policyHashService The service responsible for calculating policy hashes.
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -161,19 +172,26 @@ public class RestPutDecoderAction extends BaseRestHandler {
             ContentUtils.updateTimestampMetadata(resourceNode, false);
 
             // Validate decoder with Wazuh Engine
-            ObjectNode enginePayload = mapper.createObjectNode();
-            enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
-            enginePayload.put(Constants.KEY_TYPE, Constants.KEY_DECODER);
-            final RestResponse engineValidation = this.engine.validate(enginePayload);
+            RestResponse engineValidation =
+                    this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
             // Update decoder
-            this.updateDecoder(client, decoderId, resourceNode);
+            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
+            if (!decoderIndex.exists(decoderId)) {
+                return new RestResponse(
+                        "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus());
+            }
+
+            decoderIndex.create(
+                    decoderId,
+                    ContentUtils.buildCtiWrapper(
+                            Constants.KEY_DECODER, resourceNode, Space.DRAFT.toString()));
 
             // Regenerate space hash because decoder content changed
-            this.regenerateSpaceHash(client, Space.DRAFT.toString());
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Decoder updated successfully with ID: " + decoderId, RestStatus.OK.getStatus());
@@ -186,50 +204,5 @@ public class RestPutDecoderAction extends BaseRestHandler {
                     e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /** Updates the decoder document in the index. */
-    private void updateDecoder(Client client, String decoderId, ObjectNode resourceNode)
-            throws IOException {
-        try {
-            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-
-            // Check if decoder exists before updating
-            if (!decoderIndex.exists(decoderId)) {
-                throw new IOException("Decoder [" + decoderId + "] not found.");
-            }
-
-            decoderIndex.create(decoderId, this.buildDecoderPayload(resourceNode));
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-    }
-
-    /** Builds the decoder payload with document and space information. */
-    private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
-        ObjectNode node = this.mapper.createObjectNode();
-        node.put(Constants.KEY_TYPE, Constants.KEY_DECODERS);
-        node.set(Constants.KEY_DOCUMENT, resourceNode);
-        // Add draft space
-        ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
-        node.set(Constants.KEY_SPACE, spaceNode);
-
-        return node;
-    }
-
-    /**
-     * Regenerates the space hash.
-     *
-     * @param client the OpenSearch client
-     * @param spaceName the name of the space to regenerate hash for
-     */
-    private void regenerateSpaceHash(Client client, String spaceName) {
-        PolicyHashService policyHashService = new PolicyHashService(client);
-
-        // Use PolicyHashService to recalculate space hash for the given space
-        policyHashService.calculateAndUpdate(List.of(spaceName));
-
-        log.debug("Regenerated space hash for space={}", spaceName);
     }
 }

@@ -55,13 +55,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for the {@link RestPostDecoderAction} class. This test suite validates the REST API
- * endpoint responsible for creating new CTI Decoders.
- *
- * <p>Tests verify Decoder creation requests, proper handling of Decoder data, and appropriate HTTP
- * response codes for successful Decoder creation and validation errors.
- */
 public class RestPostDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostDecoderAction action;
@@ -159,7 +152,10 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
             """
         );
         // spotless:on
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+
+        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+
         Client client = this.buildClientForIndex();
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
@@ -174,23 +170,14 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         assertTrue(actualResponse.getMessage().startsWith("Decoder created successfully with ID:"));
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.service).validate(payloadCaptor.capture());
+        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
-        assertEquals("decoder", captured.get("type").asText());
-        assertFalse(captured.has("integration"));
 
-        JsonNode resource = captured.get("resource");
-        assertTrue(resource.hasNonNull("id"));
+        assertEquals("decoder/example/0", captured.get("name").asText());
+        assertTrue(captured.hasNonNull("id"));
 
-        // Verify timestamps were added
-        assertTrue(resource.has("metadata"));
-        JsonNode metadata = resource.get("metadata");
-        assertTrue(metadata.has("author"));
-        JsonNode author = metadata.get("author");
-        assertTrue(author.has("date"));
-        assertTrue(author.has("modified"));
-        assertNotNull(author.get("date").asText());
-        assertNotNull(author.get("modified").asText());
+        JsonNode metadata = captured.get("metadata");
+        assertNotNull(metadata.get("author").get("date").asText());
     }
 
     /** Test that providing a resource ID on creation returns 400 Bad Request. */
