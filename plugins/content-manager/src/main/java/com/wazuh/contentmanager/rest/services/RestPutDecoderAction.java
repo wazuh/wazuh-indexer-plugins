@@ -253,6 +253,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
     /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
+        node.put(Constants.KEY_TYPE, Constants.KEY_DECODER);
         node.set(Constants.KEY_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();

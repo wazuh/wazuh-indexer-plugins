@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchParseException;
@@ -32,6 +31,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -40,7 +40,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
-import com.wazuh.contentmanager.cti.catalog.utils.MetadataPreservationHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -188,8 +187,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             // Preserve metadata and update timestamps
             ensureIndexExists(client);
             ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
-            MetadataPreservationHelper.preserveMetadataAndUpdateTimestamp(
-                    this.mapper, kvdbIndex, kvdbId, resourceNode);
+            this.preserveMetadataAndUpdateTimestamp(kvdbIndex, kvdbId, resourceNode);
 
             // Update KVDB
             this.updateKvdb(client, kvdbId, resourceNode);
@@ -290,5 +288,60 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 throw new IOException("Failed to create index " + INDEX_KVDBS, e);
             }
         }
+    }
+
+    /**
+     * Preserves only the date field from existing metadata and allows other metadata fields to be
+     * updated. The modified timestamp is always updated to the current time.
+     *
+     * @param contentIndex the ContentIndex instance to retrieve the existing document
+     * @param documentId the document ID to retrieve from the index
+     * @param resourceNode the resource node to update with preserved metadata
+     * @throws IOException if an error occurs retrieving the existing document
+     */
+    private void preserveMetadataAndUpdateTimestamp(
+            ContentIndex contentIndex, String documentId, ObjectNode resourceNode) throws IOException {
+        JsonNode existingDocument = contentIndex.getDocument(documentId);
+        if (existingDocument == null) {
+            throw new IOException("Document [" + documentId + "] not found.");
+        }
+
+        JsonNode existingMetadata = null;
+        String preservedDate = null;
+        if (existingDocument.has(FIELD_DOCUMENT) && existingDocument.get(FIELD_DOCUMENT).isObject()) {
+            JsonNode existingDoc = existingDocument.get(FIELD_DOCUMENT);
+            if (existingDoc.has(Constants.KEY_METADATA)
+                    && existingDoc.get(Constants.KEY_METADATA).isObject()) {
+                existingMetadata = existingDoc.get(Constants.KEY_METADATA);
+                if (existingMetadata.has(Constants.KEY_DATE)) {
+                    preservedDate = existingMetadata.get(Constants.KEY_DATE).asText();
+                }
+            }
+        }
+
+        ObjectNode requestMetadata = null;
+        if (resourceNode.has(Constants.KEY_METADATA)
+                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            requestMetadata = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+        }
+
+        ObjectNode finalMetadata;
+        if (requestMetadata != null) {
+            finalMetadata =
+                    (ObjectNode) this.mapper.readTree(this.mapper.writeValueAsString(requestMetadata));
+        } else if (existingMetadata != null) {
+            finalMetadata =
+                    (ObjectNode) this.mapper.readTree(this.mapper.writeValueAsString(existingMetadata));
+        } else {
+            finalMetadata = this.mapper.createObjectNode();
+        }
+
+        String currentTimestamp = Instant.now().toString();
+        if (preservedDate != null) {
+            finalMetadata.put(Constants.KEY_DATE, preservedDate);
+        }
+        finalMetadata.put(Constants.KEY_MODIFIED, currentTimestamp);
+
+        resourceNode.set(Constants.KEY_METADATA, finalMetadata);
     }
 }
