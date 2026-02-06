@@ -83,6 +83,7 @@ public class Constants {
     public static final String KEY_RESOURCE = "resource";
     public static final String KEY_INTEGRATION = "integration";
     public static final String KEY_KVDB = "kvdb";
+    public static final String KEY_DECODER = "decoder";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =

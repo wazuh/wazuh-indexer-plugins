@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
@@ -47,6 +46,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -150,7 +150,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
             resourceNode.put(Constants.KEY_ID, kvdbId);
 
             // Add timestamp metadata
-            this.addTimestampMetadata(resourceNode);
+            this.addMetadata(resourceNode);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -200,7 +200,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload) {
-        if (!payload.has(Constants.KEY_INTEGRATION) || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
+        if (!payload.has(Constants.KEY_INTEGRATION)
+                || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         }
         if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
@@ -314,34 +315,26 @@ public class RestPostKvdbAction extends BaseRestHandler {
     }
 
     /**
-     * Adds or updates timestamp metadata to the resource node.
+     * Adds metadata fields on the resource node
      *
      * @param resourceNode the resource node to update
      */
-    private void addTimestampMetadata(ObjectNode resourceNode) {
+    private void addMetadata(ObjectNode resourceNode) {
         String currentTimestamp = Instant.now().toString();
 
         // Ensure metadata node exists
         ObjectNode metadataNode;
-        if (resourceNode.has(Constants.KEY_METADATA) && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+        if (resourceNode.has(Constants.KEY_METADATA)
+                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
             metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
         } else {
             metadataNode = this.mapper.createObjectNode();
             resourceNode.set(Constants.KEY_METADATA, metadataNode);
         }
 
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(Constants.KEY_AUTHOR) && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-        } else {
-            authorNode = this.mapper.createObjectNode();
-            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-        }
-
         // Set timestamps
-        authorNode.put(Constants.KEY_DATE, currentTimestamp);
-        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+        metadataNode.put(Constants.KEY_DATE, currentTimestamp);
+        metadataNode.put(Constants.KEY_MODIFIED, currentTimestamp);
     }
 
     /**

@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -124,6 +125,15 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
         Client client = this.buildClientForIndex();
+
+        // Mock ContentIndex for updateMetadata() call
+        ContentIndex mockDecoderIndex = mock(ContentIndex.class);
+        String existingDocJson =
+                "{\"document\":{\"metadata\":{\"author\":{\"name\":\"Wazuh\",\"date\":\"2024-01-01T00:00:00Z\"}}},\"space\":{\"name\":\"draft\"}}";
+        JsonNode existingDoc = new ObjectMapper().readTree(existingDocJson);
+        when(mockDecoderIndex.getDocument(decoderId)).thenReturn(existingDoc);
+        when(mockDecoderIndex.exists(decoderId)).thenReturn(true);
+        this.action.setDecoderIndex(mockDecoderIndex);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -315,10 +325,14 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(existsResponse);
 
-        // Mock validateDecoderSpace - decoder exists and is in draft space
+        // Mock validateDecoderSpace and getDocument - decoder exists and is in draft space
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
+        // Mock getSourceAsString for ContentIndex.getDocument() - include document with metadata
+        String existingDocJson =
+                "{\"document\":{\"metadata\":{\"author\":{\"name\":\"Wazuh\",\"date\":\"2024-01-01T00:00:00Z\"}}},\"space\":{\"name\":\"draft\"}}";
+        when(spaceResponse.getSourceAsString()).thenReturn(existingDocJson);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
         return client;

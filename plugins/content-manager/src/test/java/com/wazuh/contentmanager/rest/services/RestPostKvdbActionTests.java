@@ -174,15 +174,13 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertFalse(engineKvdbId.startsWith("d_"));
         UUID.fromString(engineKvdbId); // Validate it's a valid UUID
 
-        // Verify timestamps were added
+        // Verify timestamps were added at metadata level (KVDB format)
         assertTrue(resource.has("metadata"));
         JsonNode metadata = resource.get("metadata");
-        assertTrue(metadata.has("author"));
-        JsonNode author = metadata.get("author");
-        assertTrue(author.has("date"));
-        assertTrue(author.has("modified"));
-        assertNotNull(author.get("date").asText());
-        assertNotNull(author.get("modified").asText());
+        assertTrue(metadata.has("date"));
+        assertTrue(metadata.has("modified"));
+        assertNotNull(metadata.get("date").asText());
+        assertNotNull(metadata.get("modified").asText());
 
         // Verify client.index() was called three times: once for KVDB, once for regenerating
         // integration hash, once for updating the integration with the new KVDB
