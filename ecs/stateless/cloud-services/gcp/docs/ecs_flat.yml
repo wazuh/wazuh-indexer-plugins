@@ -3178,6 +3178,160 @@ email.x_mailer:
   normalize: []
   short: Application that drafted email.
   type: keyword
+enrichments.custom.anonymous:
+  dashed_name: enrichments-custom-anonymous
+  description: Indicates whether the indicator was reported anonymously by the submitter.
+  flat_name: enrichments.custom.anonymous
+  ignore_above: 1024
+  level: custom
+  name: custom.anonymous
+  normalize: []
+  short: Indicates whether the indicator was reported anonymously by the submitter.
+  type: keyword
+enrichments.custom.id:
+  dashed_name: enrichments-custom-id
+  description: Unique identifier of the indicator.
+  flat_name: enrichments.custom.id
+  ignore_above: 1024
+  level: custom
+  name: custom.id
+  normalize: []
+  short: Unique identifier of the indicator.
+  type: keyword
+enrichments.custom.malware:
+  dashed_name: enrichments-custom-malware
+  description: Malware family or identifier associated with the indicator.
+  flat_name: enrichments.custom.malware
+  ignore_above: 1024
+  level: custom
+  name: custom.malware
+  normalize: []
+  short: Malware family or identifier associated with the indicator.
+  type: keyword
+enrichments.custom.malware_alias:
+  dashed_name: enrichments-custom-malware-alias
+  description: Alternative or secondary name used to refer to the same malware family.
+  flat_name: enrichments.custom.malware_alias
+  ignore_above: 1024
+  level: custom
+  name: custom.malware_alias
+  normalize:
+  - array
+  short: Alternative or secondary name used to refer to the same malware family.
+  type: keyword
+enrichments.custom.malware_printable:
+  dashed_name: enrichments-custom-malware-printable
+  description: Human-readable or normalized malware name intended for display purposes.
+  flat_name: enrichments.custom.malware_printable
+  ignore_above: 1024
+  level: custom
+  name: custom.malware_printable
+  normalize: []
+  short: Human-readable or normalized malware name intended for display purposes.
+  type: keyword
+enrichments.custom.tags:
+  dashed_name: enrichments-custom-tags
+  description: List of tags associated with the indicator used to classify or group
+    related threats or campaigns.
+  flat_name: enrichments.custom.tags
+  ignore_above: 1024
+  level: custom
+  name: custom.tags
+  normalize:
+  - array
+  short: List of tags associated with the indicator used to classify or group related
+    threats or campaigns.
+  type: keyword
+enrichments.custom.threat_type:
+  dashed_name: enrichments-custom-threat-type
+  description: High-level classification of the threat associated with the indicator.
+  flat_name: enrichments.custom.threat_type
+  ignore_above: 1024
+  level: custom
+  name: custom.threat_type
+  normalize: []
+  short: High-level classification of the threat associated with the indicator.
+  type: keyword
+enrichments.indicator.confidence:
+  dashed_name: enrichments-indicator-confidence
+  description: Indicator confidence rating.
+  flat_name: enrichments.indicator.confidence
+  ignore_above: 1024
+  level: custom
+  name: indicator.confidence
+  normalize: []
+  short: Indicator confidence rating.
+  type: keyword
+enrichments.indicator.first_seen:
+  dashed_name: enrichments-indicator-first-seen
+  description: Date/time indicator was first reported.
+  flat_name: enrichments.indicator.first_seen
+  level: custom
+  name: indicator.first_seen
+  normalize: []
+  short: Date/time indicator was first reported.
+  type: date
+enrichments.indicator.last_seen:
+  dashed_name: enrichments-indicator-last-seen
+  description: Date/time indicator was last reported.
+  flat_name: enrichments.indicator.last_seen
+  level: custom
+  name: indicator.last_seen
+  normalize: []
+  short: Date/time indicator was last reported.
+  type: date
+enrichments.indicator.name:
+  dashed_name: enrichments-indicator-name
+  description: Indicator display name.
+  flat_name: enrichments.indicator.name
+  ignore_above: 1024
+  level: custom
+  name: indicator.name
+  normalize: []
+  short: Indicator display name.
+  type: keyword
+enrichments.indicator.provider:
+  dashed_name: enrichments-indicator-provider
+  description: Indicator provider.
+  flat_name: enrichments.indicator.provider
+  ignore_above: 1024
+  level: custom
+  name: indicator.provider
+  normalize: []
+  short: Indicator provider.
+  type: keyword
+enrichments.indicator.reference:
+  dashed_name: enrichments-indicator-reference
+  description: Indicator reference URL.
+  flat_name: enrichments.indicator.reference
+  ignore_above: 1024
+  level: custom
+  name: indicator.reference
+  normalize: []
+  short: Indicator reference URL.
+  type: keyword
+enrichments.indicator.type:
+  dashed_name: enrichments-indicator-type
+  description: Type of indicator.
+  flat_name: enrichments.indicator.type
+  ignore_above: 1024
+  level: custom
+  name: indicator.type
+  normalize: []
+  short: Type of indicator.
+  type: keyword
+enrichments.source:
+  dashed_name: enrichments-source
+  description: Source of the enrichment data identifying the external provider that
+    supplied the indicator.
+  flat_name: enrichments.source
+  ignore_above: 1024
+  level: custom
+  name: source
+  normalize: []
+  short: Source of the enrichment data identifying the external provider that supplied
+    the indicator.
+  type: keyword
 error.code:
   dashed_name: error-code
   description: Error code describing the error.
@@ -28187,4 +28341,15 @@ wazuh.schema.version:
   name: schema.version
   normalize: []
   short: Wazuh schema version.
+  type: keyword
+wazuh.space.name:
+  dashed_name: wazuh-space-name
+  description: Wazuh space name.
+  example: default
+  flat_name: wazuh.space.name
+  ignore_above: 1024
+  level: custom
+  name: space.name
+  normalize: []
+  short: Wazuh space name.
   type: keyword

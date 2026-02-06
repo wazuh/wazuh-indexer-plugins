@@ -372,6 +372,21 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.subject,keyword,extended,,Please see this important message.,The subject of the email message.
 9.1.0,true,email,email.to.address,keyword,extended,array,user1@example.com,Email address of recipient
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
+9.1.0,true,enrichments,enrichments.custom.anonymous,keyword,custom,,,Indicates whether the indicator was reported anonymously by the submitter.
+9.1.0,true,enrichments,enrichments.custom.id,keyword,custom,,,Unique identifier of the indicator.
+9.1.0,true,enrichments,enrichments.custom.malware,keyword,custom,,,Malware family or identifier associated with the indicator.
+9.1.0,true,enrichments,enrichments.custom.malware_alias,keyword,custom,array,,Alternative or secondary name used to refer to the same malware family.
+9.1.0,true,enrichments,enrichments.custom.malware_printable,keyword,custom,,,Human-readable or normalized malware name intended for display purposes.
+9.1.0,true,enrichments,enrichments.custom.tags,keyword,custom,array,,List of tags associated with the indicator used to classify or group related threats or campaigns.
+9.1.0,true,enrichments,enrichments.custom.threat_type,keyword,custom,,,High-level classification of the threat associated with the indicator.
+9.1.0,true,enrichments,enrichments.indicator.confidence,keyword,custom,,,Indicator confidence rating.
+9.1.0,true,enrichments,enrichments.indicator.first_seen,date,custom,,,Date/time indicator was first reported.
+9.1.0,true,enrichments,enrichments.indicator.last_seen,date,custom,,,Date/time indicator was last reported.
+9.1.0,true,enrichments,enrichments.indicator.name,keyword,custom,,,Indicator display name.
+9.1.0,true,enrichments,enrichments.indicator.provider,keyword,custom,,,Indicator provider.
+9.1.0,true,enrichments,enrichments.indicator.reference,keyword,custom,,,Indicator reference URL.
+9.1.0,true,enrichments,enrichments.indicator.type,keyword,custom,,,Type of indicator.
+9.1.0,true,enrichments,enrichments.source,keyword,custom,,,Source of the enrichment data identifying the external provider that supplied the indicator.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
 9.1.0,true,error,error.id,keyword,core,,,Unique identifier for the error.
 9.1.0,true,error,error.message,keyword,core,,,Error message.
@@ -2240,6 +2255,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.location,keyword,custom,,/var/log/auth.log,Source of the log as retrieved by the Wazuh Agent.
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
+9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.
 9.1.0,true,windows,windows.EventData,object,custom,,,Complete Windows event data section with all event-specific fields
 9.1.0,true,windows,windows.EventData.AuthenticationPackageName,keyword,custom,,example-AuthenticationPackageName,Authentication package used for Windows logon (Kerberos/NTLM/Negotiate)
 9.1.0,true,windows,windows.EventData.ElevatedToken,keyword,custom,,example-ElevatedToken,Whether elevated token was used in Windows logon

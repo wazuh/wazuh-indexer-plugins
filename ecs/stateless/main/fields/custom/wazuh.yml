@@ -44,6 +44,12 @@
       description: >
         Wazuh cluster node name.
       example: "wazuh-cluster-node-1"
+    - name: space.name
+      type: keyword
+      level: custom
+      description: >
+        Wazuh space name.
+      example: "default"
     - name: protocol.location
       type: keyword
       level: custom

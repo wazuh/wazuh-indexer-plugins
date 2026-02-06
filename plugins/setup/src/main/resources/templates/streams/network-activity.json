@@ -29,7 +29,18 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "false",
+      "dynamic": "false_allow_templates",
+      "dynamic_templates": [
+        {
+          "strings": {
+            "mapping": {
+              "type": "keyword"
+            },
+            "match_mapping_type": "string",
+            "path_match": "enrichments.custom.*"
+          }
+        }
+      ],
       "properties": {
         "@timestamp": {
           "type": "date"
@@ -2601,6 +2612,76 @@
               }
             },
             "x_mailer": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "enrichments": {
+          "properties": {
+            "custom": {
+              "properties": {
+                "anonymous": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "malware": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "malware_alias": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "malware_printable": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "tags": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "threat_type": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "indicator": {
+              "properties": {
+                "confidence": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "first_seen": {
+                  "type": "date"
+                },
+                "last_seen": {
+                  "type": "date"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "provider": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "reference": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "type": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "source": {
               "ignore_above": 1024,
               "type": "keyword"
             }
@@ -13851,6 +13932,14 @@
             "schema": {
               "properties": {
                 "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "space": {
+              "properties": {
+                "name": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 }

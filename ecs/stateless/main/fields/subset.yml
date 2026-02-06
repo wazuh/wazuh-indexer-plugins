@@ -5,6 +5,10 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
+  agent:
+    fields: "*"
   as:
     fields: "*"
   client:
