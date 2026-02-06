@@ -322,7 +322,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
 
-        // Mock integration response with space information
+        // Mock integration response with space information and document for getDocument()
         GetResponse integrationGetResponse = mock(GetResponse.class);
         when(integrationGetResponse.isExists()).thenReturn(true);
         Map<String, Object> integrationSource = new java.util.HashMap<>();
@@ -330,6 +330,10 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         space.put("name", "draft");
         integrationSource.put("space", space);
         when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
+        // Mock getSourceAsString for ContentIndex.getDocument() - include document with metadata
+        String existingDocJson =
+                "{\"document\":{\"metadata\":{\"title\":\"Test KVDB\",\"date\":\"2024-01-01T00:00:00Z\"}},\"space\":{\"name\":\"draft\"}}";
+        when(integrationGetResponse.getSourceAsString()).thenReturn(existingDocJson);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
 
         return client;
@@ -344,22 +348,15 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock KVDB does not exist
+        // Mock KVDB does not exist - for both exists() check and validateDocumentInSpace()
         GetResponse kvdbGetResponse = mock(GetResponse.class);
         when(kvdbGetResponse.isExists()).thenReturn(false);
         when(kvdbGetResponse.getSourceAsMap()).thenReturn(null);
+        when(kvdbGetResponse.getSourceAsString()).thenReturn(null);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
-
-        // Mock integration response with space information
-        GetResponse integrationGetResponse = mock(GetResponse.class);
-        when(integrationGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> integrationSource = new java.util.HashMap<>();
-        Map<String, Object> space = new java.util.HashMap<>();
-        space.put("name", "draft");
-        integrationSource.put("space", space);
-        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
+        // validateDocumentInSpace calls .get() without .setFetchSource(false)
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(kvdbGetResponse);
 
         return client;
     }

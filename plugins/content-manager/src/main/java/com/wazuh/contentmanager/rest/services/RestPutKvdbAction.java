@@ -39,9 +39,11 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
+import com.wazuh.contentmanager.cti.catalog.utils.MetadataPreservationHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -68,13 +70,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
-    private static final String KVDB_TYPE = "kvdb";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_SPACE = "space";
-    private static final String FIELD_NAME = "name";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
     private PolicyHashService policyHashService;
@@ -166,8 +161,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 return validationError;
             }
 
-            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            resourceNode.put(FIELD_ID, kvdbId);
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            resourceNode.put(Constants.KEY_ID, kvdbId);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -182,6 +177,12 @@ public class RestPutKvdbAction extends BaseRestHandler {
             if (validationResponse != null) {
                 return validationResponse;
             }
+
+            // Preserve metadata and update timestamps
+            ensureIndexExists(client);
+            ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
+            MetadataPreservationHelper.preserveMetadataAndUpdateTimestamp(
+                    this.mapper, kvdbIndex, kvdbId, resourceNode);
 
             // Update KVDB
             this.updateKvdb(client, kvdbId, resourceNode);
@@ -216,13 +217,13 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String kvdbId) {
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        if (resourceNode.hasNonNull(FIELD_ID)) {
-            String payloadId = resourceNode.get(FIELD_ID).asText();
+        ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+        if (resourceNode.hasNonNull(Constants.KEY_ID)) {
+            String payloadId = resourceNode.get(Constants.KEY_ID).asText();
             if (!payloadId.equals(kvdbId)) {
                 return new RestResponse(
                         "KVDB ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
@@ -234,8 +235,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
     /** Validates the resource with the engine service. */
     private RestResponse validateWithEngine(ObjectNode resourceNode) {
         ObjectNode enginePayload = this.mapper.createObjectNode();
-        enginePayload.put(FIELD_TYPE, KVDB_TYPE);
-        enginePayload.set(FIELD_RESOURCE, resourceNode);
+        enginePayload.put(Constants.KEY_TYPE, "kvdb");
+        enginePayload.set(Constants.KEY_RESOURCE, resourceNode);
 
         RestResponse response = this.engine.validate(enginePayload);
         if (response == null) {
@@ -263,12 +264,11 @@ public class RestPutKvdbAction extends BaseRestHandler {
     /** Builds the KVDB payload with document and space information. */
     private JsonNode buildKvdbPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, KVDB_TYPE);
-        node.set(FIELD_DOCUMENT, resourceNode);
+        node.set(Constants.KEY_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(FIELD_NAME, Space.DRAFT.toString());
-        node.set(FIELD_SPACE, spaceNode);
+        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        node.set(Constants.KEY_SPACE, spaceNode);
 
         return node;
     }

@@ -44,9 +44,6 @@ import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_DECODERS;
-import static com.wazuh.contentmanager.utils.Constants.KEY_DECODERS;
-import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
 
 /**
  * REST handler for updating CTI decoders.
@@ -69,14 +66,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
     // TODO: Move to a common constants class
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_METADATA = "metadata";
-    private static final String FIELD_AUTHOR = "author";
-    private static final String FIELD_MODIFIED = "modified";
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private ContentIndex decoderIndex;
 
     /**
      * Constructs a new RestPutDecoderAction handler.
@@ -91,6 +83,15 @@ public class RestPutDecoderAction extends BaseRestHandler {
     @Override
     public String getName() {
         return ENDPOINT_NAME;
+    }
+
+    /**
+     * Sets the decoder index for testing purposes.
+     *
+     * @param decoderIndex the ContentIndex to use for decoder operations
+     */
+    public void setDecoderIndex(ContentIndex decoderIndex) {
+        this.decoderIndex = decoderIndex;
     }
 
     /**
@@ -120,6 +121,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
         request.param("id");
+        this.decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
@@ -154,21 +156,22 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return validationError;
             }
 
-            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            resourceNode.put(FIELD_ID, decoderId);
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            resourceNode.put(Constants.KEY_ID, decoderId);
 
             // Validate decoder is in draft space
             String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(client, INDEX_DECODERS, decoderId, "Decoder");
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_DECODERS, decoderId, "Decoder");
             if (spaceValidationError != null) {
                 return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Update the modified timestamp
-            this.updateTimestampMetadata(resourceNode);
+            this.updateMetadata(decoderId, resourceNode);
 
             // Validate decoder with Wazuh Engine
-            ObjectNode enginePayload = mapper.createObjectNode();
+            ObjectNode enginePayload = this.mapper.createObjectNode();
             enginePayload.set("resource", resourceNode);
             enginePayload.put("type", "decoder");
             final RestResponse engineValidation = this.engine.validate(enginePayload);
@@ -218,13 +221,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
     /** Validates the payload structure and required fields. */
     private RestResponse validatePayload(JsonNode payload, String decoderId) {
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
+        if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
             return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        if (resourceNode.hasNonNull(FIELD_ID)) {
-            String payloadId = resourceNode.get(FIELD_ID).asText();
+        ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+        if (resourceNode.hasNonNull(Constants.KEY_ID)) {
+            String payloadId = resourceNode.get(Constants.KEY_ID).asText();
             if (!payloadId.equals(decoderId)) {
                 return new RestResponse(
                         "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
@@ -237,22 +240,20 @@ public class RestPutDecoderAction extends BaseRestHandler {
     private void updateDecoder(Client client, String decoderId, ObjectNode resourceNode)
             throws IOException {
 
-        RestPutDecoderAction.ensureIndexExists(client);
-        ContentIndex decoderIndex = new ContentIndex(client, INDEX_DECODERS, null);
+        this.ensureIndexExists(client);
 
         // Check if decoder exists before updating
-        if (!decoderIndex.exists(decoderId)) {
+        if (!this.decoderIndex.exists(decoderId)) {
             throw new IOException("Decoder [" + decoderId + "] not found.");
         }
 
-        decoderIndex.create(decoderId, this.buildDecoderPayload(resourceNode));
+        this.decoderIndex.create(decoderId, this.buildDecoderPayload(resourceNode));
     }
 
     /** Builds the decoder payload with document and space information. */
     private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
         ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, KEY_DECODERS);
-        node.set(KEY_DOCUMENT, resourceNode);
+        node.set(Constants.KEY_DOCUMENT, resourceNode);
         // Add draft space
         ObjectNode spaceNode = this.mapper.createObjectNode();
         spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
@@ -262,13 +263,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
     }
 
     /** Ensures the decoder index exists, creating it if necessary. */
-    private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, INDEX_DECODERS)) {
-            ContentIndex index = new ContentIndex(client, INDEX_DECODERS, null);
+    private void ensureIndexExists(Client client) throws IOException {
+        if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
             try {
-                index.createIndex();
+                this.decoderIndex.createIndex();
             } catch (Exception e) {
-                throw new IOException("Failed to create index " + INDEX_DECODERS, e);
+                throw new IOException("Failed to create index " + Constants.INDEX_DECODERS, e);
             }
         }
     }
@@ -289,32 +289,73 @@ public class RestPutDecoderAction extends BaseRestHandler {
     }
 
     /**
-     * Updates the modified timestamp in the resource node metadata.
+     * Updates the metadata of the decoder and preserves date field.
      *
-     * @param resourceNode the resource node to update
+     * <p>For decoders, timestamps are stored at {@code metadata.author.date} and {@code
+     * metadata.author.modified}. The date field is preserved from the existing document, while
+     * modified is always updated to the current time.
+     *
+     * @param documentId the document ID to retrieve from the index
+     * @param resourceNode the resource node to update with preserved metadata
+     * @throws IOException if an error occurs retrieving the existing document
      */
-    private void updateTimestampMetadata(ObjectNode resourceNode) {
-        String currentTimestamp = Instant.now().toString();
+    private void updateMetadata(String documentId, ObjectNode resourceNode) throws IOException {
+        JsonNode existingDocument = this.decoderIndex.getDocument(documentId);
+        if (existingDocument == null) {
+            throw new IOException("Document [" + documentId + "] not found.");
+        }
 
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
-        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
+        JsonNode existingMetadata = null;
+        String preservedDate = null;
+        if (existingDocument.has(Constants.KEY_DOCUMENT)
+                && existingDocument.get(Constants.KEY_DOCUMENT).isObject()) {
+            JsonNode existingDoc = existingDocument.get(Constants.KEY_DOCUMENT);
+            if (existingDoc.has(Constants.KEY_METADATA)
+                    && existingDoc.get(Constants.KEY_METADATA).isObject()) {
+                existingMetadata = existingDoc.get(Constants.KEY_METADATA);
+                // For decoders, date is inside author node
+                if (existingMetadata.has(Constants.KEY_AUTHOR)
+                        && existingMetadata.get(Constants.KEY_AUTHOR).isObject()
+                        && existingMetadata.get(Constants.KEY_AUTHOR).has(Constants.KEY_DATE)) {
+                    preservedDate =
+                            existingMetadata.get(Constants.KEY_AUTHOR).get(Constants.KEY_DATE).asText();
+                }
+            }
+        }
+
+        ObjectNode requestMetadata = null;
+        if (resourceNode.has(Constants.KEY_METADATA)
+                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            requestMetadata = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+        }
+
+        ObjectNode finalMetadata;
+        if (requestMetadata != null) {
+            finalMetadata =
+                    (ObjectNode) this.mapper.readTree(this.mapper.writeValueAsString(requestMetadata));
+        } else if (existingMetadata != null) {
+            finalMetadata =
+                    (ObjectNode) this.mapper.readTree(this.mapper.writeValueAsString(existingMetadata));
         } else {
-            metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
+            finalMetadata = this.mapper.createObjectNode();
         }
 
         // Ensure author node exists
         ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
+        if (finalMetadata.has(Constants.KEY_AUTHOR)
+                && finalMetadata.get(Constants.KEY_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) finalMetadata.get(Constants.KEY_AUTHOR);
         } else {
             authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
+            finalMetadata.set(Constants.KEY_AUTHOR, authorNode);
         }
 
-        // Set modified timestamp
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        // Set timestamps inside author node (Decoder format)
+        if (preservedDate != null) {
+            authorNode.put(Constants.KEY_DATE, preservedDate);
+        }
+        authorNode.put(Constants.KEY_MODIFIED, Instant.now().toString());
+
+        resourceNode.set(Constants.KEY_METADATA, finalMetadata);
     }
 }

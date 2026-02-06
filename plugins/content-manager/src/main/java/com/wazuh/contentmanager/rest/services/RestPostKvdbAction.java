@@ -163,7 +163,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
             resourceNode.put(FIELD_ID, kvdbId);
 
             // Add timestamp metadata
-            this.addTimestampMetadata(resourceNode);
+            this.addMetadata(resourceNode);
 
             // Validate with engine
             RestResponse engineResponse = this.validateWithEngine(resourceNode);
@@ -328,11 +328,11 @@ public class RestPostKvdbAction extends BaseRestHandler {
     }
 
     /**
-     * Adds or updates timestamp metadata to the resource node.
+     * Adds metadata fields on the resource node
      *
      * @param resourceNode the resource node to update
      */
-    private void addTimestampMetadata(ObjectNode resourceNode) {
+    private void addMetadata(ObjectNode resourceNode) {
         String currentTimestamp = Instant.now().toString();
 
         // Ensure metadata node exists
@@ -354,8 +354,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
         }
 
         // Set timestamps
-        authorNode.put(FIELD_DATE, currentTimestamp);
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
+        metadataNode.put(FIELD_DATE, currentTimestamp);
+        metadataNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 
     /**
