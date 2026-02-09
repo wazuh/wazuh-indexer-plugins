@@ -29,9 +29,8 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
- * integrations, and policies. It also handles post-sync operations like creating detectors and
- * calculating policy hashes.
+ * Handles synchronization logic for the IOC consumer. Processes IOCs and handles post-sync
+ * operations
  */
 public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
@@ -44,7 +43,7 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
     private final IocProcessor iocProcessor;
 
     /**
-     * Constructs a new UnifiedConsumerSynchronizer.
+     * Constructs a new IocConsumerSynchronizer.
      *
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
