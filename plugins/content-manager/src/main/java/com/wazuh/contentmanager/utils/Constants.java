@@ -80,6 +80,7 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_TITLE = "title";
+    public static final String KEY_DESCRIPTION = "description";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -88,6 +89,9 @@ public class Constants {
     public static final String KEY_KVDB = "kvdb";
     public static final String KEY_DECODER = "decoder";
     public static final String KEY_RULE = "rule";
+    public static final String KEY_LOGSOURCE = "logsource";
+    public static final String KEY_PRODUCT = "product";
+    public static final String KEY_CATEGORY = "category";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
@@ -96,13 +100,18 @@ public class Constants {
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
-            Map.of(
-                    KEY_POLICY, INDEX_POLICIES,
-                    KEY_INTEGRATIONS, INDEX_INTEGRATIONS,
-                    KEY_RULES, INDEX_RULES,
-                    KEY_KVDBS, INDEX_KVDBS,
-                    KEY_DECODERS, INDEX_DECODERS,
-                    KEY_FILTERS, INDEX_FILTERS);
+            Map.ofEntries(
+                    Map.entry(KEY_POLICY, INDEX_POLICIES),
+                    Map.entry(KEY_INTEGRATIONS, INDEX_INTEGRATIONS),
+                    Map.entry(KEY_RULES, INDEX_RULES),
+                    Map.entry(KEY_KVDBS, INDEX_KVDBS),
+                    Map.entry(KEY_DECODERS, INDEX_DECODERS),
+                    Map.entry(KEY_FILTERS, INDEX_FILTERS),
+                    // Added the to be used in Synchronizers
+                    Map.entry(KEY_INTEGRATION, INDEX_INTEGRATIONS),
+                    Map.entry(KEY_RULE, INDEX_RULES),
+                    Map.entry(KEY_KVDB, INDEX_KVDBS),
+                    Map.entry(KEY_DECODER, INDEX_DECODERS));
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";

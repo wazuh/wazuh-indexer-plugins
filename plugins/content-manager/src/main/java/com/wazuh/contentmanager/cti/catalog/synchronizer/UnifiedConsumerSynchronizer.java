@@ -117,24 +117,6 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         return Collections.emptyMap();
     }
 
-    /**
-     * Overrides index naming to utilize the alias name convention directly.
-     *
-     * @param type The type identifier for the index.
-     * @return The unified index name. TODO remove in favor of Constansts.RESOURCE_INDICES
-     */
-    @Override
-    public String getIndexName(String type) {
-        return switch (type) {
-            case Constants.KEY_RULE -> ".cti-rules";
-            case Constants.KEY_DECODER -> ".cti-decoders";
-            case Constants.KEY_KVDB -> ".cti-kvdbs";
-            case Constants.KEY_INTEGRATION -> ".cti-integrations";
-            case Constants.KEY_POLICY -> ".cti-policies";
-            default -> super.getIndexName(type);
-        };
-    }
-
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {

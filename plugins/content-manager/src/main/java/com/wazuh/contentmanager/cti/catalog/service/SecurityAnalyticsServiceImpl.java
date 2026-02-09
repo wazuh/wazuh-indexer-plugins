@@ -22,13 +22,14 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.utils.CategoryFormatter;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.*;
 import com.wazuh.securityanalytics.model.Integration;
@@ -39,11 +40,6 @@ import com.wazuh.securityanalytics.model.Integration;
  */
 public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     private static final Logger log = LogManager.getLogger(SecurityAnalyticsServiceImpl.class);
-
-    // TODO constants file
-    private static final String JSON_CATEGORY_KEY = "category";
-    private static final String JSON_PRODUCT_KEY = "product";
-    private static final String JSON_LOGSOURCE_KEY = "logsource";
 
     private final Client client;
 
@@ -65,8 +61,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
             String id = innerDoc.get(Constants.KEY_ID).getAsString();
             String name = innerDoc.get(Constants.KEY_TITLE).getAsString();
-            String description = innerDoc.get("description").getAsString();
-            String category = this.getCategory(innerDoc, false);
+            String description = innerDoc.get(Constants.KEY_DESCRIPTION).getAsString();
+            String category = CategoryFormatter.format(innerDoc, false);
 
             log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
 
@@ -140,15 +136,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
             String id = innerDoc.get(Constants.KEY_ID).getAsString();
 
-            String product = "linux";
-            if (innerDoc.has(JSON_LOGSOURCE_KEY)) {
-                JsonObject logsource = innerDoc.getAsJsonObject(JSON_LOGSOURCE_KEY);
-                if (logsource.has(JSON_PRODUCT_KEY)) {
-                    product = logsource.get(JSON_PRODUCT_KEY).getAsString();
-                } else if (logsource.has(JSON_CATEGORY_KEY)) {
-                    product = logsource.get(JSON_CATEGORY_KEY).getAsString();
-                }
-            }
+            String product = ContentIndex.extractProduct(innerDoc);
 
             log.info("Creating/Updating Rule [{}] in SAP", id);
 
@@ -213,7 +201,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String id = innerDoc.get(Constants.KEY_ID).getAsString();
             String name =
                     innerDoc.has(Constants.KEY_TITLE) ? innerDoc.get(Constants.KEY_TITLE).getAsString() : "";
-            String category = this.getCategory(innerDoc, rawCategory);
+            String category = CategoryFormatter.format(innerDoc, rawCategory);
             List<String> rules = new ArrayList<>();
 
             if (innerDoc.has(Constants.KEY_RULES)) {
@@ -272,29 +260,5 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         } catch (Exception e) {
             log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
         }
-    }
-
-    /**
-     * Retrieves the category from the document.
-     *
-     * @param doc The JSON document.
-     * @param raw Whether to return the raw category string.
-     * @return The category string.
-     */
-    private String getCategory(JsonObject doc, boolean raw) {
-        String rawCategory = doc.get(JSON_CATEGORY_KEY).getAsString();
-
-        if (raw) {
-            return rawCategory;
-        }
-
-        // TODO remove when CTI applies the changes to the categorization.
-        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
-        if (rawCategory.contains("cloud-services")) {
-            rawCategory = rawCategory.substring(0, 14);
-        }
-        return Arrays.stream(rawCategory.split("-"))
-                .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
-                .trim();
     }
 }

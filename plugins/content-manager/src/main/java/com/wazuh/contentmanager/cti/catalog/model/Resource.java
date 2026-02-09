@@ -28,10 +28,10 @@ import com.google.gson.ToNumberPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 
 /** Base model representing a generic catalog resource within the CTI context. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -87,8 +87,8 @@ public class Resource {
             resource.setDocument(GSON.fromJson(rawDoc, Map.class));
 
             // 2. Calculate Hash
-            String hashStr = Resource.calculateSha256(rawDoc);
-            if (hashStr != null) {
+            String hashStr = HashCalculator.sha256(rawDoc.toString());
+            if (hashStr != null && !hashStr.isEmpty()) {
                 Map<String, String> hashMap = new HashMap<>();
                 hashMap.put("sha256", hashStr);
                 resource.setHash(hashMap);
@@ -154,33 +154,6 @@ public class Resource {
         if (relatedObj.has(JSON_SIGMA_ID_KEY)) {
             relatedObj.add("id", relatedObj.get(JSON_SIGMA_ID_KEY));
             relatedObj.remove(JSON_SIGMA_ID_KEY);
-        }
-    }
-
-    /**
-     * Calculates the SHA-256 checksum of a JSON Object.
-     *
-     * @param json The JSON object to hash.
-     * @return The Hexadecimal string representation of the SHA-256 hash, or {@code null} if
-     *     calculation fails.
-     */
-    protected static String calculateSha256(JsonObject json) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(json.toString().getBytes(StandardCharsets.UTF_8));
-
-            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
-            for (byte b : encodedhash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (Exception e) {
-            log.error("Failed to calculate SHA-256 hash", e);
-            return null;
         }
     }
 

@@ -118,7 +118,8 @@ public class IntegrationProcessor extends AbstractProcessor {
 
         String id = doc.get(Constants.KEY_ID).getAsString();
         String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).getAsString() : "";
-        String description = doc.has("description") ? doc.get("description").getAsString() : "";
+        String description =
+                doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).getAsString() : "";
         String category = CategoryFormatter.format(doc, false);
 
         // Extract related rules to create the Threat Detector later.

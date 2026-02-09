@@ -131,17 +131,14 @@ public abstract class AbstractConsumerSynchronizer {
      * Overrides index naming to utilize the alias name convention directly.
      *
      * @param type The type identifier for the index.
-     * @return The unified index name. TODO remove in favor of Constants.RESOURCE_INDICES
+     * @return The unified index name.
      */
     public String getIndexName(String type) {
-        return switch (type) {
-            case Constants.KEY_RULE -> Constants.INDEX_RULES;
-            case Constants.KEY_DECODER -> Constants.INDEX_DECODERS;
-            case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
-            case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
-            case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
-            default -> throw new IllegalArgumentException("Unknown type: " + type);
-        };
+        String index = Constants.RESOURCE_INDICES.get(type);
+        if (index == null) {
+            throw new IllegalArgumentException("Unknown type: " + type);
+        }
+        return index;
     }
 
     /**
