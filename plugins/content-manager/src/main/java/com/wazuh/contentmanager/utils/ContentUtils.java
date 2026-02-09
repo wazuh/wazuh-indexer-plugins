@@ -90,6 +90,27 @@ public class ContentUtils {
     }
 
     /**
+     * Validates that the metadata.author structure does not contain date or modified fields.
+     *
+     * @param resourceNode The resource JSON node.
+     * @return RestResponse if validation fails, null otherwise.
+     */
+    public static RestResponse validateMetadataFields(JsonNode resourceNode) {
+        if (resourceNode.has(Constants.KEY_METADATA)) {
+            JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
+            if (metadata.has(Constants.KEY_AUTHOR)) {
+                JsonNode author = metadata.get(Constants.KEY_AUTHOR);
+                if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
+                    return new RestResponse(
+                            "Fields 'metadata.author.date' and 'metadata.author.modified' are managed by the system.",
+                            RestStatus.BAD_REQUEST.getStatus());
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Builds the standard CTI wrapper payload containing type, document, space, and hash.
      *
      * @param type The resource type (e.g., "decoder", "kvdb").

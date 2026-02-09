@@ -160,6 +160,12 @@ public class RestPutDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, decoderId);
 
+            // Validate forbidden metadata fields
+            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            if (validationError != null) {
+                return validationError;
+            }
+
             // Validate decoder is in draft space
             String spaceValidationError =
                     DocumentValidations.validateDocumentInSpace(
@@ -168,8 +174,32 @@ public class RestPutDecoderAction extends BaseRestHandler {
                 return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Fetch existing decoder to preserve creation date
+            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
+            JsonNode existingDoc = decoderIndex.getDocument(decoderId);
+            if (existingDoc == null) {
+                return new RestResponse(
+                        "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus());
+            }
+
+            String existingDate = null;
+            if (existingDoc.has(Constants.KEY_DOCUMENT)) {
+                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                if (doc.has(Constants.KEY_METADATA)) {
+                    JsonNode meta = doc.get(Constants.KEY_METADATA);
+                    if (meta.has(Constants.KEY_AUTHOR)) {
+                        JsonNode auth = meta.get(Constants.KEY_AUTHOR);
+                        if (auth.has(Constants.KEY_DATE)) {
+                            existingDate = auth.get(Constants.KEY_DATE).asText();
+                        }
+                    }
+                }
+            }
+
             // Update timestamp
             ContentUtils.updateTimestampMetadata(resourceNode, false);
+            ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
+                    .put(Constants.KEY_DATE, existingDate);
 
             // Validate decoder with Wazuh Engine
             RestResponse engineValidation =
@@ -179,12 +209,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Update decoder
-            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-            if (!decoderIndex.exists(decoderId)) {
-                return new RestResponse(
-                        "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus());
-            }
-
             decoderIndex.create(
                     decoderId,
                     ContentUtils.buildCtiWrapper(

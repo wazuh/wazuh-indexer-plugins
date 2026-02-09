@@ -311,6 +311,11 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
+        // Mock getSourceAsString for ContentIndex.getDocument()
+        when(spaceResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
+
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
         return client;
