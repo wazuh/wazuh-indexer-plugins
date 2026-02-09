@@ -35,9 +35,6 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
-    /** The unified IOC type identifier. */
-    public static final String IOC = "ioc";
-
     /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getIocContext();
 
@@ -72,7 +69,7 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(IOC, "/mappings/cti-ioc-mappings.json");
+        mappings.put(Constants.KEY_IOCS, "/mappings/cti-ioc-mappings.json");
         return mappings;
     }
 
@@ -90,7 +87,7 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
      */
     @Override
     public String getIndexName(String type) {
-        if (type.equals(IOC)) {
+        if (type.equals(Constants.KEY_IOCS)) {
             return Constants.INDEX_IOCS;
         }
         return super.getIndexName(type);
@@ -101,7 +98,7 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
 
-            String iocIndex = this.getIndexName(Constants.INDEX_IOCS);
+            String iocIndex = this.getIndexName(Constants.KEY_IOCS);
 
             this.iocProcessor.process(iocIndex);
 
