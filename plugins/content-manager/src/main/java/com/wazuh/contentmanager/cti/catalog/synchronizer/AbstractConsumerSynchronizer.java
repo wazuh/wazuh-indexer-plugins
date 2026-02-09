@@ -34,6 +34,8 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.IocSnapshotServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotService;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
@@ -68,6 +70,7 @@ public abstract class AbstractConsumerSynchronizer {
     public static final String DECODER = "decoder";
     public static final String KVDB = "kvdb";
     public static final String INTEGRATION = "integration";
+    public static final String IOCS = "iocs";
 
     /**
      * Constructs a new AbstractConsumerSynchronizer.
@@ -146,6 +149,7 @@ public abstract class AbstractConsumerSynchronizer {
             case KVDB -> Constants.INDEX_KVDBS;
             case INTEGRATION -> Constants.INDEX_INTEGRATIONS;
             case POLICY -> Constants.INDEX_POLICIES;
+            case IOCS -> Constants.INDEX_IOCS;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
     }
@@ -211,12 +215,7 @@ public abstract class AbstractConsumerSynchronizer {
         // Snapshot Initialization
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            SnapshotServiceImpl snapshotService =
-                    new SnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
-            snapshotService.initialize(remoteConsumer);
-
-            currentOffset = remoteConsumer.getSnapshotOffset();
+            currentOffset = this.triggerSnapshotInit(context, consumer, indicesMap, remoteConsumer);
             updated = true;
         }
 
@@ -236,5 +235,27 @@ public abstract class AbstractConsumerSynchronizer {
             updated = true;
         }
         return updated;
+    }
+
+    private long triggerSnapshotInit(
+            String context,
+            String consumer,
+            Map<String, ContentIndex> indicesMap,
+            RemoteConsumer remoteConsumer) {
+        long currentOffset;
+        SnapshotService snapshotService;
+        // Instantiate the correct snapshot service depending on the type of resource (Ioc or general)
+        if (indicesMap.containsKey(Constants.KEY_IOCS)) {
+            snapshotService =
+                    new IocSnapshotServiceImpl(
+                            context, consumer, indicesMap, this.consumersIndex, this.environment);
+        } else {
+            snapshotService =
+                    new SnapshotServiceImpl(
+                            context, consumer, indicesMap, this.consumersIndex, this.environment);
+        }
+        snapshotService.initialize(remoteConsumer);
+        currentOffset = remoteConsumer.getSnapshotOffset();
+        return currentOffset;
     }
 }
