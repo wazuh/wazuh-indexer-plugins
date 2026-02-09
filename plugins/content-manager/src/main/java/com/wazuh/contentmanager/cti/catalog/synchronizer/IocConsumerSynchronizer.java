@@ -101,23 +101,6 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
             String iocIndex = this.getIndexName(Constants.KEY_IOCS);
 
             this.iocProcessor.process(iocIndex);
-
-            // TODO: Remove the code below. I'm keeping it for reference while implementing the IOC
-            // processor.
-            // this.refreshIndices(RULE, DECODER, KVDB, INTEGRATION, IOC);
-
-            // String integrationIndex = this.getIndexName(INTEGRATION);
-            // String ruleIndex = this.getIndexName(RULE);
-            // String policyIndex = this.getIndexName(IOC);
-            // String decoderIndex = this.getIndexName(DECODER);
-            // String kvdbIndex = this.getIndexName(KVDB);
-
-            // Map<String, List<String>> integrations = this.iocProcessor.process(integrationIndex);
-            // this.ruleProcessor.process(ruleIndex);
-            // this.detectorProcessor.process(integrations, integrationIndex);
-
-            // this.policyHashService.calculateAndUpdate(
-            //     policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
         }
     }
 }
