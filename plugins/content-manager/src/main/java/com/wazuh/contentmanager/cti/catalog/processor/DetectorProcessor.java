@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -115,6 +115,10 @@ public class DetectorProcessor extends AbstractProcessor {
         List<String> rules = new ArrayList<>();
         if (doc.has("rules")) {
             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+        }
+
+        if (!this.pluginSettings.getCreateDetectors()) {
+            return;
         }
 
         try {
