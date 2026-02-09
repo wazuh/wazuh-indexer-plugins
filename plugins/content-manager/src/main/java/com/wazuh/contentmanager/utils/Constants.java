@@ -100,18 +100,18 @@ public class Constants {
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
-            Map.ofEntries(
-                    Map.entry(KEY_POLICY, INDEX_POLICIES),
-                    Map.entry(KEY_INTEGRATIONS, INDEX_INTEGRATIONS),
-                    Map.entry(KEY_RULES, INDEX_RULES),
-                    Map.entry(KEY_KVDBS, INDEX_KVDBS),
-                    Map.entry(KEY_DECODERS, INDEX_DECODERS),
-                    Map.entry(KEY_FILTERS, INDEX_FILTERS),
+            Map.of(
+                    KEY_POLICY, INDEX_POLICIES,
+                    KEY_INTEGRATIONS, INDEX_INTEGRATIONS,
+                    KEY_RULES, INDEX_RULES,
+                    KEY_KVDBS, INDEX_KVDBS,
+                    KEY_DECODERS, INDEX_DECODERS,
+                    KEY_FILTERS, INDEX_FILTERS,
                     // Added the to be used in Synchronizers
-                    Map.entry(KEY_INTEGRATION, INDEX_INTEGRATIONS),
-                    Map.entry(KEY_RULE, INDEX_RULES),
-                    Map.entry(KEY_KVDB, INDEX_KVDBS),
-                    Map.entry(KEY_DECODER, INDEX_DECODERS));
+                    KEY_INTEGRATION, INDEX_INTEGRATIONS,
+                    KEY_RULE, INDEX_RULES,
+                    KEY_KVDB, INDEX_KVDBS,
+                    KEY_DECODER, INDEX_DECODERS);
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
