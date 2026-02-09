@@ -225,7 +225,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                     // Resolve the target index
                     ContentIndex indexHandler = this.resolveIndex(payload);
                     if (indexHandler == null) {
-                        log.warn("No ContentIndex found for payload [{}]. Skipping.", payload.getAsString());
                         continue;
                     }
                     JsonObject processedPayload = indexHandler.processPayload(payload);
@@ -269,7 +268,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /** Deletes temporary files and directories used during the process. */
-    protected void cleanup(Path zipFile, Path directory) {
+    private void cleanup(Path zipFile, Path directory) {
         try {
             if (zipFile != null) {
                 Files.deleteIfExists(zipFile);

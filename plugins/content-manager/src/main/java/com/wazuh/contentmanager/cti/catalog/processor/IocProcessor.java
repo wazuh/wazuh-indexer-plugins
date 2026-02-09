@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.processor;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.wazuh.contentmanager.utils.Constants;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
@@ -75,21 +76,20 @@ public class IocProcessor extends AbstractProcessor {
             return;
         }
 
-        if (!source.has("id")) {
+        if (!source.has(Constants.KEY_ID)) {
             this.log.warn("Hit [{}] missing 'id' field, skipping", hit.getId());
             this.skippedCount++;
             return;
         }
-        String id = source.get("id").getAsString();
+        String id = source.get(Constants.KEY_ID).getAsString();
 
-        if (!source.has("enrichments") || !source.get("enrichments").isJsonArray()) {
+        if (!source.has(Constants.KEY_ENRICHMENTS) || !source.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
             this.log.warn("IoC [{}] missing 'enrichments' array, skipping", id);
             this.skippedCount++;
             return;
         }
-        JsonArray enrichments = source.getAsJsonArray("enrichments");
+        JsonArray enrichments = source.getAsJsonArray(Constants.KEY_ENRICHMENTS);
 
-        // TODO: Implement IoC-specific processing logic
         this.log.debug("IoC [{}] processed successfully with {} enrichments.", id, enrichments.size());
         this.successCount++;
     }

@@ -513,7 +513,7 @@ public class ContentIndex {
             // 1. Delegate parsing logic to the appropriate Model
             if (Constants.KEY_DECODER.equalsIgnoreCase(type)) {
                 resource = Decoder.fromPayload(payload);
-            } else if (payload.has("enrichments")) {
+            } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
                 resource = Ioc.fromPayload(payload);
             } else {
                 resource = Resource.fromPayload(payload);

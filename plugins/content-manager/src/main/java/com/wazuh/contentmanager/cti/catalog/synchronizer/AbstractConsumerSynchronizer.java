@@ -65,13 +65,6 @@ public abstract class AbstractConsumerSynchronizer {
     /** The OpenSearch environment configuration. */
     protected final Environment environment;
 
-    public static final String POLICY = "policy";
-    public static final String RULE = "rule";
-    public static final String DECODER = "decoder";
-    public static final String KVDB = "kvdb";
-    public static final String INTEGRATION = "integration";
-    public static final String IOCS = "iocs";
-
     /**
      * Constructs a new AbstractConsumerSynchronizer.
      *

@@ -84,6 +84,9 @@ public class Constants {
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
 
+    // Ioc content fields
+    public static final String KEY_ENRICHMENTS = "enrichments";
+
     // API request content fields
     public static final String KEY_TYPE = "type";
     public static final String KEY_RESOURCE = "resource";

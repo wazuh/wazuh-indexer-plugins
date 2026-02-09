@@ -24,6 +24,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.ToNumberPolicy;
 
+import com.wazuh.contentmanager.utils.Constants;
 import java.util.List;
 import java.util.Map;
 
@@ -34,15 +35,13 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Ioc extends Resource {
-    private static final String ID_KEY = "id";
-    private static final String ENRICHMENTS_KEY = "enrichments";
     private static final Gson GSON =
             new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
-    @JsonProperty(ID_KEY)
+    @JsonProperty(Constants.KEY_ID)
     private String id;
 
-    @JsonProperty(ENRICHMENTS_KEY)
+    @JsonProperty(Constants.KEY_ENRICHMENTS)
     private List<Map<String, Object>> enrichments;
 
     /** Default constructor. */
@@ -61,11 +60,11 @@ public class Ioc extends Resource {
         Resource.populateResource(ioc, payload);
 
         // Populate IoC-specific fields
-        if (payload.has(ID_KEY)) {
-            ioc.setId(payload.get(ID_KEY).getAsString());
+        if (payload.has(Constants.KEY_ID)) {
+            ioc.setId(payload.get(Constants.KEY_ID).getAsString());
         }
-        if (payload.has(ENRICHMENTS_KEY) && payload.get(ENRICHMENTS_KEY).isJsonArray()) {
-            ioc.setEnrichments(GSON.fromJson(payload.getAsJsonArray(ENRICHMENTS_KEY), List.class));
+        if (payload.has(Constants.KEY_ENRICHMENTS) && payload.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
+            ioc.setEnrichments(GSON.fromJson(payload.getAsJsonArray(Constants.KEY_ENRICHMENTS), List.class));
         }
 
         return ioc;
