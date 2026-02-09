@@ -30,6 +30,12 @@
         "integrations": {
           "type": "keyword"
         },
+        "filters": {
+          "type": "keyword"
+        },
+        "enrichments": {
+          "type": "keyword"
+        },
         "title": {
           "type": "keyword"
         }

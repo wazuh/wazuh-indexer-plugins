@@ -91,7 +91,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "type": "rule",
-              "integration_id": "integration-1",
+              "integration": "integration-1",
               "resource": {
                   "author": "Florian Roth (Nextron Systems)",
                   "description": "Detects a core dump of a crashing Nginx worker process.",
@@ -172,7 +172,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
 
     /**
      * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the rule has
-     * not been created, because the integration_id field is missing in the payload. The expected
+     * not been created, because the integration field is missing in the payload. The expected
      * response is: {400, RestResponse}
      *
      * @throws IOException
@@ -218,7 +218,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "type": "rule",
-              "integration_id": "integration-1",
+              "integration": "integration-1",
               "resource": {
                   "id": "should-not-be-here",
                   "title": "Rule with ID"
@@ -242,7 +242,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
 
     /**
      * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the rule has
-     * not been created, because there integration from the integration_id field doesn't exist. The
+     * not been created, because there integration from the integration field doesn't exist. The
      * expected response is: {400, RestResponse}
      *
      * @throws IOException
@@ -253,7 +253,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         String jsonRule = """
             {
               "type": "rule",
-              "integration_id": "missing-integration",
+              "integration": "missing-integration",
               "resource": {
                   "title": "Rule",
                   "logsource": { "product": "test" }

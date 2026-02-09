@@ -26,6 +26,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleAction;
@@ -46,9 +49,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * success, failure, and skip counts for monitoring and logging purposes.
  */
 public class RuleProcessor extends AbstractProcessor {
-
-    /** JSON field name for the category attribute in logsource configuration. */
-    private static final String CATEGORY = "category";
 
     /**
      * Constructs a new RuleProcessor.
@@ -118,9 +118,10 @@ public class RuleProcessor extends AbstractProcessor {
 
         // Determine if custom based on 'space' field
         boolean isCustom = false;
-        if (source.has("space") && source.get("space").isJsonObject()) {
-            JsonObject space = source.getAsJsonObject("space");
-            if (space.has("name") && "custom".equalsIgnoreCase(space.get("name").getAsString())) {
+        if (source.has(Constants.KEY_SPACE) && source.get(Constants.KEY_SPACE).isJsonObject()) {
+            JsonObject space = source.getAsJsonObject(Constants.KEY_SPACE);
+            if (space.has(Constants.KEY_NAME)
+                    && Space.CUSTOM.equals(space.get(Constants.KEY_NAME).getAsString())) {
                 isCustom = true;
             }
         }
@@ -130,14 +131,14 @@ public class RuleProcessor extends AbstractProcessor {
             return;
         }
 
-        if (!doc.has("id")) {
+        if (!doc.has(Constants.KEY_ID)) {
             this.log.warn("Rule document missing 'id' field, skipping: {}", hit.getId());
             this.skippedCount++;
             return;
         }
 
-        String id = doc.get("id").getAsString();
-        String product = this.determineProduct(doc);
+        String id = doc.get(Constants.KEY_ID).getAsString();
+        String product = ContentIndex.extractProduct(doc);
 
         try {
             if (isCustom) {
@@ -163,25 +164,5 @@ public class RuleProcessor extends AbstractProcessor {
             this.log.warn("Failed to sync rule [{}]: {}", id, e.getMessage());
             this.failCount++;
         }
-    }
-
-    /**
-     * Determines the product category for a rule based on its logsource configuration. Checks for
-     * product or category fields in the logsource object, defaulting to "linux" if not specified.
-     *
-     * @param doc The rule document JSON object containing logsource configuration.
-     * @return The product category string for the rule.
-     */
-    private String determineProduct(JsonObject doc) {
-        String product = "linux"; // Default
-        if (doc.has("logsource")) {
-            JsonObject logsource = doc.getAsJsonObject("logsource");
-            if (logsource.has("product")) {
-                product = logsource.get("product").getAsString();
-            } else if (logsource.has(CATEGORY)) {
-                product = logsource.get(CATEGORY).getAsString();
-            }
-        }
-        return product;
     }
 }

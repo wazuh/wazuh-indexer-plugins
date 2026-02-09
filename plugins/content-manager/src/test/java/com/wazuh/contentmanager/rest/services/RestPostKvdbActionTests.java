@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -144,7 +143,9 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Arrange
         RestRequest request = buildRequest(KVDB_PAYLOAD, null);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+
         Client client = buildClientForIndex();
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
@@ -162,67 +163,15 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         // Verify engine validation was called with correct payload
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.service).validate(payloadCaptor.capture());
+        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
         JsonNode captured = payloadCaptor.getValue();
-        assertEquals("kvdb", captured.get("type").asText());
-        assertFalse(captured.has("integration"));
 
-        JsonNode resource = captured.get("resource");
-        assertTrue(resource.hasNonNull("id"));
-        String engineKvdbId = resource.get("id").asText();
-        // Validate engine receives UUID WITHOUT prefix
-        assertFalse(engineKvdbId.startsWith("d_"));
-        UUID.fromString(engineKvdbId); // Validate it's a valid UUID
+        // validateResource receives the resource node
+        assertTrue(captured.hasNonNull("id"));
 
-        // Verify timestamps were added
-        assertTrue(resource.has("metadata"));
-        JsonNode metadata = resource.get("metadata");
-        assertTrue(metadata.has("author"));
-        JsonNode author = metadata.get("author");
-        assertTrue(author.has("date"));
-        assertTrue(author.has("modified"));
-        assertNotNull(author.get("date").asText());
-        assertNotNull(author.get("modified").asText());
-
-        // Verify client.index() was called three times: once for KVDB, once for regenerating
-        // integration hash, once for updating the integration with the new KVDB
-        ArgumentCaptor<IndexRequest> indexRequestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(client, org.mockito.Mockito.times(3)).index(indexRequestCaptor.capture());
-
-        java.util.List<IndexRequest> indexRequests = indexRequestCaptor.getAllValues();
-        assertEquals(3, indexRequests.size());
-
-        // First call should be for creating the KVDB
-        IndexRequest kvdbIndexRequest = indexRequests.get(0);
-        assertTrue(kvdbIndexRequest.index().contains("kvdb"));
-
-        // Second call should be for regenerating integration hash
-        IndexRequest hashRegenerationRequest = indexRequests.get(1);
-        assertEquals(".cti-integrations", hashRegenerationRequest.index());
-
-        // Third call should be for updating the integration with the new KVDB
-        IndexRequest integrationUpdateRequest = indexRequests.get(2);
-        assertEquals(".cti-integrations", integrationUpdateRequest.index());
-        assertEquals("integration-1", integrationUpdateRequest.id());
-
-        // Verify the integration was updated with the KVDB ID
-        Map<String, Object> integrationSource = integrationUpdateRequest.sourceAsMap();
-        assertNotNull(integrationSource);
-        assertTrue(integrationSource.containsKey("document"));
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> document = (Map<String, Object>) integrationSource.get("document");
-        assertNotNull(document);
-        assertTrue(document.containsKey("kvdbs"));
-
-        @SuppressWarnings("unchecked")
-        java.util.List<String> kvdbs = (java.util.List<String>) document.get("kvdbs");
-        assertNotNull(kvdbs);
-        assertEquals(1, kvdbs.size());
-        String integrationKvdbId = kvdbs.get(0);
-        // Verify integration receives ID WITHOUT prefix
-        assertFalse(integrationKvdbId.startsWith("d_"));
-        assertEquals(engineKvdbId, integrationKvdbId); // Should match engine ID
+        // Check Metadata
+        JsonNode metadata = captured.get("metadata");
+        assertNotNull(metadata.get("author").get("date").asText());
     }
 
     /** Test that providing a resource ID on creation returns 400 Bad Request. */

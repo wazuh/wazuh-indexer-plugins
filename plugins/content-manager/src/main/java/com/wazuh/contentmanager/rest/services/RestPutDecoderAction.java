@@ -30,23 +30,19 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_DECODERS;
-import static com.wazuh.contentmanager.utils.Constants.KEY_DECODERS;
-import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
 
 /**
  * REST handler for updating CTI decoders.
@@ -66,17 +62,13 @@ import static com.wazuh.contentmanager.utils.Constants.KEY_DOCUMENT;
  */
 public class RestPutDecoderAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
-    // TODO: Move to a common constants class
+
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
-    private static final String FIELD_RESOURCE = "resource";
-    private static final String FIELD_ID = "id";
-    private static final String FIELD_TYPE = "type";
-    private static final String FIELD_METADATA = "metadata";
-    private static final String FIELD_AUTHOR = "author";
-    private static final String FIELD_MODIFIED = "modified";
+
     private final EngineService engine;
     private final ObjectMapper mapper = new ObjectMapper();
+    private PolicyHashService policyHashService;
 
     /**
      * Constructs a new RestPutDecoderAction handler.
@@ -119,9 +111,19 @@ public class RestPutDecoderAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
-        request.param("id");
+        request.param(Constants.KEY_ID);
+        this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    }
+
+    /**
+     * Sets the policy hash service.
+     *
+     * @param policyHashService The service responsible for calculating policy hashes.
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
     }
 
     /**
@@ -136,51 +138,84 @@ public class RestPutDecoderAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request, Client client) {
         // Validate prerequisites
-        RestResponse validationError = this.validatePrerequisites(request);
+        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
         if (validationError != null) {
             return validationError;
         }
 
         try {
-            String decoderId = this.extractDecoderId(request);
+            String decoderId = request.param(Constants.KEY_ID);
             if (decoderId == null || decoderId.isBlank()) {
                 return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
             }
 
             JsonNode payload = this.mapper.readTree(request.content().streamInput());
+
             // Validate payload structure
-            validationError = this.validatePayload(payload, decoderId);
+            validationError = DocumentValidations.validateResourcePayload(payload, decoderId, false);
             if (validationError != null) {
                 return validationError;
             }
 
-            ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-            resourceNode.put(FIELD_ID, decoderId);
+            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
+            resourceNode.put(Constants.KEY_ID, decoderId);
+
+            // Validate forbidden metadata fields
+            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            if (validationError != null) {
+                return validationError;
+            }
 
             // Validate decoder is in draft space
             String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(client, INDEX_DECODERS, decoderId, "Decoder");
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_DECODERS, decoderId, Constants.KEY_DECODER);
             if (spaceValidationError != null) {
                 return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Update the modified timestamp
-            this.updateTimestampMetadata(resourceNode);
+            // Fetch existing decoder to preserve creation date
+            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
+            JsonNode existingDoc = decoderIndex.getDocument(decoderId);
+            if (existingDoc == null) {
+                return new RestResponse(
+                        "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus());
+            }
+
+            String existingDate = null;
+            if (existingDoc.has(Constants.KEY_DOCUMENT)) {
+                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                if (doc.has(Constants.KEY_METADATA)) {
+                    JsonNode meta = doc.get(Constants.KEY_METADATA);
+                    if (meta.has(Constants.KEY_AUTHOR)) {
+                        JsonNode auth = meta.get(Constants.KEY_AUTHOR);
+                        if (auth.has(Constants.KEY_DATE)) {
+                            existingDate = auth.get(Constants.KEY_DATE).asText();
+                        }
+                    }
+                }
+            }
+
+            // Update timestamp
+            ContentUtils.updateTimestampMetadata(resourceNode, false);
+            ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
+                    .put(Constants.KEY_DATE, existingDate);
 
             // Validate decoder with Wazuh Engine
-            ObjectNode enginePayload = mapper.createObjectNode();
-            enginePayload.set("resource", resourceNode);
-            enginePayload.put("type", "decoder");
-            final RestResponse engineValidation = this.engine.validate(enginePayload);
+            RestResponse engineValidation =
+                    this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
 
             // Update decoder
-            this.updateDecoder(client, decoderId, resourceNode);
+            decoderIndex.create(
+                    decoderId,
+                    ContentUtils.buildCtiWrapper(
+                            Constants.KEY_DECODER, resourceNode, Space.DRAFT.toString()));
 
             // Regenerate space hash because decoder content changed
-            this.regenerateSpaceHash(client, Space.DRAFT.toString());
+            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
                     "Decoder updated successfully with ID: " + decoderId, RestStatus.OK.getStatus());
@@ -193,128 +228,5 @@ public class RestPutDecoderAction extends BaseRestHandler {
                     e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    /** Validates that the engine service and request content are available. */
-    private RestResponse validatePrerequisites(RestRequest request) {
-        if (this.engine == null) {
-            return new RestResponse(
-                    "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /** Extracts the decoder ID from the request path parameters. */
-    private String extractDecoderId(RestRequest request) {
-        String decoderId = request.param("id");
-        if (decoderId == null || decoderId.isBlank()) {
-            decoderId = request.param("decoder_id");
-        }
-        return decoderId;
-    }
-
-    /** Validates the payload structure and required fields. */
-    private RestResponse validatePayload(JsonNode payload, String decoderId) {
-        if (!payload.has(FIELD_RESOURCE) || !payload.get(FIELD_RESOURCE).isObject()) {
-            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        ObjectNode resourceNode = (ObjectNode) payload.get(FIELD_RESOURCE);
-        if (resourceNode.hasNonNull(FIELD_ID)) {
-            String payloadId = resourceNode.get(FIELD_ID).asText();
-            if (!payloadId.equals(decoderId)) {
-                return new RestResponse(
-                        "Decoder ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
-            }
-        }
-        return null;
-    }
-
-    /** Updates the decoder document in the index. */
-    private void updateDecoder(Client client, String decoderId, ObjectNode resourceNode)
-            throws IOException {
-
-        RestPutDecoderAction.ensureIndexExists(client);
-        ContentIndex decoderIndex = new ContentIndex(client, INDEX_DECODERS, null);
-
-        // Check if decoder exists before updating
-        if (!decoderIndex.exists(decoderId)) {
-            throw new IOException("Decoder [" + decoderId + "] not found.");
-        }
-
-        decoderIndex.create(decoderId, this.buildDecoderPayload(resourceNode));
-    }
-
-    /** Builds the decoder payload with document and space information. */
-    private JsonNode buildDecoderPayload(ObjectNode resourceNode) {
-        ObjectNode node = this.mapper.createObjectNode();
-        node.put(FIELD_TYPE, KEY_DECODERS);
-        node.set(KEY_DOCUMENT, resourceNode);
-        // Add draft space
-        ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
-        node.set(Constants.KEY_SPACE, spaceNode);
-
-        return node;
-    }
-
-    /** Ensures the decoder index exists, creating it if necessary. */
-    private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, INDEX_DECODERS)) {
-            ContentIndex index = new ContentIndex(client, INDEX_DECODERS, null);
-            try {
-                index.createIndex();
-            } catch (Exception e) {
-                throw new IOException("Failed to create index " + INDEX_DECODERS, e);
-            }
-        }
-    }
-
-    /**
-     * Regenerates the space hash.
-     *
-     * @param client the OpenSearch client
-     * @param spaceName the name of the space to regenerate hash for
-     */
-    private void regenerateSpaceHash(Client client, String spaceName) {
-        PolicyHashService policyHashService = new PolicyHashService(client);
-
-        // Use PolicyHashService to recalculate space hash for the given space
-        policyHashService.calculateAndUpdate(List.of(spaceName));
-
-        this.log.debug("Regenerated space hash for space={}", spaceName);
-    }
-
-    /**
-     * Updates the modified timestamp in the resource node metadata.
-     *
-     * @param resourceNode the resource node to update
-     */
-    private void updateTimestampMetadata(ObjectNode resourceNode) {
-        String currentTimestamp = Instant.now().toString();
-
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
-        if (resourceNode.has(FIELD_METADATA) && resourceNode.get(FIELD_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(FIELD_METADATA);
-        } else {
-            metadataNode = this.mapper.createObjectNode();
-            resourceNode.set(FIELD_METADATA, metadataNode);
-        }
-
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(FIELD_AUTHOR) && metadataNode.get(FIELD_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(FIELD_AUTHOR);
-        } else {
-            authorNode = this.mapper.createObjectNode();
-            metadataNode.set(FIELD_AUTHOR, authorNode);
-        }
-
-        // Set modified timestamp
-        authorNode.put(FIELD_MODIFIED, currentTimestamp);
     }
 }

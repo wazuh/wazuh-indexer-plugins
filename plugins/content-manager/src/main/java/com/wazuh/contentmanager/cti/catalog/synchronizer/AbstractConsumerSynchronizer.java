@@ -143,13 +143,17 @@ public abstract class AbstractConsumerSynchronizer {
      * @return The unified index name.
      */
     public String getIndexName(String type) {
+        // TODO Normalize the Resource types at resource creation to avoid this mapping and simplify
+        // index management
+        // e.g. always use the `type` in plural (decoders, rules, etc.) and remove the need for this
+        // mapping
         return switch (type) {
-            case RULE -> Constants.INDEX_RULES;
-            case DECODER -> Constants.INDEX_DECODERS;
-            case KVDB -> Constants.INDEX_KVDBS;
-            case INTEGRATION -> Constants.INDEX_INTEGRATIONS;
-            case POLICY -> Constants.INDEX_POLICIES;
-            case IOCS -> Constants.INDEX_IOCS;
+            case Constants.KEY_RULE -> Constants.INDEX_RULES;
+            case Constants.KEY_DECODER -> Constants.INDEX_DECODERS;
+            case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
+            case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
+            case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_IOCS -> Constants.INDEX_IOCS;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
     }

@@ -38,10 +38,6 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -52,6 +48,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -190,10 +187,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
             // Validate required Policy fields
             List<String> missingFields = new ArrayList<>();
             if (policy.getAuthor() == null || policy.getAuthor().isEmpty()) {
-                missingFields.add("author");
+                missingFields.add(Constants.KEY_AUTHOR);
             }
             if (policy.getDescription() == null || policy.getDescription().isEmpty()) {
-                missingFields.add("description");
+                missingFields.add(Constants.KEY_DESCRIPTION);
             }
             if (policy.getDocumentation() == null) {
                 missingFields.add("documentation");
@@ -262,13 +259,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList());
         List<String> newIntegrations = policy.getIntegrations();
 
-        Set<String> currentSet = new HashSet<>(currentIntegrations);
-        Set<String> newSet = new HashSet<>(newIntegrations);
-
-        if (!currentSet.equals(newSet)) {
-            throw new IllegalArgumentException(
-                    "Integrations cannot be added or removed via policy update. "
-                            + "Please use the integration endpoints.");
+        // Validation for integrations array: allow reordering but prevent addition/removal
+        RestResponse validationError =
+                ContentUtils.validateListEquality(
+                        currentIntegrations, newIntegrations, Constants.KEY_INTEGRATIONS);
+        if (validationError != null) {
+            throw new IllegalArgumentException(validationError.getMessage());
         }
 
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();

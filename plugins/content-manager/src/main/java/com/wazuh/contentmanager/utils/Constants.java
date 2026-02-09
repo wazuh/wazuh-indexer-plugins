@@ -72,6 +72,7 @@ public class Constants {
     // Resource Metadata Keys
     public static final String KEY_DOCUMENT = "document";
     public static final String KEY_HASH = "hash";
+    public static final String KEY_SHA256 = "sha256";
     public static final String KEY_SPACE = "space";
     public static final String KEY_NAME = "name";
     public static final String KEY_ID = "id";
@@ -79,12 +80,25 @@ public class Constants {
     public static final String KEY_METADATA = "metadata";
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
+    public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_DESCRIPTION = "description";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
     public static final String KEY_RESOURCE = "resource";
     public static final String KEY_INTEGRATION = "integration";
     public static final String KEY_KVDB = "kvdb";
+    public static final String KEY_DECODER = "decoder";
+    public static final String KEY_RULE = "rule";
+    public static final String KEY_LOGSOURCE = "logsource";
+    public static final String KEY_PRODUCT = "product";
+    public static final String KEY_CATEGORY = "category";
+
+    // Engine promotion payload keys
+    public static final String KEY_RESOURCES = "resources";
+    public static final String KEY_FULL_POLICY = "full_policy";
+    public static final String KEY_PROMOTE = "load_in_tester";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
@@ -106,9 +120,13 @@ public class Constants {
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
+    public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
 
     // Operations
+    public static final String KEY_OPERATION = "operation";
+    public static final String KEY_CHANGES = "changes";
     public static final String OP_ADD = "add";
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";

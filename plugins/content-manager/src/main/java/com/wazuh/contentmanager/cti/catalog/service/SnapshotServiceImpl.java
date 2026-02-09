@@ -41,6 +41,7 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots. It
@@ -51,9 +52,6 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     // Keys to navigate the JSON structure
     private static final String JSON_PAYLOAD_KEY = "payload";
-    private static final String JSON_TYPE_KEY = "type";
-    private static final String JSON_DOCUMENT_KEY = "document";
-    private static final String JSON_ID_KEY = "id";
 
     private final String context;
     private final String consumer;
@@ -200,7 +198,7 @@ public class SnapshotServiceImpl implements SnapshotService {
      *
      * @param filePath Path to the JSON file.
      */
-    public void processSnapshotFile(Path filePath) {
+    private void processSnapshotFile(Path filePath) {
         String line;
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
@@ -227,6 +225,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     // Resolve the target index
                     ContentIndex indexHandler = this.resolveIndex(payload);
                     if (indexHandler == null) {
+                        log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
                     JsonObject processedPayload = indexHandler.processPayload(payload);
@@ -237,10 +236,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
                     // Determine ID
-                    if (processedPayload.has(JSON_DOCUMENT_KEY)) {
-                        JsonObject innerDocument = processedPayload.getAsJsonObject(JSON_DOCUMENT_KEY);
-                        if (innerDocument.has(JSON_ID_KEY)) {
-                            indexRequest.id(innerDocument.get(JSON_ID_KEY).getAsString());
+                    if (processedPayload.has(Constants.KEY_DOCUMENT)) {
+                        JsonObject innerDocument = processedPayload.getAsJsonObject(Constants.KEY_DOCUMENT);
+                        if (innerDocument.has(Constants.KEY_ID)) {
+                            indexRequest.id(innerDocument.get(Constants.KEY_ID).getAsString());
                         }
                     }
 

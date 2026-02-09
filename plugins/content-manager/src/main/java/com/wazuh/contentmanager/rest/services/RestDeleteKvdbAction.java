@@ -18,12 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
@@ -32,9 +27,6 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -43,11 +35,11 @@ import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_INTEGRATIONS;
-import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 
 /**
  * REST handler for deleting CTI KVDBs.
@@ -68,10 +60,9 @@ import static com.wazuh.contentmanager.utils.Constants.INDEX_KVDBS;
 public class RestDeleteKvdbAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_kvdb_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_delete";
+
     private static final Logger log = LogManager.getLogger(RestDeleteKvdbAction.class);
-    private static final String FIELD_KVDB_ID_PARAM = "kvdb_id";
-    private static final String FIELD_DOCUMENT = "document";
-    private static final String FIELD_KVDBS = "kvdbs";
+
     private final EngineService engine;
     private PolicyHashService policyHashService;
 
@@ -117,7 +108,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         // Consume path params early to avoid unrecognized parameter errors.
-        request.param("id");
+        request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
         return channel ->
                 channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
@@ -150,25 +141,30 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                         "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            String kvdbId = request.param("id");
-            if (kvdbId == null || kvdbId.isBlank()) {
-                kvdbId = request.param(FIELD_KVDB_ID_PARAM);
-            }
+            String kvdbId = request.param(Constants.KEY_ID);
             if (kvdbId == null || kvdbId.isBlank()) {
                 return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Validate KVDB exists and is in draft space
-            RestResponse validationResponse =
-                    DocumentValidations.validateDocumentInSpaceWithResponse(
-                            client, INDEX_KVDBS, kvdbId, "KVDB");
-            if (validationResponse != null) {
-                return validationResponse;
+            // Ensure Index Exists
+            if (!IndexHelper.indexExists(client, Constants.INDEX_KVDBS)) {
+                return new RestResponse("KVDB index not found.", RestStatus.NOT_FOUND.getStatus());
             }
 
-            ensureIndexExists(client);
-            ContentIndex kvdbIndex = new ContentIndex(client, INDEX_KVDBS, null);
-            updateIntegrationsRemovingKvdb(client, kvdbId);
+            // Validate KVDB exists and is in draft space
+            String spaceError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
+            if (spaceError != null) {
+                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
+
+            // Unlink from Integrations
+            ContentUtils.unlinkResourceFromIntegrations(client, kvdbId, Constants.KEY_KVDBS);
+
+            // Delete KVDB
             kvdbIndex.delete(kvdbId);
             // Recalculate policy hashes for draft space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
@@ -181,73 +177,6 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                             ? e.getMessage()
                             : "An unexpected error occurred while processing your request.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-    }
-
-    /**
-     * Ensures the KVDB index exists, creating it if necessary.
-     *
-     * <p>This method checks if the KVDB index exists and creates it if it doesn't. This is necessary
-     * to ensure the index is available before performing delete operations.
-     *
-     * @param client the OpenSearch client for index operations
-     * @throws IOException if the index creation fails or an I/O error occurs
-     */
-    private static void ensureIndexExists(Client client) throws IOException {
-        if (!IndexHelper.indexExists(client, INDEX_KVDBS)) {
-            ContentIndex index = new ContentIndex(client, INDEX_KVDBS, null);
-            try {
-                index.createIndex();
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                throw new IOException("Failed to create index " + INDEX_KVDBS, e);
-            }
-        }
-    }
-
-    /**
-     * Updates all integrations to remove references to the deleted KVDB.
-     *
-     * <p>This method searches for all integrations that reference the specified KVDB, removes the
-     * KVDB from their kvdbs list, and updates the integration documents. This ensures referential
-     * integrity when a KVDB is deleted.
-     *
-     * @param client the OpenSearch client for search and index operations
-     * @param kvdbIndexId the ID of the KVDB to remove from integrations
-     */
-    private static void updateIntegrationsRemovingKvdb(Client client, String kvdbIndexId) {
-        SearchRequest searchRequest = new SearchRequest(INDEX_INTEGRATIONS);
-        searchRequest
-                .source()
-                .query(QueryBuilders.termQuery(FIELD_DOCUMENT + "." + FIELD_KVDBS, kvdbIndexId));
-        SearchResponse searchResponse = client.search(searchRequest).actionGet();
-        for (org.opensearch.search.SearchHit hit : searchResponse.getHits().getHits()) {
-            Map<String, Object> source = hit.getSourceAsMap();
-            Object documentObj = source.get(FIELD_DOCUMENT);
-            if (!(documentObj instanceof Map)) {
-                log.warn(
-                        "Integration document [{}] is invalid while removing KVDB [{}].",
-                        hit.getId(),
-                        kvdbIndexId);
-                continue;
-            }
-            Map<String, Object> doc = new java.util.HashMap<>();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) documentObj).entrySet()) {
-                doc.put(String.valueOf(entry.getKey()), entry.getValue());
-            }
-            Object kvdbsObj = doc.get(FIELD_KVDBS);
-            if (kvdbsObj instanceof List<?> list) {
-                java.util.List<Object> updated = new java.util.ArrayList<>(list);
-                updated.removeIf(item -> kvdbIndexId.equals(String.valueOf(item)));
-                doc.put(FIELD_KVDBS, updated);
-                source.put(FIELD_DOCUMENT, doc);
-                client
-                        .index(
-                                new IndexRequest(INDEX_INTEGRATIONS)
-                                        .id(hit.getId())
-                                        .source(source)
-                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                        .actionGet();
-            }
         }
     }
 }
