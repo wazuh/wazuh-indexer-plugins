@@ -71,6 +71,8 @@ public class PolicyTests extends OpenSearchTestCase {
     public void testParameterizedConstructor_AllFields() {
         // Arrange
         List<String> integrations = Arrays.asList("integration1", "integration2");
+        List<String> filters = Arrays.asList("filter1");
+        List<String> enrichments = Arrays.asList("enrichment1");
         List<String> references = Arrays.asList("https://example.com/refs");
 
         // Act
@@ -82,6 +84,8 @@ public class PolicyTests extends OpenSearchTestCase {
                         null, // modified
                         "decoder/root/0", // rootDecoder
                         integrations,
+                        filters,
+                        enrichments,
                         "Wazuh Inc.",
                         "Test policy description",
                         "Documentation content",
@@ -102,7 +106,7 @@ public class PolicyTests extends OpenSearchTestCase {
     /** Test parameterized constructor with null values. */
     public void testParameterizedConstructor_NullValues() {
         // Act
-        Policy testPolicy = new Policy(null, null, null, null, null, null, null, null, null, null);
+        Policy testPolicy = new Policy(null, null, null, null, null, null, null, null, null, null, null, null);
 
         // Assert
         assertNotNull(testPolicy.getIntegrations()); // Defaults to empty list
