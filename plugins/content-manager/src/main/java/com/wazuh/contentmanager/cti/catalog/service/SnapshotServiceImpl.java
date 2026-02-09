@@ -180,11 +180,11 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @return The resolved ContentIndex, or null if no suitable index is found.
      */
     protected ContentIndex resolveIndex(JsonObject payload) {
-        if (!payload.has(JSON_TYPE_KEY)) {
-            log.warn("Payload missing '{}'. Skipping.", JSON_TYPE_KEY);
+        if (!payload.has(Constants.KEY_TYPE)) {
+            log.warn("Payload missing '{}'. Skipping.", Constants.KEY_TYPE);
             return null;
         }
-        String type = payload.get(JSON_TYPE_KEY).getAsString();
+        String type = payload.get(Constants.KEY_TYPE).getAsString();
         ContentIndex indexHandler = this.indicesMap.get(type);
         if (indexHandler == null) {
             log.warn("No ContentIndex found for type [{}]. Skipping.", type);
@@ -225,7 +225,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     // Resolve the target index
                     ContentIndex indexHandler = this.resolveIndex(payload);
                     if (indexHandler == null) {
-                        log.warn("No ContentIndex found for type [{}]. Skipping.", type);
+                        log.warn("No ContentIndex found for payload [{}]. Skipping.", payload.getAsString());
                         continue;
                     }
                     JsonObject processedPayload = indexHandler.processPayload(payload);
