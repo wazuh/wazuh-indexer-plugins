@@ -174,7 +174,7 @@ Manages operations for content indices.
 The plugin is configured through the `PluginSettings` class. Settings can be defined in `opensearch.yml`:
 
 | Setting                                              | Default                            | Description                                                                  |
-|------------------------------------------------------|------------------------------------|------------------------------------------------------------------------------|
+| ---------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
 | `plugins.content_manager.cti.api`                    | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
 | `plugins.content_manager.catalog.sync_interval`      | `60`                               | Interval (in minutes) for the periodic synchronization job.                  |
 | `plugins.content_manager.max_items_per_bulk`         | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
@@ -460,28 +460,28 @@ The `.cti-policies` index stores policy configurations that define how the Wazuh
 
 **Top-level fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `document` | object | Contains the policy configuration fields |
-| `hash` | object | Contains the policy content hash (`sha256`) |
-| `space` | object | Contains the space information (`name`, `hash`) |
+| Field      | Type   | Description                                     |
+| ---------- | ------ | ----------------------------------------------- |
+| `document` | object | Contains the policy configuration fields        |
+| `hash`     | object | Contains the policy content hash (`sha256`)     |
+| `space`    | object | Contains the space information (`name`, `hash`) |
 
 **Fields within `document` object:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | keyword | Unique identifier for the policy document |
-| `title` | keyword | Human-readable name for the policy |
-| `date` | date | Creation timestamp |
-| `modified` | date | Last modification timestamp |
-| `root_decoder` | keyword | Identifier of the root decoder to use for event processing |
-| `integrations` | keyword | Array of integration IDs that define which content modules are active |
-| `filters` | keyword | Array of filter UUIDs for user-generated filtering rules |
-| `enrichments` | keyword | Array of enrichment types (e.g., `"file"`, `"domain-name"`, `"ip"`, `"url"`, `"geo"`) |
-| `author` | keyword | Policy author identifier |
-| `description` | text | Brief description of the policy purpose |
-| `documentation` | keyword | Link or reference to detailed documentation |
-| `references` | keyword | Array of external reference URLs |
+| Field           | Type    | Description                                                                           |
+| --------------- | ------- | ------------------------------------------------------------------------------------- |
+| `id`            | keyword | Unique identifier for the policy document                                             |
+| `title`         | keyword | Human-readable name for the policy                                                    |
+| `date`          | date    | Creation timestamp                                                                    |
+| `modified`      | date    | Last modification timestamp                                                           |
+| `root_decoder`  | keyword | Identifier of the root decoder to use for event processing                            |
+| `integrations`  | keyword | Array of integration IDs that define which content modules are active                 |
+| `filters`       | keyword | Array of filter UUIDs for user-generated filtering rules                              |
+| `enrichments`   | keyword | Array of enrichment types (e.g., `"file"`, `"domain-name"`, `"ip"`, `"url"`, `"geo"`) |
+| `author`        | keyword | Policy author identifier                                                              |
+| `description`   | text    | Brief description of the policy purpose                                               |
+| `documentation` | keyword | Link or reference to detailed documentation                                           |
+| `references`    | keyword | Array of external reference URLs                                                      |
 
 **Example Policy Document:**
 
