@@ -182,6 +182,8 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 policy.setRootDecoder("");
                 policy.setDocumentation("");
                 policy.setIntegrations(Collections.emptyList());
+                policy.setFilters(Collections.emptyList());
+                policy.setEnrichments(Collections.emptyList());
                 policy.setReferences(List.of("https://wazuh.com"));
                 policy.setDate(date);
                 policy.setModified(date);

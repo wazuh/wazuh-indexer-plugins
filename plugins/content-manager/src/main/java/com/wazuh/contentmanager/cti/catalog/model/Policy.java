@@ -47,6 +47,8 @@ public class Policy {
     private static final String MODIFIED_KEY = "modified";
     private static final String ROOT_DECODER_KEY = "root_decoder";
     private static final String INTEGRATIONS_KEY = "integrations";
+    private static final String FILTERS_KEY = "filters";
+    private static final String ENRICHMENTS_KEY = "enrichments";
     private static final String AUTHOR_KEY = "author";
     private static final String DESCRIPTION_KEY = "description";
     private static final String DOCUMENTATION_KEY = "documentation";
@@ -68,6 +70,12 @@ public class Policy {
     @JsonProperty(INTEGRATIONS_KEY)
     private List<String> integrations;
 
+    @JsonProperty(FILTERS_KEY)
+    private List<String> filters;
+
+    @JsonProperty(ENRICHMENTS_KEY)
+    private List<String> enrichments;
+
     @JsonProperty(AUTHOR_KEY)
     private String author;
 
@@ -86,6 +94,8 @@ public class Policy {
     /** Default constructor. */
     public Policy() {
         this.integrations = new ArrayList<>();
+        this.filters = new ArrayList<>();
+        this.enrichments = new ArrayList<>();
         this.references = new ArrayList<>();
         this.date = null;
         this.modified = null;
@@ -96,6 +106,8 @@ public class Policy {
      *
      * @param rootDecoder The root decoder identifier.
      * @param integrations List of integration IDs.
+     * @param filters List of filter IDs.
+     * @param enrichments List of enrichment types.
      * @param author The author of the policy.
      * @param description A brief description of the policy.
      * @param documentation Detailed documentation for the policy.
@@ -109,6 +121,8 @@ public class Policy {
             @JsonProperty(MODIFIED_KEY) String modified,
             @JsonProperty(ROOT_DECODER_KEY) String rootDecoder,
             @JsonProperty(INTEGRATIONS_KEY) List<String> integrations,
+            @JsonProperty(FILTERS_KEY) List<String> filters,
+            @JsonProperty(ENRICHMENTS_KEY) List<String> enrichments,
             @JsonProperty(AUTHOR_KEY) String author,
             @JsonProperty(DESCRIPTION_KEY) String description,
             @JsonProperty(DOCUMENTATION_KEY) String documentation,
@@ -119,6 +133,8 @@ public class Policy {
         this.modified = modified;
         this.rootDecoder = rootDecoder;
         this.integrations = integrations != null ? integrations : new ArrayList<>();
+        this.filters = filters != null ? filters : new ArrayList<>();
+        this.enrichments = enrichments != null ? enrichments : new ArrayList<>();
         this.author = author;
         this.description = description;
         this.documentation = documentation;
@@ -162,6 +178,28 @@ public class Policy {
                 }
             }
             policy.setIntegrations(integrationsList);
+        }
+
+        if (payload.has(FILTERS_KEY) && payload.get(FILTERS_KEY).isJsonArray()) {
+            JsonArray filtersArray = payload.getAsJsonArray(FILTERS_KEY);
+            List<String> filtersList = new ArrayList<>();
+            for (JsonElement element : filtersArray) {
+                if (!element.isJsonNull()) {
+                    filtersList.add(element.getAsString());
+                }
+            }
+            policy.setFilters(filtersList);
+        }
+
+        if (payload.has(ENRICHMENTS_KEY) && payload.get(ENRICHMENTS_KEY).isJsonArray()) {
+            JsonArray enrichmentsArray = payload.getAsJsonArray(ENRICHMENTS_KEY);
+            List<String> enrichmentsList = new ArrayList<>();
+            for (JsonElement element : enrichmentsArray) {
+                if (!element.isJsonNull()) {
+                    enrichmentsList.add(element.getAsString());
+                }
+            }
+            policy.setEnrichments(enrichmentsList);
         }
 
         if (payload.has(AUTHOR_KEY) && !payload.get(AUTHOR_KEY).isJsonNull()) {
@@ -216,6 +254,12 @@ public class Policy {
         if (this.integrations != null && !this.integrations.isEmpty()) {
             map.put(INTEGRATIONS_KEY, this.integrations);
         }
+        if (this.filters != null && !this.filters.isEmpty()) {
+            map.put(FILTERS_KEY, this.filters);
+        }
+        if (this.enrichments != null && !this.enrichments.isEmpty()) {
+            map.put(ENRICHMENTS_KEY, this.enrichments);
+        }
         if (this.author != null) {
             map.put(AUTHOR_KEY, this.author);
         }
@@ -261,6 +305,20 @@ public class Policy {
                 integrationsArray.add(integration);
             }
             jsonObject.add(INTEGRATIONS_KEY, integrationsArray);
+        }
+        if (this.filters != null) {
+            JsonArray filtersArray = new JsonArray();
+            for (String filter : this.filters) {
+                filtersArray.add(filter);
+            }
+            jsonObject.add(FILTERS_KEY, filtersArray);
+        }
+        if (this.enrichments != null) {
+            JsonArray enrichmentsArray = new JsonArray();
+            for (String enrichment : this.enrichments) {
+                enrichmentsArray.add(enrichment);
+            }
+            jsonObject.add(ENRICHMENTS_KEY, enrichmentsArray);
         }
         if (this.author != null) {
             jsonObject.addProperty(AUTHOR_KEY, this.author);
@@ -395,6 +453,42 @@ public class Policy {
     }
 
     /**
+     * Gets the list of filter IDs associated with this policy.
+     *
+     * @return The list of filter IDs.
+     */
+    public List<String> getFilters() {
+        return this.filters;
+    }
+
+    /**
+     * Sets the list of filter IDs for this policy.
+     *
+     * @param filters The list of filter IDs to set. If null, an empty list is used.
+     */
+    public void setFilters(List<String> filters) {
+        this.filters = filters != null ? filters : new ArrayList<>();
+    }
+
+    /**
+     * Gets the list of enrichment types associated with this policy.
+     *
+     * @return The list of enrichment types.
+     */
+    public List<String> getEnrichments() {
+        return this.enrichments;
+    }
+
+    /**
+     * Sets the list of enrichment types for this policy.
+     *
+     * @param enrichments The list of enrichment types to set. If null, an empty list is used.
+     */
+    public void setEnrichments(List<String> enrichments) {
+        this.enrichments = enrichments != null ? enrichments : new ArrayList<>();
+    }
+
+    /**
      * Gets the author of this policy.
      *
      * @return The author name.
@@ -501,6 +595,10 @@ public class Policy {
                 + '\''
                 + ", integrations="
                 + this.integrations
+                + ", filters="
+                + this.filters
+                + ", enrichments="
+                + this.enrichments
                 + ", author='"
                 + this.author
                 + '\''
