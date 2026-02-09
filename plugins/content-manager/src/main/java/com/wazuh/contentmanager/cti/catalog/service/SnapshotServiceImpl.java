@@ -57,7 +57,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     private final String context;
     private final String consumer;
-    private final Map<String, ContentIndex> indicesMap;
+    protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
     private final Environment environment;
@@ -175,12 +175,32 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
+     * Resolves the appropriate {@link ContentIndex} for the given payload. Subclasses can override
+     * this to provide custom index resolution logic.
+     *
+     * @param payload The JSON payload object.
+     * @return The resolved ContentIndex, or null if no suitable index is found.
+     */
+    protected ContentIndex resolveIndex(JsonObject payload) {
+        if (!payload.has(JSON_TYPE_KEY)) {
+            log.warn("Payload missing '{}'. Skipping.", JSON_TYPE_KEY);
+            return null;
+        }
+        String type = payload.get(JSON_TYPE_KEY).getAsString();
+        ContentIndex indexHandler = this.indicesMap.get(type);
+        if (indexHandler == null) {
+            log.warn("No ContentIndex found for type [{}]. Skipping.", type);
+        }
+        return indexHandler;
+    }
+
+    /**
      * Reads a JSON snapshot file line by line, extracts the contents of the payload object, and
      * indexes them directly at the root.
      *
      * @param filePath Path to the JSON file.
      */
-    private void processSnapshotFile(Path filePath) {
+    public void processSnapshotFile(Path filePath) {
         String line;
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
@@ -197,30 +217,22 @@ public class SnapshotServiceImpl implements SnapshotService {
                 try {
                     JsonObject rootJson = JsonParser.parseString(line).getAsJsonObject();
 
-                    // 1. Validate and Extract Payload
+                    // Validate and Extract Payload
                     if (!rootJson.has(JSON_PAYLOAD_KEY)) {
                         log.warn("Snapshot entry missing '{}'. Skipping.", JSON_PAYLOAD_KEY);
                         continue;
                     }
                     JsonObject payload = rootJson.getAsJsonObject(JSON_PAYLOAD_KEY);
 
-                    // 2. Determine Index from 'type' inside payload
-                    if (!payload.has(JSON_TYPE_KEY)) {
-                        log.warn("Payload missing '{}'. Skipping.", JSON_TYPE_KEY);
-                        continue;
-                    }
-                    String type = payload.get(JSON_TYPE_KEY).getAsString();
-
-                    // 3. Select correct index based on type
-                    ContentIndex indexHandler = this.indicesMap.get(type);
+                    // Resolve the target index
+                    ContentIndex indexHandler = this.resolveIndex(payload);
                     if (indexHandler == null) {
-                        log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
                     JsonObject processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
-                    // 4. Create Index Request
+                    // Create Index Request
                     IndexRequest indexRequest =
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
@@ -258,7 +270,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /** Deletes temporary files and directories used during the process. */
-    private void cleanup(Path zipFile, Path directory) {
+    protected void cleanup(Path zipFile, Path directory) {
         try {
             if (zipFile != null) {
                 Files.deleteIfExists(zipFile);
