@@ -35,7 +35,9 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -47,6 +49,7 @@ import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -70,24 +73,13 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_create";
 
-    /**
-     * @TODO: To be deleted. This needs to be retrieved from a single source of truth.
-     */
     private ContentIndex integrationsIndex;
-
     private ContentIndex policiesIndex;
     private PolicyHashService policyHashService;
     private SecurityAnalyticsService service;
     private final EngineService engine;
     private final Logger log = LogManager.getLogger(RestPostIntegrationAction.class);
-    // TODO: Move to a common constants class
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
-    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
-    private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
-    private static final String CTI_POLICIES_INDEX = ".cti-policies";
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String DRAFT_SPACE_NAME = "draft";
 
     /**
      * Constructs the action with the required engine service.
@@ -139,8 +131,8 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         this.setPolicyHashService(new PolicyHashService(client));
-        this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
-        this.setPoliciesContentIndex(new ContentIndex(client, CTI_POLICIES_INDEX, null));
+        this.setIntegrationsContentIndex(new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null));
+        this.setPoliciesContentIndex(new ContentIndex(client, Constants.INDEX_POLICIES, null));
         this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
         return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
     }
@@ -211,24 +203,16 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 request.hasContent(),
                 request.uri());
 
-        // Check if engine service exists
         if (this.engine == null) {
-            this.log.error("Engine instance is null");
             return new RestResponse(
                     "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-
-        // Check if security analytics service exists
         if (this.service == null) {
-            this.log.error("Security Analytics service instance is null");
             return new RestResponse(
                     "Security Analytics service instance is null.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-
-        // Check request's payload exists
         if (!request.hasContent()) {
-            this.log.warn("Request rejected: JSON request body missing");
             return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -237,79 +221,73 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             requestBody = MAPPER.readTree(request.content().streamInput()).deepCopy();
         } catch (IOException ex) {
-            this.log.warn("Request rejected: invalid JSON content", ex);
             return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Verify request is of type "integration"
-        if (!requestBody.has("type") || !requestBody.get("type").asText().equals("integration")) {
-            this.log.warn(
-                    "Request rejected: invalid resource type (type={})",
-                    requestBody.has("type") ? requestBody.get("type").asText() : null);
+        if (!requestBody.has(Constants.KEY_TYPE)
+                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
             return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check that there is no ID field
         if (!requestBody.at("/resource/id").isMissingNode()) {
-            this.log.warn("Request rejected: id field present in request body");
             return new RestResponse(
                     "ID field is not allowed in the request body.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Generate ID
-        String id = this.generateId();
+        String id = UUID.randomUUID().toString();
 
-        // Extract /resource
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
-            this.log.warn(
-                    "Request rejected: /resource is not an object (nodeType={})", resource.getNodeType());
             return new RestResponse(
                     "Invalid JSON structure: /resource must be an object.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Insert ID
-        ((ObjectNode) resource).put("id", id);
+        ((ObjectNode) resource).put(Constants.KEY_ID, id);
 
         // Insert date
-        String currentDate = RestPutIntegrationAction.generateDate();
-        ((ObjectNode) resource).put("date", currentDate);
-
-        // Insert modification date
-        ((ObjectNode) resource).put("modified", currentDate);
+        String currentDate = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
+        ((ObjectNode) resource).put(Constants.KEY_DATE, currentDate);
+        ((ObjectNode) resource).put(Constants.KEY_MODIFIED, currentDate);
 
         // Check if enabled is set (if it's not, set it to true by default)
-        if (!resource.has("enabled")) {
-            ((ObjectNode) resource).put("enabled", true);
+        if (!resource.has(Constants.KEY_ENABLED)) {
+            ((ObjectNode) resource).put(Constants.KEY_ENABLED, true);
         }
 
         // Insert "draft" into /resource/space/name
-        ((ObjectNode) requestBody).putObject("space").put("name", DRAFT_SPACE_NAME);
+        ((ObjectNode) requestBody)
+                .putObject(Constants.KEY_SPACE)
+                .put(Constants.KEY_NAME, Space.DRAFT.toString());
 
         // Overwrite rules, decoders and kvdbs arrays with empty ones
-        ((ObjectNode) resource).set("rules", MAPPER.createArrayNode());
-        ((ObjectNode) resource).set("decoders", MAPPER.createArrayNode());
-        ((ObjectNode) resource).set("kvdbs", MAPPER.createArrayNode());
+        ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
+        ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
+        ((ObjectNode) resource).set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
 
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());
-        ((ObjectNode) requestBody).putObject("hash").put("sha256", hash);
-        this.log.debug(
-                "Computed integration sha256 hash for id={} (hashPrefix={})",
-                id,
-                hash.length() >= 12 ? hash.substring(0, 12) : hash);
+        ((ObjectNode) requestBody).putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, hash);
 
-        // Create integration in SAP (put the contents of "resource" inside "document" key)
-        this.log.debug("Creating/upserting integration in Security Analytics (id={})", id);
+        // TODO: Instead of adding the Integration in the SAP and then validate it with the engine we
+        // can do it in reverse order to guarantee that when a integration is not valid we don't need to
+        // delete it from the SAP
+        // Create integration in SAP
         this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set("document", resource)), Space.DRAFT, POST);
+                JsonParser.parseString(
+                                MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource).toString())
+                        .getAsJsonObject(),
+                Space.DRAFT,
+                POST);
 
         // Construct engine validation payload
         this.log.debug("Validating integration with Engine (id={})", id);
         ObjectNode enginePayload = MAPPER.createObjectNode();
-        enginePayload.set("resource", resource);
-        enginePayload.put("type", "integration");
+        enginePayload.set(Constants.KEY_RESOURCE, resource);
+        enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
 
         // Validate integration with Wazuh Engine
         final RestResponse validationResponse = this.engine.validate(enginePayload);
@@ -317,10 +295,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             MAPPER.readTree(validationResponse.getMessage()).isObject();
         } catch (Exception e) {
-            this.log.error(
-                    "Engine validation failed (id={}, status={}); rolling back SAP integration",
-                    id,
-                    validationResponse.getStatus());
             this.service.deleteIntegration(id);
             return new RestResponse(
                     "Failed to create Integration, Invalid validation response: "
@@ -331,10 +305,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // If validation failed, delete the created integration in SAP
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-            this.log.error(
-                    "Engine validation failed (id={}, status={}); rolling back SAP integration",
-                    id,
-                    validationResponse.getStatus());
             this.service.deleteIntegration(id);
             return new RestResponse(
                     "Failed to create Integration, Validation response: "
@@ -345,32 +315,25 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {
-            this.log.debug("Indexing integration into {} (id={})", CTI_INTEGRATIONS_INDEX, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set("document", resource);
-            integrationsIndexPayload.putObject("space").put("name", DRAFT_SPACE_NAME);
-            // Use UUID as document ID
+            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
+            integrationsIndexPayload
+                    .putObject(Constants.KEY_SPACE)
+                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
+
             IndexResponse integrationIndexResponse =
                     this.integrationsIndex.create(id, integrationsIndexPayload);
 
-            // Check indexing response. We are expecting for a 200 OK status.
             if (integrationIndexResponse == null
                     || integrationIndexResponse.status() != RestStatus.CREATED) {
-                this.log.error(
-                        "Indexing integration failed (id={}, status={}); rolling back SAP integration",
-                        id,
-                        integrationIndexResponse != null ? integrationIndexResponse.status() : null);
-                // otherwise, we delete the created SAP integration and return an error.
                 this.service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Search for the draft policy (scoped to policies index, limit 1)
-            this.log.debug(
-                    "Searching for draft policy in {} (space={})", CTI_POLICIES_INDEX, DRAFT_SPACE_NAME);
-            TermQueryBuilder queryBuilder = new TermQueryBuilder("space.name", DRAFT_SPACE_NAME);
-
+            TermQueryBuilder queryBuilder =
+                    new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
             JsonObject draftPolicyHit;
             JsonNode draftPolicy;
             String draftPolicyId;
@@ -378,17 +341,15 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             try {
                 JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
                 if (searchResult == null
-                        || !searchResult.has("hits")
-                        || searchResult.getAsJsonArray("hits").isEmpty()) {
+                        || !searchResult.has(Constants.Q_HITS)
+                        || searchResult.getAsJsonArray(Constants.Q_HITS).isEmpty()) {
                     throw new IllegalStateException("No hits found");
                 }
-                JsonArray hitsArray = searchResult.getAsJsonArray("hits");
+                JsonArray hitsArray = searchResult.getAsJsonArray(Constants.Q_HITS);
                 draftPolicyHit = hitsArray.get(0).getAsJsonObject();
-                draftPolicyId = draftPolicyHit.get("id").getAsString();
+                draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).getAsString();
                 draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
             } catch (Exception e) {
-                this.log.error("Draft policy search returned null result; rolling back (id={})", id);
-                // Rollback: delete created integration in CTI index and in SAP
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
@@ -397,10 +358,6 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             JsonNode draftPolicyDocument = draftPolicy.at("/document");
             if (draftPolicyDocument.isMissingNode()) {
-                this.log.error(
-                        "Draft policy hit missing /document (policyId={}), rolling back (id={})",
-                        draftPolicyId,
-                        id);
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
@@ -408,15 +365,10 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            this.log.debug("Draft policy found (policyId={}); updating integrations", draftPolicyId);
-
             // Retrieve the integrations array from the policy document
-            ArrayNode draftPolicyIntegrations = (ArrayNode) draftPolicyDocument.get("integrations");
+            ArrayNode draftPolicyIntegrations =
+                    (ArrayNode) draftPolicyDocument.get(Constants.KEY_INTEGRATIONS);
             if (draftPolicyIntegrations == null || !draftPolicyIntegrations.isArray()) {
-                this.log.error(
-                        "Draft policy integrations field missing or not array (policyId={}); rolling back SAP integration (id={})",
-                        draftPolicyId,
-                        id);
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
@@ -429,39 +381,20 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             // Update the hash
             String integrationHash = HashCalculator.sha256(draftPolicyDocument.asText());
+            ((ObjectNode) draftPolicy.at("/hash")).put(Constants.KEY_SHA256, integrationHash);
 
-            // Put policyHash inside hash.sha256 key
-            ((ObjectNode) draftPolicy.at("/hash")).put("sha256", integrationHash);
-            this.log.debug(
-                    "Updated draft policy hash (policyId={}, hashPrefix={})",
-                    draftPolicyId,
-                    integrationHash.length() >= 12 ? integrationHash.substring(0, 12) : integrationHash);
-
-            // Index the policy with the updated integrations array
-            this.log.debug(
-                    "Indexing updated draft policy into {} (policyId={})", CTI_POLICIES_INDEX, draftPolicyId);
             IndexResponse indexDraftPolicyResponse =
                     this.policiesIndex.create(draftPolicyId, draftPolicy);
 
             if (indexDraftPolicyResponse == null || indexDraftPolicyResponse.status() != RestStatus.OK) {
-                this.log.error(
-                        "Indexing updated draft policy failed (policyId={}, status={}); rolling back SAP integration (id={})",
-                        draftPolicyId,
-                        indexDraftPolicyResponse != null ? indexDraftPolicyResponse.status() : null,
-                        id);
                 this.service.deleteIntegration(id);
                 this.integrationsIndex.delete(id);
                 return new RestResponse(
                         "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            // Update the space's hash in the policy
-            this.log.debug(
-                    "Recalculating space hash for draft space after integration create (id={})", id);
-
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            this.log.info("Integration created successfully (id={})", id);
             return new RestResponse(
                     "Integration created successfully with ID: " + id, RestStatus.CREATED.getStatus());
         } catch (Exception e) {
@@ -471,25 +404,5 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    // TODO: Delete this method in a cleanup issue
-    /**
-     * Generates a unique identifier for a new integration.
-     *
-     * @return A random UUID string.
-     */
-    public String generateId() {
-        return UUID.randomUUID().toString();
-    }
-
-    /**
-     * Utility method to convert a Jackson JsonNode to a Gson JsonObject.
-     *
-     * @param jsonNode The Jackson JsonNode to convert.
-     * @return The resulting Gson JsonObject.
-     */
-    private JsonObject toJsonObject(JsonNode jsonNode) {
-        return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
     }
 }

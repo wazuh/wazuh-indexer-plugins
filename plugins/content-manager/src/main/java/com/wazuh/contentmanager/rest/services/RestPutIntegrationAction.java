@@ -35,6 +35,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -48,6 +49,8 @@ import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -71,13 +74,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     private final EngineService engine;
     private final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    // TODO: Move to a common constants class
-    private static final String CTI_DECODERS_INDEX = ".cti-decoders";
-    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
-    private static final String CTI_KVDBS_INDEX = ".cti-kvdbs";
-    private static final String CTI_POLICIES_INDEX = ".cti-policies";
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String DRAFT_SPACE_NAME = "draft";
 
     private NodeClient nodeClient;
 
@@ -130,10 +126,10 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        request.param("id");
+        request.param(Constants.KEY_ID);
         this.nodeClient = client;
         this.setPolicyHashService(new PolicyHashService(client));
-        this.setIntegrationsContentIndex(new ContentIndex(client, CTI_INTEGRATIONS_INDEX, null));
+        this.setIntegrationsContentIndex(new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null));
         this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
         return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
     }
@@ -178,7 +174,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        String id = request.param("id");
+        String id = request.param(Constants.KEY_ID);
         this.log.debug(
                 "PUT integration request received (id={}, hasContent={}, uri={})",
                 id,
@@ -222,10 +218,13 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         // Verify request is of type "integration"
-        if (!requestBody.has("type") || !requestBody.get("type").asText().equals("integration")) {
+        if (!requestBody.has(Constants.KEY_TYPE)
+                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
             this.log.warn(
                     "Request rejected: invalid resource type (type={})",
-                    requestBody.has("type") ? requestBody.get("type").asText() : null);
+                    requestBody.has(Constants.KEY_TYPE)
+                            ? requestBody.get(Constants.KEY_TYPE).asText()
+                            : null);
             return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -238,7 +237,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         // Verify integration exists and is in draft space
-        GetRequest getRequest = new GetRequest(CTI_INTEGRATIONS_INDEX, id);
+        GetRequest getRequest = new GetRequest(Constants.INDEX_INTEGRATIONS, id);
         GetResponse getResponse;
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
@@ -255,11 +254,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Verify integration is in draft space
         Map<String, Object> existingSource = getResponse.getSourceAsMap();
-        if (existingSource.containsKey("space")) {
+        if (existingSource.containsKey(Constants.KEY_SPACE)) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> space = (Map<String, Object>) existingSource.get("space");
-            String spaceName = (String) space.get("name");
-            if (!DRAFT_SPACE_NAME.equals(spaceName)) {
+            Map<String, Object> space = (Map<String, Object>) existingSource.get(Constants.KEY_SPACE);
+            String spaceName = (String) space.get(Constants.KEY_NAME);
+            if (!Space.DRAFT.equals(spaceName)) {
                 this.log.warn(
                         "Request rejected: cannot update integration in space '{}' (id={})", spaceName, id);
                 return new RestResponse(
@@ -284,60 +283,87 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
+        if (existingSource.containsKey(Constants.KEY_DOCUMENT)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> existingDocument =
+                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
+
+            try {
+                if (validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_RULES);
+                }
+                if (validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_DECODERS);
+                }
+                if (validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_KVDBS);
+                }
+            } catch (IllegalArgumentException e) {
+                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
         // Insert ID from URL
-        ((ObjectNode) resource).put("id", id);
+        ((ObjectNode) resource).put(Constants.KEY_ID, id);
 
         // Insert modification date
         String currentDate = RestPutIntegrationAction.generateDate();
-        ((ObjectNode) resource).put("modified", currentDate);
+        ((ObjectNode) resource).put(Constants.KEY_MODIFIED, currentDate);
 
         // Check if date is present in existing document to preserve it
         String createdDate = null;
         JsonNode existingDoc = this.integrationsIndex.getDocument(id);
-        if (existingDoc != null && existingDoc.has("document")) {
-            JsonNode doc = existingDoc.get("document");
-            if (doc.has("date")) {
-                createdDate = doc.get("date").asText();
+        if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
+            JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+            if (doc.has(Constants.KEY_DATE)) {
+                createdDate = doc.get(Constants.KEY_DATE).asText();
             } else {
                 createdDate = RestPutIntegrationAction.generateDate();
             }
         }
 
         // Remove date field if present
-        ((ObjectNode) resource).put("date", createdDate);
+        ((ObjectNode) resource).put(Constants.KEY_DATE, createdDate);
 
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
-        if (!resource.has("enabled")) {
+        if (!resource.has(Constants.KEY_ENABLED)) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> existingDocument = (Map<String, Object>) existingSource.get("document");
-            if (existingDocument != null && existingDocument.containsKey("enabled")) {
-                ((ObjectNode) resource).put("enabled", (Boolean) existingDocument.get("enabled"));
+            Map<String, Object> existingDocument =
+                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
+            if (existingDocument != null && existingDocument.containsKey(Constants.KEY_ENABLED)) {
+                ((ObjectNode) resource)
+                        .put(Constants.KEY_ENABLED, (Boolean) existingDocument.get(Constants.KEY_ENABLED));
             } else {
-                ((ObjectNode) resource).put("enabled", true);
+                ((ObjectNode) resource).put(Constants.KEY_ENABLED, true);
             }
         }
 
         // Insert "draft" into /resource/space/name
-        ((ObjectNode) requestBody).putObject("space").put("name", DRAFT_SPACE_NAME);
+        ((ObjectNode) requestBody)
+                .putObject(Constants.KEY_SPACE)
+                .put(Constants.KEY_NAME, Space.DRAFT.toString());
 
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());
-        ((ObjectNode) requestBody).putObject("hash").put("sha256", hash);
+        ((ObjectNode) requestBody).putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, hash);
         this.log.debug(
                 "Computed integration sha256 hash for id={} (hashPrefix={})",
                 id,
                 hash.length() >= 12 ? hash.substring(0, 12) : hash);
 
-        // Update integration in SAP (put the contents of "resource" inside "document" key)
+        // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
         this.log.debug("Updating integration in Security Analytics (id={})", id);
         this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set("document", resource)), Space.DRAFT, PUT);
+                this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
+                Space.DRAFT,
+                PUT);
 
         // Construct engine validation payload
         this.log.debug("Validating integration with Engine (id={})", id);
         ObjectNode enginePayload = MAPPER.createObjectNode();
-        enginePayload.set("resource", resource);
-        enginePayload.put("type", "integration");
+        enginePayload.set(Constants.KEY_RESOURCE, resource);
+        enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
 
         // Validate integration with Wazuh Engine
         final RestResponse validationResponse = this.engine.validate(enginePayload);
@@ -368,10 +394,13 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         }
 
         try {
-            this.log.debug("Indexing updated integration into {} (id={})", CTI_INTEGRATIONS_INDEX, id);
+            this.log.debug(
+                    "Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
             ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set("document", resource);
-            integrationsIndexPayload.putObject("space").put("name", DRAFT_SPACE_NAME);
+            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
+            integrationsIndexPayload
+                    .putObject(Constants.KEY_SPACE)
+                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
             IndexResponse integrationIndexResponse =
                     this.integrationsIndex.create(id, integrationsIndexPayload);
 
@@ -405,5 +434,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
     private JsonObject toJsonObject(JsonNode jsonNode) {
         return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
+    }
+
+    private RestResponse validateList(
+            Map<String, Object> existingDoc, JsonNode resourceNode, String key) {
+        @SuppressWarnings("unchecked")
+        List<String> existingList =
+                (List<String>) existingDoc.getOrDefault(key, Collections.emptyList());
+        List<String> incomingList = ContentUtils.extractStringList(resourceNode, key);
+        return ContentUtils.validateListEquality(existingList, incomingList, key);
     }
 }

@@ -187,7 +187,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         assertTrue(
                 response
                         .getMessage()
-                        .contains("Integrations cannot be added or removed via policy update."));
+                        .contains(
+                                "Content of 'integrations' cannot be added or removed via update. Please use the specific resource endpoints."));
     }
 
     /**

@@ -155,12 +155,12 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
             if (!targetItems.containsKey(id)) {
                 // Case 2: Promoted space doesn't have that UUID -> ADD
-                changes.add(Map.of("operation", Constants.OP_ADD, Constants.KEY_ID, id));
+                changes.add(Map.of(Constants.KEY_OPERATION, Constants.OP_ADD, Constants.KEY_ID, id));
             } else {
                 // Case 1: Promoted space has different hash -> UPDATE
                 String targetHash = targetItems.get(id);
                 if (!sourceHash.equals(targetHash)) {
-                    changes.add(Map.of("operation", Constants.OP_UPDATE, Constants.KEY_ID, id));
+                    changes.add(Map.of(Constants.KEY_OPERATION, Constants.OP_UPDATE, Constants.KEY_ID, id));
                 }
             }
         }
@@ -169,7 +169,8 @@ public class RestGetPromoteAction extends BaseRestHandler {
         // Case 3: UUID is in promoted space but not in current one -> DELETE
         for (String targetId : targetItems.keySet()) {
             if (!sourceItems.containsKey(targetId)) {
-                changes.add(Map.of("operation", Constants.OP_REMOVE, Constants.KEY_ID, targetId));
+                changes.add(
+                        Map.of(Constants.KEY_OPERATION, Constants.OP_REMOVE, Constants.KEY_ID, targetId));
             }
         }
 
@@ -205,7 +206,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
         // Compare content ignoring ID
         if (this.isPolicyDifferent(sourceDoc, targetDoc)) {
-            changes.add(Map.of("operation", Constants.OP_UPDATE, Constants.KEY_ID, sourceId));
+            changes.add(Map.of(Constants.KEY_OPERATION, Constants.OP_UPDATE, Constants.KEY_ID, sourceId));
         }
 
         return changes;
@@ -229,10 +230,6 @@ public class RestGetPromoteAction extends BaseRestHandler {
         Map<String, Object> source = new HashMap<>(sourceDoc);
         Map<String, Object> target = new HashMap<>(targetDoc);
 
-        // TODO remove when we have the new relational model
-        source.remove(Constants.KEY_ID);
-        target.remove(Constants.KEY_ID);
-
         return !source.equals(target);
     }
 
@@ -248,7 +245,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
-            builder.field("changes", this.changes);
+            builder.field(Constants.KEY_CHANGES, this.changes);
             builder.endObject();
             return builder;
         }
