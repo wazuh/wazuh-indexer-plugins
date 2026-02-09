@@ -40,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -63,7 +64,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     private RestDeleteIntegrationAction action;
     private SecurityAnalyticsServiceImpl saService;
     private NodeClient nodeClient;
-    private static final String INTEGRATION_ID = "d_7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
+    private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
 
     /**
      * Set up the tests
@@ -170,7 +171,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.OK.getStatus());
-        expectedResponse.setMessage("Integration deleted successfully with ID: " + INTEGRATION_ID);
+        expectedResponse.setMessage(INTEGRATION_ID);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -193,9 +194,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        String integrationIdWithoutPrefix = INTEGRATION_ID.substring(2);
-        JsonObject draftPolicySearchResult =
-                this.createMockDraftPolicySearchResult(integrationIdWithoutPrefix);
+        JsonObject draftPolicySearchResult = this.createMockDraftPolicySearchResult(INTEGRATION_ID);
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
                 .thenReturn(draftPolicySearchResult);
 
@@ -231,7 +230,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration404_integrationNotFound() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.NOT_FOUND.getStatus());
-        expectedResponse.setMessage("Integration not found: " + INTEGRATION_ID);
+        expectedResponse.setMessage(Constants.E_404_RESOURCE_NOT_FOUND);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -262,7 +261,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                "Cannot delete integration from space 'standard'. Only 'draft' space is modifiable.");
+                String.format(
+                        Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, INTEGRATION_ID));
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -292,7 +292,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration400_missingIdInPath() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Integration ID is required.");
+        expectedResponse.setMessage(String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID));
 
         // Create a RestRequest without ID parameter
         RestRequest request = this.buildRequest(null);
@@ -311,7 +311,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_securityAnalyticsServiceNull() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Security Analytics service instance is null.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -330,7 +330,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_failedToRetrieveIntegration() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to retrieve existing integration.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -359,7 +359,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_unexpectedError() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Unexpected error during processing.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -393,10 +393,10 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteIntegration400_undefinedSpace() throws IOException {
+    public void testDeleteIntegration404_undefinedSpace() throws IOException {
         RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Cannot delete integration with undefined space.");
+        expectedResponse.setStatus(RestStatus.NOT_FOUND.getStatus());
+        expectedResponse.setMessage(Constants.E_404_RESOURCE_NOT_FOUND);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -434,7 +434,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration200_securityAnalyticsFailureDoesNotBlock() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.OK.getStatus());
-        expectedResponse.setMessage("Integration deleted successfully with ID: " + INTEGRATION_ID);
+        expectedResponse.setMessage(INTEGRATION_ID);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -461,9 +461,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        String integrationIdWithoutPrefix = INTEGRATION_ID.substring(2);
-        JsonObject draftPolicySearchResult =
-                this.createMockDraftPolicySearchResult(integrationIdWithoutPrefix);
+        JsonObject draftPolicySearchResult = this.createMockDraftPolicySearchResult(INTEGRATION_ID);
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
                 .thenReturn(draftPolicySearchResult);
 
@@ -492,7 +490,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_draftPolicyNotFound() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Draft policy not found.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -536,7 +534,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_draftPolicyDocumentMissing() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to retrieve draft policy document.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -585,8 +583,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_draftPolicyIntegrationsArrayMissing() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(
-                "Failed to retrieve integrations array from draft policy document.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -640,7 +637,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration500_failedToUpdateDraftPolicy() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to update draft policy.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -667,9 +664,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        String integrationIdWithoutPrefix = INTEGRATION_ID.substring(2);
-        JsonObject draftPolicySearchResult =
-                this.createMockDraftPolicySearchResult(integrationIdWithoutPrefix);
+        JsonObject draftPolicySearchResult = this.createMockDraftPolicySearchResult(INTEGRATION_ID);
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
                 .thenReturn(draftPolicySearchResult);
 
@@ -686,7 +681,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration400_hasDecoders() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Cannot delete integration because it has decoders attached.");
+        expectedResponse.setMessage(
+                String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS));
 
         RestRequest request = this.buildRequest(INTEGRATION_ID);
 
@@ -721,7 +717,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration400_hasRules() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Cannot delete integration because it has rules attached.");
+        expectedResponse.setMessage(
+                String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES));
 
         RestRequest request = this.buildRequest(INTEGRATION_ID);
 
@@ -756,7 +753,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration400_hasKvdbs() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Cannot delete integration because it has kvdbs attached.");
+        expectedResponse.setMessage(
+                String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS));
 
         RestRequest request = this.buildRequest(INTEGRATION_ID);
 

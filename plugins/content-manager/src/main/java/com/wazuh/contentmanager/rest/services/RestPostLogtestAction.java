@@ -111,7 +111,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
         // 2. Check request's payload exists
         if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 3. Check request's payload is valid JSON
@@ -121,7 +121,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
             jsonNode = mapper.readTree(request.content().streamInput());
         } catch (IOException ex) {
             return new RestResponse(
-                    Constants.E_400_INVALID_JSON_CONTENT, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 4. Logtest accepted

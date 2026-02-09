@@ -33,6 +33,7 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
 import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
@@ -90,6 +91,12 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         // Mock client with RETURNS_DEEP_STUBS for chained calls
         this.client = mock(Client.class, RETURNS_DEEP_STUBS);
 
+        // Mock ContentIndex.exists() - rule exists
+        GetResponse existsResponse = mock(GetResponse.class);
+        when(existsResponse.isExists()).thenReturn(true);
+        when(this.client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
+                .thenReturn(existsResponse);
+
         // Mock draft space validation
         GetResponse ruleGetResponse = mock(GetResponse.class);
         when(ruleGetResponse.isExists()).thenReturn(true);
@@ -111,6 +118,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        assertEquals(ruleId, response.getMessage());
 
         verify(this.client)
                 .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
@@ -118,7 +126,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
     /**
      * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the rule
-     * has not been deleted (mock). The expected response is: {400, RestResponse}
+     * ID is missing. The expected response is: {400, RestResponse}
      *
      * @throws IOException
      */
@@ -128,6 +136,27 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request, this.client);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertEquals(
+                String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID), response.getMessage());
+    }
+
+    /**
+     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the rule
+     * ID is not a valid UUID. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException
+     */
+    public void testDeleteRule400_InvalidUUID() throws IOException {
+        String invalidId = "not-a-valid-uuid";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", invalidId))
+                        .build();
+
+        RestResponse response = this.action.handleRequest(request, this.client);
+
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertEquals(String.format(Constants.E_400_INVALID_UUID, invalidId), response.getMessage());
     }
 
     /**
@@ -145,6 +174,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+        assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
     }
 
     /**

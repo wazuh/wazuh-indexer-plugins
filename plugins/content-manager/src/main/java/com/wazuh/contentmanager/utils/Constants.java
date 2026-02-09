@@ -44,7 +44,6 @@ public class Constants {
     public static final String E_500_POLICY_UPDATE_FAILED = "Failed to update policy.";
     public static final String E_500_ENGINE_INSTANCE_IS_NULL = "Engine instance is null.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body";
-    public static final String E_400_INVALID_JSON_CONTENT = "Invalid JSON content.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_FIELD_IS_REQUIRED = "'%s' is required";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format";

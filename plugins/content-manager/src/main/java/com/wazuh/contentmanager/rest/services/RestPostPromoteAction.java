@@ -136,7 +136,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         // 2. Check request's payload exists
         if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {

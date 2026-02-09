@@ -45,6 +45,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -93,8 +94,9 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
      */
     public void testDeleteDecoder200() {
         // Mock
-        RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
-        Client client = this.buildClientForDelete();
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(decoderId);
+        Client client = this.buildClientForDelete(decoderId);
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -103,18 +105,17 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);
 
         // Assert
-        RestResponse expectedResponse =
-                new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus());
+        RestResponse expectedResponse = new RestResponse(decoderId, RestStatus.OK.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.OK, bytesRestResponse.status());
     }
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the decoder has
-     * not been deleted (mock). The expected response is: {400, RestResponse}
+     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the decoder ID
+     * is missing. The expected response is: {400, RestResponse}
      */
-    public void testDeleteDecoder400() {
+    public void testDeleteDecoder400_MissingId() {
         // Mock
         RestRequest request = this.buildRequest(null);
 
@@ -123,20 +124,22 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
 
         // Assert
         RestResponse expectedResponse =
-                new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
     }
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
+     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the decoder ID
+     * is not a valid UUID. The expected response is: {400, RestResponse}
      */
-    public void testDeleteDecoder500() {
+    public void testDeleteDecoder400_InvalidUUID() {
         // Mock
-        this.action = new RestDeleteDecoderAction(null);
-        RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        String invalidId = "not-a-valid-uuid";
+        RestRequest request = this.buildRequest(invalidId);
 
         // Act
         BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
@@ -144,7 +147,30 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        String.format(Constants.E_400_INVALID_UUID, invalidId),
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+    }
+
+    /**
+     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when engine service
+     * is not initialized. The expected response is: {500, RestResponse}
+     */
+    public void testDeleteDecoder500_EngineNotInitialized() {
+        // Mock
+        this.action = new RestDeleteDecoderAction(null);
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(decoderId);
+
+        // Act
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+
+        // Assert
+        RestResponse expectedResponse =
+                new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
@@ -163,7 +189,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         return new RestResponse(node.get("message").asText(), node.get("status").asInt());
     }
 
-    private Client buildClientForDelete() {
+    private Client buildClientForDelete(String decoderId) {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
@@ -190,9 +216,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         org.opensearch.search.SearchHit hit =
                 new org.opensearch.search.SearchHit(
                         0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
-        hit.sourceRef(
-                new BytesArray(
-                        "{\"document\":{\"decoders\":[\"d_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
+        hit.sourceRef(new BytesArray("{\"document\":{\"decoders\":[\"" + decoderId + "\"]}}"));
         org.opensearch.search.SearchHits hits =
                 new org.opensearch.search.SearchHits(
                         new org.opensearch.search.SearchHit[] {hit},

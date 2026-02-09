@@ -306,7 +306,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock expected response
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(400);
-        expectedResponse.setMessage(Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED);
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Mock request
         RestRequest request = mock(RestRequest.class);

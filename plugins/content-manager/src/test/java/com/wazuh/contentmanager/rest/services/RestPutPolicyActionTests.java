@@ -356,7 +356,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains(Constants.E_400_INVALID_JSON_CONTENT));
+        assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 

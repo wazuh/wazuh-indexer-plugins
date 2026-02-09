@@ -26,7 +26,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
@@ -38,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -144,10 +144,10 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(policyHashService);
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
-        assertEquals(RestStatus.OK, response.status());
+        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         verify(this.client, times(1))
                 .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
         verify(this.client, times(1)).index(any(IndexRequest.class));
@@ -162,9 +162,9 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
     public void testPutRule400_MissingId() throws IOException {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
 
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /**
@@ -191,9 +191,9 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
                 .prepareGet(anyString(), anyString());
 
         // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }
