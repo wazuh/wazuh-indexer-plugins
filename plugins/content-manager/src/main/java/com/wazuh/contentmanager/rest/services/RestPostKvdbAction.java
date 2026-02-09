@@ -154,7 +154,9 @@ public class RestPostKvdbAction extends BaseRestHandler {
             // Validate with engine
             RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(engineResponse.getMessage(), engineResponse.getStatus());
+                log.error("Engine validation failed: {}", engineResponse.getMessage());
+                return new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Create KVDB in Index
@@ -169,16 +171,15 @@ public class RestPostKvdbAction extends BaseRestHandler {
             // Regenerate space hash
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "KVDB created successfully with ID: " + kvdbId, RestStatus.CREATED.getStatus());
+            return new RestResponse(kvdbId, RestStatus.CREATED.getStatus());
 
         } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error creating KVDB: {}", e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

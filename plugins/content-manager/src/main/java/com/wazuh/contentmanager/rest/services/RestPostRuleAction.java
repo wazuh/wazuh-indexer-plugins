@@ -136,21 +136,31 @@ public class RestPostRuleAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (!request.hasContent()) {
-                return new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(request.content().streamInput());
+            JsonNode rootNode;
+            try {
+                rootNode = mapper.readTree(request.content().streamInput());
+            } catch (IOException e) {
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            }
 
             // 1. Validate Wrapper Structure
             if (!rootNode.has(Constants.KEY_TYPE)
                     || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
                 return new RestResponse(
-                        "Invalid or missing 'type'. Expected 'rule'.", RestStatus.BAD_REQUEST.getStatus());
+                        String.format(Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
-                return new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
@@ -158,10 +168,12 @@ public class RestPostRuleAction extends BaseRestHandler {
             // 2. Validate Payload (Resource)
             if (resourceNode.has(Constants.KEY_ID)) {
                 return new RestResponse(
-                        "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
             if (!rootNode.has(INTEGRATION_ID_FIELD)) {
-                return new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        String.format(Constants.E_400_FIELD_IS_REQUIRED, INTEGRATION_ID_FIELD),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
@@ -201,7 +213,8 @@ public class RestPostRuleAction extends BaseRestHandler {
                 log.info("RestPostRuleAction: SAP created rule successfully (Custom).");
             } catch (Exception e) {
                 log.error("RestPostRuleAction: SAP creation failed.", e);
-                throw e;
+                return new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // 4. Store in CTI Rules Index
@@ -214,16 +227,12 @@ public class RestPostRuleAction extends BaseRestHandler {
             // 6. Regenerate space hash because rule was added to space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "Custom rule created successfully with ID " + ruleId, RestStatus.CREATED.getStatus());
+            return new RestResponse(ruleId, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
             log.error("Error creating rule: {}", e.getMessage(), e);
-            // If validation error return bad request
-            if (e.getMessage() != null && e.getMessage().contains("Invalid rule")) {
-                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
