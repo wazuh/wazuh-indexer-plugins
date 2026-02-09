@@ -1,0 +1,46 @@
+{
+  "dynamic": "strict",
+  "date_detection": false,
+  "properties": {
+    "filter": {
+      "properties": {
+        "name": {
+          "type": "keyword"
+        },
+        "id": {
+          "type": "keyword"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "keyword"
+        },
+        "check": {
+          "type": "text"
+        },
+        "metadata": {
+          "properties": {
+            "description": {
+              "type": "text"
+            },
+            "author": {
+              "properties": {
+                "name": {
+                  "type": "keyword"
+                },
+                "url": {
+                  "type": "keyword"
+                },
+                "date": {
+                  "type": "date",
+                  "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
