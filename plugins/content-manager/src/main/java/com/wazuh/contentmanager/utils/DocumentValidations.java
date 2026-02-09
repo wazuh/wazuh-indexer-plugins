@@ -66,17 +66,17 @@ public class DocumentValidations {
         GetResponse response = client.prepareGet(index, docId).get();
 
         if (!response.isExists()) {
-            return docType + " [" + docId + "] not found.";
+            return String.format(Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         Map<String, Object> source = response.getSourceAsMap();
         if (source == null || !source.containsKey(KEY_SPACE)) {
-            return docType + " [" + docId + "] does not have space information.";
+            return String.format(Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         Object spaceObj = source.get(KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
-            return docType + " [" + docId + "] has invalid space information.";
+            return String.format(Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         @SuppressWarnings("unchecked")
@@ -84,7 +84,7 @@ public class DocumentValidations {
         Object spaceName = spaceMap.get(KEY_NAME);
 
         if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            return docType + " [" + docId + "] is not in draft space.";
+            return String.format(Constants.E_400_RESOURCE_NOT_IN_DRAFT, docType, docId);
         }
 
         return null;
@@ -120,7 +120,7 @@ public class DocumentValidations {
     public static RestResponse validateEngineAvailable(EngineService engine) {
         if (engine == null) {
             return new RestResponse(
-                    "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         return null;
     }
@@ -133,7 +133,8 @@ public class DocumentValidations {
      */
     public static RestResponse validateRequestHasContent(RestRequest request) {
         if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }
@@ -164,7 +165,9 @@ public class DocumentValidations {
      */
     public static RestResponse validateRequiredParam(String value, String paramName) {
         if (value == null || value.isBlank()) {
-            return new RestResponse(paramName + " is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Constants.E_400_FIELD_IS_REQUIRED, paramName),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }
@@ -183,13 +186,17 @@ public class DocumentValidations {
         if (requireIntegrationId) {
             if (!payload.has(Constants.KEY_INTEGRATION)
                     || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
-                return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_INTEGRATION),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
         }
 
         // Validation for Resource object presence
         if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
-            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validation for Resource ID
@@ -200,14 +207,16 @@ public class DocumentValidations {
                 String payloadId = resourceNode.get(Constants.KEY_ID).asText();
                 if (!payloadId.equals(expectedId)) {
                     return new RestResponse(
-                            "Resource ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                            String.format(Constants.E_400_RESOURCE_ID_MISMATCH, Constants.KEY_ID),
+                            RestStatus.BAD_REQUEST.getStatus());
                 }
             }
         } else {
             // For creates: Resource ID should typically not be provided by user
             if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
                 return new RestResponse(
-                        "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+                        String.format(Constants.E_400_RESOURCE_ID_MUST_NOT_BE_PROVIDED, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
         }
         return null;

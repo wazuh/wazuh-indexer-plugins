@@ -139,7 +139,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
             RestResponse engineValidation =
                     this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
+                log.error("Engine validation failed: {}", engineValidation.getMessage());
+                return new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Create decoder using raw UUID
@@ -156,16 +158,17 @@ public class RestPostDecoderAction extends BaseRestHandler {
             // Regenerate space hash because space composition changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "Decoder created successfully with ID: " + decoderId, RestStatus.CREATED.getStatus());
+            // Response the decoder ID and CREATED (201) status
+            return new RestResponse(decoderId, RestStatus.CREATED.getStatus());
 
         } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Constants.E_400_INVALID_FIELD_FORMAT, "JSON"),
+                    RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error creating decoder: {}", e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
