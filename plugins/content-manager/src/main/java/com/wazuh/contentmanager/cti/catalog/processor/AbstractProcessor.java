@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -29,6 +29,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Abstract base class for CTI document processors. Provides common functionality for searching
@@ -131,11 +132,11 @@ public abstract class AbstractProcessor {
      * @return The document JsonObject, or null if not present.
      */
     protected JsonObject extractDocument(JsonObject source, String hitId) {
-        if (!source.has("document")) {
+        if (!source.has(Constants.KEY_DOCUMENT)) {
             this.log.warn("Hit [{}] missing 'document' field, skipping", hitId);
             this.skippedCount++;
             return null;
         }
-        return source.getAsJsonObject("document");
+        return source.getAsJsonObject(Constants.KEY_DOCUMENT);
     }
 }

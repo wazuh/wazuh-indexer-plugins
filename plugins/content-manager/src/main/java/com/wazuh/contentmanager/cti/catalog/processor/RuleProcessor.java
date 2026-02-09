@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleAction;
@@ -48,6 +50,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RuleProcessor extends AbstractProcessor {
 
     /** JSON field name for the category attribute in logsource configuration. */
+    // Todo constants
     private static final String CATEGORY = "category";
 
     /**
@@ -118,9 +121,10 @@ public class RuleProcessor extends AbstractProcessor {
 
         // Determine if custom based on 'space' field
         boolean isCustom = false;
-        if (source.has("space") && source.get("space").isJsonObject()) {
-            JsonObject space = source.getAsJsonObject("space");
-            if (space.has("name") && "custom".equalsIgnoreCase(space.get("name").getAsString())) {
+        if (source.has(Constants.KEY_SPACE) && source.get(Constants.KEY_SPACE).isJsonObject()) {
+            JsonObject space = source.getAsJsonObject(Constants.KEY_SPACE);
+            if (space.has(Constants.KEY_NAME)
+                    && Space.CUSTOM.equals(space.get(Constants.KEY_NAME).getAsString())) {
                 isCustom = true;
             }
         }
@@ -130,13 +134,13 @@ public class RuleProcessor extends AbstractProcessor {
             return;
         }
 
-        if (!doc.has("id")) {
+        if (!doc.has(Constants.KEY_ID)) {
             this.log.warn("Rule document missing 'id' field, skipping: {}", hit.getId());
             this.skippedCount++;
             return;
         }
 
-        String id = doc.get("id").getAsString();
+        String id = doc.get(Constants.KEY_ID).getAsString();
         String product = this.determineProduct(doc);
 
         try {
