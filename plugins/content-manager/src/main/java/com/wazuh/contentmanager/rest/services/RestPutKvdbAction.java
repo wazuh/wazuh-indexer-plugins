@@ -144,11 +144,26 @@ public class RestPutKvdbAction extends BaseRestHandler {
 
         try {
             String kvdbId = request.param(Constants.KEY_ID);
-            if (kvdbId == null || kvdbId.isBlank()) {
-                return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
+
+            // Validate ID is present
+            validationError = DocumentValidations.validateRequiredParam(kvdbId, Constants.KEY_ID);
+            if (validationError != null) {
+                return validationError;
             }
 
-            JsonNode payload = this.mapper.readTree(request.content().streamInput());
+            // Validate UUID format
+            validationError = DocumentValidations.validateUUID(kvdbId);
+            if (validationError != null) {
+                return validationError;
+            }
+
+            JsonNode payload;
+            try {
+                payload = this.mapper.readTree(request.content().streamInput());
+            } catch (IOException e) {
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            }
 
             // Validate payload structure
             validationError = DocumentValidations.validateResourcePayload(payload, kvdbId, false);
@@ -159,16 +174,14 @@ public class RestPutKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, kvdbId);
 
-            // Update timestamps
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
-
-            // Validate with engine
-            RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
-            if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(engineResponse.getMessage(), engineResponse.getStatus());
+            // Check if KVDB exists
+            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
+            if (!kvdbIndex.exists(kvdbId)) {
+                return new RestResponse(
+                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
             }
 
-            // Validate KVDB exists and is in draft space
+            // Validate KVDB is in draft space
             String spaceError =
                     DocumentValidations.validateDocumentInSpace(
                             client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
@@ -176,13 +189,18 @@ public class RestPutKvdbAction extends BaseRestHandler {
                 return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Update KVDB
-            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
-            if (!kvdbIndex.exists(kvdbId)) {
+            // Update timestamps
+            ContentUtils.updateTimestampMetadata(resourceNode, false);
+
+            // Validate with engine
+            RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
+            if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
+                log.error("Engine validation failed: {}", engineResponse.getMessage());
                 return new RestResponse(
-                        "KVDB [" + kvdbId + "] not found.", RestStatus.NOT_FOUND.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
+            // Update KVDB
             kvdbIndex.create(
                     kvdbId,
                     ContentUtils.buildCtiWrapper(Constants.KEY_KVDB, resourceNode, Space.DRAFT.toString()));
@@ -190,16 +208,12 @@ public class RestPutKvdbAction extends BaseRestHandler {
             // Regenerate space hash because KVDB content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "KVDB updated successfully with ID: " + kvdbId, RestStatus.OK.getStatus());
+            return new RestResponse(kvdbId, RestStatus.OK.getStatus());
 
-        } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error updating KVDB: {}", e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

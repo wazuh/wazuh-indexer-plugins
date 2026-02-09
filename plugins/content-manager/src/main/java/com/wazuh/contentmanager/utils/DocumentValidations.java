@@ -173,6 +173,22 @@ public class DocumentValidations {
     }
 
     /**
+     * Validates that a string is a valid UUID format.
+     *
+     * @param value the string value to validate as UUID
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    public static RestResponse validateUUID(String value) {
+        try {
+            java.util.UUID.fromString(value);
+            return null;
+        } catch (IllegalArgumentException e) {
+            return new RestResponse(
+                    String.format(Constants.E_400_INVALID_UUID, value), RestStatus.BAD_REQUEST.getStatus());
+        }
+    }
+
+    /**
      * Validates the standard structure of a resource payload.
      *
      * @param payload The raw JSON payload.

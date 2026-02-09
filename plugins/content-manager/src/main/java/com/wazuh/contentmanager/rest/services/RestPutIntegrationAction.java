@@ -182,28 +182,31 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Check if ID is provided
         if (id == null || id.isEmpty()) {
             this.log.warn("Request rejected: integration ID is required");
-            return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate UUID format
+        try {
+            java.util.UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return new RestResponse(
+                    String.format(Constants.E_400_INVALID_UUID, id), RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check if engine service exists
-        if (this.engine == null) {
-            this.log.error("Engine instance is null");
+        if (this.engine == null || this.service == null) {
+            this.log.error("Engine or Security Analytics service instance is null");
             return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check if security analytics service exists
-        if (this.service == null) {
-            this.log.error("Security Analytics service instance is null");
-            return new RestResponse(
-                    "Security Analytics service instance is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // Check request's payload exists
         if (!request.hasContent()) {
             this.log.warn("Request rejected: JSON request body missing");
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check request's payload is valid JSON
@@ -212,7 +215,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             requestBody = MAPPER.readTree(request.content().streamInput()).deepCopy();
         } catch (IOException ex) {
             this.log.warn("Request rejected: invalid JSON content", ex);
-            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Verify request is of type "integration"
@@ -223,15 +227,16 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     requestBody.has(Constants.KEY_TYPE)
                             ? requestBody.get(Constants.KEY_TYPE).asText()
                             : null);
-            return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check that there is no ID field in the request body (ID comes from URL)
         if (!requestBody.at("/resource/id").isMissingNode()) {
             this.log.warn("Request rejected: id field present in request body");
             return new RestResponse(
-                    "ID field is not allowed in the request body. Use the URL path parameter instead.",
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Verify integration exists and is in draft space
@@ -242,12 +247,12 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         } catch (Exception e) {
             this.log.error("Failed to retrieve existing integration (id={})", id, e);
             return new RestResponse(
-                    "Failed to retrieve existing integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         if (!getResponse.isExists()) {
             this.log.warn("Request rejected: integration not found (id={})", id);
-            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
+            return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Verify integration is in draft space
@@ -260,15 +265,12 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                 this.log.warn(
                         "Request rejected: cannot update integration in space '{}' (id={})", spaceName, id);
                 return new RestResponse(
-                        "Cannot update integration from space '"
-                                + spaceName
-                                + "'. Only 'draft' space is modifiable.",
+                        String.format(Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         } else {
             this.log.warn("Request rejected: integration has undefined space (id={})", id);
-            return new RestResponse(
-                    "Cannot update integration with undefined space.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Extract /resource
@@ -277,7 +279,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.log.warn(
                     "Request rejected: /resource is not an object (nodeType={})", resource.getNodeType());
             return new RestResponse(
-                    "Invalid JSON structure: /resource must be an object.",
+                    String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -353,10 +355,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     id,
                     validationResponse.getStatus());
             return new RestResponse(
-                    "Failed to update Integration, Invalid validation response: "
-                            + validationResponse.getMessage()
-                            + ".",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // If validation failed, return error (SAP was already updated, may need manual reconciliation)
@@ -364,10 +363,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.log.error(
                     "Engine validation failed (id={}, status={})", id, validationResponse.getStatus());
             return new RestResponse(
-                    "Failed to update Integration, Validation response: "
-                            + validationResponse.getStatus()
-                            + ".",
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         try {
@@ -390,7 +386,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                         id,
                         integrationIndexResponse != null ? integrationIndexResponse.status() : null);
                 return new RestResponse(
-                        "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Update the space's hash in the policy
@@ -400,12 +396,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             this.log.info("Integration updated successfully (id={})", id);
-            return new RestResponse(
-                    "Integration updated successfully with ID: " + id, RestStatus.OK.getStatus());
+            return new RestResponse(id, RestStatus.OK.getStatus());
         } catch (Exception e) {
             this.log.error("Unexpected error updating integration (id={})", id, e);
             return new RestResponse(
-                    "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 

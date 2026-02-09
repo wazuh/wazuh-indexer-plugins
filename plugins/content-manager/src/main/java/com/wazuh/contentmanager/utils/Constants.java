@@ -55,6 +55,8 @@ public class Constants {
     public static final String E_400_RESOURCE_ID_MISMATCH =
             "'%s' in payload does not match path parameter";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error";
+    public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID";
+    public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
