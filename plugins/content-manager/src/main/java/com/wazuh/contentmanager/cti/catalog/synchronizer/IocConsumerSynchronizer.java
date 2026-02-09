@@ -26,6 +26,7 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.processor.IocProcessor;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
@@ -88,9 +89,9 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @return The unified index name.
      */
     @Override
-    protected String getIndexName(String type) {
+    public String getIndexName(String type) {
         if (type.equals(IOC)) {
-            return ".cti-iocs";
+            return Constants.INDEX_IOCS;
         }
         return super.getIndexName(type);
     }
@@ -98,9 +99,9 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
-            this.refreshIndices(IOC);
+            this.refreshIndices(Constants.INDEX_IOCS);
 
-            String iocIndex = this.getIndexName(IOC);
+            String iocIndex = this.getIndexName(Constants.INDEX_IOCS);
 
             this.iocProcessor.process(iocIndex);
 
