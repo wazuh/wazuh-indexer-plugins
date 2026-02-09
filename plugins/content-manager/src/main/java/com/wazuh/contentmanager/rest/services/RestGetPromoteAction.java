@@ -87,7 +87,8 @@ public class RestGetPromoteAction extends BaseRestHandler {
             String spaceParam = request.param(Constants.KEY_SPACE);
             if (spaceParam == null || spaceParam.isBlank()) {
                 return new RestResponse(
-                        "Missing required parameter: space", RestStatus.BAD_REQUEST.getStatus());
+                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_SPACE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
             Space sourceSpace = Space.fromValue(spaceParam);
 
@@ -127,13 +128,13 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
             // 5. Build Response
             return new PromoteResponse(changes);
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error in promote preview: {}", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error processing promote preview: {}", e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "Internal Server Error",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
