@@ -50,6 +50,8 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -203,17 +205,16 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 request.hasContent(),
                 request.uri());
 
-        if (this.engine == null) {
-            return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        // Validate prerequisites
+        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
+        if (validationError != null) {
+            return validationError;
         }
+
         if (this.service == null) {
             return new RestResponse(
                     "Security Analytics service instance is null.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check request's payload is valid JSON
@@ -315,14 +316,10 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {
-            ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload
-                    .putObject(Constants.KEY_SPACE)
-                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
+            JsonNode ctiWrapper =
+                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
 
-            IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(id, integrationsIndexPayload);
+            IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 
             if (integrationIndexResponse == null
                     || integrationIndexResponse.status() != RestStatus.CREATED) {

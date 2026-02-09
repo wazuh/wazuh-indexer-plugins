@@ -80,6 +80,7 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_TITLE = "title";
+    public static final String KEY_DESCRIPTION = "description";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -88,6 +89,9 @@ public class Constants {
     public static final String KEY_KVDB = "kvdb";
     public static final String KEY_DECODER = "decoder";
     public static final String KEY_RULE = "rule";
+    public static final String KEY_LOGSOURCE = "logsource";
+    public static final String KEY_PRODUCT = "product";
+    public static final String KEY_CATEGORY = "category";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";

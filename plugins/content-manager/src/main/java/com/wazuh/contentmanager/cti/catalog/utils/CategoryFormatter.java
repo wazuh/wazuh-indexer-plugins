@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,14 +21,13 @@ import org.opensearch.core.common.Strings;
 
 import java.util.Arrays;
 
+import com.wazuh.contentmanager.utils.Constants;
+
 /**
  * Utility class for formatting category strings from CTI documents. Transforms raw category
  * identifiers into human-readable format.
  */
 public class CategoryFormatter {
-
-    /** The JSON field name for category. */
-    static final String CATEGORY = "category";
 
     private CategoryFormatter() {}
 
@@ -42,7 +41,7 @@ public class CategoryFormatter {
      * @return The formatted category string, or the raw category for detectors.
      */
     public static String format(JsonObject doc, boolean isDetector) {
-        String rawCategory = doc.get(CATEGORY).getAsString();
+        String rawCategory = doc.get(Constants.KEY_CATEGORY).getAsString();
 
         // Do not pretty print category for detectors
         if (isDetector) {

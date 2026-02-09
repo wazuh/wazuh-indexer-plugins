@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,6 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Utility class for SHA-256 hash calculations. Provides methods to compute hashes for content
@@ -69,9 +71,9 @@ public final class HashCalculator {
      */
     @SuppressWarnings("unchecked")
     public static String extractHash(Map<String, Object> source) {
-        if (source.containsKey("hash")) {
-            Map<String, Object> hashObj = (Map<String, Object>) source.get("hash");
-            return (String) hashObj.getOrDefault("sha256", "");
+        if (source.containsKey(Constants.KEY_HASH)) {
+            Map<String, Object> hashObj = (Map<String, Object>) source.get(Constants.KEY_HASH);
+            return (String) hashObj.getOrDefault(Constants.KEY_SHA256, "");
         }
         return "";
     }

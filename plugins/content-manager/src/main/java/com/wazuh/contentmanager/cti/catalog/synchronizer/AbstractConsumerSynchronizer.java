@@ -131,9 +131,13 @@ public abstract class AbstractConsumerSynchronizer {
      * Overrides index naming to utilize the alias name convention directly.
      *
      * @param type The type identifier for the index.
-     * @return The unified index name. TODO remove in favor of Constants.RESOURCE_INDICES
+     * @return The unified index name.
      */
     public String getIndexName(String type) {
+        // TODO Normalize the Resource types at resource creation to avoid this mapping and simplify
+        // index management
+        // e.g. always use the `type` in plural (decoders, rules, etc.) and remove the need for this
+        // mapping
         return switch (type) {
             case Constants.KEY_RULE -> Constants.INDEX_RULES;
             case Constants.KEY_DECODER -> Constants.INDEX_DECODERS;
