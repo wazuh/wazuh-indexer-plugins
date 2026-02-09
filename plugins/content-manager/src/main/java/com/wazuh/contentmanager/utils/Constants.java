@@ -57,6 +57,7 @@ public class Constants {
     public static final String INDEX_RULES = ".cti-rules";
     public static final String INDEX_KVDBS = ".cti-kvdbs";
     public static final String INDEX_DECODERS = ".cti-decoders";
+    public static final String INDEX_IOCS = ".cti-iocs";
     public static final String INDEX_FILTERS = ".engine-filters";
 
     // Resource Types Keys
@@ -65,6 +66,7 @@ public class Constants {
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
     public static final String KEY_DECODERS = "decoders";
+    public static final String KEY_IOCS = "iocs";
     public static final String KEY_FILTERS = "filters";
 
     // Resource Metadata Keys
@@ -87,12 +89,20 @@ public class Constants {
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
-                    KEY_POLICY, INDEX_POLICIES,
-                    KEY_INTEGRATIONS, INDEX_INTEGRATIONS,
-                    KEY_RULES, INDEX_RULES,
-                    KEY_KVDBS, INDEX_KVDBS,
-                    KEY_DECODERS, INDEX_DECODERS,
-                    KEY_FILTERS, INDEX_FILTERS);
+                    KEY_POLICY,
+                    INDEX_POLICIES,
+                    KEY_INTEGRATIONS,
+                    INDEX_INTEGRATIONS,
+                    KEY_RULES,
+                    INDEX_RULES,
+                    KEY_KVDBS,
+                    INDEX_KVDBS,
+                    KEY_DECODERS,
+                    INDEX_DECODERS,
+                    KEY_IOCS,
+                    INDEX_IOCS,
+                    KEY_FILTERS,
+                    INDEX_FILTERS);
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
