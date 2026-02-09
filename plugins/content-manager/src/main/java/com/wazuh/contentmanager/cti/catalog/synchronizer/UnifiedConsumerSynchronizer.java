@@ -56,12 +56,6 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     private static final Logger log = LogManager.getLogger(UnifiedConsumerSynchronizer.class);
     private final ObjectMapper mapper;
 
-    public static final String POLICY = "policy";
-    public static final String RULE = "rule";
-    public static final String DECODER = "decoder";
-    public static final String KVDB = "kvdb";
-    public static final String INTEGRATION = "integration";
-
     /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
 
@@ -109,11 +103,11 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(RULE, "/mappings/cti-rules-mappings.json");
-        mappings.put(DECODER, "/mappings/cti-decoders-mappings.json");
-        mappings.put(KVDB, "/mappings/cti-kvdbs-mappings.json");
-        mappings.put(INTEGRATION, "/mappings/cti-integrations-mappings.json");
-        mappings.put(POLICY, "/mappings/cti-policies-mappings.json");
+        mappings.put(Constants.KEY_RULE, "/mappings/cti-rules-mappings.json");
+        mappings.put(Constants.KEY_DECODER, "/mappings/cti-decoders-mappings.json");
+        mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
+        mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
+        mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
     }
 
@@ -127,16 +121,16 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * Overrides index naming to utilize the alias name convention directly.
      *
      * @param type The type identifier for the index.
-     * @return The unified index name.
+     * @return The unified index name. TODO remove in favor of Constansts.RESOURCE_INDICES
      */
     @Override
     public String getIndexName(String type) {
         return switch (type) {
-            case RULE -> ".cti-rules";
-            case DECODER -> ".cti-decoders";
-            case KVDB -> ".cti-kvdbs";
-            case INTEGRATION -> ".cti-integrations";
-            case POLICY -> ".cti-policies";
+            case Constants.KEY_RULE -> ".cti-rules";
+            case Constants.KEY_DECODER -> ".cti-decoders";
+            case Constants.KEY_KVDB -> ".cti-kvdbs";
+            case Constants.KEY_INTEGRATION -> ".cti-integrations";
+            case Constants.KEY_POLICY -> ".cti-policies";
             default -> super.getIndexName(type);
         };
     }
@@ -219,13 +213,13 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
                 Map<String, Object> space = new HashMap<>();
                 space.put(Constants.KEY_NAME, spaceName);
-                space.put(Constants.KEY_HASH, Map.of("sha256", docHash));
+                space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
 
                 Map<String, Object> source = new HashMap<>();
                 source.put(Constants.KEY_DOCUMENT, docMap);
                 source.put(Constants.KEY_SPACE, space);
                 // TODO: change to usage of method to calculate space hash
-                source.put(Constants.KEY_HASH, Map.of("sha256", docHash));
+                source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
 
                 IndexRequest request =
                         new IndexRequest(indexName)

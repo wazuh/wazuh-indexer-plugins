@@ -29,6 +29,7 @@ import org.opensearch.transport.client.Client;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.*;
 import com.wazuh.securityanalytics.model.Integration;
 
@@ -39,11 +40,9 @@ import com.wazuh.securityanalytics.model.Integration;
 public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     private static final Logger log = LogManager.getLogger(SecurityAnalyticsServiceImpl.class);
 
-    private static final String JSON_DOCUMENT_KEY = "document";
-    private static final String JSON_ID_KEY = "id";
+    // TODO constants file
     private static final String JSON_CATEGORY_KEY = "category";
     private static final String JSON_PRODUCT_KEY = "product";
-    private static final String JSON_RULES_KEY = "rules";
     private static final String JSON_LOGSOURCE_KEY = "logsource";
 
     private final Client client;
@@ -60,12 +59,12 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertIntegration(JsonObject doc, Space space, Method method) {
         try {
-            if (!doc.has(JSON_DOCUMENT_KEY)) {
+            if (!doc.has(Constants.KEY_DOCUMENT)) {
                 return;
             }
-            JsonObject innerDoc = doc.getAsJsonObject(JSON_DOCUMENT_KEY);
-            String id = innerDoc.get(JSON_ID_KEY).getAsString();
-            String name = innerDoc.get("title").getAsString();
+            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
+            String id = innerDoc.get(Constants.KEY_ID).getAsString();
+            String name = innerDoc.get(Constants.KEY_TITLE).getAsString();
             String description = innerDoc.get("description").getAsString();
             String category = this.getCategory(innerDoc, false);
 
@@ -135,11 +134,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertRule(JsonObject doc) {
         try {
-            if (!doc.has(JSON_DOCUMENT_KEY)) {
+            if (!doc.has(Constants.KEY_DOCUMENT)) {
                 return;
             }
-            JsonObject innerDoc = doc.getAsJsonObject(JSON_DOCUMENT_KEY);
-            String id = innerDoc.get(JSON_ID_KEY).getAsString();
+            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
+            String id = innerDoc.get(Constants.KEY_ID).getAsString();
 
             String product = "linux";
             if (innerDoc.has(JSON_LOGSOURCE_KEY)) {
@@ -207,18 +206,19 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertDetector(JsonObject doc, boolean rawCategory) {
         try {
-            if (!doc.has(JSON_DOCUMENT_KEY)) {
+            if (!doc.has(Constants.KEY_DOCUMENT)) {
                 return;
             }
-            JsonObject innerDoc = doc.getAsJsonObject(JSON_DOCUMENT_KEY);
-            String id = innerDoc.get(JSON_ID_KEY).getAsString();
-            String name = innerDoc.has("title") ? innerDoc.get("title").getAsString() : "";
+            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
+            String id = innerDoc.get(Constants.KEY_ID).getAsString();
+            String name =
+                    innerDoc.has(Constants.KEY_TITLE) ? innerDoc.get(Constants.KEY_TITLE).getAsString() : "";
             String category = this.getCategory(innerDoc, rawCategory);
             List<String> rules = new ArrayList<>();
 
-            if (innerDoc.has(JSON_RULES_KEY)) {
+            if (innerDoc.has(Constants.KEY_RULES)) {
                 innerDoc
-                        .get(JSON_RULES_KEY)
+                        .get(Constants.KEY_RULES)
                         .getAsJsonArray()
                         .forEach(item -> rules.add(item.getAsString()));
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -32,6 +32,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
@@ -142,8 +143,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             case CREATE:
                 if (offset.getPayload() != null) {
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
-                    if (payload.has("type")) {
-                        String type = payload.get("type").asText();
+                    if (payload.has(Constants.KEY_TYPE)) {
+                        String type = payload.get(Constants.KEY_TYPE).asText();
 
                         index = this.indices.get(type);
                         if (index != null) {
@@ -178,8 +179,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      */
     private ContentIndex findIndexForId(String id) throws ResourceNotFoundException {
         // When it is a policy document, it must be treated special, since the id policy doesn't exist
-        if ("policy".equals(id)) {
-            ContentIndex policyIndex = this.indices.get("policy");
+        if (Constants.KEY_POLICY.equals(id)) {
+            ContentIndex policyIndex = this.indices.get(Constants.KEY_POLICY);
             if (policyIndex != null) {
                 return policyIndex;
             }
