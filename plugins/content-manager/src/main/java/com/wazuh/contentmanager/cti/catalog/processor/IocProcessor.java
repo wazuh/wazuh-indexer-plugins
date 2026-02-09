@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.processor;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHit;
@@ -63,7 +64,8 @@ public class IocProcessor extends AbstractProcessor {
 
     /**
      * Processes a single search hit containing an IoC document. Extracts IoC data for threat
-     * intelligence purposes.
+     * intelligence purposes. Unlike integrations, IoC documents have a flat structure where {@code
+     * id} and {@code enrichments} are at the root level, without a {@code document} wrapper.
      *
      * @param hit The search hit containing the IoC document to process.
      */
@@ -73,15 +75,22 @@ public class IocProcessor extends AbstractProcessor {
             return;
         }
 
-        JsonObject doc = this.extractDocument(source, hit.getId());
-        if (doc == null) {
+        if (!source.has("id")) {
+            this.log.warn("Hit [{}] missing 'id' field, skipping", hit.getId());
+            this.skippedCount++;
             return;
         }
+        String id = source.get("id").getAsString();
 
-        String id = doc.get("id").getAsString();
+        if (!source.has("enrichments") || !source.get("enrichments").isJsonArray()) {
+            this.log.warn("IoC [{}] missing 'enrichments' array, skipping", id);
+            this.skippedCount++;
+            return;
+        }
+        JsonArray enrichments = source.getAsJsonArray("enrichments");
 
         // TODO: Implement IoC-specific processing logic
-        this.log.debug("IoC [{}] processed successfully.", id);
+        this.log.debug("IoC [{}] processed successfully with {} enrichments.", id, enrichments.size());
         this.successCount++;
     }
 }
