@@ -60,7 +60,10 @@ public class IocProcessor extends AbstractProcessor {
         }
 
         this.log.info(
-                "IoC processing completed: {} succeeded, {} failed", this.successCount, this.failCount);
+                "IoC processing completed: {} succeeded, {} failed, {} skipped",
+                this.successCount,
+                this.failCount,
+                this.skippedCount);
     }
 
     /**
