@@ -32,6 +32,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -59,7 +60,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     private RestPutIntegrationAction action;
     private SecurityAnalyticsServiceImpl saService;
     private NodeClient nodeClient;
-    private static final String INTEGRATION_ID = "d_7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
+    private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
 
     /**
      * Set up the tests
@@ -94,6 +95,10 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
             Map<String, Object> documentMap = new HashMap<>();
             documentMap.put("id", RestPutIntegrationActionTests.INTEGRATION_ID);
             documentMap.put("enabled", true);
+            documentMap.put("decoders", List.of("1cb80fdb-7209-4b96-8bd1-ec15864d0f35"));
+            documentMap.put("rules", List.of());
+            documentMap.put("kvdbs", List.of());
+
             sourceMap.put("document", documentMap);
             when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
         }

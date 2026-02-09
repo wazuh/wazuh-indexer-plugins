@@ -226,7 +226,6 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 source.put(Constants.KEY_SPACE, space);
                 // TODO: change to usage of method to calculate space hash
                 source.put(Constants.KEY_HASH, Map.of("sha256", docHash));
-                source.put(Constants.KEY_TYPE, Constants.KEY_POLICY);
 
                 IndexRequest request =
                         new IndexRequest(indexName)

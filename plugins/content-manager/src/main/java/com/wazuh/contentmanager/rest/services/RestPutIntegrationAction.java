@@ -35,6 +35,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -49,6 +50,7 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -281,6 +283,27 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
+        if (existingSource.containsKey(Constants.KEY_DOCUMENT)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> existingDocument =
+                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
+
+            try {
+                if (validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_RULES);
+                }
+                if (validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_DECODERS);
+                }
+                if (validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_KVDBS);
+                }
+            } catch (IllegalArgumentException e) {
+                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
         // Insert ID from URL
         ((ObjectNode) resource).put(Constants.KEY_ID, id);
 
@@ -411,5 +434,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
     private JsonObject toJsonObject(JsonNode jsonNode) {
         return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
+    }
+
+    private RestResponse validateList(
+            Map<String, Object> existingDoc, JsonNode resourceNode, String key) {
+        @SuppressWarnings("unchecked")
+        List<String> existingList =
+                (List<String>) existingDoc.getOrDefault(key, Collections.emptyList());
+        List<String> incomingList = ContentUtils.extractStringList(resourceNode, key);
+        return ContentUtils.validateListEquality(existingList, incomingList, key);
     }
 }
