@@ -106,12 +106,7 @@ public class Constants {
                     KEY_RULES, INDEX_RULES,
                     KEY_KVDBS, INDEX_KVDBS,
                     KEY_DECODERS, INDEX_DECODERS,
-                    KEY_FILTERS, INDEX_FILTERS,
-                    // Added the to be used in Synchronizers
-                    KEY_INTEGRATION, INDEX_INTEGRATIONS,
-                    KEY_RULE, INDEX_RULES,
-                    KEY_KVDB, INDEX_KVDBS,
-                    KEY_DECODER, INDEX_DECODERS);
+                    KEY_FILTERS, INDEX_FILTERS);
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
