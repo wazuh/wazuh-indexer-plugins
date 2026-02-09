@@ -137,46 +137,63 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
+                log.error("Engine service not initialized");
                 return new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             String kvdbId = request.param(Constants.KEY_ID);
-            if (kvdbId == null || kvdbId.isBlank()) {
-                return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
+
+            // Validate ID is present
+            RestResponse validationError =
+                    DocumentValidations.validateRequiredParam(kvdbId, Constants.KEY_ID);
+            if (validationError != null) {
+                return validationError;
+            }
+
+            // Validate UUID format
+            validationError = DocumentValidations.validateUUID(kvdbId);
+            if (validationError != null) {
+                return validationError;
             }
 
             // Ensure Index Exists
             if (!IndexHelper.indexExists(client, Constants.INDEX_KVDBS)) {
-                return new RestResponse("KVDB index not found.", RestStatus.NOT_FOUND.getStatus());
-            }
-
-            // Validate KVDB exists and is in draft space
-            String spaceError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
-            if (spaceError != null) {
-                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+                log.error("KVDB index not found");
+                return new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
+
+            // Check if KVDB exists before deleting
+            if (!kvdbIndex.exists(kvdbId)) {
+                return new RestResponse(
+                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
+            }
+
+            // Validate KVDB is in draft space
+            String spaceValidationError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
+            if (spaceValidationError != null) {
+                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
+            }
 
             // Unlink from Integrations
             ContentUtils.unlinkResourceFromIntegrations(client, kvdbId, Constants.KEY_KVDBS);
 
             // Delete KVDB
             kvdbIndex.delete(kvdbId);
+
             // Recalculate policy hashes for draft space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus());
+            return new RestResponse(kvdbId, RestStatus.OK.getStatus());
         } catch (Exception e) {
             log.error("Error deleting KVDB: {}", e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "An unexpected error occurred while processing your request.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

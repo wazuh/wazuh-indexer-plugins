@@ -128,16 +128,33 @@ public class RestDeleteRuleAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             String ruleId = request.param(Constants.KEY_ID);
-            if (ruleId == null || ruleId.isEmpty()) {
-                return new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus());
+
+            // Validate ID is present
+            RestResponse validationError =
+                    DocumentValidations.validateRequiredParam(ruleId, Constants.KEY_ID);
+            if (validationError != null) {
+                return validationError;
+            }
+
+            // Validate UUID format
+            validationError = DocumentValidations.validateUUID(ruleId);
+            if (validationError != null) {
+                return validationError;
+            }
+
+            // Check if rule exists
+            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
+            if (!rulesIndex.exists(ruleId)) {
+                return new RestResponse(
+                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
             }
 
             // Validate rule is in draft space
-            String validationError =
+            String spaceValidationError =
                     DocumentValidations.validateDocumentInSpace(
                             client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
-            if (validationError != null) {
-                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
+            if (spaceValidationError != null) {
+                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 1. Call SAP to delete rule
@@ -160,23 +177,17 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             ContentUtils.unlinkResourceFromIntegrations(client, ruleId, Constants.KEY_RULES);
 
             // 3. Delete from CTI Rules Index
-            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
             rulesIndex.delete(ruleId);
 
             // Recalculate policy hashes for draft space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            RestResponse response =
-                    new RestResponse("Rule deleted successfully", RestStatus.OK.getStatus());
-            // TODO: Create a class CreateRestResponse which extends RestResponse implementing the field
-            // ID.
-            // Example expected object: {"message": "Some success msg", Constants.KEY_ID: "1234",
-            // "status": 201}
-            return new RestResponse(response.getMessage(), RestStatus.OK.getStatus());
+            return new RestResponse(ruleId, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
             log.error("Error deleting rule: {}", e.getMessage(), e);
-            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
