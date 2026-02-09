@@ -24,13 +24,14 @@ import java.util.List;
 import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.utils.Constants;
 
 public class SpaceDiff {
 
-    @JsonProperty(value = "space", required = true)
+    @JsonProperty(value = Constants.KEY_SPACE, required = true)
     private Space space;
 
-    @JsonProperty(value = "changes", required = true)
+    @JsonProperty(value = Constants.KEY_CHANGES, required = true)
     private Changes changes;
 
     public Space getSpace() {
@@ -50,22 +51,22 @@ public class SpaceDiff {
     }
 
     public static class Changes {
-        @JsonProperty(value = "policy", required = true)
+        @JsonProperty(value = Constants.KEY_POLICY, required = true)
         private List<OperationItem> policy;
 
-        @JsonProperty(value = "integrations", required = true)
+        @JsonProperty(value = Constants.KEY_INTEGRATIONS, required = true)
         private List<OperationItem> integrations;
 
-        @JsonProperty(value = "kvdbs", required = true)
+        @JsonProperty(value = Constants.KEY_KVDBS, required = true)
         private List<OperationItem> kvdbs;
 
-        @JsonProperty(value = "decoders", required = true)
+        @JsonProperty(value = Constants.KEY_DECODERS, required = true)
         private List<OperationItem> decoders;
 
-        @JsonProperty(value = "filters", required = true)
+        @JsonProperty(value = Constants.KEY_FILTERS, required = true)
         private List<OperationItem> filters;
 
-        @JsonProperty(value = "rules", required = true)
+        @JsonProperty(value = Constants.KEY_RULES, required = true)
         private List<OperationItem> rules;
 
         public List<OperationItem> getRules() {
@@ -118,10 +119,10 @@ public class SpaceDiff {
     }
 
     public static class OperationItem {
-        @JsonProperty("operation")
+        @JsonProperty(Constants.KEY_OPERATION)
         private Operation operation;
 
-        @JsonProperty("id")
+        @JsonProperty(Constants.KEY_ID)
         private String id;
 
         public Operation getOperation() {

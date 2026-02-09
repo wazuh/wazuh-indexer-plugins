@@ -79,6 +79,7 @@ public class Constants {
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_TITLE = "title";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -87,6 +88,11 @@ public class Constants {
     public static final String KEY_KVDB = "kvdb";
     public static final String KEY_DECODER = "decoder";
     public static final String KEY_RULE = "rule";
+
+    // Engine promotion payload keys
+    public static final String KEY_RESOURCES = "resources";
+    public static final String KEY_FULL_POLICY = "full_policy";
+    public static final String KEY_PROMOTE = "load_in_tester";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
@@ -100,6 +106,8 @@ public class Constants {
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
+    public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
 
     // Operations

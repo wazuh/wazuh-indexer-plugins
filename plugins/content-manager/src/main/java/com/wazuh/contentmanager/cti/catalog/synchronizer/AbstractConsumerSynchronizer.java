@@ -63,12 +63,6 @@ public abstract class AbstractConsumerSynchronizer {
     /** The OpenSearch environment configuration. */
     protected final Environment environment;
 
-    public static final String POLICY = "policy";
-    public static final String RULE = "rule";
-    public static final String DECODER = "decoder";
-    public static final String KVDB = "kvdb";
-    public static final String INTEGRATION = "integration";
-
     /**
      * Constructs a new AbstractConsumerSynchronizer.
      *
@@ -93,7 +87,7 @@ public abstract class AbstractConsumerSynchronizer {
 
     /**
      * Returns the consumer name for this synchronizer. The consumer identifies the type of content
-     * being synchronized (e.g., "rules", "decoders").
+     * being synchronized (e.g., "Constants.KEY_RULEs", "Constants.KEY_DECODERs").
      *
      * @return The consumer name.
      */
@@ -137,15 +131,15 @@ public abstract class AbstractConsumerSynchronizer {
      * Overrides index naming to utilize the alias name convention directly.
      *
      * @param type The type identifier for the index.
-     * @return The unified index name.
+     * @return The unified index name. TODO remove in favor of Constants.RESOURCE_INDICES
      */
     public String getIndexName(String type) {
         return switch (type) {
-            case RULE -> Constants.INDEX_RULES;
-            case DECODER -> Constants.INDEX_DECODERS;
-            case KVDB -> Constants.INDEX_KVDBS;
-            case INTEGRATION -> Constants.INDEX_INTEGRATIONS;
-            case POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_RULE -> Constants.INDEX_RULES;
+            case Constants.KEY_DECODER -> Constants.INDEX_DECODERS;
+            case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
+            case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
+            case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
     }
