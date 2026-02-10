@@ -34,9 +34,6 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.IocSnapshotServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotService;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -50,7 +47,7 @@ import com.wazuh.contentmanager.utils.Constants;
  * mappings, aliases, and post-synchronization behavior.
  *
  * @see ConsumerService
- * @see SnapshotServiceImpl
+ * @see com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl
  * @see UpdateServiceImpl
  */
 public abstract class AbstractConsumerSynchronizer {
@@ -234,25 +231,20 @@ public abstract class AbstractConsumerSynchronizer {
         return updated;
     }
 
-    private long triggerSnapshotInit(
+    /**
+     * Triggers the snapshot initialization for this consumer. Subclasses must implement this to
+     * instantiate the appropriate {@link
+     * com.wazuh.contentmanager.cti.catalog.service.SnapshotService} for their content type.
+     *
+     * @param context The context name.
+     * @param consumer The consumer name.
+     * @param indicesMap The map of content indices.
+     * @param remoteConsumer The remote consumer state.
+     * @return The current offset after snapshot initialization.
+     */
+    protected abstract long triggerSnapshotInit(
             String context,
             String consumer,
             Map<String, ContentIndex> indicesMap,
-            RemoteConsumer remoteConsumer) {
-        long currentOffset;
-        SnapshotService snapshotService;
-        // Instantiate the correct snapshot service depending on the type of resource (Ioc or general)
-        if (indicesMap.containsKey(Constants.KEY_IOCS)) {
-            snapshotService =
-                    new IocSnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
-        } else {
-            snapshotService =
-                    new SnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
-        }
-        snapshotService.initialize(remoteConsumer);
-        currentOffset = remoteConsumer.getSnapshotOffset();
-        return currentOffset;
-    }
+            RemoteConsumer remoteConsumer);
 }

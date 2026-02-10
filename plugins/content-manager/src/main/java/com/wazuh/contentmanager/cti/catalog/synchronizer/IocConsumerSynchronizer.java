@@ -24,7 +24,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.processor.IocProcessor;
+import com.wazuh.contentmanager.cti.catalog.service.IocSnapshotServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -90,6 +93,19 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
             return Constants.INDEX_IOCS;
         }
         return super.getIndexName(type);
+    }
+
+    @Override
+    protected long triggerSnapshotInit(
+            String context,
+            String consumer,
+            Map<String, ContentIndex> indicesMap,
+            RemoteConsumer remoteConsumer) {
+        IocSnapshotServiceImpl snapshotService =
+                new IocSnapshotServiceImpl(
+                        context, consumer, indicesMap, this.consumersIndex, this.environment);
+        snapshotService.initialize(remoteConsumer);
+        return remoteConsumer.getSnapshotOffset();
     }
 
     @Override
