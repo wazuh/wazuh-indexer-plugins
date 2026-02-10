@@ -91,7 +91,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         mockSpace.put("name", Space.DRAFT.toString());
         mockDocument.put(Constants.KEY_SPACE, mockSpace);
         mockDocument.put(Constants.KEY_DOCUMENT, new HashMap<>());
-        when(this.spaceService.getDocument(anyString(), anyString())).thenReturn(mockDocument);
+        when(this.spaceService.getDocument(anyString(), anyString(), anyString()))
+                .thenReturn(mockDocument);
 
         // Mock getResourcesBySpace to return empty maps (target space is empty)
         when(this.spaceService.getResourcesBySpace(anyString(), anyString()))
@@ -154,7 +155,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestRequest request = this.mockValidRequest();
 
         // Override the default mock to throw an exception simulating index not found
-        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), anyString()))
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), anyString(), anyString()))
                 .thenThrow(
                         new org.opensearch.index.IndexNotFoundException("Index [.cti-decoders] not found."));
 
@@ -453,7 +454,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, Object> mockPolicyDoc = new HashMap<>();
         mockPolicyDoc.put("id", "policy");
         mockPolicy.put(Constants.KEY_DOCUMENT, mockPolicyDoc);
-        when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), eq("policy")))
+        when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), eq("draft"), eq("policy")))
                 .thenReturn(mockPolicy);
         when(this.spaceService.getPolicy(eq("draft"))).thenReturn(mockPolicy);
 
@@ -463,7 +464,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, Object> mockIntegrationDoc = new HashMap<>();
         mockIntegrationDoc.put("id", "integration");
         mockIntegration.put(Constants.KEY_DOCUMENT, mockIntegrationDoc);
-        when(this.spaceService.getDocument(eq(Constants.INDEX_INTEGRATIONS), eq("integration")))
+        when(this.spaceService.getDocument(
+                        eq(Constants.INDEX_INTEGRATIONS), eq("test"), eq("integration")))
                 .thenReturn(mockIntegration);
 
         // Mock decoder-1 for ADD operation (decoder-1 exists in draft space, not in test)
@@ -472,8 +474,11 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, Object> mockDecoder1Doc = new HashMap<>();
         mockDecoder1Doc.put("id", "decoder-1");
         mockDecoder1.put(Constants.KEY_DOCUMENT, mockDecoder1Doc);
-        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("decoder-1")))
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("draft"), eq("decoder-1")))
                 .thenReturn(mockDecoder1);
+        // decoder-1 does NOT exist in test space (for ADD operation validation)
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("test"), eq("decoder-1")))
+                .thenReturn(null);
 
         // Mock decoder-2 for DELETE operation (decoder-2 exists in test space - target)
         Map<String, Object> mockDecoder2 = new HashMap<>();
@@ -481,7 +486,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, Object> mockDecoder2Doc = new HashMap<>();
         mockDecoder2Doc.put("id", "decoder-2");
         mockDecoder2.put(Constants.KEY_DOCUMENT, mockDecoder2Doc);
-        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("decoder-2")))
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("test"), eq("decoder-2")))
                 .thenReturn(mockDecoder2);
 
         // spotless:off

@@ -196,8 +196,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_RESOURCE_ID_MUST_NOT_BE_PROVIDED, Constants.KEY_ID),
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
         assertEquals(expectedResponse, actualResponse);
         verify(this.service, never()).validate(any(JsonNode.class));
@@ -217,8 +216,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_INTEGRATION),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
                         RestStatus.BAD_REQUEST.getStatus());
         assertEquals(expectedResponse, actualResponse);
         verify(this.service, never()).validate(any(JsonNode.class));

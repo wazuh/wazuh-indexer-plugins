@@ -35,6 +35,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -50,6 +51,8 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -184,7 +187,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         if (id == null || id.isEmpty()) {
             this.log.warn("Request rejected: integration ID is required");
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -204,11 +207,10 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
-        // Check request's payload exists
-        if (!request.hasContent()) {
-            this.log.warn("Request rejected: JSON request body missing");
-            return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        // Validate prerequisites
+        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
+        if (validationError != null) {
+            return validationError;
         }
 
         // Check request's payload is valid JSON
@@ -282,8 +284,29 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.log.warn(
                     "Request rejected: /resource is not an object (nodeType={})", resource.getNodeType());
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
+        if (existingSource.containsKey(Constants.KEY_DOCUMENT)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> existingDocument =
+                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
+
+            try {
+                if (validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_RULES);
+                }
+                if (validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_DECODERS);
+                }
+                if (validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
+                    return validateList(existingDocument, resource, Constants.KEY_KVDBS);
+                }
+            } catch (IllegalArgumentException e) {
+                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            }
         }
 
         // Insert ID from URL
@@ -372,13 +395,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             this.log.debug(
                     "Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
-            ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload
-                    .putObject(Constants.KEY_SPACE)
-                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
-            IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(id, integrationsIndexPayload);
+
+            JsonNode ctiWrapper =
+                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
+
+            IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 
             // Check indexing response. We are expecting for a 200 OK status for update.
             if (integrationIndexResponse == null
@@ -409,5 +430,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
     private JsonObject toJsonObject(JsonNode jsonNode) {
         return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
+    }
+
+    private RestResponse validateList(
+            Map<String, Object> existingDoc, JsonNode resourceNode, String key) {
+        @SuppressWarnings("unchecked")
+        List<String> existingList =
+                (List<String>) existingDoc.getOrDefault(key, Collections.emptyList());
+        List<String> incomingList = ContentUtils.extractStringList(resourceNode, key);
+        return ContentUtils.validateListEquality(existingList, incomingList, key);
     }
 }

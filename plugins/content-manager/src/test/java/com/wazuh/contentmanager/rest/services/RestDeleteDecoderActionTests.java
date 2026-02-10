@@ -126,7 +126,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);

@@ -28,6 +28,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -145,16 +146,17 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             String decoderId = request.param(Constants.KEY_ID);
 
             // Validate ID is present
-            RestResponse validationError =
-                    DocumentValidations.validateRequiredParam(decoderId, Constants.KEY_ID);
-            if (validationError != null) {
-                return validationError.toBytesRestResponse();
+            if (decoderId == null || decoderId.isBlank()) {
+                return new RestResponse(
+                                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
+                                RestStatus.BAD_REQUEST.getStatus())
+                        .toBytesRestResponse();
             }
 
             // Validate UUID format
-            validationError = DocumentValidations.validateUUID(decoderId);
-            if (validationError != null) {
-                return validationError.toBytesRestResponse();
+            RestResponse uuidValidation = DocumentValidations.validateUUID(decoderId);
+            if (uuidValidation != null) {
+                return uuidValidation.toBytesRestResponse();
             }
 
             // Ensure Index Exists

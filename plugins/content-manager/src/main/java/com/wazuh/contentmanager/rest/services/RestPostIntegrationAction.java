@@ -51,6 +51,8 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -209,9 +211,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-        if (!request.hasContent()) {
-            return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+
+        // Validate prerequisites
+        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
+        if (validationError != null) {
+            return validationError;
         }
 
         // Check request's payload is valid JSON
@@ -242,7 +246,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -312,14 +316,10 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {
-            ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload
-                    .putObject(Constants.KEY_SPACE)
-                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
+            JsonNode ctiWrapper =
+                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
 
-            IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(id, integrationsIndexPayload);
+            IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 
             if (integrationIndexResponse == null
                     || integrationIndexResponse.status() != RestStatus.CREATED) {

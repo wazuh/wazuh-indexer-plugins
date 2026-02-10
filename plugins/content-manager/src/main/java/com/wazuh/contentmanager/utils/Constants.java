@@ -39,20 +39,12 @@ public class Constants {
     // success.
     public static final String E_500_UNEXPECTED_INDEX_STATE =
             "Missing [%s] field for document [%s] in [%s] index.";
-    public static final String E_500_POLICIES_ARE_NULL = "Source or target policies are null.";
-    public static final String E_500_POLICY_ID_IS_NULL_OR_BLANK = "Policy ID is null or blank.";
-    public static final String E_500_POLICY_UPDATE_FAILED = "Failed to update policy.";
     public static final String E_500_ENGINE_INSTANCE_IS_NULL = "Engine instance is null.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
-    public static final String E_400_FIELD_IS_REQUIRED = "'%s' is required";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format";
     public static final String E_400_RESOURCE_NOT_FOUND = "%s with ID '%s' not found";
     public static final String E_400_RESOURCE_NOT_IN_DRAFT = "%s with ID '%s' is not in draft space";
-    public static final String E_400_RESOURCE_ID_MUST_NOT_BE_PROVIDED =
-            "'%s' must not be provided on create";
-    public static final String E_400_RESOURCE_ID_MISMATCH =
-            "'%s' in payload does not match path parameter";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error";
     public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found";
@@ -91,6 +83,8 @@ public class Constants {
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_DESCRIPTION = "description";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -99,6 +93,14 @@ public class Constants {
     public static final String KEY_KVDB = "kvdb";
     public static final String KEY_DECODER = "decoder";
     public static final String KEY_RULE = "rule";
+    public static final String KEY_LOGSOURCE = "logsource";
+    public static final String KEY_PRODUCT = "product";
+    public static final String KEY_CATEGORY = "category";
+
+    // Engine promotion payload keys
+    public static final String KEY_RESOURCES = "resources";
+    public static final String KEY_FULL_POLICY = "full_policy";
+    public static final String KEY_PROMOTE = "load_in_tester";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
@@ -112,6 +114,8 @@ public class Constants {
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
+    public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
 
     // Operations

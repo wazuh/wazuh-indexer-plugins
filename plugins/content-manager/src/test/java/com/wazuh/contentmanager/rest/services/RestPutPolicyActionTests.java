@@ -36,7 +36,10 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -379,7 +382,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("is required"));
+        assertTrue(response.getMessage().contains("Missing"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -412,7 +415,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("is required"));
+        assertTrue(response.getMessage().contains("Missing"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 

@@ -61,7 +61,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_rule_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
-    private static final String INTEGRATION_ID_FIELD = "integration_id";
 
     private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
     private PolicyHashService policyHashService;
@@ -122,7 +121,7 @@ public class RestPostRuleAction extends BaseRestHandler {
      *
      * <ol>
      *   <li>Validates the request body structure (type: "rule", resource: {...}).
-     *   <li>Validates the resource fields (e.g., {@code integration_id}).
+     *   <li>Validates the resource fields (e.g., {@code integration}).
      *   <li>Ensures the payload does not contain an {@code id} field.
      *   <li>Calls the Security Analytics Plugin (SAP) to create the rule in the engine.
      *   <li>Calculates the SHA-256 hash of the rule document.
@@ -160,7 +159,7 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -171,13 +170,13 @@ public class RestPostRuleAction extends BaseRestHandler {
                 return new RestResponse(
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
-            if (!rootNode.has(INTEGRATION_ID_FIELD)) {
+            if (!rootNode.has(Constants.KEY_INTEGRATION)) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, INTEGRATION_ID_FIELD),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
-            String integrationId = rootNode.get(INTEGRATION_ID_FIELD).asText();
+            String integrationId = rootNode.get(Constants.KEY_INTEGRATION).asText();
 
             // Validate that the Integration exists and is in draft space
             String spaceValidationError =

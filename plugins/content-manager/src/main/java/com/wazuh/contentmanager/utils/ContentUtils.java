@@ -27,6 +27,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
@@ -34,11 +35,15 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 
 /** Common utility methods for Content Manager REST actions. */
 public class ContentUtils {
@@ -82,6 +87,26 @@ public class ContentUtils {
             authorNode.put(Constants.KEY_DATE, currentTimestamp);
         }
         authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+    }
+
+    /**
+     * Validates that the metadata.author structure does not contain date or modified fields.
+     *
+     * @param resourceNode The resource JSON node.
+     * @return RestResponse if validation fails, null otherwise.
+     */
+    public static RestResponse validateMetadataFields(JsonNode resourceNode) {
+        if (resourceNode.has(Constants.KEY_METADATA)) {
+            JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
+            if (metadata.has(Constants.KEY_AUTHOR)) {
+                JsonNode author = metadata.get(Constants.KEY_AUTHOR);
+                if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
+                    return new RestResponse(
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -210,5 +235,54 @@ public class ContentUtils {
                                 .source(source)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
                 .actionGet();
+    }
+
+    /**
+     * Extracts a list of strings from a JSON node.
+     *
+     * @param parentNode The parent JSON node containing the list.
+     * @param key The key of the list field.
+     * @return A List of strings extracted from the JSON array.
+     * @throws IllegalArgumentException If the field exists but is not an array.
+     */
+    public static List<String> extractStringList(JsonNode parentNode, String key) {
+        List<String> list = new ArrayList<>();
+        if (parentNode.has(key)) {
+            JsonNode node = parentNode.get(key);
+            if (node.isArray()) {
+                for (JsonNode item : node) {
+                    list.add(item.asText());
+                }
+            } else {
+                throw new IllegalArgumentException("Field '" + key + "' must be an array.");
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Validates that two lists contain the same set of elements, ignoring order. Used to ensure that
+     * referenced resources (like rules or decoders) are not added or removed during specific updates.
+     *
+     * @param existingList The original list of strings.
+     * @param incomingList The new list of strings.
+     * @param fieldName The name of the field for error reporting.
+     * @return A RestResponse error if the sets differ, or null if they are equal.
+     */
+    public static RestResponse validateListEquality(
+            List<String> existingList, List<String> incomingList, String fieldName) {
+        Set<String> existingSet =
+                new HashSet<>(existingList != null ? existingList : Collections.emptyList());
+        Set<String> incomingSet =
+                new HashSet<>(incomingList != null ? incomingList : Collections.emptyList());
+
+        if (!existingSet.equals(incomingSet)) {
+            return new RestResponse(
+                    "Content of '"
+                            + fieldName
+                            + "' cannot be added or removed via update. Please use the specific resource endpoints.",
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
     }
 }

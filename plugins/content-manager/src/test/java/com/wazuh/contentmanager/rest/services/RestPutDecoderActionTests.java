@@ -47,8 +47,15 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
@@ -165,7 +172,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
@@ -212,7 +219,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                         RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
@@ -233,7 +240,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
         assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_RESOURCE_ID_MISMATCH, Constants.KEY_ID),
+                String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
                 this.parseResponse(bytesRestResponse).getMessage());
         verify(this.service, never()).validateResource(anyString(), any(JsonNode.class));
     }
@@ -317,6 +324,11 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
+        // Mock getSourceAsString for ContentIndex.getDocument()
+        when(spaceResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
+
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
         return client;

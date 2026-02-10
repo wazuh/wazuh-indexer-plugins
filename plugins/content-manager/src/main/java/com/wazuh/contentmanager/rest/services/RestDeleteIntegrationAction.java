@@ -334,7 +334,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             String draftPolicyHash = HashCalculator.sha256(draftPolicyDocument.asText());
 
             // Put policyHash inside hash.sha256 key
-            ((ObjectNode) draftPolicy.at("/hash")).put("sha256", draftPolicyHash);
+            ((ObjectNode) draftPolicy.at("/hash")).put(Constants.KEY_SHA256, draftPolicyHash);
             this.log.debug(
                     "Updated draft policy hash (policyId={}, hashPrefix={})",
                     draftPolicyId,

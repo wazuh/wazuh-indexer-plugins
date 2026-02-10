@@ -297,7 +297,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID));
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID));
 
         // Create a RestRequest without ID parameter
         RestRequest request = this.buildRequest(null);

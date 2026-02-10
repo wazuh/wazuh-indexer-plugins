@@ -141,7 +141,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             // Validate ID is present
             if (ruleId == null || ruleId.isEmpty()) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -193,7 +193,7 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 

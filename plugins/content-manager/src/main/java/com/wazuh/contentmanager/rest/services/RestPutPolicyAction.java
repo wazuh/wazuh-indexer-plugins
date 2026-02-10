@@ -38,10 +38,6 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -52,6 +48,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -172,7 +169,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             // Validate "type"
             if (!jsonContent.has(Constants.KEY_TYPE)) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_TYPE),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TYPE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             String resourceType = jsonContent.get(Constants.KEY_TYPE).asText();
@@ -185,7 +182,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             // Validate "resource"
             if (!jsonContent.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             JsonNode resource = jsonContent.get(Constants.KEY_RESOURCE);
@@ -204,7 +201,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 missingFields.add(Constants.KEY_AUTHOR);
             }
             if (policy.getDescription() == null || policy.getDescription().isEmpty()) {
-                missingFields.add("description");
+                missingFields.add(Constants.KEY_DESCRIPTION);
             }
             if (policy.getDocumentation() == null) {
                 missingFields.add("documentation");
@@ -216,7 +213,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             if (!missingFields.isEmpty()) {
                 return new RestResponse(
                         String.format(
-                                Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, String.join(", ", missingFields)),
+                                Locale.ROOT, Constants.E_400_MISSING_FIELD, String.join(", ", missingFields)),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -271,13 +268,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList());
         List<String> newIntegrations = policy.getIntegrations();
 
-        Set<String> currentSet = new HashSet<>(currentIntegrations);
-        Set<String> newSet = new HashSet<>(newIntegrations);
-
-        if (!currentSet.equals(newSet)) {
-            throw new IllegalArgumentException(
-                    "Integrations cannot be added or removed via policy update. "
-                            + "Please use the integration endpoints.");
+        // Validation for integrations array: allow reordering but prevent addition/removal
+        RestResponse validationError =
+                ContentUtils.validateListEquality(
+                        currentIntegrations, newIntegrations, Constants.KEY_INTEGRATIONS);
+        if (validationError != null) {
+            throw new IllegalArgumentException(validationError.getMessage());
         }
 
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();

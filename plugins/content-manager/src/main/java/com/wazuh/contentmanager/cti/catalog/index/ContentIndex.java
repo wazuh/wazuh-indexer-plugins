@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonArray;
@@ -60,7 +59,6 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -73,6 +71,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Manages the index for CTI content, providing methods for index creation, document indexing,
@@ -89,14 +88,6 @@ public class ContentIndex {
     private final String alias;
 
     private final ObjectMapper mapper;
-
-    private static final String JSON_TYPE_KEY = "type";
-    private static final String JSON_DECODER_KEY = "decoder";
-    private static final String JSON_DOCUMENT_KEY = "document";
-    private static final String JSON_HASH_KEY = "hash";
-    private static final String JSON_SHA256_KEY = "sha256";
-    private static final String JSON_SPACE_KEY = "space";
-    private static final String JSON_NAME_KEY = "name";
 
     /**
      * Constructor for existing indices where mapping path isn't immediately required.
@@ -237,18 +228,18 @@ public class ContentIndex {
         ObjectNode ctiWrapper = this.mapper.createObjectNode();
 
         // 1. Wrap document
-        ctiWrapper.set(JSON_DOCUMENT_KEY, rawContent);
+        ctiWrapper.set(Constants.KEY_DOCUMENT, rawContent);
 
         // 2. Calculate Hash
         String hash = HashCalculator.sha256(rawContent.toString());
         ObjectNode hashNode = this.mapper.createObjectNode();
-        hashNode.put(JSON_SHA256_KEY, hash);
-        ctiWrapper.set(JSON_HASH_KEY, hashNode);
+        hashNode.put(Constants.KEY_SHA256, hash);
+        ctiWrapper.set(Constants.KEY_HASH, hashNode);
 
         // 3. Set Space
         ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(JSON_NAME_KEY, spaceName);
-        ctiWrapper.set(JSON_SPACE_KEY, spaceNode);
+        spaceNode.put(Constants.KEY_NAME, spaceName);
+        ctiWrapper.set(Constants.KEY_SPACE, spaceNode);
 
         // 4. Index
         IndexRequest indexRequest =
@@ -340,115 +331,6 @@ public class ContentIndex {
     }
 
     /**
-     * Appends a value to a list within a specific document field. Used for linking rules to
-     * integrations.
-     *
-     * @param docId The ID of the document to update.
-     * @param listField The path to the list field (e.g. "document.rules").
-     * @param valueToAdd The string value to add to the list.
-     */
-    public void updateDocumentAppendToList(String docId, String listField, String valueToAdd) {
-        try {
-            JsonNode doc = this.getDocument(docId);
-            if (doc != null && doc.has(JSON_DOCUMENT_KEY)) {
-                JsonNode innerDoc = doc.get(JSON_DOCUMENT_KEY);
-                String fieldName = listField.contains(".") ? listField.split("\\.")[1] : listField;
-
-                if (innerDoc instanceof ObjectNode objectNode) {
-                    ArrayNode list;
-                    if (objectNode.has(fieldName) && objectNode.get(fieldName).isArray()) {
-                        list = (ArrayNode) objectNode.get(fieldName);
-                    } else {
-                        list = objectNode.putArray(fieldName);
-                    }
-
-                    // Avoid duplicates
-                    boolean exists = false;
-                    for (JsonNode node : list) {
-                        if (node.asText().equals(valueToAdd)) {
-                            exists = true;
-                            break;
-                        }
-                    }
-
-                    if (!exists) {
-                        list.add(valueToAdd);
-                        // Re-index
-                        IndexRequest request =
-                                new IndexRequest(this.indexName)
-                                        .id(docId)
-                                        .source(doc.toString(), XContentType.JSON)
-                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                        this.client.index(request).actionGet();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error(
-                    "Failed to append [{}] to field [{}] in document [{}]: {}",
-                    valueToAdd,
-                    listField,
-                    docId,
-                    e.getMessage());
-        }
-    }
-
-    /**
-     * Removes a value from a list field in all documents matching the query. Used for unlinking rules
-     * from integrations.
-     *
-     * @param query The query to find documents.
-     * @param listField The path to the list field (e.g. "document.rules").
-     * @param valueToRemove The value to remove.
-     */
-    public void removeFromDocumentListByQuery(
-            QueryBuilder query, String listField, String valueToRemove) {
-        SearchRequest searchRequest = new SearchRequest(this.indexName);
-        searchRequest.source(new SearchSourceBuilder().query(query));
-
-        try {
-            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-            String fieldName = listField.contains(".") ? listField.split("\\.")[1] : listField;
-
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                JsonNode root = this.mapper.readTree(hit.getSourceAsString());
-                if (root.has(JSON_DOCUMENT_KEY)) {
-                    JsonNode innerDoc = root.get(JSON_DOCUMENT_KEY);
-                    if (innerDoc instanceof ObjectNode objectNode && objectNode.has(fieldName)) {
-                        ArrayNode list = (ArrayNode) objectNode.get(fieldName);
-
-                        // Remove element
-                        Iterator<JsonNode> it = list.elements();
-                        boolean changed = false;
-                        while (it.hasNext()) {
-                            if (it.next().asText().equals(valueToRemove)) {
-                                it.remove();
-                                changed = true;
-                            }
-                        }
-
-                        if (changed) {
-                            IndexRequest request =
-                                    new IndexRequest(this.indexName)
-                                            .id(hit.getId())
-                                            .source(root.toString(), XContentType.JSON)
-                                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                            this.client.index(request).actionGet();
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error(
-                    "Failed to remove value [{}] from list [{}] in index [{}]: {}",
-                    valueToRemove,
-                    listField,
-                    this.indexName,
-                    e.getMessage());
-        }
-    }
-
-    /**
      * Asynchronously deletes a document from the index.
      *
      * @param id The ID of the document to delete.
@@ -474,18 +356,40 @@ public class ContentIndex {
      * Determines the product from the document (logsource.product or logsource.category). Defaults to
      * "linux".
      *
-     * @param ruleNode The rule JSON node.
+     * @param ruleNode The rule Jackson JsonNode.
      * @return The determined product string.
      */
     public static String extractProduct(JsonNode ruleNode) {
         // TODO: Move this method to a dedicated CTI Resource logic class.
         String product = "linux";
-        if (ruleNode.has("logsource")) {
-            JsonNode logsource = ruleNode.get("logsource");
-            if (logsource.has("product")) {
-                product = logsource.get("product").asText();
-            } else if (logsource.has("category")) {
-                product = logsource.get("category").asText();
+        if (ruleNode.has(Constants.KEY_LOGSOURCE)) {
+            JsonNode logsource = ruleNode.get(Constants.KEY_LOGSOURCE);
+            if (logsource.has(Constants.KEY_PRODUCT)) {
+                product = logsource.get(Constants.KEY_PRODUCT).asText();
+            } else if (logsource.has(Constants.KEY_CATEGORY)) {
+                product = logsource.get(Constants.KEY_CATEGORY).asText();
+            }
+        }
+        return product;
+    }
+
+    /**
+     * Determines the product from the document (logsource.product or logsource.category). Defaults to
+     * "linux".
+     *
+     * @param ruleNode The rule Gson JsonObject.
+     * @return The determined product string.
+     */
+    // TODO: Study if it can be used JsonNode or JsonObject in all the files so we can avoid having
+    // this two methods
+    public static String extractProduct(JsonObject ruleNode) {
+        String product = "linux";
+        if (ruleNode.has(Constants.KEY_LOGSOURCE)) {
+            JsonObject logsource = ruleNode.getAsJsonObject(Constants.KEY_LOGSOURCE);
+            if (logsource.has(Constants.KEY_PRODUCT)) {
+                product = logsource.get(Constants.KEY_PRODUCT).getAsString();
+            } else if (logsource.has(Constants.KEY_CATEGORY)) {
+                product = logsource.get(Constants.KEY_CATEGORY).getAsString();
             }
         }
         return product;
@@ -522,11 +426,11 @@ public class ContentIndex {
             JsonArray hitsArray = new JsonArray();
             for (SearchHit hit : searchResponse.getHits().getHits()) {
                 JsonObject hitObject = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-                hitObject.addProperty("id", hit.getId());
+                hitObject.addProperty(Constants.KEY_ID, hit.getId());
                 hitsArray.add(hitObject);
             }
             JsonObject result = new JsonObject();
-            result.add("hits", hitsArray);
+            result.add(Constants.Q_HITS, hitsArray);
             result.addProperty("total", searchResponse.getHits().getTotalHits().value());
             return result;
         } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
@@ -601,12 +505,13 @@ public class ContentIndex {
     public JsonObject processPayload(JsonObject payload) {
         try {
             // Preserve the type field before processing
-            String type = payload.has(JSON_TYPE_KEY) ? payload.get(JSON_TYPE_KEY).getAsString() : null;
+            String type =
+                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).getAsString() : null;
 
             Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
             resource =
-                    (JSON_DECODER_KEY.equalsIgnoreCase(type))
+                    (Constants.KEY_DECODER.equalsIgnoreCase(type))
                             ? Decoder.fromPayload(payload)
                             : Resource.fromPayload(payload);
 
@@ -616,7 +521,7 @@ public class ContentIndex {
 
             // 3. Re-add the type field to the result
             if (type != null) {
-                result.addProperty(JSON_TYPE_KEY, type);
+                result.addProperty(Constants.KEY_TYPE, type);
             }
 
             return result;

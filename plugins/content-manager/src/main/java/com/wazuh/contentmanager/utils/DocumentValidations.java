@@ -167,7 +167,7 @@ public class DocumentValidations {
     public static RestResponse validateRequiredParam(String value, String paramName) {
         if (value == null || value.isBlank()) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, paramName),
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, paramName),
                     RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
@@ -205,8 +205,7 @@ public class DocumentValidations {
             if (!payload.has(Constants.KEY_INTEGRATION)
                     || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
                 return new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_INTEGRATION),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         }
@@ -214,7 +213,7 @@ public class DocumentValidations {
         // Validation for Resource object presence
         if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -226,17 +225,14 @@ public class DocumentValidations {
                 String payloadId = resourceNode.get(Constants.KEY_ID).asText();
                 if (!payloadId.equals(expectedId)) {
                     return new RestResponse(
-                            String.format(Locale.ROOT, Constants.E_400_RESOURCE_ID_MISMATCH, Constants.KEY_ID),
-                            RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                 }
             }
         } else {
             // For creates: Resource ID should typically not be provided by user
             if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
                 return new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_RESOURCE_ID_MUST_NOT_BE_PROVIDED, Constants.KEY_ID),
-                        RestStatus.BAD_REQUEST.getStatus());
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
         }
         return null;

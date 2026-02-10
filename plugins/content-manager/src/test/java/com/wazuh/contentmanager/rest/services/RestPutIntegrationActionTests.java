@@ -32,6 +32,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -96,6 +97,10 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
             Map<String, Object> documentMap = new HashMap<>();
             documentMap.put("id", RestPutIntegrationActionTests.INTEGRATION_ID);
             documentMap.put("enabled", true);
+            documentMap.put("decoders", List.of("1cb80fdb-7209-4b96-8bd1-ec15864d0f35"));
+            documentMap.put("rules", List.of());
+            documentMap.put("kvdbs", List.of());
+
             sourceMap.put("document", documentMap);
             when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
         }
@@ -591,7 +596,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID));
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID));
 
         // spotless:off
         String payload =

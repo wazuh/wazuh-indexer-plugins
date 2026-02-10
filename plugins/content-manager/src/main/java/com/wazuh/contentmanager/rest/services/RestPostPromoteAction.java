@@ -365,7 +365,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
             switch (operation) {
                 case ADD -> {
                     // ADD: Resource exists in source space but NOT in target space
-                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> sourceDoc =
+                            this.spaceService.getDocument(indexName, sourceSpace, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -392,8 +393,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     }
 
                     // Verify it does NOT exist in target space
-                    // We check all docs with same ID regardless of space
-                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> targetDoc =
+                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
@@ -420,7 +421,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         sourceDoc = this.spaceService.getPolicy(sourceSpace);
                     } else {
                         // UPDATE: Resource exists in BOTH source and target spaces
-                        sourceDoc = this.spaceService.getDocument(indexName, resourceId);
+                        sourceDoc = this.spaceService.getDocument(indexName, sourceSpace, resourceId);
                     }
                     if (sourceDoc == null) {
                         throw new IOException(
@@ -454,7 +455,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 case REMOVE -> {
                     // REMOVE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
-                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, resourceId);
+                    Map<String, Object> targetDoc =
+                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =

@@ -87,7 +87,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
             String spaceParam = request.param(Constants.KEY_SPACE);
             if (spaceParam == null || spaceParam.isBlank()) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_SPACE),
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             Space sourceSpace = Space.fromValue(spaceParam);
@@ -202,7 +202,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
         Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get(Constants.KEY_DOCUMENT);
 
         if (sourceId == null || sourceId.isBlank()) {
-            throw new IllegalStateException(Constants.E_500_POLICY_ID_IS_NULL_OR_BLANK);
+            throw new IllegalStateException(Constants.E_500_INTERNAL_SERVER_ERROR);
         }
 
         // Compare content ignoring ID
@@ -224,7 +224,8 @@ public class RestGetPromoteAction extends BaseRestHandler {
     private boolean isPolicyDifferent(Map<String, Object> sourceDoc, Map<String, Object> targetDoc)
             throws IllegalStateException {
         if (sourceDoc == null || targetDoc == null) {
-            throw new IllegalStateException(Constants.E_500_POLICIES_ARE_NULL);
+            // TODO: LOG
+            throw new IllegalStateException(Constants.E_500_INTERNAL_SERVER_ERROR);
         }
 
         // Create shallow copies to remove ID without affecting original maps

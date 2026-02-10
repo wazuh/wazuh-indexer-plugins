@@ -121,6 +121,12 @@ public class RestPostDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
 
+            // Validate forbidden metadata fields
+            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            if (validationError != null) {
+                return validationError;
+            }
+
             // Validate integration is in draft space
             String spaceValidationError =
                     DocumentValidations.validateDocumentInSpace(

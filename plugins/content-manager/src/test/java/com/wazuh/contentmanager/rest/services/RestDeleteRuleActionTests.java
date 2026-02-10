@@ -138,7 +138,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
                 response.getMessage());
     }
 
