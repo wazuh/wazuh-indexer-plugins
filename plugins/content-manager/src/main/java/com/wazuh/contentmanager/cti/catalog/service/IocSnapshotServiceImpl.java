@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.env.Environment;
 
 import java.util.Map;
@@ -52,5 +53,13 @@ public class IocSnapshotServiceImpl extends SnapshotServiceImpl {
     @Override
     protected ContentIndex resolveIndex(JsonObject payload) {
         return this.indicesMap.get(Constants.KEY_IOCS);
+    }
+
+    @Override
+    protected void setIndexRequestId(JsonObject processedPayload, IndexRequest indexRequest) {
+        if (processedPayload.has(Constants.KEY_ID)) {
+            String id = processedPayload.get(Constants.KEY_ID).getAsString();
+            indexRequest.id(id);
+        }
     }
 }

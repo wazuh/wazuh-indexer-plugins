@@ -235,12 +235,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
                     // Determine ID
-                    if (processedPayload.has(Constants.KEY_DOCUMENT)) {
-                        JsonObject innerDocument = processedPayload.getAsJsonObject(Constants.KEY_DOCUMENT);
-                        if (innerDocument.has(Constants.KEY_ID)) {
-                            indexRequest.id(innerDocument.get(Constants.KEY_ID).getAsString());
-                        }
-                    }
+                    setIndexRequestId(processedPayload, indexRequest);
 
                     bulkRequest.add(indexRequest);
                     docCount++;
@@ -264,6 +259,15 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         } catch (IOException e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
+        }
+    }
+
+    protected void setIndexRequestId(JsonObject processedPayload, IndexRequest indexRequest) {
+        if (processedPayload.has(Constants.KEY_DOCUMENT)) {
+            JsonObject innerDocument = processedPayload.getAsJsonObject(Constants.KEY_DOCUMENT);
+            if (innerDocument.has(Constants.KEY_ID)) {
+                indexRequest.id(innerDocument.get(Constants.KEY_ID).getAsString());
+            }
         }
     }
 
