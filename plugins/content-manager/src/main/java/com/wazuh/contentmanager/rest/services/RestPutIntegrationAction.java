@@ -270,16 +270,17 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Missing required field: category.", RestStatus.BAD_REQUEST.getStatus());
         }
-
-        // Optional fields
-        if (!resource.has(Constants.KEY_DESCRIPTION)) {
-            ((ObjectNode) resource).put(Constants.KEY_DESCRIPTION, "");
-        }
         if (!resource.has("documentation")) {
-            ((ObjectNode) resource).put("documentation", "");
+            return new RestResponse(
+                    "Missing required field: documentation.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_DESCRIPTION)) {
+            return new RestResponse(
+                    "Missing required field: description.", RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has("references")) {
-            ((ObjectNode) resource).set("references", MAPPER.createArrayNode());
+            return new RestResponse(
+                    "Missing required field: references.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate mandatory list fields
