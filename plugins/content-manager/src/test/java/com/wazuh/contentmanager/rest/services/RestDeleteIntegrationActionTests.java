@@ -33,6 +33,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -262,7 +263,10 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
                 String.format(
-                        Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, INTEGRATION_ID));
+                        Locale.ROOT,
+                        Constants.E_400_RESOURCE_NOT_IN_DRAFT,
+                        Constants.KEY_INTEGRATION,
+                        INTEGRATION_ID));
 
         // Create a RestRequest with ID parameter
         RestRequest request = this.buildRequest(INTEGRATION_ID);
@@ -292,7 +296,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     public void testDeleteIntegration400_missingIdInPath() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage(String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID));
+        expectedResponse.setMessage(
+                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID));
 
         // Create a RestRequest without ID parameter
         RestRequest request = this.buildRequest(null);
@@ -682,7 +687,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS));
+                String.format(
+                        Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS));
 
         RestRequest request = this.buildRequest(INTEGRATION_ID);
 
@@ -718,7 +724,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES));
+                String.format(Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES));
 
         RestRequest request = this.buildRequest(INTEGRATION_ID);
 
@@ -754,7 +760,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS));
+                String.format(Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS));
 
         RestRequest request = this.buildRequest(INTEGRATION_ID);
 

@@ -33,6 +33,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -140,7 +141,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             // Validate ID is present
             if (ruleId == null || ruleId.isEmpty()) {
                 return new RestResponse(
-                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -149,7 +150,7 @@ public class RestPutRuleAction extends BaseRestHandler {
                 java.util.UUID.fromString(ruleId);
             } catch (IllegalArgumentException e) {
                 return new RestResponse(
-                        String.format(Constants.E_400_INVALID_UUID, ruleId),
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, ruleId),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -186,13 +187,13 @@ public class RestPutRuleAction extends BaseRestHandler {
             if (!rootNode.has(Constants.KEY_TYPE)
                     || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
                 return new RestResponse(
-                        String.format(Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
-                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 

@@ -34,11 +34,13 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
@@ -202,7 +204,9 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Integration ID is required"));
+        assertEquals(
+                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, "integration_id"),
+                response.getMessage());
     }
 
     /**
@@ -237,7 +241,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request, this.client);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("ID must not be provided during creation"));
+        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
     }
 
     /**

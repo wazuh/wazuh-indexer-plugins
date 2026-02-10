@@ -184,10 +184,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(
-                response
-                        .getMessage()
-                        .contains("Integrations cannot be added or removed via policy update."));
+        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
     }
 
     /**
@@ -239,6 +236,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -248,7 +246,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("policy"));
+        assertEquals("test-policy-id", response.getMessage());
         verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 
@@ -331,7 +329,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("JSON request body is required"));
+        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -381,7 +379,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Missing ["));
+        assertTrue(response.getMessage().contains("is required"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -414,7 +412,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Missing ["));
+        assertTrue(response.getMessage().contains("is required"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -470,6 +468,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Failed to update policy"));
+        assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
     }
 }

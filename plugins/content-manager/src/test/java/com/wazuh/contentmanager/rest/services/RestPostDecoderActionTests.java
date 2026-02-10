@@ -37,6 +37,7 @@ import org.junit.BeforeClass;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +45,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -164,10 +166,11 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Act
         RestResponse actualResponse = this.action.handleRequest(request, client);
 
-        // Assert
+        // Assert - per spec, success returns 201 with just the ID
         assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-
-        assertTrue(actualResponse.getMessage().startsWith("Decoder created successfully with ID:"));
+        // Message should be the generated ID (UUID format)
+        assertNotNull(actualResponse.getMessage());
+        assertFalse(actualResponse.getMessage().isEmpty());
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validateResource(anyString(), payloadCaptor.capture());
@@ -193,7 +196,9 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+                        String.format(
+                                Locale.ROOT, Constants.E_400_RESOURCE_ID_MUST_NOT_BE_PROVIDED, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
         assertEquals(expectedResponse, actualResponse);
         verify(this.service, never()).validate(any(JsonNode.class));
     }
@@ -211,7 +216,10 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
         RestResponse expectedResponse =
-                new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(
+                                Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_INTEGRATION),
+                        RestStatus.BAD_REQUEST.getStatus());
         assertEquals(expectedResponse, actualResponse);
         verify(this.service, never()).validate(any(JsonNode.class));
     }
@@ -230,7 +238,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         assertEquals(expectedResponse, actualResponse);
     }
 
@@ -246,7 +254,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
         RestResponse expectedResponse =
-                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
 
         assertEquals(expectedResponse, actualResponse);
     }
@@ -269,7 +277,8 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
-        assertTrue(actualResponse.getMessage().contains("integration [integration-1] not found"));
+        assertTrue(
+                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
     }
 
     /**
@@ -290,9 +299,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
         assertTrue(
-                actualResponse
-                        .getMessage()
-                        .contains("integration [integration-1] does not have space information."));
+                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
     }
 
     /**
@@ -313,9 +320,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
         assertTrue(
-                actualResponse
-                        .getMessage()
-                        .contains("integration [integration-1] does not have space information."));
+                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
     }
 
     /**

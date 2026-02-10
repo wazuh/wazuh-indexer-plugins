@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -215,7 +216,9 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
                 response
                         .content()
                         .utf8ToString()
-                        .contains(String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_SPACE)));
+                        .contains(
+                                String.format(
+                                        Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_SPACE)));
     }
 
     /**

@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +47,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -155,11 +157,12 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
-        // Assert - Verify response status and message
+        // Assert - Verify response status and message (per spec, success returns just ID)
         assertEquals(RestStatus.CREATED, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().startsWith("KVDB created successfully with ID:"));
+        assertNotNull(actualResponse.getMessage());
+        assertFalse(actualResponse.getMessage().isEmpty());
 
         // Verify engine validation was called with correct payload
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
@@ -188,7 +191,9 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+                        String.format(
+                                Locale.ROOT, Constants.E_400_RESOURCE_ID_MUST_NOT_BE_PROVIDED, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -208,7 +213,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(
+                                Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_INTEGRATION),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -230,7 +238,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
@@ -248,7 +256,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
@@ -269,7 +277,8 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("integration [integration-1] not found"));
+        assertTrue(
+                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
     }
 
     /** Test that integration without space field returns 400 Bad Request. */
@@ -289,9 +298,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertTrue(
-                actualResponse
-                        .getMessage()
-                        .contains("integration [integration-1] does not have space information."));
+                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
     }
 
     /** Test that integration with invalid space returns 400 Bad Request. */
@@ -311,9 +318,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse actualResponse = parseResponse(bytesRestResponse);
         assertTrue(
-                actualResponse
-                        .getMessage()
-                        .contains("integration [integration-1] has invalid space information."));
+                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
     }
 
     private RestRequest buildRequest(String payload, String kvdbId) {

@@ -172,20 +172,20 @@ public class RestPutPolicyAction extends BaseRestHandler {
             // Validate "type"
             if (!jsonContent.has(Constants.KEY_TYPE)) {
                 return new RestResponse(
-                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_TYPE),
+                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_TYPE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             String resourceType = jsonContent.get(Constants.KEY_TYPE).asText();
             if (resourceType.isBlank() || !resourceType.equals(Constants.KEY_POLICY)) {
                 return new RestResponse(
-                        String.format(Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Validate "resource"
             if (!jsonContent.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
-                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             JsonNode resource = jsonContent.get(Constants.KEY_RESOURCE);
@@ -215,7 +215,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             if (!missingFields.isEmpty()) {
                 return new RestResponse(
-                        String.format(Constants.E_400_FIELD_IS_REQUIRED, String.join(", ", missingFields)),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, String.join(", ", missingFields)),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 

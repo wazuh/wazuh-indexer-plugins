@@ -148,7 +148,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock expected response
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(500);
-        expectedResponse.setMessage("Index [.cti-decoders] not found.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Mock request - contains decoder with id "12345"
         RestRequest request = this.mockValidRequest();
@@ -163,7 +163,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
 
         // Verify
         assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        assertEquals(expectedResponse.getMessage(), actualResponse.getMessage());
     }
 
     /** If the engine does not respond, return a 500 error. */

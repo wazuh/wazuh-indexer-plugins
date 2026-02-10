@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -125,7 +126,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                        String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
@@ -147,7 +148,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         // Assert
         RestResponse expectedResponse =
                 new RestResponse(
-                        String.format(Constants.E_400_INVALID_UUID, invalidId),
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, invalidId),
                         RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);

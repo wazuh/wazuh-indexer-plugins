@@ -44,6 +44,7 @@ import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -116,6 +117,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
         when(getRequestBuilder.setFetchSource(any(String[].class), any()))
                 .thenReturn(getRequestBuilder);
+        when(getRequestBuilder.setFetchSource(anyBoolean())).thenReturn(getRequestBuilder);
         when(getRequestBuilder.get()).thenReturn(getResponse);
         when(getResponse.isExists()).thenReturn(true);
         Map<String, Object> docMap = new HashMap<>();
@@ -175,7 +177,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
      */
     public void testPutRule500() throws IOException {
         // Arrange
-        String ruleId = "some-id";
+        String ruleId = "11111111-1111-1111-1111-111111111111";
         // Ensure structure is valid so validation passes and exception is hit
         String jsonRule = "{\"resource\": {}, \"type\": \"rule\"}";
 

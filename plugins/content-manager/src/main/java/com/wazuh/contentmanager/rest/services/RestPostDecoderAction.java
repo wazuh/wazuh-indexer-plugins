@@ -31,6 +31,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -163,7 +164,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
         } catch (IOException e) {
             return new RestResponse(
-                    String.format(Constants.E_400_INVALID_FIELD_FORMAT, "JSON"),
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, "JSON"),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error("Error creating decoder: {}", e.getMessage(), e);

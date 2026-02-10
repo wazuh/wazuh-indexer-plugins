@@ -28,6 +28,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -137,7 +138,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(
-                String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID), response.getMessage());
+                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                response.getMessage());
     }
 
     /**
@@ -156,7 +158,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request, this.client);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(String.format(Constants.E_400_INVALID_UUID, invalidId), response.getMessage());
+        assertEquals(
+                String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, invalidId), response.getMessage());
     }
 
     /**

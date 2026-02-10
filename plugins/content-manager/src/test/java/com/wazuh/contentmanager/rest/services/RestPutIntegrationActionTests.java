@@ -32,6 +32,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -39,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -59,7 +61,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     private RestPutIntegrationAction action;
     private SecurityAnalyticsServiceImpl saService;
     private NodeClient nodeClient;
-    private static final String INTEGRATION_ID = "d_7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
+    private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
 
     /**
      * Set up the tests
@@ -137,7 +139,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.OK.getStatus());
-        expectedResponse.setMessage("Integration updated successfully with ID: " + INTEGRATION_ID);
+        expectedResponse.setMessage(INTEGRATION_ID);
 
         // spotless:off
         String payload =
@@ -217,8 +219,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration400_hasIdInBody() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage(
-                "ID field is not allowed in the request body. Use the URL path parameter instead.");
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // spotless:off
         String payload =
@@ -274,7 +275,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration400_noContent() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("JSON request body is required.");
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Create a RestRequest with no payload
         RestRequest request = this.buildRequest(null, INTEGRATION_ID);
@@ -293,7 +294,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration404_integrationNotFound() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.NOT_FOUND.getStatus());
-        expectedResponse.setMessage("Integration not found: " + INTEGRATION_ID);
+        expectedResponse.setMessage(Constants.E_404_RESOURCE_NOT_FOUND);
 
         // spotless:off
         String payload =
@@ -348,7 +349,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration400_invalidType() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Invalid resource type.");
+        expectedResponse.setMessage(
+                String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE));
 
         // spotless:off
         String payload =
@@ -384,8 +386,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration500_noEngineReply() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(
-                "Failed to update Integration, Invalid validation response: Non valid response.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Mock integrations index
         ContentIndex integrationsIndex = mock(ContentIndex.class);
@@ -452,7 +453,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration500_failedToIndexIntegration() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to index integration.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // spotless:off
         String payload =
@@ -530,7 +531,11 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         expectedResponse.setMessage(
-                "Cannot update integration from space 'standard'. Only 'draft' space is modifiable.");
+                String.format(
+                        Locale.ROOT,
+                        Constants.E_400_RESOURCE_NOT_IN_DRAFT,
+                        Constants.KEY_INTEGRATION,
+                        INTEGRATION_ID));
 
         // spotless:off
         String payload =
@@ -585,7 +590,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration400_missingIdInPath() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Integration ID is required.");
+        expectedResponse.setMessage(
+                String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID));
 
         // spotless:off
         String payload =
@@ -629,7 +635,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     public void testPutIntegration500_unexpectedError() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Unexpected error during processing.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // spotless:off
         String payload =

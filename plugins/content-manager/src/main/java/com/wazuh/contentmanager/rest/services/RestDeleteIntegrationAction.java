@@ -37,6 +37,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -221,7 +222,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             String spaceName = (String) space.get(Constants.KEY_NAME);
             if (!Space.DRAFT.equals(spaceName)) {
                 return new RestResponse(
-                        String.format(Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         } else {
@@ -236,17 +238,20 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
             if (this.isListNotEmpty(document.get(Constants.KEY_DECODERS))) {
                 return new RestResponse(
-                        String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             if (this.isListNotEmpty(document.get(Constants.KEY_RULES))) {
                 return new RestResponse(
-                        String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             if (this.isListNotEmpty(document.get(Constants.KEY_KVDBS))) {
                 return new RestResponse(
-                        String.format(Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         }

@@ -37,6 +37,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -226,7 +227,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         if (!requestBody.has(Constants.KEY_TYPE)
                 || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
             return new RestResponse(
-                    String.format(Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -241,7 +242,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
             return new RestResponse(
-                    String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 

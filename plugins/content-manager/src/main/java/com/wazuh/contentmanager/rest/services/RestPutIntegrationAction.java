@@ -36,6 +36,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -183,7 +184,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         if (id == null || id.isEmpty()) {
             this.log.warn("Request rejected: integration ID is required");
             return new RestResponse(
-                    String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
+                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_ID),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -192,7 +193,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             java.util.UUID.fromString(id);
         } catch (IllegalArgumentException e) {
             return new RestResponse(
-                    String.format(Constants.E_400_INVALID_UUID, id), RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, id),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check if engine service exists
@@ -228,7 +230,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                             ? requestBody.get(Constants.KEY_TYPE).asText()
                             : null);
             return new RestResponse(
-                    String.format(Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -265,7 +267,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                 this.log.warn(
                         "Request rejected: cannot update integration in space '{}' (id={})", spaceName, id);
                 return new RestResponse(
-                        String.format(Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         } else {
@@ -279,7 +282,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             this.log.warn(
                     "Request rejected: /resource is not an object (nodeType={})", resource.getNodeType());
             return new RestResponse(
-                    String.format(Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
+                    String.format(Locale.ROOT, Constants.E_400_FIELD_IS_REQUIRED, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
