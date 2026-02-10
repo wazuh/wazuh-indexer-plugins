@@ -20,18 +20,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-
-import static com.wazuh.contentmanager.utils.Constants.KEY_NAME;
-import static com.wazuh.contentmanager.utils.Constants.KEY_SPACE;
 
 /**
  * Utility class providing common validation methods for REST handlers.
@@ -45,7 +44,8 @@ import static com.wazuh.contentmanager.utils.Constants.KEY_SPACE;
  *   <li>Validates the standard structure of a resource payload
  * </ul>
  *
- * <p>Error messages are normalized to follow the pattern: "[DocType] [ID] [action/state]."
+ * <p>Error messages are normalized to follow the pattern: "[DocType] [ID] [action/state]." TODO get
+ * rid of this class completely during refactors. No static methods. Use hierarchy instead.
  */
 public class DocumentValidations {
 
@@ -64,27 +64,28 @@ public class DocumentValidations {
     public static String validateDocumentInSpace(
             Client client, String index, String docId, String docType) {
         GetResponse response = client.prepareGet(index, docId).get();
+        docType = Strings.capitalize(docType);
 
         if (!response.isExists()) {
-            return docType + " [" + docId + "] not found.";
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         Map<String, Object> source = response.getSourceAsMap();
-        if (source == null || !source.containsKey(KEY_SPACE)) {
-            return docType + " [" + docId + "] does not have space information.";
+        if (source == null || !source.containsKey(Constants.KEY_SPACE)) {
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
-        Object spaceObj = source.get(KEY_SPACE);
+        Object spaceObj = source.get(Constants.KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
-            return docType + " [" + docId + "] has invalid space information.";
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(KEY_NAME);
+        Object spaceName = spaceMap.get(Constants.KEY_NAME);
 
         if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
-            return docType + " [" + docId + "] is not in draft space.";
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_DRAFT, docType, docId);
         }
 
         return null;
@@ -104,7 +105,7 @@ public class DocumentValidations {
      */
     public static RestResponse validateDocumentInSpaceWithResponse(
             Client client, String index, String docId, String docType) {
-        String error = validateDocumentInSpace(client, index, docId, docType);
+        String error = DocumentValidations.validateDocumentInSpace(client, index, docId, docType);
         if (error != null) {
             return new RestResponse(error, RestStatus.BAD_REQUEST.getStatus());
         }
@@ -120,7 +121,7 @@ public class DocumentValidations {
     public static RestResponse validateEngineAvailable(EngineService engine) {
         if (engine == null) {
             return new RestResponse(
-                    "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         return null;
     }
@@ -133,7 +134,8 @@ public class DocumentValidations {
      */
     public static RestResponse validateRequestHasContent(RestRequest request) {
         if (!request.hasContent()) {
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }
@@ -148,11 +150,11 @@ public class DocumentValidations {
      * @return a RestResponse with error if validation fails, null otherwise
      */
     public static RestResponse validatePrerequisites(EngineService engine, RestRequest request) {
-        RestResponse error = validateEngineAvailable(engine);
+        RestResponse error = DocumentValidations.validateEngineAvailable(engine);
         if (error != null) {
             return error;
         }
-        return validateRequestHasContent(request);
+        return DocumentValidations.validateRequestHasContent(request);
     }
 
     /**
@@ -164,9 +166,28 @@ public class DocumentValidations {
      */
     public static RestResponse validateRequiredParam(String value, String paramName) {
         if (value == null || value.isBlank()) {
-            return new RestResponse(paramName + " is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, paramName),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
+    }
+
+    /**
+     * Validates that a string is a valid UUID format.
+     *
+     * @param value the string value to validate as UUID
+     * @return a RestResponse with error if validation fails, null otherwise
+     */
+    public static RestResponse validateUUID(String value) {
+        try {
+            java.util.UUID.fromString(value);
+            return null;
+        } catch (IllegalArgumentException e) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, value),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
     }
 
     /**
@@ -183,13 +204,17 @@ public class DocumentValidations {
         if (requireIntegrationId) {
             if (!payload.has(Constants.KEY_INTEGRATION)
                     || payload.get(Constants.KEY_INTEGRATION).asText("").isBlank()) {
-                return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
         }
 
         // Validation for Resource object presence
         if (!payload.has(Constants.KEY_RESOURCE) || !payload.get(Constants.KEY_RESOURCE).isObject()) {
-            return new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validation for Resource ID
@@ -200,14 +225,14 @@ public class DocumentValidations {
                 String payloadId = resourceNode.get(Constants.KEY_ID).asText();
                 if (!payloadId.equals(expectedId)) {
                     return new RestResponse(
-                            "Resource ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                 }
             }
         } else {
             // For creates: Resource ID should typically not be provided by user
             if (payload.get(Constants.KEY_RESOURCE).hasNonNull(Constants.KEY_ID)) {
                 return new RestResponse(
-                        "Resource ID must not be provided on create.", RestStatus.BAD_REQUEST.getStatus());
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
         }
         return null;
