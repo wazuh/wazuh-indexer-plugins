@@ -37,6 +37,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -205,16 +206,21 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 request.hasContent(),
                 request.uri());
 
+        if (this.engine == null) {
+            this.log.error(Constants.E_LOG_ENGINE_IS_NULL);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+        if (this.service == null) {
+            this.log.error(Constants.E_LOG_SECURITY_ANALYTICS_IS_NULL);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
         // Validate prerequisites
         RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
         if (validationError != null) {
             return validationError;
-        }
-
-        if (this.service == null) {
-            return new RestResponse(
-                    "Security Analytics service instance is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // Check request's payload is valid JSON
@@ -222,19 +228,22 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             requestBody = MAPPER.readTree(request.content().streamInput()).deepCopy();
         } catch (IOException ex) {
-            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Verify request is of type "integration"
         if (!requestBody.has(Constants.KEY_TYPE)
                 || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
-            return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check that there is no ID field
         if (!requestBody.at("/resource/id").isMissingNode()) {
             return new RestResponse(
-                    "ID field is not allowed in the request body.", RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         String id = UUID.randomUUID().toString();
@@ -242,7 +251,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
             return new RestResponse(
-                    "Invalid JSON structure: /resource must be an object.",
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -285,7 +294,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 POST);
 
         // Construct engine validation payload
-        this.log.debug("Validating integration with Engine (id={})", id);
+        this.log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
@@ -296,22 +305,18 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             MAPPER.readTree(validationResponse.getMessage()).isObject();
         } catch (Exception e) {
+            this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage(), e);
             this.service.deleteIntegration(id);
             return new RestResponse(
-                    "Failed to create Integration, Invalid validation response: "
-                            + validationResponse.getMessage()
-                            + ".",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // If validation failed, delete the created integration in SAP
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
+            this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             this.service.deleteIntegration(id);
             return new RestResponse(
-                    "Failed to create Integration, Validation response: "
-                            + validationResponse.getStatus()
-                            + ".",
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
@@ -323,9 +328,15 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             if (integrationIndexResponse == null
                     || integrationIndexResponse.status() != RestStatus.CREATED) {
+                this.log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "index",
+                        Constants.KEY_INTEGRATION,
+                        id,
+                        integrationIndexResponse);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
-                        "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Search for the draft policy (scoped to policies index, limit 1)
@@ -347,30 +358,47 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).getAsString();
                 draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
             } catch (Exception e) {
+                this.log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "find",
+                        Constants.KEY_POLICY,
+                        Space.DRAFT,
+                        e.getMessage(),
+                        e);
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
-                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             JsonNode draftPolicyDocument = draftPolicy.at("/document");
             if (draftPolicyDocument.isMissingNode()) {
+                this.log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "retrieve",
+                        Constants.KEY_POLICY,
+                        Space.DRAFT,
+                        Constants.KEY_DOCUMENT);
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
-                        "Failed to retrieve draft policy document.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Retrieve the integrations array from the policy document
             ArrayNode draftPolicyIntegrations =
                     (ArrayNode) draftPolicyDocument.get(Constants.KEY_INTEGRATIONS);
             if (draftPolicyIntegrations == null || !draftPolicyIntegrations.isArray()) {
+                this.log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "retrieve",
+                        Constants.KEY_INTEGRATIONS,
+                        Space.DRAFT,
+                        Constants.KEY_POLICY);
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
-                        "Failed to retrieve integrations array from draft policy document.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Add the new integration ID to the integrations array
@@ -384,22 +412,27 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     this.policiesIndex.create(draftPolicyId, draftPolicy);
 
             if (indexDraftPolicyResponse == null || indexDraftPolicyResponse.status() != RestStatus.OK) {
+                this.log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "update",
+                        Constants.KEY_POLICY,
+                        Space.DRAFT,
+                        indexDraftPolicyResponse);
                 this.service.deleteIntegration(id);
                 this.integrationsIndex.delete(id);
                 return new RestResponse(
-                        "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "Integration created successfully with ID: " + id, RestStatus.CREATED.getStatus());
+            return new RestResponse(id, RestStatus.CREATED.getStatus());
         } catch (Exception e) {
             this.log.error(
-                    "Unexpected error creating integration (id={}); rolling back SAP integration", id, e);
+                    Constants.E_LOG_UNEXPECTED, "creating", Constants.KEY_INTEGRATION, id, e.getMessage(), e);
             this.service.deleteIntegration(id);
             return new RestResponse(
-                    "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

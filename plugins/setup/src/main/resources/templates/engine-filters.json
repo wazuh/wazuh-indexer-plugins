@@ -1,0 +1,73 @@
+{
+  "index_patterns": [
+    ".engine-filters"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "mapping.total_fields.limit": 100,
+      "mapping.nested_fields.limit": 10,
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
+        "refresh_interval": "5s",
+        "query.default_field": [
+          "filter.name",
+          "filter.id",
+          "filter.type",
+          "filter.check",
+          "filter.metadata.description",
+          "filter.metadata.author.name"
+        ],
+        "max_docvalue_fields_search": 50
+      }
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "date_detection": false,
+      "properties": {
+        "filter": {
+          "properties": {
+            "name": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "check": {
+              "type": "text"
+            },
+            "metadata": {
+              "properties": {
+                "description": {
+                  "type": "text"
+                },
+                "author": {
+                  "properties": {
+                    "name": {
+                      "type": "keyword"
+                    },
+                    "url": {
+                      "type": "keyword"
+                    },
+                    "date": {
+                      "type": "date",
+                      "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
