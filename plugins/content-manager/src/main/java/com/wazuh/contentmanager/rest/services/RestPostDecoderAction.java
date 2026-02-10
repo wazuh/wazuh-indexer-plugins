@@ -146,7 +146,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             RestResponse engineValidation =
                     this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                log.error("Engine validation failed: {}", engineValidation.getMessage());
+                log.error(Constants.E_ENGINE_VALIDATION, engineValidation.getMessage());
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -173,7 +173,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
                     String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, "JSON"),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            log.error("Error creating decoder: {}", e.getMessage(), e);
+            log.error(Constants.E_OPERATION_FAILED, "creating", Constants.KEY_DECODER, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

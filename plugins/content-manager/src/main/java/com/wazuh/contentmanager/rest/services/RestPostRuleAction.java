@@ -210,9 +210,9 @@ public class RestPostRuleAction extends BaseRestHandler {
                                 ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, payloadString, true);
 
                 client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
-                log.info("RestPostRuleAction: SAP created rule successfully (Custom).");
+                log.info(Constants.I_LOG_SUCCESS, "Created", Constants.KEY_RULE, ruleId);
             } catch (Exception e) {
-                log.error("RestPostRuleAction: SAP creation failed.", e);
+                log.error(Constants.E_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -230,7 +230,7 @@ public class RestPostRuleAction extends BaseRestHandler {
             return new RestResponse(ruleId, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
-            log.error("Error creating rule: {}", e.getMessage(), e);
+            log.error(Constants.E_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

@@ -186,7 +186,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
             JsonNode resource = jsonContent.get(Constants.KEY_RESOURCE);
-            log.info(resource.toString());
+            log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_POLICY, resource);
             Policy policy;
             try {
                 policy = mapper.readValue(resource.toString(), Policy.class);
@@ -225,11 +225,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             return new RestResponse(policyId, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
-            log.warn("Validation error during policy update: {}", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_ERROR, Constants.KEY_POLICY, e.getMessage());
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            log.error("Error updating policy: {}", e.getMessage(), e);
+            log.error(Constants.E_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

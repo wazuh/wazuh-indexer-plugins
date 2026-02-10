@@ -250,7 +250,7 @@ public class RestPutRuleAction extends BaseRestHandler {
                                 );
                 client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
             } catch (Exception e) {
-                log.error("SAP rule update failed: {}", e.getMessage(), e);
+                log.error(Constants.E_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -264,7 +264,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             return new RestResponse(ruleId, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
-            log.error("Error updating rule: {}", e.getMessage(), e);
+            log.error(Constants.E_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

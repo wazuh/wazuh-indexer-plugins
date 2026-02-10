@@ -194,7 +194,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
         // Check if security analytics service exists
         if (this.service == null) {
-            this.log.error("Security Analytics service not initialized");
+            this.log.error(Constants.E_SECURITY_ANALYTICS_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
@@ -205,7 +205,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
         } catch (Exception e) {
-            this.log.error("Failed to retrieve existing integration (id={}): {}", id, e.getMessage(), e);
+            this.log.error(
+                    Constants.E_LOG_FAILED_TO, "retrieve", Constants.KEY_INTEGRATION, id, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
@@ -258,23 +259,20 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
         try {
             // Delete integration from Security Analytics Plugin
-            this.log.debug("Deleting integration from Security Analytics (id={})", id);
+            this.log.debug(Constants.D_LOG_OPERATION, "Deleting", Constants.KEY_INTEGRATION, id);
             try {
                 this.service.deleteIntegration(id);
             } catch (Exception e) {
-                this.log.warn(
-                        "Failed to delete integration [{}] from Security Analytics Plugin: {}",
-                        id,
-                        e.getMessage());
+                this.log.warn(Constants.W_LOG_VALIDATION_ERROR, "delete", e.getMessage());
             }
 
             // Delete from CTI integrations index
-            this.log.debug("Deleting integration from {} (id={})", Constants.INDEX_INTEGRATIONS, id);
+            this.log.debug(
+                    Constants.D_LOG_OPERATION, "Deleting from index", Constants.KEY_INTEGRATION, id);
             this.integrationsIndex.delete(id);
 
             // Search for the draft policy to remove the integration ID from its integrations array
-            this.log.debug(
-                    "Searching for draft policy in {} (space={})", Constants.INDEX_POLICIES, Space.DRAFT);
+            this.log.debug(Constants.D_LOG_OPERATION, "Searching", Constants.KEY_POLICY, Space.DRAFT);
             TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT);
 
             JsonObject draftPolicyHit;
@@ -293,7 +291,13 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
                 draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).getAsString();
                 draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
             } catch (Exception e) {
-                this.log.error("Draft policy search failed (id={}): {}", id, e.getMessage(), e);
+                this.log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "find",
+                        Constants.KEY_POLICY,
+                        Space.DRAFT,
+                        e.getMessage(),
+                        e);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -301,22 +305,27 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             JsonNode draftPolicyDocument = draftPolicy.at("/document");
             if (draftPolicyDocument.isMissingNode()) {
                 this.log.error(
-                        "Draft policy hit missing /document (policyId={}), (id={})", draftPolicyId, id);
+                        Constants.E_LOG_FAILED_TO,
+                        "retrieve",
+                        Constants.KEY_POLICY,
+                        draftPolicyId,
+                        Constants.KEY_DOCUMENT);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            this.log.debug(
-                    "Draft policy found (policyId={}); removing integration from array", draftPolicyId);
+            this.log.debug(Constants.D_LOG_OPERATION, "Removing", Constants.KEY_INTEGRATION, id);
 
             // Retrieve the integrations array from the policy document
             ArrayNode draftPolicyIntegrations =
                     (ArrayNode) draftPolicyDocument.get(Constants.KEY_INTEGRATIONS);
             if (draftPolicyIntegrations == null || !draftPolicyIntegrations.isArray()) {
                 this.log.error(
-                        "Draft policy integrations field missing or not array (policyId={}); (id={})",
+                        Constants.E_LOG_FAILED_TO,
+                        "retrieve",
+                        Constants.KEY_INTEGRATIONS,
                         draftPolicyId,
-                        id);
+                        Constants.KEY_POLICY);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -336,37 +345,34 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             // Put policyHash inside hash.sha256 key
             ((ObjectNode) draftPolicy.at("/hash")).put(Constants.KEY_SHA256, draftPolicyHash);
             this.log.debug(
-                    "Updated draft policy hash (policyId={}, hashPrefix={})",
-                    draftPolicyId,
-                    draftPolicyHash.length() >= 12 ? draftPolicyHash.substring(0, 12) : draftPolicyHash);
+                    Constants.D_LOG_OPERATION, "Updated hash for", Constants.KEY_POLICY, draftPolicyId);
 
             // Index the policy with the updated integrations array
-            this.log.debug(
-                    "Indexing updated draft policy into {} (policyId={})",
-                    Constants.INDEX_POLICIES,
-                    draftPolicyId);
+            this.log.debug(Constants.D_LOG_OPERATION, "Indexing", Constants.KEY_POLICY, draftPolicyId);
             IndexResponse indexDraftPolicyResponse =
                     this.policiesIndex.create(draftPolicyId, draftPolicy);
 
             if (indexDraftPolicyResponse == null || indexDraftPolicyResponse.status() != RestStatus.OK) {
                 this.log.error(
-                        "Indexing updated draft policy failed (policyId={}, status={}); (id={})",
+                        Constants.E_LOG_FAILED_TO,
+                        "index",
+                        Constants.KEY_POLICY,
                         draftPolicyId,
-                        indexDraftPolicyResponse != null ? indexDraftPolicyResponse.status() : null,
-                        id);
+                        indexDraftPolicyResponse);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Update the space's hash in the policy
             this.log.debug(
-                    "Recalculating space hash for draft space after integration deletion (id={})", id);
+                    Constants.D_LOG_OPERATION, "Recalculating space hash for", Constants.KEY_INTEGRATION, id);
 
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(id, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            this.log.error("Error deleting integration: {}", e.getMessage(), e);
+            this.log.error(
+                    Constants.E_OPERATION_FAILED, "deleting", Constants.KEY_INTEGRATION, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

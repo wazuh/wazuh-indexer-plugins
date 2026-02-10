@@ -52,6 +52,24 @@ public class Constants {
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
 
+    // Logger Errors
+    public static final String E_ENGINE_IS_NULL = "Engine instance unavailable.";
+    public static final String E_SECURITY_ANALYTICS_IS_NULL =
+            "Security Analytics instance unavailable.";
+    public static final String E_ENGINE_VALIDATION = "Engine validation failed: {}";
+    public static final String E_INDEX_NOT_FOUND = "Index [{}] not found.";
+    public static final String E_OPERATION_FAILED = "Error {} {}: {}";
+    public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
+    public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
+    // Logger Warnings
+    public static final String W_LOG_REQUEST_REJECTED = "Request rejected: {}";
+    public static final String W_LOG_VALIDATION_ERROR = "Validation error during {}: {}";
+    // Logger Info
+    public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
+    // Logger Debug
+    public static final String D_LOG_VALIDATING = "Validating {} with Engine (id={})";
+    public static final String D_LOG_OPERATION = "{} {} (id={})";
+
     // Index Constants
     public static final String INDEX_POLICIES = ".cti-policies";
     public static final String INDEX_INTEGRATIONS = ".cti-integrations";

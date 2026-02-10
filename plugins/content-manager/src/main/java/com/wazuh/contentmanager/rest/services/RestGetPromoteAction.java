@@ -129,10 +129,10 @@ public class RestGetPromoteAction extends BaseRestHandler {
             // 5. Build Response
             return new PromoteResponse(changes);
         } catch (IllegalArgumentException e) {
-            log.warn("Validation error in promote preview: {}", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promote preview", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            log.error("Error processing promote preview: {}", e.getMessage(), e);
+            log.error(Constants.E_OPERATION_FAILED, "processing", "promote preview", e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
