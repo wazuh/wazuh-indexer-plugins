@@ -163,6 +163,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         LocalConsumer updated = consumerCaptor.getValue();
         assertEquals(12, updated.getLocalOffset());
+        assertEquals(12, updated.getRemoteOffset());
         assertEquals(CONSUMER, updated.getName());
     }
 
