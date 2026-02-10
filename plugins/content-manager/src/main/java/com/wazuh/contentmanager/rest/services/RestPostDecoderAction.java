@@ -121,7 +121,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
 
             // Validate forbidden metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            validationError = ContentUtils.validateMetadataFields(resourceNode, true);
             if (validationError != null) {
                 return validationError;
             }
@@ -139,7 +139,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             resourceNode.put(Constants.KEY_ID, decoderId);
 
             // Add timestamp metadata
-            ContentUtils.updateTimestampMetadata(resourceNode, true);
+            ContentUtils.updateTimestampMetadata(resourceNode, true, true);
 
             // Validate integration with Wazuh Engine
             RestResponse engineValidation =
@@ -150,10 +150,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
 
             // Create decoder using raw UUID
             ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-            decoderIndex.create(
-                    decoderId,
-                    ContentUtils.buildCtiWrapper(
-                            Constants.KEY_DECODER, resourceNode, Space.DRAFT.toString()));
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+
+            decoderIndex.create(decoderId, ctiWrapper);
 
             // Link to Integration
             ContentUtils.linkResourceToIntegration(

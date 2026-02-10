@@ -159,8 +159,37 @@ public class RestPutKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, kvdbId);
 
-            // Update timestamps
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
+            // Validate mandatory fields for PUT
+            if (!resourceNode.has(Constants.KEY_TITLE)) {
+                return new RestResponse(
+                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
+                return new RestResponse(
+                        "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                return new RestResponse(
+                        "Missing required field: description.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("documentation")) {
+                return new RestResponse(
+                        "Missing required field: documentation.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("references")) {
+                return new RestResponse(
+                        "Missing required field: references.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("content") || resourceNode.get("content").isEmpty()) {
+                return new RestResponse(
+                        "Missing or empty required field: content.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Validate forbidden metadata fields using ContentUtils with isDecoder=false
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return metadataError;
+            }
 
             // Validate with engine
             RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
@@ -183,9 +212,47 @@ public class RestPutKvdbAction extends BaseRestHandler {
                         "KVDB [" + kvdbId + "] not found.", RestStatus.NOT_FOUND.getStatus());
             }
 
-            kvdbIndex.create(
-                    kvdbId,
-                    ContentUtils.buildCtiWrapper(Constants.KEY_KVDB, resourceNode, Space.DRAFT.toString()));
+            // Fetch existing KVDB to preserve creation date
+            String createdDate = null;
+            JsonNode existingDoc = kvdbIndex.getDocument(kvdbId);
+            if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
+                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                // Check root date
+                if (doc.has(Constants.KEY_DATE)) {
+                    createdDate = doc.get(Constants.KEY_DATE).asText();
+                }
+            }
+
+            // Update timestamps (root level)
+            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
+
+            // Restore creation date
+            if (createdDate != null) {
+                resourceNode.put(Constants.KEY_DATE, createdDate);
+            }
+
+            // Preserve enabled status if missing, else default true
+            if (!resourceNode.has(Constants.KEY_ENABLED)) {
+                if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
+                    JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                    if (doc.has(Constants.KEY_ENABLED)) {
+                        resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
+                    } else {
+                        resourceNode.put(Constants.KEY_ENABLED, true);
+                    }
+                } else {
+                    resourceNode.put(Constants.KEY_ENABLED, true);
+                }
+            }
+
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+
+            // Remove the type field from the wrapper as it should not be indexed for kvdbs
+            if (ctiWrapper instanceof ObjectNode) {
+                ((ObjectNode) ctiWrapper).remove(Constants.KEY_TYPE);
+            }
+
+            kvdbIndex.create(kvdbId, ctiWrapper);
 
             // Regenerate space hash because KVDB content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

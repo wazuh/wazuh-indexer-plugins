@@ -32,9 +32,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -42,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -61,6 +60,7 @@ public class RestPutRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_rule_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_update";
     private static final Logger log = LogManager.getLogger(RestPutRuleAction.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private PolicyHashService policyHashService;
 
@@ -159,20 +159,10 @@ public class RestPutRuleAction extends BaseRestHandler {
                         new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus())
                                 .toXContent());
             }
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(request.content().streamInput());
+
+            JsonNode rootNode = MAPPER.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_TYPE)
-                    || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Invalid or missing 'type'. Expected 'rule'.",
-                                        RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
-            }
-
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
@@ -183,20 +173,35 @@ public class RestPutRuleAction extends BaseRestHandler {
             JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
 
             // 2. Validate Resource Fields
-            if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
+            if (!resourceNode.has(Constants.KEY_TITLE)
+                    || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
                 return new BytesRestResponse(
                         RestStatus.BAD_REQUEST,
-                        new RestResponse(
-                                        "Fields 'date' and 'modified' are managed by the system.",
-                                        RestStatus.BAD_REQUEST.getStatus())
+                        new RestResponse("Missing required field: title.", RestStatus.BAD_REQUEST.getStatus())
                                 .toXContent());
+            }
+
+            // Optional fields
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_DESCRIPTION, "");
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_AUTHOR, "");
+            }
+            if (!resourceNode.has("references")) {
+                ((ObjectNode) resourceNode).set("references", MAPPER.createArrayNode());
+            }
+
+            // Check non-modifiable fields
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return new BytesRestResponse(RestStatus.BAD_REQUEST, metadataError.toXContent());
             }
 
             ObjectNode ruleNode = resourceNode.deepCopy();
 
             ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
             String createdDate = null;
-            String existingAuthor = null;
 
             JsonNode existingDoc = rulesIndex.getDocument(ruleId);
             if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
@@ -204,22 +209,18 @@ public class RestPutRuleAction extends BaseRestHandler {
                 if (doc.has(Constants.KEY_DATE)) {
                     createdDate = doc.get(Constants.KEY_DATE).asText();
                 }
-                if (doc.has(Constants.KEY_AUTHOR)) {
-                    existingAuthor = doc.get(Constants.KEY_AUTHOR).asText();
-                }
             }
 
-            ruleNode.put(
-                    Constants.KEY_DATE,
-                    Objects.requireNonNullElseGet(createdDate, () -> Instant.now().toString()));
-            ruleNode.put(Constants.KEY_MODIFIED, Instant.now().toString());
+            // Update timestamps
+            ContentUtils.updateTimestampMetadata(ruleNode, false, false);
+
+            // Restore creation date if found
+            if (createdDate != null) {
+                ruleNode.put(Constants.KEY_DATE, createdDate);
+            }
 
             if (!ruleNode.has(Constants.KEY_ENABLED)) {
                 ruleNode.put(Constants.KEY_ENABLED, true);
-            }
-            if (!ruleNode.has(Constants.KEY_AUTHOR)) {
-                ruleNode.put(
-                        Constants.KEY_AUTHOR, existingAuthor != null ? existingAuthor : "Wazuh (generated)");
             }
 
             String product = ContentIndex.extractProduct(ruleNode);
@@ -237,8 +238,14 @@ public class RestPutRuleAction extends BaseRestHandler {
                             );
             client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
 
-            // 4. Update CTI Rules Index
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
+
+            // Remove the type field from the wrapper as it should not be indexed for rules
+            if (ctiWrapper instanceof ObjectNode) {
+                ((ObjectNode) ctiWrapper).remove(Constants.KEY_TYPE);
+            }
+
+            rulesIndex.create(ruleId, ctiWrapper);
 
             // 5. Regenerate space hash because rule content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

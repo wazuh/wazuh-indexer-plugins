@@ -35,9 +35,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -225,19 +223,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Verify request is of type "integration"
-        if (!requestBody.has(Constants.KEY_TYPE)
-                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
-            return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
         // Check that there is no ID field
         if (!requestBody.at("/resource/id").isMissingNode()) {
             return new RestResponse(
                     "ID field is not allowed in the request body.", RestStatus.BAD_REQUEST.getStatus());
         }
-
-        String id = UUID.randomUUID().toString();
 
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
@@ -246,13 +236,46 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Validate mandatory fields
+        if (!resource.has(Constants.KEY_TITLE)
+                || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
+            return new RestResponse("Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_AUTHOR)
+                || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
+            return new RestResponse(
+                    "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_CATEGORY)
+                || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
+            return new RestResponse(
+                    "Missing required field: category.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Optional fields
+        if (!resource.has(Constants.KEY_DESCRIPTION)) {
+            ((ObjectNode) resource).put(Constants.KEY_DESCRIPTION, "");
+        }
+        if (!resource.has("documentation")) {
+            ((ObjectNode) resource).put("documentation", "");
+        }
+        if (!resource.has("references")) {
+            ((ObjectNode) resource).set("references", MAPPER.createArrayNode());
+        }
+
+        // Check non-modifiable fields
+        RestResponse metadataError = ContentUtils.validateMetadataFields(resource, false);
+        if (metadataError != null) {
+            return metadataError;
+        }
+
+        String id = UUID.randomUUID().toString();
+
         // Insert ID
         ((ObjectNode) resource).put(Constants.KEY_ID, id);
 
         // Insert date
-        String currentDate = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
-        ((ObjectNode) resource).put(Constants.KEY_DATE, currentDate);
-        ((ObjectNode) resource).put(Constants.KEY_MODIFIED, currentDate);
+        ContentUtils.updateTimestampMetadata((ObjectNode) resource, true, false);
 
         // Check if enabled is set (if it's not, set it to true by default)
         if (!resource.has(Constants.KEY_ENABLED)) {
@@ -316,8 +339,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
         try {
-            JsonNode ctiWrapper =
-                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resource, Space.DRAFT.toString());
 
             IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 

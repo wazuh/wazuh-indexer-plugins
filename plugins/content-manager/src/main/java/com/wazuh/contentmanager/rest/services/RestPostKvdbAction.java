@@ -136,6 +136,39 @@ public class RestPostKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
 
+            // Validate mandatory fields: title, author, content
+            if (!resourceNode.has(Constants.KEY_TITLE)
+                    || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
+                return new RestResponse(
+                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)
+                    || resourceNode.get(Constants.KEY_AUTHOR).asText().isBlank()) {
+                return new RestResponse(
+                        "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("content") || resourceNode.get("content").isEmpty()) {
+                return new RestResponse(
+                        "Missing or empty required field: content.", RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Optional fields
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                resourceNode.put(Constants.KEY_DESCRIPTION, "");
+            }
+            if (!resourceNode.has("documentation")) {
+                resourceNode.put("documentation", "");
+            }
+            if (!resourceNode.has("references")) {
+                resourceNode.set("references", mapper.createArrayNode());
+            }
+
+            // Check non-modifiable fields
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return metadataError;
+            }
+
             // Validate that the Integration exists and is in draft space
             String spaceError =
                     DocumentValidations.validateDocumentInSpace(
@@ -149,7 +182,12 @@ public class RestPostKvdbAction extends BaseRestHandler {
             resourceNode.put(Constants.KEY_ID, kvdbId);
 
             // Add timestamp metadata
-            ContentUtils.updateTimestampMetadata(resourceNode, true);
+            ContentUtils.updateTimestampMetadata(resourceNode, true, false);
+
+            // Check if enabled is set
+            if (!resourceNode.has(Constants.KEY_ENABLED)) {
+                resourceNode.put(Constants.KEY_ENABLED, true);
+            }
 
             // Validate with engine
             RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
@@ -159,9 +197,8 @@ public class RestPostKvdbAction extends BaseRestHandler {
 
             // Create KVDB in Index
             ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
-            kvdbIndex.create(
-                    kvdbId,
-                    ContentUtils.buildCtiWrapper(Constants.KEY_KVDB, resourceNode, Space.DRAFT.toString()));
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+            kvdbIndex.create(kvdbId, ctiWrapper);
 
             // Link to Integration
             ContentUtils.linkResourceToIntegration(client, integrationId, kvdbId, Constants.KEY_KVDBS);

@@ -32,7 +32,6 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
-import java.time.LocalDate;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -45,6 +44,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 /**
  * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
@@ -128,7 +128,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                     Constants.INDEX_POLICIES);
 
             // Initialize default spaces if they don't exist
-            this.initializeSpaces(Constants.INDEX_POLICIES);
+            this.initializeSpaces();
 
             Map<String, List<String>> integrations =
                     this.integrationProcessor.process(Constants.INDEX_INTEGRATIONS);
@@ -141,15 +141,13 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     /**
      * Creates default policy documents for user spaces (draft, testing, custom) if they don't exist.
-     *
-     * @param indexName The policy index name.
      */
-    private void initializeSpaces(String indexName) {
+    private void initializeSpaces() {
         // Generate a single ID to be shared across all default policies so they are linked
         String sharedDocumentId = UUID.randomUUID().toString();
-        this.initializeSpace(indexName, Space.DRAFT.toString(), sharedDocumentId);
-        this.initializeSpace(indexName, Space.TEST.toString(), sharedDocumentId);
-        this.initializeSpace(indexName, Space.CUSTOM.toString(), sharedDocumentId);
+        this.initializeSpace(Constants.INDEX_POLICIES, Space.DRAFT.toString(), sharedDocumentId);
+        this.initializeSpace(Constants.INDEX_POLICIES, Space.TEST.toString(), sharedDocumentId);
+        this.initializeSpace(Constants.INDEX_POLICIES, Space.CUSTOM.toString(), sharedDocumentId);
     }
 
     /**
@@ -171,7 +169,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
             // Proceed only if no document with this space name exists
             if (searchResponse.getHits().getTotalHits().value() == 0) {
-                String date = LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
+                String date = ContentUtils.generateDate();
                 String title = "Custom policy";
 
                 Policy policy = new Policy();

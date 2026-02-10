@@ -160,8 +160,8 @@ public class RestPutDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, decoderId);
 
-            // Validate forbidden metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            // Validate forbidden metadata fields using ContentUtils with isDecoder=true
+            validationError = ContentUtils.validateMetadataFields(resourceNode, true);
             if (validationError != null) {
                 return validationError;
             }
@@ -197,9 +197,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Update timestamp
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
-            ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
-                    .put(Constants.KEY_DATE, existingDate);
+            ContentUtils.updateTimestampMetadata(resourceNode, false, true);
+
+            // Restore creation date if found
+            if (existingDate != null) {
+                ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
+                        .put(Constants.KEY_DATE, existingDate);
+            }
 
             // Validate decoder with Wazuh Engine
             RestResponse engineValidation =
@@ -209,10 +213,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Update decoder
-            decoderIndex.create(
-                    decoderId,
-                    ContentUtils.buildCtiWrapper(
-                            Constants.KEY_DECODER, resourceNode, Space.DRAFT.toString()));
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+
+            decoderIndex.create(decoderId, ctiWrapper);
 
             // Regenerate space hash because decoder content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
