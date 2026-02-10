@@ -154,35 +154,46 @@ public class RestPutPolicyAction extends BaseRestHandler {
         // 1. Check request's payload exists
         if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
         try {
             // 2. Validate request content
-            JsonNode jsonContent = mapper.readTree(request.content().utf8ToString());
+            JsonNode jsonContent;
+            try {
+                jsonContent = mapper.readTree(request.content().utf8ToString());
+            } catch (IOException e) {
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            }
 
             // Validate "type"
             if (!jsonContent.has(Constants.KEY_TYPE)) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TYPE));
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TYPE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
             String resourceType = jsonContent.get(Constants.KEY_TYPE).asText();
-            if (resourceType.isBlank() && !resourceType.equals(Constants.KEY_TYPE)) {
-                throw new IllegalArgumentException(
-                        String.format(
-                                Locale.ROOT,
-                                "Invalid '%s' field. Expected '%s'.",
-                                Constants.KEY_TYPE,
-                                Constants.KEY_POLICY));
+            if (resourceType.isBlank() || !resourceType.equals(Constants.KEY_POLICY)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Validate "resource"
             if (!jsonContent.has(Constants.KEY_RESOURCE)) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE));
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
             JsonNode resource = jsonContent.get(Constants.KEY_RESOURCE);
-            log.info(resource.toString());
-            Policy policy = mapper.readValue(resource.toString(), Policy.class);
+            log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_POLICY, resource);
+            Policy policy;
+            try {
+                policy = mapper.readValue(resource.toString(), Policy.class);
+            } catch (IOException e) {
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            }
 
             // Validate required Policy fields
             List<String> missingFields = new ArrayList<>();
@@ -200,9 +211,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
             }
 
             if (!missingFields.isEmpty()) {
-                throw new IllegalArgumentException(
+                return new RestResponse(
                         String.format(
-                                Locale.ROOT, Constants.E_400_MISSING_FIELD, String.join(", ", missingFields)));
+                                Locale.ROOT, Constants.E_400_MISSING_FIELD, String.join(", ", missingFields)),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 3. Update policy
@@ -211,18 +223,16 @@ public class RestPutPolicyAction extends BaseRestHandler {
             // Regenerate space hash because policy content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
+            return new RestResponse(policyId, RestStatus.OK.getStatus());
+        } catch (IllegalArgumentException e) {
+            log.warn(Constants.W_LOG_VALIDATION_ERROR, Constants.KEY_POLICY, e.getMessage());
             return new RestResponse(
-                    "Updated draft policy with ID " + policyId, RestStatus.OK.getStatus());
-        } catch (IOException | IllegalArgumentException e) {
-            log.warn("Validation error during policy update: {}", e.getMessage());
-            return new RestResponse(
-                    Constants.E_400_INVALID_JSON_CONTENT + " " + e.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
             return new RestResponse(
-                    Constants.E_500_POLICY_UPDATE_FAILED + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
@@ -247,7 +257,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             throw new IllegalStateException(
                     String.format(
                             Locale.ROOT,
-                            Constants.E_500_UNEXPECTED_INDEX_STATE,
+                            Constants.E_500_INTERNAL_SERVER_ERROR,
                             Constants.KEY_DOCUMENT,
                             Space.DRAFT,
                             Constants.INDEX_POLICIES));

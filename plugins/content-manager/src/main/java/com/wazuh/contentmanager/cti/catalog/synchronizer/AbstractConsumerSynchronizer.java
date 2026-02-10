@@ -86,7 +86,7 @@ public abstract class AbstractConsumerSynchronizer {
 
     /**
      * Returns the consumer name for this synchronizer. The consumer identifies the type of content
-     * being synchronized (e.g., "rules", "decoders").
+     * being synchronized (e.g., "Constants.KEY_RULEs", "Constants.KEY_DECODERs").
      *
      * @return The consumer name.
      */
@@ -143,6 +143,7 @@ public abstract class AbstractConsumerSynchronizer {
             case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
             case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
             case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_FILTERS -> Constants.INDEX_FILTERS;
             case Constants.KEY_IOCS -> Constants.INDEX_IOCS;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };

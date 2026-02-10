@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -116,9 +117,8 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
 
     /** Test that requests with no payload are handled properly, returning a 400 status code. */
     public void testPostLogTest400_noPayload() {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("JSON request body is required.");
+        RestResponse expectedResponse =
+                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);

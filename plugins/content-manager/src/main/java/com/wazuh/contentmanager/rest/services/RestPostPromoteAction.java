@@ -129,14 +129,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request) {
         // 1. Check if engine service exists
         if (this.engine == null) {
+            log.error(Constants.E_LOG_ENGINE_IS_NULL);
             return new RestResponse(
-                    Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // 2. Check request's payload exists
         if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
@@ -154,7 +155,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // Check if engine validation was successful
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
                     && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                log.warn("Engine validation failed: {}", engineResponse.getMessage());
+                log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
                 log.error(mapper.writeValueAsString(context.enginePayload));
                 return engineResponse;
             }
@@ -169,26 +170,25 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
-            log.warn("Validation error during promotion: {}", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promotion", e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (ValueInstantiationException e) {
-            log.warn("Invalid value in request: {}", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promotion", e.getMessage());
             // Extract the root cause message for better error reporting
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             return new RestResponse(message, RestStatus.BAD_REQUEST.getStatus());
         } catch (IndexNotFoundException e) {
-            log.error("Index not found during promotion: {}", e.getMessage(), e);
-            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage(), e);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (IOException e) {
-            log.error("IO error during promotion: {}", e.getMessage(), e);
-            String message =
-                    e.getMessage() != null ? e.getMessage() : "An IO error occurred during promotion";
-            return new RestResponse(message, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage(), e);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
-            log.error("Unexpected error during promotion: {}", e.getMessage(), e);
-            String message =
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred during promotion";
-            return new RestResponse(message, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage(), e);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
@@ -366,7 +366,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
             switch (operation) {
                 case ADD -> {
                     // ADD: Resource exists in source space but NOT in target space
-                    Map<String, Object> sourceDoc = this.spaceService.getDocument(indexName, sourceSpace, resourceId);
+                    Map<String, Object> sourceDoc =
+                            this.spaceService.getDocument(indexName, sourceSpace, resourceId);
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -393,7 +394,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     }
 
                     // Verify it does NOT exist in target space
-                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, targetSpace, resourceId);
+                    Map<String, Object> targetDoc =
+                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
@@ -454,7 +456,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 case REMOVE -> {
                     // REMOVE: Resource has been removed from source space, exists in target
                     // Verify the resource exists in target space
-                    Map<String, Object> targetDoc = this.spaceService.getDocument(indexName, targetSpace, resourceId);
+                    Map<String, Object> targetDoc =
+                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =

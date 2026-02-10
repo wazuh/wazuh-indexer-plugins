@@ -19,6 +19,8 @@ package com.wazuh.contentmanager.rest.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -47,7 +49,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * </pre>
  */
 public class RestPostLogtestAction extends BaseRestHandler {
-
+    private static final Logger log = LogManager.getLogger(RestPostLogtestAction.class);
     private static final String ENDPOINT_NAME = "content_manager_logtest";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/engine_logtest";
     private final EngineService engine;
@@ -104,14 +106,15 @@ public class RestPostLogtestAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request) {
         // 1. Check if engine service exists
         if (this.engine == null) {
+            log.error(Constants.E_LOG_ENGINE_IS_NULL);
             return new RestResponse(
-                    Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // 2. Check request's payload exists
         if (request == null || !request.hasContent()) {
             return new RestResponse(
-                    Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 3. Check request's payload is valid JSON
@@ -121,14 +124,15 @@ public class RestPostLogtestAction extends BaseRestHandler {
             jsonNode = mapper.readTree(request.content().streamInput());
         } catch (IOException ex) {
             return new RestResponse(
-                    Constants.E_400_INVALID_JSON_CONTENT, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 4. Logtest accepted
         try {
             return this.engine.logtest(jsonNode);
         } catch (Exception e) {
-            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
