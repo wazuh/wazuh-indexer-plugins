@@ -79,12 +79,13 @@ public class UnifiedConsumerSynchronizerTests extends OpenSearchTestCase {
         Map<String, String> mappings = this.synchronizer.getMappings();
 
         Assert.assertNotNull(mappings);
-        Assert.assertEquals(5, mappings.size());
+        Assert.assertEquals(6, mappings.size());
         Assert.assertEquals("/mappings/cti-rules-mappings.json", mappings.get("rule"));
         Assert.assertEquals("/mappings/cti-decoders-mappings.json", mappings.get("decoder"));
         Assert.assertEquals("/mappings/cti-kvdbs-mappings.json", mappings.get("kvdb"));
         Assert.assertEquals("/mappings/cti-integrations-mappings.json", mappings.get("integration"));
         Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
+        Assert.assertEquals("/mappings/engine-filters-mappings.json", mappings.get("filters"));
     }
 
     /** Tests that getAliases returns empty map as aliases are used as names. */
