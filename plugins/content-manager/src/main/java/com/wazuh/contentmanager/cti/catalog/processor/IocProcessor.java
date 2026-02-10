@@ -18,10 +18,11 @@ package com.wazuh.contentmanager.cti.catalog.processor;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.wazuh.contentmanager.utils.Constants;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
+
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Processes IoC (Indicator of Compromise) documents from the indices. IoCs represent observable
@@ -86,7 +87,8 @@ public class IocProcessor extends AbstractProcessor {
         }
         String id = source.get(Constants.KEY_ID).getAsString();
 
-        if (!source.has(Constants.KEY_ENRICHMENTS) || !source.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
+        if (!source.has(Constants.KEY_ENRICHMENTS)
+                || !source.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
             this.log.warn("IoC [{}] missing 'enrichments' array, skipping", id);
             this.skippedCount++;
             return;

@@ -24,9 +24,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.ToNumberPolicy;
 
-import com.wazuh.contentmanager.utils.Constants;
 import java.util.List;
 import java.util.Map;
+
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Model representing an IoC (Indicator of Compromise) resource. Unlike general resources, IoC
@@ -63,8 +64,10 @@ public class Ioc extends Resource {
         if (payload.has(Constants.KEY_ID)) {
             ioc.setId(payload.get(Constants.KEY_ID).getAsString());
         }
-        if (payload.has(Constants.KEY_ENRICHMENTS) && payload.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
-            ioc.setEnrichments(GSON.fromJson(payload.getAsJsonArray(Constants.KEY_ENRICHMENTS), List.class));
+        if (payload.has(Constants.KEY_ENRICHMENTS)
+                && payload.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
+            ioc.setEnrichments(
+                    GSON.fromJson(payload.getAsJsonArray(Constants.KEY_ENRICHMENTS), List.class));
         }
 
         return ioc;
