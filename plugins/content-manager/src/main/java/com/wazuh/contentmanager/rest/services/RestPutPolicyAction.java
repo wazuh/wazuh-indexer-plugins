@@ -45,6 +45,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -275,9 +276,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
         policy.setId(docId);
         policy.setDate(docCreationDate);
         policy.setModified(docModificationDate);
-        currentPolicy.put(Constants.KEY_DOCUMENT, policy.toMap());
-        // TODO implement policy and space hash calculation
-        // currentPolicy.setHash();
+        Map<String, Object> policyMap = policy.toMap();
+        currentPolicy.put(Constants.KEY_DOCUMENT, policyMap);
+
+        // Calculate document hash
+        String docJson = mapper.writeValueAsString(policyMap);
+        String docHash = HashCalculator.sha256(docJson);
+        currentPolicy.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
 
         // Update in index
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
