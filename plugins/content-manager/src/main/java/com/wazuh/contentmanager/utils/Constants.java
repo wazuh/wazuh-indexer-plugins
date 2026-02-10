@@ -37,9 +37,6 @@ import java.util.Map;
 public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
-    public static final String E_500_UNEXPECTED_INDEX_STATE =
-            "Missing [%s] field for document [%s] in [%s] index.";
-    public static final String E_500_ENGINE_INSTANCE_IS_NULL = "Engine instance is null.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format";

@@ -129,8 +129,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request) {
         // 1. Check if engine service exists
         if (this.engine == null) {
+            log.error("Engine instance unavailable.");
             return new RestResponse(
-                    Constants.E_500_ENGINE_INSTANCE_IS_NULL, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // 2. Check request's payload exists

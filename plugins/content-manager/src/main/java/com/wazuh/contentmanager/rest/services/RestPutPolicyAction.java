@@ -256,7 +256,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             throw new IllegalStateException(
                     String.format(
                             Locale.ROOT,
-                            Constants.E_500_UNEXPECTED_INDEX_STATE,
+                            Constants.E_500_INTERNAL_SERVER_ERROR,
                             Constants.KEY_DOCUMENT,
                             Space.DRAFT,
                             Constants.INDEX_POLICIES));
