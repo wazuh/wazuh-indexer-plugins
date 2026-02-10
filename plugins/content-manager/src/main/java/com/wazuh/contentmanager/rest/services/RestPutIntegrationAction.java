@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -74,7 +75,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     private PolicyHashService policyHashService;
     private SecurityAnalyticsService service;
     private final EngineService engine;
-    private final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
+    private static final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private NodeClient nodeClient;
@@ -177,7 +178,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
         String id = request.param(Constants.KEY_ID);
-        this.log.debug(
+        log.debug(
                 "PUT integration request received (id={}, hasContent={}, uri={})",
                 id,
                 request.hasContent(),
@@ -185,7 +186,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Check if ID is provided
         if (id == null || id.isEmpty()) {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration ID is required");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration ID is required");
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
                     RestStatus.BAD_REQUEST.getStatus());
@@ -202,12 +203,12 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Check if engine service exists
         if (this.engine == null) {
-            this.log.error(Constants.E_LOG_ENGINE_IS_NULL);
+            log.error(Constants.E_LOG_ENGINE_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         if (this.service == null) {
-            this.log.error(Constants.E_LOG_SECURITY_ANALYTICS_IS_NULL);
+            log.error(Constants.E_LOG_SECURITY_ANALYTICS_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
@@ -223,7 +224,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             requestBody = MAPPER.readTree(request.content().streamInput()).deepCopy();
         } catch (IOException ex) {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "invalid JSON content", ex);
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "invalid JSON content", ex);
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
@@ -231,7 +232,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Verify request is of type "integration"
         if (!requestBody.has(Constants.KEY_TYPE)
                 || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "invalid resource type");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "invalid resource type");
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
                     RestStatus.BAD_REQUEST.getStatus());
@@ -239,7 +240,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Check that there is no ID field in the request body (ID comes from URL)
         if (!requestBody.at("/resource/id").isMissingNode()) {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "id field present in request body");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "id field present in request body");
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
@@ -250,14 +251,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
         } catch (Exception e) {
-            this.log.error(
+            log.error(
                     Constants.E_LOG_FAILED_TO, "retrieve", Constants.KEY_INTEGRATION, id, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         if (!getResponse.isExists()) {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration not found");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration not found");
             return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
         }
 
@@ -268,21 +269,24 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             Map<String, Object> space = (Map<String, Object>) existingSource.get(Constants.KEY_SPACE);
             String spaceName = (String) space.get(Constants.KEY_NAME);
             if (!Space.DRAFT.equals(spaceName)) {
-                this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration not in draft space");
+                log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration not in draft space");
                 return new RestResponse(
                         String.format(
-                                Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
+                                Locale.ROOT,
+                                Constants.E_400_RESOURCE_NOT_IN_DRAFT,
+                                Strings.capitalize(Constants.KEY_INTEGRATION),
+                                id),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         } else {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration has undefined space");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration has undefined space");
             return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Extract /resource
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
-            this.log.warn(Constants.W_LOG_REQUEST_REJECTED, "/resource is not an object");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "/resource is not an object");
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
@@ -295,14 +299,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
 
             try {
-                if (validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_RULES);
+                if (this.validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
+                    return this.validateList(existingDocument, resource, Constants.KEY_RULES);
                 }
-                if (validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_DECODERS);
+                if (this.validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
+                    return this.validateList(existingDocument, resource, Constants.KEY_DECODERS);
                 }
-                if (validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_KVDBS);
+                if (this.validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
+                    return this.validateList(existingDocument, resource, Constants.KEY_KVDBS);
                 }
             } catch (IllegalArgumentException e) {
                 return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
@@ -352,20 +356,20 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());
         ((ObjectNode) requestBody).putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, hash);
-        this.log.debug(
+        log.debug(
                 "Computed integration sha256 hash for id={} (hashPrefix={})",
                 id,
                 hash.length() >= 12 ? hash.substring(0, 12) : hash);
 
         // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
-        this.log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_INTEGRATION, id);
+        log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_INTEGRATION, id);
         this.service.upsertIntegration(
                 this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
                 Space.DRAFT,
                 PUT);
 
         // Construct engine validation payload
-        this.log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
+        log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
@@ -376,20 +380,20 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             MAPPER.readTree(validationResponse.getMessage()).isObject();
         } catch (Exception e) {
-            this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
+            log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // If validation failed, return error (SAP was already updated, may need manual reconciliation)
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-            this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
+            log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
-            this.log.debug(Constants.D_LOG_OPERATION, "Indexing", Constants.KEY_INTEGRATION, id);
+            log.debug(Constants.D_LOG_OPERATION, "Indexing", Constants.KEY_INTEGRATION, id);
 
             JsonNode ctiWrapper =
                     ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
@@ -400,7 +404,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             if (integrationIndexResponse == null
                     || (integrationIndexResponse.status() != RestStatus.OK
                             && integrationIndexResponse.status() != RestStatus.CREATED)) {
-                this.log.error(
+                log.error(
                         Constants.E_LOG_FAILED_TO,
                         "index",
                         Constants.KEY_INTEGRATION,
@@ -411,15 +415,15 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             }
 
             // Update the space's hash in the policy
-            this.log.debug(
+            log.debug(
                     Constants.D_LOG_OPERATION, "Recalculating space hash for", Constants.KEY_INTEGRATION, id);
 
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            this.log.info(Constants.I_LOG_SUCCESS, "Updated", Constants.KEY_INTEGRATION, id);
+            log.info(Constants.I_LOG_SUCCESS, "Updated", Constants.KEY_INTEGRATION, id);
             return new RestResponse(id, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            this.log.error(
+            log.error(
                     Constants.E_LOG_UNEXPECTED, "updating", Constants.KEY_INTEGRATION, id, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());

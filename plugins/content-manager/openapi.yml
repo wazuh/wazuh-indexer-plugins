@@ -1537,7 +1537,7 @@ components:
             not_in_draft:
               summary: Resource not in draft space
               value:
-                message: "integration with ID '9e301671-382d-4c1a-9abf-3d9d9544789c' is not in draft space"
+                message: "Integration [9e301671-382d-4c1a-9abf-3d9d9544789c] is not in draft space"
                 status: 400
             has_dependencies:
               summary: Resource has dependent resources

@@ -28,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
@@ -224,7 +225,10 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             if (!Space.DRAFT.equals(spaceName)) {
                 return new RestResponse(
                         String.format(
-                                Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_DRAFT, Constants.KEY_INTEGRATION, id),
+                                Locale.ROOT,
+                                Constants.E_400_RESOURCE_NOT_IN_DRAFT,
+                                Strings.capitalize(Constants.KEY_INTEGRATION),
+                                id),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         } else {

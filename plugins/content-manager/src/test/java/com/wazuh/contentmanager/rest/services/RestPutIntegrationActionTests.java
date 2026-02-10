@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -539,7 +540,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
                 String.format(
                         Locale.ROOT,
                         Constants.E_400_RESOURCE_NOT_IN_DRAFT,
-                        Constants.KEY_INTEGRATION,
+                        Strings.capitalize(Constants.KEY_INTEGRATION),
                         INTEGRATION_ID));
 
         // spotless:off

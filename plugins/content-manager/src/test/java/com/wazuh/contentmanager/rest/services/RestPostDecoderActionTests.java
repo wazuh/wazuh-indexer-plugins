@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -60,7 +59,6 @@ import static org.mockito.Mockito.when;
 public class RestPostDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostDecoderAction action;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String DECODER_PAYLOAD =
             "{"
@@ -275,8 +273,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
 
-        assertTrue(
-                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
     /**
@@ -296,8 +293,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        assertTrue(
-                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
     /**
@@ -317,8 +313,7 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        assertTrue(
-                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
     /**

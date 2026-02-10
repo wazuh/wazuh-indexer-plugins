@@ -22,6 +22,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.query.TermQueryBuilder;
@@ -265,7 +266,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
                 String.format(
                         Locale.ROOT,
                         Constants.E_400_RESOURCE_NOT_IN_DRAFT,
-                        Constants.KEY_INTEGRATION,
+                        Strings.capitalize(Constants.KEY_INTEGRATION),
                         INTEGRATION_ID));
 
         // Create a RestRequest with ID parameter

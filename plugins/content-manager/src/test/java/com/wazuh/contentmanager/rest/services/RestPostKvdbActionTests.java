@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -69,7 +68,6 @@ import static org.mockito.Mockito.when;
 public class RestPostKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostKvdbAction action;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String KVDB_PAYLOAD =
             "{"
@@ -143,12 +141,12 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
     /** Test successful KVDB creation returns 201 Created and updates integration. */
     public void testPostKvdbSuccess() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(KVDB_PAYLOAD, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
                 .thenReturn(engineResponse);
 
-        Client client = buildClientForIndex();
+        Client client = this.buildClientForIndex();
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -160,7 +158,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Assert - Verify response status and message (per spec, success returns just ID)
         assertEquals(RestStatus.CREATED, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertNotNull(actualResponse.getMessage());
         assertFalse(actualResponse.getMessage().isEmpty());
 
@@ -180,7 +178,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
     /** Test that providing a resource ID on creation returns 400 Bad Request. */
     public void testPostKvdbWithIdReturns400() throws IOException {
         // Arrange
-        RestRequest request = buildRequest(KVDB_PAYLOAD_WITH_ID, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD_WITH_ID);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -193,7 +191,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
                 new RestResponse(
                         String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
                         RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
@@ -202,7 +200,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
     /** Test that missing integration field returns 400 Bad Request. */
     public void testPostKvdbMissingIntegrationReturns400() throws IOException {
         // Arrange
-        RestRequest request = buildRequest(KVDB_PAYLOAD_MISSING_INTEGRATION, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD_MISSING_INTEGRATION);
 
         // Act
         RestResponse response = this.action.handleRequest(request, null);
@@ -215,7 +213,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
                 new RestResponse(
                         String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
                         RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
@@ -225,7 +223,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
     public void testPostKvdbEngineUnavailableReturns500() throws IOException {
         // Arrange
         this.action = new RestPostKvdbAction(null);
-        RestRequest request = buildRequest(KVDB_PAYLOAD, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -237,7 +235,7 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         RestResponse expectedResponse =
                 new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
 
@@ -255,17 +253,17 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
 
     /** Test that missing integration returns 400 Bad Request. */
     public void testPostKvdbIntegrationNotFoundReturns400() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(KVDB_PAYLOAD, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientWithMissingIntegration();
+        Client client = this.buildClientWithMissingIntegration();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -274,18 +272,17 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(
-                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
     /** Test that integration without space field returns 400 Bad Request. */
     public void testPostKvdbIntegrationWithoutDocumentReturns400() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(KVDB_PAYLOAD, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientWithIntegrationWithoutDocument();
+        Client client = this.buildClientWithIntegrationWithoutDocument();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -294,18 +291,17 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(
-                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
     /** Test that integration with invalid space returns 400 Bad Request. */
     public void testPostKvdbIntegrationInvalidDocumentReturns400() throws Exception {
         // Arrange
-        RestRequest request = buildRequest(KVDB_PAYLOAD, null);
+        RestRequest request = this.buildRequest(KVDB_PAYLOAD);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = buildClientWithIntegrationInvalidDocument();
+        Client client = this.buildClientWithIntegrationInvalidDocument();
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -314,18 +310,14 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
-        RestResponse actualResponse = parseResponse(bytesRestResponse);
-        assertTrue(
-                actualResponse.getMessage().contains("integration with ID 'integration-1' not found"));
+        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
+        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
     }
 
-    private RestRequest buildRequest(String payload, String kvdbId) {
+    private RestRequest buildRequest(String payload) {
         FakeRestRequest.Builder builder =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(payload), XContentType.JSON);
-        if (kvdbId != null) {
-            builder.withParams(Map.of("id", kvdbId, "kvdb_id", kvdbId));
-        }
         return builder.build();
     }
 
