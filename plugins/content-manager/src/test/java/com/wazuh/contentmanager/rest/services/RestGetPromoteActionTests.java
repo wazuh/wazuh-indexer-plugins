@@ -30,11 +30,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -211,7 +213,12 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("Missing required parameter"));
+        assertTrue(
+                response
+                        .content()
+                        .utf8ToString()
+                        .contains(
+                                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE)));
     }
 
     /**
@@ -281,6 +288,7 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertTrue(response.content().utf8ToString().contains(Constants.E_500_INTERNAL_SERVER_ERROR));
     }
 
     /**

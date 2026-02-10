@@ -91,7 +91,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         mockSpace.put("name", Space.DRAFT.toString());
         mockDocument.put(Constants.KEY_SPACE, mockSpace);
         mockDocument.put(Constants.KEY_DOCUMENT, new HashMap<>());
-        when(this.spaceService.getDocument(anyString(), anyString(), anyString())).thenReturn(mockDocument);
+        when(this.spaceService.getDocument(anyString(), anyString(), anyString()))
+                .thenReturn(mockDocument);
 
         // Mock getResourcesBySpace to return empty maps (target space is empty)
         when(this.spaceService.getResourcesBySpace(anyString(), anyString()))
@@ -148,7 +149,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock expected response
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(500);
-        expectedResponse.setMessage("Index [.cti-decoders] not found.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Mock request - contains decoder with id "12345"
         RestRequest request = this.mockValidRequest();
@@ -163,7 +164,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
 
         // Verify
         assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        assertEquals(expectedResponse.getMessage(), actualResponse.getMessage());
     }
 
     /** If the engine does not respond, return a 500 error. */
@@ -306,7 +307,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock expected response
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(400);
-        expectedResponse.setMessage(Constants.E_400_JSON_REQUEST_BODY_IS_REQUIRED);
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Mock request
         RestRequest request = mock(RestRequest.class);
@@ -463,7 +464,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Map<String, Object> mockIntegrationDoc = new HashMap<>();
         mockIntegrationDoc.put("id", "integration");
         mockIntegration.put(Constants.KEY_DOCUMENT, mockIntegrationDoc);
-        when(this.spaceService.getDocument(eq(Constants.INDEX_INTEGRATIONS), eq("test"), eq("integration")))
+        when(this.spaceService.getDocument(
+                        eq(Constants.INDEX_INTEGRATIONS), eq("test"), eq("integration")))
                 .thenReturn(mockIntegration);
 
         // Mock decoder-1 for ADD operation (decoder-1 exists in draft space, not in test)
