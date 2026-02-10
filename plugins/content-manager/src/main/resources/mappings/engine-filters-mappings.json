@@ -1,6 +1,5 @@
 {
   "dynamic": "strict",
-  "date_detection": false,
   "properties": {
     "filter": {
       "properties": {

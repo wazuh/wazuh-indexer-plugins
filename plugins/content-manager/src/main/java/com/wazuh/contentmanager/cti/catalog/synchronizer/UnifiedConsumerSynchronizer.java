@@ -61,6 +61,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     public static final String DECODER = "decoder";
     public static final String KVDB = "kvdb";
     public static final String INTEGRATION = "integration";
+    public static final String FILTER = "filter";
 
     /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
@@ -113,6 +114,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         mappings.put(DECODER, "/mappings/cti-decoders-mappings.json");
         mappings.put(KVDB, "/mappings/cti-kvdbs-mappings.json");
         mappings.put(INTEGRATION, "/mappings/cti-integrations-mappings.json");
+        mappings.put(FILTER, "/mappings/engine-filters-mappings.json");
         mappings.put(POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
     }
@@ -136,6 +138,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             case DECODER -> ".cti-decoders";
             case KVDB -> ".cti-kvdbs";
             case INTEGRATION -> ".cti-integrations";
+            case FILTER -> ".engine-filters";
             case POLICY -> ".cti-policies";
             default -> super.getIndexName(type);
         };
@@ -149,6 +152,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                     Constants.INDEX_DECODERS,
                     Constants.INDEX_KVDBS,
                     Constants.INDEX_INTEGRATIONS,
+                    Constants.INDEX_FILTERS,
                     Constants.INDEX_POLICIES);
 
             // Initialize default spaces if they don't exist
