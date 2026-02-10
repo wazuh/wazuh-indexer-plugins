@@ -18,9 +18,6 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -45,7 +42,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -209,7 +205,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             // 3. Update policy
             String policyId = this.updatePolicy(policy);
 
-            // Regenerate space hash because policy content changed
+            // Regenerate space hash because space composition changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
             return new RestResponse(
@@ -276,15 +272,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
         policy.setId(docId);
         policy.setDate(docCreationDate);
         policy.setModified(docModificationDate);
-        Map<String, Object> policyMap = policy.toMap();
-        currentPolicy.put(Constants.KEY_DOCUMENT, policyMap);
 
-        // Calculate document hash
-        String docJson = mapper.writeValueAsString(policyMap);
-        String docHash = HashCalculator.sha256(docJson);
-        currentPolicy.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+        // Convert Policy to JsonNode
+        JsonNode policyNode = mapper.valueToTree(policy);
 
-        // Update in index
+        // Update in index - ContentUtils.buildCtiWrapper will calculate hash automatically
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
         QueryBuilder query = QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
         SearchRequest searchRequest =
@@ -303,10 +295,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
             }
 
             String draftPolicyId = searchResponse.getHits().getAt(0).getId();
-            // Convert Map to Gson JsonObject via JSON string
-            String jsonString = mapper.writeValueAsString(currentPolicy);
-            JsonObject gsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
-            IndexResponse indexResponse = index.create(draftPolicyId, gsonObject);
+            
+            // Build CTI wrapper with automatic hash calculation
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(
+                    Constants.KEY_POLICY, policyNode, Space.DRAFT.toString());
+            
+            IndexResponse indexResponse = index.create(draftPolicyId, ctiWrapper);
 
             return indexResponse.getId();
         } catch (Exception e) {

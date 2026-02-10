@@ -266,7 +266,8 @@ public class ContentIndex {
         IndexRequest request =
                 new IndexRequest(this.indexName)
                         .id(id)
-                        .source(processedPayload.toString(), XContentType.JSON);
+                        .source(processedPayload.toString(), XContentType.JSON)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         try {
             return this.client
                     .index(request)

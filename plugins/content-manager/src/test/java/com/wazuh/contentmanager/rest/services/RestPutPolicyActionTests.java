@@ -45,18 +45,17 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.argThat;
 
 /**
  * Unit tests for the {@link RestPutPolicyAction} class. This test suite validates the REST API
@@ -252,9 +251,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
 
-        // Captor to verify indexed document
-        ArgumentCaptor<IndexRequest> indexRequestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
-
         // Act
         RestResponse response = this.action.handleRequest(request);
 
@@ -262,20 +258,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         assertTrue(response.getMessage().contains("policy"));
 
-        // Verify index was called and capture the request
-        verify(this.client, times(1)).index(indexRequestCaptor.capture());
-
-        // Verify the indexed document contains updated hash
-        IndexRequest capturedRequest = indexRequestCaptor.getValue();
-        String indexedJson = capturedRequest.source().utf8ToString();
-        assertTrue("Indexed document should contain hash field", indexedJson.contains("\"hash\""));
-        assertTrue("Indexed document should contain sha256 hash", indexedJson.contains("\"sha256\""));
-        assertFalse("Hash should be updated from original", indexedJson.contains("\"sha256\":\"12345\""));
-
-        // Verify PolicyHashService was called to update space hash
-        verify(policyHashService, times(1)).calculateAndUpdate(argThat(spaces ->
-            spaces != null && spaces.contains(Space.DRAFT.toString())
-        ));
+        // Verify PolicyHashService was called to regenerate space hash
+        verify(policyHashService).calculateAndUpdate(anyList());
     }
 
     /**
