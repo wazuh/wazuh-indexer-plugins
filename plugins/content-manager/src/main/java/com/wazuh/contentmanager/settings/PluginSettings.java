@@ -147,7 +147,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Unified Context for Content. */
+    /** Context for IoC Content. */
     public static final Setting<String> IOC_CONTEXT =
             Setting.simpleString(
                     "plugins.content_manager.ioc.content.context",
@@ -155,7 +155,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Unified Consumer for Content. */
+    /** Consumer for IoC Content. */
     public static final Setting<String> IOC_CONSUMER =
             Setting.simpleString(
                     "plugins.content_manager.ioc.content.consumer",
