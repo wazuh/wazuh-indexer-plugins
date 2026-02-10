@@ -194,7 +194,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
 
         // Check if security analytics service exists
         if (this.service == null) {
-            this.log.error(Constants.E_SECURITY_ANALYTICS_IS_NULL);
+            this.log.error(Constants.E_LOG_SECURITY_ANALYTICS_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
@@ -372,7 +372,11 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             return new RestResponse(id, RestStatus.OK.getStatus());
         } catch (Exception e) {
             this.log.error(
-                    Constants.E_OPERATION_FAILED, "deleting", Constants.KEY_INTEGRATION, e.getMessage(), e);
+                    Constants.E_LOG_OPERATION_FAILED,
+                    "deleting",
+                    Constants.KEY_INTEGRATION,
+                    e.getMessage(),
+                    e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

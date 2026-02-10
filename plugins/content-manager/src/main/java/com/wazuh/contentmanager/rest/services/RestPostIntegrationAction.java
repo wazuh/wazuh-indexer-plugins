@@ -207,12 +207,12 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                 request.uri());
 
         if (this.engine == null) {
-            this.log.error(Constants.E_ENGINE_IS_NULL);
+            this.log.error(Constants.E_LOG_ENGINE_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         if (this.service == null) {
-            this.log.error(Constants.E_SECURITY_ANALYTICS_IS_NULL);
+            this.log.error(Constants.E_LOG_SECURITY_ANALYTICS_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
@@ -305,7 +305,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             MAPPER.readTree(validationResponse.getMessage()).isObject();
         } catch (Exception e) {
-            this.log.error(Constants.E_ENGINE_VALIDATION, validationResponse.getMessage(), e);
+            this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage(), e);
             this.service.deleteIntegration(id);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -313,7 +313,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // If validation failed, delete the created integration in SAP
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-            this.log.error(Constants.E_ENGINE_VALIDATION, validationResponse.getMessage());
+            this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             this.service.deleteIntegration(id);
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());

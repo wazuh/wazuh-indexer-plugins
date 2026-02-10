@@ -53,12 +53,12 @@ public class Constants {
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
 
     // Logger Errors
-    public static final String E_ENGINE_IS_NULL = "Engine instance unavailable.";
-    public static final String E_SECURITY_ANALYTICS_IS_NULL =
+    public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
+    public static final String E_LOG_SECURITY_ANALYTICS_IS_NULL =
             "Security Analytics instance unavailable.";
-    public static final String E_ENGINE_VALIDATION = "Engine validation failed: {}";
-    public static final String E_INDEX_NOT_FOUND = "Index [{}] not found.";
-    public static final String E_OPERATION_FAILED = "Error {} {}: {}";
+    public static final String E_LOG_ENGINE_VALIDATION = "Engine validation failed: {}";
+    public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
+    public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
     // Logger Warnings

@@ -137,7 +137,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
-                log.error(Constants.E_ENGINE_IS_NULL);
+                log.error(Constants.E_LOG_ENGINE_IS_NULL);
                 return new RestResponse(
                                 Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                         .toBytesRestResponse();
@@ -161,7 +161,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
 
             // Ensure Index Exists
             if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
-                log.error(Constants.E_INDEX_NOT_FOUND, Constants.INDEX_DECODERS);
+                log.error(Constants.E_LOG_INDEX_NOT_FOUND, Constants.INDEX_DECODERS);
                 return new RestResponse(
                                 Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                         .toBytesRestResponse();
@@ -196,7 +196,8 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
 
             return new RestResponse(decoderId, RestStatus.OK.getStatus()).toBytesRestResponse();
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "deleting", Constants.KEY_DECODER, e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "deleting", Constants.KEY_DECODER, e.getMessage(), e);
             return new RestResponse(
                             Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                     .toBytesRestResponse();

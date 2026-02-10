@@ -129,7 +129,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request) {
         // 1. Check if engine service exists
         if (this.engine == null) {
-            log.error(Constants.E_ENGINE_IS_NULL);
+            log.error(Constants.E_LOG_ENGINE_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
@@ -155,7 +155,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // Check if engine validation was successful
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
                     && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                log.warn(Constants.E_ENGINE_VALIDATION, engineResponse.getMessage());
+                log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
                 log.error(mapper.writeValueAsString(context.enginePayload));
                 return engineResponse;
             }
@@ -178,15 +178,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             return new RestResponse(message, RestStatus.BAD_REQUEST.getStatus());
         } catch (IndexNotFoundException e) {
-            log.error(Constants.E_OPERATION_FAILED, "promoting", "index", e.getMessage(), e);
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (IOException e) {
-            log.error(Constants.E_OPERATION_FAILED, "promoting", "IO", e.getMessage(), e);
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "promoting", "space", e.getMessage(), e);
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

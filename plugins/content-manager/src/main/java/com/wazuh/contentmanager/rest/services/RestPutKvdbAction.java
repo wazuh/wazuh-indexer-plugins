@@ -195,7 +195,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             // Validate with engine
             RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-                log.error(Constants.E_ENGINE_VALIDATION, engineResponse.getMessage());
+                log.error(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -211,7 +211,8 @@ public class RestPutKvdbAction extends BaseRestHandler {
             return new RestResponse(kvdbId, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "updating", Constants.KEY_KVDB, e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_KVDB, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

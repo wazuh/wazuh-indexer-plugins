@@ -229,7 +229,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

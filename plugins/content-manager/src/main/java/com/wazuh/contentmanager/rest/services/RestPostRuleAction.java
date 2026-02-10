@@ -212,7 +212,8 @@ public class RestPostRuleAction extends BaseRestHandler {
                 client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
                 log.info(Constants.I_LOG_SUCCESS, "Created", Constants.KEY_RULE, ruleId);
             } catch (Exception e) {
-                log.error(Constants.E_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
+                log.error(
+                        Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -230,7 +231,8 @@ public class RestPostRuleAction extends BaseRestHandler {
             return new RestResponse(ruleId, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

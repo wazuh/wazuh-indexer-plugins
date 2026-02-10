@@ -137,7 +137,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
-                log.error(Constants.E_ENGINE_IS_NULL);
+                log.error(Constants.E_LOG_ENGINE_IS_NULL);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -159,7 +159,7 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
 
             // Ensure Index Exists
             if (!IndexHelper.indexExists(client, Constants.INDEX_KVDBS)) {
-                log.error(Constants.E_INDEX_NOT_FOUND, Constants.INDEX_KVDBS);
+                log.error(Constants.E_LOG_INDEX_NOT_FOUND, Constants.INDEX_KVDBS);
                 return new RestResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
@@ -191,7 +191,8 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
 
             return new RestResponse(kvdbId, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "deleting", Constants.KEY_KVDB, e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "deleting", Constants.KEY_KVDB, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

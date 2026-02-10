@@ -106,7 +106,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request) {
         // 1. Check if engine service exists
         if (this.engine == null) {
-            log.error(Constants.E_ENGINE_IS_NULL);
+            log.error(Constants.E_LOG_ENGINE_IS_NULL);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

@@ -185,7 +185,8 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             return new RestResponse(ruleId, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
-            log.error(Constants.E_OPERATION_FAILED, "deleting", Constants.KEY_RULE, e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "deleting", Constants.KEY_RULE, e.getMessage(), e);
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
