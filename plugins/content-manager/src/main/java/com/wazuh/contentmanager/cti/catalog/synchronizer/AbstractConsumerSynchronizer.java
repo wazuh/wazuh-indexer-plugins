@@ -144,6 +144,7 @@ public abstract class AbstractConsumerSynchronizer {
             case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
             case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
             case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_FILTERS -> Constants.INDEX_FILTERS;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
     }
