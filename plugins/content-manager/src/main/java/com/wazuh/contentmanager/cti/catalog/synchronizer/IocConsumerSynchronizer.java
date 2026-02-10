@@ -35,10 +35,10 @@ import com.wazuh.contentmanager.utils.Constants;
 public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getInstance().getIocContext();
+    private final String iocContext = PluginSettings.getInstance().getIocContext();
 
     /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getInstance().getIocConsumer();
+    private final String iocConsumer = PluginSettings.getInstance().getIocConsumer();
 
     private final IocProcessor iocProcessor;
 
@@ -57,12 +57,12 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     @Override
     protected String getContext() {
-        return this.CONTEXT;
+        return this.iocContext;
     }
 
     @Override
     protected String getConsumer() {
-        return this.CONSUMER;
+        return this.iocConsumer;
     }
 
     @Override
