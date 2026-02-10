@@ -169,6 +169,8 @@ paths:
                 $ref: "#/components/schemas/ResourceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /kvdbs/{kvdb_id}:
     put:
@@ -194,6 +196,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     delete:
       tags: [KVDBs]
@@ -204,8 +208,12 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Decoder management endpoints
   /decoders:
@@ -342,6 +350,8 @@ paths:
       tags: [Rules]
       summary: Create Rule
       description: |
+        Creates a rule in the draft space. The server generates the UUID.
+        The rule is validated against the Wazuh engine before being stored.
         Payload is identical to POST /_plugins/_security_analytics/rules.
       operationId: createRule
       requestBody:
@@ -357,12 +367,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /rules/{rule_id}:
     put:
       tags: [Rules]
       summary: Update Rule
-      description: Updates an existing rule in the draft space and returns its identifier.
+      description: |
+        Updates an existing rule in the draft space and returns its identifier.
+        The rule is validated against the Wazuh engine before being stored.
       operationId: updateRule
       parameters:
         - $ref: "#/components/parameters/RuleId"
@@ -379,18 +395,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     delete:
       tags: [Rules]
       summary: Delete Rule
+      description: |
+        Deletes a rule from the draft space. The rule is also removed from any integrations that reference it.
       operationId: deleteRule
       parameters:
         - $ref: "#/components/parameters/RuleId"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Integration metadata management endpoints
   /integrations:
@@ -437,7 +465,7 @@ paths:
                     references:
                       - "https://httpd.apache.org/docs/current/logs.html"
       responses:
-        "200":
+        "201":
           description: Integration created successfully
           content:
             application/json:
@@ -447,7 +475,7 @@ paths:
                 created:
                   summary: Integration created successfully
                   value:
-                    message: "Integration created successfully with ID: d_9e301671-382d-4c1a-9abf-3d9d9544789c"
+                    id: "9e301671-382d-4c1a-9abf-3d9d9544789c"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
@@ -512,7 +540,7 @@ paths:
                 updated:
                   summary: Integration updated successfully
                   value:
-                    message: "Integration updated successfully with ID: d_9e301671-382d-4c1a-9abf-3d9d9544789c"
+                    id: "9e301671-382d-4c1a-9abf-3d9d9544789c"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -547,7 +575,7 @@ paths:
                 deleted:
                   summary: Integration deleted successfully
                   value:
-                    message: "Integration deleted successfully with ID: d_9e301671-382d-4c1a-9abf-3d9d9544789c"
+                    id: "9e301671-382d-4c1a-9abf-3d9d9544789c"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -1476,16 +1504,45 @@ components:
 
     # --- Error Responses ---
     BadRequest:
-      description: Bad Request - Invalid input parameters.
+      description: |
+        Bad Request - The request could not be processed due to invalid input.
+
+        Common causes:
+        - Missing required fields in the request body
+        - Invalid field format (e.g., invalid UUID)
+        - Invalid resource type
+        - Engine validation failed (payload does not pass Wazuh Engine validation)
+        - Resource not in draft space (only draft resources can be modified)
+        - Resource has dependent resources that must be deleted first
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/RestErrorResponse"
           examples:
-            missing_parameter:
-              summary: Missing required parameter
+            missing_field:
+              summary: Missing required field
               value:
-                message: "Required parameter 'client_id' is missing."
+                message: "Missing [id] field."
+                status: 400
+            invalid_body:
+              summary: Invalid request body
+              value:
+                message: "Invalid request body"
+                status: 400
+            invalid_uuid:
+              summary: Invalid UUID format
+              value:
+                message: "'invalid-id' is not a valid UUID"
+                status: 400
+            not_in_draft:
+              summary: Resource not in draft space
+              value:
+                message: "integration with ID '9e301671-382d-4c1a-9abf-3d9d9544789c' is not in draft space"
+                status: 400
+            has_dependencies:
+              summary: Resource has dependent resources
+              value:
+                message: "Cannot delete integration because it has decoders attached"
                 status: 400
 
     Unauthorized:
@@ -1510,6 +1567,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/RestErrorResponse"
+          examples:
+            resource_not_found:
+              summary: Resource not found
+              value:
+                message: "Resource not found"
+                status: 404
 
     Conflict:
       description: Conflict - Undergoing content update.
@@ -1557,7 +1620,14 @@ components:
                 error: "Too many update requests. Please try again later."
 
     InternalServerError:
-      description: Internal Server Error - Server encountered an unexpected error.
+      description: |
+        Internal Server Error - The server encountered an unexpected error.
+
+        Common causes:
+        - Engine service is unavailable
+        - Security Analytics service is unavailable
+        - Indexer operation failed
+        - Unexpected exception during processing
       content:
         application/json:
           schema:
@@ -1566,7 +1636,7 @@ components:
             internal_error:
               summary: Internal server error
               value:
-                message: "An unexpected error occurred while processing your request."
+                message: "Internal Server Error"
                 status: 500
 
     # Response body for logtest execution results (pass-through)

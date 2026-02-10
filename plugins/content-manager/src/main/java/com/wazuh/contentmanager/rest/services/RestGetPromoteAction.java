@@ -225,7 +225,6 @@ public class RestGetPromoteAction extends BaseRestHandler {
     private boolean isPolicyDifferent(Map<String, Object> sourceDoc, Map<String, Object> targetDoc)
             throws IllegalStateException {
         if (sourceDoc == null || targetDoc == null) {
-            // TODO: LOG
             throw new IllegalStateException(Constants.E_500_INTERNAL_SERVER_ERROR);
         }
 

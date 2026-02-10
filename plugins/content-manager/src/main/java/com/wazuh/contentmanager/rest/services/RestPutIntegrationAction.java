@@ -385,7 +385,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
             this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {

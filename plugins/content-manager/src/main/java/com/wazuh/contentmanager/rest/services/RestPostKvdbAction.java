@@ -156,7 +156,7 @@ public class RestPostKvdbAction extends BaseRestHandler {
             if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
                 log.error(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
                 return new RestResponse(
-                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Create KVDB in Index
