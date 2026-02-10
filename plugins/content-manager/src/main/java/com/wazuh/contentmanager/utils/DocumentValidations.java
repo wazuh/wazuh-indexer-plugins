@@ -26,6 +26,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
 import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -109,6 +110,48 @@ public class DocumentValidations {
         if (error != null) {
             return new RestResponse(error, RestStatus.BAD_REQUEST.getStatus());
         }
+        return null;
+    }
+
+    /**
+     * Validates that a document exists in any of the provided list of spaces.
+     *
+     * @param client the OpenSearch client
+     * @param index the index to search in
+     * @param docId document ID to validate
+     * @param docType the document type name for error messages (e.g., "Decoder", "Integration")
+     * @param spaces the list of valid {@link Space} values to check against, must not be null or
+     *     empty
+     * @return an error message if validation fails, null otherwise
+     */
+    public static String validateDocumentInSpace(
+            Client client, String index, String docId, String docType, List<Space> spaces) {
+        GetResponse response = client.prepareGet(index, docId).get();
+
+        if (!response.isExists()) {
+            return docType + " [" + docId + "] not found.";
+        }
+
+        Map<String, Object> source = response.getSourceAsMap();
+        if (source == null || !source.containsKey(KEY_SPACE)) {
+            return docType + " [" + docId + "] does not have space information.";
+        }
+
+        Object spaceObj = source.get(KEY_SPACE);
+        if (!(spaceObj instanceof Map)) {
+            return docType + " [" + docId + "] has invalid space information.";
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+        Object spaceName = spaceMap.get(KEY_NAME);
+
+        boolean match =
+                spaces.stream().anyMatch(space -> space.name().equalsIgnoreCase(String.valueOf(spaceName)));
+        if (!match) {
+            return docType + " [" + docId + "] is not in any of the provided spaces.";
+        }
+
         return null;
     }
 
