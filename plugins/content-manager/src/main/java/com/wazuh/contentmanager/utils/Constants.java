@@ -124,6 +124,7 @@ public class Constants {
     public static final String KEY_LOGSOURCE = "logsource";
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
+    public static final String KEY_FILTER = "filter";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
