@@ -316,7 +316,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             this.log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             this.service.deleteIntegration(id);
             return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // From here on, we should roll back SAP integration on any error to avoid partial state.
