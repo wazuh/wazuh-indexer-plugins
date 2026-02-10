@@ -190,7 +190,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 missingFields.add(Constants.KEY_AUTHOR);
             }
             if (policy.getDescription() == null || policy.getDescription().isEmpty()) {
-                missingFields.add("description");
+                missingFields.add(Constants.KEY_DESCRIPTION);
             }
             if (policy.getDocumentation() == null) {
                 missingFields.add("documentation");

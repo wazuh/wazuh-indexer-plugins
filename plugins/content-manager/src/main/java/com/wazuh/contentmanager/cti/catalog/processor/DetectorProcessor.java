@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.utils.CategoryFormatter;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WIndexDetectorAction;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 
@@ -109,12 +110,12 @@ public class DetectorProcessor extends AbstractProcessor {
             return;
         }
 
-        String name = doc.has("title") ? doc.get("title").getAsString() : "";
+        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).getAsString() : "";
         String category = CategoryFormatter.format(doc, true);
 
         List<String> rules = new ArrayList<>();
-        if (doc.has("rules")) {
-            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+        if (doc.has(Constants.KEY_RULES)) {
+            doc.get(Constants.KEY_RULES).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
         }
 
         try {

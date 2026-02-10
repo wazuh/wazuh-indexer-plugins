@@ -47,24 +47,6 @@ public class PolicyHashService {
 
     private static final Logger log = LogManager.getLogger(PolicyHashService.class);
 
-    /** Field name for the space metadata within documents. */
-    public static final String SPACE = "space";
-
-    /** Field name for the main document content within index records. */
-    public static final String DOCUMENT = "document";
-
-    /** Field name for the decoders collection within integration documents. */
-    public static final String DECODERS = "decoders";
-
-    /** Field name for the key-value databases collection within integration documents. */
-    public static final String KVDBS = "kvdbs";
-
-    /** Field name for the rules collection within integration documents. */
-    public static final String RULES = "rules";
-
-    /** Field name for the integrations collection within policy documents. */
-    public static final String INTEGRATIONS = "integrations";
-
     /** OpenSearch client for executing index operations and search requests. */
     private final Client client;
 
@@ -115,9 +97,9 @@ public class PolicyHashService {
             for (SearchHit hit : response.getHits().getHits()) {
                 Map<String, Object> source = hit.getSourceAsMap();
 
-                Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
+                Map<String, Object> space = (Map<String, Object>) source.get(Constants.KEY_SPACE);
                 if (space != null) {
-                    String spaceName = (String) space.get("name");
+                    String spaceName = (String) space.get(Constants.KEY_NAME);
                     // Check if the policy is in one of the target spaces
                     if (!targetSpaces.contains(spaceName)) {
                         log.info(
@@ -131,9 +113,9 @@ public class PolicyHashService {
                 List<String> spaceHashes = new ArrayList<>();
                 spaceHashes.add(HashCalculator.extractHash(source));
 
-                Map<String, Object> document = (Map<String, Object>) source.get(DOCUMENT);
-                if (document != null && document.containsKey(INTEGRATIONS)) {
-                    List<String> integrationIds = (List<String>) document.get(INTEGRATIONS);
+                Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                if (document != null && document.containsKey(Constants.KEY_INTEGRATIONS)) {
+                    List<String> integrationIds = (List<String>) document.get(Constants.KEY_INTEGRATIONS);
 
                     for (String integrationId : integrationIds) {
                         Map<String, Object> integrationSource =
@@ -145,11 +127,13 @@ public class PolicyHashService {
 
                         spaceHashes.add(HashCalculator.extractHash(integrationSource));
 
-                        Map<String, Object> integration = (Map<String, Object>) integrationSource.get(DOCUMENT);
+                        Map<String, Object> integration =
+                                (Map<String, Object>) integrationSource.get(Constants.KEY_DOCUMENT);
                         if (integration != null) {
-                            this.addHashes(integration, DECODERS, Constants.INDEX_DECODERS, spaceHashes);
-                            this.addHashes(integration, KVDBS, Constants.INDEX_KVDBS, spaceHashes);
-                            this.addHashes(integration, RULES, Constants.INDEX_RULES, spaceHashes);
+                            this.addHashes(
+                                    integration, Constants.KEY_DECODERS, Constants.INDEX_DECODERS, spaceHashes);
+                            this.addHashes(integration, Constants.KEY_KVDBS, Constants.INDEX_KVDBS, spaceHashes);
+                            this.addHashes(integration, Constants.KEY_RULES, Constants.INDEX_RULES, spaceHashes);
                         }
                     }
                 }
@@ -158,13 +142,13 @@ public class PolicyHashService {
 
                 Map<String, Object> updateMap = new HashMap<>();
                 Map<String, Object> spaceMap =
-                        (Map<String, Object>) source.getOrDefault(SPACE, new HashMap<>());
+                        (Map<String, Object>) source.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
                 Map<String, Object> hashMap =
-                        (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
+                        (Map<String, Object>) spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
 
-                hashMap.put("sha256", spaceHash);
-                spaceMap.put("hash", hashMap);
-                updateMap.put(SPACE, spaceMap);
+                hashMap.put(Constants.KEY_SHA256, spaceHash);
+                spaceMap.put(Constants.KEY_HASH, hashMap);
+                updateMap.put(Constants.KEY_SPACE, spaceMap);
 
                 bulkUpdateRequest.add(
                         new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())

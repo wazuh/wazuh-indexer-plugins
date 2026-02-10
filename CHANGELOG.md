@@ -58,7 +58,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add draft policy update endpoint [(#758)](https://github.com/wazuh/wazuh-indexer-plugins/pull/758) [(#762)](https://github.com/wazuh/wazuh-indexer-plugins/pull/762)
 - Create integrations with no rules in the SAP [(#765)](https://github.com/wazuh/wazuh-indexer-plugins/pull/765)
 - Create default policies for user content spaces [(#767)](https://github.com/wazuh/wazuh-indexer-plugins/pull/767)
-- Add  enrichments fields in stateless indices [(#777)](https://github.com/wazuh/wazuh-indexer-plugins/pull/777)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -91,7 +90,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Merge `cloud-services` categories [(#710)](https://github.com/wazuh/wazuh-indexer-plugins/pull/710)
 - Send Integration ID to SAP for detector creation [(#712)](https://github.com/wazuh/wazuh-indexer-plugins/pull/712)
 - Update Content Manager docs [(#716)](https://github.com/wazuh/wazuh-indexer-plugins/pull/716)
-- Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725) [(#787)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725)
+- Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725) [(#787)](https://github.com/wazuh/wazuh-indexer-plugins/pull/787) [(#789)](https://github.com/wazuh/wazuh-indexer-plugins/pull/789)
 - Update content spaces [(#724)](https://github.com/wazuh/wazuh-indexer-plugins/pull/724)
 - Extend JsonPatch to process JsonArray [(#729)](https://github.com/wazuh/wazuh-indexer-plugins/pull/729)
 - Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)

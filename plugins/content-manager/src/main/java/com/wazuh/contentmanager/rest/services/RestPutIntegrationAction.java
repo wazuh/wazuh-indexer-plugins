@@ -51,6 +51,7 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -187,11 +188,10 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Check if engine service exists
-        if (this.engine == null) {
-            this.log.error("Engine instance is null");
-            return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        // Validate prerequisites
+        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
+        if (validationError != null) {
+            return validationError;
         }
 
         // Check if security analytics service exists
@@ -200,12 +200,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Security Analytics service instance is null.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check request's payload exists
-        if (!request.hasContent()) {
-            this.log.warn("Request rejected: JSON request body missing");
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check request's payload is valid JSON
@@ -396,13 +390,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             this.log.debug(
                     "Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
-            ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload
-                    .putObject(Constants.KEY_SPACE)
-                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
-            IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(id, integrationsIndexPayload);
+
+            JsonNode ctiWrapper =
+                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
+
+            IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 
             // Check indexing response. We are expecting for a 200 OK status for update.
             if (integrationIndexResponse == null
