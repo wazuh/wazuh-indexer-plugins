@@ -179,7 +179,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Path zipPath =
                 this.createZipFileWithContent(
                         "data.json",
-                        "{\"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}");
+                        "{\"name\": \"12345678\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}");
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -220,7 +220,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         Path zipPath =
                 this.createZipFileWithContent(
-                        "policy.json", "{\"payload\": {\"type\": \"policy\", \"document\": {\"id\": \"p1\"}}}");
+                        "policy.json",
+                        "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"policy\", \"document\": {\"id\": \"123\"}}}");
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -234,7 +235,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
 
         assertEquals(".test-context-test-consumer-policy", request.index());
-        assertEquals("p1", request.id());
+        assertEquals("123", request.id());
     }
 
     /**
@@ -249,7 +250,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"decoder\", \"document\": {\"name\": \"syslog\", \"parent\": \"root\"}}}";
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"decoder\", \"document\": {\"name\": \"syslog\", \"parent\": \"root\"}}}";
         Path zipPath = this.createZipFileWithContent("decoder.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
@@ -274,7 +275,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-123\", \"type\": \"test-value\"}}}}";
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-123\", \"type\": \"test-value\"}}}}";
         Path zipPath = this.createZipFileWithContent("sigma.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
@@ -321,7 +322,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R2\", \"related\": [{\"sigma_id\": \"999\"}]}}}";
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R2\", \"related\": [{\"sigma_id\": \"999\"}]}}}";
         Path zipPath = this.createZipFileWithContent("sigma_array.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
@@ -348,9 +349,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // spotless:off
         String jsonContent =
             """
-                {"payload": {"type": "reputation", "document": {"id": "1", "ip": "1.1.1.1"}}}
+                {"name": "123", "offset": 1, "payload": {"type": "reputation", "document": {"id": "1", "ip": "1.1.1.1"}}}
                 THIS_IS_NOT_JSON_{{}}
-                {"payload": {"type": "reputation", "document": {"id": "2", "ip": "2.2.2.2"}}}""";
+                {"name": "123", "offset": 1, "payload": {"type": "reputation", "document": {"id": "2", "ip": "2.2.2.2"}}}""";
         // spotless:on
         Path zipPath = this.createZipFileWithContent("mixed.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
@@ -382,7 +383,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"decoder\", \"document\": "
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"decoder\", \"document\": "
                         + "{\"check\": \"some_regex\", \"name\": \"ssh-decoder\", \"parents\": [\"root\"]}}}";
 
         Path zipPath = this.createZipFileWithContent("decoder_order.json", jsonContent);

@@ -66,6 +66,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Ioc;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
@@ -510,10 +511,13 @@ public class ContentIndex {
 
             Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
-            resource =
-                    (Constants.KEY_DECODER.equalsIgnoreCase(type))
-                            ? Decoder.fromPayload(payload)
-                            : Resource.fromPayload(payload);
+            if (Constants.KEY_DECODER.equalsIgnoreCase(type)) {
+                resource = Decoder.fromPayload(payload);
+            } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
+                resource = Ioc.fromPayload(payload);
+            } else {
+                resource = Resource.fromPayload(payload);
+            }
 
             // 2. Convert Model back to JsonObject for OpenSearch indexing
             String jsonString = this.mapper.writeValueAsString(resource);

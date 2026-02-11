@@ -327,7 +327,9 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
                 PluginSettings.CONTENT_CONTEXT,
-                PluginSettings.CONTENT_CONSUMER);
+                PluginSettings.CONTENT_CONSUMER,
+                PluginSettings.IOC_CONTEXT,
+                PluginSettings.IOC_CONSUMER);
     }
 
     /**

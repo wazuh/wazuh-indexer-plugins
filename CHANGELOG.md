@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add kvdb management endpoints [(#752)](https://github.com/wazuh/wazuh-indexer-plugins/pull/752)
 - Add draft policy update endpoint [(#758)](https://github.com/wazuh/wazuh-indexer-plugins/pull/758) [(#762)](https://github.com/wazuh/wazuh-indexer-plugins/pull/762)
 - Create integrations with no rules in the SAP [(#765)](https://github.com/wazuh/wazuh-indexer-plugins/pull/765)
+- Download IoC from CTI API [(#779)](https://github.com/wazuh/wazuh-indexer-plugins/pull/779)
 - Create default policies for user content spaces [(#767)](https://github.com/wazuh/wazuh-indexer-plugins/pull/767)
 - Add engine filters index [(#798)](https://github.com/wazuh/wazuh-indexer-plugins/pull/798)
 
