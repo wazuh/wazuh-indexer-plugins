@@ -118,6 +118,10 @@ public class DetectorProcessor extends AbstractProcessor {
             doc.get(Constants.KEY_RULES).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
         }
 
+        if (!this.pluginSettings.getCreateDetectors()) {
+            return;
+        }
+
         try {
             WIndexDetectorRequest request =
                     new WIndexDetectorRequest(

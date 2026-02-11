@@ -47,6 +47,7 @@ public class PluginSettings {
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
     private static final boolean DEFAULT_UPDATE_ON_START = true;
     private static final boolean DEFAULT_UPDATE_ON_SCHEDULE = true;
+    private static final boolean DEFAULT_CREATE_DETECTORS = true;
 
     // Default values for Context and Consumer
     private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
@@ -127,6 +128,14 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Setting to enable/disable the content update job. */
+    public static final Setting<Boolean> CREATE_DETECTORS =
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.create_detectors",
+                    DEFAULT_CREATE_DETECTORS,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Unified Context for Content. */
     public static final Setting<String> CONTENT_CONTEXT =
             Setting.simpleString(
@@ -152,6 +161,7 @@ public class PluginSettings {
     private final boolean updateOnSchedule;
     private final String contentContext;
     private final String contentConsumer;
+    private final boolean createDetectors;
 
     /**
      * Private default constructor
@@ -168,6 +178,7 @@ public class PluginSettings {
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
         this.contentContext = CONTENT_CONTEXT.get(settings);
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
+        this.createDetectors = CREATE_DETECTORS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -277,6 +288,15 @@ public class PluginSettings {
      */
     public String getContentConsumer() {
         return this.contentConsumer;
+    }
+
+    /**
+     * Retrieves the Content Consumer.
+     *
+     * @return the consumer string.
+     */
+    public boolean getCreateDetectors() {
+        return this.createDetectors;
     }
 
     @Override

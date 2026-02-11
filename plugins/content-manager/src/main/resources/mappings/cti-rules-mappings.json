@@ -1,47 +1,20 @@
 {
-  "dynamic": "true",
-  "dynamic_templates": [
-    {
-      "detection_fields": {
-        "path_match": "document.detection.*",
-        "path_unmatch": "document.detection.condition",
-        "mapping": {
-          "type": "object",
-          "enabled": false
-        }
-      }
-    }
-  ],
+  "dynamic": "false",
   "properties": {
     "document": {
-      "type": "object",
       "properties": {
-        "id": {
-          "type": "keyword"
-        },
-        "sigma_id": {
-          "type": "keyword"
-        },
-        "title": {
-          "type": "keyword"
-        },
-        "description": {
-          "type": "text"
-        },
         "author": {
           "type": "keyword"
         },
         "date": {
           "type": "date"
         },
-        "modified": {
-          "type": "date"
+        "description": {
+          "type": "text"
         },
-        "status": {
-          "type": "keyword"
-        },
-        "level": {
-          "type": "keyword"
+        "detection": {
+          "type": "object",
+          "enabled": false
         },
         "enabled": {
           "type": "boolean"
@@ -49,68 +22,75 @@
         "falsepositives": {
           "type": "keyword"
         },
-        "tags": {
+        "fields": {
           "type": "keyword"
         },
-        "references": {
+        "id": {
+          "type": "keyword"
+        },
+        "level": {
+          "type": "keyword"
+        },
+        "license": {
           "type": "keyword"
         },
         "logsource": {
-          "type": "object",
           "properties": {
             "category": {
               "type": "keyword"
+            },
+            "definition": {
+              "type": "text"
             },
             "product": {
               "type": "keyword"
             },
             "service": {
               "type": "keyword"
-            },
-            "definition": {
-              "type": "text"
             }
           }
         },
-        "detection": {
-          "type": "object",
-          "dynamic": true,
-          "properties": {
-            "condition": {
-              "type": "keyword"
-            }
-          }
+        "modified": {
+          "type": "date"
+        },
+        "name": {
+          "type": "keyword"
+        },
+        "references": {
+          "type": "keyword"
         },
         "related": {
           "type": "nested",
           "properties": {
-            "type": {
+            "id": {
               "type": "keyword"
             },
-            "id": {
+            "type": {
               "type": "keyword"
             }
           }
         },
-        "fields": {
+        "scope": {
           "type": "keyword"
         },
-        "name": {
+        "sigma_id": {
+          "type": "keyword"
+        },
+        "status": {
+          "type": "keyword"
+        },
+        "tags": {
           "type": "keyword"
         },
         "taxonomy": {
           "type": "keyword"
         },
-        "license": {
-          "type": "keyword"
-        },
-        "scope": {
+        "title": {
           "type": "keyword"
         }
       }
     },
     "hash": {
-      "type": "object",
       "properties": {
         "sha256": {
           "type": "keyword"
@@ -118,10 +98,18 @@
       }
     },
     "space": {
-      "type": "object",
       "properties": {
         "name": {
           "type": "keyword"
+        }
+      }
+    },
+    "type": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
         }
       }
     }
