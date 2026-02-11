@@ -49,7 +49,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  * CTI index.
  *
  * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
+ * 404 Not Found: Wazuh Engine replied with an error response. - 500 Internal Server Error:
  * Unexpected error during processing. Wazuh Engine did not respond.
  */
 public class RestDeleteRuleAction extends BaseRestHandler {
