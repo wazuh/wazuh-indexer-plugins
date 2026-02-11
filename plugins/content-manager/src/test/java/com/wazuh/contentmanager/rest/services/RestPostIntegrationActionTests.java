@@ -32,12 +32,14 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -216,8 +218,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         String generatedId = idCaptor.getValue();
 
         assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-        assertEquals(
-                "Integration created successfully with ID: " + generatedId, actualResponse.getMessage());
+        assertEquals(generatedId, actualResponse.getMessage());
     }
 
     /**
@@ -228,7 +229,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration400_hasId() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("ID field is not allowed in the request body.");
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -272,7 +273,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration400_noContent() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("JSON request body is required.");
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Create a RestRequest with no payload
         RestRequest request = mock(RestRequest.class);
@@ -288,7 +289,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_policyDoesNotExist() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Draft policy not found.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -358,8 +359,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_noEngineReply() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(
-                "Failed to create Integration, Invalid validation response: Non valid response.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -413,7 +413,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_failedToIndexIntegration() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to index integration.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -509,8 +509,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_corruptDraftPolicy() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(
-                "Failed to retrieve integrations array from draft policy document.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -601,7 +600,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_draftPolicyFailedUpdate() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to update draft policy.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -718,7 +717,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_unexpectedError() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Unexpected error during processing.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -964,7 +963,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
             assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
             assertTrue(
-                    response.getMessage().contains("Fields 'date' and 'modified' are managed by the system"));
+                    response.getMessage().contains("Invalid request body."));
         }
     }
 }

@@ -31,6 +31,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -145,7 +146,9 @@ public class RestPostDecoderAction extends BaseRestHandler {
             RestResponse engineValidation =
                     this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
+                log.error(Constants.E_LOG_ENGINE_VALIDATION, engineValidation.getMessage());
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Create decoder using raw UUID
@@ -161,16 +164,18 @@ public class RestPostDecoderAction extends BaseRestHandler {
             // Regenerate space hash because space composition changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "Decoder created successfully with ID: " + decoderId, RestStatus.CREATED.getStatus());
+            // Response the decoder ID and CREATED (201) status
+            return new RestResponse(decoderId, RestStatus.CREATED.getStatus());
 
         } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        } catch (Exception e) {
-            log.error("Error creating decoder: {}", e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, "JSON"),
+                    RestStatus.BAD_REQUEST.getStatus());
+        } catch (Exception e) {
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_DECODER, e.getMessage(), e);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

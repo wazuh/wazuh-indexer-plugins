@@ -33,6 +33,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -110,7 +111,8 @@ public class RestPutRuleAction extends BaseRestHandler {
             throws IOException {
         request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+        return channel ->
+                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
     }
 
     /**
@@ -131,43 +133,55 @@ public class RestPutRuleAction extends BaseRestHandler {
      *
      * @param request the incoming REST request containing the rule update data
      * @param client the client to execute OpenSearch actions
-     * @return a {@link BytesRestResponse} indicating the outcome of the operation
+     * @return a {@link RestResponse} indicating the outcome of the operation
      */
-    public BytesRestResponse handleRequest(RestRequest request, Client client) {
+    public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             String ruleId = request.param(Constants.KEY_ID);
+
+            // Validate ID is present
             if (ruleId == null || ruleId.isEmpty()) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Rule ID is required", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Validate rule exists and is in draft space
+            // Validate UUID format
+            try {
+                java.util.UUID.fromString(ruleId);
+            } catch (IllegalArgumentException e) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, ruleId),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Check if rule exists
+            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
+            if (!rulesIndex.exists(ruleId)) {
+                return new RestResponse(
+                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
+            }
+
+            // Validate rule is in draft space
             String validationError =
                     DocumentValidations.validateDocumentInSpace(
                             client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
             if (validationError != null) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus()).toXContent());
+                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
             }
 
             if (!request.hasContent()) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
             JsonNode rootNode = MAPPER.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
@@ -175,10 +189,8 @@ public class RestPutRuleAction extends BaseRestHandler {
             // 2. Validate Resource Fields
             if (!resourceNode.has(Constants.KEY_TITLE)
                     || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
-                return new BytesRestResponse(
-                        RestStatus.BAD_REQUEST,
-                        new RestResponse("Missing required field: title.", RestStatus.BAD_REQUEST.getStatus())
-                                .toXContent());
+                return new RestResponse(
+                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Optional fields
@@ -195,12 +207,11 @@ public class RestPutRuleAction extends BaseRestHandler {
             // Check non-modifiable fields
             RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
             if (metadataError != null) {
-                return new BytesRestResponse(RestStatus.BAD_REQUEST, metadataError.toXContent());
+                return new RestResponse(metadataError.getMessage(), RestStatus.BAD_REQUEST.getStatus());
             }
 
             ObjectNode ruleNode = resourceNode.deepCopy();
 
-            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
             String createdDate = null;
 
             JsonNode existingDoc = rulesIndex.getDocument(ruleId);
@@ -227,16 +238,23 @@ public class RestPutRuleAction extends BaseRestHandler {
 
             // 3. Call SAP
             ruleNode.put(Constants.KEY_ID, ruleId);
-            WIndexCustomRuleRequest ruleRequest =
-                    new WIndexCustomRuleRequest(
-                            ruleId,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            product,
-                            org.opensearch.rest.RestRequest.Method.POST,
-                            ruleNode.toString(),
-                            true // forced
-                            );
-            client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
+            try {
+                WIndexCustomRuleRequest ruleRequest =
+                        new WIndexCustomRuleRequest(
+                                ruleId,
+                                WriteRequest.RefreshPolicy.IMMEDIATE,
+                                product,
+                                org.opensearch.rest.RestRequest.Method.POST,
+                                ruleNode.toString(),
+                                true // forced
+                                );
+                client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
+            } catch (Exception e) {
+                log.error(
+                        Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);
+                return new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
 
             JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
 
@@ -250,20 +268,13 @@ public class RestPutRuleAction extends BaseRestHandler {
             // 5. Regenerate space hash because rule content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            RestResponse response =
-                    new RestResponse("Rule updated successfully", RestStatus.OK.getStatus());
-            return new BytesRestResponse(RestStatus.OK, response.toXContent());
+            return new RestResponse(ruleId, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
-            log.error("Error updating rule: {}", e.getMessage(), e);
-            try {
-                return new BytesRestResponse(
-                        RestStatus.INTERNAL_SERVER_ERROR,
-                        new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                                .toXContent());
-            } catch (IOException ex) {
-                return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
-            }
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

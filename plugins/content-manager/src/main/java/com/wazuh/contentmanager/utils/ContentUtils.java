@@ -130,15 +130,14 @@ public class ContentUtils {
                     JsonNode author = metadata.get(Constants.KEY_AUTHOR);
                     if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
                         return new RestResponse(
-                                "Fields 'metadata.author.date' and 'metadata.author.modified' are managed by the system.",
-                                RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                     }
                 }
             }
         } else {
             if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
                 return new RestResponse(
-                        "Fields 'date' and 'modified' are managed by the system.",
+                        Constants.E_400_INVALID_REQUEST_BODY,
                         RestStatus.BAD_REQUEST.getStatus());
             }
         }
