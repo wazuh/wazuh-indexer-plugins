@@ -387,8 +387,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                         "find",
                         Constants.KEY_POLICY,
                         Space.DRAFT,
-                        e.getMessage(),
-                        e);
+                        e.getMessage());
                 this.integrationsIndex.delete(id);
                 this.service.deleteIntegration(id);
                 return new RestResponse(
