@@ -53,49 +53,40 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonObject doc, Space space, Method method) {
+    public void upsertIntegration(JsonObject doc, Space space, Method method) throws OpenSearchException {
+        if (!doc.has(Constants.KEY_DOCUMENT)) {
+            return;
+        }
+        JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
+        String id = innerDoc.get(Constants.KEY_ID).getAsString();
+        String name = innerDoc.get(Constants.KEY_TITLE).getAsString();
+        String description = innerDoc.get(Constants.KEY_DESCRIPTION).getAsString();
+        String category = CategoryFormatter.format(innerDoc, false);
+
+        log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
+
+        WIndexIntegrationRequest request =
+                new WIndexIntegrationRequest(
+                        id,
+                        WriteRequest.RefreshPolicy.IMMEDIATE,
+                        method,
+                        new Integration(
+                                id,
+                                null,
+                                name,
+                                description,
+                                category,
+                                space.asSecurityAnalyticsSource(),
+                                new HashMap<>()));
+
         try {
-            if (!doc.has(Constants.KEY_DOCUMENT)) {
-                return;
-            }
-            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
-            String id = innerDoc.get(Constants.KEY_ID).getAsString();
-            String name = innerDoc.get(Constants.KEY_TITLE).getAsString();
-            String description = innerDoc.get(Constants.KEY_DESCRIPTION).getAsString();
-            String category = CategoryFormatter.format(innerDoc, false);
-
-            log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
-
-            WIndexIntegrationRequest request =
-                    new WIndexIntegrationRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            method,
-                            new Integration(
-                                    id,
-                                    null,
-                                    name,
-                                    description,
-                                    category,
-                                    space.asSecurityAnalyticsSource(),
-                                    new HashMap<>()));
-            this.client.execute(
-                    WIndexIntegrationAction.INSTANCE,
-                    request,
-                    new ActionListener<WIndexIntegrationResponse>() {
-                        @Override
-                        public void onResponse(WIndexIntegrationResponse wIndexIntegrationResponse) {
-                            log.info("Integration [{}] synced successfully.", name);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to upsert Integration: {}", e.getMessage());
-                        }
-                    });
-
+            WIndexIntegrationResponse response = this.client
+                    .execute(WIndexIntegrationAction.INSTANCE, request)
+                    .actionGet();
+            log.info("Integration [{}] synced successfully.", name);
         } catch (Exception e) {
             log.error("Failed to upsert Integration: {}", e.getMessage());
+            throw new OpenSearchException("Failed to upsert Integration [" + name + "]: " + e.getMessage(), e);
         }
     }
 

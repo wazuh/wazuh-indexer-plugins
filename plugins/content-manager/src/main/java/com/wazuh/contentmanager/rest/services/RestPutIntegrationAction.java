@@ -400,10 +400,17 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
         log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_INTEGRATION, id);
-        this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
-                Space.DRAFT,
-                PUT);
+        try {
+            this.service.upsertIntegration(
+                    this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
+                    Space.DRAFT,
+                    PUT);
+        } catch (Exception e) {
+            log.error("Failed to update integration in SAP: {}", e.getMessage());
+            return new RestResponse(
+                    e.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
 
         // Construct engine validation payload
         log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);

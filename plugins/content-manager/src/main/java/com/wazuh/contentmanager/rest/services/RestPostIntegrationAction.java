@@ -311,12 +311,21 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // can do it in reverse order to guarantee that when a integration is not valid we don't need to
         // delete it from the SAP
         // Create integration in SAP
-        this.service.upsertIntegration(
-                JsonParser.parseString(
-                                MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource).toString())
-                        .getAsJsonObject(),
-                Space.DRAFT,
-                POST);
+        try {
+            this.service.upsertIntegration(
+                    JsonParser.parseString(
+                                    MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource).toString())
+                            .getAsJsonObject(),
+                    Space.DRAFT,
+                    POST);
+        } catch (Exception e) {
+            this.log.error(
+                    "Failed to create integration in SAP: {}",
+                    e.getMessage());
+            return new RestResponse(
+                    e.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
 
         // Construct engine validation payload
         this.log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);

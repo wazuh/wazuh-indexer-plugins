@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
+import org.opensearch.OpenSearchException;
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -33,8 +34,9 @@ public interface SecurityAnalyticsService {
      * @param doc The JSON document containing the integration data.
      * @param space
      * @param method
+     * @throws OpenSearchException if the upsert operation fails.
      */
-    void upsertIntegration(JsonObject doc, Space space, Method method);
+    void upsertIntegration(JsonObject doc, Space space, Method method) throws OpenSearchException;
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
