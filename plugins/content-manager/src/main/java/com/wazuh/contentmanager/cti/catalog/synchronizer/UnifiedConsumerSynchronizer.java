@@ -35,15 +35,12 @@ import org.opensearch.transport.client.Client;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
-import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.processor.DetectorProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.IntegrationProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -119,19 +116,6 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     protected Map<String, String> getAliases() {
         // We use the alias names as the actual index names, so we do not create separate aliases.
         return Collections.emptyMap();
-    }
-
-    @Override
-    protected long triggerSnapshotInit(
-            String context,
-            String consumer,
-            Map<String, ContentIndex> indicesMap,
-            RemoteConsumer remoteConsumer) {
-        SnapshotServiceImpl snapshotService =
-                new SnapshotServiceImpl(
-                        context, consumer, indicesMap, this.consumersIndex, this.environment);
-        snapshotService.initialize(remoteConsumer);
-        return remoteConsumer.getSnapshotOffset();
     }
 
     @Override

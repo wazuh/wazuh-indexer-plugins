@@ -173,26 +173,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Resolves the appropriate {@link ContentIndex} for the given payload. Subclasses can override
-     * this to provide custom index resolution logic.
-     *
-     * @param payload The JSON payload object.
-     * @return The resolved ContentIndex, or null if no suitable index is found.
-     */
-    protected ContentIndex resolveIndex(JsonObject payload) {
-        if (!payload.has(Constants.KEY_TYPE)) {
-            log.warn("Payload missing '{}'. Skipping.", Constants.KEY_TYPE);
-            return null;
-        }
-        String type = payload.get(Constants.KEY_TYPE).getAsString();
-        ContentIndex indexHandler = this.indicesMap.get(type);
-        if (indexHandler == null) {
-            log.warn("No ContentIndex found for type [{}]. Skipping.", type);
-        }
-        return indexHandler;
-    }
-
-    /**
      * Reads a JSON snapshot file line by line, extracts the contents of the payload object, and
      * indexes them directly at the root.
      *
@@ -215,16 +195,31 @@ public class SnapshotServiceImpl implements SnapshotService {
                 try {
                     JsonObject rootJson = JsonParser.parseString(line).getAsJsonObject();
 
-                    // Validate and Extract Payload
+                    // 1. Validate and Extract Payload
                     if (!rootJson.has(JSON_PAYLOAD_KEY)) {
                         log.warn("Snapshot entry missing '{}'. Skipping.", JSON_PAYLOAD_KEY);
                         continue;
                     }
                     JsonObject payload = rootJson.getAsJsonObject(JSON_PAYLOAD_KEY);
 
-                    // Resolve the target index
-                    ContentIndex indexHandler = this.resolveIndex(payload);
+                    // 2. Determine Index.
+                    // - If payload has the "enrichments" key, then it is an IOC.
+                    // - If payload has the "type" key, obtain the "type" from the "type" key.
+                    // - Otherwise, skip.
+                    String type;
+                    if (payload.has(Constants.KEY_ENRICHMENTS)) {
+                        type = Constants.KEY_IOCS;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
+                        type = payload.get(Constants.KEY_TYPE).getAsString();
+                    } else {
+                        log.warn("Could not identify resource type. Skipping.");
+                        continue;
+                    }
+
+                    // 3. Select correct index based on type
+                    ContentIndex indexHandler = this.indicesMap.get(type);
                     if (indexHandler == null) {
+                        log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
                     JsonObject processedPayload = indexHandler.processPayload(payload);
@@ -234,8 +229,15 @@ public class SnapshotServiceImpl implements SnapshotService {
                     IndexRequest indexRequest =
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
-                    // Determine ID
-                    setIndexRequestId(processedPayload, indexRequest);
+                    // Determine ID (root level "name" key)
+                    if (rootJson.has(Constants.KEY_NAME)) {
+                        String name = rootJson.get(Constants.KEY_NAME).getAsString();
+                        indexRequest.id(name);
+                    } else {
+                        throw new IOException(
+                                "Missing 'name' key in CTI resource. {offset}:"
+                                        + rootJson.get("offset").getAsInt());
+                    }
 
                     bulkRequest.add(indexRequest);
                     docCount++;
@@ -257,17 +259,8 @@ public class SnapshotServiceImpl implements SnapshotService {
                 executorIndex.executeBulk(bulkRequest);
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
-        }
-    }
-
-    protected void setIndexRequestId(JsonObject processedPayload, IndexRequest indexRequest) {
-        if (processedPayload.has(Constants.KEY_DOCUMENT)) {
-            JsonObject innerDocument = processedPayload.getAsJsonObject(Constants.KEY_DOCUMENT);
-            if (innerDocument.has(Constants.KEY_ID)) {
-                indexRequest.id(innerDocument.get(Constants.KEY_ID).getAsString());
-            }
         }
     }
 

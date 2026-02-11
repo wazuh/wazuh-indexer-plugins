@@ -34,6 +34,7 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -47,7 +48,7 @@ import com.wazuh.contentmanager.utils.Constants;
  * mappings, aliases, and post-synchronization behavior.
  *
  * @see ConsumerService
- * @see com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl
+ * @see SnapshotServiceImpl
  * @see UpdateServiceImpl
  */
 public abstract class AbstractConsumerSynchronizer {
@@ -210,7 +211,12 @@ public abstract class AbstractConsumerSynchronizer {
         // Snapshot Initialization
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            currentOffset = this.triggerSnapshotInit(context, consumer, indicesMap, remoteConsumer);
+            SnapshotServiceImpl snapshotService =
+                    new SnapshotServiceImpl(
+                            context, consumer, indicesMap, this.consumersIndex, this.environment);
+            snapshotService.initialize(remoteConsumer);
+
+            currentOffset = remoteConsumer.getSnapshotOffset();
             updated = true;
         }
 
@@ -231,21 +237,4 @@ public abstract class AbstractConsumerSynchronizer {
         }
         return updated;
     }
-
-    /**
-     * Triggers the snapshot initialization for this consumer. Subclasses must implement this to
-     * instantiate the appropriate {@link
-     * com.wazuh.contentmanager.cti.catalog.service.SnapshotService} for their content type.
-     *
-     * @param context The context name.
-     * @param consumer The consumer name.
-     * @param indicesMap The map of content indices.
-     * @param remoteConsumer The remote consumer state.
-     * @return The current offset after snapshot initialization.
-     */
-    protected abstract long triggerSnapshotInit(
-            String context,
-            String consumer,
-            Map<String, ContentIndex> indicesMap,
-            RemoteConsumer remoteConsumer);
 }

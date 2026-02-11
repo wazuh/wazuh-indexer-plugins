@@ -24,10 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.processor.IocProcessor;
-import com.wazuh.contentmanager.cti.catalog.service.IocSnapshotServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -38,12 +34,10 @@ import com.wazuh.contentmanager.utils.Constants;
 public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     /** The unified context identifier. */
-    private final String iocContext = PluginSettings.getInstance().getIocContext();
+    private final String CONTEXT = PluginSettings.getInstance().getIocContext();
 
     /** The unified consumer name identifier. */
-    private final String iocConsumer = PluginSettings.getInstance().getIocConsumer();
-
-    private final IocProcessor iocProcessor;
+    private final String CONSUMER = PluginSettings.getInstance().getIocConsumer();
 
     /**
      * Constructs a new IocConsumerSynchronizer.
@@ -55,17 +49,16 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
     public IocConsumerSynchronizer(
             Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
-        this.iocProcessor = new IocProcessor(client);
     }
 
     @Override
     protected String getContext() {
-        return this.iocContext;
+        return this.CONTEXT;
     }
 
     @Override
     protected String getConsumer() {
-        return this.iocConsumer;
+        return this.CONSUMER;
     }
 
     @Override
@@ -81,41 +74,10 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
         return Collections.emptyMap();
     }
 
-    /**
-     * Overrides index naming to utilize the alias name convention directly.
-     *
-     * @param type The type identifier for the index.
-     * @return The unified index name.
-     */
-    @Override
-    public String getIndexName(String type) {
-        if (type.equals(Constants.KEY_IOCS)) {
-            return Constants.INDEX_IOCS;
-        }
-        return super.getIndexName(type);
-    }
-
-    @Override
-    protected long triggerSnapshotInit(
-            String context,
-            String consumer,
-            Map<String, ContentIndex> indicesMap,
-            RemoteConsumer remoteConsumer) {
-        IocSnapshotServiceImpl snapshotService =
-                new IocSnapshotServiceImpl(
-                        context, consumer, indicesMap, this.consumersIndex, this.environment);
-        snapshotService.initialize(remoteConsumer);
-        return remoteConsumer.getSnapshotOffset();
-    }
-
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
-
-            String iocIndex = this.getIndexName(Constants.KEY_IOCS);
-
-            this.iocProcessor.process(iocIndex);
         }
     }
 }
