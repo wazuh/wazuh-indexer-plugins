@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -65,43 +66,42 @@ import static org.mockito.Mockito.when;
 public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutKvdbAction action;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    // Valid payload with all mandatory fields for PUT
     private static final String KVDB_PAYLOAD =
             "{"
-                    + "\"type\": \"kvdb\","
                     + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
-                    + "  \"space\": {\"name\": \"draft\"},"
-                    + "  \"metadata\": {"
-                    + "    \"title\": \"Example KVDB\","
-                    + "    \"description\": \"Example KVDB description\","
-                    + "    \"author\": {"
-                    + "      \"name\": \"Wazuh\""
-                    + "    }"
-                    + "  }"
+                    + "  \"title\": \"Example KVDB\","
+                    + "  \"description\": \"Example KVDB description\","
+                    + "  \"author\": \"Wazuh\","
+                    + "  \"content\": {\"key\": \"value\"},"
+                    + "  \"documentation\": \"docs\","
+                    + "  \"references\": []"
                     + "}"
                     + "}";
 
     private static final String KVDB_PAYLOAD_WITH_ID_MISMATCH =
             "{"
-                    + "\"type\": \"kvdb\","
                     + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"id\": \"different-uuid-12345\","
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
-                    + "  \"metadata\": {"
-                    + "    \"title\": \"Example KVDB\","
-                    + "    \"author\": {"
-                    + "      \"name\": \"Wazuh\""
-                    + "    }"
-                    + "  }"
+                    + "  \"title\": \"Example KVDB\","
+                    + "  \"author\": \"Wazuh\","
+                    + "  \"description\": \"desc\","
+                    + "  \"content\": {\"key\": \"value\"},"
+                    + "  \"documentation\": \"\","
+                    + "  \"references\": []"
                     + "}"
                     + "}";
 
     private static final String KVDB_PAYLOAD_MISSING_RESOURCE =
-            "{" + "\"type\": \"kvdb\"," + "\"integration\": \"integration-1\"" + "}";
+            "{" + "\"integration\": \"integration-1\"" + "}";
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -134,7 +134,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
                 .thenReturn(engineResponse);
-        Client client = this.buildClientForIndex();
+        Client client = this.buildClientForIndex(true);
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -259,7 +259,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
                 .thenReturn(engineResponse);
-        Client client = this.buildClientWithNonExistentKvdb();
+        Client client = this.buildClientForIndex(false);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -307,7 +307,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         return new RestResponse(node.get("message").asText(), node.get("status").asInt());
     }
 
-    private Client buildClientForIndex() throws Exception {
+    private Client buildClientForIndex(boolean kvdbExists) throws Exception {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
@@ -318,53 +318,26 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         // Mock KVDB exists check with space information
         GetResponse kvdbGetResponse = mock(GetResponse.class);
-        when(kvdbGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> kvdbSource = new java.util.HashMap<>();
-        Map<String, Object> kvdbSpace = new java.util.HashMap<>();
-        kvdbSpace.put("name", "draft");
-        kvdbSource.put("space", kvdbSpace);
-        when(kvdbGetResponse.getSourceAsMap()).thenReturn(kvdbSource);
+        when(kvdbGetResponse.isExists()).thenReturn(kvdbExists);
+        if (kvdbExists) {
+            Map<String, Object> source = new java.util.HashMap<>();
+            Map<String, Object> document = new java.util.HashMap<>();
+            document.put("date", "2020-01-01T00:00:00Z");
+            document.put("enabled", true);
+            source.put("document", document);
+            Map<String, Object> space = new java.util.HashMap<>();
+            space.put("name", "draft");
+            source.put("space", space);
+
+            when(kvdbGetResponse.getSourceAsMap()).thenReturn(source);
+        } else {
+            when(kvdbGetResponse.getSourceAsMap()).thenReturn(null);
+        }
+
+        // Return this mock for simple get (exists check, getDocument)
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(kvdbGetResponse);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
-
-        // Mock integration response with space information
-        GetResponse integrationGetResponse = mock(GetResponse.class);
-        when(integrationGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> integrationSource = new java.util.HashMap<>();
-        Map<String, Object> space = new java.util.HashMap<>();
-        space.put("name", "draft");
-        integrationSource.put("space", space);
-        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
-
-        return client;
-    }
-
-    private Client buildClientWithNonExistentKvdb() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock KVDB does not exist
-        GetResponse kvdbGetResponse = mock(GetResponse.class);
-        when(kvdbGetResponse.isExists()).thenReturn(false);
-        when(kvdbGetResponse.getSourceAsMap()).thenReturn(null);
-        when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(kvdbGetResponse);
-
-        // Mock integration response with space information
-        GetResponse integrationGetResponse = mock(GetResponse.class);
-        when(integrationGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> integrationSource = new java.util.HashMap<>();
-        Map<String, Object> space = new java.util.HashMap<>();
-        space.put("name", "draft");
-        integrationSource.put("space", space);
-        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
 
         return client;
     }
