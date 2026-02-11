@@ -17,11 +17,11 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.mockito.ArgumentCaptor;
@@ -40,6 +40,7 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -47,52 +48,62 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
- * endpoint responsible for updating new CTI Decoders.
+ * Unit tests for the {@link RestPutFilterAction} class. This test suite validates the REST API
+ * endpoint responsible for updating new Filters.
  *
- * <p>Tests verify Decoder update requests, proper handling of Decoder data, and appropriate HTTP
- * response codes for successful Decoder update errors.
+ * <p>Tests verify Filter update requests, proper handling of Filter data, and appropriate HTTP
+ * response codes for successful Filter update errors.
  */
 public class RestPutFilterActionTests extends OpenSearchTestCase {
     private EngineService service;
-    private RestPutDecoderAction action;
-    private final ObjectMapper mapper = new ObjectMapper();
-    private static final String DECODER_PAYLOAD =
-            "{"
-                    + "\"type\": \"decoder\","
-                    + "\"resource\": {"
-                    + "  \"name\": \"decoder/example/0\","
-                    + "  \"enabled\": true,"
-                    + "  \"metadata\": {"
-                    + "    \"title\": \"Example decoder\","
-                    + "    \"description\": \"Example decoder description\","
-                    + "    \"author\": {"
-                    + "      \"name\": \"Wazuh\""
-                    + "    }"
-                    + "  }"
-                    + "}"
-                    + "}";
+    private RestPutFilterAction action;
+    private static final String FILTER_PAYLOAD = """
+        {
+          "space": "draft",
+          "resource": {
+            "name": "filter/prefilter/0",
+            "enabled": true,
+            "metadata": {
+              "description": "Default filter to allow all events (for default ruleset)",
+              "author": {
+                "email": "info@wazuh.com",
+                "name": "Wazuh, Inc.",
+                "url": "https://wazuh.com"
+              }
+            },
+            "check": "$host.os.platform == 'ubuntu'",
+            "type": "pre-filter"
+          }
+        }
+        """;
 
-    private static final String DECODER_PAYLOAD_WITH_ID_MISMATCH =
-            "{"
-                    + "\"type\": \"decoder\","
-                    + "\"resource\": {"
-                    + "  \"id\": \"different-uuid-12345\","
-                    + "  \"name\": \"decoder/example/0\","
-                    + "  \"enabled\": true,"
-                    + "  \"metadata\": {"
-                    + "    \"title\": \"Example decoder\","
-                    + "    \"author\": {"
-                    + "      \"name\": \"Wazuh\""
-                    + "    }"
-                    + "  }"
-                    + "}"
-                    + "}";
+    private static final String FILTER_PAYLOAD_WITH_ID_MISMATCH = """
+        {
+          "space": "draft",
+          "resource": {
+            "id": "different-uuid-12345",
+            "name": "filter/prefilter/0",
+            "enabled": true,
+            "metadata": {
+              "description": "Default filter to allow all events (for default ruleset)",
+              "author": {
+                "email": "info@wazuh.com",
+                "name": "Wazuh, Inc.",
+                "url": "https://wazuh.com"
+              }
+            },
+            "check": "$host.os.platform == 'ubuntu'",
+            "type": "pre-filter"
+          }
+        }
+        """;
 
-    private static final String DECODER_PAYLOAD_MISSING_RESOURCE =
-            "{" + "\"type\": \"decoder\"" + "}";
+    private static final String FILTER_PAYLOAD_MISSING_RESOURCE =
+        "{" + "\"type\": \"pre-filter\"" + "}";
 
-    /** Initialize PluginSettings singleton once for all tests. */
+    /**
+     * Initialize PluginSettings singleton once for all tests.
+     */
     @BeforeClass
     public static void setUpClass() {
         // Initialize PluginSettings singleton - it will persist across all tests
@@ -108,22 +119,22 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        this.action = new RestPutDecoderAction(this.service);
+        this.action = new RestPutFilterAction(this.service);
     }
 
     /**
-     * Test successful decoder update returns 200 OK.
+     * Test successful filter update returns 200 OK.
      *
      * @throws Exception When an error occurs during test execution.
      */
-    public void testPutDecoderSuccess() throws Exception {
+    public void testPutFilterSuccess() throws Exception {
         // Arrange
-        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
+        String filterId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(FILTER_PAYLOAD, filterId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
 
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
-                .thenReturn(engineResponse);
+            .thenReturn(engineResponse);
 
         Client client = this.buildClientForIndex();
 
@@ -131,13 +142,13 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(policyHashService);
 
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+            this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.OK, bytesRestResponse.status());
 
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().startsWith("Decoder updated successfully with ID:"));
+        assertTrue(actualResponse.getMessage().startsWith("Filter updated successfully with ID:"));
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validateResource(anyString(), payloadCaptor.capture());
@@ -147,140 +158,152 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         verify(policyHashService).calculateAndUpdate(anyList());
     }
 
-    /** Test that missing decoder ID returns 400 Bad Request. */
-    public void testPutDecoderMissingIdReturns400() {
+    /**
+     * Test that missing filter ID returns 400 Bad Request.
+     */
+    public void testPutFilterMissingIdReturns400() {
         // Arrange
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD, null);
+        RestRequest request = this.buildRequest(FILTER_PAYLOAD, null);
 
         // Act
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+            this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
+            new RestResponse("Filter ID is required.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
-    /** Test that missing request body returns 400 Bad Request. */
-    public void testPutDecoderMissingBodyReturns400() {
+    /**
+     * Test that missing request body returns 400 Bad Request.
+     */
+    public void testPutFilterMissingBodyReturns400() {
         // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String filterId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withParams(Map.of("id", decoderId))
-                        .build();
+            new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                .withParams(Map.of("id", filterId))
+                .build();
 
         // Act
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+            this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+            new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
-    /** Test that missing resource field returns 400 Bad Request. */
-    public void testPutDecoderMissingResourceReturns400() {
+    /**
+     * Test that missing resource field returns 400 Bad Request.
+     */
+    public void testPutFilterMissingResourceReturns400() {
         // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD_MISSING_RESOURCE, decoderId);
+        String filterId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(FILTER_PAYLOAD_MISSING_RESOURCE, filterId);
 
         // Act
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+            this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+            new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
         verify(this.service, never()).validate(any(JsonNode.class));
     }
 
-    /** Test that decoder ID mismatch returns 400 Bad Request. */
-    public void testPutDecoderIdMismatchReturns400() {
+    /**
+     * Test that filter ID mismatch returns 400 Bad Request.
+     */
+    public void testPutFilterIdMismatchReturns400() {
         // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID_MISMATCH, decoderId);
+        String filterId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(FILTER_PAYLOAD_WITH_ID_MISMATCH, filterId);
 
         // Act
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+            this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
         assertEquals(
-                "Resource ID does not match resource ID.",
-                this.parseResponse(bytesRestResponse).getMessage());
+            String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
+            this.parseResponse(bytesRestResponse).getMessage());
         verify(this.service, never()).validateResource(anyString(), any(JsonNode.class));
     }
 
     /**
-     * Test that decoder not found returns 404 Not Found.
+     * Test that filter not found returns 404 Not Found.
      *
      * @throws Exception When an error occurs during test execution.
      */
-    public void testPutDecoderNotFoundReturns404() throws Exception {
+    public void testPutFilterNotFoundReturns404() throws Exception {
         // Arrange
-        String decoderId = "d_non-existent-12345";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
+        String filterId = "d_non-existent-12345";
+        RestRequest request = this.buildRequest(FILTER_PAYLOAD, filterId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = this.buildClientWithNonExistentDecoder();
+        Client client = this.buildClientWithNonExistentFilter();
 
         // Act
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+            this.action.handleRequest(request, client).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("decoder [" + decoderId + "] not found"));
+        assertTrue(actualResponse.getMessage().contains("filter [" + filterId + "] not found"));
     }
 
-    /** Test that null engine service returns 500 Internal Server Error. */
-    public void testPutDecoderEngineUnavailableReturns500() {
+    /**
+     * Test that null engine service returns 500 Internal Server Error.
+     */
+    public void testPutFilterEngineUnavailableReturns500() {
         // Arrange
-        this.action = new RestPutDecoderAction(null);
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
+        this.action = new RestPutFilterAction(null);
+        String filterId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(FILTER_PAYLOAD, filterId);
 
         // Act
         BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+            this.action.handleRequest(request, null).toBytesRestResponse();
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            new RestResponse(
+                Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
 
-    private RestRequest buildRequest(String payload, String decoderId) {
+    private RestRequest buildRequest(String payload, String filterId) {
         FakeRestRequest.Builder builder =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withContent(new BytesArray(payload), XContentType.JSON);
-        if (decoderId != null) {
-            builder.withParams(Map.of("id", decoderId, "decoder_id", decoderId));
+            new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                .withContent(new BytesArray(payload), XContentType.JSON);
+        if (filterId != null) {
+            builder.withParams(Map.of("id", filterId, "filter_id", filterId));
         }
         return builder.build();
     }
@@ -299,27 +322,27 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock ContentIndex.exists() - decoder exists
+        // Mock ContentIndex.exists() - filter exists
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(existsResponse);
+            .thenReturn(existsResponse);
 
-        // Mock validateDecoderSpace - decoder exists and is in draft space
+        // Mock validateFilterSpace - filter exists and is in draft space
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
         // Mock getSourceAsString for ContentIndex.getDocument()
         when(spaceResponse.getSourceAsString())
-                .thenReturn(
-                        "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
+            .thenReturn(
+                "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
 
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
         return client;
     }
 
-    private Client buildClientWithNonExistentDecoder() throws Exception {
+    private Client buildClientWithNonExistentFilter() throws Exception {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
@@ -328,13 +351,13 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock ContentIndex.exists() - decoder does not exist
+        // Mock ContentIndex.exists() - filter does not exist
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(existsResponse);
+            .thenReturn(existsResponse);
 
-        // Mock validateDecoderSpace - decoder does not exist
+        // Mock validateFilterSpace - filter does not exist
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);

@@ -161,7 +161,7 @@ public class RestPutFilterAction extends BaseRestHandler {
             resourceNode.put(Constants.KEY_ID, filterId);
 
             // Validate forbidden metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            validationError = ContentUtils.validateMetadataFields(resourceNode, false);
             if (validationError != null) {
                 return validationError;
             }
@@ -198,7 +198,7 @@ public class RestPutFilterAction extends BaseRestHandler {
             }
 
             // Update timestamp
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
+            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
             ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
                     .put(Constants.KEY_DATE, existingDate);
 
@@ -211,8 +211,7 @@ public class RestPutFilterAction extends BaseRestHandler {
 
             // Update filter
             String spaceName = String.valueOf(existingDoc.get(Constants.KEY_SPACE));
-            filterIndex.create(
-                    filterId, ContentUtils.buildCtiWrapper(Constants.KEY_FILTER, resourceNode, spaceName));
+            filterIndex.create(filterId, ContentUtils.buildCtiWrapper(resourceNode, spaceName));
 
             // Regenerate space hash because filter content changed
             this.policyHashService.calculateAndUpdate(List.of(spaceName));

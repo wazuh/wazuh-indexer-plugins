@@ -25,8 +25,8 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -129,27 +129,28 @@ public class DocumentValidations {
         GetResponse response = client.prepareGet(index, docId).get();
 
         if (!response.isExists()) {
-            return docType + " [" + docId + "] not found.";
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         Map<String, Object> source = response.getSourceAsMap();
-        if (source == null || !source.containsKey(KEY_SPACE)) {
-            return docType + " [" + docId + "] does not have space information.";
+        if (source == null || !source.containsKey(Constants.KEY_SPACE)) {
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
-        Object spaceObj = source.get(KEY_SPACE);
+        Object spaceObj = source.get(Constants.KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
-            return docType + " [" + docId + "] has invalid space information.";
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(KEY_NAME);
+        Object spaceName = spaceMap.get(Constants.KEY_NAME);
 
         boolean match =
                 spaces.stream().anyMatch(space -> space.name().equalsIgnoreCase(String.valueOf(spaceName)));
         if (!match) {
-            return docType + " [" + docId + "] is not in any of the provided spaces.";
+            return String.format(
+                    Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_PROVIDED_SPACES, docType, docId);
         }
 
         return null;

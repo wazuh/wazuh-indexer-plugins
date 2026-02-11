@@ -17,13 +17,8 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
+
 import org.apache.lucene.search.TotalHits;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -40,23 +35,28 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Before;
+import org.junit.BeforeClass;
 
-import java.util.Collections;
 import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the {@link RestDeleteDecoderAction} class. This test suite validates the REST API
- * endpoint responsible for deleting new CTI Decoders.
+ * Unit tests for the {@link RestDeleteFilterAction} class. This test suite validates the REST API
+ * endpoint responsible for deleting engine filters.
  *
- * <p>Tests verify Decoder delete requests, proper handling of Decoder data, and appropriate HTTP
- * response codes for successful Decoder delete errors.
+ * <p>Tests verify Filter delete requests, proper handling of Filter data, and appropriate HTTP
+ * response codes for successful Filter delete errors.
  */
 public class RestDeleteFilterActionTests extends OpenSearchTestCase {
-    private RestDeleteDecoderAction action;
+    private RestDeleteFilterAction action;
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -78,15 +78,14 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        EngineService service = mock(EngineService.class);
-        this.action = new RestDeleteDecoderAction(service);
+        this.action = new RestDeleteFilterAction();
     }
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the request is
+     * Test the {@link RestDeleteFilterAction#handleRequest(RestRequest)} method when the request is
      * complete. The expected response is: {200, RestResponse}
      */
-    public void testDeleteDecoder200() {
+    public void testDeleteFilter200() {
         // Mock
         RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
         Client client = this.buildClientForDelete();
@@ -99,17 +98,17 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
 
         // Assert
         RestResponse expectedResponse =
-                new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus());
+                new RestResponse("Filter deleted successfully.", RestStatus.OK.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.OK, bytesRestResponse.status());
     }
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the decoder has
+     * Test the {@link RestDeleteFilterAction#handleRequest(RestRequest)} method when the filter has
      * not been deleted (mock). The expected response is: {400, RestResponse}
      */
-    public void testDeleteDecoder400() {
+    public void testDeleteFilter400() {
         // Mock
         RestRequest request = this.buildRequest(null);
 
@@ -118,37 +117,31 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
 
         // Assert
         RestResponse expectedResponse =
-                new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse("Filter ID is required.", RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
     }
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when an unexpected
+     * Test the {@link RestDeleteFilterAction#handleRequest(RestRequest)} method when an unexpected
      * error occurs. The expected response is: {500, RestResponse}
      */
-    public void testDeleteDecoder500() {
+    public void testDeleteFilter500() {
         // Mock
-        this.action = new RestDeleteDecoderAction(null);
-        RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
+        this.action = new RestDeleteFilterAction();
 
         // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(null, null);
 
         // Assert
-        RestResponse expectedResponse =
-                new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
     }
 
-    private RestRequest buildRequest(String decoderId) {
+    private RestRequest buildRequest(String filterId) {
         FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
-        if (decoderId != null) {
-            builder.withParams(Map.of("id", decoderId, "decoder_id", decoderId));
+        if (filterId != null) {
+            builder.withParams(Map.of("id", filterId, "filter_id", filterId));
         }
         return builder.build();
     }
@@ -162,13 +155,13 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
-        // Mock ContentIndex.exists() - decoder exists
+        // Mock ContentIndex.exists() - filter exists
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(existsResponse);
 
-        // Mock validateDecoderSpace - decoder exists and is in draft space
+        // Mock validateFilterSpace - filter exists and is in draft space
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
@@ -182,12 +175,11 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
         SearchResponse searchResponse = mock(SearchResponse.class);
-        org.opensearch.search.SearchHit hit =
-                new org.opensearch.search.SearchHit(
-                        0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
+
+        org.opensearch.search.SearchHit hit = new org.opensearch.search.SearchHit(0);
         hit.sourceRef(
                 new BytesArray(
-                        "{\"document\":{\"decoders\":[\"d_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
+                        "{\"document\":{\"filters\":[\"d_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
         org.opensearch.search.SearchHits hits =
                 new org.opensearch.search.SearchHits(
                         new org.opensearch.search.SearchHit[] {hit},

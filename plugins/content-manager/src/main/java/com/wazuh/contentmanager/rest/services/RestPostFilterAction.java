@@ -140,7 +140,7 @@ public class RestPostFilterAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
 
             // Validate forbidden metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            validationError = ContentUtils.validateMetadataFields(resourceNode, false);
             if (validationError != null) {
                 return validationError;
             }
@@ -150,7 +150,7 @@ public class RestPostFilterAction extends BaseRestHandler {
             resourceNode.put(Constants.KEY_ID, filterId);
 
             // Add timestamp metadata
-            ContentUtils.updateTimestampMetadata(resourceNode, true);
+            ContentUtils.updateTimestampMetadata(resourceNode, true, true);
 
             // Validate integration with Wazuh Engine
             RestResponse engineValidation =
@@ -162,8 +162,7 @@ public class RestPostFilterAction extends BaseRestHandler {
             // Create filter using raw UUID
             ContentIndex filterIndex = new ContentIndex(client, Constants.INDEX_FILTERS, null);
             filterIndex.create(
-                    filterId,
-                    ContentUtils.buildCtiWrapper(Constants.KEY_FILTER, resourceNode, Space.DRAFT.toString()));
+                    filterId, ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString()));
 
             // Regenerate space hash because space composition changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
