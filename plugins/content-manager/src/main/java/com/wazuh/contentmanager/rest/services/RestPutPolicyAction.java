@@ -305,11 +305,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
             }
 
             String draftPolicyId = searchResponse.getHits().getAt(0).getId();
-            
+
             // Build CTI wrapper with automatic hash calculation
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(
-                    Constants.KEY_POLICY, policyNode, Space.DRAFT.toString());
-            
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(policyNode, Space.DRAFT.toString());
+
             IndexResponse indexResponse = index.create(draftPolicyId, ctiWrapper);
 
             return indexResponse.getId();
