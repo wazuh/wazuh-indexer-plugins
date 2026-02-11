@@ -35,12 +35,10 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -87,15 +85,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      */
     public RestPutIntegrationAction(EngineService engine) {
         this.engine = engine;
-    }
-
-    /**
-     * Generate current date in YYYY-MM-DD format.
-     *
-     * @return String representing current date in YYYY-MM-DD format
-     */
-    public static String generateDate() {
-        return LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
     }
 
     /** Return a short identifier for this handler. */
@@ -229,15 +218,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Verify request is of type "integration"
-        if (!requestBody.has(Constants.KEY_TYPE)
-                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
-            log.warn(Constants.W_LOG_REQUEST_REJECTED, "invalid resource type");
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
         // Check that there is no ID field in the request body (ID comes from URL)
         if (!requestBody.at("/resource/id").isMissingNode()) {
             log.warn(Constants.W_LOG_REQUEST_REJECTED, "id field present in request body");
@@ -292,6 +272,58 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // Validate mandatory fields
+        if (!resource.has(Constants.KEY_TITLE)
+                || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_AUTHOR)
+                || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_CATEGORY)
+                || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has("documentation")) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_DESCRIPTION)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has("references")) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate mandatory list fields
+        if (!resource.has(Constants.KEY_RULES)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RULES),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_DECODERS)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DECODERS),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_KVDBS)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_KVDBS),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+
         // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
         if (existingSource.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
@@ -316,9 +348,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Insert ID from URL
         ((ObjectNode) resource).put(Constants.KEY_ID, id);
 
-        // Insert modification date
-        String currentDate = RestPutIntegrationAction.generateDate();
-        ((ObjectNode) resource).put(Constants.KEY_MODIFIED, currentDate);
+        // Check non-modifiable fields
+        RestResponse metadataError = ContentUtils.validateMetadataFields(resource, false);
+        if (metadataError != null) {
+            return metadataError;
+        }
 
         // Check if date is present in existing document to preserve it
         String createdDate = null;
@@ -327,13 +361,16 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
             if (doc.has(Constants.KEY_DATE)) {
                 createdDate = doc.get(Constants.KEY_DATE).asText();
-            } else {
-                createdDate = RestPutIntegrationAction.generateDate();
             }
         }
 
-        // Remove date field if present
-        ((ObjectNode) resource).put(Constants.KEY_DATE, createdDate);
+        // Update timestamps
+        ContentUtils.updateTimestampMetadata((ObjectNode) resource, false, false);
+
+        // Restore creation date if found
+        if (createdDate != null) {
+            ((ObjectNode) resource).put(Constants.KEY_DATE, createdDate);
+        }
 
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
         if (!resource.has(Constants.KEY_ENABLED)) {
@@ -395,9 +432,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             log.debug(Constants.D_LOG_OPERATION, "Indexing", Constants.KEY_INTEGRATION, id);
 
-            JsonNode ctiWrapper =
-                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
-
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resource, Space.DRAFT.toString());
             IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 
             // Check indexing response. We are expecting for a 200 OK status for update.
