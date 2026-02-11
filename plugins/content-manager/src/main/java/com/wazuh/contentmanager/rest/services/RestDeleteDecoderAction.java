@@ -55,7 +55,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *
  * <ul>
  *   <li>200 OK: Decoder deleted successfully.
- *   <li>400 Bad Request: Decoder ID is missing or invalid.
+ *   <li>404 Not Found: Decoder ID is missing or invalid.
  *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
  * </ul>
  */
