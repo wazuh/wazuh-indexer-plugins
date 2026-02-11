@@ -31,7 +31,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -63,6 +62,7 @@ public class RestPostRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
 
     private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private PolicyHashService policyHashService;
 
     /** Default constructor. */
@@ -140,23 +140,9 @@ public class RestPostRuleAction extends BaseRestHandler {
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode;
-            try {
-                rootNode = mapper.readTree(request.content().streamInput());
-            } catch (IOException e) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
+            JsonNode rootNode = MAPPER.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_TYPE)
-                    || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
                         String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
@@ -176,6 +162,30 @@ public class RestPostRuleAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
+            if (!resourceNode.has(Constants.KEY_TITLE)
+                    || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Optional fields
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_DESCRIPTION, "");
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_AUTHOR, "");
+            }
+            if (!resourceNode.has("references")) {
+                ((ObjectNode) resourceNode).set("references", MAPPER.createArrayNode());
+            }
+
+            // Check non-modifiable fields
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return metadataError;
+            }
+
             String integrationId = rootNode.get(Constants.KEY_INTEGRATION).asText();
 
             // Validate that the Integration exists and is in draft space
@@ -193,9 +203,8 @@ public class RestPostRuleAction extends BaseRestHandler {
             ruleNode.put(Constants.KEY_ID, ruleId);
 
             // Metadata operations
-            if (!ruleNode.has(Constants.KEY_DATE)) {
-                ruleNode.put(Constants.KEY_DATE, Instant.now().toString());
-            }
+            ContentUtils.updateTimestampMetadata(ruleNode, true, false);
+
             if (!ruleNode.has(Constants.KEY_ENABLED)) {
                 ruleNode.put(Constants.KEY_ENABLED, true);
             }
@@ -220,7 +229,9 @@ public class RestPostRuleAction extends BaseRestHandler {
 
             // 4. Store in CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
+
+            rulesIndex.create(ruleId, ctiWrapper);
 
             // 5. Link in Integration
             ContentUtils.linkResourceToIntegration(client, integrationId, ruleId, Constants.KEY_RULES);
