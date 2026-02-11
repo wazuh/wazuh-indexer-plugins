@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -131,15 +132,14 @@ public class ContentUtils {
                     JsonNode author = metadata.get(Constants.KEY_AUTHOR);
                     if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
                         return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                                Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                     }
                 }
             }
         } else {
             if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
                 return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY,
-                        RestStatus.BAD_REQUEST.getStatus());
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
         }
         return null;
@@ -318,6 +318,38 @@ public class ContentUtils {
                             + "' cannot be added or removed via update. Please use the specific resource endpoints.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
+        return null;
+    }
+
+    /**
+     * Validates enrichment types in a policy. Enrichments can be added, removed, or reordered, but
+     * only allowed values are accepted and duplicates are not permitted.
+     *
+     * @param enrichments The list of enrichment types to validate.
+     * @return A RestResponse error if validation fails, or null if valid.
+     */
+    public static RestResponse validateEnrichments(List<String> enrichments) {
+        if (enrichments == null || enrichments.isEmpty()) {
+            return null;
+        }
+
+        Set<String> seen = new HashSet<>();
+        for (String enrichment : enrichments) {
+            // Check for duplicates
+            if (!seen.add(enrichment)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, enrichment),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Check for invalid values
+            if (!Constants.ALLOWED_ENRICHMENT_TYPES.contains(enrichment)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, enrichment),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
         return null;
     }
 }
