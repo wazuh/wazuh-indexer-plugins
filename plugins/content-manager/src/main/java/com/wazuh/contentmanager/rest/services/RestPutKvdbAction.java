@@ -31,6 +31,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -174,6 +175,44 @@ public class RestPutKvdbAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, kvdbId);
 
+            // Validate mandatory fields for PUT
+            if (!resourceNode.has(Constants.KEY_TITLE)) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("documentation")) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("references")) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+            if (!resourceNode.has("content") || resourceNode.get("content").isEmpty()) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "content"),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Check non-modifiable fields
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return metadataError;
+            }
+
             // Check if KVDB exists
             ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
             if (!kvdbIndex.exists(kvdbId)) {
@@ -190,7 +229,7 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             // Update timestamps
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
+            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
 
             // Validate with engine
             RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
@@ -200,10 +239,42 @@ public class RestPutKvdbAction extends BaseRestHandler {
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Update KVDB
-            kvdbIndex.create(
-                    kvdbId,
-                    ContentUtils.buildCtiWrapper(Constants.KEY_KVDB, resourceNode, Space.DRAFT.toString()));
+            // Fetch existing KVDB to preserve creation date
+            String createdDate = null;
+            JsonNode existingDoc = kvdbIndex.getDocument(kvdbId);
+            if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
+                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                // Check root date
+                if (doc.has(Constants.KEY_DATE)) {
+                    createdDate = doc.get(Constants.KEY_DATE).asText();
+                }
+            }
+
+            // Update timestamps (root level)
+            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
+
+            // Restore creation date
+            if (createdDate != null) {
+                resourceNode.put(Constants.KEY_DATE, createdDate);
+            }
+
+            // Preserve enabled status if missing, else default true
+            if (!resourceNode.has(Constants.KEY_ENABLED)) {
+                if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
+                    JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
+                    if (doc.has(Constants.KEY_ENABLED)) {
+                        resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
+                    } else {
+                        resourceNode.put(Constants.KEY_ENABLED, true);
+                    }
+                } else {
+                    resourceNode.put(Constants.KEY_ENABLED, true);
+                }
+            }
+
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+
+            kvdbIndex.create(kvdbId, ctiWrapper);
 
             // Regenerate space hash because KVDB content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
