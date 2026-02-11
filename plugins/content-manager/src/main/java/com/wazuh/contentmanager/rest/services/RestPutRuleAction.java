@@ -25,16 +25,15 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -42,6 +41,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
 import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
@@ -61,6 +61,7 @@ public class RestPutRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_rule_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_update";
     private static final Logger log = LogManager.getLogger(RestPutRuleAction.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private PolicyHashService policyHashService;
 
@@ -174,23 +175,9 @@ public class RestPutRuleAction extends BaseRestHandler {
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode;
-            try {
-                rootNode = mapper.readTree(request.content().streamInput());
-            } catch (IOException e) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
+            JsonNode rootNode = MAPPER.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_TYPE)
-                    || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
                         String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
@@ -200,15 +187,33 @@ public class RestPutRuleAction extends BaseRestHandler {
             JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
 
             // 2. Validate Resource Fields
-            if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
+            if (!resourceNode.has(Constants.KEY_TITLE)
+                    || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
                 return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Optional fields
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_DESCRIPTION, "");
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_AUTHOR, "");
+            }
+            if (!resourceNode.has("references")) {
+                ((ObjectNode) resourceNode).set("references", MAPPER.createArrayNode());
+            }
+
+            // Check non-modifiable fields
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return new RestResponse(metadataError.getMessage(), RestStatus.BAD_REQUEST.getStatus());
             }
 
             ObjectNode ruleNode = resourceNode.deepCopy();
 
             String createdDate = null;
-            String existingAuthor = null;
 
             JsonNode existingDoc = rulesIndex.getDocument(ruleId);
             if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
@@ -216,22 +221,18 @@ public class RestPutRuleAction extends BaseRestHandler {
                 if (doc.has(Constants.KEY_DATE)) {
                     createdDate = doc.get(Constants.KEY_DATE).asText();
                 }
-                if (doc.has(Constants.KEY_AUTHOR)) {
-                    existingAuthor = doc.get(Constants.KEY_AUTHOR).asText();
-                }
             }
 
-            ruleNode.put(
-                    Constants.KEY_DATE,
-                    Objects.requireNonNullElseGet(createdDate, () -> Instant.now().toString()));
-            ruleNode.put(Constants.KEY_MODIFIED, Instant.now().toString());
+            // Update timestamps
+            ContentUtils.updateTimestampMetadata(ruleNode, false, false);
+
+            // Restore creation date if found
+            if (createdDate != null) {
+                ruleNode.put(Constants.KEY_DATE, createdDate);
+            }
 
             if (!ruleNode.has(Constants.KEY_ENABLED)) {
                 ruleNode.put(Constants.KEY_ENABLED, true);
-            }
-            if (!ruleNode.has(Constants.KEY_AUTHOR)) {
-                ruleNode.put(
-                        Constants.KEY_AUTHOR, existingAuthor != null ? existingAuthor : "Wazuh (generated)");
             }
 
             String product = ContentIndex.extractProduct(ruleNode);
@@ -256,8 +257,9 @@ public class RestPutRuleAction extends BaseRestHandler {
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
-            // 4. Update CTI Rules Index
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
+
+            rulesIndex.create(ruleId, ctiWrapper);
 
             // 5. Regenerate space hash because rule content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

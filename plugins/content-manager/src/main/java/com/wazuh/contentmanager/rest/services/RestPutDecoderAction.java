@@ -175,11 +175,18 @@ public class RestPutDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, decoderId);
 
+            // Check non-modifiable fields
+            validationError = ContentUtils.validateMetadataFields(resourceNode, true);
+            if (validationError != null) {
+                return validationError;
+            }
+
             // Check if decoder exists
             ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
             if (!decoderIndex.exists(decoderId)) {
                 return new RestResponse(
                         Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
+
             }
 
             // Validate decoder is in draft space
@@ -212,9 +219,13 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Update timestamp
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
-            ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
-                    .put(Constants.KEY_DATE, existingDate);
+            ContentUtils.updateTimestampMetadata(resourceNode, false, true);
+
+            // Restore creation date if found
+            if (existingDate != null) {
+                ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
+                        .put(Constants.KEY_DATE, existingDate);
+            }
 
             // Validate decoder with Wazuh Engine
             RestResponse engineValidation =
@@ -226,10 +237,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Update decoder
-            decoderIndex.create(
-                    decoderId,
-                    ContentUtils.buildCtiWrapper(
-                            Constants.KEY_DECODER, resourceNode, Space.DRAFT.toString()));
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+
+            decoderIndex.create(decoderId, ctiWrapper);
 
             // Regenerate space hash because decoder content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
