@@ -59,7 +59,7 @@ public class ContentUtils {
      *
      * @return String representing current date.
      */
-    public static String generateDate() {
+    public static String getCurrentDate() {
         return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
@@ -75,7 +75,7 @@ public class ContentUtils {
      */
     public static void updateTimestampMetadata(
             ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
-        String currentTimestamp = generateDate();
+        String currentTimestamp = getCurrentDate();
 
         if (isDecoder) {
             // Decoders: metadata.author.date/modified

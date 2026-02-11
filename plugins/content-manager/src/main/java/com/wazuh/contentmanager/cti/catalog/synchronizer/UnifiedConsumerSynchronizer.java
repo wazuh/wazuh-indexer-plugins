@@ -145,20 +145,19 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     private void initializeSpaces() {
         // Generate a single ID to be shared across all default policies so they are linked
         String sharedDocumentId = UUID.randomUUID().toString();
-        this.initializeSpace(Constants.INDEX_POLICIES, Space.DRAFT.toString(), sharedDocumentId);
-        this.initializeSpace(Constants.INDEX_POLICIES, Space.TEST.toString(), sharedDocumentId);
-        this.initializeSpace(Constants.INDEX_POLICIES, Space.CUSTOM.toString(), sharedDocumentId);
+        this.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
+        this.initializeSpace(Space.TEST.toString(), sharedDocumentId);
+        this.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
     }
 
     /**
      * Creates a single space policy document if it does not already exist.
      *
-     * @param indexName The index name.
      * @param spaceName The space name.
      */
-    private void initializeSpace(String indexName, String spaceName, String documentId) {
+    private void initializeSpace(String spaceName, String documentId) {
         try {
-            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
             searchSourceBuilder.size(0);
@@ -169,7 +168,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
             // Proceed only if no document with this space name exists
             if (searchResponse.getHits().getTotalHits().value() == 0) {
-                String date = ContentUtils.generateDate();
+                String date = ContentUtils.getCurrentDate();
                 String title = "Custom policy";
 
                 Policy policy = new Policy();
@@ -204,7 +203,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
 
                 IndexRequest request =
-                        new IndexRequest(indexName)
+                        new IndexRequest(Constants.INDEX_POLICIES)
                                 .source(this.mapper.writeValueAsString(source), XContentType.JSON)
                                 .opType(DocWriteRequest.OpType.CREATE)
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
