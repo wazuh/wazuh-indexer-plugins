@@ -165,7 +165,8 @@ public class RestPostRuleAction extends BaseRestHandler {
             if (!resourceNode.has(Constants.KEY_TITLE)
                     || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
                 return new RestResponse(
-                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Optional fields

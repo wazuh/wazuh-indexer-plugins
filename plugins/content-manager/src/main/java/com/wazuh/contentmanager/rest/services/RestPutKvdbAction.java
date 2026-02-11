@@ -31,6 +31,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -177,30 +178,36 @@ public class RestPutKvdbAction extends BaseRestHandler {
             // Validate mandatory fields for PUT
             if (!resourceNode.has(Constants.KEY_TITLE)) {
                 return new RestResponse(
-                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has(Constants.KEY_AUTHOR)) {
                 return new RestResponse(
-                        "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
                 return new RestResponse(
-                        "Missing required field: description.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has("documentation")) {
                 return new RestResponse(
-                        "Missing required field: documentation.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has("references")) {
                 return new RestResponse(
-                        "Missing required field: references.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has("content") || resourceNode.get("content").isEmpty()) {
                 return new RestResponse(
-                        "Missing or empty required field: content.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "content"),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Validate forbidden metadata fields using ContentUtils with isDecoder=false
+            // Check non-modifiable fields
             RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
             if (metadataError != null) {
                 return metadataError;
@@ -266,11 +273,6 @@ public class RestPutKvdbAction extends BaseRestHandler {
             }
 
             JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
-
-            // Remove the type field from the wrapper as it should not be indexed for kvdbs
-            if (ctiWrapper instanceof ObjectNode) {
-                ((ObjectNode) ctiWrapper).remove(Constants.KEY_TYPE);
-            }
 
             kvdbIndex.create(kvdbId, ctiWrapper);
 

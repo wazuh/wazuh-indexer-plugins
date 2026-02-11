@@ -275,41 +275,53 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Validate mandatory fields
         if (!resource.has(Constants.KEY_TITLE)
                 || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
-            return new RestResponse("Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_AUTHOR)
                 || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
             return new RestResponse(
-                    "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_CATEGORY)
                 || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
             return new RestResponse(
-                    "Missing required field: category.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has("documentation")) {
             return new RestResponse(
-                    "Missing required field: documentation.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_DESCRIPTION)) {
             return new RestResponse(
-                    "Missing required field: description.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has("references")) {
             return new RestResponse(
-                    "Missing required field: references.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
+                RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate mandatory list fields
         if (!resource.has(Constants.KEY_RULES)) {
-            return new RestResponse("Missing required field: rules.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RULES),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_DECODERS)) {
             return new RestResponse(
-                    "Missing required field: decoders.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DECODERS),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_KVDBS)) {
-            return new RestResponse("Missing required field: kvdbs.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_KVDBS),
+                RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals

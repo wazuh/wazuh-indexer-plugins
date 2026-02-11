@@ -868,7 +868,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                     "Should fail when missing " + field,
                     RestStatus.BAD_REQUEST.getStatus(),
                     response.getStatus());
-            assertTrue(response.getMessage().contains("Missing required field: " + field));
+            assertTrue(response.getMessage().contains("Missing [" + field + "] field."));
         }
     }
 

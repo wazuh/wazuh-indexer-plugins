@@ -246,17 +246,21 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // Validate mandatory fields
         if (!resource.has(Constants.KEY_TITLE)
                 || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
-            return new RestResponse("Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_AUTHOR)
                 || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
             return new RestResponse(
-                    "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_CATEGORY)
                 || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
             return new RestResponse(
-                    "Missing required field: category.", RestStatus.BAD_REQUEST.getStatus());
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
+                RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Optional fields

@@ -31,6 +31,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -140,16 +141,19 @@ public class RestPostKvdbAction extends BaseRestHandler {
             if (!resourceNode.has(Constants.KEY_TITLE)
                     || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
                 return new RestResponse(
-                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has(Constants.KEY_AUTHOR)
                     || resourceNode.get(Constants.KEY_AUTHOR).asText().isBlank()) {
                 return new RestResponse(
-                        "Missing required field: author.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
             if (!resourceNode.has("content") || resourceNode.get("content").isEmpty()) {
                 return new RestResponse(
-                        "Missing or empty required field: content.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "content"),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Optional fields

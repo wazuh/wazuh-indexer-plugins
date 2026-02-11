@@ -449,9 +449,9 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
             assertEquals(RestStatus.BAD_REQUEST, response.status());
             RestResponse actual = parseResponse(response);
             if (field.equals("content")) {
-                assertTrue(actual.getMessage().contains("Missing or empty required field: content"));
+                assertTrue(actual.getMessage().contains("Missing [content] field."));
             } else {
-                assertTrue(actual.getMessage().contains("Missing required field: " + field));
+                assertTrue(actual.getMessage().contains("Missing [" + field + "] field."));
             }
         }
     }

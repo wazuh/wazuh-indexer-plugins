@@ -190,7 +190,8 @@ public class RestPutRuleAction extends BaseRestHandler {
             if (!resourceNode.has(Constants.KEY_TITLE)
                     || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
                 return new RestResponse(
-                        "Missing required field: title.", RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Optional fields
@@ -257,11 +258,6 @@ public class RestPutRuleAction extends BaseRestHandler {
             }
 
             JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
-
-            // Remove the type field from the wrapper as it should not be indexed for rules
-            if (ctiWrapper instanceof ObjectNode) {
-                ((ObjectNode) ctiWrapper).remove(Constants.KEY_TYPE);
-            }
 
             rulesIndex.create(ruleId, ctiWrapper);
 
