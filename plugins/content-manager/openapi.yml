@@ -178,23 +178,19 @@ paths:
                       key2: "value2"
       responses:
         "201":
-          description: KVDB created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /kvdbs/{kvdb_id}:
+  /kvdbs/{id}:
     put:
       tags: [KVDBs]
       summary: Update KVDB
       operationId: updateKvdb
       parameters:
-        - $ref: "#/components/parameters/KvdbId"
+        - $ref: "#/components/parameters/id"
       requestBody:
         required: true
         content:
@@ -219,11 +215,7 @@ paths:
                       key3: "value3"
       responses:
         "200":
-          description: KVDB updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -236,12 +228,10 @@ paths:
       summary: Delete KVDB
       operationId: deleteKvdb
       parameters:
-        - $ref: "#/components/parameters/KvdbId"
+        - $ref: "#/components/parameters/id"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -301,17 +291,13 @@ paths:
                         - "All known webhook formats"
       responses:
         "201":
-          description: Decoder created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /decoders/{decoder_id}:
+  /decoders/{id}:
     put:
       tags: [Decoders]
       summary: Update Decoder
@@ -320,7 +306,7 @@ paths:
         The decoder ID in the path must match the resource ID in the payload (if provided).
       operationId: updateDecoder
       parameters:
-        - $ref: "#/components/parameters/DecoderId"
+        - $ref: "#/components/parameters/id"
       requestBody:
         required: true
         content:
@@ -358,11 +344,7 @@ paths:
                         - "All known webhook formats"
       responses:
         "200":
-          description: Decoder updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -377,12 +359,10 @@ paths:
         Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
       operationId: deleteDecoder
       parameters:
-        - $ref: "#/components/parameters/DecoderId"
+        - $ref: "#/components/parameters/id"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -441,17 +421,13 @@ paths:
                           - "hash_test_event"
       responses:
         "201":
-          description: Rule created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /rules/{rule_id}:
+  /rules/{id}:
     put:
       tags: [Rules]
       summary: Update Rule
@@ -460,7 +436,7 @@ paths:
         The rule is validated against the Wazuh engine before being stored.
       operationId: updateRule
       parameters:
-        - $ref: "#/components/parameters/RuleId"
+        - $ref: "#/components/parameters/id"
       requestBody:
         required: true
         content:
@@ -497,11 +473,7 @@ paths:
                           - "hash_test_event"
       responses:
         "200":
-          description: Rule updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -516,12 +488,10 @@ paths:
         Deletes a rule from the draft space. The rule is also removed from any integrations that reference it.
       operationId: deleteRule
       parameters:
-        - $ref: "#/components/parameters/RuleId"
+        - $ref: "#/components/parameters/id"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
-        "400":
-          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -570,17 +540,13 @@ paths:
                       - "https://wazuh.com"
       responses:
         "201":
-          description: Integration created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /integrations/{integration_id}:
+  /integrations/{id}:
     put:
       tags: [Integrations]
       summary: Update Integration
@@ -602,7 +568,7 @@ paths:
         **Note:** The `id` field must NOT be included in the request body; the ID is taken from the URL path parameter.
       operationId: updateIntegration
       parameters:
-        - $ref: "#/components/parameters/IntegrationId"
+        - $ref: "#/components/parameters/id"
       requestBody:
         required: true
         content:
@@ -634,11 +600,7 @@ paths:
                     kvdbs: []
       responses:
         "200":
-          description: Integration updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
+          $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -660,21 +622,12 @@ paths:
         
       operationId: deleteIntegration
       parameters:
-        - $ref: "#/components/parameters/IntegrationId"
+        - $ref: "#/components/parameters/id"
       responses:
         "200":
-          description: Integration deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ResourceResponse"
-              examples:
-                deleted:
-                  summary: Integration deleted successfully
-                  value:
-                    id: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+          $ref: "#/components/responses/ResourceDeleted"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/IntegrationHasDependencies"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -742,11 +695,7 @@ paths:
 
       responses:
         "200":
-          description: Promotion executed successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RestResponse"
+          $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
@@ -765,11 +714,7 @@ paths:
               $ref: "#/components/schemas/Policy"
       responses:
         "200":
-          description: Policy updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RestResponse"
+          $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
@@ -778,29 +723,8 @@ paths:
 components:
   # Shared path parameters for resource identifiers (UUIDs)
   parameters:
-    KvdbId:
-      name: kvdb_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    DecoderId:
-      name: decoder_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    RuleId:
-      name: rule_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    IntegrationId:
-      name: integration_id
+    id:
+      name: id
       in: path
       required: true
       schema:
@@ -1456,17 +1380,6 @@ components:
           description: External references or links
           example: "External references"
 
-    # Standard resource creation/update response containing the generated UUID
-    ResourceResponse:
-      type: object
-      description: Resource creation or update result
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          format: uuid
-
     RestResponse:
       type: object
       description: Standard response schema.
@@ -1478,15 +1391,6 @@ components:
       required:
         - message
         - status
-
-    RestErrorResponse:
-      type: object
-      description: Standard error response schema.
-      properties:
-        status:
-          type: string
-        message:
-          type: string
 
   # --- Responses schemas ---
   responses:
@@ -1529,6 +1433,34 @@ components:
             type: integer
             example: 1699963200
 
+    OkResponse:
+      description: |
+        OK - The request was successful.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            success:
+              summary: Generic success response
+              value:
+                message: "0d40f751-efa5-4b6f-822d-5f82e7532f1e"
+                status: 200
+
+    ResourceCreated:
+      description: |
+        OK - The resource was created successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            success:
+              summary: Generic success response
+              value:
+                message: "0d40f751-efa5-4b6f-822d-5f82e7532f1e"
+                status: 201
+
     # --- Error Responses ---
     BadRequest:
       description: |
@@ -1544,12 +1476,12 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
             missing_field:
               summary: Missing required field
               value:
-                message: "Missing [id] field."
+                message: "Missing [<field_name>] field."
                 status: 400
             invalid_body:
               summary: Invalid request body
@@ -1566,11 +1498,6 @@ components:
               value:
                 message: "Integration [9e301671-382d-4c1a-9abf-3d9d9544789c] is not in draft space"
                 status: 400
-            has_dependencies:
-              summary: Resource has dependent resources
-              value:
-                message: "Cannot delete integration because it has decoders attached"
-                status: 400
 
     Unauthorized:
       description: Unauthorized - Authentication failed or credentials are invalid.
@@ -1585,20 +1512,34 @@ components:
             resource_deleted:
               summary: Resource deletion confirmation
               value:
-                _id: "m98uk4kBlb9cbROIpEj2"
-                status: "success"
+                message: "m98uk4kBlb9cbROIpEj2"
+                status: 200
+
+    IntegrationHasDependencies:
+      description: OK - Integration has dependent resources.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            has_dependencies:
+              summary: Integration has dependent resources
+              value:
+                message: "Cannot delete integration because it has decoders attached"
+                status: 400
+
 
     NotFound:
       description: Not Found - The requested resource does not exist.
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
             resource_not_found:
               summary: Resource not found
               value:
-                message: "Resource not found"
+                message: "Resource not found."
                 status: 404
 
     Conflict:
@@ -1606,7 +1547,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
             undergoing_update:
               summary: Content update in progress
@@ -1639,7 +1580,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
             rate_limit_exceeded:
               summary: Rate limit exceeded
@@ -1658,7 +1599,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
             internal_error:
               summary: Internal server error
