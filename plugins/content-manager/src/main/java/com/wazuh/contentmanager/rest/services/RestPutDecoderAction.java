@@ -145,11 +145,26 @@ public class RestPutDecoderAction extends BaseRestHandler {
 
         try {
             String decoderId = request.param(Constants.KEY_ID);
-            if (decoderId == null || decoderId.isBlank()) {
-                return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
+
+            // Validate ID is present
+            validationError = DocumentValidations.validateRequiredParam(decoderId, Constants.KEY_ID);
+            if (validationError != null) {
+                return validationError;
             }
 
-            JsonNode payload = this.mapper.readTree(request.content().streamInput());
+            // Validate UUID format
+            validationError = DocumentValidations.validateUUID(decoderId);
+            if (validationError != null) {
+                return validationError;
+            }
+
+            JsonNode payload;
+            try {
+                payload = this.mapper.readTree(request.content().streamInput());
+            } catch (IOException e) {
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            }
 
             // Validate payload structure
             validationError = DocumentValidations.validateResourcePayload(payload, decoderId, false);
@@ -160,10 +175,18 @@ public class RestPutDecoderAction extends BaseRestHandler {
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
             resourceNode.put(Constants.KEY_ID, decoderId);
 
-            // Validate forbidden metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode);
+            // Check non-modifiable fields
+            validationError = ContentUtils.validateMetadataFields(resourceNode, true);
             if (validationError != null) {
                 return validationError;
+            }
+
+            // Check if decoder exists
+            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
+            if (!decoderIndex.exists(decoderId)) {
+                return new RestResponse(
+                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
+
             }
 
             // Validate decoder is in draft space
@@ -175,7 +198,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Fetch existing decoder to preserve creation date
-            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
             JsonNode existingDoc = decoderIndex.getDocument(decoderId);
             if (existingDoc == null) {
                 return new RestResponse(
@@ -197,36 +219,38 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             // Update timestamp
-            ContentUtils.updateTimestampMetadata(resourceNode, false);
-            ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
-                    .put(Constants.KEY_DATE, existingDate);
+            ContentUtils.updateTimestampMetadata(resourceNode, false, true);
+
+            // Restore creation date if found
+            if (existingDate != null) {
+                ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
+                        .put(Constants.KEY_DATE, existingDate);
+            }
 
             // Validate decoder with Wazuh Engine
             RestResponse engineValidation =
                     this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
+                log.error(Constants.E_LOG_ENGINE_VALIDATION, engineValidation.getMessage());
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Update decoder
-            decoderIndex.create(
-                    decoderId,
-                    ContentUtils.buildCtiWrapper(
-                            Constants.KEY_DECODER, resourceNode, Space.DRAFT.toString()));
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+
+            decoderIndex.create(decoderId, ctiWrapper);
 
             // Regenerate space hash because decoder content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "Decoder updated successfully with ID: " + decoderId, RestStatus.OK.getStatus());
+            return new RestResponse(decoderId, RestStatus.OK.getStatus());
 
-        } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            log.error("Error updating decoder: {}", e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_DECODER, e.getMessage(), e);
             return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

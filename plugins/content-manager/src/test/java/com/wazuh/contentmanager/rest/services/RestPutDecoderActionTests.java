@@ -36,6 +36,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -43,10 +44,18 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
@@ -135,11 +144,11 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
-        // Assert
+        // Assert - per spec, success returns 200 with just the ID
         assertEquals(RestStatus.OK, bytesRestResponse.status());
 
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().startsWith("Decoder updated successfully with ID:"));
+        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", actualResponse.getMessage());
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validateResource(anyString(), payloadCaptor.capture());
@@ -162,7 +171,9 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -172,7 +183,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
     /** Test that missing request body returns 400 Bad Request. */
     public void testPutDecoderMissingBodyReturns400() {
         // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", decoderId))
@@ -186,7 +197,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -196,7 +207,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
     /** Test that missing resource field returns 400 Bad Request. */
     public void testPutDecoderMissingResourceReturns400() {
         // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD_MISSING_RESOURCE, decoderId);
 
         // Act
@@ -207,7 +218,9 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -217,7 +230,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
     /** Test that decoder ID mismatch returns 400 Bad Request. */
     public void testPutDecoderIdMismatchReturns400() {
         // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID_MISMATCH, decoderId);
 
         // Act
@@ -227,7 +240,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
         assertEquals(
-                "Resource ID does not match resource ID.",
+                String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
                 this.parseResponse(bytesRestResponse).getMessage());
         verify(this.service, never()).validateResource(anyString(), any(JsonNode.class));
     }
@@ -239,7 +252,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
      */
     public void testPutDecoderNotFoundReturns404() throws Exception {
         // Arrange
-        String decoderId = "d_non-existent-12345";
+        String decoderId = "11111111-1111-1111-1111-111111111111";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
@@ -249,18 +262,18 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        // Assert - per spec, NOT_FOUND returns 404
+        assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
 
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("decoder [" + decoderId + "] not found"));
+        assertEquals(Constants.E_404_RESOURCE_NOT_FOUND, actualResponse.getMessage());
     }
 
     /** Test that null engine service returns 500 Internal Server Error. */
     public void testPutDecoderEngineUnavailableReturns500() {
         // Arrange
         this.action = new RestPutDecoderAction(null);
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
 
         // Act
@@ -272,7 +285,7 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }

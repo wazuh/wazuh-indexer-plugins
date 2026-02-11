@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -31,12 +32,14 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -179,7 +182,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -216,8 +218,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         String generatedId = idCaptor.getValue();
 
         assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-        assertEquals(
-                "Integration created successfully with ID: " + generatedId, actualResponse.getMessage());
+        assertEquals(generatedId, actualResponse.getMessage());
     }
 
     /**
@@ -228,7 +229,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration400_hasId() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("ID field is not allowed in the request body.");
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -239,7 +240,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -273,7 +273,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration400_noContent() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("JSON request body is required.");
+        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
 
         // Create a RestRequest with no payload
         RestRequest request = mock(RestRequest.class);
@@ -289,7 +289,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_policyDoesNotExist() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Draft policy not found.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -327,7 +327,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -356,50 +355,11 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         assertEquals(expectedResponse, actualResponse);
     }
 
-    /** Invalid resource type */
-    public void testPostIntegration400_invalidType() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage("Invalid resource type.");
-
-        // Create a RestRequest with the no payload
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-
-        // spotless:off
-        JsonNode mockedPayload =
-            FixtureFactory.from(
-                """
-                    {
-                        "type": "not_integration",
-                        "resource":
-                        {
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """
-
-            );
-        // spotless:on
-        when(request.content())
-                .thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(mockedPayload)));
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
-    }
-
     /** If the engine does not respond, return 500 */
     public void testPostIntegration500_noEngineReply() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(
-                "Failed to create Integration, Invalid validation response: Non valid response.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -421,7 +381,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -454,7 +413,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_failedToIndexIntegration() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to index integration.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -517,7 +476,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -551,8 +509,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_corruptDraftPolicy() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(
-                "Failed to retrieve integrations array from draft policy document.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -610,7 +567,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -644,7 +600,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_draftPolicyFailedUpdate() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Failed to update draft policy.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -726,7 +682,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -762,7 +717,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     public void testPostIntegration500_unexpectedError() throws IOException {
         RestResponse expectedResponse = new RestResponse();
         expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage("Unexpected error during processing.");
+        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
 
         // Create a RestRequest with the no payload
         RestRequest request = mock(RestRequest.class);
@@ -857,7 +812,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             FixtureFactory.from(
                 """
                     {
-                        "type": "integration",
                         "resource":
                         {
                             "author": "Wazuh Inc.",
@@ -885,5 +839,131 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse actualResponse = this.action.handleRequest(request);
         assertEquals(expectedResponse, actualResponse);
+    }
+
+    /**
+     * Checks that if the mandatory fields are missing then there is an error
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostIntegration_missingMandatoryFields() throws IOException {
+        String basePayload =
+                "{\"type\": \"integration\", \"resource\": {\"title\": \"T\", \"author\": \"A\", \"category\": \"C\"}}";
+        String[] fields = {"title", "author", "category"};
+
+        for (String field : fields) {
+            ObjectNode root = (ObjectNode) MAPPER.readTree(basePayload);
+            ObjectNode resource = (ObjectNode) root.get("resource");
+            resource.remove(field);
+
+            RestRequest request = mock(RestRequest.class);
+            when(request.hasContent()).thenReturn(true);
+            when(request.content()).thenReturn(new BytesArray(MAPPER.writeValueAsBytes(root)));
+
+            this.action.setSecurityAnalyticsService(this.saService);
+
+            RestResponse response = this.action.handleRequest(request);
+
+            assertEquals(
+                    "Should fail when missing " + field,
+                    RestStatus.BAD_REQUEST.getStatus(),
+                    response.getStatus());
+            assertTrue(response.getMessage().contains("Missing [" + field + "] field."));
+        }
+    }
+
+    /**
+     * Checks that if not present description, documentation and references take empty values
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostIntegration_optionalFieldsDefaults() throws IOException {
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+
+        ContentIndex policiesIndex = mock(ContentIndex.class);
+        this.action.setPoliciesContentIndex(policiesIndex);
+
+        RestResponse restResponse = mock(RestResponse.class);
+        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
+        when(this.engine.validate(any())).thenReturn(restResponse);
+
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Fixed sourceJson: Added "hash" object
+        String sourceJson =
+                "{\"document\":{\"author\":\"Wazuh Inc.\",\"id\":\"24ef0a2d-5c20-403d-b446-60c6656373a0\",\"integrations\":[\"7e87cbde-8e82-41fc-b6ad-29ae789d2e32\"]},\"hash\":{\"sha256\":\"oldhash\"},\"space\":{\"name\":\"draft\"}}";
+        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
+        hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
+
+        JsonArray hitsArray = new JsonArray();
+        hitsArray.add(hitObject);
+        JsonObject searchResult = new JsonObject();
+        searchResult.add("hits", hitsArray);
+        searchResult.addProperty("total", 1);
+        when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
+        IndexResponse indexPolicyResponse = mock(IndexResponse.class);
+        when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
+        when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexPolicyResponse);
+
+        this.action.setSecurityAnalyticsService(this.saService);
+        this.action.setPolicyHashService(mock(PolicyHashService.class));
+
+        // Payload without optional fields
+        String payload =
+                "{\"type\": \"integration\", \"resource\": {\"title\": \"T\", \"author\": \"A\", \"category\": \"C\"}}";
+        when(request.content()).thenReturn(new BytesArray(payload));
+
+        RestResponse response = this.action.handleRequest(request);
+
+        assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
+
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(integrationsIndex).create(anyString(), captor.capture());
+
+        JsonNode indexedCtiWrapper = captor.getValue();
+        JsonNode resource = indexedCtiWrapper.get("document");
+
+        assertTrue(resource.has("description"));
+        assertEquals("", resource.get("description").asText());
+        assertTrue(resource.has("documentation"));
+        assertEquals("", resource.get("documentation").asText());
+        assertTrue(resource.has("references"));
+        assertTrue(resource.get("references").isArray());
+        assertEquals(0, resource.get("references").size());
+    }
+
+    /**
+     * Checks that date and modified cannot be added without it failing
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostIntegration_forbiddenFields() throws IOException {
+        String basePayload =
+                "{\"type\": \"integration\", \"resource\": {\"title\": \"T\", \"author\": \"A\", \"category\": \"C\"}}";
+        String[] fields = {"date", "modified"};
+
+        for (String field : fields) {
+            ObjectNode root = (ObjectNode) MAPPER.readTree(basePayload);
+            ObjectNode resource = (ObjectNode) root.get("resource");
+            resource.put(field, "2020-01-01");
+
+            RestRequest request = mock(RestRequest.class);
+            when(request.hasContent()).thenReturn(true);
+            when(request.content()).thenReturn(new BytesArray(MAPPER.writeValueAsBytes(root)));
+
+            this.action.setSecurityAnalyticsService(this.saService);
+
+            RestResponse response = this.action.handleRequest(request);
+
+            assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+            assertTrue(
+                    response.getMessage().contains("Invalid request body."));
+        }
     }
 }

@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -35,6 +36,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +44,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -63,43 +66,42 @@ import static org.mockito.Mockito.when;
 public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutKvdbAction action;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    // Valid payload with all mandatory fields for PUT
     private static final String KVDB_PAYLOAD =
             "{"
-                    + "\"type\": \"kvdb\","
                     + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
-                    + "  \"space\": {\"name\": \"draft\"},"
-                    + "  \"metadata\": {"
-                    + "    \"title\": \"Example KVDB\","
-                    + "    \"description\": \"Example KVDB description\","
-                    + "    \"author\": {"
-                    + "      \"name\": \"Wazuh\""
-                    + "    }"
-                    + "  }"
+                    + "  \"title\": \"Example KVDB\","
+                    + "  \"description\": \"Example KVDB description\","
+                    + "  \"author\": \"Wazuh\","
+                    + "  \"content\": {\"key\": \"value\"},"
+                    + "  \"documentation\": \"docs\","
+                    + "  \"references\": []"
                     + "}"
                     + "}";
 
     private static final String KVDB_PAYLOAD_WITH_ID_MISMATCH =
             "{"
-                    + "\"type\": \"kvdb\","
                     + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"id\": \"different-uuid-12345\","
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
-                    + "  \"metadata\": {"
-                    + "    \"title\": \"Example KVDB\","
-                    + "    \"author\": {"
-                    + "      \"name\": \"Wazuh\""
-                    + "    }"
-                    + "  }"
+                    + "  \"title\": \"Example KVDB\","
+                    + "  \"author\": \"Wazuh\","
+                    + "  \"description\": \"desc\","
+                    + "  \"content\": {\"key\": \"value\"},"
+                    + "  \"documentation\": \"\","
+                    + "  \"references\": []"
                     + "}"
                     + "}";
 
     private static final String KVDB_PAYLOAD_MISSING_RESOURCE =
-            "{" + "\"type\": \"kvdb\"," + "\"integration\": \"integration-1\"" + "}";
+            "{" + "\"integration\": \"integration-1\"" + "}";
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -132,7 +134,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
                 .thenReturn(engineResponse);
-        Client client = this.buildClientForIndex();
+        Client client = this.buildClientForIndex(true);
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -141,11 +143,11 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse =
                 this.action.handleRequest(request, client).toBytesRestResponse();
 
-        // Assert
+        // Assert - per spec, success returns 200 with just the ID
         assertEquals(RestStatus.OK, bytesRestResponse.status());
 
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().startsWith("KVDB updated successfully with ID:"));
+        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", actualResponse.getMessage());
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validateResource(anyString(), payloadCaptor.capture());
@@ -166,7 +168,9 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -176,7 +180,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     /** Test that missing request body returns 400 Bad Request. */
     public void testPutKvdbMissingBodyReturns400() {
         // Arrange
-        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", kvdbId))
@@ -190,7 +194,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -200,7 +204,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     /** Test that missing resource field returns 400 Bad Request. */
     public void testPutKvdbMissingResourceReturns400() {
         // Arrange
-        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD_MISSING_RESOURCE, kvdbId);
 
         // Act
@@ -211,7 +215,9 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
 
         RestResponse expectedResponse =
-                new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
+                new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -221,7 +227,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     /** Test that KVDB ID mismatch returns 400 Bad Request. */
     public void testPutKvdbIdMismatchReturns400() {
         // Arrange
-        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD_WITH_ID_MISMATCH, kvdbId);
 
         // Act
@@ -233,7 +239,8 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Resource ID does not match resource ID.", RestStatus.BAD_REQUEST.getStatus());
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
+                        RestStatus.BAD_REQUEST.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
 
@@ -247,12 +254,12 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
      */
     public void testPutKvdbNotFoundReturns404() throws Exception {
         // Arrange
-        String kvdbId = "d_non-existent-12345";
+        String kvdbId = "11111111-1111-1111-1111-111111111111";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD, kvdbId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
                 .thenReturn(engineResponse);
-        Client client = this.buildClientWithNonExistentKvdb();
+        Client client = this.buildClientForIndex(false);
 
         // Act
         BytesRestResponse bytesRestResponse =
@@ -260,17 +267,15 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
-        assertTrue(
-                this.parseResponse(bytesRestResponse)
-                        .getMessage()
-                        .contains("KVDB [" + kvdbId + "] not found"));
+        assertEquals(
+                Constants.E_404_RESOURCE_NOT_FOUND, this.parseResponse(bytesRestResponse).getMessage());
     }
 
     /** Test that null engine service returns 500 Internal Server Error. */
     public void testPutKvdbEngineUnavailableReturns500() {
         // Arrange
         this.action = new RestPutKvdbAction(null);
-        String kvdbId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(KVDB_PAYLOAD, kvdbId);
 
         // Act
@@ -282,7 +287,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         RestResponse expectedResponse =
                 new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         RestResponse actualResponse = this.parseResponse(bytesRestResponse);
         assertEquals(expectedResponse, actualResponse);
     }
@@ -302,7 +307,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
         return new RestResponse(node.get("message").asText(), node.get("status").asInt());
     }
 
-    private Client buildClientForIndex() throws Exception {
+    private Client buildClientForIndex(boolean kvdbExists) throws Exception {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
@@ -313,53 +318,26 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         // Mock KVDB exists check with space information
         GetResponse kvdbGetResponse = mock(GetResponse.class);
-        when(kvdbGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> kvdbSource = new java.util.HashMap<>();
-        Map<String, Object> kvdbSpace = new java.util.HashMap<>();
-        kvdbSpace.put("name", "draft");
-        kvdbSource.put("space", kvdbSpace);
-        when(kvdbGetResponse.getSourceAsMap()).thenReturn(kvdbSource);
+        when(kvdbGetResponse.isExists()).thenReturn(kvdbExists);
+        if (kvdbExists) {
+            Map<String, Object> source = new java.util.HashMap<>();
+            Map<String, Object> document = new java.util.HashMap<>();
+            document.put("date", "2020-01-01T00:00:00Z");
+            document.put("enabled", true);
+            source.put("document", document);
+            Map<String, Object> space = new java.util.HashMap<>();
+            space.put("name", "draft");
+            source.put("space", space);
+
+            when(kvdbGetResponse.getSourceAsMap()).thenReturn(source);
+        } else {
+            when(kvdbGetResponse.getSourceAsMap()).thenReturn(null);
+        }
+
+        // Return this mock for simple get (exists check, getDocument)
+        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(kvdbGetResponse);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(kvdbGetResponse);
-
-        // Mock integration response with space information
-        GetResponse integrationGetResponse = mock(GetResponse.class);
-        when(integrationGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> integrationSource = new java.util.HashMap<>();
-        Map<String, Object> space = new java.util.HashMap<>();
-        space.put("name", "draft");
-        integrationSource.put("space", space);
-        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
-
-        return client;
-    }
-
-    private Client buildClientWithNonExistentKvdb() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock KVDB does not exist
-        GetResponse kvdbGetResponse = mock(GetResponse.class);
-        when(kvdbGetResponse.isExists()).thenReturn(false);
-        when(kvdbGetResponse.getSourceAsMap()).thenReturn(null);
-        when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(kvdbGetResponse);
-
-        // Mock integration response with space information
-        GetResponse integrationGetResponse = mock(GetResponse.class);
-        when(integrationGetResponse.isExists()).thenReturn(true);
-        Map<String, Object> integrationSource = new java.util.HashMap<>();
-        Map<String, Object> space = new java.util.HashMap<>();
-        space.put("name", "draft");
-        integrationSource.put("space", space);
-        when(integrationGetResponse.getSourceAsMap()).thenReturn(integrationSource);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(integrationGetResponse);
 
         return client;
     }

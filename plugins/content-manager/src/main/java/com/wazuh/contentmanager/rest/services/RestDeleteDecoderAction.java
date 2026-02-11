@@ -28,6 +28,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -136,29 +137,33 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     public BytesRestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (this.engine == null) {
+                log.error(Constants.E_LOG_ENGINE_IS_NULL);
                 return new RestResponse(
-                                "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                                Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                         .toBytesRestResponse();
             }
 
             String decoderId = request.param(Constants.KEY_ID);
+
+            // Validate ID is present
             if (decoderId == null || decoderId.isBlank()) {
-                return new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus())
+                return new RestResponse(
+                                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
+                                RestStatus.BAD_REQUEST.getStatus())
                         .toBytesRestResponse();
+            }
+
+            // Validate UUID format
+            RestResponse uuidValidation = DocumentValidations.validateUUID(decoderId);
+            if (uuidValidation != null) {
+                return uuidValidation.toBytesRestResponse();
             }
 
             // Ensure Index Exists
             if (!IndexHelper.indexExists(client, Constants.INDEX_DECODERS)) {
-                return new RestResponse("Decoder index not found.", RestStatus.NOT_FOUND.getStatus())
-                        .toBytesRestResponse();
-            }
-
-            // Validate decoder is in draft space
-            String validationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_DECODERS, decoderId, Constants.KEY_DECODER);
-            if (validationError != null) {
-                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus())
+                log.error(Constants.E_LOG_INDEX_NOT_FOUND, Constants.INDEX_DECODERS);
+                return new RestResponse(
+                                Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                         .toBytesRestResponse();
             }
 
@@ -167,7 +172,16 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             // Check if decoder exists before deleting
             if (!decoderIndex.exists(decoderId)) {
                 return new RestResponse(
-                                "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus())
+                                Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus())
+                        .toBytesRestResponse();
+            }
+
+            // Validate decoder is in draft space
+            String spaceValidationError =
+                    DocumentValidations.validateDocumentInSpace(
+                            client, Constants.INDEX_DECODERS, decoderId, Constants.KEY_DECODER);
+            if (spaceValidationError != null) {
+                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus())
                         .toBytesRestResponse();
             }
 
@@ -180,15 +194,12 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
             // Regenerate space hash because decoder was removed from space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse("Decoder deleted successfully.", RestStatus.OK.getStatus())
-                    .toBytesRestResponse();
+            return new RestResponse(decoderId, RestStatus.OK.getStatus()).toBytesRestResponse();
         } catch (Exception e) {
-            log.error("Error deleting decoder: {}", e.getMessage(), e);
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "deleting", Constants.KEY_DECODER, e.getMessage(), e);
             return new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                     .toBytesRestResponse();
         }
     }

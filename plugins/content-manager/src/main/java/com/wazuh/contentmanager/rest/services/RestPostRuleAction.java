@@ -31,8 +31,8 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -62,6 +62,7 @@ public class RestPostRuleAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
 
     private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private PolicyHashService policyHashService;
 
     /** Default constructor. */
@@ -135,21 +136,17 @@ public class RestPostRuleAction extends BaseRestHandler {
     public RestResponse handleRequest(RestRequest request, Client client) {
         try {
             if (!request.hasContent()) {
-                return new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(request.content().streamInput());
+            JsonNode rootNode = MAPPER.readTree(request.content().streamInput());
 
             // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_TYPE)
-                    || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
-                return new RestResponse(
-                        "Invalid or missing 'type'. Expected 'rule'.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
             if (!rootNode.has(Constants.KEY_RESOURCE)) {
-                return new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
@@ -157,10 +154,36 @@ public class RestPostRuleAction extends BaseRestHandler {
             // 2. Validate Payload (Resource)
             if (resourceNode.has(Constants.KEY_ID)) {
                 return new RestResponse(
-                        "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
+                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
             if (!rootNode.has(Constants.KEY_INTEGRATION)) {
-                return new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus());
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            if (!resourceNode.has(Constants.KEY_TITLE)
+                    || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
+                return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Optional fields
+            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_DESCRIPTION, "");
+            }
+            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
+                ((ObjectNode) resourceNode).put(Constants.KEY_AUTHOR, "");
+            }
+            if (!resourceNode.has("references")) {
+                ((ObjectNode) resourceNode).set("references", MAPPER.createArrayNode());
+            }
+
+            // Check non-modifiable fields
+            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
+            if (metadataError != null) {
+                return metadataError;
             }
 
             String integrationId = rootNode.get(Constants.KEY_INTEGRATION).asText();
@@ -180,9 +203,8 @@ public class RestPostRuleAction extends BaseRestHandler {
             ruleNode.put(Constants.KEY_ID, ruleId);
 
             // Metadata operations
-            if (!ruleNode.has(Constants.KEY_DATE)) {
-                ruleNode.put(Constants.KEY_DATE, Instant.now().toString());
-            }
+            ContentUtils.updateTimestampMetadata(ruleNode, true, false);
+
             if (!ruleNode.has(Constants.KEY_ENABLED)) {
                 ruleNode.put(Constants.KEY_ENABLED, true);
             }
@@ -197,15 +219,19 @@ public class RestPostRuleAction extends BaseRestHandler {
                                 ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, payloadString, true);
 
                 client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
-                log.info("RestPostRuleAction: SAP created rule successfully (Custom).");
+                log.info(Constants.I_LOG_SUCCESS, "Created", Constants.KEY_RULE, ruleId);
             } catch (Exception e) {
-                log.error("RestPostRuleAction: SAP creation failed.", e);
-                throw e;
+                log.error(
+                        Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
+                return new RestResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // 4. Store in CTI Rules Index
             ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
+
+            rulesIndex.create(ruleId, ctiWrapper);
 
             // 5. Link in Integration
             ContentUtils.linkResourceToIntegration(client, integrationId, ruleId, Constants.KEY_RULES);
@@ -213,16 +239,13 @@ public class RestPostRuleAction extends BaseRestHandler {
             // 6. Regenerate space hash because rule was added to space
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            return new RestResponse(
-                    "Custom rule created successfully with ID " + ruleId, RestStatus.CREATED.getStatus());
+            return new RestResponse(ruleId, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
-            log.error("Error creating rule: {}", e.getMessage(), e);
-            // If validation error return bad request
-            if (e.getMessage() != null && e.getMessage().contains("Invalid rule")) {
-                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

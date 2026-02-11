@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -34,11 +35,10 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -73,7 +73,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
     private PolicyHashService policyHashService;
     private SecurityAnalyticsService service;
     private final EngineService engine;
-    private final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
+    private static final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private NodeClient nodeClient;
@@ -85,15 +85,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      */
     public RestPutIntegrationAction(EngineService engine) {
         this.engine = engine;
-    }
-
-    /**
-     * Generate current date in YYYY-MM-DD format.
-     *
-     * @return String representing current date in YYYY-MM-DD format
-     */
-    public static String generateDate() {
-        return LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
     }
 
     /** Return a short identifier for this handler. */
@@ -176,7 +167,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
         String id = request.param(Constants.KEY_ID);
-        this.log.debug(
+        log.debug(
                 "PUT integration request received (id={}, hasContent={}, uri={})",
                 id,
                 request.hasContent(),
@@ -184,8 +175,31 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Check if ID is provided
         if (id == null || id.isEmpty()) {
-            this.log.warn("Request rejected: integration ID is required");
-            return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration ID is required");
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate UUID format
+        try {
+            java.util.UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, id),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Check if engine service exists
+        if (this.engine == null) {
+            log.error(Constants.E_LOG_ENGINE_IS_NULL);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+        if (this.service == null) {
+            log.error(Constants.E_LOG_SECURITY_ANALYTICS_IS_NULL);
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // Validate prerequisites
@@ -194,40 +208,21 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return validationError;
         }
 
-        // Check if security analytics service exists
-        if (this.service == null) {
-            this.log.error("Security Analytics service instance is null");
-            return new RestResponse(
-                    "Security Analytics service instance is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
         // Check request's payload is valid JSON
         JsonNode requestBody;
         try {
             requestBody = MAPPER.readTree(request.content().streamInput()).deepCopy();
         } catch (IOException ex) {
-            this.log.warn("Request rejected: invalid JSON content", ex);
-            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Verify request is of type "integration"
-        if (!requestBody.has(Constants.KEY_TYPE)
-                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
-            this.log.warn(
-                    "Request rejected: invalid resource type (type={})",
-                    requestBody.has(Constants.KEY_TYPE)
-                            ? requestBody.get(Constants.KEY_TYPE).asText()
-                            : null);
-            return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "invalid JSON content", ex);
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check that there is no ID field in the request body (ID comes from URL)
         if (!requestBody.at("/resource/id").isMissingNode()) {
-            this.log.warn("Request rejected: id field present in request body");
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "id field present in request body");
             return new RestResponse(
-                    "ID field is not allowed in the request body. Use the URL path parameter instead.",
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Verify integration exists and is in draft space
@@ -236,14 +231,15 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             getResponse = this.nodeClient.get(getRequest).actionGet();
         } catch (Exception e) {
-            this.log.error("Failed to retrieve existing integration (id={})", id, e);
+            log.error(
+                    Constants.E_LOG_FAILED_TO, "retrieve", Constants.KEY_INTEGRATION, id, e.getMessage(), e);
             return new RestResponse(
-                    "Failed to retrieve existing integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         if (!getResponse.isExists()) {
-            this.log.warn("Request rejected: integration not found (id={})", id);
-            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration not found");
+            return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Verify integration is in draft space
@@ -253,28 +249,79 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             Map<String, Object> space = (Map<String, Object>) existingSource.get(Constants.KEY_SPACE);
             String spaceName = (String) space.get(Constants.KEY_NAME);
             if (!Space.DRAFT.equals(spaceName)) {
-                this.log.warn(
-                        "Request rejected: cannot update integration in space '{}' (id={})", spaceName, id);
+                log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration not in draft space");
                 return new RestResponse(
-                        "Cannot update integration from space '"
-                                + spaceName
-                                + "'. Only 'draft' space is modifiable.",
+                        String.format(
+                                Locale.ROOT,
+                                Constants.E_400_RESOURCE_NOT_IN_DRAFT,
+                                Strings.capitalize(Constants.KEY_INTEGRATION),
+                                id),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         } else {
-            this.log.warn("Request rejected: integration has undefined space (id={})", id);
-            return new RestResponse(
-                    "Cannot update integration with undefined space.", RestStatus.BAD_REQUEST.getStatus());
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "integration has undefined space");
+            return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
         }
 
         // Extract /resource
         JsonNode resource = requestBody.at("/resource");
         if (!resource.isObject()) {
-            this.log.warn(
-                    "Request rejected: /resource is not an object (nodeType={})", resource.getNodeType());
+            log.warn(Constants.W_LOG_REQUEST_REJECTED, "/resource is not an object");
             return new RestResponse(
-                    "Invalid JSON structure: /resource must be an object.",
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                     RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate mandatory fields
+        if (!resource.has(Constants.KEY_TITLE)
+                || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_AUTHOR)
+                || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_CATEGORY)
+                || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has("documentation")) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_DESCRIPTION)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has("references")) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate mandatory list fields
+        if (!resource.has(Constants.KEY_RULES)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RULES),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_DECODERS)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DECODERS),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (!resource.has(Constants.KEY_KVDBS)) {
+            return new RestResponse(
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_KVDBS),
+                RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
@@ -284,14 +331,14 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
 
             try {
-                if (validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_RULES);
+                if (this.validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
+                    return this.validateList(existingDocument, resource, Constants.KEY_RULES);
                 }
-                if (validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_DECODERS);
+                if (this.validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
+                    return this.validateList(existingDocument, resource, Constants.KEY_DECODERS);
                 }
-                if (validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_KVDBS);
+                if (this.validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
+                    return this.validateList(existingDocument, resource, Constants.KEY_KVDBS);
                 }
             } catch (IllegalArgumentException e) {
                 return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
@@ -301,9 +348,11 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Insert ID from URL
         ((ObjectNode) resource).put(Constants.KEY_ID, id);
 
-        // Insert modification date
-        String currentDate = RestPutIntegrationAction.generateDate();
-        ((ObjectNode) resource).put(Constants.KEY_MODIFIED, currentDate);
+        // Check non-modifiable fields
+        RestResponse metadataError = ContentUtils.validateMetadataFields(resource, false);
+        if (metadataError != null) {
+            return metadataError;
+        }
 
         // Check if date is present in existing document to preserve it
         String createdDate = null;
@@ -312,13 +361,16 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
             if (doc.has(Constants.KEY_DATE)) {
                 createdDate = doc.get(Constants.KEY_DATE).asText();
-            } else {
-                createdDate = RestPutIntegrationAction.generateDate();
             }
         }
 
-        // Remove date field if present
-        ((ObjectNode) resource).put(Constants.KEY_DATE, createdDate);
+        // Update timestamps
+        ContentUtils.updateTimestampMetadata((ObjectNode) resource, false, false);
+
+        // Restore creation date if found
+        if (createdDate != null) {
+            ((ObjectNode) resource).put(Constants.KEY_DATE, createdDate);
+        }
 
         // Check if enabled is set (if it's not, preserve existing value or set to true by default)
         if (!resource.has(Constants.KEY_ENABLED)) {
@@ -341,20 +393,20 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         // Calculate and add a hash to the integration
         String hash = HashCalculator.sha256(resource.toString());
         ((ObjectNode) requestBody).putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, hash);
-        this.log.debug(
+        log.debug(
                 "Computed integration sha256 hash for id={} (hashPrefix={})",
                 id,
                 hash.length() >= 12 ? hash.substring(0, 12) : hash);
 
         // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
-        this.log.debug("Updating integration in Security Analytics (id={})", id);
+        log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_INTEGRATION, id);
         this.service.upsertIntegration(
                 this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
                 Space.DRAFT,
                 PUT);
 
         // Construct engine validation payload
-        this.log.debug("Validating integration with Engine (id={})", id);
+        log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
@@ -365,62 +417,51 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         try {
             MAPPER.readTree(validationResponse.getMessage()).isObject();
         } catch (Exception e) {
-            this.log.error(
-                    "Engine validation failed (id={}, status={}); SAP update may be inconsistent",
-                    id,
-                    validationResponse.getStatus());
+            log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             return new RestResponse(
-                    "Failed to update Integration, Invalid validation response: "
-                            + validationResponse.getMessage()
-                            + ".",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // If validation failed, return error (SAP was already updated, may need manual reconciliation)
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-            this.log.error(
-                    "Engine validation failed (id={}, status={})", id, validationResponse.getStatus());
+            log.error(Constants.E_LOG_ENGINE_VALIDATION, validationResponse.getMessage());
             return new RestResponse(
-                    "Failed to update Integration, Validation response: "
-                            + validationResponse.getStatus()
-                            + ".",
-                    RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
-            this.log.debug(
-                    "Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
+            log.debug(Constants.D_LOG_OPERATION, "Indexing", Constants.KEY_INTEGRATION, id);
 
-            JsonNode ctiWrapper =
-                    ContentUtils.buildCtiWrapper(Constants.KEY_INTEGRATION, resource, Space.DRAFT.toString());
-
+            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resource, Space.DRAFT.toString());
             IndexResponse integrationIndexResponse = this.integrationsIndex.create(id, ctiWrapper);
 
             // Check indexing response. We are expecting for a 200 OK status for update.
             if (integrationIndexResponse == null
                     || (integrationIndexResponse.status() != RestStatus.OK
                             && integrationIndexResponse.status() != RestStatus.CREATED)) {
-                this.log.error(
-                        "Indexing integration failed (id={}, status={})",
+                log.error(
+                        Constants.E_LOG_FAILED_TO,
+                        "index",
+                        Constants.KEY_INTEGRATION,
                         id,
-                        integrationIndexResponse != null ? integrationIndexResponse.status() : null);
+                        integrationIndexResponse);
                 return new RestResponse(
-                        "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // Update the space's hash in the policy
-            this.log.debug(
-                    "Recalculating space hash for draft space after integration update (id={})", id);
+            log.debug(
+                    Constants.D_LOG_OPERATION, "Recalculating space hash for", Constants.KEY_INTEGRATION, id);
 
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            this.log.info("Integration updated successfully (id={})", id);
-            return new RestResponse(
-                    "Integration updated successfully with ID: " + id, RestStatus.OK.getStatus());
+            log.info(Constants.I_LOG_SUCCESS, "Updated", Constants.KEY_INTEGRATION, id);
+            return new RestResponse(id, RestStatus.OK.getStatus());
         } catch (Exception e) {
-            this.log.error("Unexpected error updating integration (id={})", id, e);
+            log.error(
+                    Constants.E_LOG_UNEXPECTED, "updating", Constants.KEY_INTEGRATION, id, e.getMessage(), e);
             return new RestResponse(
-                    "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 

@@ -106,7 +106,8 @@ public class PolicyTests extends OpenSearchTestCase {
     /** Test parameterized constructor with null values. */
     public void testParameterizedConstructor_NullValues() {
         // Act
-        Policy testPolicy = new Policy(null, null, null, null, null, null, null, null, null, null, null, null);
+        Policy testPolicy =
+                new Policy(null, null, null, null, null, null, null, null, null, null, null, null);
 
         // Assert
         assertNotNull(testPolicy.getIntegrations()); // Defaults to empty list

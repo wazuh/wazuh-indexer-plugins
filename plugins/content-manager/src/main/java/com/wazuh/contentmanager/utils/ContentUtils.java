@@ -34,6 +34,7 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,6 +46,7 @@ import java.util.Set;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
+// TODO: Study if this class is necessary and if is make it dynamic instead of static
 /** Common utility methods for Content Manager REST actions. */
 public class ContentUtils {
 
@@ -54,57 +56,90 @@ public class ContentUtils {
     private ContentUtils() {}
 
     /**
-     * Adds or updates timestamp metadata (date, modified) and author structure in the resource node.
+     * Generate current date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
      *
-     * @param resourceNode The resource object to update.
-     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
+     * @return String representing current date.
      */
-    public static void updateTimestampMetadata(ObjectNode resourceNode, boolean isCreate) {
-        String currentTimestamp = Instant.now().toString();
-
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
-        if (resourceNode.has(Constants.KEY_METADATA)
-                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-        } else {
-            metadataNode = mapper.createObjectNode();
-            resourceNode.set(Constants.KEY_METADATA, metadataNode);
-        }
-
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(Constants.KEY_AUTHOR)
-                && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-        } else {
-            authorNode = mapper.createObjectNode();
-            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-        }
-
-        // Set timestamps
-        if (isCreate) {
-            authorNode.put(Constants.KEY_DATE, currentTimestamp);
-        }
-        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+    public static String getCurrentDate() {
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
     /**
-     * Validates that the metadata.author structure does not contain date or modified fields.
+     * Adds or updates timestamp metadata (date, modified) in the resource node.
+     *
+     * <p>If {@code isDecoder} is true, fields are set in {@code metadata.author}. Otherwise, fields
+     * are set at the root level.
+     *
+     * @param resourceNode The resource object to update.
+     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
+     * @param isDecoder If true, uses the decoder specific metadata structure.
+     */
+    public static void updateTimestampMetadata(
+            ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
+        String currentTimestamp = getCurrentDate();
+
+        if (isDecoder) {
+            // Decoders: metadata.author.date/modified
+            ObjectNode metadataNode;
+            if (resourceNode.has(Constants.KEY_METADATA)
+                    && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+                metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+            } else {
+                metadataNode = mapper.createObjectNode();
+                resourceNode.set(Constants.KEY_METADATA, metadataNode);
+            }
+
+            ObjectNode authorNode;
+            if (metadataNode.has(Constants.KEY_AUTHOR)
+                    && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+                authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
+            } else {
+                authorNode = mapper.createObjectNode();
+                metadataNode.set(Constants.KEY_AUTHOR, authorNode);
+            }
+
+            if (isCreate) {
+                authorNode.put(Constants.KEY_DATE, currentTimestamp);
+            }
+            authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+        } else {
+            // Rules, Integrations, KVDBs: root date/modified
+            if (isCreate) {
+                resourceNode.put(Constants.KEY_DATE, currentTimestamp);
+            }
+            resourceNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+        }
+    }
+
+    /**
+     * Validates that the resource structure does not contain system-managed date or modified fields.
+     *
+     * <p>If {@code isDecoder} is true, checks {@code metadata.author.date} and {@code
+     * metadata.author.modified}. Otherwise, checks {@code date} and {@code modified} at the root of
+     * the resource.
      *
      * @param resourceNode The resource JSON node.
+     * @param isDecoder True if the resource is a decoder, false for other resources (Integration,
+     *     Rule, KVDB).
      * @return RestResponse if validation fails, null otherwise.
      */
-    public static RestResponse validateMetadataFields(JsonNode resourceNode) {
-        if (resourceNode.has(Constants.KEY_METADATA)) {
-            JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
-            if (metadata.has(Constants.KEY_AUTHOR)) {
-                JsonNode author = metadata.get(Constants.KEY_AUTHOR);
-                if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
-                    return new RestResponse(
-                            "Fields 'metadata.author.date' and 'metadata.author.modified' are managed by the system.",
-                            RestStatus.BAD_REQUEST.getStatus());
+    public static RestResponse validateMetadataFields(JsonNode resourceNode, boolean isDecoder) {
+        if (isDecoder) {
+            if (resourceNode.has(Constants.KEY_METADATA)) {
+                JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
+                if (metadata.has(Constants.KEY_AUTHOR)) {
+                    JsonNode author = metadata.get(Constants.KEY_AUTHOR);
+                    if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
+                        return new RestResponse(
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                    }
                 }
+            }
+        } else {
+            if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
+                return new RestResponse(
+                        Constants.E_400_INVALID_REQUEST_BODY,
+                        RestStatus.BAD_REQUEST.getStatus());
             }
         }
         return null;
@@ -113,14 +148,13 @@ public class ContentUtils {
     /**
      * Builds the standard CTI wrapper payload containing type, document, space, and hash.
      *
-     * @param type The resource type (e.g., "decoder", "kvdb").
      * @param resourceNode The content of the resource.
      * @param spaceName The space name (e.g., "draft").
      * @return The constructed JsonNode wrapper.
      */
-    public static JsonNode buildCtiWrapper(String type, JsonNode resourceNode, String spaceName) {
+    // TODO: Study if it can be deleted
+    public static JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = mapper.createObjectNode();
-        wrapper.put(Constants.KEY_TYPE, type);
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
 
         // Space
