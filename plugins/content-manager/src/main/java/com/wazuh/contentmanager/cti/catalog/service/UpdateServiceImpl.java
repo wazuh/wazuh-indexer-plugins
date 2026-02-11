@@ -118,7 +118,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             this.context,
                             this.consumer,
                             lastAppliedOffset,
-                            current.getRemoteOffset(),
+                            toOffset,
                             current.getSnapshotLink());
             this.consumersIndex.setConsumer(updated);
 

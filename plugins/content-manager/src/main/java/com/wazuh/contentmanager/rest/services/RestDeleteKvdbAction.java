@@ -53,7 +53,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *
  * <ul>
  *   <li>201 Created: KVDB deleted successfully.
- *   <li>400 Bad Request: KVDB ID is missing or invalid.
+ *   <li>404 Not Found: KVDB ID is missing or invalid.
  *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
  * </ul>
  */

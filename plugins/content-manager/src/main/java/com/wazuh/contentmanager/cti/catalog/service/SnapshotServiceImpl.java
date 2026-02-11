@@ -55,7 +55,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     private final String context;
     private final String consumer;
-    private final Map<String, ContentIndex> indicesMap;
+    protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
     private final Environment environment;
@@ -202,12 +202,19 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
                     JsonObject payload = rootJson.getAsJsonObject(JSON_PAYLOAD_KEY);
 
-                    // 2. Determine Index from 'type' inside payload
-                    if (!payload.has(Constants.KEY_TYPE)) {
-                        log.warn("Payload missing '{}'. Skipping.", Constants.KEY_TYPE);
+                    // 2. Determine Index.
+                    // - If payload has the "enrichments" key, then it is an IOC.
+                    // - If payload has the "type" key, obtain the "type" from the "type" key.
+                    // - Otherwise, skip.
+                    String type;
+                    if (payload.has(Constants.KEY_ENRICHMENTS)) {
+                        type = Constants.KEY_IOCS;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
+                        type = payload.get(Constants.KEY_TYPE).getAsString();
+                    } else {
+                        log.warn("Could not identify resource type. Skipping.");
                         continue;
                     }
-                    String type = payload.get(Constants.KEY_TYPE).getAsString();
 
                     // 3. Select correct index based on type
                     ContentIndex indexHandler = this.indicesMap.get(type);
@@ -218,16 +225,18 @@ public class SnapshotServiceImpl implements SnapshotService {
                     JsonObject processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
-                    // 4. Create Index Request
+                    // Create Index Request
                     IndexRequest indexRequest =
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
-                    // Determine ID
-                    if (processedPayload.has(Constants.KEY_DOCUMENT)) {
-                        JsonObject innerDocument = processedPayload.getAsJsonObject(Constants.KEY_DOCUMENT);
-                        if (innerDocument.has(Constants.KEY_ID)) {
-                            indexRequest.id(innerDocument.get(Constants.KEY_ID).getAsString());
-                        }
+                    // Determine ID (root level "name" key)
+                    if (rootJson.has(Constants.KEY_NAME)) {
+                        String name = rootJson.get(Constants.KEY_NAME).getAsString();
+                        indexRequest.id(name);
+                    } else {
+                        throw new IOException(
+                                "Missing 'name' key in CTI resource. {offset}:"
+                                        + rootJson.get("offset").getAsInt());
                     }
 
                     bulkRequest.add(indexRequest);
@@ -250,7 +259,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                 executorIndex.executeBulk(bulkRequest);
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
         }
     }
