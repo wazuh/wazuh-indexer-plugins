@@ -46,6 +46,7 @@ import java.util.Set;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
+// TODO: Study if this class is necessary and if is make it dynamic instead of static
 /** Common utility methods for Content Manager REST actions. */
 public class ContentUtils {
 
@@ -151,6 +152,7 @@ public class ContentUtils {
      * @param spaceName The space name (e.g., "draft").
      * @return The constructed JsonNode wrapper.
      */
+    // TODO: Study if it can be deleted
     public static JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = mapper.createObjectNode();
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
