@@ -60,7 +60,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Download IoC from CTI API [(#779)](https://github.com/wazuh/wazuh-indexer-plugins/pull/779)
 - Create default policies for user content spaces [(#767)](https://github.com/wazuh/wazuh-indexer-plugins/pull/767)
 - Add engine filters index [(#798)](https://github.com/wazuh/wazuh-indexer-plugins/pull/798)
+<<<<<<< HEAD
 - Extend policy update endpoint with enrichments [(#808)](https://github.com/wazuh/wazuh-indexer-plugins/pull/808)
+=======
+- Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
+>>>>>>> 07c1bf15 (Update CHANGELOG.md)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
