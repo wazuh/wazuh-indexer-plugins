@@ -287,11 +287,6 @@
     level: custom
     description: Reason for classification in the F5 BIG-IP log entry.
     example: example-classification_reason
-  - name: f5_bigip.log.client.ip_geo_location
-    type: keyword
-    level: custom
-    description: Geolocation of the client IP address in the log entry.
-    example: example-ip_geo_location
   - name: f5_bigip.log.client.ip_route_domain
     type: keyword
     level: custom
@@ -757,11 +752,6 @@
     level: custom
     description: Reason for packet or connection drop in F5 BIG-IP.
     example: example-drop_reason
-  - name: f5_bigip.log.dst.geo
-    type: keyword
-    level: custom
-    description: Geographic location information for destination in F5 BIG-IP.
-    example: example-geo
   - name: f5_bigip.log.enforced_by
     type: keyword
     level: custom
@@ -847,26 +837,6 @@
     level: custom
     description: IP fragmentation information in F5 BIG-IP logs.
     example: example-fragment
-  - name: f5_bigip.log.geo.code
-    type: keyword
-    level: custom
-    description: Geographic code from geolocation data in F5 BIG-IP.
-    example: example-code
-  - name: f5_bigip.log.geo.country
-    type: keyword
-    level: custom
-    description: Country from geolocation data in F5 BIG-IP.
-    example: example-country
-  - name: f5_bigip.log.geo.info
-    type: keyword
-    level: custom
-    description: Geolocation information in F5 BIG-IP logs.
-    example: example-info
-  - name: f5_bigip.log.geo.location
-    type: keyword
-    level: custom
-    description: Geographic location in F5 BIG-IP logs.
-    example: example-location
   - name: f5_bigip.log.global_bigiq_conf
     type: keyword
     level: custom
@@ -1757,11 +1727,6 @@
     level: custom
     description: Source user group in F5 BIG-IP logs.
     example: example-user_group
-  - name: f5_bigip.log.src.geo
-    type: keyword
-    level: custom
-    description: Source geographic location in F5 BIG-IP logs.
-    example: example-geo
   - name: f5_bigip.log.src.port
     type: long
     level: custom
