@@ -879,4 +879,79 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
 
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
     }
+
+    /**
+     * Test that date and modified fields in the payload are allowed but ignored.
+     * The system should set its own timestamps instead of using the provided values.
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPutIntegration_dateAndModifiedFieldsAreIgnored() throws IOException {
+        setupMocks();
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+
+        // Mock existing integration with original date
+        ObjectNode docNode = mapper.createObjectNode();
+        ObjectNode innerDoc = mapper.createObjectNode();
+        innerDoc.put(Constants.KEY_DATE, "2020-01-01T00:00:00Z");
+        docNode.set(Constants.KEY_DOCUMENT, innerDoc);
+        when(integrationsIndex.getDocument(INTEGRATION_ID)).thenReturn(docNode);
+
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
+
+        this.action.setIntegrationsContentIndex(integrationsIndex);
+
+        // Payload includes date and modified fields that should be ignored
+        // spotless:off
+        String payload =
+            """
+                {
+                    "resource": {
+                        "title": "Title",
+                        "author": "Author",
+                        "category": "Category",
+                        "description": "Desc",
+                        "documentation": "Docs",
+                        "references": [],
+                        "decoders": ["1cb80fdb-7209-4b96-8bd1-ec15864d0f35"],
+                        "rules": [],
+                        "kvdbs": [],
+                        "date": "2025-12-31T23:59:59Z",
+                        "modified": "2025-12-31T23:59:59Z"
+                    }
+                }
+                """;
+        // spotless:on
+
+        RestRequest request = buildRequest(payload, INTEGRATION_ID);
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert that the request succeeds (not a bad request)
+        assertEquals(
+                "Request with date/modified fields should succeed",
+                RestStatus.OK.getStatus(),
+                response.getStatus());
+
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(integrationsIndex).create(anyString(), captor.capture());
+        JsonNode indexedDoc = captor.getValue();
+        JsonNode document = indexedDoc.get(Constants.KEY_DOCUMENT);
+
+        // The creation date should be preserved from existing document
+        assertEquals(
+                "Creation date should be preserved from existing document",
+                "2020-01-01T00:00:00Z",
+                document.get(Constants.KEY_DATE).asText());
+
+        // The modified date should NOT be the one from the payload
+        assertNotEquals(
+                "Modified date should NOT use payload value",
+                "2025-12-31T23:59:59Z",
+                document.get(Constants.KEY_MODIFIED).asText());
+
+        // Verify modified is set to a current timestamp
+        assertNotNull("Modified date should be set", document.get(Constants.KEY_MODIFIED));
+    }
 }
