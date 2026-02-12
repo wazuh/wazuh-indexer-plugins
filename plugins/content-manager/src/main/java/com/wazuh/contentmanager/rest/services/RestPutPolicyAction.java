@@ -196,6 +196,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Validate enrichments: only allowed values, no duplicates
+            RestResponse enrichmentsValidationError =
+                    ContentUtils.validateEnrichments(policy.getEnrichments());
+            if (enrichmentsValidationError != null) {
+                return enrichmentsValidationError;
+            }
+
             // 3. Update policy
             String policyId = this.updatePolicy(policy);
 

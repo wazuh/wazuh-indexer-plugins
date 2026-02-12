@@ -36,24 +36,30 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
-import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for the {@link RestPutRuleAction} class. */
 public class RestPutRuleActionTests extends OpenSearchTestCase {
 
     private RestPutRuleAction action;
     private Client client;
+    private SecurityAnalyticsService securityAnalyticsService;
+    private PolicyHashService policyHashService;
 
     /**
      * Set up the tests
@@ -66,7 +72,12 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         super.setUp();
         PluginSettings.getInstance(Settings.EMPTY);
         this.client = mock(Client.class);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        this.policyHashService = mock(PolicyHashService.class);
+
         this.action = new RestPutRuleAction();
+        this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
+        this.action.setPolicyHashService(this.policyHashService);
     }
 
     /**
@@ -82,7 +93,6 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "type": "rule",
               "resource": {
                   "author": "Florian Roth",
                   "description": "Updated Description.",
@@ -132,27 +142,24 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         when(getResponse.getSourceAsString())
                 .thenReturn("{\"document\": {\"date\": \"2021-05-31\"}, \"space\": {\"name\": \"draft\"}}");
 
-        ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
-        when(sapFuture.actionGet()).thenReturn(new WIndexRuleResponse(ruleId, 2L, RestStatus.OK));
-        doReturn(sapFuture)
-                .when(this.client)
-                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
-
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
         when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
         doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.client, times(1))
-                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
+
+        // Verify SAP update called on service
+        verify(this.securityAnalyticsService, times(1)).upsertRule(any(), eq(Space.DRAFT));
+
+        // Verify CTI index update
         verify(this.client, times(1)).index(any(IndexRequest.class));
+
+        // Verify policy hash recalculation
+        verify(this.policyHashService, times(1)).calculateAndUpdate(any());
     }
 
     /**
@@ -179,7 +186,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         // Arrange
         String ruleId = "11111111-1111-1111-1111-111111111111";
         // Ensure structure is valid so validation passes and exception is hit
-        String jsonRule = "{\"resource\": {}, \"type\": \"rule\"}";
+        String jsonRule = "{\"resource\": {}}";
 
         // Mock
         RestRequest request =

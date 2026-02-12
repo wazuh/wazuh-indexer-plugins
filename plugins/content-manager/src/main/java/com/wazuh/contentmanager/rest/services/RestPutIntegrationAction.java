@@ -276,52 +276,52 @@ public class RestPutIntegrationAction extends BaseRestHandler {
         if (!resource.has(Constants.KEY_TITLE)
                 || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_AUTHOR)
                 || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_CATEGORY)
                 || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has("documentation")) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_DESCRIPTION)) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has("references")) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate mandatory list fields
         if (!resource.has(Constants.KEY_RULES)) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RULES),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RULES),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_DECODERS)) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DECODERS),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DECODERS),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_KVDBS)) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_KVDBS),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_KVDBS),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
@@ -398,7 +398,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                 id,
                 hash.length() >= 12 ? hash.substring(0, 12) : hash);
 
-        // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
+        // Update integration in SAP
         log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_INTEGRATION, id);
         try {
             this.service.upsertIntegration(

@@ -119,40 +119,65 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertRule(JsonObject doc) {
+    public void upsertRule(JsonObject doc, Space space) {
         try {
-            if (!doc.has(Constants.KEY_DOCUMENT)) {
+            if (!doc.has(Constants.KEY_ID)) {
+                log.warn("Rule document missing ID. Skipping upsert.");
                 return;
             }
-            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
-            String id = innerDoc.get(Constants.KEY_ID).getAsString();
 
-            String product = ContentIndex.extractProduct(innerDoc);
+            String id = doc.get(Constants.KEY_ID).getAsString();
+            String product = ContentIndex.extractProduct(doc);
 
             log.info("Creating/Updating Rule [{}] in SAP", id);
 
-            WIndexRuleRequest ruleRequest =
-                    new WIndexRuleRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            product,
-                            Method.POST,
-                            innerDoc.toString(),
-                            true);
-            this.client.execute(
-                    WIndexRuleAction.INSTANCE,
-                    ruleRequest,
-                    new ActionListener<WIndexRuleResponse>() {
-                        @Override
-                        public void onResponse(WIndexRuleResponse wIndexRuleResponse) {
-                            log.info("Rule [{}] synced successfully.", id);
-                        }
+            if (space != Space.STANDARD) {
+                WIndexCustomRuleRequest ruleRequest =
+                        new WIndexCustomRuleRequest(
+                                id,
+                                WriteRequest.RefreshPolicy.IMMEDIATE,
+                                product,
+                                Method.POST,
+                                doc.toString(),
+                                true);
+                this.client.execute(
+                        WIndexCustomRuleAction.INSTANCE,
+                        ruleRequest,
+                        new ActionListener<WIndexRuleResponse>() {
+                            @Override
+                            public void onResponse(WIndexRuleResponse wIndexRuleResponse) {
+                                log.info("Custom Rule [{}] synced successfully.", id);
+                            }
 
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to upsert Rule: {}", e.getMessage());
-                        }
-                    });
+                            @Override
+                            public void onFailure(Exception e) {
+                                log.error("Failed to upsert Custom Rule: {}", e.getMessage());
+                            }
+                        });
+            } else {
+                WIndexRuleRequest ruleRequest =
+                        new WIndexRuleRequest(
+                                id,
+                                WriteRequest.RefreshPolicy.IMMEDIATE,
+                                product,
+                                Method.POST,
+                                doc.toString(),
+                                true);
+                this.client.execute(
+                        WIndexRuleAction.INSTANCE,
+                        ruleRequest,
+                        new ActionListener<WIndexRuleResponse>() {
+                            @Override
+                            public void onResponse(WIndexRuleResponse wIndexRuleResponse) {
+                                log.info("Rule [{}] synced successfully.", id);
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                log.error("Failed to upsert Rule: {}", e.getMessage());
+                            }
+                        });
+            }
 
         } catch (Exception e) {
             log.error("Failed to upsert Rule: {}", e.getMessage());
@@ -185,19 +210,18 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertDetector(JsonObject doc, boolean rawCategory) {
         try {
-            if (!doc.has(Constants.KEY_DOCUMENT)) {
+            if (!doc.has(Constants.KEY_ID)) {
+                log.warn("Detector document missing ID. Skipping upsert.");
                 return;
             }
-            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
-            String id = innerDoc.get(Constants.KEY_ID).getAsString();
-            String name =
-                    innerDoc.has(Constants.KEY_TITLE) ? innerDoc.get(Constants.KEY_TITLE).getAsString() : "";
-            String category = CategoryFormatter.format(innerDoc, rawCategory);
+
+            String id = doc.get(Constants.KEY_ID).getAsString();
+            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).getAsString() : "";
+            String category = CategoryFormatter.format(doc, rawCategory);
             List<String> rules = new ArrayList<>();
 
-            if (innerDoc.has(Constants.KEY_RULES)) {
-                innerDoc
-                        .get(Constants.KEY_RULES)
+            if (doc.has(Constants.KEY_RULES)) {
+                doc.get(Constants.KEY_RULES)
                         .getAsJsonArray()
                         .forEach(item -> rules.add(item.getAsString()));
             }

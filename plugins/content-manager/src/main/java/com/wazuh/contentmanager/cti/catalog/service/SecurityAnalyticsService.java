@@ -50,8 +50,9 @@ public interface SecurityAnalyticsService {
      * Creates or updates a Rule in SAP.
      *
      * @param doc The JSON document containing the rule data.
+     * @param space The space the rule belongs to (determines if it's standard or custom).
      */
-    void upsertRule(JsonObject doc);
+    void upsertRule(JsonObject doc, Space space);
 
     /**
      * Deletes a Rule from SAP.
