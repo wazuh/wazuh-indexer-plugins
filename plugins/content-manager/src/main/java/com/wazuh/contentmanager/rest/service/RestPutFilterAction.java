@@ -210,7 +210,8 @@ public class RestPutFilterAction extends BaseRestHandler {
             }
 
             // Update filter
-            String spaceName = String.valueOf(existingDoc.get(Constants.KEY_SPACE));
+            JsonNode jsonNode = existingDoc.get(Constants.KEY_SPACE);
+            String spaceName = jsonNode.get("name").asText();
             filterIndex.create(filterId, ContentUtils.buildCtiWrapper(resourceNode, spaceName));
 
             // Regenerate space hash because filter content changed
