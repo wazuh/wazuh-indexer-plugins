@@ -32,9 +32,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /** Tests for the UnifiedConsumerSynchronizer class. */
-public class UnifiedConsumerSynchronizerTests extends OpenSearchTestCase {
+public class RulesetConsumerSynchronizerTests extends OpenSearchTestCase {
 
-    private UnifiedConsumerSynchronizer synchronizer;
+    private RulesetConsumerSynchronizer synchronizer;
     private AutoCloseable closeable;
 
     @Mock private Client client;
@@ -48,7 +48,7 @@ public class UnifiedConsumerSynchronizerTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
-                new UnifiedConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
+                new RulesetConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
     }
 
     @After

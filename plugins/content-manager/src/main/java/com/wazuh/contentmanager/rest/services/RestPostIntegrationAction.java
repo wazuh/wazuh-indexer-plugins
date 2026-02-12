@@ -247,20 +247,20 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         if (!resource.has(Constants.KEY_TITLE)
                 || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_AUTHOR)
                 || resource.get(Constants.KEY_AUTHOR).asText().isBlank()) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         if (!resource.has(Constants.KEY_CATEGORY)
                 || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
             return new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
-                RestStatus.BAD_REQUEST.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Optional fields
@@ -312,11 +312,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // delete it from the SAP
         // Create integration in SAP
         this.service.upsertIntegration(
-                JsonParser.parseString(
-                                MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource).toString())
-                        .getAsJsonObject(),
-                Space.DRAFT,
-                POST);
+                JsonParser.parseString(resource.toString()).getAsJsonObject(), Space.DRAFT, POST);
 
         // Construct engine validation payload
         this.log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
