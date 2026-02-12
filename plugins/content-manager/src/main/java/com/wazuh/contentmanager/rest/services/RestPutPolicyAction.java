@@ -18,24 +18,19 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -163,19 +158,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Validate "type"
-            if (!jsonContent.has(Constants.KEY_TYPE)) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TYPE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-            String resourceType = jsonContent.get(Constants.KEY_TYPE).asText();
-            if (resourceType.isBlank() || !resourceType.equals(Constants.KEY_POLICY)) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_TYPE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
             // Validate "resource"
             if (!jsonContent.has(Constants.KEY_RESOURCE)) {
                 return new RestResponse(
@@ -288,29 +270,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
         // Update in index - ContentUtils.buildCtiWrapper will calculate hash automatically
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
-        QueryBuilder query = QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-        SearchRequest searchRequest =
-                new SearchRequest()
-                        .indices(Constants.INDEX_POLICIES)
-                        .source(new SearchSourceBuilder().query(query));
         try {
-            // TODO replace with SpaceService::findDocumentId()
-            SearchResponse searchResponse =
-                    this.client
-                            .search(searchRequest)
-                            .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
-
-            if (searchResponse == null || searchResponse.getHits() == null) {
-                throw new IllegalStateException("no hits");
-            }
-
-            String draftPolicyId = searchResponse.getHits().getAt(0).getId();
-
-            // Build CTI wrapper with automatic hash calculation
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(policyNode, Space.DRAFT.toString());
-
-            IndexResponse indexResponse = index.create(draftPolicyId, ctiWrapper);
-
+            // Build CTI wrapper with automatic hash calculation (resource)
+            JsonNode document = ContentUtils.buildCtiWrapper(policyNode, Space.DRAFT.toString());
+            String draftPolicyId =
+                    this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
+            IndexResponse indexResponse = index.create(draftPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());
