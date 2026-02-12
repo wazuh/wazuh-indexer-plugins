@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Base model representing a generic catalog resource within the CTI context. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -66,9 +67,9 @@ public class Resource {
      * @param payload The raw JSON object containing the resource data.
      * @return A fully populated Resource instance.
      */
-    public static Resource fromPayload(JsonObject payload) {
+    public static Resource fromPayload(JsonObject payload, String type) {
         Resource resource = new Resource();
-        Resource.populateResource(resource, payload);
+        resource.populateResource(resource, payload, type);
         return resource;
     }
 
@@ -78,7 +79,7 @@ public class Resource {
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
      */
-    protected static void populateResource(Resource resource, JsonObject payload) {
+    protected void populateResource(Resource resource, JsonObject payload, String type) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
@@ -95,7 +96,13 @@ public class Resource {
             }
         }
 
-        // 3. Set Space if not present in resource payload
+        if (!type.equals(Constants.TYPE_IOC)) {
+            // 3. Set Space if not present in resource payload
+            this.populateSpaceObject(resource, payload);
+        }
+    }
+
+    private void populateSpaceObject(Resource resource, JsonObject payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
         if (payload.has("space") && payload.get("space").isJsonObject()) {
