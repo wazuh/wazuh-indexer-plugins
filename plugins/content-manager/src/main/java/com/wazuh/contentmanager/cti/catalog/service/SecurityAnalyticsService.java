@@ -31,8 +31,8 @@ public interface SecurityAnalyticsService {
      * Creates or updates an Integration in SAP.
      *
      * @param doc The JSON document containing the integration data.
-     * @param space
-     * @param method
+     * @param space The space of the integration.
+     * @param method The HTTP method (POST/PUT).
      */
     void upsertIntegration(JsonObject doc, Space space, Method method);
 
@@ -48,8 +48,9 @@ public interface SecurityAnalyticsService {
      * Creates or updates a Rule in SAP.
      *
      * @param doc The JSON document containing the rule data.
+     * @param space The space the rule belongs to (determines if it's standard or custom).
      */
-    void upsertRule(JsonObject doc);
+    void upsertRule(JsonObject doc, Space space);
 
     /**
      * Deletes a Rule from SAP.
