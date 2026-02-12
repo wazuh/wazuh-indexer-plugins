@@ -127,6 +127,15 @@ public class Constants {
     public static final String KEY_FULL_POLICY = "full_policy";
     public static final String KEY_PROMOTE = "load_in_tester";
 
+    // Resource Types
+    public static final String TYPE_POLICY = "policy";
+    public static final String TYPE_INTEGRATION = "integration";
+    public static final String TYPE_RULE = "rule";
+    public static final String TYPE_KVDB = "kvdb";
+    public static final String TYPE_DECODER = "decoder";
+    public static final String TYPE_IOC = "ioc";
+    public static final String TYPE_FILTER = "filter";
+
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
