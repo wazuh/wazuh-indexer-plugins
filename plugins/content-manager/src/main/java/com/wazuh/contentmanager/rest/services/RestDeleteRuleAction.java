@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.rest.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -32,13 +31,13 @@ import java.util.List;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
-import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
-import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -58,9 +57,28 @@ public class RestDeleteRuleAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestDeleteRuleAction.class);
 
     private PolicyHashService policyHashService;
+    private SecurityAnalyticsService securityAnalyticsService;
 
     /** Default constructor. */
     public RestDeleteRuleAction() {}
+
+    /**
+     * Setter for the policy hash service, used in tests.
+     *
+     * @param policyHashService the policy hash service to set
+     */
+    public void setPolicyHashService(PolicyHashService policyHashService) {
+        this.policyHashService = policyHashService;
+    }
+
+    /**
+     * Setter for the security analytics service, used in tests.
+     *
+     * @param securityAnalyticsService the security analytics service to set
+     */
+    public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
+        this.securityAnalyticsService = securityAnalyticsService;
+    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -96,17 +114,9 @@ public class RestDeleteRuleAction extends BaseRestHandler {
             throws IOException {
         request.param(Constants.KEY_ID);
         this.policyHashService = new PolicyHashService(client);
+        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
-    }
-
-    /**
-     * Sets the policy hash service for testing purposes.
-     *
-     * @param policyHashService the PolicyHashService instance to use
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
     }
 
     /**
@@ -159,13 +169,7 @@ public class RestDeleteRuleAction extends BaseRestHandler {
 
             // 1. Call SAP to delete rule
             try {
-                client
-                        .execute(
-                                WDeleteCustomRuleAction.INSTANCE,
-                                new WDeleteCustomRuleRequest(
-                                        ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, true // forced
-                                        ))
-                        .actionGet();
+                this.securityAnalyticsService.deleteRule(ruleId);
             } catch (Exception e) {
                 log.warn(
                         "Failed to delete rule [{}] from Security Analytics Plugin: {}",
