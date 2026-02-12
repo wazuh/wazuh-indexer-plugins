@@ -16,12 +16,17 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
@@ -32,18 +37,14 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
-import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
-import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,6 +60,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
     private RestDeleteRuleAction action;
     private Client client;
+    private SecurityAnalyticsService securityAnalyticsService;
+    private PolicyHashService policyHashService;
 
     /**
      * Set up the tests
@@ -71,7 +74,12 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         super.setUp();
         PluginSettings.getInstance(Settings.EMPTY);
         this.client = mock(Client.class);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        this.policyHashService = mock(PolicyHashService.class);
+
         this.action = new RestDeleteRuleAction();
+        this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
+        this.action.setPolicyHashService(this.policyHashService);
     }
 
     /**
@@ -108,11 +116,14 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         when(ruleGetResponse.getSourceAsMap()).thenReturn(ruleSource);
         when(this.client.prepareGet(anyString(), anyString()).get()).thenReturn(ruleGetResponse);
 
-        // Mock SAP delete
-        this.mockSapDelete(ruleId);
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
+        // Mock
+        SearchResponse searchResponse = mock(SearchResponse.class);
+        SearchHits searchHits =
+                new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f);
+        when(searchResponse.getHits()).thenReturn(searchHits);
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
 
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);
@@ -121,8 +132,11 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         assertEquals(ruleId, response.getMessage());
 
-        verify(this.client)
-                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
+        // Verify SAP delete was called on the SERVICE, not the client
+        verify(this.securityAnalyticsService).deleteRule(ruleId);
+
+        // Verify policy hash recalculation
+        verify(this.policyHashService).calculateAndUpdate(any());
     }
 
     /**
@@ -169,8 +183,17 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testDeleteRule500() throws IOException {
-        // Mock
-        RestRequest request = mock(RestRequest.class);
+        // Arrange
+        String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .build();
+
+        // Mock client to throw exception during "exists" check
+        this.client = mock(Client.class, RETURNS_DEEP_STUBS);
+        when(this.client.prepareGet(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Unexpected error"));
 
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);
@@ -178,18 +201,5 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
         assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
-    }
-
-    /**
-     * Mocks the successful execution of the Security Analytics Plugin (SAP) delete rule action.
-     *
-     * @param ruleId The ID of the rule expected to be deleted.
-     */
-    private void mockSapDelete(String ruleId) {
-        ActionFuture<WDeleteRuleResponse> sapFuture = mock(ActionFuture.class);
-        when(sapFuture.actionGet()).thenReturn(new WDeleteRuleResponse(ruleId, 1L, RestStatus.OK));
-        doReturn(sapFuture)
-                .when(this.client)
-                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
     }
 }

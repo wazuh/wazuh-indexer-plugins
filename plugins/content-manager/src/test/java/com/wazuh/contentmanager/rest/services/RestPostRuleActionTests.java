@@ -37,13 +37,12 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
-import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -66,6 +65,8 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
 
     private RestPostRuleAction action;
     private Client client;
+    private SecurityAnalyticsService securityAnalyticsService;
+    private PolicyHashService policyHashService;
 
     /**
      * Set up the tests
@@ -78,7 +79,11 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         super.setUp();
         PluginSettings.getInstance(Settings.EMPTY);
         this.client = mock(Client.class);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        this.policyHashService = mock(PolicyHashService.class);
         this.action = new RestPostRuleAction();
+        this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
+        this.action.setPolicyHashService(this.policyHashService);
     }
 
     /**
@@ -92,7 +97,6 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "type": "rule",
               "integration": "integration-1",
               "resource": {
                   "author": "Florian Roth (Nextron Systems)",
@@ -119,13 +123,6 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
-
-        ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
-        when(sapFuture.actionGet())
-                .thenReturn(new WIndexRuleResponse("new-rule-id", 1L, RestStatus.CREATED));
-        doReturn(sapFuture)
-                .when(this.client)
-                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
 
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
         when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
@@ -154,22 +151,18 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         when(getResponse.getSourceAsString())
                 .thenReturn("{\"document\": {\"rules\": []}, \"space\": {\"name\": \"draft\"}}");
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
         // Act
         RestResponse response = this.action.handleRequest(request, this.client);
 
         // Assert
         assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
 
-        verify(this.client, times(1))
-                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
-
-        // Verify 2 index calls:
-        // 1. Indexing the rule in .cti-rules
-        // 2. Updating the integration in .cti-integrations
+        // Verify SAP Service call
+        verify(this.securityAnalyticsService, times(1)).upsertRule(any(), eq(Space.DRAFT));
         verify(this.client, times(2)).index(any(IndexRequest.class));
+
+        // Verify policy hash recalculation
+        verify(this.policyHashService, times(1)).calculateAndUpdate(any());
     }
 
     /**
@@ -184,7 +177,6 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "type": "rule",
               "resource": {
                   "title": "Rule without integration ID",
                   "logsource": { "product": "test" }
@@ -221,7 +213,6 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "type": "rule",
               "integration": "integration-1",
               "resource": {
                   "id": "should-not-be-here",
@@ -256,7 +247,6 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         // spotless:off
         String jsonRule = """
             {
-              "type": "rule",
               "integration": "missing-integration",
               "resource": {
                   "title": "Rule",

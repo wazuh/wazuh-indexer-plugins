@@ -20,9 +20,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -38,13 +39,13 @@ import java.util.UUID;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -64,6 +65,7 @@ public class RestPostRuleAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private PolicyHashService policyHashService;
+    private SecurityAnalyticsService securityAnalyticsService;
 
     /** Default constructor. */
     public RestPostRuleAction() {}
@@ -75,6 +77,15 @@ public class RestPostRuleAction extends BaseRestHandler {
      */
     public void setPolicyHashService(PolicyHashService policyHashService) {
         this.policyHashService = policyHashService;
+    }
+
+    /**
+     * Setter for the security analytics service, used in tests.
+     *
+     * @param securityAnalyticsService the security analytics service to set
+     */
+    public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /** Return a short identifier for this handler. */
@@ -110,6 +121,7 @@ public class RestPostRuleAction extends BaseRestHandler {
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         this.policyHashService = new PolicyHashService(client);
+        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         RestResponse response = this.handleRequest(request, client);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
@@ -165,8 +177,8 @@ public class RestPostRuleAction extends BaseRestHandler {
             if (!resourceNode.has(Constants.KEY_TITLE)
                     || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
                 return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                    RestStatus.BAD_REQUEST.getStatus());
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                        RestStatus.BAD_REQUEST.getStatus());
             }
 
             // Optional fields
@@ -209,17 +221,10 @@ public class RestPostRuleAction extends BaseRestHandler {
                 ruleNode.put(Constants.KEY_ENABLED, true);
             }
 
-            String product = ContentIndex.extractProduct(ruleNode);
-            String payloadString = ruleNode.toString();
-
-            // 3. Call SAP -> Custom Action
+            // 3. Call SAP
             try {
-                WIndexCustomRuleRequest ruleRequest =
-                        new WIndexCustomRuleRequest(
-                                ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, payloadString, true);
-
-                client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
-                log.info(Constants.I_LOG_SUCCESS, "Created", Constants.KEY_RULE, ruleId);
+                JsonObject gsonObject = JsonParser.parseString(ruleNode.toString()).getAsJsonObject();
+                this.securityAnalyticsService.upsertRule(gsonObject, Space.DRAFT);
             } catch (Exception e) {
                 log.error(
                         Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_RULE, e.getMessage(), e);
