@@ -10,20 +10,22 @@ Feature: Update Draft Policy
     And the draft policy exists in the ".cti-policies" index
 
   Scenario: Successfully update the draft policy
+    Given an integration exists in draft space and its ID is stored as "integration_id"
+    And a decoder exists in draft space linked to "{integration_id}" and its ID is stored as "decoder_id"
     When I send a PUT request to "/_plugins/_content_manager/policy" with body:
       """
       {
         "type": "policy",
         "resource": {
-          "title": "Custom policy",
+          "title": "Updated policy",
           "date": "2026-02-03T18:57:33.931731040Z",
           "modified": "2026-02-03T18:57:33.931731040Z",
-          "root_decoder": "e156ffc6-4567-4725-894a-cd86e1671d2e",
-          "integrations": [
-            "f55b7f69-5b10-493d-acbf-023f9ab79ba6"
-          ],
+          "root_decoder": "{decoder_id}",
+          "integrations": ["{integration_id}"],
+          "filters": [],
+          "enrichments": [],
           "author": "Test",
-          "description": "Custom policy",
+          "description": "Updated policy description",
           "documentation": "",
           "references": []
         }
@@ -87,15 +89,21 @@ Feature: Update Draft Policy
       """
     Then the response status code should be 400
 
-  Scenario: Update policy attempting to add or remove integrations
-    Given the current draft policy has a known integrations list
-    When I send a PUT request to "/_plugins/_content_manager/policy" adding or removing integrations from the list
+  Scenario: Update policy attempting to add an integration to the list
+    Given the current draft policy integrations list is known
+    When I send a PUT request to "/_plugins/_content_manager/policy" with an additional integration ID appended to the current list
+    Then the response status code should be 400
+    And the response body should indicate integrations list cannot be modified
+
+  Scenario: Update policy attempting to remove an integration from the list
+    Given the current draft policy has at least one integration
+    When I send a PUT request to "/_plugins/_content_manager/policy" with the current integrations list minus one entry
     Then the response status code should be 400
     And the response body should indicate integrations list cannot be modified
 
   Scenario: Update policy with reordered integrations list (allowed)
-    Given the current draft policy has integrations ["id-a", "id-b"]
-    When I send a PUT request to "/_plugins/_content_manager/policy" with integrations ["id-b", "id-a"]
+    Given the current draft policy has at least two integrations
+    When I send a PUT request to "/_plugins/_content_manager/policy" with the same integrations in a different order
     Then the response status code should be 200
 
   Scenario: Update policy with empty body
