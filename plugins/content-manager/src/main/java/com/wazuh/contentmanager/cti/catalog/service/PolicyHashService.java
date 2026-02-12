@@ -102,12 +102,17 @@ public class PolicyHashService {
                     String spaceName = (String) space.get(Constants.KEY_NAME);
                     // Check if the policy is in one of the target spaces
                     if (!targetSpaces.contains(spaceName)) {
-                        log.info(
+                        log.debug(
                                 "Skipping hash calculation for policy [{}] because it is in space [{}]",
                                 hit.getId(),
                                 spaceName);
                         continue;
                     }
+                    // Log when we DO process a policy
+                    log.info(
+                            "Calculating hash for policy [{}] in space [{}]",
+                            hit.getId(),
+                            spaceName);
                 }
 
                 List<String> spaceHashes = new ArrayList<>();
@@ -157,7 +162,12 @@ public class PolicyHashService {
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
                 this.client.bulk(bulkUpdateRequest).actionGet();
-                log.info("Updated policy hashes.");
+                log.info(
+                        "Updated {} policy hash(es) for space(s): {}",
+                        bulkUpdateRequest.numberOfActions(),
+                        String.join(", ", targetSpaces));
+            } else {
+                log.debug("No policies found in target space(s): {}", String.join(", ", targetSpaces));
             }
 
         } catch (Exception e) {
