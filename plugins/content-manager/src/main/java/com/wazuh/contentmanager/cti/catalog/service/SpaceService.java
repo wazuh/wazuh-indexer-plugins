@@ -481,7 +481,7 @@ public class SpaceService {
      * @param documentId The logical document ID.
      * @return The real _id, or null if not found.
      */
-    private String findDocumentId(String indexName, String spaceName, String documentId) {
+    public String findDocumentId(String indexName, String spaceName, String documentId) {
         try {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
