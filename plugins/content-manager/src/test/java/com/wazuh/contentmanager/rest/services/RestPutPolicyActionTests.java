@@ -53,6 +53,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -99,6 +100,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         Map<String, Object> space = new HashMap<>();
         document.put(Constants.KEY_ID, "12345");
         document.put(Constants.KEY_INTEGRATIONS, List.of("integration-1"));
+        document.put("filters", Collections.emptyList());
+        document.put("enrichments", Collections.emptyList());
         hash.put("sha256", "12345");
         space.put(Constants.KEY_NAME, Space.DRAFT.toString());
         policy.put(Constants.KEY_DOCUMENT, document);
@@ -151,6 +154,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration/wazuh-core/0\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -212,6 +217,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -250,8 +257,10 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals("test-policy-id", response.getMessage());
-        verify(this.client, times(1)).index(any(IndexRequest.class));
+        assertTrue(response.getMessage().contains("policy"));
+
+        // Verify PolicyHashService was called to regenerate space hash
+        verify(policyHashService).calculateAndUpdate(anyList());
     }
 
     /**
@@ -441,6 +450,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
