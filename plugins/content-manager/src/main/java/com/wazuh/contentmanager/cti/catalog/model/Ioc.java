@@ -58,7 +58,8 @@ public class Ioc extends Resource {
         Ioc ioc = new Ioc();
 
         // Populate common Resource fields (space, etc.)
-        Resource.populateResource(ioc, payload);
+        Resource resource = new Resource();
+        resource.populateResource(ioc, payload, Constants.TYPE_IOC);
 
         // Populate IoC-specific fields
         if (payload.has(Constants.KEY_ID)) {

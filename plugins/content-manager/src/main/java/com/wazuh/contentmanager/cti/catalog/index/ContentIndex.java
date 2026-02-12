@@ -517,7 +517,7 @@ public class ContentIndex {
             } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
                 resource = Ioc.fromPayload(payload);
             } else {
-                resource = Resource.fromPayload(payload);
+                resource = Resource.fromPayload(payload, payload.get(Constants.KEY_TYPE).getAsString());
             }
 
             // 2. Convert Model back to JsonObject for OpenSearch indexing
