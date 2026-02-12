@@ -154,7 +154,7 @@ public class RestPostFilterAction extends BaseRestHandler {
 
             // Validate integration with Wazuh Engine
             RestResponse engineValidation =
-                    this.engine.validateResource(Constants.KEY_FILTERS, resourceNode);
+                    this.engine.validateResource(Constants.KEY_FILTER, resourceNode);
             if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
                 return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
             }
