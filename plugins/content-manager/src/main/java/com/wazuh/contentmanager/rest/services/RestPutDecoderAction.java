@@ -186,7 +186,6 @@ public class RestPutDecoderAction extends BaseRestHandler {
             if (!decoderIndex.exists(decoderId)) {
                 return new RestResponse(
                         Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
-
             }
 
             // Validate decoder is in draft space
@@ -239,7 +238,7 @@ public class RestPutDecoderAction extends BaseRestHandler {
             // Update decoder
             JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
 
-            decoderIndex.create(decoderId, ctiWrapper);
+            decoderIndex.create(decoderId, ctiWrapper, true);
 
             // Regenerate space hash because decoder content changed
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));

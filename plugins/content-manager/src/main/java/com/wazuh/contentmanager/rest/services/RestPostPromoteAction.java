@@ -49,9 +49,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * <p>Execute promotion process in the local engine. Possible HTTP responses:
  *
  * <pre>
- *  - 200 Accepted: Wazuh Engine replied with a successful response.
- *  - 400 Bad Request: Wazuh Engine replied with an error response.
- *  - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
+ * - 200 Accepted: Wazuh Engine replied with a successful response.
+ * - 400 Bad Request: Wazuh Engine replied with an error response.
+ * - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
  * </pre>
  */
 public class RestPostPromoteAction extends BaseRestHandler {

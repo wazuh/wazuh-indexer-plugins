@@ -17,11 +17,9 @@
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -60,10 +58,7 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
     private static final Logger log = LogManager.getLogger(RulesetConsumerSynchronizer.class);
     private final ObjectMapper mapper;
 
-    /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
-
-    /** The unified consumer name identifier. */
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
     private final SecurityAnalyticsService securityAnalyticsService;
@@ -152,12 +147,12 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            JsonObject source = this.parseHit(hit);
+            JsonNode source = this.parseHit(hit);
             if (source == null) {
                 continue;
             }
 
-            JsonObject doc = this.extractDocument(source, hit.getId());
+            JsonNode doc = this.extractDocument(source, hit.getId());
             if (doc == null) {
                 continue;
             }
@@ -174,12 +169,12 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_RULES);
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            JsonObject source = this.parseHit(hit);
+            JsonNode source = this.parseHit(hit);
             if (source == null) {
                 continue;
             }
 
-            JsonObject doc = this.extractDocument(source, hit.getId());
+            JsonNode doc = this.extractDocument(source, hit.getId());
             if (doc == null) {
                 continue;
             }
@@ -196,12 +191,12 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            JsonObject source = this.parseHit(hit);
+            JsonNode source = this.parseHit(hit);
             if (source == null) {
                 continue;
             }
 
-            JsonObject doc = this.extractDocument(source, hit.getId());
+            JsonNode doc = this.extractDocument(source, hit.getId());
             if (doc == null) {
                 continue;
             }
@@ -238,7 +233,7 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
 
             // Proceed only if no document with this space name exists
-            if (searchResponse.getHits().getTotalHits().value() == 0) {
+            if (Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() == 0) {
                 String date = ContentUtils.getCurrentDate();
                 String title = "Custom policy";
 
@@ -314,15 +309,15 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
     }
 
     /**
-     * Parses a {@link SearchHit} source string into a Gson {@link JsonObject}.
+     * Parses a {@link SearchHit} source string into a {@link JsonNode}.
      *
      * @param hit The search hit to parse.
-     * @return The parsed {@link JsonObject}, or null if a syntax error occurs during parsing.
+     * @return The parsed {@link JsonNode}, or null if a syntax error occurs during parsing.
      */
-    private JsonObject parseHit(SearchHit hit) {
+    private JsonNode parseHit(SearchHit hit) {
         try {
-            return JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-        } catch (JsonSyntaxException e) {
+            return this.mapper.readTree(hit.getSourceAsString());
+        } catch (Exception e) {
             log.error("Failed to parse JSON from hit [{}]: {}", hit.getId(), e.getMessage());
             return null;
         }
@@ -333,14 +328,14 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
      *
      * @param source The source JSON object (the wrapper containing metadata and the document).
      * @param hitId The ID of the hit, used for logging if the document field is missing.
-     * @return The inner "document" {@link JsonObject}, or null if the key is missing.
+     * @return The inner "document" {@link JsonNode}, or null if the key is missing.
      */
-    private JsonObject extractDocument(JsonObject source, String hitId) {
+    private JsonNode extractDocument(JsonNode source, String hitId) {
         if (!source.has(Constants.KEY_DOCUMENT)) {
             log.warn("Hit [{}] missing 'document' field, skipping", hitId);
             return null;
         }
-        return source.getAsJsonObject(Constants.KEY_DOCUMENT);
+        return source.get(Constants.KEY_DOCUMENT);
     }
 
     /**
@@ -352,12 +347,12 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param source The source JSON object.
      * @return The extracted {@link Space}, or {@link Space#STANDARD} if not found or invalid.
      */
-    private Space extractSpace(JsonObject source) {
-        if (source.has(Constants.KEY_SPACE) && source.get(Constants.KEY_SPACE).isJsonObject()) {
-            JsonObject space = source.getAsJsonObject(Constants.KEY_SPACE);
+    private Space extractSpace(JsonNode source) {
+        if (source.has(Constants.KEY_SPACE) && source.get(Constants.KEY_SPACE).isObject()) {
+            JsonNode space = source.get(Constants.KEY_SPACE);
             if (space.has(Constants.KEY_NAME)) {
                 try {
-                    return Space.fromValue(space.get(Constants.KEY_NAME).getAsString());
+                    return Space.fromValue(space.get(Constants.KEY_NAME).asText());
                 } catch (IllegalArgumentException e) {
                     return Space.STANDARD;
                 }

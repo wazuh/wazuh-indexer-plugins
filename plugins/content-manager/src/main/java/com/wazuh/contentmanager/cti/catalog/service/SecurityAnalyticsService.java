@@ -16,7 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -34,7 +35,7 @@ public interface SecurityAnalyticsService {
      * @param space The space of the integration.
      * @param method The HTTP method (POST/PUT).
      */
-    void upsertIntegration(JsonObject doc, Space space, Method method);
+    void upsertIntegration(JsonNode doc, Space space, Method method);
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
@@ -50,7 +51,7 @@ public interface SecurityAnalyticsService {
      * @param doc The JSON document containing the rule data.
      * @param space The space the rule belongs to (determines if it's standard or custom).
      */
-    void upsertRule(JsonObject doc, Space space);
+    void upsertRule(JsonNode doc, Space space);
 
     /**
      * Deletes a Rule from SAP.
@@ -65,7 +66,7 @@ public interface SecurityAnalyticsService {
      * @param doc The JSON document containing the integration data used to build the detector.
      * @param rawCategory Whether to use the raw category string (true) or formatted/pretty (false).
      */
-    void upsertDetector(JsonObject doc, boolean rawCategory);
+    void upsertDetector(JsonNode doc, boolean rawCategory);
 
     /**
      * Deletes a Threat Detector from SAP.
