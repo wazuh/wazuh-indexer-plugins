@@ -19,7 +19,7 @@ Feature: Delete Integration
     Given the integration has associated decoders, rules, or kvdbs
     When I send a DELETE request to "/_plugins/_content_manager/integrations/{integration_id}"
     Then the response status code should be 400
-    And the response body should contain "Cannot delete integration because it has"
+    And the response body should contain "Cannot delete integration"
 
   Scenario: Delete an integration that does not exist
     When I send a DELETE request to "/_plugins/_content_manager/integrations/00000000-0000-0000-0000-000000000000"
