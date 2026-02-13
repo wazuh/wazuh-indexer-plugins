@@ -18,21 +18,19 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -113,16 +111,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -165,13 +154,13 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 }
                 """;
         //spotless:on
-        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
-        hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
-        JsonArray hitsArray = new JsonArray();
+        ObjectNode hitObject = (ObjectNode) this.MAPPER.readTree(sourceJson);
+        hitObject.put("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
+        ArrayNode hitsArray = this.MAPPER.createArrayNode();
         hitsArray.add(hitObject);
-        JsonObject searchResult = new JsonObject();
-        searchResult.add("hits", hitsArray);
-        searchResult.addProperty("total", 1);
+        ObjectNode searchResult = this.MAPPER.createObjectNode();
+        searchResult.set("hits", hitsArray);
+        searchResult.put("total", 1);
         when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
         IndexResponse indexPolicyResponse = mock(IndexResponse.class);
         when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
@@ -217,8 +206,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         verify(integrationsIndex).create(idCaptor.capture(), any(JsonNode.class));
         String generatedId = idCaptor.getValue();
 
-        assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-        assertEquals(generatedId, actualResponse.getMessage());
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(generatedId, actualResponse.getMessage());
     }
 
     /**
@@ -266,7 +255,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** Request without content */
@@ -282,7 +271,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** Draft policy does not exist */
@@ -303,16 +292,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -352,7 +332,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** If the engine does not respond, return 500 */
@@ -406,7 +386,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** Failed to index CTI Integration */
@@ -427,16 +407,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -446,27 +417,9 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
-        // Mock draft policy search to return a valid response
-        // spotless:off
-        String sourceJson =
-            """
-                    {
-                        "total": {
-                          "value": 0,
-                          "relation": "eq"
-                        },
-                        "max_score": null,
-                        "hits": []
-                      }
-                """;
-        //spotless:on
-        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
-        hitObject.addProperty("id", "doc-id");
-        JsonArray hitsArray = new JsonArray();
-        hitsArray.add(hitObject);
-        JsonObject searchResult = new JsonObject();
-        searchResult.add("hits", hitsArray);
-        searchResult.addProperty("total", 1);
+        ObjectNode searchResult = this.MAPPER.createObjectNode();
+        searchResult.set("hits", this.MAPPER.createArrayNode());
+        searchResult.put("total", 1);
         when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
 
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
@@ -502,7 +455,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** Corrupt draft policy */
@@ -522,16 +475,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -550,13 +494,13 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             }
             """;
         //spotless:on
-        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
-        hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
-        JsonArray hitsArray = new JsonArray();
+        ObjectNode hitObject = (ObjectNode) this.MAPPER.readTree(sourceJson);
+        hitObject.put("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
+        ArrayNode hitsArray = this.MAPPER.createArrayNode();
         hitsArray.add(hitObject);
-        JsonObject searchResult = new JsonObject();
-        searchResult.add("hits", hitsArray);
-        searchResult.addProperty("total", 1);
+        ObjectNode searchResult = this.MAPPER.createObjectNode();
+        searchResult.set("hits", hitsArray);
+        searchResult.put("total", 1);
         when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
         IndexResponse indexPolicyResponse = mock(IndexResponse.class);
         when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
@@ -593,7 +537,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** Failed to update draft policy */
@@ -613,16 +557,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -665,13 +600,13 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
             }
            """;
         //spotless:on
-        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
-        hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
-        JsonArray hitsArray = new JsonArray();
+        ObjectNode hitObject = (ObjectNode) this.MAPPER.readTree(sourceJson);
+        hitObject.put("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
+        ArrayNode hitsArray = this.MAPPER.createArrayNode();
         hitsArray.add(hitObject);
-        JsonObject searchResult = new JsonObject();
-        searchResult.add("hits", hitsArray);
-        searchResult.addProperty("total", 1);
+        ObjectNode searchResult = this.MAPPER.createObjectNode();
+        searchResult.set("hits", hitsArray);
+        searchResult.put("total", 1);
         when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
         IndexResponse indexPolicyResponse = mock(IndexResponse.class);
         when(indexPolicyResponse.status()).thenReturn(RestStatus.INTERNAL_SERVER_ERROR);
@@ -710,7 +645,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(policyHashService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /** Unexpected error handling Integration */
@@ -730,16 +665,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Mock wazuh engine validation
         RestResponse restResponse = mock(RestResponse.class);
         when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
+        when(restResponse.getMessage()).thenReturn("{\"status\": \"OK\",\"error\": null}");
         when(this.engine.validate(any())).thenReturn(restResponse);
 
         // Mock integrations index
@@ -796,13 +722,14 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                      }
                """;
         // spotless:on
-        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
-        hitObject.addProperty("id", "doc-id");
-        JsonArray hitsArray = new JsonArray();
+
+        ObjectNode hitObject = (ObjectNode) this.MAPPER.readTree(sourceJson);
+        hitObject.put("id", "doc-id");
+        ArrayNode hitsArray = this.MAPPER.createArrayNode();
         hitsArray.add(hitObject);
-        JsonObject searchResult = new JsonObject();
-        searchResult.add("hits", hitsArray);
-        searchResult.addProperty("total", 1);
+        ObjectNode searchResult = this.MAPPER.createObjectNode();
+        searchResult.set("hits", hitsArray);
+        searchResult.put("total", 1);
         when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
 
         when(policiesIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
@@ -838,7 +765,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -852,23 +779,23 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         String[] fields = {"title", "author", "category"};
 
         for (String field : fields) {
-            ObjectNode root = (ObjectNode) MAPPER.readTree(basePayload);
+            ObjectNode root = (ObjectNode) this.MAPPER.readTree(basePayload);
             ObjectNode resource = (ObjectNode) root.get("resource");
             resource.remove(field);
 
             RestRequest request = mock(RestRequest.class);
             when(request.hasContent()).thenReturn(true);
-            when(request.content()).thenReturn(new BytesArray(MAPPER.writeValueAsBytes(root)));
+            when(request.content()).thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(root)));
 
             this.action.setSecurityAnalyticsService(this.saService);
 
             RestResponse response = this.action.handleRequest(request);
 
-            assertEquals(
+            Assert.assertEquals(
                     "Should fail when missing " + field,
                     RestStatus.BAD_REQUEST.getStatus(),
                     response.getStatus());
-            assertTrue(response.getMessage().contains("Missing [" + field + "] field."));
+            Assert.assertTrue(response.getMessage().contains("Missing [" + field + "] field."));
         }
     }
 
@@ -898,14 +825,14 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Fixed sourceJson: Added "hash" object
         String sourceJson =
                 "{\"document\":{\"author\":\"Wazuh Inc.\",\"id\":\"24ef0a2d-5c20-403d-b446-60c6656373a0\",\"integrations\":[\"7e87cbde-8e82-41fc-b6ad-29ae789d2e32\"]},\"hash\":{\"sha256\":\"oldhash\"},\"space\":{\"name\":\"draft\"}}";
-        JsonObject hitObject = JsonParser.parseString(sourceJson).getAsJsonObject();
-        hitObject.addProperty("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
+        ObjectNode hitObject = (ObjectNode) this.MAPPER.readTree(sourceJson);
+        hitObject.put("id", "24ef0a2d-5c20-403d-b446-60c6656373a0");
 
-        JsonArray hitsArray = new JsonArray();
+        ArrayNode hitsArray = this.MAPPER.createArrayNode();
         hitsArray.add(hitObject);
-        JsonObject searchResult = new JsonObject();
-        searchResult.add("hits", hitsArray);
-        searchResult.addProperty("total", 1);
+        ObjectNode searchResult = this.MAPPER.createObjectNode();
+        searchResult.set("hits", hitsArray);
+        searchResult.put("total", 1);
         when(policiesIndex.searchByQuery(any(QueryBuilder.class))).thenReturn(searchResult);
         IndexResponse indexPolicyResponse = mock(IndexResponse.class);
         when(indexPolicyResponse.status()).thenReturn(RestStatus.OK);
@@ -921,7 +848,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
         verify(integrationsIndex).create(anyString(), captor.capture());
@@ -929,13 +856,13 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         JsonNode indexedCtiWrapper = captor.getValue();
         JsonNode resource = indexedCtiWrapper.get("document");
 
-        assertTrue(resource.has("description"));
-        assertEquals("", resource.get("description").asText());
-        assertTrue(resource.has("documentation"));
-        assertEquals("", resource.get("documentation").asText());
-        assertTrue(resource.has("references"));
-        assertTrue(resource.get("references").isArray());
-        assertEquals(0, resource.get("references").size());
+        Assert.assertTrue(resource.has("description"));
+        Assert.assertEquals("", resource.get("description").asText());
+        Assert.assertTrue(resource.has("documentation"));
+        Assert.assertEquals("", resource.get("documentation").asText());
+        Assert.assertTrue(resource.has("references"));
+        Assert.assertTrue(resource.get("references").isArray());
+        Assert.assertEquals(0, resource.get("references").size());
     }
 
     /**
@@ -949,21 +876,20 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         String[] fields = {"date", "modified"};
 
         for (String field : fields) {
-            ObjectNode root = (ObjectNode) MAPPER.readTree(basePayload);
+            ObjectNode root = (ObjectNode) this.MAPPER.readTree(basePayload);
             ObjectNode resource = (ObjectNode) root.get("resource");
             resource.put(field, "2020-01-01");
 
             RestRequest request = mock(RestRequest.class);
             when(request.hasContent()).thenReturn(true);
-            when(request.content()).thenReturn(new BytesArray(MAPPER.writeValueAsBytes(root)));
+            when(request.content()).thenReturn(new BytesArray(this.MAPPER.writeValueAsBytes(root)));
 
             this.action.setSecurityAnalyticsService(this.saService);
 
             RestResponse response = this.action.handleRequest(request);
 
-            assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-            assertTrue(
-                    response.getMessage().contains("Invalid request body."));
+            Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+            Assert.assertTrue(response.getMessage().contains("Invalid request body."));
         }
     }
 }

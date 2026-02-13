@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
@@ -279,21 +277,21 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             this.log.debug(Constants.D_LOG_OPERATION, "Searching", Constants.KEY_POLICY, Space.DRAFT);
             TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT);
 
-            JsonObject draftPolicyHit;
+            ObjectNode draftPolicyHit;
             JsonNode draftPolicy;
             String draftPolicyId;
 
             try {
-                JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
+                ObjectNode searchResult = this.policiesIndex.searchByQuery(queryBuilder);
                 if (searchResult == null
                         || !searchResult.has(Constants.Q_HITS)
-                        || searchResult.getAsJsonArray(Constants.Q_HITS).isEmpty()) {
+                        || searchResult.get(Constants.Q_HITS).isEmpty()) {
                     throw new IllegalStateException("No hits found");
                 }
-                JsonArray hitsArray = searchResult.getAsJsonArray(Constants.Q_HITS);
-                draftPolicyHit = hitsArray.get(0).getAsJsonObject();
-                draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).getAsString();
-                draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
+                ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+                draftPolicyHit = (ObjectNode) hitsArray.get(0);
+                draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+                draftPolicy = draftPolicyHit;
             } catch (Exception e) {
                 this.log.error(
                         Constants.E_LOG_FAILED_TO,
@@ -344,7 +342,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
             ((ObjectNode) draftPolicyDocument).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
 
             // Update the policy's own hash
-            String draftPolicyHash = HashCalculator.sha256(draftPolicyDocument.asText());
+            String draftPolicyHash = HashCalculator.sha256(draftPolicyDocument.toString());
 
             // Put policyHash inside hash.sha256 key
             ((ObjectNode) draftPolicy.at("/hash")).put(Constants.KEY_SHA256, draftPolicyHash);

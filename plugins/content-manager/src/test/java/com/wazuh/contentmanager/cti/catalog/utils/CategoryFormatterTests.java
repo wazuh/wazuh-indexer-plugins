@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,18 +16,21 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 
 /** Tests for the CategoryFormatter utility class. */
 public class CategoryFormatterTests extends OpenSearchTestCase {
     static final String CATEGORY = "category";
+    private final ObjectMapper mapper = new ObjectMapper();
 
     /** Tests that format capitalizes a single-word category. */
     public void testFormatCategoryOneWord() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "security");
+        ObjectNode doc = this.mapper.createObjectNode();
+        doc.put(CATEGORY, "security");
 
         String category = CategoryFormatter.format(doc, false);
 
@@ -36,8 +39,8 @@ public class CategoryFormatterTests extends OpenSearchTestCase {
 
     /** Tests that format converts hyphenated words to title case. */
     public void testFormatCategoryTwoWords() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "cloud-services");
+        ObjectNode doc = this.mapper.createObjectNode();
+        doc.put(CATEGORY, "cloud-services");
 
         String category = CategoryFormatter.format(doc, false);
 
@@ -46,8 +49,8 @@ public class CategoryFormatterTests extends OpenSearchTestCase {
 
     /** Tests that format removes subcategory for three-word categories. */
     public void testFormatCategoryThreeWords() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "cloud-services-aws");
+        ObjectNode doc = this.mapper.createObjectNode();
+        doc.put(CATEGORY, "cloud-services-aws");
 
         String category = CategoryFormatter.format(doc, false);
 
@@ -57,8 +60,8 @@ public class CategoryFormatterTests extends OpenSearchTestCase {
 
     /** Tests that format returns raw category for threat detectors. */
     public void testFormatCategoryForThreatDetector() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "cloud-services");
+        ObjectNode doc = this.mapper.createObjectNode();
+        doc.put(CATEGORY, "cloud-services");
 
         //
         String category = CategoryFormatter.format(doc, true);
