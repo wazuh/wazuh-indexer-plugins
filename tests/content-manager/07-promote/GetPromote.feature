@@ -15,6 +15,7 @@ Feature: Preview Promotion
     And the response body should contain a "changes" object
     And the changes should list operations with "add", "update", or "remove" per resource type
     And the resource types should include "integrations", "decoders", "rules", "kvdbs", "filters", "policy"
+    And the "policy" changes operations should only be "update"
 
   Scenario: Preview promotion from test to custom
     Given content has been promoted from draft to test

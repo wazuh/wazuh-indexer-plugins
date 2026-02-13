@@ -43,7 +43,8 @@ Feature: Create KVDB
       """
     Then the response status code should be 201
     And the response body should contain the KVDB ID
-    And the KVDB should exist in the ".cti-kvdbs" index in the "draft" space
+    And the KVDB should exist in the ".cti-kvdbs"
+    And the document "space.name" field should be "draft"
 
   Scenario: Create a KVDB with missing title
     When I send a POST request to "/_plugins/_content_manager/kvdbs" with body:
@@ -144,9 +145,3 @@ Feature: Create KVDB
     Given I have no credentials
     When I send a POST request to "/_plugins/_content_manager/kvdbs" with a valid payload
     Then the response status code should be 401
-
-  Scenario: Verify KVDB appears in draft space index
-    Given a KVDB has been created with a known ID
-    When I send a GET request to "/.cti-kvdbs/_doc/{kvdb_id}"
-    Then the response status code should be 200
-    And the document "space.name" field should be "draft"

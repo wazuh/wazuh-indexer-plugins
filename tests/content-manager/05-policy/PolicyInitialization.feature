@@ -16,38 +16,7 @@ Feature: Policy Initialization
     When I search the ".cti-policies" index for all documents
     Then the response status code should be 200
     And the total number of hits should be 4
-
-  Scenario: A draft space policy exists
-    When I search the ".cti-policies" index with filter "space.name" equal to "draft"
-    Then the response status code should be 200
-    And the total number of hits should be 1
-    And the document should contain field "space.name" with value "draft"
-
-  Scenario: A test space policy exists
-    When I search the ".cti-policies" index with filter "space.name" equal to "test"
-    Then the response status code should be 200
-    And the total number of hits should be 1
-    And the document should contain field "space.name" with value "test"
-
-  Scenario: A custom space policy exists
-    When I search the ".cti-policies" index with filter "space.name" equal to "custom"
-    Then the response status code should be 200
-    And the total number of hits should be 1
-    And the document should contain field "space.name" with value "custom"
-
-  Scenario: A standard space policy exists
-    When I search the ".cti-policies" index with filter "space.name" equal to "standard"
-    Then the response status code should be 200
-    And the total number of hits should be 1
-    And the document should contain field "space.name" with value "standard"
-
-  Scenario: Draft, test, and custom policies share the same document ID
-    When I search the ".cti-policies" index with filter "space.name" equal to "draft"
-    And I store the "document.id" field as "shared_policy_id"
-    And I search the ".cti-policies" index with filter "space.name" equal to "test"
-    Then the document should contain field "document.id" with value "{shared_policy_id}"
-    When I search the ".cti-policies" index with filter "space.name" equal to "custom"
-    Then the document should contain field "document.id" with value "{shared_policy_id}"
+    And there is one document for each space: "draft", "test", "custom", and "standard"
 
   Scenario: Standard policy has a different document ID than draft/test/custom
     When I search the ".cti-policies" index with filter "space.name" equal to "draft"
@@ -95,4 +64,3 @@ Feature: Policy Initialization
     Then the response status code should be 200
     And each document should have a non-empty "hash.sha256" field
     And each document should have a non-empty "space.hash.sha256" field
-

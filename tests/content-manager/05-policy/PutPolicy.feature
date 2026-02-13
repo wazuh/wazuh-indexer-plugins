@@ -34,6 +34,7 @@ Feature: Update Draft Policy
     Then the response status code should be 200
     And the response body should contain the policy ID
     And the draft policy in ".cti-policies" should be updated
+    And its "space.hash.sha256" field should be updated
 
   Scenario: Update policy with missing type field
     When I send a PUT request to "/_plugins/_content_manager/policy" with body:

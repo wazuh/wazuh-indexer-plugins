@@ -51,7 +51,8 @@ Feature: Create Decoder
       """
     Then the response status code should be 201
     And the response body should contain the decoder ID
-    And the decoder should exist in the ".cti-decoders" index in the "draft" space
+    And the decoder should exist in the ".cti-decoders"
+    And the document "space.name" field should be "draft"
 
   Scenario: Create a decoder without an integration reference
     When I send a POST request to "/_plugins/_content_manager/decoders" with body:
@@ -111,9 +112,3 @@ Feature: Create Decoder
     Given I have no credentials
     When I send a POST request to "/_plugins/_content_manager/decoders" with a valid payload
     Then the response status code should be 401
-
-  Scenario: Verify decoder appears in draft space index
-    Given a decoder has been created with a known ID
-    When I send a GET request to "/.cti-decoders/_doc/{decoder_id}"
-    Then the response status code should be 200
-    And the document "space.name" field should be "draft"

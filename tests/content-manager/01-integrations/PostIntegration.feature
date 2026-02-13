@@ -14,7 +14,7 @@ Feature: Create Integration
       """
       {
         "resource": {
-          "title": "azure-functions-test",
+          "title": "test-integration",
           "author": "Wazuh Inc.",
           "category": "cloud-services",
           "description": "This integration supports something.",
@@ -28,7 +28,8 @@ Feature: Create Integration
       """
     Then the response status code should be 201
     And the response body should contain a generated resource ID
-    And the integration should exist in the ".cti-integrations" index in the "draft" space
+    And the integration should exist in the ".cti-integrations"
+    And the document "space.name" field should be "draft"
 
   Scenario: Create an integration with missing title
     When I send a POST request to "/_plugins/_content_manager/integrations" with body:
@@ -98,9 +99,3 @@ Feature: Create Integration
     Given I have no credentials
     When I send a POST request to "/_plugins/_content_manager/integrations" with a valid payload
     Then the response status code should be 401
-
-  Scenario: Verify integration appears in draft space
-    Given an integration has been created with a known ID
-    When I send a GET request to "/.cti-integrations/_doc/{integration_id}"
-    Then the response status code should be 200
-    And the document "space.name" field should be "draft"

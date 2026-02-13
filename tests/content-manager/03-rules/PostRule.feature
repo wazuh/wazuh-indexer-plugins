@@ -42,7 +42,8 @@ Feature: Create Rule
       """
     Then the response status code should be 201
     And the response body should contain the rule ID
-    And the rule should exist in the ".cti-rules" index in the "draft" space
+    And the rule should exist in the ".cti-rules"
+    And the document "space.name" field should be "draft"
 
   Scenario: Create a rule with missing title
     When I send a POST request to "/_plugins/_content_manager/rules" with body:
@@ -147,9 +148,3 @@ Feature: Create Rule
     Given I have no credentials
     When I send a POST request to "/_plugins/_content_manager/rules" with a valid payload
     Then the response status code should be 401
-
-  Scenario: Verify rule appears in draft space index
-    Given a rule has been created with a known ID
-    When I send a GET request to "/.cti-rules/_doc/{rule_id}"
-    Then the response status code should be 200
-    And the document "space.name" field should be "draft"

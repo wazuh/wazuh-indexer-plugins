@@ -2,7 +2,7 @@
 Feature: Update Integration
   As a Wazuh user
   I want to update an existing integration in draft space
-  So that I can modify its metadata while preserving resource associations
+  So that I can modify its data while preserving resource associations
 
   Background:
     Given Wazuh Indexer is running
@@ -14,10 +14,10 @@ Feature: Update Integration
       """
       {
         "resource": {
-          "title": "azure-functions-update",
+          "title": "test-integration-updated",
           "author": "Wazuh Inc.",
           "category": "cloud-services",
-          "description": "This integration supports Azure Functions app logs.",
+          "description": "Updated integration description.",
           "documentation": "updated documentation",
           "references": [],
           "enabled": true,
