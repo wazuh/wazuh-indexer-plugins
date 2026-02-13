@@ -16,29 +16,34 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.Map;
-
-import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Model representing an IoC (Indicator of Compromise) resource. Unlike general resources, IoC
- * payloads have a flat structure where {@code id} and {@code enrichments} are at the root level,
- * without a {@code document} wrapper.
+ * Model representing an IoC (Indicator of Compromise) resource. Structured to match the
+ * {@code subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic
+ * maps.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Ioc extends Resource {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Ioc {
 
-    @JsonProperty(Constants.KEY_ID)
-    private String id;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @JsonProperty(Constants.KEY_ENRICHMENTS)
-    private List<Map<String, Object>> enrichments;
+    private static final String TYPE_KEY = "type";
+    private static final String DOCUMENT_KEY = "document";
+
+
+    @JsonProperty(TYPE_KEY)
+    private String type;
+
+    @JsonProperty(DOCUMENT_KEY)
+    private IocDocument document;
 
     /** Default constructor. */
     public Ioc() {}
@@ -50,64 +55,402 @@ public class Ioc extends Resource {
      * @return A fully populated Ioc instance.
      */
     public static Ioc fromPayload(JsonNode payload) {
-        Ioc ioc = new Ioc();
+        return MAPPER.convertValue(payload, Ioc.class);
+    }
 
-        // Populate common Resource fields (space, etc.)
-        Resource resource = new Resource();
-        resource.populateResource(ioc, payload);
+    /**
+     * Gets the type.
+     *
+     * @return The type.
+     */
+    public String getType() {
+        return this.type;
+    }
 
-        // Populate IoC-specific fields
-        if (payload.has(Constants.KEY_ID)) {
-            ioc.setId(payload.get(Constants.KEY_ID).asText());
+    /**
+     * Sets the type.
+     *
+     * @param type The type.
+     */
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    /**
+     * Gets the document.
+     *
+     * @return The IoC document.
+     */
+    public IocDocument getDocument() {
+        return this.document;
+    }
+
+    /**
+     * Sets the document.
+     *
+     * @param document The IoC document.
+     */
+    public void setDocument(IocDocument document) {
+        this.document = document;
+    }
+
+    /** Represents the {@code document} object within an IoC. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class IocDocument {
+
+        private static final String CONFIDENCE_KEY = "confidence";
+        private static final String FEED_KEY = "feed";
+        private static final String FIRST_SEEN_KEY = "first_seen";
+        private static final String ID_KEY = "id";
+        private static final String LAST_SEEN_KEY = "last_seen";
+        private static final String NAME_KEY = "name";
+        private static final String PROVIDER_KEY = "provider";
+        private static final String REFERENCE_KEY = "reference";
+        private static final String TYPE_KEY = "type";
+        private static final String SOFTWARE_KEY = "software";
+        private static final String TAGS_KEY = "tags";
+
+        @JsonProperty(CONFIDENCE_KEY)
+        private Long confidence;
+
+        @JsonProperty(FEED_KEY)
+        private Feed feed;
+
+        @JsonProperty(FIRST_SEEN_KEY)
+        private String firstSeen;
+
+        @JsonProperty(ID_KEY)
+        private String id;
+
+        @JsonProperty(LAST_SEEN_KEY)
+        private String lastSeen;
+
+        @JsonProperty(NAME_KEY)
+        private String name;
+
+        @JsonProperty(PROVIDER_KEY)
+        private String provider;
+
+        @JsonProperty(REFERENCE_KEY)
+        private String reference;
+
+        @JsonProperty(TYPE_KEY)
+        private String type;
+
+        @JsonProperty(SOFTWARE_KEY)
+        private Software software;
+
+        @JsonProperty(TAGS_KEY)
+        private List<String> tags;
+
+        /** Default constructor. */
+        public IocDocument() {}
+
+        /**
+         * Gets the confidence score.
+         *
+         * @return The confidence score.
+         */
+        public Long getConfidence() {
+            return this.confidence;
         }
-        if (payload.has(Constants.KEY_ENRICHMENTS)
-                && payload.get(Constants.KEY_ENRICHMENTS).isArray()) {
-            ioc.setEnrichments(
-                    MAPPER.convertValue(payload.get(Constants.KEY_ENRICHMENTS), new TypeReference<>() {}));
+
+        /**
+         * Sets the confidence score.
+         *
+         * @param confidence The confidence score.
+         */
+        public void setConfidence(Long confidence) {
+            this.confidence = confidence;
         }
 
-        return ioc;
+        /**
+         * Gets the feed.
+         *
+         * @return The feed.
+         */
+        public Feed getFeed() {
+            return this.feed;
+        }
+
+        /**
+         * Sets the feed.
+         *
+         * @param feed The feed.
+         */
+        public void setFeed(Feed feed) {
+            this.feed = feed;
+        }
+
+        /**
+         * Gets the first seen date.
+         *
+         * @return The first seen date.
+         */
+        public String getFirstSeen() {
+            return this.firstSeen;
+        }
+
+        /**
+         * Sets the first seen date.
+         *
+         * @param firstSeen The first seen date.
+         */
+        public void setFirstSeen(String firstSeen) {
+            this.firstSeen = firstSeen;
+        }
+
+        /**
+         * Gets the IoC identifier.
+         *
+         * @return The id.
+         */
+        public String getId() {
+            return this.id;
+        }
+
+        /**
+         * Sets the IoC identifier.
+         *
+         * @param id The id.
+         */
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        /**
+         * Gets the last seen date.
+         *
+         * @return The last seen date.
+         */
+        public String getLastSeen() {
+            return this.lastSeen;
+        }
+
+        /**
+         * Sets the last seen date.
+         *
+         * @param lastSeen The last seen date.
+         */
+        public void setLastSeen(String lastSeen) {
+            this.lastSeen = lastSeen;
+        }
+
+        /**
+         * Gets the name.
+         *
+         * @return The name.
+         */
+        public String getName() {
+            return this.name;
+        }
+
+        /**
+         * Sets the name.
+         *
+         * @param name The name.
+         */
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        /**
+         * Gets the provider.
+         *
+         * @return The provider.
+         */
+        public String getProvider() {
+            return this.provider;
+        }
+
+        /**
+         * Sets the provider.
+         *
+         * @param provider The provider.
+         */
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+
+        /**
+         * Gets the reference.
+         *
+         * @return The reference.
+         */
+        public String getReference() {
+            return this.reference;
+        }
+
+        /**
+         * Sets the reference.
+         *
+         * @param reference The reference.
+         */
+        public void setReference(String reference) {
+            this.reference = reference;
+        }
+
+        /**
+         * Gets the type.
+         *
+         * @return The type.
+         */
+        public String getType() {
+            return this.type;
+        }
+
+        /**
+         * Sets the type.
+         *
+         * @param type The type.
+         */
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        /**
+         * Gets the software.
+         *
+         * @return The software.
+         */
+        public Software getSoftware() {
+            return this.software;
+        }
+
+        /**
+         * Sets the software.
+         *
+         * @param software The software.
+         */
+        public void setSoftware(Software software) {
+            this.software = software;
+        }
+
+        /**
+         * Gets the tags.
+         *
+         * @return The list of tags.
+         */
+        public List<String> getTags() {
+            return this.tags;
+        }
+
+        /**
+         * Sets the tags.
+         *
+         * @param tags The list of tags.
+         */
+        public void setTags(List<String> tags) {
+            this.tags = tags;
+        }
     }
 
-    /**
-     * Gets the IoC identifier.
-     *
-     * @return The IoC id.
-     */
-    public String getId() {
-        return this.id;
+    /** Represents the {@code feed} object within an IoC document. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Feed {
+
+        private static final String NAME_KEY = "name";
+
+        @JsonProperty(NAME_KEY)
+        private String name;
+
+        /** Default constructor. */
+        public Feed() {}
+
+        /**
+         * Gets the feed name.
+         *
+         * @return The feed name.
+         */
+        public String getName() {
+            return this.name;
+        }
+
+        /**
+         * Sets the feed name.
+         *
+         * @param name The feed name.
+         */
+        public void setName(String name) {
+            this.name = name;
+        }
     }
 
-    /**
-     * Sets the IoC identifier.
-     *
-     * @param id The IoC id.
-     */
-    public void setId(String id) {
-        this.id = id;
-    }
+    /** Represents the {@code software} object within an IoC document. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Software {
 
-    /**
-     * Gets the enrichments list.
-     *
-     * @return A list of enrichment maps, each containing {@code custom}, {@code indicator}, and
-     *     {@code source} data.
-     */
-    public List<Map<String, Object>> getEnrichments() {
-        return this.enrichments;
-    }
+        private static final String ALIAS_KEY = "alias";
+        private static final String NAME_KEY = "name";
+        private static final String TYPE_KEY = "type";
 
-    /**
-     * Sets the enrichments list.
-     *
-     * @param enrichments A list of enrichment maps.
-     */
-    public void setEnrichments(List<Map<String, Object>> enrichments) {
-        this.enrichments = enrichments;
-    }
+        @JsonProperty(ALIAS_KEY)
+        private List<String> alias;
 
-    @Override
-    public String toString() {
-        return "Ioc{" + "id='" + this.id + '\'' + ", enrichments=" + this.enrichments + '}';
+        @JsonProperty(NAME_KEY)
+        private String name;
+
+        @JsonProperty(TYPE_KEY)
+        private String type;
+
+        /** Default constructor. */
+        public Software() {}
+
+        /**
+         * Gets the aliases.
+         *
+         * @return The list of aliases.
+         */
+        public List<String> getAlias() {
+            return this.alias;
+        }
+
+        /**
+         * Sets the aliases.
+         *
+         * @param alias The list of aliases.
+         */
+        public void setAlias(List<String> alias) {
+            this.alias = alias;
+        }
+
+        /**
+         * Gets the software name.
+         *
+         * @return The software name.
+         */
+        public String getName() {
+            return this.name;
+        }
+
+        /**
+         * Sets the software name.
+         *
+         * @param name The software name.
+         */
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        /**
+         * Gets the software type.
+         *
+         * @return The software type.
+         */
+        public String getType() {
+            return this.type;
+        }
+
+        /**
+         * Sets the software type.
+         *
+         * @param type The software type.
+         */
+        public void setType(String type) {
+            this.type = type;
+        }
     }
 }

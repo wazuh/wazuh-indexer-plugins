@@ -92,15 +92,11 @@ public class Resource {
                 resource.setHash(hashMap);
             }
         }
-        String type =
-                payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).getAsString() : "none";
-        if (!type.equals(Constants.TYPE_IOC)) {
-            // 3. Set Space if not present in resource payload
-            this.populateSpaceObject(resource, payload);
-        }
+        // 3. Set Space if not present in resource payload
+        this.populateSpaceObject(resource, payload);
     }
 
-    private void populateSpaceObject(Resource resource, JsonObject payload) {
+    private void populateSpaceObject(Resource resource, JsonNode payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
         if (payload.has("space") && payload.get("space").isObject()) {

@@ -101,9 +101,6 @@ public class Constants {
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
 
-    // Ioc content fields
-    public static final String KEY_ENRICHMENTS = "enrichments";
-
     // Enrichment types allowed in policy
     public static final Set<String> ALLOWED_ENRICHMENT_TYPES =
             Set.of("file", "domain-name", "ip", "url", "geo");
