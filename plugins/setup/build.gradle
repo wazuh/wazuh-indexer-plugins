@@ -85,9 +85,9 @@ dependencies {
   implementation "org.slf4j:slf4j-api:2.0.17"
 
   // Use Jackson provided by OpenSearch (2.18.2) - only for compile time
-  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-  implementation 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.20'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.20'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations:2.20'
 
   // Job Scheduler & ISM stuff (required for the initialization of ISM policies)
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: opensearch_build
