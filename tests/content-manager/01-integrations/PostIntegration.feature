@@ -30,6 +30,28 @@ Feature: Create Integration
     And the response body should contain a generated resource ID
     And the integration should exist in the ".cti-integrations"
     And the document "space.name" field should be "draft"
+    And the integration should exist in the SAP logtypes with source "Draft"
+
+  Scenario: Create an integration with the same title as an existing integration
+    Given an integration exists in draft space with the title "test-integration"
+    When I send a POST request to "/_plugins/_content_manager/integrations" with body:
+      """
+      {
+        "resource": {
+          "title": "test-integration",
+          "author": "Wazuh Inc.",
+          "category": "cloud-services",
+          "description": "This integration supports something.",
+          "documentation": "test1234",
+          "references": [
+            "https://wazuh.com"
+          ],
+          "enabled": true
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response body should contain "A resource with this title already exists in draft space."
 
   Scenario: Create an integration with missing title
     When I send a POST request to "/_plugins/_content_manager/integrations" with body:
@@ -85,14 +107,14 @@ Feature: Create Integration
     Then the response status code should be 400
 
   Scenario: Create an integration with missing resource object
-    When I send a POST request to "/_plugins/_content_manager/integrations" with body:
+    When I send a POST request to "/_plugins/_content_manager/integrations" with an empty body:
       """
       {}
       """
     Then the response status code should be 400
 
   Scenario: Create an integration with empty body
-    When I send a POST request to "/_plugins/_content_manager/integrations" with an empty body
+    When I send a POST request to "/_plugins/_content_manager/integrations" without body
     Then the response status code should be 400
 
   Scenario: Create an integration without authentication

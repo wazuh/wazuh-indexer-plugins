@@ -29,6 +29,29 @@ Feature: Update Integration
       """
     Then the response status code should be 200
     And the response body should contain the integration ID
+    And the integration document should be correctly updated in the ".cti-integrations" index
+
+  Scenario: Update an integration changing its title to a title that already exists in draft space
+    Given another integration exists in draft space with the title "test-integration-new-title"
+    When I send a PUT request to "/_plugins/_content_manager/integrations/{integration_id}" with body:
+      """
+      {
+        "resource": {
+          "title": "test-integration-new-title",
+          "author": "Wazuh Inc.",
+          "category": "cloud-services",
+          "description": "Updated integration description.",
+          "documentation": "updated documentation",
+          "references": [],
+          "enabled": true,
+          "rules": [],
+          "decoders": [],
+          "kvdbs": []
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response body should contain "A resource with this title already exists in draft space."
 
   Scenario: Update an integration with missing required fields
     When I send a PUT request to "/_plugins/_content_manager/integrations/{integration_id}" with body:
@@ -40,6 +63,7 @@ Feature: Update Integration
       }
       """
     Then the response status code should be 400
+    And the response should contain "Missing [<FIELD>] field"
 
   Scenario: Update an integration that does not exist
     When I send a PUT request to "/_plugins/_content_manager/integrations/00000000-0000-0000-0000-000000000000" with body:
@@ -83,7 +107,8 @@ Feature: Update Integration
         }
       }
       """
-    Then the response status code should be 400
+    Then the response status code should be 200, since the ID is ignored on update and the path ID is used instead
+    And the response body should contain the integration ID
 
   Scenario: Update an integration attempting to add/remove dependency lists
     Given the integration has associated decoders, rules, or kvdbs
