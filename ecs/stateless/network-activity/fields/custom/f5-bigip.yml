@@ -197,21 +197,6 @@
     level: custom
     description: Minimum mitigation value for bad actor events in the log.
     example: 12345
-  - name: f5_bigip.log.bigip_management.ip
-    type: ip
-    level: custom
-    description: Primary management IP address for the F5 BIG-IP device.
-    example: 192.168.1.1
-  - name: f5_bigip.log.bigip_management.ip2
-    type: ip
-    level: custom
-    description: Secondary management IP address for the F5 BIG-IP device.
-    example: 192.168.1.1
-  - name: f5_bigip.log.bigip_management.ip_2
-    type: ip
-    level: custom
-    description: Alternative secondary management IP address for the F5 BIG-IP device.
-    example: 192.168.1.1
   - name: f5_bigip.log.blocking_exception_reason
     type: keyword
     level: custom
@@ -302,16 +287,6 @@
     level: custom
     description: Reason for classification in the F5 BIG-IP log entry.
     example: example-classification_reason
-  - name: f5_bigip.log.client.ip
-    type: ip
-    level: custom
-    description: Client IP address associated with the F5 BIG-IP log entry.
-    example: 192.168.1.1
-  - name: f5_bigip.log.client.ip_geo_location
-    type: keyword
-    level: custom
-    description: Geolocation of the client IP address in the log entry.
-    example: example-ip_geo_location
   - name: f5_bigip.log.client.ip_route_domain
     type: keyword
     level: custom
@@ -524,11 +499,6 @@
     level: custom
     description: Fully qualified domain name of the destination in F5 BIG-IP logs.
     example: example-fqdn
-  - name: f5_bigip.log.dest.ip
-    type: ip
-    level: custom
-    description: Destination IP address recorded in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.dest.ipint_categories
     type: keyword
     level: custom
@@ -549,11 +519,6 @@
     level: custom
     description: Destination network zone identifier in F5 BIG-IP logs.
     example: example-zone
-  - name: f5_bigip.log.destination.ip
-    type: ip
-    level: custom
-    description: Destination IP address for network traffic in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.destination.port
     type: long
     level: custom
@@ -787,11 +752,6 @@
     level: custom
     description: Reason for packet or connection drop in F5 BIG-IP.
     example: example-drop_reason
-  - name: f5_bigip.log.dst.geo
-    type: keyword
-    level: custom
-    description: Geographic location information for destination in F5 BIG-IP.
-    example: example-geo
   - name: f5_bigip.log.enforced_by
     type: keyword
     level: custom
@@ -877,26 +837,6 @@
     level: custom
     description: IP fragmentation information in F5 BIG-IP logs.
     example: example-fragment
-  - name: f5_bigip.log.geo.code
-    type: keyword
-    level: custom
-    description: Geographic code from geolocation data in F5 BIG-IP.
-    example: example-code
-  - name: f5_bigip.log.geo.country
-    type: keyword
-    level: custom
-    description: Country from geolocation data in F5 BIG-IP.
-    example: example-country
-  - name: f5_bigip.log.geo.info
-    type: keyword
-    level: custom
-    description: Geolocation information in F5 BIG-IP logs.
-    example: example-info
-  - name: f5_bigip.log.geo.location
-    type: keyword
-    level: custom
-    description: Geographic location in F5 BIG-IP logs.
-    example: example-location
   - name: f5_bigip.log.global_bigiq_conf
     type: keyword
     level: custom
@@ -987,11 +927,6 @@
     level: custom
     description: HTTP request information in F5 BIG-IP logs.
     example: example-request
-  - name: f5_bigip.log.http.request_host
-    type: ip
-    level: custom
-    description: HTTP request host IP address in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.http.status
     type: keyword
     level: custom
@@ -1137,16 +1072,6 @@
     level: custom
     description: Machine identifier in F5 BIG-IP logs.
     example: example-machine_id
-  - name: f5_bigip.log.management.ip_address
-    type: ip
-    level: custom
-    description: Management IP address of F5 BIG-IP device.
-    example: 192.168.1.1
-  - name: f5_bigip.log.management.ip_address_2
-    type: ip
-    level: custom
-    description: Secondary management IP address of F5 BIG-IP device.
-    example: 192.168.1.1
   - name: f5_bigip.log.marketing_name
     type: keyword
     level: custom
@@ -1177,11 +1102,6 @@
     level: custom
     description: Request method in F5 BIG-IP logs.
     example: example-method
-  - name: f5_bigip.log.mgmt_ip
-    type: ip
-    level: custom
-    description: Management IP address in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.microservice
     type: keyword
     level: custom
@@ -1261,11 +1181,6 @@
     level: custom
     description: Status of new requests in F5 BIG-IP logs.
     example: example-new_request_status
-  - name: f5_bigip.log.node
-    type: ip
-    level: custom
-    description: Node IP address in F5 BIG-IP pool configuration.
-    example: 192.168.1.1
   - name: f5_bigip.log.node_port
     type: long
     level: custom
@@ -1316,11 +1231,6 @@
     level: custom
     description: Policy name in F5 BIG-IP logs.
     example: example-name
-  - name: f5_bigip.log.pool.ip
-    type: ip
-    level: custom
-    description: Pool member IP address in F5 BIG-IP.
-    example: 192.168.1.1
   - name: f5_bigip.log.pool.ip_route_domain
     type: keyword
     level: custom
@@ -1685,11 +1595,6 @@
     level: custom
     description: Server hit count in F5 BIG-IP logs.
     example: 12345
-  - name: f5_bigip.log.server.ip
-    type: ip
-    level: custom
-    description: Server IP address in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.server.latency.max
     type: long
     level: custom
@@ -1797,11 +1702,6 @@
     level: custom
     description: Source fully qualified domain name in F5 BIG-IP.
     example: example-fqdn
-  - name: f5_bigip.log.source.ip
-    type: ip
-    level: custom
-    description: Source IP address in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.source.ip_route_domain
     type: keyword
     level: custom
@@ -1827,16 +1727,6 @@
     level: custom
     description: Source user group in F5 BIG-IP logs.
     example: example-user_group
-  - name: f5_bigip.log.src.geo
-    type: keyword
-    level: custom
-    description: Source geographic location in F5 BIG-IP logs.
-    example: example-geo
-  - name: f5_bigip.log.src.ip
-    type: ip
-    level: custom
-    description: Source IP address in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.src.port
     type: long
     level: custom
@@ -1887,11 +1777,6 @@
     level: custom
     description: Sub-violations detected in F5 BIG-IP logs.
     example: example-sub_violations
-  - name: f5_bigip.log.subnet.ip
-    type: ip
-    level: custom
-    description: Subnet IP address in F5 BIG-IP logs.
-    example: 192.168.1.1
   - name: f5_bigip.log.subnet.name
     type: keyword
     level: custom
@@ -2902,11 +2787,6 @@
     level: custom
     description: Transaction outcome status in F5 BIG-IP logs.
     example: example-transaction_outcome
-  - name: f5_bigip.log.translated.dest.ip
-    type: ip
-    level: custom
-    description: Translated destination IP address in F5 BIG-IP.
-    example: 192.168.1.1
   - name: f5_bigip.log.translated.dest.port
     type: long
     level: custom
@@ -2922,11 +2802,6 @@
     level: custom
     description: Translated route domain in F5 BIG-IP.
     example: example-route_domain
-  - name: f5_bigip.log.translated.source.ip
-    type: ip
-    level: custom
-    description: Translated source IP address in F5 BIG-IP.
-    example: 192.168.1.1
   - name: f5_bigip.log.translated.source.port
     type: long
     level: custom
@@ -3022,11 +2897,6 @@
     level: custom
     description: Virtual server IP address in F5 BIG-IP.
     example: example-virtual_server_name
-  - name: f5_bigip.log.virtual.ip
-    type: ip
-    level: custom
-    description: Virtual server name in F5 BIG-IP.
-    example: 192.168.1.1
   - name: f5_bigip.log.virtual.name
     type: keyword
     level: custom
@@ -3072,8 +2942,3 @@
     level: custom
     description: Whitelist events count in F5 BIG-IP logs.
     example: 12345
-  - name: f5_bigip.log.x_forwarded_for_header_value
-    type: ip
-    level: custom
-    description: X-Forwarded-For header value in F5 BIG-IP logs.
-    example: 192.168.1.1
