@@ -38,7 +38,6 @@ public class Ioc {
     private static final String TYPE_KEY = "type";
     private static final String DOCUMENT_KEY = "document";
 
-
     @JsonProperty(TYPE_KEY)
     private String type;
 
@@ -94,13 +93,16 @@ public class Ioc {
         this.document = document;
     }
 
-    /** Represents the {@code document} object within an IoC. */
+    /**
+     * Represents the {@code document} object within an IoC. Uses flat dot-notation keys (e.g.
+     * {@code "feed.name"}, {@code "software.type"}) matching the CTI payload structure.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class IocDocument {
 
         private static final String CONFIDENCE_KEY = "confidence";
-        private static final String FEED_KEY = "feed";
+        private static final String FEED_NAME_KEY = "feed.name";
         private static final String FIRST_SEEN_KEY = "first_seen";
         private static final String ID_KEY = "id";
         private static final String LAST_SEEN_KEY = "last_seen";
@@ -108,14 +110,16 @@ public class Ioc {
         private static final String PROVIDER_KEY = "provider";
         private static final String REFERENCE_KEY = "reference";
         private static final String TYPE_KEY = "type";
-        private static final String SOFTWARE_KEY = "software";
+        private static final String SOFTWARE_ALIAS_KEY = "software.alias";
+        private static final String SOFTWARE_NAME_KEY = "software.name";
+        private static final String SOFTWARE_TYPE_KEY = "software.type";
         private static final String TAGS_KEY = "tags";
 
         @JsonProperty(CONFIDENCE_KEY)
         private Long confidence;
 
-        @JsonProperty(FEED_KEY)
-        private Feed feed;
+        @JsonProperty(FEED_NAME_KEY)
+        private String feedName;
 
         @JsonProperty(FIRST_SEEN_KEY)
         private String firstSeen;
@@ -138,8 +142,14 @@ public class Ioc {
         @JsonProperty(TYPE_KEY)
         private String type;
 
-        @JsonProperty(SOFTWARE_KEY)
-        private Software software;
+        @JsonProperty(SOFTWARE_ALIAS_KEY)
+        private List<String> softwareAlias;
+
+        @JsonProperty(SOFTWARE_NAME_KEY)
+        private String softwareName;
+
+        @JsonProperty(SOFTWARE_TYPE_KEY)
+        private String softwareType;
 
         @JsonProperty(TAGS_KEY)
         private List<String> tags;
@@ -166,21 +176,21 @@ public class Ioc {
         }
 
         /**
-         * Gets the feed.
+         * Gets the feed name.
          *
-         * @return The feed.
+         * @return The feed name.
          */
-        public Feed getFeed() {
-            return this.feed;
+        public String getFeedName() {
+            return this.feedName;
         }
 
         /**
-         * Sets the feed.
+         * Sets the feed name.
          *
-         * @param feed The feed.
+         * @param feedName The feed name.
          */
-        public void setFeed(Feed feed) {
-            this.feed = feed;
+        public void setFeedName(String feedName) {
+            this.feedName = feedName;
         }
 
         /**
@@ -310,21 +320,57 @@ public class Ioc {
         }
 
         /**
-         * Gets the software.
+         * Gets the software aliases.
          *
-         * @return The software.
+         * @return The list of software aliases.
          */
-        public Software getSoftware() {
-            return this.software;
+        public List<String> getSoftwareAlias() {
+            return this.softwareAlias;
         }
 
         /**
-         * Sets the software.
+         * Sets the software aliases.
          *
-         * @param software The software.
+         * @param softwareAlias The list of software aliases.
          */
-        public void setSoftware(Software software) {
-            this.software = software;
+        public void setSoftwareAlias(List<String> softwareAlias) {
+            this.softwareAlias = softwareAlias;
+        }
+
+        /**
+         * Gets the software name.
+         *
+         * @return The software name.
+         */
+        public String getSoftwareName() {
+            return this.softwareName;
+        }
+
+        /**
+         * Sets the software name.
+         *
+         * @param softwareName The software name.
+         */
+        public void setSoftwareName(String softwareName) {
+            this.softwareName = softwareName;
+        }
+
+        /**
+         * Gets the software type.
+         *
+         * @return The software type.
+         */
+        public String getSoftwareType() {
+            return this.softwareType;
+        }
+
+        /**
+         * Sets the software type.
+         *
+         * @param softwareType The software type.
+         */
+        public void setSoftwareType(String softwareType) {
+            this.softwareType = softwareType;
         }
 
         /**
@@ -343,114 +389,6 @@ public class Ioc {
          */
         public void setTags(List<String> tags) {
             this.tags = tags;
-        }
-    }
-
-    /** Represents the {@code feed} object within an IoC document. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Feed {
-
-        private static final String NAME_KEY = "name";
-
-        @JsonProperty(NAME_KEY)
-        private String name;
-
-        /** Default constructor. */
-        public Feed() {}
-
-        /**
-         * Gets the feed name.
-         *
-         * @return The feed name.
-         */
-        public String getName() {
-            return this.name;
-        }
-
-        /**
-         * Sets the feed name.
-         *
-         * @param name The feed name.
-         */
-        public void setName(String name) {
-            this.name = name;
-        }
-    }
-
-    /** Represents the {@code software} object within an IoC document. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Software {
-
-        private static final String ALIAS_KEY = "alias";
-        private static final String NAME_KEY = "name";
-        private static final String TYPE_KEY = "type";
-
-        @JsonProperty(ALIAS_KEY)
-        private List<String> alias;
-
-        @JsonProperty(NAME_KEY)
-        private String name;
-
-        @JsonProperty(TYPE_KEY)
-        private String type;
-
-        /** Default constructor. */
-        public Software() {}
-
-        /**
-         * Gets the aliases.
-         *
-         * @return The list of aliases.
-         */
-        public List<String> getAlias() {
-            return this.alias;
-        }
-
-        /**
-         * Sets the aliases.
-         *
-         * @param alias The list of aliases.
-         */
-        public void setAlias(List<String> alias) {
-            this.alias = alias;
-        }
-
-        /**
-         * Gets the software name.
-         *
-         * @return The software name.
-         */
-        public String getName() {
-            return this.name;
-        }
-
-        /**
-         * Sets the software name.
-         *
-         * @param name The software name.
-         */
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        /**
-         * Gets the software type.
-         *
-         * @return The software type.
-         */
-        public String getType() {
-            return this.type;
-        }
-
-        /**
-         * Sets the software type.
-         *
-         * @param type The software type.
-         */
-        public void setType(String type) {
-            this.type = type;
         }
     }
 }
