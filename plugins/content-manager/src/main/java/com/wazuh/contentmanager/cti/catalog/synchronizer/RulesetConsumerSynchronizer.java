@@ -19,6 +19,9 @@ package com.wazuh.contentmanager.cti.catalog.synchronizer;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -29,6 +32,8 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
@@ -37,10 +42,9 @@ import java.util.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.processor.DetectorProcessor;
-import com.wazuh.contentmanager.cti.catalog.processor.IntegrationProcessor;
-import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -51,9 +55,9 @@ import com.wazuh.contentmanager.utils.ContentUtils;
  * integrations, and policies. It also handles post-sync operations like creating detectors and
  * calculating policy hashes.
  */
-public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
+public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
-    private static final Logger log = LogManager.getLogger(UnifiedConsumerSynchronizer.class);
+    private static final Logger log = LogManager.getLogger(RulesetConsumerSynchronizer.class);
     private final ObjectMapper mapper;
 
     /** The unified context identifier. */
@@ -62,9 +66,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
     /** The unified consumer name identifier. */
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    private final IntegrationProcessor integrationProcessor;
-    private final RuleProcessor ruleProcessor;
-    private final DetectorProcessor detectorProcessor;
+    private final SecurityAnalyticsService securityAnalyticsService;
     private final PolicyHashService policyHashService;
 
     /**
@@ -74,12 +76,10 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
      */
-    public UnifiedConsumerSynchronizer(
+    public RulesetConsumerSynchronizer(
             Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
-        this.integrationProcessor = new IntegrationProcessor(client);
-        this.ruleProcessor = new RuleProcessor(client);
-        this.detectorProcessor = new DetectorProcessor(client);
+        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         this.policyHashService = new PolicyHashService(client);
 
         this.mapper = new ObjectMapper();
@@ -132,12 +132,81 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             // Initialize default spaces if they don't exist
             this.initializeSpaces();
 
-            Map<String, List<String>> integrations =
-                    this.integrationProcessor.process(Constants.INDEX_INTEGRATIONS);
-            this.ruleProcessor.process(Constants.INDEX_RULES);
-            this.detectorProcessor.process(integrations, Constants.INDEX_INTEGRATIONS);
+            // Sync Integrations
+            this.syncIntegrations();
+
+            // Sync Rules
+            this.syncRules();
+
+            // Sync Detectors
+            this.syncDetectors();
 
             this.policyHashService.calculateAndUpdate();
+        }
+    }
+
+    private void syncIntegrations() {
+        if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
+            return;
+        }
+
+        SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
+        for (SearchHit hit : searchResponse.getHits().getHits()) {
+            JsonObject source = this.parseHit(hit);
+            if (source == null) {
+                continue;
+            }
+
+            JsonObject doc = this.extractDocument(source, hit.getId());
+            if (doc == null) {
+                continue;
+            }
+
+            Space space = this.extractSpace(source);
+            this.securityAnalyticsService.upsertIntegration(doc, space, RestRequest.Method.POST);
+        }
+    }
+
+    private void syncRules() {
+        if (!this.indexExists(Constants.INDEX_RULES)) {
+            return;
+        }
+
+        SearchResponse searchResponse = this.searchAll(Constants.INDEX_RULES);
+        for (SearchHit hit : searchResponse.getHits().getHits()) {
+            JsonObject source = this.parseHit(hit);
+            if (source == null) {
+                continue;
+            }
+
+            JsonObject doc = this.extractDocument(source, hit.getId());
+            if (doc == null) {
+                continue;
+            }
+
+            Space space = this.extractSpace(source);
+            this.securityAnalyticsService.upsertRule(doc, space);
+        }
+    }
+
+    private void syncDetectors() {
+        if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
+            return;
+        }
+
+        SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
+        for (SearchHit hit : searchResponse.getHits().getHits()) {
+            JsonObject source = this.parseHit(hit);
+            if (source == null) {
+                continue;
+            }
+
+            JsonObject doc = this.extractDocument(source, hit.getId());
+            if (doc == null) {
+                continue;
+            }
+
+            this.securityAnalyticsService.upsertDetector(doc, true);
         }
     }
 
@@ -215,5 +284,85 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         } catch (Exception e) {
             log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
         }
+    }
+
+    /**
+     * Checks if the specified index exists in the cluster.
+     *
+     * @param indexName The name of the index to check.
+     * @return true if the index exists, false otherwise.
+     */
+    private boolean indexExists(String indexName) {
+        return this.client.admin().indices().prepareExists(indexName).get().isExists();
+    }
+
+    /**
+     * Executes a match-all search query on the specified index to retrieve all documents.
+     *
+     * <p>The search size is set to 10,000 to retrieve a large batch of documents.
+     *
+     * @param indexName The name of the index to search.
+     * @return The {@link SearchResponse} containing the search hits.
+     */
+    private SearchResponse searchAll(String indexName) {
+        SearchRequest searchRequest = new SearchRequest(indexName);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchSourceBuilder.size(10000);
+        searchRequest.source(searchSourceBuilder);
+        return this.client.search(searchRequest).actionGet();
+    }
+
+    /**
+     * Parses a {@link SearchHit} source string into a Gson {@link JsonObject}.
+     *
+     * @param hit The search hit to parse.
+     * @return The parsed {@link JsonObject}, or null if a syntax error occurs during parsing.
+     */
+    private JsonObject parseHit(SearchHit hit) {
+        try {
+            return JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+        } catch (JsonSyntaxException e) {
+            log.error("Failed to parse JSON from hit [{}]: {}", hit.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Extracts the inner "document" object from the source wrapper.
+     *
+     * @param source The source JSON object (the wrapper containing metadata and the document).
+     * @param hitId The ID of the hit, used for logging if the document field is missing.
+     * @return The inner "document" {@link JsonObject}, or null if the key is missing.
+     */
+    private JsonObject extractDocument(JsonObject source, String hitId) {
+        if (!source.has(Constants.KEY_DOCUMENT)) {
+            log.warn("Hit [{}] missing 'document' field, skipping", hitId);
+            return null;
+        }
+        return source.getAsJsonObject(Constants.KEY_DOCUMENT);
+    }
+
+    /**
+     * Extracts the {@link Space} from the source JSON object.
+     *
+     * <p>It looks for the "space.name" field. If the field is missing or the value is invalid, it
+     * defaults to {@link Space#STANDARD}.
+     *
+     * @param source The source JSON object.
+     * @return The extracted {@link Space}, or {@link Space#STANDARD} if not found or invalid.
+     */
+    private Space extractSpace(JsonObject source) {
+        if (source.has(Constants.KEY_SPACE) && source.get(Constants.KEY_SPACE).isJsonObject()) {
+            JsonObject space = source.getAsJsonObject(Constants.KEY_SPACE);
+            if (space.has(Constants.KEY_NAME)) {
+                try {
+                    return Space.fromValue(space.get(Constants.KEY_NAME).getAsString());
+                } catch (IllegalArgumentException e) {
+                    return Space.STANDARD;
+                }
+            }
+        }
+        return Space.STANDARD;
     }
 }
