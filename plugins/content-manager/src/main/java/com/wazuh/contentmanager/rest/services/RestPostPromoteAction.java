@@ -219,10 +219,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 || changes.getKvdbs() == null
                 || changes.getDecoders() == null
                 || changes.getFilters() == null
-                || changes.getRules() == null
-                || changes.getIocs() == null) {
+                || changes.getRules() == null) {
             throw new IllegalArgumentException(
-                    "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules, iocs) are required in changes");
+                    "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules) are required in changes");
         }
 
         // Validate policy operations - only UPDATE is allowed

@@ -69,9 +69,6 @@ public class SpaceDiff {
         @JsonProperty(value = Constants.KEY_RULES, required = true)
         private List<OperationItem> rules;
 
-        @JsonProperty(value = Constants.KEY_IOCS, required = true)
-        private List<OperationItem> iocs;
-
         public List<OperationItem> getRules() {
             return this.rules;
         }
@@ -118,14 +115,6 @@ public class SpaceDiff {
 
         public void setFilters(List<OperationItem> filters) {
             this.filters = filters;
-        }
-
-        public List<OperationItem> getIocs() {
-            return this.iocs;
-        }
-
-        public void setIocs(List<OperationItem> iocs) {
-            this.iocs = iocs;
         }
     }
 
