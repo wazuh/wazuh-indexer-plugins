@@ -201,7 +201,11 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 continue;
             }
 
-            this.securityAnalyticsService.upsertDetector(doc, true);
+            // Only create detectors for Standard space integrations
+            Space space = this.extractSpace(source);
+            if (space == Space.STANDARD) {
+                this.securityAnalyticsService.upsertDetector(doc, true);
+            }
         }
     }
 
