@@ -67,9 +67,9 @@ public class Resource {
      * @param payload The raw JSON object containing the resource data.
      * @return A fully populated Resource instance.
      */
-    public static Resource fromPayload(JsonObject payload, String type) {
+    public static Resource fromPayload(JsonObject payload) {
         Resource resource = new Resource();
-        resource.populateResource(resource, payload, type);
+        resource.populateResource(resource, payload);
         return resource;
     }
 
@@ -79,7 +79,7 @@ public class Resource {
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
      */
-    protected void populateResource(Resource resource, JsonObject payload, String type) {
+    protected void populateResource(Resource resource, JsonObject payload) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
@@ -95,7 +95,7 @@ public class Resource {
                 resource.setHash(hashMap);
             }
         }
-
+        String type = payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).getAsString() : "none";
         if (!type.equals(Constants.TYPE_IOC)) {
             // 3. Set Space if not present in resource payload
             this.populateSpaceObject(resource, payload);

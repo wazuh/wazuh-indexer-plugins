@@ -32,8 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.contentmanager.utils.Constants;
-
 /** Model representing a Decoder resource. */
 public class Decoder extends Resource {
     private static final Logger log = LogManager.getLogger(Decoder.class);
@@ -71,7 +69,7 @@ public class Decoder extends Resource {
         Decoder decoder = new Decoder();
         // 1. Basic logic for every resource
         Resource resource = new Resource();
-        resource.populateResource(decoder, payload, Constants.TYPE_DECODER);
+        resource.populateResource(decoder, payload);
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has("document")) {
