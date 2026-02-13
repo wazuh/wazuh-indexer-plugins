@@ -76,7 +76,7 @@ public class Resource {
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
      */
-    protected static void populateResource(Resource resource, JsonNode payload) {
+    protected void populateResource(Resource resource, JsonNode payload) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
             ObjectNode rawDoc = (ObjectNode) payload.get(JSON_DOCUMENT_KEY).deepCopy();
