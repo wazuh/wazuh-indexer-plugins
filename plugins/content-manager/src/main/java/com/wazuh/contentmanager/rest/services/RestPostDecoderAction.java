@@ -155,7 +155,7 @@ public class RestPostDecoderAction extends BaseRestHandler {
             ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
             JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
 
-            decoderIndex.create(decoderId, ctiWrapper);
+            decoderIndex.create(decoderId, ctiWrapper, true);
 
             // Link to Integration
             ContentUtils.linkResourceToIntegration(

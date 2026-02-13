@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,11 +16,14 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
@@ -29,10 +32,13 @@ import com.wazuh.contentmanager.cti.catalog.model.Operation;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class JsonPatchTests extends OpenSearchTestCase {
 
+    private ObjectMapper mapper;
+
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        this.mapper = new ObjectMapper();
     }
 
     @After
@@ -43,221 +49,221 @@ public class JsonPatchTests extends OpenSearchTestCase {
 
     /** Test the add operation */
     public void testApplyOperationAdd() {
-        JsonObject document = new JsonObject();
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "add");
-        operation.addProperty(Operation.PATH, "/newField");
-        operation.addProperty(Operation.VALUE, "newValue");
+        ObjectNode document = this.mapper.createObjectNode();
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "add");
+        operation.put(Operation.PATH, "/newField");
+        operation.put(Operation.VALUE, "newValue");
         JsonPatch.applyOperation(document, operation);
-        assertTrue(document.has("newField"));
-        assertEquals("newValue", document.get("newField").getAsString());
+        Assert.assertTrue(document.has("newField"));
+        Assert.assertEquals("newValue", document.get("newField").asText());
     }
 
     /** Test the add operation on arrays */
     public void testApplyOperationAddToArray() {
-        JsonObject document = new JsonObject();
-        JsonArray array = new JsonArray();
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
         array.add("a");
         array.add("c");
-        document.add("arr", array);
+        document.set("arr", array);
 
         // Test Insert at index 1
-        JsonObject insertOp = new JsonObject();
-        insertOp.addProperty(Operation.OP, "add");
-        insertOp.addProperty(Operation.PATH, "/arr/1");
-        insertOp.addProperty(Operation.VALUE, "b");
+        ObjectNode insertOp = this.mapper.createObjectNode();
+        insertOp.put(Operation.OP, "add");
+        insertOp.put(Operation.PATH, "/arr/1");
+        insertOp.put(Operation.VALUE, "b");
         JsonPatch.applyOperation(document, insertOp);
 
-        JsonArray updatedArray = document.getAsJsonArray("arr");
-        assertEquals(3, updatedArray.size());
-        assertEquals("a", updatedArray.get(0).getAsString());
-        assertEquals("b", updatedArray.get(1).getAsString());
-        assertEquals("c", updatedArray.get(2).getAsString());
+        ArrayNode updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(3, updatedArray.size());
+        Assert.assertEquals("a", updatedArray.get(0).asText());
+        Assert.assertEquals("b", updatedArray.get(1).asText());
+        Assert.assertEquals("c", updatedArray.get(2).asText());
 
         // Test Append to end using "-"
-        JsonObject appendOp = new JsonObject();
-        appendOp.addProperty(Operation.OP, "add");
-        appendOp.addProperty(Operation.PATH, "/arr/-");
-        appendOp.addProperty(Operation.VALUE, "d");
+        ObjectNode appendOp = this.mapper.createObjectNode();
+        appendOp.put(Operation.OP, "add");
+        appendOp.put(Operation.PATH, "/arr/-");
+        appendOp.put(Operation.VALUE, "d");
         JsonPatch.applyOperation(document, appendOp);
 
-        updatedArray = document.getAsJsonArray("arr");
-        assertEquals(4, updatedArray.size());
-        assertEquals("d", updatedArray.get(3).getAsString());
+        updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(4, updatedArray.size());
+        Assert.assertEquals("d", updatedArray.get(3).asText());
     }
 
     /** Test the remove operation */
     public void testApplyOperationRemove() {
-        JsonObject document = new JsonObject();
-        document.addProperty("fieldToRemove", "value");
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "remove");
-        operation.addProperty(Operation.PATH, "/fieldToRemove");
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("fieldToRemove", "value");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/fieldToRemove");
         JsonPatch.applyOperation(document, operation);
-        assertFalse(document.has("fieldToRemove"));
+        Assert.assertFalse(document.has("fieldToRemove"));
     }
 
     /** Test the remove operation on arrays */
     public void testApplyOperationRemoveFromArray() {
-        JsonObject document = new JsonObject();
-        JsonArray array = new JsonArray();
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
         array.add("a");
         array.add("b");
         array.add("c");
-        document.add("arr", array);
+        document.set("arr", array);
 
         // Remove index 1 ("b")
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "remove");
-        operation.addProperty(Operation.PATH, "/arr/1");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/arr/1");
         JsonPatch.applyOperation(document, operation);
 
-        JsonArray updatedArray = document.getAsJsonArray("arr");
-        assertEquals(2, updatedArray.size());
-        assertEquals("a", updatedArray.get(0).getAsString());
-        assertEquals("c", updatedArray.get(1).getAsString());
+        ArrayNode updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(2, updatedArray.size());
+        Assert.assertEquals("a", updatedArray.get(0).asText());
+        Assert.assertEquals("c", updatedArray.get(1).asText());
     }
 
     /** Test the replace operation */
     public void testApplyOperationReplace() {
-        JsonObject document = new JsonObject();
-        document.addProperty("fieldToReplace", "oldValue");
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "replace");
-        operation.addProperty(Operation.PATH, "/fieldToReplace");
-        operation.addProperty(Operation.VALUE, "newValue");
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("fieldToReplace", "oldValue");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "replace");
+        operation.put(Operation.PATH, "/fieldToReplace");
+        operation.put(Operation.VALUE, "newValue");
         JsonPatch.applyOperation(document, operation);
-        assertEquals("newValue", document.get("fieldToReplace").getAsString());
+        Assert.assertEquals("newValue", document.get("fieldToReplace").asText());
     }
 
     /** Test the replace operation on arrays */
     public void testApplyOperationReplaceInArray() {
-        JsonObject document = new JsonObject();
-        JsonArray array = new JsonArray();
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
         array.add("a");
         array.add("b");
-        document.add("arr", array);
+        document.set("arr", array);
 
         // Replace index 0 ("a") with "z"
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "replace");
-        operation.addProperty(Operation.PATH, "/arr/0");
-        operation.addProperty(Operation.VALUE, "z");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "replace");
+        operation.put(Operation.PATH, "/arr/0");
+        operation.put(Operation.VALUE, "z");
         JsonPatch.applyOperation(document, operation);
 
-        JsonArray updatedArray = document.getAsJsonArray("arr");
-        assertEquals(2, updatedArray.size());
-        assertEquals("z", updatedArray.get(0).getAsString());
-        assertEquals("b", updatedArray.get(1).getAsString());
+        ArrayNode updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(2, updatedArray.size());
+        Assert.assertEquals("z", updatedArray.get(0).asText());
+        Assert.assertEquals("b", updatedArray.get(1).asText());
     }
 
     /** Test the move operation */
     public void testApplyOperationMove() {
-        JsonObject document = new JsonObject();
-        document.addProperty("fieldToMove", "value");
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "move");
-        operation.addProperty(Operation.FROM, "/fieldToMove");
-        operation.addProperty(Operation.PATH, "/newField");
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("fieldToMove", "value");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "move");
+        operation.put(Operation.FROM, "/fieldToMove");
+        operation.put(Operation.PATH, "/newField");
         JsonPatch.applyOperation(document, operation);
-        assertFalse(document.has("fieldToMove"));
-        assertTrue(document.has("newField"));
+        Assert.assertFalse(document.has("fieldToMove"));
+        Assert.assertTrue(document.has("newField"));
     }
 
     /** Test the move operation on arrays */
     public void testApplyOperationMoveInArray() {
-        JsonObject document = new JsonObject();
-        JsonArray array = new JsonArray();
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
         array.add("a");
         array.add("b");
         array.add("c");
-        document.add("arr", array);
+        document.set("arr", array);
 
         // Move index 0 ("a") to index 2
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "move");
-        operation.addProperty(Operation.FROM, "/arr/0");
-        operation.addProperty(Operation.PATH, "/arr/2");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "move");
+        operation.put(Operation.FROM, "/arr/0");
+        operation.put(Operation.PATH, "/arr/2");
         JsonPatch.applyOperation(document, operation);
 
-        JsonArray updatedArray = document.getAsJsonArray("arr");
-        assertEquals(3, updatedArray.size());
-        assertEquals("b", updatedArray.get(0).getAsString());
-        assertEquals("c", updatedArray.get(1).getAsString());
-        assertEquals("a", updatedArray.get(2).getAsString());
+        ArrayNode updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(3, updatedArray.size());
+        Assert.assertEquals("b", updatedArray.get(0).asText());
+        Assert.assertEquals("c", updatedArray.get(1).asText());
+        Assert.assertEquals("a", updatedArray.get(2).asText());
     }
 
     /** Test the copy operation */
     public void testApplyOperationCopy() {
-        JsonObject document = new JsonObject();
-        document.addProperty("fieldToCopy", "value");
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "copy");
-        operation.addProperty(Operation.FROM, "/fieldToCopy");
-        operation.addProperty(Operation.PATH, "/newField");
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("fieldToCopy", "value");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "copy");
+        operation.put(Operation.FROM, "/fieldToCopy");
+        operation.put(Operation.PATH, "/newField");
         JsonPatch.applyOperation(document, operation);
-        assertTrue(document.has("newField"));
-        assertEquals("value", document.get("newField").getAsString());
+        Assert.assertTrue(document.has("newField"));
+        Assert.assertEquals("value", document.get("newField").asText());
     }
 
     /** Test the copy operation on arrays */
     public void testApplyOperationCopyInArray() {
-        JsonObject document = new JsonObject();
-        JsonArray array = new JsonArray();
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
         array.add("a");
         array.add("b");
-        document.add("arr", array);
+        document.set("arr", array);
 
         // Copy index 0 ("a") to end ("-")
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "copy");
-        operation.addProperty(Operation.FROM, "/arr/0");
-        operation.addProperty(Operation.PATH, "/arr/-");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "copy");
+        operation.put(Operation.FROM, "/arr/0");
+        operation.put(Operation.PATH, "/arr/-");
         JsonPatch.applyOperation(document, operation);
 
-        JsonArray updatedArray = document.getAsJsonArray("arr");
-        assertEquals(3, updatedArray.size());
-        assertEquals("a", updatedArray.get(0).getAsString());
-        assertEquals("b", updatedArray.get(1).getAsString());
-        assertEquals("a", updatedArray.get(2).getAsString());
+        ArrayNode updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(3, updatedArray.size());
+        Assert.assertEquals("a", updatedArray.get(0).asText());
+        Assert.assertEquals("b", updatedArray.get(1).asText());
+        Assert.assertEquals("a", updatedArray.get(2).asText());
     }
 
     /** Test the test operation */
     public void testApplyOperationTest() {
-        JsonObject document = new JsonObject();
-        document.addProperty("fieldToTest", "value");
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "test");
-        operation.addProperty(Operation.PATH, "/fieldToTest");
-        operation.addProperty(Operation.VALUE, "value");
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("fieldToTest", "value");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "test");
+        operation.put(Operation.PATH, "/fieldToTest");
+        operation.put(Operation.VALUE, "value");
         JsonPatch.applyOperation(document, operation);
-        assertTrue(document.has("fieldToTest"));
+        Assert.assertTrue(document.has("fieldToTest"));
     }
 
     /** Test the test operation on arrays */
     public void testApplyOperationTestInArray() {
-        JsonObject document = new JsonObject();
-        JsonArray array = new JsonArray();
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
         array.add("a");
         array.add("b");
-        document.add("arr", array);
+        document.set("arr", array);
 
         // Test index 1 is "b" (PASS)
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "test");
-        operation.addProperty(Operation.PATH, "/arr/1");
-        operation.addProperty(Operation.VALUE, "b");
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "test");
+        operation.put(Operation.PATH, "/arr/1");
+        operation.put(Operation.VALUE, "b");
         JsonPatch.applyOperation(document, operation);
 
         // Test index 1 is "a" (FAILS)
-        JsonObject failOperation = new JsonObject();
-        failOperation.addProperty(Operation.OP, "test");
-        failOperation.addProperty(Operation.PATH, "/arr/1");
-        failOperation.addProperty(Operation.VALUE, "a");
+        ObjectNode failOperation = this.mapper.createObjectNode();
+        failOperation.put(Operation.OP, "test");
+        failOperation.put(Operation.PATH, "/arr/1");
+        failOperation.put(Operation.VALUE, "a");
 
         try {
             JsonPatch.applyOperation(document, failOperation);
-            fail("Should have thrown IllegalArgumentException");
+            Assert.fail("Should have thrown IllegalArgumentException");
         } catch (IllegalArgumentException ignored) {
 
         }
@@ -265,16 +271,16 @@ public class JsonPatchTests extends OpenSearchTestCase {
 
     /** Test the unsupported operation */
     public void testApplyOperationUnsupported() {
-        JsonObject document = new JsonObject();
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "unsupported");
-        operation.addProperty(Operation.PATH, "/field");
+        ObjectNode document = this.mapper.createObjectNode();
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "unsupported");
+        operation.put(Operation.PATH, "/field");
         IllegalArgumentException exception =
-                assertThrows(
+                Assert.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
                             JsonPatch.applyOperation(document, operation);
                         });
-        assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
+        Assert.assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
     }
 }

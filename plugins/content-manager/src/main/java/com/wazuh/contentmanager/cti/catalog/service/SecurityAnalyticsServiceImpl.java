@@ -16,7 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -53,19 +54,17 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonObject doc, Space space, Method method) {
+    public void upsertIntegration(JsonNode doc, Space space, Method method) {
         try {
             if (!doc.has(Constants.KEY_ID)) {
                 log.warn("Integration document missing ID. Skipping upsert.");
                 return;
             }
 
-            String id = doc.get(Constants.KEY_ID).getAsString();
-            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).getAsString() : "";
+            String id = doc.get(Constants.KEY_ID).asText();
+            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
             String description =
-                    doc.has(Constants.KEY_DESCRIPTION)
-                            ? doc.get(Constants.KEY_DESCRIPTION).getAsString()
-                            : "";
+                    doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).asText() : "";
             String category = CategoryFormatter.format(doc, false);
 
             log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
@@ -132,14 +131,14 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertRule(JsonObject doc, Space space) {
+    public void upsertRule(JsonNode doc, Space space) {
         try {
             if (!doc.has(Constants.KEY_ID)) {
                 log.warn("Rule document missing ID. Skipping upsert.");
                 return;
             }
 
-            String id = doc.get(Constants.KEY_ID).getAsString();
+            String id = doc.get(Constants.KEY_ID).asText();
             String product = ContentIndex.extractProduct(doc);
 
             log.info("Creating/Updating Rule [{}] in SAP", id);
@@ -221,22 +220,20 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertDetector(JsonObject doc, boolean rawCategory) {
+    public void upsertDetector(JsonNode doc, boolean rawCategory) {
         try {
             if (!doc.has(Constants.KEY_ID)) {
                 log.warn("Detector document missing ID. Skipping upsert.");
                 return;
             }
 
-            String id = doc.get(Constants.KEY_ID).getAsString();
-            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).getAsString() : "";
+            String id = doc.get(Constants.KEY_ID).asText();
+            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
             String category = CategoryFormatter.format(doc, rawCategory);
             List<String> rules = new ArrayList<>();
 
             if (doc.has(Constants.KEY_RULES)) {
-                doc.get(Constants.KEY_RULES)
-                        .getAsJsonArray()
-                        .forEach(item -> rules.add(item.getAsString()));
+                doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
             }
             if (rules.isEmpty()) {
                 return;

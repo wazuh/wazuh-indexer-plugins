@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -91,6 +91,42 @@ public class Operation implements ToXContentObject {
         this.path = path;
         this.from = from;
         this.value = value;
+    }
+
+    /**
+     * Gets the operation type.
+     *
+     * @return The operation type.
+     */
+    public String getOp() {
+        return this.op;
+    }
+
+    /**
+     * Gets the target path.
+     *
+     * @return The path.
+     */
+    public String getPath() {
+        return this.path;
+    }
+
+    /**
+     * Gets the source path.
+     *
+     * @return The source path or null.
+     */
+    public String getFrom() {
+        return this.from;
+    }
+
+    /**
+     * Gets the value.
+     *
+     * @return The value or null.
+     */
+    public Object getValue() {
+        return this.value;
     }
 
     /**

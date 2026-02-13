@@ -17,9 +17,10 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.common.Strings;
@@ -30,6 +31,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -67,6 +69,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     private SecurityAnalyticsServiceImpl saService;
     private NodeClient nodeClient;
     private static final String INTEGRATION_ID = "7e87cbde-8e82-41fc-b6ad-29ae789d2e32";
+    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Set up the tests
@@ -111,30 +114,29 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
     /**
      * Helper method to create a mock draft policy search result.
      *
-     * @param integrationId The integration ID to include in the integrations array
      * @return A mock JsonObject representing the search result
      */
-    private JsonObject createMockDraftPolicySearchResult(String integrationId) {
-        JsonObject searchResult = new JsonObject();
-        JsonArray hitsArray = new JsonArray();
+    private ObjectNode createMockDraftPolicySearchResult() {
+        ObjectNode searchResult = this.mapper.createObjectNode();
+        ArrayNode hitsArray = this.mapper.createArrayNode();
 
-        JsonObject policyHit = new JsonObject();
-        policyHit.addProperty("id", "draft-policy-id");
+        ObjectNode policyHit = this.mapper.createObjectNode();
+        policyHit.put("id", "draft-policy-id");
 
-        JsonObject document = new JsonObject();
-        JsonArray integrations = new JsonArray();
-        integrations.add(integrationId);
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode integrations = this.mapper.createArrayNode();
+        integrations.add(RestDeleteIntegrationActionTests.INTEGRATION_ID);
         integrations.add("other-integration-id");
-        document.add("integrations", integrations);
+        document.set("integrations", integrations);
 
-        JsonObject hash = new JsonObject();
-        hash.addProperty("sha256", "abc123def456");
+        ObjectNode hash = this.mapper.createObjectNode();
+        hash.put("sha256", "abc123def456");
 
-        policyHit.add("document", document);
-        policyHit.add("hash", hash);
+        policyHit.set("document", document);
+        policyHit.set("hash", hash);
 
         hitsArray.add(policyHit);
-        searchResult.add("hits", hitsArray);
+        searchResult.set("hits", hitsArray);
 
         return searchResult;
     }
@@ -196,7 +198,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        JsonObject draftPolicySearchResult = this.createMockDraftPolicySearchResult(INTEGRATION_ID);
+        ObjectNode draftPolicySearchResult = this.createMockDraftPolicySearchResult();
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
                 .thenReturn(draftPolicySearchResult);
 
@@ -215,7 +217,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(policyHashService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
 
         // Verify delete was called
         verify(integrationsIndex).delete(INTEGRATION_ID);
@@ -251,7 +253,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -286,7 +288,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -306,7 +308,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -325,7 +327,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         // Don't set Security Analytics service (leave it null)
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -354,7 +356,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -391,7 +393,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setIntegrationsContentIndex(integrationsIndex);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -429,7 +431,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -467,7 +469,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        JsonObject draftPolicySearchResult = this.createMockDraftPolicySearchResult(INTEGRATION_ID);
+        ObjectNode draftPolicySearchResult = this.createMockDraftPolicySearchResult();
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
                 .thenReturn(draftPolicySearchResult);
 
@@ -482,7 +484,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(policyHashService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
 
         // Verify delete was still called on integrations index despite SAP failure
         verify(integrationsIndex).delete(INTEGRATION_ID);
@@ -523,13 +525,13 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index to return empty result
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        JsonObject emptySearchResult = new JsonObject();
-        emptySearchResult.add("hits", new JsonArray());
+        ObjectNode emptySearchResult = this.mapper.createObjectNode();
+        emptySearchResult.set("hits", this.mapper.createArrayNode());
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class))).thenReturn(emptySearchResult);
         this.action.setPoliciesContentIndex(policiesIndex);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -567,18 +569,17 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index to return policy without document field
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        JsonObject searchResult = new JsonObject();
-        JsonArray hitsArray = new JsonArray();
-        JsonObject policyHit = new JsonObject();
-        policyHit.addProperty("id", "draft-policy-id");
-        // No document field
+        ObjectNode searchResult = this.mapper.createObjectNode();
+        ArrayNode hitsArray = this.mapper.createArrayNode();
+        ObjectNode policyHit = this.mapper.createObjectNode();
+        policyHit.put("id", "draft-policy-id");
         hitsArray.add(policyHit);
-        searchResult.add("hits", hitsArray);
+        searchResult.set("hits", hitsArray);
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class))).thenReturn(searchResult);
         this.action.setPoliciesContentIndex(policiesIndex);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -616,23 +617,23 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index to return policy without integrations array
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        JsonObject searchResult = new JsonObject();
-        JsonArray hitsArray = new JsonArray();
-        JsonObject policyHit = new JsonObject();
-        policyHit.addProperty("id", "draft-policy-id");
-        JsonObject document = new JsonObject();
+        ObjectNode searchResult = this.mapper.createObjectNode();
+        ArrayNode hitsArray = this.mapper.createArrayNode();
+        ObjectNode policyHit = this.mapper.createObjectNode();
+        policyHit.put("id", "draft-policy-id");
+        ObjectNode document = this.mapper.createObjectNode();
         // No integrations array
-        JsonObject hash = new JsonObject();
-        hash.addProperty("sha256", "abc123");
-        policyHit.add("document", document);
-        policyHit.add("hash", hash);
+        ObjectNode hash = this.mapper.createObjectNode();
+        hash.put("sha256", "abc123456");
+        policyHit.set("document", document);
+        policyHit.set("hash", hash);
         hitsArray.add(policyHit);
-        searchResult.add("hits", hitsArray);
+        searchResult.set("hits", hitsArray);
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class))).thenReturn(searchResult);
         this.action.setPoliciesContentIndex(policiesIndex);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -670,7 +671,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         // Mock policies index
         ContentIndex policiesIndex = mock(ContentIndex.class);
-        JsonObject draftPolicySearchResult = this.createMockDraftPolicySearchResult(INTEGRATION_ID);
+        ObjectNode draftPolicySearchResult = this.createMockDraftPolicySearchResult();
         when(policiesIndex.searchByQuery(any(TermQueryBuilder.class)))
                 .thenReturn(draftPolicySearchResult);
 
@@ -681,7 +682,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setPoliciesContentIndex(policiesIndex);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     public void testDeleteIntegration400_hasDecoders() throws IOException {
@@ -718,7 +719,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     public void testDeleteIntegration400_hasRules() throws IOException {
@@ -754,7 +755,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     public void testDeleteIntegration400_hasKvdbs() throws IOException {
@@ -790,6 +791,6 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
         this.action.setSecurityAnalyticsService(this.saService);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 }

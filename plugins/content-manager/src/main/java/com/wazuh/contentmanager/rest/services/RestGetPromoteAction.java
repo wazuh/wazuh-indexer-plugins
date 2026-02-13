@@ -112,6 +112,11 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
             // Iterate over the keys returned by the service
             for (String resourceType : sourceContent.keySet()) {
+                // Skip IOCs as they are not promotable
+                if (Constants.KEY_IOCS.equals(resourceType)) {
+                    continue;
+                }
+
                 Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
                 Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
 

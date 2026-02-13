@@ -21,9 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -311,8 +308,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         // can do it in reverse order to guarantee that when a integration is not valid we don't need to
         // delete it from the SAP
         // Create integration in SAP
-        this.service.upsertIntegration(
-                JsonParser.parseString(resource.toString()).getAsJsonObject(), Space.DRAFT, POST);
+        this.service.upsertIntegration(resource, Space.DRAFT, POST);
 
         // Construct engine validation payload
         this.log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
@@ -362,36 +358,18 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             // Search for the draft policy (scoped to policies index, limit 1)
             TermQueryBuilder queryBuilder =
                     new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-            JsonObject draftPolicyHit;
-            JsonNode draftPolicy;
-            String draftPolicyId;
+            ObjectNode searchResult = this.policiesIndex.searchByQuery(queryBuilder);
 
-            try {
-                JsonObject searchResult = this.policiesIndex.searchByQuery(queryBuilder);
-                if (searchResult == null
-                        || !searchResult.has(Constants.Q_HITS)
-                        || searchResult.getAsJsonArray(Constants.Q_HITS).isEmpty()) {
-                    throw new IllegalStateException("No hits found");
-                }
-                JsonArray hitsArray = searchResult.getAsJsonArray(Constants.Q_HITS);
-                draftPolicyHit = hitsArray.get(0).getAsJsonObject();
-                draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).getAsString();
-                draftPolicy = MAPPER.readTree(draftPolicyHit.toString());
-            } catch (Exception e) {
-                this.log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "find",
-                        Constants.KEY_POLICY,
-                        Space.DRAFT,
-                        e.getMessage(),
-                        e);
-                this.integrationsIndex.delete(id);
-                this.service.deleteIntegration(id);
-                return new RestResponse(
-                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            if (searchResult == null
+                    || !searchResult.has(Constants.Q_HITS)
+                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
+                throw new IllegalStateException("No hits found");
             }
+            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+            JsonNode draftPolicyHit = hitsArray.get(0);
+            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
 
-            JsonNode draftPolicyDocument = draftPolicy.at("/document");
+            JsonNode draftPolicyDocument = draftPolicyHit.at("/document");
             if (draftPolicyDocument.isMissingNode()) {
                 this.log.error(
                         Constants.E_LOG_FAILED_TO,
@@ -426,10 +404,10 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
             // Update the hash
             String integrationHash = HashCalculator.sha256(draftPolicyDocument.asText());
-            ((ObjectNode) draftPolicy.at("/hash")).put(Constants.KEY_SHA256, integrationHash);
+            ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, integrationHash);
 
             IndexResponse indexDraftPolicyResponse =
-                    this.policiesIndex.create(draftPolicyId, draftPolicy);
+                    this.policiesIndex.create(draftPolicyId, draftPolicyHit);
 
             if (indexDraftPolicyResponse == null || indexDraftPolicyResponse.status() != RestStatus.OK) {
                 this.log.error(

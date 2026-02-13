@@ -19,13 +19,11 @@ package com.wazuh.contentmanager.cti.catalog.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +39,8 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Policy {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     // JSON Key Constants
     private static final String TITLE_KEY = "title";
     private static final String DATE_KEY = "date";
@@ -142,86 +142,86 @@ public class Policy {
     }
 
     /**
-     * Factory method to create a Policy instance from a raw Gson JsonObject.
+     * Factory method to create a Policy instance from a raw JsonNode.
      *
      * @param payload The raw JSON object containing the policy data.
      * @return A fully populated Policy instance.
      */
-    public static Policy fromPayload(JsonObject payload) {
+    public static Policy fromPayload(JsonNode payload) {
         Policy policy = new Policy();
-        if (payload.has(ID_KEY) && !payload.get(ID_KEY).isJsonNull()) {
-            policy.setId(payload.get(ID_KEY).getAsString());
+        if (payload.has(ID_KEY) && !payload.get(ID_KEY).isNull()) {
+            policy.setId(payload.get(ID_KEY).asText());
         }
 
-        if (payload.has(DATE_KEY) && !payload.get(DATE_KEY).isJsonNull()) {
-            policy.setDate(payload.get(DATE_KEY).getAsString());
+        if (payload.has(DATE_KEY) && !payload.get(DATE_KEY).isNull()) {
+            policy.setDate(payload.get(DATE_KEY).asText());
         }
 
-        if (payload.has(MODIFIED_KEY) && !payload.get(MODIFIED_KEY).isJsonNull()) {
-            policy.setModified(payload.get(MODIFIED_KEY).getAsString());
+        if (payload.has(MODIFIED_KEY) && !payload.get(MODIFIED_KEY).isNull()) {
+            policy.setModified(payload.get(MODIFIED_KEY).asText());
         }
 
-        if (payload.has(TITLE_KEY) && !payload.get(TITLE_KEY).isJsonNull()) {
-            policy.title = payload.get(TITLE_KEY).getAsString();
+        if (payload.has(TITLE_KEY) && !payload.get(TITLE_KEY).isNull()) {
+            policy.title = payload.get(TITLE_KEY).asText();
         }
 
-        if (payload.has(ROOT_DECODER_KEY) && !payload.get(ROOT_DECODER_KEY).isJsonNull()) {
-            policy.setRootDecoder(payload.get(ROOT_DECODER_KEY).getAsString());
+        if (payload.has(ROOT_DECODER_KEY) && !payload.get(ROOT_DECODER_KEY).isNull()) {
+            policy.setRootDecoder(payload.get(ROOT_DECODER_KEY).asText());
         }
 
-        if (payload.has(INTEGRATIONS_KEY) && payload.get(INTEGRATIONS_KEY).isJsonArray()) {
-            JsonArray integrationsArray = payload.getAsJsonArray(INTEGRATIONS_KEY);
+        if (payload.has(INTEGRATIONS_KEY) && payload.get(INTEGRATIONS_KEY).isArray()) {
             List<String> integrationsList = new ArrayList<>();
-            for (JsonElement element : integrationsArray) {
-                if (!element.isJsonNull()) {
-                    integrationsList.add(element.getAsString());
-                }
-            }
+            payload
+                    .get(INTEGRATIONS_KEY)
+                    .forEach(
+                            n -> {
+                                if (!n.isNull()) integrationsList.add(n.asText());
+                            });
             policy.setIntegrations(integrationsList);
         }
 
-        if (payload.has(FILTERS_KEY) && payload.get(FILTERS_KEY).isJsonArray()) {
-            JsonArray filtersArray = payload.getAsJsonArray(FILTERS_KEY);
+        if (payload.has(FILTERS_KEY) && payload.get(FILTERS_KEY).isArray()) {
             List<String> filtersList = new ArrayList<>();
-            for (JsonElement element : filtersArray) {
-                if (!element.isJsonNull()) {
-                    filtersList.add(element.getAsString());
-                }
-            }
+            payload
+                    .get(FILTERS_KEY)
+                    .forEach(
+                            n -> {
+                                if (!n.isNull()) filtersList.add(n.asText());
+                            });
             policy.setFilters(filtersList);
         }
 
-        if (payload.has(ENRICHMENTS_KEY) && payload.get(ENRICHMENTS_KEY).isJsonArray()) {
-            JsonArray enrichmentsArray = payload.getAsJsonArray(ENRICHMENTS_KEY);
+        if (payload.has(ENRICHMENTS_KEY) && payload.get(ENRICHMENTS_KEY).isArray()) {
             List<String> enrichmentsList = new ArrayList<>();
-            for (JsonElement element : enrichmentsArray) {
-                if (!element.isJsonNull()) {
-                    enrichmentsList.add(element.getAsString());
-                }
-            }
+            payload
+                    .get(ENRICHMENTS_KEY)
+                    .forEach(
+                            n -> {
+                                if (!n.isNull()) enrichmentsList.add(n.asText());
+                            });
             policy.setEnrichments(enrichmentsList);
         }
 
-        if (payload.has(AUTHOR_KEY) && !payload.get(AUTHOR_KEY).isJsonNull()) {
-            policy.setAuthor(payload.get(AUTHOR_KEY).getAsString());
+        if (payload.has(AUTHOR_KEY) && !payload.get(AUTHOR_KEY).isNull()) {
+            policy.setAuthor(payload.get(AUTHOR_KEY).asText());
         }
 
-        if (payload.has(DESCRIPTION_KEY) && !payload.get(DESCRIPTION_KEY).isJsonNull()) {
-            policy.setDescription(payload.get(DESCRIPTION_KEY).getAsString());
+        if (payload.has(DESCRIPTION_KEY) && !payload.get(DESCRIPTION_KEY).isNull()) {
+            policy.setDescription(payload.get(DESCRIPTION_KEY).asText());
         }
 
-        if (payload.has(DOCUMENTATION_KEY) && !payload.get(DOCUMENTATION_KEY).isJsonNull()) {
-            policy.setDocumentation(payload.get(DOCUMENTATION_KEY).getAsString());
+        if (payload.has(DOCUMENTATION_KEY) && !payload.get(DOCUMENTATION_KEY).isNull()) {
+            policy.setDocumentation(payload.get(DOCUMENTATION_KEY).asText());
         }
 
-        if (payload.has(REFERENCES_KEY) && payload.get(REFERENCES_KEY).isJsonArray()) {
-            JsonArray referencesArray = payload.getAsJsonArray(REFERENCES_KEY);
+        if (payload.has(REFERENCES_KEY) && payload.get(REFERENCES_KEY).isArray()) {
             List<String> referencesList = new ArrayList<>();
-            for (JsonElement element : referencesArray) {
-                if (!element.isJsonNull()) {
-                    referencesList.add(element.getAsString());
-                }
-            }
+            payload
+                    .get(REFERENCES_KEY)
+                    .forEach(
+                            n -> {
+                                if (!n.isNull()) referencesList.add(n.asText());
+                            });
             policy.setReferences(referencesList);
         }
 
@@ -229,122 +229,31 @@ public class Policy {
     }
 
     /**
-     * Converts this Policy to a Map representation suitable for indexing.
+     * Converts the policy to a Map using Jackson.
      *
-     * @return A Map containing all policy fields.
+     * @return Map representation of the policy.
      */
+    // TODO: This method is only used in the tests and can probably be deleted
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new HashMap<>();
-
-        if (this.id != null) {
-            map.put(ID_KEY, this.id);
-        }
-        if (this.title != null) {
-            map.put(TITLE_KEY, this.title);
-        }
-        if (this.date != null) {
-            map.put(DATE_KEY, this.date);
-        }
-        if (this.modified != null) {
-            map.put(MODIFIED_KEY, this.modified);
-        }
-        if (this.rootDecoder != null) {
-            map.put(ROOT_DECODER_KEY, this.rootDecoder);
-        }
-        if (this.integrations != null && !this.integrations.isEmpty()) {
-            map.put(INTEGRATIONS_KEY, this.integrations);
-        }
-        if (this.filters != null && !this.filters.isEmpty()) {
-            map.put(FILTERS_KEY, this.filters);
-        }
-        if (this.enrichments != null && !this.enrichments.isEmpty()) {
-            map.put(ENRICHMENTS_KEY, this.enrichments);
-        }
-        if (this.author != null) {
-            map.put(AUTHOR_KEY, this.author);
-        }
-        if (this.description != null) {
-            map.put(DESCRIPTION_KEY, this.description);
-        }
-        if (this.documentation != null) {
-            map.put(DOCUMENTATION_KEY, this.documentation);
-        }
-        if (this.references != null && !this.references.isEmpty()) {
-            map.put(REFERENCES_KEY, this.references);
-        }
-
-        return map;
+        return MAPPER.convertValue(this, Map.class);
     }
 
     /**
-     * Converts this Policy to a Gson JsonObject representation.
+     * Converts the policy to an ObjectNode using Jackson.
      *
-     * @return A JsonObject containing all policy fields.
+     * @return ObjectNode representation of the policy.
      */
-    public JsonObject toJson() {
-        JsonObject jsonObject = new JsonObject();
-
-        if (this.id != null) {
-            jsonObject.addProperty(ID_KEY, this.id);
-        }
-        if (this.title != null) {
-            jsonObject.addProperty(TITLE_KEY, this.title);
-        }
-        if (this.date != null) {
-            jsonObject.addProperty(DATE_KEY, this.date);
-        }
-        if (this.modified != null) {
-            jsonObject.addProperty(MODIFIED_KEY, this.modified);
-        }
-        if (this.rootDecoder != null) {
-            jsonObject.addProperty(ROOT_DECODER_KEY, this.rootDecoder);
-        }
-        if (this.integrations != null) {
-            JsonArray integrationsArray = new JsonArray();
-            for (String integration : this.integrations) {
-                integrationsArray.add(integration);
-            }
-            jsonObject.add(INTEGRATIONS_KEY, integrationsArray);
-        }
-        if (this.filters != null) {
-            JsonArray filtersArray = new JsonArray();
-            for (String filter : this.filters) {
-                filtersArray.add(filter);
-            }
-            jsonObject.add(FILTERS_KEY, filtersArray);
-        }
-        if (this.enrichments != null) {
-            JsonArray enrichmentsArray = new JsonArray();
-            for (String enrichment : this.enrichments) {
-                enrichmentsArray.add(enrichment);
-            }
-            jsonObject.add(ENRICHMENTS_KEY, enrichmentsArray);
-        }
-        if (this.author != null) {
-            jsonObject.addProperty(AUTHOR_KEY, this.author);
-        }
-        if (this.description != null) {
-            jsonObject.addProperty(DESCRIPTION_KEY, this.description);
-        }
-        if (this.documentation != null) {
-            jsonObject.addProperty(DOCUMENTATION_KEY, this.documentation);
-        }
-        if (this.references != null) {
-            JsonArray referencesArray = new JsonArray();
-            for (String reference : this.references) {
-                referencesArray.add(reference);
-            }
-            jsonObject.add(REFERENCES_KEY, referencesArray);
-        }
-
-        return jsonObject;
+    // TODO: This method is only used in the tests and can probably be deleted
+    public ObjectNode toJson() {
+        return MAPPER.valueToTree(this);
     }
 
     /**
-     * Adds an integration ID to the policy's integrations list.
+     * Adds an integration ID to the policy if it's not already present.
      *
      * @param integrationId The integration ID to add.
      */
+    // TODO: This method is only used in the tests and can probably be deleted
     public void addIntegration(String integrationId) {
         if (integrationId != null && !this.integrations.contains(integrationId)) {
             this.integrations.add(integrationId);
@@ -352,11 +261,12 @@ public class Policy {
     }
 
     /**
-     * Removes an integration ID from the policy's integrations list.
+     * Removes an integration ID from the policy.
      *
      * @param integrationId The integration ID to remove.
-     * @return true if the integration was removed, false otherwise.
+     * @return true if the list contained the specified element.
      */
+    // TODO: This method is only used in the tests and can probably be deleted
     public boolean removeIntegration(String integrationId) {
         return this.integrations.remove(integrationId);
     }
