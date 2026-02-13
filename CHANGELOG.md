@@ -51,7 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Define Index schema for IoC content [(#744)](https://github.com/wazuh/wazuh-indexer-plugins/pull/744)
 - Add API endpoints for Logtest executions [(#746)](https://github.com/wazuh/wazuh-indexer-plugins/pull/746)
 - Add API endpoints for promote preview [(#759)](https://github.com/wazuh/wazuh-indexer-plugins/pull/759)
-- Implement Integrations endpoints [(#749)](https://github.com/wazuh/wazuh-indexer-plugins/pull/749)
+- Implement Integrations endpoints [(#749)](https://github.com/wazuh/wazuh-indexer-plugins/pull/749) [(#816)](https://github.com/wazuh/wazuh-indexer-plugins/pull/816)
 - Add API endpoints for Rules management [(#757)](https://github.com/wazuh/wazuh-indexer-plugins/pull/757)
 - Add decoder management endpoints [(#751)](https://github.com/wazuh/wazuh-indexer-plugins/pull/751)
 - Add kvdb management endpoints [(#752)](https://github.com/wazuh/wazuh-indexer-plugins/pull/752)

@@ -216,13 +216,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Check that there is no ID field in the request body (ID comes from URL)
-        if (!requestBody.at("/resource/id").isMissingNode()) {
-            log.warn(Constants.W_LOG_REQUEST_REJECTED, "id field present in request body");
-            return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-        }
-
         // Verify integration exists and is in draft space
         GetRequest getRequest = new GetRequest(Constants.INDEX_INTEGRATIONS, id);
         GetResponse getResponse;
@@ -343,8 +336,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             }
         }
 
-        // Insert ID from URL
-        ((ObjectNode) resource).put(Constants.KEY_ID, id);
+        // Prepare resource: remove system-managed fields and set ID from URL
+        ContentUtils.prepareResourceForUpdate((ObjectNode) resource, id, false);
 
         // Check non-modifiable fields
         RestResponse metadataError = ContentUtils.validateMetadataFields(resource, false);
