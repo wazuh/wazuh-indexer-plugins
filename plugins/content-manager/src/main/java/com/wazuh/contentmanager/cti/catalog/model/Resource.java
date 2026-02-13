@@ -95,7 +95,8 @@ public class Resource {
                 resource.setHash(hashMap);
             }
         }
-        String type = payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).getAsString() : "none";
+        String type =
+                payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).getAsString() : "none";
         if (!type.equals(Constants.TYPE_IOC)) {
             // 3. Set Space if not present in resource payload
             this.populateSpaceObject(resource, payload);
