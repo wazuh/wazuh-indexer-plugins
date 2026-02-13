@@ -207,6 +207,9 @@ public class RestPutKvdbAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Prepare resource: remove system-managed fields and set ID from URL
+            ContentUtils.prepareResourceForUpdate((ObjectNode) resourceNode, kvdbId, false);
+
             // Check non-modifiable fields
             RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
             if (metadataError != null) {

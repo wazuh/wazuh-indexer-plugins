@@ -336,15 +336,8 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             }
         }
 
-        // Remove ID field if present (ID comes from URL, not request body)
-        ((ObjectNode) resource).remove(Constants.KEY_ID);
-
-        // Insert ID from URL
-        ((ObjectNode) resource).put(Constants.KEY_ID, id);
-
-        // Remove date and modified fields if present (they will be set by our logic)
-        ((ObjectNode) resource).remove(Constants.KEY_DATE);
-        ((ObjectNode) resource).remove(Constants.KEY_MODIFIED);
+        // Prepare resource: remove system-managed fields and set ID from URL
+        ContentUtils.prepareResourceForUpdate((ObjectNode) resource, id, false);
 
         // Check non-modifiable fields
         RestResponse metadataError = ContentUtils.validateMetadataFields(resource, false);

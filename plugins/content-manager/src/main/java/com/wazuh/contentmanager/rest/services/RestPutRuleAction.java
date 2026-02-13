@@ -214,6 +214,9 @@ public class RestPutRuleAction extends BaseRestHandler {
                 ((ObjectNode) resourceNode).set("references", MAPPER.createArrayNode());
             }
 
+            // Prepare resource: remove system-managed fields and set ID from URL
+            ContentUtils.prepareResourceForUpdate((ObjectNode) resourceNode, ruleId, false);
+
             // Check non-modifiable fields
             RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
             if (metadataError != null) {

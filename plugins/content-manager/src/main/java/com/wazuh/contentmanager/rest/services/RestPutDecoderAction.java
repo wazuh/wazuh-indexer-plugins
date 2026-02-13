@@ -173,7 +173,9 @@ public class RestPutDecoderAction extends BaseRestHandler {
             }
 
             ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
-            resourceNode.put(Constants.KEY_ID, decoderId);
+
+            // Prepare resource: remove system-managed fields and set ID from URL
+            ContentUtils.prepareResourceForUpdate(resourceNode, decoderId, true);
 
             // Check non-modifiable fields
             validationError = ContentUtils.validateMetadataFields(resourceNode, true);

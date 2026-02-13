@@ -66,6 +66,53 @@ public class ContentUtils {
     }
 
     /**
+     * Prepares a resource node for update by removing system-managed fields and setting the ID from
+     * the URL path.
+     *
+     * <p>This method removes any incoming ID, date, and modified fields, then sets the ID from the
+     * URL. This ensures:
+     *
+     * <ul>
+     *   <li>The ID always comes from the URL path, not from the request body
+     *   <li>The timestamp fields will be managed by our system logic
+     *   <li>Dashboard payloads that include these fields are accepted without error
+     * </ul>
+     *
+     * <p>For decoders, also cleans up metadata.author.date and metadata.author.modified.
+     *
+     * @param resourceNode The resource node to prepare
+     * @param id The ID from the URL path
+     * @param isDecoder True if the resource is a decoder, false for other resources (Integration,
+     *     Rule, KVDB)
+     * @return The prepared resource node with ID set from URL and system-managed fields removed
+     */
+    public static ObjectNode prepareResourceForUpdate(
+            ObjectNode resourceNode, String id, boolean isDecoder) {
+        // Remove any incoming ID field (will be set from URL)
+        resourceNode.remove(Constants.KEY_ID);
+
+        if (isDecoder) {
+            // For decoders: remove metadata.author.date and metadata.author.modified
+            if (resourceNode.has(Constants.KEY_METADATA)) {
+                JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
+                if (metadata.has(Constants.KEY_AUTHOR)) {
+                    ((ObjectNode) metadata.get(Constants.KEY_AUTHOR)).remove(Constants.KEY_DATE);
+                    ((ObjectNode) metadata.get(Constants.KEY_AUTHOR)).remove(Constants.KEY_MODIFIED);
+                }
+            }
+        } else {
+            // For other resources: remove root date and modified
+            resourceNode.remove(Constants.KEY_DATE);
+            resourceNode.remove(Constants.KEY_MODIFIED);
+        }
+
+        // Set ID from URL path
+        resourceNode.put(Constants.KEY_ID, id);
+
+        return resourceNode;
+    }
+
+    /**
      * Adds or updates timestamp metadata (date, modified) in the resource node.
      *
      * <p>If {@code isDecoder} is true, fields are set in {@code metadata.author}. Otherwise, fields
