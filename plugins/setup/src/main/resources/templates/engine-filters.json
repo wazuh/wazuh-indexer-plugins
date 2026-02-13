@@ -27,22 +27,13 @@
       "dynamic": "strict",
       "date_detection": false,
       "properties": {
-        "filter": {
+        "document": {
           "properties": {
             "name": {
               "type": "keyword"
             },
-            "id": {
-              "type": "keyword"
-            },
             "enabled": {
               "type": "boolean"
-            },
-            "type": {
-              "type": "keyword"
-            },
-            "check": {
-              "type": "text"
             },
             "metadata": {
               "properties": {
@@ -51,6 +42,9 @@
                 },
                 "author": {
                   "properties": {
+                    "email": {
+                      "type": "keyword"
+                    },
                     "name": {
                       "type": "keyword"
                     },
@@ -60,10 +54,39 @@
                     "date": {
                       "type": "date",
                       "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
+                    },
+                    "modified": {
+                      "type": "date",
+                      "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
                     }
                   }
                 }
               }
+            },
+            "check": {
+              "type": "text"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            }
+          }
+        },
+        "hash": {
+          "type": "object",
+          "properties": {
+            "sha256": {
+              "type": "keyword"
+            }
+          }
+        },
+        "space": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "keyword"
             }
           }
         }
