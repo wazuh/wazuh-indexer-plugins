@@ -16,7 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opensearch.core.common.Strings;
 
 import java.util.Arrays;
@@ -40,8 +41,11 @@ public class CategoryFormatter {
      * @param isDetector If true, returns the raw category without formatting.
      * @return The formatted category string, or the raw category for detectors.
      */
-    public static String format(JsonObject doc, boolean isDetector) {
-        String rawCategory = doc.get(Constants.KEY_CATEGORY).getAsString();
+    public static String format(JsonNode doc, boolean isDetector) {
+        if (!doc.has(Constants.KEY_CATEGORY)) {
+            return "";
+        }
+        String rawCategory = doc.get(Constants.KEY_CATEGORY).asText();
 
         // Do not pretty print category for detectors
         if (isDetector) {

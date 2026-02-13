@@ -18,12 +18,9 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
@@ -42,11 +39,8 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
@@ -224,6 +218,7 @@ public class ContentIndex {
      * @param spaceName The space name (e.g., "custom").
      * @throws IOException If serialization or indexing fails.
      */
+    // TODO: Study this method it can probably be used or adapted and then used to index the documents
     public void indexCtiContent(String id, JsonNode rawContent, String spaceName) throws IOException {
         // TODO: Move this method to a dedicated CTI Resource logic class.
         ObjectNode ctiWrapper = this.mapper.createObjectNode();
@@ -262,8 +257,21 @@ public class ContentIndex {
      * @return The IndexResponse object with the result of the indexing operation.
      * @throws IOException If the indexing operation fails.
      */
-    public IndexResponse create(String id, JsonObject payload) throws IOException {
-        JsonObject processedPayload = this.processPayload(payload);
+    public IndexResponse create(String id, JsonNode payload) throws IOException {
+        return this.create(id, payload, false);
+    }
+
+    /**
+     * Indexes a new document or overwrites an existing one.
+     *
+     * @param id The unique identifier for the document.
+     * @param payload The JSON object representing the document content.
+     * @param isDecoder Whether the document is a decoder resource.
+     * @return The IndexResponse object with the result of the indexing operation.
+     * @throws IOException If the indexing operation fails.
+     */
+    public IndexResponse create(String id, JsonNode payload, boolean isDecoder) throws IOException {
+        ObjectNode processedPayload = this.processPayload(payload, isDecoder);
         IndexRequest request =
                 new IndexRequest(this.indexName)
                         .id(id)
@@ -277,24 +285,6 @@ public class ContentIndex {
             log.error("Failed to index document [{}]: {}", id, e.getMessage());
             throw new IOException(e);
         }
-    }
-
-    /**
-     * Indexes a new document or overwrites an existing one using Jackson JsonNode.
-     *
-     * <p>The payload is pre-processed (sanitized and enriched) before being indexed. This method
-     * accepts a Jackson JsonNode and converts it to Gson JsonObject for compatibility with existing
-     * processing logic.
-     *
-     * @param id The unique identifier for the document.
-     * @param payload The Jackson JsonNode representing the document content.
-     * @return The IndexResponse object with the result of the indexing operation.
-     * @throws IOException If the indexing operation fails.
-     */
-    public IndexResponse create(String id, JsonNode payload) throws IOException {
-        // Convert Jackson JsonNode to Gson JsonObject for compatibility
-        JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
-        return this.create(id, gsonPayload);
     }
 
     /**
@@ -315,16 +305,14 @@ public class ContentIndex {
         }
 
         // 2. Patch
-        JsonObject currentDoc = JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+        ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
         for (Operation op : operations) {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            op.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            JsonObject opJson = JsonParser.parseString(builder.toString()).getAsJsonObject();
+            JsonNode opJson = this.mapper.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);
         }
 
         // 3. Process
-        JsonObject processedDoc = this.processPayload(currentDoc);
+        ObjectNode processedDoc = this.processPayload(currentDoc);
 
         // 4. Index
         IndexRequest request =
@@ -376,34 +364,12 @@ public class ContentIndex {
     }
 
     /**
-     * Determines the product from the document (logsource.product or logsource.category). Defaults to
-     * "linux".
-     *
-     * @param ruleNode The rule Gson JsonObject.
-     * @return The determined product string.
-     */
-    // TODO: Study if it can be used JsonNode or JsonObject in all the files so we can avoid having
-    // this two methods
-    public static String extractProduct(JsonObject ruleNode) {
-        String product = "linux";
-        if (ruleNode.has(Constants.KEY_LOGSOURCE)) {
-            JsonObject logsource = ruleNode.getAsJsonObject(Constants.KEY_LOGSOURCE);
-            if (logsource.has(Constants.KEY_PRODUCT)) {
-                product = logsource.get(Constants.KEY_PRODUCT).getAsString();
-            } else if (logsource.has(Constants.KEY_CATEGORY)) {
-                product = logsource.get(Constants.KEY_CATEGORY).getAsString();
-            }
-        }
-        return product;
-    }
-
-    /**
      * Searches for a document by a specific field name and value.
      *
      * @param queryBuilder The query to execute.
      * @return A JsonObject representing the found document, or null if not found or on
      */
-    public JsonObject searchByQuery(QueryBuilder queryBuilder) {
+    public ObjectNode searchByQuery(QueryBuilder queryBuilder) {
         try {
             // Create search request
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
@@ -424,18 +390,17 @@ public class ContentIndex {
                         "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
                 return null;
             }
-            // Parse all hits and return in JsonObject format
-            JsonArray hitsArray = new JsonArray();
+            ArrayNode hitsArray = this.mapper.createArrayNode();
             for (SearchHit hit : searchResponse.getHits().getHits()) {
-                JsonObject hitObject = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-                hitObject.addProperty(Constants.KEY_ID, hit.getId());
+                ObjectNode hitObject = (ObjectNode) this.mapper.readTree(hit.getSourceAsString());
+                hitObject.put(Constants.KEY_ID, hit.getId());
                 hitsArray.add(hitObject);
             }
-            JsonObject result = new JsonObject();
-            result.add(Constants.Q_HITS, hitsArray);
-            result.addProperty("total", searchResponse.getHits().getTotalHits().value());
+            ObjectNode result = this.mapper.createObjectNode();
+            result.set(Constants.Q_HITS, hitsArray);
+            result.put("total", searchResponse.getHits().getTotalHits().value());
             return result;
-        } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
             return null;
         }
@@ -504,15 +469,26 @@ public class ContentIndex {
      * @param payload The JSON payload to process.
      * @return A new JsonObject containing the processed payload.
      */
-    public JsonObject processPayload(JsonObject payload) {
+    public ObjectNode processPayload(JsonNode payload) {
+        return this.processPayload(payload, false);
+    }
+
+    /**
+     * Orchestrates the enrichment and sanitization of a payload using Domain Models.
+     *
+     * @param payload The JSON payload to process.
+     * @param isDecoder Whether the payload is a decoder (to trigger specific logic).
+     * @return A new JsonObject containing the processed payload.
+     */
+    public ObjectNode processPayload(JsonNode payload, boolean isDecoder) {
         try {
             // Preserve the type field before processing
             String type =
-                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).getAsString() : "none";
+                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
 
             Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
-            if (Constants.KEY_DECODER.equalsIgnoreCase(type)) {
+            if (isDecoder || Constants.KEY_DECODER.equalsIgnoreCase(type)) {
                 resource = Decoder.fromPayload(payload);
             } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
                 resource = Ioc.fromPayload(payload);
@@ -520,19 +496,18 @@ public class ContentIndex {
                 resource = Resource.fromPayload(payload);
             }
 
-            // 2. Convert Model back to JsonObject for OpenSearch indexing
-            String jsonString = this.mapper.writeValueAsString(resource);
-            JsonObject result = JsonParser.parseString(jsonString).getAsJsonObject();
+            // 2. Convert Model
+            ObjectNode result = this.mapper.valueToTree(resource);
 
             // 3. Re-add the type field to the result
             if (type != null) {
-                result.addProperty(Constants.KEY_TYPE, type);
+                result.put(Constants.KEY_TYPE, type);
             }
 
             return result;
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);
-            return new JsonObject();
+            return this.mapper.createObjectNode();
         }
     }
 }

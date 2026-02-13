@@ -18,11 +18,8 @@ package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.ToNumberPolicy;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Map;
@@ -36,8 +33,6 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Ioc extends Resource {
-    private static final Gson GSON =
-            new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
     @JsonProperty(Constants.KEY_ID)
     private String id;
@@ -49,12 +44,12 @@ public class Ioc extends Resource {
     public Ioc() {}
 
     /**
-     * Factory method to create an Ioc instance from a raw Gson JsonObject.
+     * Factory method to create an Ioc instance from a raw JsonNode payload.
      *
      * @param payload The raw JSON object containing the IoC data.
      * @return A fully populated Ioc instance.
      */
-    public static Ioc fromPayload(JsonObject payload) {
+    public static Ioc fromPayload(JsonNode payload) {
         Ioc ioc = new Ioc();
 
         // Populate common Resource fields (space, etc.)
@@ -63,12 +58,12 @@ public class Ioc extends Resource {
 
         // Populate IoC-specific fields
         if (payload.has(Constants.KEY_ID)) {
-            ioc.setId(payload.get(Constants.KEY_ID).getAsString());
+            ioc.setId(payload.get(Constants.KEY_ID).asText());
         }
         if (payload.has(Constants.KEY_ENRICHMENTS)
-                && payload.get(Constants.KEY_ENRICHMENTS).isJsonArray()) {
+                && payload.get(Constants.KEY_ENRICHMENTS).isArray()) {
             ioc.setEnrichments(
-                    GSON.fromJson(payload.getAsJsonArray(Constants.KEY_ENRICHMENTS), List.class));
+                    MAPPER.convertValue(payload.get(Constants.KEY_ENRICHMENTS), new TypeReference<>() {}));
         }
 
         return ioc;

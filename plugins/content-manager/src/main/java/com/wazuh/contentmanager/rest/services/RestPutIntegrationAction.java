@@ -20,8 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
@@ -400,7 +398,7 @@ public class RestPutIntegrationAction extends BaseRestHandler {
 
         // Update integration in SAP
         log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_INTEGRATION, id);
-        this.service.upsertIntegration(this.toJsonObject(resource), Space.DRAFT, PUT);
+        this.service.upsertIntegration(resource, Space.DRAFT, PUT);
 
         // Construct engine validation payload
         log.debug(Constants.D_LOG_VALIDATING, Constants.KEY_INTEGRATION, id);
@@ -460,10 +458,6 @@ public class RestPutIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
-
-    private JsonObject toJsonObject(JsonNode jsonNode) {
-        return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
     }
 
     private RestResponse validateList(

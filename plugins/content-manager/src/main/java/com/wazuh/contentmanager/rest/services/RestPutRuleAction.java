@@ -20,8 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
@@ -249,8 +247,7 @@ public class RestPutRuleAction extends BaseRestHandler {
             // 3. Call SAP
             ruleNode.put(Constants.KEY_ID, ruleId);
             try {
-                JsonObject gsonObject = JsonParser.parseString(ruleNode.toString()).getAsJsonObject();
-                this.securityAnalyticsService.upsertRule(gsonObject, Space.DRAFT);
+                this.securityAnalyticsService.upsertRule(ruleNode, Space.DRAFT);
             } catch (Exception e) {
                 log.error(
                         Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);

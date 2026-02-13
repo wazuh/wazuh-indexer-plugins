@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,7 +36,6 @@ public class Decoder extends Resource {
     private static final Logger log = LogManager.getLogger(Decoder.class);
 
     // Tools for YAML generation
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     private static final List<String> DECODER_ORDER_KEYS =
@@ -65,7 +63,7 @@ public class Decoder extends Resource {
      * @param payload The raw JSON object containing the decoder data.
      * @return A populated Decoder object with the generated YAML string.
      */
-    public static Decoder fromPayload(JsonObject payload) {
+    public static Decoder fromPayload(JsonNode payload) {
         Decoder decoder = new Decoder();
         // 1. Basic logic for every resource
         Resource resource = new Resource();
@@ -86,12 +84,12 @@ public class Decoder extends Resource {
      * @return A string containing the formatted YAML, or {@code null} if the "document" key is
      *     missing or an error occurs.
      */
-    private static String toYamlString(JsonObject payload) {
+    private static String toYamlString(JsonNode payload) {
         try {
             if (!payload.has("document")) {
                 return null;
             }
-            JsonNode docNode = jsonMapper.readTree(payload.get("document").toString());
+            JsonNode docNode = payload.get("document");
 
             if (docNode != null && docNode.isObject()) {
                 Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();

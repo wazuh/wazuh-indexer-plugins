@@ -18,13 +18,11 @@ package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.ToNumberPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,8 +36,7 @@ import com.wazuh.contentmanager.utils.Constants;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Resource {
     private static final Logger log = LogManager.getLogger(Resource.class);
-    private static final Gson GSON =
-            new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     // JSON Key Constants
     private static final String JSON_DOCUMENT_KEY = "document";
@@ -62,12 +59,12 @@ public class Resource {
     public Resource() {}
 
     /**
-     * Factory method to create a Resource instance from a raw Gson JsonObject.
+     * Factory method to create a Resource instance from a raw JsonNode payload.
      *
      * @param payload The raw JSON object containing the resource data.
      * @return A fully populated Resource instance.
      */
-    public static Resource fromPayload(JsonObject payload) {
+    public static Resource fromPayload(JsonNode payload) {
         Resource resource = new Resource();
         resource.populateResource(resource, payload);
         return resource;
@@ -79,17 +76,17 @@ public class Resource {
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
      */
-    protected void populateResource(Resource resource, JsonObject payload) {
+    protected static void populateResource(Resource resource, JsonNode payload) {
         // 1. Process Document
-        if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
-            JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
+        if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
+            ObjectNode rawDoc = (ObjectNode) payload.get(JSON_DOCUMENT_KEY).deepCopy();
             Resource.preprocessDocument(rawDoc);
 
-            resource.setDocument(GSON.fromJson(rawDoc, Map.class));
+            resource.setDocument(MAPPER.convertValue(rawDoc, Map.class));
 
             // 2. Calculate Hash
             String hashStr = HashCalculator.sha256(rawDoc.toString());
-            if (hashStr != null && !hashStr.isEmpty()) {
+            if (!hashStr.isEmpty()) {
                 Map<String, String> hashMap = new HashMap<>();
                 hashMap.put("sha256", hashStr);
                 resource.setHash(hashMap);
@@ -106,15 +103,13 @@ public class Resource {
     private void populateSpaceObject(Resource resource, JsonObject payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
-        if (payload.has("space") && payload.get("space").isJsonObject()) {
-            JsonObject spaceObj = payload.getAsJsonObject("space");
+        if (payload.has("space") && payload.get("space").isObject()) {
+            JsonNode spaceObj = payload.get("space");
             if (spaceObj.has("name")) {
-                spaceName = spaceObj.get("name").getAsString();
+                spaceName = spaceObj.get("name").asText();
             }
-            if (spaceObj.has("hash") && spaceObj.get("hash").isJsonObject()) {
-                JsonObject spaceHash = spaceObj.get("hash").getAsJsonObject();
-                // Convert JsonObject to Map for the hash
-                Map<String, String> hashMap = GSON.fromJson(spaceHash, Map.class);
+            if (spaceObj.has("hash") && spaceObj.get("hash").isObject()) {
+                Map<String, String> hashMap = MAPPER.convertValue(spaceObj.get("hash"), Map.class);
                 spaceMap.put("hash", hashMap);
             }
         }
@@ -127,26 +122,22 @@ public class Resource {
      *
      * @param document The JSON object representing the document content.
      */
-    protected static void preprocessDocument(JsonObject document) {
-        if (document.has(JSON_METADATA_KEY) && document.get(JSON_METADATA_KEY).isJsonObject()) {
-            JsonObject metadata = document.getAsJsonObject(JSON_METADATA_KEY);
-            if (metadata.has(JSON_CUSTOM_FIELDS_KEY)) {
-                metadata.remove(JSON_CUSTOM_FIELDS_KEY);
-            }
-            if (metadata.has(JSON_DATASET_KEY)) {
-                metadata.remove(JSON_DATASET_KEY);
-            }
+    protected static void preprocessDocument(ObjectNode document) {
+        if (document.has(JSON_METADATA_KEY) && document.get(JSON_METADATA_KEY).isObject()) {
+            ObjectNode metadata = (ObjectNode) document.get(JSON_METADATA_KEY);
+            metadata.remove(JSON_CUSTOM_FIELDS_KEY);
+            metadata.remove(JSON_DATASET_KEY);
         }
 
         if (document.has(JSON_RELATED_KEY)) {
-            JsonElement relatedElement = document.get(JSON_RELATED_KEY);
-            if (relatedElement.isJsonObject()) {
-                Resource.sanitizeRelatedObject(relatedElement.getAsJsonObject());
-            } else if (relatedElement.isJsonArray()) {
-                JsonArray relatedArray = relatedElement.getAsJsonArray();
-                for (JsonElement element : relatedArray) {
-                    if (element.isJsonObject()) {
-                        Resource.sanitizeRelatedObject(element.getAsJsonObject());
+            JsonNode relatedElement = document.get(JSON_RELATED_KEY);
+            if (relatedElement.isObject()) {
+                Resource.sanitizeRelatedObject((ObjectNode) relatedElement);
+            } else if (relatedElement.isArray()) {
+                ArrayNode relatedArray = (ArrayNode) relatedElement;
+                for (JsonNode element : relatedArray) {
+                    if (element.isObject()) {
+                        Resource.sanitizeRelatedObject((ObjectNode) element);
                     }
                 }
             }
@@ -158,9 +149,9 @@ public class Resource {
      *
      * @param relatedObj The JSON object inside the "related" field.
      */
-    private static void sanitizeRelatedObject(JsonObject relatedObj) {
+    private static void sanitizeRelatedObject(ObjectNode relatedObj) {
         if (relatedObj.has(JSON_SIGMA_ID_KEY)) {
-            relatedObj.add("id", relatedObj.get(JSON_SIGMA_ID_KEY));
+            relatedObj.set(Constants.KEY_ID, relatedObj.get(JSON_SIGMA_ID_KEY));
             relatedObj.remove(JSON_SIGMA_ID_KEY);
         }
     }
