@@ -8539,36 +8539,6 @@ f5_bigip.log.base_mac:
   normalize: []
   short: Base MAC address associated with the F5 BIG-IP log entry.
   type: keyword
-f5_bigip.log.bigip_management.ip:
-  dashed_name: f5-bigip-log-bigip-management-ip
-  description: Primary management IP address for the F5 BIG-IP device.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.bigip_management.ip
-  level: custom
-  name: f5_bigip.log.bigip_management.ip
-  normalize: []
-  short: Primary management IP address for the F5 BIG-IP device.
-  type: ip
-f5_bigip.log.bigip_management.ip2:
-  dashed_name: f5-bigip-log-bigip-management-ip2
-  description: Secondary management IP address for the F5 BIG-IP device.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.bigip_management.ip2
-  level: custom
-  name: f5_bigip.log.bigip_management.ip2
-  normalize: []
-  short: Secondary management IP address for the F5 BIG-IP device.
-  type: ip
-f5_bigip.log.bigip_management.ip_2:
-  dashed_name: f5-bigip-log-bigip-management-ip-2
-  description: Alternative secondary management IP address for the F5 BIG-IP device.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.bigip_management.ip_2
-  level: custom
-  name: f5_bigip.log.bigip_management.ip_2
-  normalize: []
-  short: Alternative secondary management IP address for the F5 BIG-IP device.
-  type: ip
 f5_bigip.log.blocking_exception_reason:
   dashed_name: f5-bigip-log-blocking-exception-reason
   description: Reason for blocking exception in the F5 BIG-IP log entry.
@@ -8763,27 +8733,6 @@ f5_bigip.log.classification_reason:
   name: f5_bigip.log.classification_reason
   normalize: []
   short: Reason for classification in the F5 BIG-IP log entry.
-  type: keyword
-f5_bigip.log.client.ip:
-  dashed_name: f5-bigip-log-client-ip
-  description: Client IP address associated with the F5 BIG-IP log entry.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.client.ip
-  level: custom
-  name: f5_bigip.log.client.ip
-  normalize: []
-  short: Client IP address associated with the F5 BIG-IP log entry.
-  type: ip
-f5_bigip.log.client.ip_geo_location:
-  dashed_name: f5-bigip-log-client-ip-geo-location
-  description: Geolocation of the client IP address in the log entry.
-  example: example-ip_geo_location
-  flat_name: f5_bigip.log.client.ip_geo_location
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.client.ip_geo_location
-  normalize: []
-  short: Geolocation of the client IP address in the log entry.
   type: keyword
 f5_bigip.log.client.ip_route_domain:
   dashed_name: f5-bigip-log-client-ip-route-domain
@@ -9967,16 +9916,6 @@ f5_bigip.log.dest.fqdn:
   normalize: []
   short: Fully qualified domain name of the destination in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.dest.ip:
-  dashed_name: f5-bigip-log-dest-ip
-  description: Destination IP address recorded in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.dest.ip
-  level: custom
-  name: f5_bigip.log.dest.ip
-  normalize: []
-  short: Destination IP address recorded in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.dest.ipint_categories:
   dashed_name: f5-bigip-log-dest-ipint-categories
   description: IP intelligence categories for the destination IP in F5 BIG-IP logs.
@@ -10020,16 +9959,6 @@ f5_bigip.log.dest.zone:
   normalize: []
   short: Destination network zone identifier in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.destination.ip:
-  dashed_name: f5-bigip-log-destination-ip
-  description: Destination IP address for network traffic in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.destination.ip
-  level: custom
-  name: f5_bigip.log.destination.ip
-  normalize: []
-  short: Destination IP address for network traffic in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.destination.port:
   dashed_name: f5-bigip-log-destination-port
   description: Destination port number for network traffic in F5 BIG-IP logs.
@@ -10542,17 +10471,6 @@ f5_bigip.log.drop_reason:
   normalize: []
   short: Reason for packet or connection drop in F5 BIG-IP.
   type: keyword
-f5_bigip.log.dst.geo:
-  dashed_name: f5-bigip-log-dst-geo
-  description: Geographic location information for destination in F5 BIG-IP.
-  example: example-geo
-  flat_name: f5_bigip.log.dst.geo
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.dst.geo
-  normalize: []
-  short: Geographic location information for destination in F5 BIG-IP.
-  type: keyword
 f5_bigip.log.enforced_by:
   dashed_name: f5-bigip-log-enforced-by
   description: Component or policy that enforced the action in F5 BIG-IP.
@@ -10744,50 +10662,6 @@ f5_bigip.log.fragment:
   name: f5_bigip.log.fragment
   normalize: []
   short: IP fragmentation information in F5 BIG-IP logs.
-  type: keyword
-f5_bigip.log.geo.code:
-  dashed_name: f5-bigip-log-geo-code
-  description: Geographic code from geolocation data in F5 BIG-IP.
-  example: example-code
-  flat_name: f5_bigip.log.geo.code
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.geo.code
-  normalize: []
-  short: Geographic code from geolocation data in F5 BIG-IP.
-  type: keyword
-f5_bigip.log.geo.country:
-  dashed_name: f5-bigip-log-geo-country
-  description: Country from geolocation data in F5 BIG-IP.
-  example: example-country
-  flat_name: f5_bigip.log.geo.country
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.geo.country
-  normalize: []
-  short: Country from geolocation data in F5 BIG-IP.
-  type: keyword
-f5_bigip.log.geo.info:
-  dashed_name: f5-bigip-log-geo-info
-  description: Geolocation information in F5 BIG-IP logs.
-  example: example-info
-  flat_name: f5_bigip.log.geo.info
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.geo.info
-  normalize: []
-  short: Geolocation information in F5 BIG-IP logs.
-  type: keyword
-f5_bigip.log.geo.location:
-  dashed_name: f5-bigip-log-geo-location
-  description: Geographic location in F5 BIG-IP logs.
-  example: example-location
-  flat_name: f5_bigip.log.geo.location
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.geo.location
-  normalize: []
-  short: Geographic location in F5 BIG-IP logs.
   type: keyword
 f5_bigip.log.global_bigiq_conf:
   dashed_name: f5-bigip-log-global-bigiq-conf
@@ -10984,16 +10858,6 @@ f5_bigip.log.http.request:
   normalize: []
   short: HTTP request information in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.http.request_host:
-  dashed_name: f5-bigip-log-http-request-host
-  description: HTTP request host IP address in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.http.request_host
-  level: custom
-  name: f5_bigip.log.http.request_host
-  normalize: []
-  short: HTTP request host IP address in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.http.status:
   dashed_name: f5-bigip-log-http-status
   description: HTTP response status code in F5 BIG-IP logs.
@@ -11306,26 +11170,6 @@ f5_bigip.log.machine_id:
   normalize: []
   short: Machine identifier in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.management.ip_address:
-  dashed_name: f5-bigip-log-management-ip-address
-  description: Management IP address of F5 BIG-IP device.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.management.ip_address
-  level: custom
-  name: f5_bigip.log.management.ip_address
-  normalize: []
-  short: Management IP address of F5 BIG-IP device.
-  type: ip
-f5_bigip.log.management.ip_address_2:
-  dashed_name: f5-bigip-log-management-ip-address-2
-  description: Secondary management IP address of F5 BIG-IP device.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.management.ip_address_2
-  level: custom
-  name: f5_bigip.log.management.ip_address_2
-  normalize: []
-  short: Secondary management IP address of F5 BIG-IP device.
-  type: ip
 f5_bigip.log.marketing_name:
   dashed_name: f5-bigip-log-marketing-name
   description: Marketing name of F5 BIG-IP product.
@@ -11388,16 +11232,6 @@ f5_bigip.log.method:
   normalize: []
   short: Request method in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.mgmt_ip:
-  dashed_name: f5-bigip-log-mgmt-ip
-  description: Management IP address in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.mgmt_ip
-  level: custom
-  name: f5_bigip.log.mgmt_ip
-  normalize: []
-  short: Management IP address in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.micro_service.hostname:
   dashed_name: f5-bigip-log-micro-service-hostname
   description: Microservice hostname in F5 BIG-IP logs.
@@ -11569,16 +11403,6 @@ f5_bigip.log.new_request_status:
   normalize: []
   short: Status of new requests in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.node:
-  dashed_name: f5-bigip-log-node
-  description: Node IP address in F5 BIG-IP pool configuration.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.node
-  level: custom
-  name: f5_bigip.log.node
-  normalize: []
-  short: Node IP address in F5 BIG-IP pool configuration.
-  type: ip
 f5_bigip.log.node_port:
   dashed_name: f5-bigip-log-node-port
   description: Node port number in F5 BIG-IP pool configuration.
@@ -11687,16 +11511,6 @@ f5_bigip.log.policy.name:
   normalize: []
   short: Policy name in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.pool.ip:
-  dashed_name: f5-bigip-log-pool-ip
-  description: Pool member IP address in F5 BIG-IP.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.pool.ip
-  level: custom
-  name: f5_bigip.log.pool.ip
-  normalize: []
-  short: Pool member IP address in F5 BIG-IP.
-  type: ip
 f5_bigip.log.pool.ip_route_domain:
   dashed_name: f5-bigip-log-pool-ip-route-domain
   description: Pool IP route domain in F5 BIG-IP.
@@ -12353,16 +12167,6 @@ f5_bigip.log.server.hit_count:
   normalize: []
   short: Server hit count in F5 BIG-IP logs.
   type: long
-f5_bigip.log.server.ip:
-  dashed_name: f5-bigip-log-server-ip
-  description: Server IP address in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.server.ip
-  level: custom
-  name: f5_bigip.log.server.ip
-  normalize: []
-  short: Server IP address in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.server.latency.max:
   dashed_name: f5-bigip-log-server-latency-max
   description: Maximum server latency in F5 BIG-IP logs.
@@ -12612,16 +12416,6 @@ f5_bigip.log.source.fqdn:
   normalize: []
   short: Source fully qualified domain name in F5 BIG-IP.
   type: keyword
-f5_bigip.log.source.ip:
-  dashed_name: f5-bigip-log-source-ip
-  description: Source IP address in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.source.ip
-  level: custom
-  name: f5_bigip.log.source.ip
-  normalize: []
-  short: Source IP address in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.source.ip_route_domain:
   dashed_name: f5-bigip-log-source-ip-route-domain
   description: Source IP route domain in F5 BIG-IP logs.
@@ -12676,27 +12470,6 @@ f5_bigip.log.source.user_group:
   normalize: []
   short: Source user group in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.src.geo:
-  dashed_name: f5-bigip-log-src-geo
-  description: Source geographic location in F5 BIG-IP logs.
-  example: example-geo
-  flat_name: f5_bigip.log.src.geo
-  ignore_above: 1024
-  level: custom
-  name: f5_bigip.log.src.geo
-  normalize: []
-  short: Source geographic location in F5 BIG-IP logs.
-  type: keyword
-f5_bigip.log.src.ip:
-  dashed_name: f5-bigip-log-src-ip
-  description: Source IP address in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.src.ip
-  level: custom
-  name: f5_bigip.log.src.ip
-  normalize: []
-  short: Source IP address in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.src.port:
   dashed_name: f5-bigip-log-src-port
   description: Source port number in F5 BIG-IP logs.
@@ -12806,16 +12579,6 @@ f5_bigip.log.sub_violations:
   normalize: []
   short: Sub-violations detected in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.subnet.ip:
-  dashed_name: f5-bigip-log-subnet-ip
-  description: Subnet IP address in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.subnet.ip
-  level: custom
-  name: f5_bigip.log.subnet.ip
-  normalize: []
-  short: Subnet IP address in F5 BIG-IP logs.
-  type: ip
 f5_bigip.log.subnet.name:
   dashed_name: f5-bigip-log-subnet-name
   description: Subnet name in F5 BIG-IP logs.
@@ -14093,16 +13856,6 @@ f5_bigip.log.transaction_outcome:
   normalize: []
   short: Transaction outcome status in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.translated.dest.ip:
-  dashed_name: f5-bigip-log-translated-dest-ip
-  description: Translated destination IP address in F5 BIG-IP.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.translated.dest.ip
-  level: custom
-  name: f5_bigip.log.translated.dest.ip
-  normalize: []
-  short: Translated destination IP address in F5 BIG-IP.
-  type: ip
 f5_bigip.log.translated.dest.port:
   dashed_name: f5-bigip-log-translated-dest-port
   description: Translated destination port in F5 BIG-IP.
@@ -14135,16 +13888,6 @@ f5_bigip.log.translated.route_domain:
   normalize: []
   short: Translated route domain in F5 BIG-IP.
   type: keyword
-f5_bigip.log.translated.source.ip:
-  dashed_name: f5-bigip-log-translated-source-ip
-  description: Translated source IP address in F5 BIG-IP.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.translated.source.ip
-  level: custom
-  name: f5_bigip.log.translated.source.ip
-  normalize: []
-  short: Translated source IP address in F5 BIG-IP.
-  type: ip
 f5_bigip.log.translated.source.port:
   dashed_name: f5-bigip-log-translated-source-port
   description: Translated source port in F5 BIG-IP.
@@ -14339,16 +14082,6 @@ f5_bigip.log.vip:
   normalize: []
   short: Virtual IP (VIP) information in F5 BIG-IP logs.
   type: keyword
-f5_bigip.log.virtual.ip:
-  dashed_name: f5-bigip-log-virtual-ip
-  description: Virtual server name in F5 BIG-IP.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.virtual.ip
-  level: custom
-  name: f5_bigip.log.virtual.ip
-  normalize: []
-  short: Virtual server name in F5 BIG-IP.
-  type: ip
 f5_bigip.log.virtual.name:
   dashed_name: f5-bigip-log-virtual-name
   description: Virtual server identifier in F5 BIG-IP.
@@ -14458,16 +14191,6 @@ f5_bigip.log.wl_events:
   normalize: []
   short: Whitelist events count in F5 BIG-IP logs.
   type: long
-f5_bigip.log.x_forwarded_for_header_value:
-  dashed_name: f5-bigip-log-x-forwarded-for-header-value
-  description: X-Forwarded-For header value in F5 BIG-IP logs.
-  example: 192.168.1.1
-  flat_name: f5_bigip.log.x_forwarded_for_header_value
-  level: custom
-  name: f5_bigip.log.x_forwarded_for_header_value
-  normalize: []
-  short: X-Forwarded-For header value in F5 BIG-IP logs.
-  type: ip
 faas.coldstart:
   dashed_name: faas-coldstart
   description: Boolean value indicating a cold start of a function.

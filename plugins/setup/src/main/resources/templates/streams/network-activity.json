@@ -3008,19 +3008,6 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "bigip_management": {
-                  "properties": {
-                    "ip": {
-                      "type": "ip"
-                    },
-                    "ip2": {
-                      "type": "ip"
-                    },
-                    "ip_2": {
-                      "type": "ip"
-                    }
-                  }
-                },
                 "blocking_exception_reason": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -3104,13 +3091,6 @@
                 },
                 "client": {
                   "properties": {
-                    "ip": {
-                      "type": "ip"
-                    },
-                    "ip_geo_location": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
                     "ip_route_domain": {
                       "ignore_above": 1024,
                       "type": "keyword"
@@ -3617,9 +3597,6 @@
                       "ignore_above": 1024,
                       "type": "keyword"
                     },
-                    "ip": {
-                      "type": "ip"
-                    },
                     "ipint_categories": {
                       "ignore_above": 1024,
                       "type": "keyword"
@@ -3639,9 +3616,6 @@
                 },
                 "destination": {
                   "properties": {
-                    "ip": {
-                      "type": "ip"
-                    },
                     "port": {
                       "type": "long"
                     }
@@ -3869,14 +3843,6 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "dst": {
-                  "properties": {
-                    "geo": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                },
                 "enforced_by": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -3967,26 +3933,6 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "geo": {
-                  "properties": {
-                    "code": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "country": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "info": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "location": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                },
                 "global_bigiq_conf": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -4057,9 +4003,6 @@
                     "request": {
                       "ignore_above": 1024,
                       "type": "keyword"
-                    },
-                    "request_host": {
-                      "type": "ip"
                     },
                     "status": {
                       "ignore_above": 1024,
@@ -4176,16 +4119,6 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "management": {
-                  "properties": {
-                    "ip_address": {
-                      "type": "ip"
-                    },
-                    "ip_address_2": {
-                      "type": "ip"
-                    }
-                  }
-                },
                 "marketing_name": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -4209,9 +4142,6 @@
                 "method": {
                   "ignore_above": 1024,
                   "type": "keyword"
-                },
-                "mgmt_ip": {
-                  "type": "ip"
                 },
                 "micro_service": {
                   "properties": {
@@ -4289,9 +4219,6 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "node": {
-                  "type": "ip"
-                },
                 "node_port": {
                   "type": "long"
                 },
@@ -4340,9 +4267,6 @@
                 },
                 "pool": {
                   "properties": {
-                    "ip": {
-                      "type": "ip"
-                    },
                     "ip_route_domain": {
                       "ignore_above": 1024,
                       "type": "keyword"
@@ -4610,9 +4534,6 @@
                     "hit_count": {
                       "type": "long"
                     },
-                    "ip": {
-                      "type": "ip"
-                    },
                     "latency": {
                       "properties": {
                         "max": {
@@ -4729,9 +4650,6 @@
                       "ignore_above": 1024,
                       "type": "keyword"
                     },
-                    "ip": {
-                      "type": "ip"
-                    },
                     "ip_route_domain": {
                       "ignore_above": 1024,
                       "type": "keyword"
@@ -4755,13 +4673,6 @@
                 },
                 "src": {
                   "properties": {
-                    "geo": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "ip": {
-                      "type": "ip"
-                    },
                     "port": {
                       "type": "long"
                     },
@@ -4813,9 +4724,6 @@
                 },
                 "subnet": {
                   "properties": {
-                    "ip": {
-                      "type": "ip"
-                    },
                     "name": {
                       "ignore_above": 1024,
                       "type": "keyword"
@@ -5334,9 +5242,6 @@
                   "properties": {
                     "dest": {
                       "properties": {
-                        "ip": {
-                          "type": "ip"
-                        },
                         "port": {
                           "type": "long"
                         }
@@ -5352,9 +5257,6 @@
                     },
                     "source": {
                       "properties": {
-                        "ip": {
-                          "type": "ip"
-                        },
                         "port": {
                           "type": "long"
                         }
@@ -5441,9 +5343,6 @@
                 },
                 "virtual": {
                   "properties": {
-                    "ip": {
-                      "type": "ip"
-                    },
                     "name": {
                       "ignore_above": 1024,
                       "type": "keyword"
@@ -5488,9 +5387,6 @@
                 },
                 "wl_events": {
                   "type": "long"
-                },
-                "x_forwarded_for_header_value": {
-                  "type": "ip"
                 }
               }
             }
