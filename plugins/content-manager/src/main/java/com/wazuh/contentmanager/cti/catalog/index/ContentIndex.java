@@ -484,14 +484,17 @@ public class ContentIndex {
         try {
             // Preserve the type field before processing
             String type =
-                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
+                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : "none";
+
+            // 1. Delegate parsing logic to the appropriate Model
+            if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
+                Ioc ioc = Ioc.fromPayload(payload);
+                return this.mapper.valueToTree(ioc);
+            }
 
             Resource resource;
-            // 1. Delegate parsing logic to the appropriate Model
             if (isDecoder || Constants.KEY_DECODER.equalsIgnoreCase(type)) {
                 resource = Decoder.fromPayload(payload);
-            } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
-                resource = Ioc.fromPayload(payload);
             } else {
                 resource = Resource.fromPayload(payload);
             }
