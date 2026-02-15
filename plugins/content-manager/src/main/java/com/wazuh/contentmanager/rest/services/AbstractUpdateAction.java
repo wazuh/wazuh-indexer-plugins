@@ -81,14 +81,14 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             validationError = DocumentValidations.validateRequiredParam(id, Constants.KEY_ID);
             if (validationError != null) return validationError;
 
-            validationError = DocumentValidations.validateUUID(id, Constants.KEY_ID);
+            validationError = DocumentValidations.validateIdFormat(id, Constants.KEY_ID);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
                         "Update",
                         this.getResourceType(),
                         id,
-                        "Invalid UUID");
+                        "Invalid ID format");
                 return validationError;
             }
 

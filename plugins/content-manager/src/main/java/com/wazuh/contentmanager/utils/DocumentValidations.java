@@ -30,12 +30,16 @@ import org.opensearch.transport.client.Client;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 /** Utility class providing common validation methods for REST handlers. */
 public class DocumentValidations {
+
+    private static final Pattern ID_PATTERN = Pattern.compile("^[a-zA-Z0-9-_]+$");
 
     /** Private constructor to prevent instantiation. */
     private DocumentValidations() {}
@@ -101,21 +105,24 @@ public class DocumentValidations {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
+            // Query: space.name == space AND document.title == title
             sourceBuilder.query(
                     QueryBuilders.boolQuery()
                             .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space))
                             .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_TITLE, title)));
             sourceBuilder.size(1);
+            // We only need the ID to compare
             sourceBuilder.fetchSource(false);
 
             searchRequest.source(sourceBuilder);
             SearchResponse response = client.search(searchRequest).actionGet();
 
             if (response.getHits().getTotalHits().value() > 0) {
+                // If checking for updates, ensure the found doc is not the one we are updating
                 if (currentId != null) {
                     String foundId = response.getHits().getAt(0).getId();
                     if (foundId.equals(currentId)) {
-                        return null;
+                        return null; // Same document, no conflict
                     }
                 }
                 return new RestResponse(
@@ -126,6 +133,20 @@ public class DocumentValidations {
             return new RestResponse(
                     "Error validating duplicate name: " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+        return null;
+    }
+
+    /**
+     * Validates that the engine service is available.
+     *
+     * @param engine the engine service to validate
+     * @return a RestResponse with error if engine is unavailable, null otherwise
+     */
+    public static RestResponse validateEngineAvailable(EngineService engine) {
+        if (engine == null) {
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         return null;
     }
@@ -161,24 +182,19 @@ public class DocumentValidations {
     }
 
     /**
-     * Validates that a string is a valid UUID v4 format.
+     * Validates that the ID contains only safe characters (alphanumeric, hyphens, underscores).
      *
-     * @param value the string value to validate as UUID
+     * @param value the string value to validate
      * @param fieldName the name of the field being validated
      * @return a RestResponse with error if validation fails, null otherwise
      */
-    public static RestResponse validateUUID(String value, String fieldName) {
-        try {
-            java.util.UUID uuid = java.util.UUID.fromString(value);
-            if (uuid.version() != 4) {
-                throw new IllegalArgumentException();
-            }
-            return null;
-        } catch (IllegalArgumentException e) {
+    public static RestResponse validateIdFormat(String value, String fieldName) {
+        if (value == null || !ID_PATTERN.matcher(value).matches()) {
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, fieldName),
                     RestStatus.BAD_REQUEST.getStatus());
         }
+        return null;
     }
 
     /**
