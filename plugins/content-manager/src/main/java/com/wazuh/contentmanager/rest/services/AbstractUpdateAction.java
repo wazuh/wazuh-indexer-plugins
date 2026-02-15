@@ -112,7 +112,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 4. Validate Payload
-            validationError = DocumentValidations.validateResourcePayload(rootNode, id, false);
+            validationError = DocumentValidations.validateResourcePayload(rootNode, false);
             if (validationError != null) {
                 log.warn(
                         "Payload validation failed for {} [{}]: {}",
@@ -134,16 +134,6 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
                         id,
                         validationError.getMessage());
                 return validationError;
-            }
-
-            validationError = ContentUtils.validateMetadataFields(resourceNode, this.isDecoder());
-            if (validationError != null) {
-                log.warn(
-                        "Metadata validation failed for {} [{}]: {}",
-                        this.getResourceType(),
-                        id,
-                        validationError.getMessage());
-                return new RestResponse(validationError.getMessage(), RestStatus.BAD_REQUEST.getStatus());
             }
 
             // 6. Update Timestamps & Preserve Metadata

@@ -113,39 +113,6 @@ public class ContentUtils {
     }
 
     /**
-     * Validates that the resource structure does not contain system-managed date or modified fields.
-     *
-     * <p>If {@code isDecoder} is true, checks {@code metadata.author.date} and {@code
-     * metadata.author.modified}. Otherwise, checks {@code date} and {@code modified} at the root of
-     * the resource.
-     *
-     * @param resourceNode The resource JSON node.
-     * @param isDecoder True if the resource is a decoder, false for other resources (Integration,
-     *     Rule, KVDB).
-     * @return RestResponse if validation fails, null otherwise.
-     */
-    public static RestResponse validateMetadataFields(JsonNode resourceNode, boolean isDecoder) {
-        if (isDecoder) {
-            if (resourceNode.has(Constants.KEY_METADATA)) {
-                JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
-                if (metadata.has(Constants.KEY_AUTHOR)) {
-                    JsonNode author = metadata.get(Constants.KEY_AUTHOR);
-                    if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
-                        return new RestResponse(
-                                Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-                    }
-                }
-            }
-        } else {
-            if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-        }
-        return null;
-    }
-
-    /**
      * Builds the standard CTI wrapper payload containing type, document, space, and hash.
      *
      * @param resourceNode The content of the resource.

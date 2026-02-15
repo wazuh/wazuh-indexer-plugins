@@ -16,13 +16,19 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
@@ -72,6 +78,11 @@ public abstract class AbstractContentAction extends BaseRestHandler {
         this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
 
         return channel -> {
+            RestResponse validation = this.validateDraftPolicyExists(client);
+            if (validation != null) {
+                channel.sendResponse(validation.toBytesRestResponse());
+                return;
+            }
             RestResponse response = this.executeRequest(request, client);
             channel.sendResponse(response.toBytesRestResponse());
         };
@@ -85,6 +96,32 @@ public abstract class AbstractContentAction extends BaseRestHandler {
     /** Sets the security analytics service (for testing). */
     public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
         this.securityAnalyticsService = securityAnalyticsService;
+    }
+
+    /**
+     * Checks if the policy document for the draft space exists.
+     *
+     * @param client The OpenSearch client.
+     * @return RestResponse with error if policy is missing, null otherwise.
+     */
+    protected RestResponse validateDraftPolicyExists(Client client) {
+        try {
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+            sourceBuilder.size(0);
+            searchRequest.source(sourceBuilder);
+
+            SearchResponse response = client.search(searchRequest).actionGet();
+
+            if (response.getHits().getTotalHits().value() == 0) {
+                return new RestResponse("Draft policy not found.", RestStatus.BAD_REQUEST.getStatus());
+            }
+        } catch (Exception e) {
+            return new RestResponse(
+                    "Draft policy check failed: " + e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
     }
 
     /**

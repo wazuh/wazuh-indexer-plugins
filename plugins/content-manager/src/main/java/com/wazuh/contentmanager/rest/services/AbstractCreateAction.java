@@ -87,7 +87,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
 
             // 2. Validate Payload Structure
             validationError =
-                    DocumentValidations.validateResourcePayload(rootNode, null, this.requiresIntegrationId());
+                    DocumentValidations.validateResourcePayload(rootNode, this.requiresIntegrationId());
             if (validationError != null) {
                 log.warn(
                         "Payload structure validation failed for {}: {}",
@@ -108,17 +108,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
                 return validationError;
             }
 
-            // 4. Validate Metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode, this.isDecoder());
-            if (validationError != null) {
-                log.warn(
-                        "Metadata validation failed for {}: {}",
-                        this.getResourceType(),
-                        validationError.getMessage());
-                return new RestResponse(validationError.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // 5. Generate ID and Metadata
+            // 4. Generate ID and Metadata
             String id = UUID.randomUUID().toString();
             resourceNode.put(Constants.KEY_ID, id);
             ContentUtils.updateTimestampMetadata(resourceNode, true, this.isDecoder());
