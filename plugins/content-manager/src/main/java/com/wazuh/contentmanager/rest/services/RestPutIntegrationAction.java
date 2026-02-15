@@ -24,7 +24,6 @@ import org.opensearch.rest.NamedRoute;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -107,8 +106,11 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
 
     /** Preserves metadata and validates that linked resource lists have not changed. */
     @Override
-    protected void preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
-        super.preserveMetadata(index, id, resourceNode);
+    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
+        RestResponse response = super.preserveMetadata(index, id, resourceNode);
+        if (response != null) {
+            return response;
+        }
 
         JsonNode existingDoc = index.getDocument(id);
         if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
@@ -116,37 +118,44 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
             Map<String, Object> existing =
                     MAPPER.convertValue(existingDoc.get(Constants.KEY_DOCUMENT), Map.class);
 
-            checkListEquality(existing, resourceNode, Constants.KEY_RULES);
-            checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
-            checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
+            RestResponse error;
+            error = checkListEquality(existing, resourceNode, Constants.KEY_RULES);
+            if (error != null) return error;
+
+            error = checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
+            if (error != null) return error;
+
+            error = checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
+            if (error != null) return error;
         }
+        return null;
     }
 
     /**
-     * Checks if two lists are equal ot not, if not it thows an IllegalArgumentException
+     * Checks if two lists are equal ot not, if not it returns a RestResponse with the error
      *
      * @param existing Current document
      * @param resource New document
      * @param key Key of the list to check if is equal or not
      */
-    private void checkListEquality(Map<String, Object> existing, JsonNode resource, String key) {
+    private RestResponse checkListEquality(
+            Map<String, Object> existing, JsonNode resource, String key) {
         @SuppressWarnings("unchecked")
         List<String> oldList = (List<String>) existing.getOrDefault(key, Collections.emptyList());
         List<String> newList = ContentUtils.extractStringList(resource, key);
-        RestResponse error = ContentUtils.validateListEquality(oldList, newList, key);
-        if (error != null) {
-            throw new IllegalArgumentException(error.getMessage());
-        }
+        return ContentUtils.validateListEquality(oldList, newList, key);
     }
 
     @Override
     protected RestResponse validatePayload(JsonNode root, JsonNode resource) {
-        if (!resource.has(Constants.KEY_TITLE)) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
+        return ContentUtils.validateRequiredFields(
+                resource,
+                List.of(
+                        Constants.KEY_TITLE,
+                        Constants.KEY_AUTHOR,
+                        Constants.KEY_CATEGORY,
+                        Constants.KEY_DESCRIPTION,
+                        "documentation"));
     }
 
     @Override

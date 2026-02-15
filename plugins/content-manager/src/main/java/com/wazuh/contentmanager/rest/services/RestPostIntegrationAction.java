@@ -27,7 +27,6 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -36,6 +35,7 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -106,17 +106,12 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
      */
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        if (!resource.has(Constants.KEY_TITLE)
-                || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (!resource.has(Constants.KEY_CATEGORY)
-                || resource.get(Constants.KEY_CATEGORY).asText().isBlank()) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_CATEGORY),
-                    RestStatus.BAD_REQUEST.getStatus());
+        RestResponse fieldValidation =
+                ContentUtils.validateRequiredFields(
+                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_CATEGORY, Constants.KEY_AUTHOR));
+
+        if (fieldValidation != null) {
+            return fieldValidation;
         }
 
         ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
@@ -189,6 +184,6 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         String hash = HashCalculator.sha256(document.toString());
         ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
-        policiesIndex.create(draftPolicyId, draftPolicyHit);
+        policiesIndex.create(draftPolicyId, draftPolicyHit, false);
     }
 }

@@ -148,7 +148,15 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
 
             // 6. Update Timestamps & Preserve Metadata
             ContentUtils.updateTimestampMetadata(resourceNode, false, this.isDecoder());
-            this.preserveMetadata(index, id, resourceNode);
+            validationError = this.preserveMetadata(index, id, resourceNode);
+            if (validationError != null) {
+                log.warn(
+                        "Preserve metadata validation failed for {} [{}]: {}",
+                        this.getResourceType(),
+                        id,
+                        validationError.getMessage());
+                return validationError;
+            }
 
             // 7. External Sync
             validationError = this.syncExternalServices(id, resourceNode);
@@ -188,9 +196,9 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
     }
 
     /** Preserves creation date and other immutable fields from the existing document. */
-    protected void preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
+    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         JsonNode existingDoc = index.getDocument(id);
-        if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return;
+        if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
         JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
 
@@ -225,6 +233,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
                 resourceNode.put(Constants.KEY_ENABLED, true);
             }
         }
+        return null;
     }
 
     protected abstract String getIndexName();

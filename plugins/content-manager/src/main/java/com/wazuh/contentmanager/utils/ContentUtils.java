@@ -152,7 +152,6 @@ public class ContentUtils {
      * @param spaceName The space name (e.g., "draft").
      * @return The constructed JsonNode wrapper.
      */
-    // TODO: Study if it can be deleted
     public static JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = mapper.createObjectNode();
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
@@ -350,6 +349,31 @@ public class ContentUtils {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Validates that the provided JSON node contains specific mandatory fields. Checks if the field
+     * exists and if its text representation is not blank.
+     *
+     * @param resource The JSON node to validate (usually the 'resource' object).
+     * @param requiredFields A list of keys that must be present.
+     * @return A RestResponse with an error if a field is missing, or null if valid.
+     */
+    public static RestResponse validateRequiredFields(
+            JsonNode resource, List<String> requiredFields) {
+        if (resource == null) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        for (String field : requiredFields) {
+            if (!resource.has(field) || resource.get(field).asText().isBlank()) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
         return null;
     }
 }

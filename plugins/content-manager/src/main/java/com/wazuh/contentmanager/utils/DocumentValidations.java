@@ -92,27 +92,6 @@ public class DocumentValidations {
     }
 
     /**
-     * Validates that a document exists and is in the draft space. Returns a RestResponse on failure.
-     *
-     * <p>This method wraps {@link #validateDocumentInSpace} and returns a properly formatted
-     * RestResponse with BAD_REQUEST status if validation fails.
-     *
-     * @param client the OpenSearch client
-     * @param index the index to search in
-     * @param docId document ID to validate
-     * @param docType the document type name for error messages (e.g., "Decoder", "Integration")
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
-    public static RestResponse validateDocumentInSpaceWithResponse(
-            Client client, String index, String docId, String docType) {
-        String error = DocumentValidations.validateDocumentInSpace(client, index, docId, docType);
-        if (error != null) {
-            return new RestResponse(error, RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /**
      * Validates that the engine service is available.
      *
      * @param engine the engine service to validate
@@ -138,23 +117,6 @@ public class DocumentValidations {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
-    }
-
-    /**
-     * Validates common prerequisites: engine availability and request content.
-     *
-     * <p>This is a convenience method combining engine and content validation.
-     *
-     * @param engine the engine service to validate
-     * @param request the REST request to validate
-     * @return a RestResponse with error if validation fails, null otherwise
-     */
-    public static RestResponse validatePrerequisites(EngineService engine, RestRequest request) {
-        RestResponse error = DocumentValidations.validateEngineAvailable(engine);
-        if (error != null) {
-            return error;
-        }
-        return DocumentValidations.validateRequestHasContent(request);
     }
 
     /**

@@ -22,12 +22,12 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.NamedRoute;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -97,17 +97,7 @@ public class RestPutKvdbAction extends AbstractUpdateAction {
 
     @Override
     protected RestResponse validatePayload(JsonNode root, JsonNode resource) {
-        if (!resource.has(Constants.KEY_TITLE)) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (!resource.has("content") || resource.get("content").isEmpty()) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "content"),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
+        return ContentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE, "content"));
     }
 
     @Override

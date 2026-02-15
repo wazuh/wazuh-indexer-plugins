@@ -192,7 +192,7 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
                 ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
                 String hash = HashCalculator.sha256(document.toString());
                 ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-                policiesIndex.create(draftPolicyId, draftPolicyHit);
+                policiesIndex.create(draftPolicyId, draftPolicyHit, false);
             }
         } catch (Exception e) {
             // Error is being thrown in the AbstractClasses

@@ -282,7 +282,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             JsonNode document = ContentUtils.buildCtiWrapper(policyNode, Space.DRAFT.toString());
             String draftPolicyId =
                     this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
-            IndexResponse indexResponse = index.create(draftPolicyId, document);
+            IndexResponse indexResponse = index.create(draftPolicyId, document, false);
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());
