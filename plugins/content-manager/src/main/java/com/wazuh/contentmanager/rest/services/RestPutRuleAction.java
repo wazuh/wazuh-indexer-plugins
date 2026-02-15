@@ -17,72 +17,51 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /**
- * PUT /_plugins/content-manager/rules/{rule_id}
+ * PUT /_plugins/content-manager/rules/{id}
  *
- * <p>Updates a rule in the local engine and the CTI index.
+ * <p>Updates an existing Rule in the draft space.
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The rule exists and is in the draft space.
+ *   <li>The request body contains all mandatory fields.
+ *   <li>Immutable metadata (creation date) is preserved.
+ *   <li>The updated rule is synchronized with the Security Analytics Plugin (SAP).
+ *   <li>The rule is re-indexed and the space hash is recalculated.
+ * </ul>
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Rule updated successfully.
+ *   <li>400 Bad Request: Missing fields, invalid payload, or space validation failure.
+ *   <li>404 Not Found: Rule with specified ID was not found.
+ *   <li>500 Internal Server Error: SAP error or unexpected error.
+ * </ul>
  */
-public class RestPutRuleAction extends BaseRestHandler {
+public class RestPutRuleAction extends AbstractUpdateAction {
+
     private static final String ENDPOINT_NAME = "content_manager_rule_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_update";
-    private static final Logger log = LogManager.getLogger(RestPutRuleAction.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private PolicyHashService policyHashService;
-    private SecurityAnalyticsService securityAnalyticsService;
-
-    /** Default constructor. */
-    public RestPutRuleAction() {}
-
-    /**
-     * Setter for the policy hash service, used in tests.
-     *
-     * @param policyHashService the policy hash service to set
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
-    }
-
-    /**
-     * Setter for the security analytics service, used in tests.
-     *
-     * @param securityAnalyticsService the security analytics service to set
-     */
-    public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
-        this.securityAnalyticsService = securityAnalyticsService;
+    public RestPutRuleAction() {
+        super(null);
     }
 
     /** Return a short identifier for this handler. */
@@ -106,169 +85,35 @@ public class RestPutRuleAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepare the request for execution.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a {@link RestChannelConsumer} that executes the update operation
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_RULES;
     }
 
-    /**
-     * Handles the update rule request.
-     *
-     * <p>This method performs the following steps:
-     *
-     * <ol>
-     *   <li>Validates the presence of the {@code rule_id} parameter and request body.
-     *   <li>Parses the request body ensuring it follows the { Constants.KEY_TYPE: "rule",
-     *       Constants.KEY_RESOURCE: {...} } structure.
-     *   <li>Injects metadata fields such as {@code modified} timestamp and default {@code enabled}
-     *       status.
-     *   <li>Calls the Security Analytics Plugin (SAP) to update the rule in the engine.
-     *   <li>Calculates the SHA-256 hash of the updated rule document.
-     *   <li>Updates the rule document in the CTI rules index.
-     * </ol>
-     *
-     * @param request the incoming REST request containing the rule update data
-     * @param client the client to execute OpenSearch actions
-     * @return a {@link RestResponse} indicating the outcome of the operation
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        try {
-            String ruleId = request.param(Constants.KEY_ID);
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_RULE;
+    }
 
-            // Validate ID is present
-            if (ruleId == null || ruleId.isEmpty()) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Validate UUID format
-            try {
-                java.util.UUID.fromString(ruleId);
-            } catch (IllegalArgumentException e) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, ruleId),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Check if rule exists
-            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
-            if (!rulesIndex.exists(ruleId)) {
-                return new RestResponse(
-                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
-            }
-
-            // Validate rule is in draft space
-            String validationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
-            if (validationError != null) {
-                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            if (!request.hasContent()) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            JsonNode rootNode = MAPPER.readTree(request.content().streamInput());
-
-            // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_RESOURCE)) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
-
-            // 2. Validate Resource Fields
-            if (!resourceNode.has(Constants.KEY_TITLE)
-                    || resourceNode.get(Constants.KEY_TITLE).asText().isBlank()) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Optional fields
-            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
-                ((ObjectNode) resourceNode).put(Constants.KEY_DESCRIPTION, "");
-            }
-            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
-                ((ObjectNode) resourceNode).put(Constants.KEY_AUTHOR, "");
-            }
-            if (!resourceNode.has("references")) {
-                ((ObjectNode) resourceNode).set("references", MAPPER.createArrayNode());
-            }
-
-            // Check non-modifiable fields
-            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
-            if (metadataError != null) {
-                return new RestResponse(metadataError.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            ObjectNode ruleNode = resourceNode.deepCopy();
-
-            String createdDate = null;
-
-            JsonNode existingDoc = rulesIndex.getDocument(ruleId);
-            if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
-                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-                if (doc.has(Constants.KEY_DATE)) {
-                    createdDate = doc.get(Constants.KEY_DATE).asText();
-                }
-            }
-
-            // Update timestamps
-            ContentUtils.updateTimestampMetadata(ruleNode, false, false);
-
-            // Restore creation date if found
-            if (createdDate != null) {
-                ruleNode.put(Constants.KEY_DATE, createdDate);
-            }
-
-            if (!ruleNode.has(Constants.KEY_ENABLED)) {
-                ruleNode.put(Constants.KEY_ENABLED, true);
-            }
-
-            // 3. Call SAP
-            ruleNode.put(Constants.KEY_ID, ruleId);
-            try {
-                this.securityAnalyticsService.upsertRule(ruleNode, Space.DRAFT);
-            } catch (Exception e) {
-                log.error(
-                        Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);
-                return new RestResponse(
-                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(ruleNode, Space.DRAFT.toString());
-
-            rulesIndex.create(ruleId, ctiWrapper);
-
-            // 5. Regenerate space hash because rule content changed
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse(ruleId, RestStatus.OK.getStatus());
-
-        } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_RULE, e.getMessage(), e);
+    @Override
+    protected RestResponse validatePayload(JsonNode root, JsonNode resource) {
+        if (!resource.has(Constants.KEY_TITLE)
+                || resource.get(Constants.KEY_TITLE).asText().isBlank()) {
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        try {
+            this.securityAnalyticsService.upsertRule(resource, Space.DRAFT);
+            return null;
+        } catch (Exception e) {
+            return new RestResponse(
+                    "SAP Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
