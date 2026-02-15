@@ -19,15 +19,21 @@ package com.wazuh.contentmanager.utils;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 /**
@@ -86,6 +92,58 @@ public class DocumentValidations {
             return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_IN_DRAFT, docType, docId);
         }
 
+        return null;
+    }
+
+    /**
+     * Validates that a document with the same title does not already exist in the given space.
+     *
+     * @param client the OpenSearch client
+     * @param indexName the index to search in
+     * @param space the space to check
+     * @param title the title to validate
+     * @param currentId the ID of the current document (for updates), can be null for creation
+     * @param resourceType the type of resource for error messages
+     * @return a RestResponse with error if a duplicate is found, null otherwise
+     */
+    public static RestResponse validateDuplicateTitle(
+            Client client,
+            String indexName,
+            String space,
+            String title,
+            String currentId,
+            String resourceType) {
+        try {
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+            sourceBuilder.query(
+                    QueryBuilders.boolQuery()
+                            .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space))
+                            .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_TITLE, title)));
+            sourceBuilder.size(1);
+            // We only need the ID to compare
+            sourceBuilder.fetchSource(false);
+
+            searchRequest.source(sourceBuilder);
+            SearchResponse response = client.search(searchRequest).actionGet();
+
+            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() > 0) {
+                if (currentId != null) {
+                    String foundId = response.getHits().getAt(0).getId();
+                    if (foundId.equals(currentId)) {
+                        return null;
+                    }
+                }
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_DUPLICATE_NAME, resourceType, title, space),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        } catch (Exception e) {
+            return new RestResponse(
+                    "Error validating duplicate name: " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
         return null;
     }
 

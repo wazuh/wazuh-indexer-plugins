@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.NamedRoute;
+import org.opensearch.transport.client.Client;
 
 import java.util.List;
 
@@ -100,7 +101,7 @@ public class RestPutDecoderAction extends AbstractUpdateAction {
     }
 
     @Override
-    protected RestResponse validatePayload(JsonNode root, JsonNode resource) {
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         return null;
     }
 

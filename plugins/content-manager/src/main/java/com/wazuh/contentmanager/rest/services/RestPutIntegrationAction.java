@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.NamedRoute;
+import org.opensearch.transport.client.Client;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +34,7 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -58,8 +60,8 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  *
  * <ul>
  *   <li>200 OK: Integration updated successfully.
- *   <li>400 Bad Request: Missing fields, invalid payload, or attempt to modify linked resource
- *       lists.
+ *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name or attempt to modify
+ *       linked resource lists.
  *   <li>404 Not Found: Integration with specified ID was not found.
  *   <li>500 Internal Server Error: Unexpected error during processing or external service failure.
  * </ul>
@@ -147,15 +149,28 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
     }
 
     @Override
-    protected RestResponse validatePayload(JsonNode root, JsonNode resource) {
-        return ContentUtils.validateRequiredFields(
-                resource,
-                List.of(
-                        Constants.KEY_TITLE,
-                        Constants.KEY_AUTHOR,
-                        Constants.KEY_CATEGORY,
-                        Constants.KEY_DESCRIPTION,
-                        "documentation"));
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        RestResponse requiredFields =
+                ContentUtils.validateRequiredFields(
+                        resource,
+                        List.of(
+                                Constants.KEY_TITLE,
+                                Constants.KEY_AUTHOR,
+                                Constants.KEY_CATEGORY,
+                                Constants.KEY_DESCRIPTION,
+                                "documentation"));
+        if (requiredFields != null) return requiredFields;
+
+        String title = resource.get(Constants.KEY_TITLE).asText();
+        String id = resource.get(Constants.KEY_ID).asText();
+
+        return DocumentValidations.validateDuplicateTitle(
+                client,
+                Constants.INDEX_INTEGRATIONS,
+                Space.DRAFT.toString(),
+                title,
+                id,
+                Constants.KEY_INTEGRATION);
     }
 
     @Override

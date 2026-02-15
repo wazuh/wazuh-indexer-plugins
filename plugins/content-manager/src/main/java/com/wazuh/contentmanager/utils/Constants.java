@@ -52,6 +52,8 @@ public class Constants {
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
+    public static final String E_400_DUPLICATE_NAME =
+            "A %s with the name '%s' already exists in the %s space.";
 
     // Log messages
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -148,6 +150,7 @@ public class Constants {
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
     public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_DOCUMENT_TITLE = "document.title";
     public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
 

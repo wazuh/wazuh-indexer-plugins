@@ -54,7 +54,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <ul>
  *   <li>201 Created: Rule created successfully.
- *   <li>400 Bad Request: Missing fields, invalid payload, or parent integration validation failure.
+ *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name or parent integration
+ *       validation failure.
  *   <li>500 Internal Server Error: SAP error or unexpected error.
  * </ul>
  */
@@ -103,6 +104,12 @@ public class RestPostRuleAction extends AbstractCreateAction {
         RestResponse fieldValidation =
                 ContentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
         if (fieldValidation != null) return fieldValidation;
+
+        String title = resource.get(Constants.KEY_TITLE).asText();
+        RestResponse duplicateValidation =
+                DocumentValidations.validateDuplicateTitle(
+                        client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, null, Constants.KEY_RULE);
+        if (duplicateValidation != null) return duplicateValidation;
 
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
         String spaceError =

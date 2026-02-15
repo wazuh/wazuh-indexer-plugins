@@ -36,6 +36,7 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -113,6 +114,17 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         if (fieldValidation != null) {
             return fieldValidation;
         }
+
+        String title = resource.get(Constants.KEY_TITLE).asText();
+        RestResponse duplicateValidation =
+                DocumentValidations.validateDuplicateTitle(
+                        client,
+                        Constants.INDEX_INTEGRATIONS,
+                        Space.DRAFT.toString(),
+                        title,
+                        null,
+                        Constants.KEY_INTEGRATION);
+        if (duplicateValidation != null) return duplicateValidation;
 
         ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
         ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());

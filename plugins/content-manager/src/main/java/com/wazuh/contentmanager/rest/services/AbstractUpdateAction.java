@@ -126,7 +126,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             resourceNode.put(Constants.KEY_ID, id);
 
             // 5. Resource Specific Validation
-            validationError = this.validatePayload(rootNode, resourceNode);
+            validationError = this.validatePayload(client, rootNode, resourceNode);
             if (validationError != null) {
                 log.warn(
                         "Business logic validation failed for {} [{}]: {}",
@@ -235,7 +235,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
      *
      * @return null if valid, RestResponse with error otherwise.
      */
-    protected abstract RestResponse validatePayload(JsonNode root, JsonNode resource);
+    protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     /**
      * Synchronizes the new resource with external services (Engine validation or SAP upsert).
