@@ -17,66 +17,51 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /**
- * REST handler for updating CTI decoders.
+ * PUT /_plugins/content-manager/decoders/{id}
  *
- * <p>Endpoint: PUT /_plugins/content-manager/decoders/{decoder_id}
+ * <p>Updates an existing Decoder in the draft space.
  *
- * <p>This handler processes decoder update requests. The decoder is validated against the Wazuh
- * engine before being stored in the index with DRAFT space.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The decoder exists and is in the draft space.
+ *   <li>The request body contains valid decoder content.
+ *   <li>Immutable metadata (creation date in author block) is preserved.
+ *   <li>The updated decoder content is validated by the Engine.
+ *   <li>The decoder is re-indexed and the space hash is recalculated.
+ * </ul>
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
- *   <li>200 OK: Decoder updated successfully after engine validation.
- *   <li>400 Bad Request: Missing or invalid request body, decoder ID mismatch, or validation error.
- *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ *   <li>200 OK: Decoder updated successfully.
+ *   <li>400 Bad Request: Missing fields, invalid payload, or Engine validation failure.
+ *   <li>404 Not Found: Decoder with specified ID was not found.
+ *   <li>500 Internal Server Error: Engine unavailable or unexpected error.
  * </ul>
  */
-public class RestPutDecoderAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPutDecoderAction.class);
+public class RestPutDecoderAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_update";
 
-    private final EngineService engine;
-    private final ObjectMapper mapper = new ObjectMapper();
-    private PolicyHashService policyHashService;
-
-    /**
-     * Constructs a new RestPutDecoderAction handler.
-     *
-     * @param engine the engine service instance for communication with the Wazuh engine
-     */
     public RestPutDecoderAction(EngineService engine) {
-        this.engine = engine;
+        super(engine);
     }
 
     /** Return a short identifier for this handler. */
@@ -100,156 +85,34 @@ public class RestPutDecoderAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for processing.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        // Consume path params early to avoid unrecognized parameter errors.
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_DECODERS;
     }
 
-    /**
-     * Sets the policy hash service.
-     *
-     * @param policyHashService The service responsible for calculating policy hashes.
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_DECODER;
     }
 
-    /**
-     * Handles the decoder update request.
-     *
-     * <p>This method validates the request payload, ensures the decoder ID matches, validates the
-     * decoder with the Wazuh engine, and stores the updated decoder in the index.
-     *
-     * @param request the incoming REST request containing the decoder data to update
-     * @param client the OpenSearch client for index operations
-     * @return a RestResponse indicating success or failure of the update
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        // Validate prerequisites
-        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
-        if (validationError != null) {
-            return validationError;
-        }
+    @Override
+    protected boolean isDecoder() {
+        return true;
+    }
 
-        try {
-            String decoderId = request.param(Constants.KEY_ID);
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        return null;
+    }
 
-            // Validate ID is present
-            validationError = DocumentValidations.validateRequiredParam(decoderId, Constants.KEY_ID);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            // Validate UUID format
-            validationError = DocumentValidations.validateUUID(decoderId);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            JsonNode payload;
-            try {
-                payload = this.mapper.readTree(request.content().streamInput());
-            } catch (IOException e) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Validate payload structure
-            validationError = DocumentValidations.validateResourcePayload(payload, decoderId, false);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
-            resourceNode.put(Constants.KEY_ID, decoderId);
-
-            // Check non-modifiable fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode, true);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            // Check if decoder exists
-            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-            if (!decoderIndex.exists(decoderId)) {
-                return new RestResponse(
-                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
-            }
-
-            // Validate decoder is in draft space
-            String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_DECODERS, decoderId, Constants.KEY_DECODER);
-            if (spaceValidationError != null) {
-                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Fetch existing decoder to preserve creation date
-            JsonNode existingDoc = decoderIndex.getDocument(decoderId);
-            if (existingDoc == null) {
-                return new RestResponse(
-                        "Decoder [" + decoderId + "] not found.", RestStatus.NOT_FOUND.getStatus());
-            }
-
-            String existingDate = null;
-            if (existingDoc.has(Constants.KEY_DOCUMENT)) {
-                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-                if (doc.has(Constants.KEY_METADATA)) {
-                    JsonNode meta = doc.get(Constants.KEY_METADATA);
-                    if (meta.has(Constants.KEY_AUTHOR)) {
-                        JsonNode auth = meta.get(Constants.KEY_AUTHOR);
-                        if (auth.has(Constants.KEY_DATE)) {
-                            existingDate = auth.get(Constants.KEY_DATE).asText();
-                        }
-                    }
-                }
-            }
-
-            // Update timestamp
-            ContentUtils.updateTimestampMetadata(resourceNode, false, true);
-
-            // Restore creation date if found
-            if (existingDate != null) {
-                ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
-                        .put(Constants.KEY_DATE, existingDate);
-            }
-
-            // Validate decoder with Wazuh Engine
-            RestResponse engineValidation =
-                    this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
-            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                log.error(Constants.E_LOG_ENGINE_VALIDATION, engineValidation.getMessage());
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Update decoder
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
-
-            decoderIndex.create(decoderId, ctiWrapper, true);
-
-            // Regenerate space hash because decoder content changed
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse(decoderId, RestStatus.OK.getStatus());
-
-        } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_DECODER, e.getMessage(), e);
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_DECODER, resource);
+        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Engine Validation Failed: " + engineValidation.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
+        return null;
     }
 }

@@ -115,11 +115,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
             LocalConsumer updated =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
-                            lastAppliedOffset,
-                            toOffset,
-                            current.getSnapshotLink());
+                            this.context, this.consumer, lastAppliedOffset, toOffset, current.getSnapshotLink());
             this.consumersIndex.setConsumer(updated);
 
             log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
@@ -148,7 +144,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload);
+                            index.create(id, payload, false);
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }

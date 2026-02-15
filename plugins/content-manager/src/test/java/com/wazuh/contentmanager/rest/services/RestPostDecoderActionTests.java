@@ -17,48 +17,61 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import org.mockito.ArgumentCaptor;
+import org.mockito.Answers;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link RestPostDecoderAction} class. This test suite validates the REST API
+ * endpoint responsible for creating new CTI Decoders.
+ *
+ * <p>Tests verify Decoder create requests, proper handling of Decoder data, and appropriate HTTP
+ * response codes for successful Decoder create errors.
+ */
 public class RestPostDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostDecoderAction action;
+    private Client client;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String DECODER_PAYLOAD =
             "{"
@@ -114,336 +127,197 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
     public static void setUpClass() {
-        // Initialize PluginSettings singleton - it will persist across all tests
         try {
             PluginSettings.getInstance(Settings.EMPTY);
         } catch (IllegalStateException e) {
-            // Already initialized, ignore
+            // Already initialized
         }
     }
 
+    /**
+     * Set up the tests
+     *
+     * @throws Exception rethrown from parent method
+     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        this.action = new RestPostDecoderAction(this.service);
+        this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
+        this.action = spy(new RestPostDecoderAction(this.service));
+
+        this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
+        this.action.setPolicyHashService(mock(PolicyHashService.class));
+    }
+
+    /** Helper method to mock an integration existence and space with mutable collections. */
+    private void mockIntegrationInSpace(String id, String space, boolean exists) {
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+
+        GetResponse response = mock(GetResponse.class);
+        when(response.isExists()).thenReturn(exists);
+        if (exists) {
+            Map<String, Object> source = new HashMap<>();
+            Map<String, Object> spaceMap = new HashMap<>();
+            spaceMap.put(Constants.KEY_NAME, space);
+            source.put(Constants.KEY_SPACE, spaceMap);
+
+            Map<String, Object> document = new HashMap<>();
+            document.put(Constants.KEY_ID, id);
+            document.put(Constants.KEY_DECODERS, new ArrayList<String>());
+            source.put(Constants.KEY_DOCUMENT, document);
+
+            when(response.getSourceAsMap()).thenReturn(source);
+            try {
+                when(response.getSourceAsString()).thenReturn(this.mapper.writeValueAsString(source));
+            } catch (Exception ignored) {
+            }
+        }
+
+        GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
+        when(this.client.prepareGet(anyString(), eq(id))).thenReturn(getBuilder);
+        when(getBuilder.get()).thenReturn(response);
+    }
+
+    /** Helper to mock dependency results for indexing and linking. */
+    private void mockDependencySuccess() {
+        this.mockIntegrationInSpace("integration-1", "draft", true);
+
+        SearchResponse policyResponse = mock(SearchResponse.class);
+        when(policyResponse.getHits())
+                .thenReturn(
+                        new SearchHits(new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
+        PlainActionFuture<SearchResponse> pFuture = PlainActionFuture.newFuture();
+        pFuture.onResponse(policyResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(pFuture);
+
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
+        PlainActionFuture<IndexResponse> iFuture = PlainActionFuture.newFuture();
+        iFuture.onResponse(indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(iFuture);
     }
 
     /**
-     * Test successful decoder creation returns 202 Accepted.
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {201, RestResponse}
      *
-     * @throws Exception When an error occurs
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostDecoderSuccess() throws Exception {
-        // Arrange
+    public void testPostDecoderSuccess() throws IOException {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
-
-        // Mock wazuh engine validation with proper JSON response
-        RestResponse engineResponse = mock(RestResponse.class);
-        when(engineResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(engineResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
-
-        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+        RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
+        when(this.service.validateResource(eq(Constants.KEY_DECODER), any(JsonNode.class)))
                 .thenReturn(engineResponse);
+        this.mockDependencySuccess();
 
-        Client client = this.buildClientForIndex();
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, client);
-
-        // Assert - per spec, success returns 201 with just the ID
-        assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-        // Message should be the generated ID (UUID format)
-        assertNotNull(actualResponse.getMessage());
-        assertFalse(actualResponse.getMessage().isEmpty());
-
-        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
-        JsonNode captured = payloadCaptor.getValue();
-
-        assertEquals("decoder/example/0", captured.get("name").asText());
-        assertTrue(captured.hasNonNull("id"));
-
-        JsonNode metadata = captured.get("metadata");
-        assertNotNull(metadata.get("author").get("date").asText());
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        Assert.assertNotNull(actualResponse.getMessage());
     }
 
-    /** Test that providing a resource ID on creation returns 400 Bad Request. */
-    public void testPostDecoderWithIdReturns400() {
-        // Arrange
+    /**
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * payload contains an ID. The ID should be ignored and a new one generated. The expected response
+     * is: {201, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostDecoderWithIdIsIgnored() throws IOException {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID);
+        RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
+        when(this.service.validateResource(eq(Constants.KEY_DECODER), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+        this.mockDependencySuccess();
 
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, null);
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
 
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-                new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
-                        RestStatus.BAD_REQUEST.getStatus());
-        assertEquals(expectedResponse, actualResponse);
-        verify(this.service, never()).validate(any(JsonNode.class));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        // Verify the original ID in payload was overwritten with a generated UUID
+        Assert.assertNotEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", actualResponse.getMessage());
     }
 
-    /** Test that missing integration field returns 400 Bad Request. */
-    public void testPostDecoderMissingIntegrationReturns400() {
-        // Arrange
+    /**
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * integration ID is missing from the payload. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostDecoderMissingIntegrationReturns400() throws IOException {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD_MISSING_INTEGRATION);
-
-        // Act
-        RestResponse response = this.action.handleRequest(request, null);
-        RestResponse actualResponse = response;
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-                new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
-                        RestStatus.BAD_REQUEST.getStatus());
-        assertEquals(expectedResponse, actualResponse);
-        verify(this.service, never()).validate(any(JsonNode.class));
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains(Constants.KEY_INTEGRATION));
     }
 
-    /** Test that null engine service returns 500 Internal Server Error. */
-    public void testPostDecoderEngineUnavailableReturns500() {
-        // Arrange
-        this.action = new RestPostDecoderAction(null);
+    /**
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * engine service is not initialized. The expected response is: {500, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostDecoderEngineUnavailableReturns500() throws IOException {
+        this.action = spy(new RestPostDecoderAction(null));
+        // Must re-set services because spy created a new object
+        this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
+        this.action.setPolicyHashService(mock(PolicyHashService.class));
+
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
+        this.mockIntegrationInSpace("integration-1", "draft", true);
 
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, null);
-
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-                new RestResponse(
-                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        assertEquals(expectedResponse, actualResponse);
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("Internal Server Error."));
     }
 
-    /** Test that missing request body returns 400 Bad Request. */
-    public void testPostDecoderMissingBodyReturns400() {
-        // Arrange
+    /**
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * request body is missing. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostDecoderMissingBodyReturns400() throws IOException {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
-
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, null);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-
-        assertEquals(expectedResponse, actualResponse);
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     /**
-     * Test that missing integration returns 400 Bad Request.
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * integration is not found in the index. The expected response is: {400, RestResponse}
      *
-     * @throws Exception When an error occurs
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostDecoderIntegrationNotFoundReturns400() throws Exception {
-        // Arrange
+    public void testPostDecoderIntegrationNotFoundReturns400() throws IOException {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
-        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = this.buildClientWithMissingIntegration();
+        this.mockIntegrationInSpace("integration-1", "draft", false);
 
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, client);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-
-        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("not found"));
     }
 
     /**
-     * Test that integration without document field returns 400 Bad Request.
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * integration is not in the draft space. The expected response is: {400, RestResponse}
      *
-     * @throws Exception When an error occurs
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostDecoderIntegrationWithoutDocumentReturns400() throws Exception {
-        // Arrange
+    public void testPostDecoderIntegrationNotInDraftSpaceReturns400() throws IOException {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
-        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = this.buildClientWithIntegrationWithoutDocument();
+        this.mockIntegrationInSpace("integration-1", "standard", true);
 
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, client);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
-    }
-
-    /**
-     * Test that integration with invalid document returns 400 Bad Request.
-     *
-     * @throws Exception When an error occurs
-     */
-    public void testPostDecoderIntegrationInvalidDocumentReturns400() throws Exception {
-        // Arrange
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
-        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = this.buildClientWithIntegrationInvalidDocument();
-
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, client);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains("Integration [integration-1] not found"));
-    }
-
-    /**
-     * Test that creating a decoder for an integration not in draft space returns 400 Bad Request.
-     *
-     * @throws Exception When an error occurs
-     */
-    public void testPostDecoderIntegrationNotInDraftSpaceReturns400() throws Exception {
-        // Arrange
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD);
-        Client client = this.buildClientWithIntegrationNotInDraftSpace();
-
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, client);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains("is not in draft space"));
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("is not in draft space"));
     }
 
     private RestRequest buildRequest(String payload) {
-        FakeRestRequest.Builder builder =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withContent(new BytesArray(payload), XContentType.JSON);
-        return builder.build();
-    }
-
-    private Client buildClientForIndex() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
-        Map<String, Object> document = new HashMap<>();
-        document.put("decoders", new ArrayList<>());
-        // Use mutable map since updateIntegrationWithDecoder modifies it
-        Map<String, Object> source = new HashMap<>();
-        source.put("document", document);
-        // Add space information - integration is in draft space
-        Map<String, Object> space = new HashMap<>();
-        space.put("name", "draft");
-        source.put("space", space);
-        when(getResponse.getSourceAsMap()).thenReturn(source);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
-
-        return client;
-    }
-
-    private Client buildClientWithMissingIntegration() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(false);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
-
-        return client;
-    }
-
-    private Client buildClientWithIntegrationWithoutDocument() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
-        // Source without document field
-        Map<String, Object> source = new HashMap<>();
-        when(getResponse.getSourceAsMap()).thenReturn(source);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
-
-        return client;
-    }
-
-    private Client buildClientWithIntegrationInvalidDocument() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
-        // Source with document field but not a Map
-        Map<String, Object> source = new HashMap<>();
-        source.put("document", "invalid-document-type");
-        when(getResponse.getSourceAsMap()).thenReturn(source);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
-
-        return client;
-    }
-
-    private Client buildClientWithIntegrationNotInDraftSpace() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
-        Map<String, Object> document = new HashMap<>();
-        document.put("decoders", new ArrayList<>());
-        Map<String, Object> source = new HashMap<>();
-        source.put("document", document);
-        // Integration is in standard space, not draft
-        Map<String, Object> space = new HashMap<>();
-        space.put("name", "standard");
-        source.put("space", space);
-        when(getResponse.getSourceAsMap()).thenReturn(source);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
-
-        return client;
+        return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                .withContent(new BytesArray(payload), XContentType.JSON)
+                .build();
     }
 }

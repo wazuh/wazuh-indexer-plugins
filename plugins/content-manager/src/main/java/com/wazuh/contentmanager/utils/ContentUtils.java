@@ -113,46 +113,12 @@ public class ContentUtils {
     }
 
     /**
-     * Validates that the resource structure does not contain system-managed date or modified fields.
-     *
-     * <p>If {@code isDecoder} is true, checks {@code metadata.author.date} and {@code
-     * metadata.author.modified}. Otherwise, checks {@code date} and {@code modified} at the root of
-     * the resource.
-     *
-     * @param resourceNode The resource JSON node.
-     * @param isDecoder True if the resource is a decoder, false for other resources (Integration,
-     *     Rule, KVDB).
-     * @return RestResponse if validation fails, null otherwise.
-     */
-    public static RestResponse validateMetadataFields(JsonNode resourceNode, boolean isDecoder) {
-        if (isDecoder) {
-            if (resourceNode.has(Constants.KEY_METADATA)) {
-                JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
-                if (metadata.has(Constants.KEY_AUTHOR)) {
-                    JsonNode author = metadata.get(Constants.KEY_AUTHOR);
-                    if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
-                        return new RestResponse(
-                                Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-                    }
-                }
-            }
-        } else {
-            if (resourceNode.has(Constants.KEY_DATE) || resourceNode.has(Constants.KEY_MODIFIED)) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-        }
-        return null;
-    }
-
-    /**
      * Builds the standard CTI wrapper payload containing type, document, space, and hash.
      *
      * @param resourceNode The content of the resource.
      * @param spaceName The space name (e.g., "draft").
      * @return The constructed JsonNode wrapper.
      */
-    // TODO: Study if it can be deleted
     public static JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = mapper.createObjectNode();
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
@@ -212,9 +178,10 @@ public class ContentUtils {
      * @param client OpenSearch client.
      * @param resourceId The ID of the resource to unlink.
      * @param listKey The key of the list field in the integration document (e.g., "rules").
+     * @throws IOException If searching or updating the integration fails.
      */
     public static void unlinkResourceFromIntegrations(
-            Client client, String resourceId, String listKey) {
+            Client client, String resourceId, String listKey) throws IOException {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
         searchRequest
                 .source()
@@ -240,6 +207,7 @@ public class ContentUtils {
             }
         } catch (Exception e) {
             log.error("Error unlinking resource [{}] from integrations: {}", resourceId, e.getMessage());
+            throw new IOException("Failed to unlink resource from integrations: " + e.getMessage(), e);
         }
     }
 
@@ -350,6 +318,38 @@ public class ContentUtils {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Validates that the provided JSON node contains specific mandatory fields. Checks if the field
+     * exists and is not null. For text fields, it also checks if they are blank. Objects and Arrays
+     * are considered valid if they exist and are not null.
+     *
+     * @param resource The JSON node to validate (usually the 'resource' object).
+     * @param requiredFields A list of keys that must be present.
+     * @return A RestResponse with an error if a field is missing or invalid, or null if valid.
+     */
+    public static RestResponse validateRequiredFields(
+            JsonNode resource, List<String> requiredFields) {
+        if (resource == null) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        for (String field : requiredFields) {
+            if (!resource.has(field)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            JsonNode node = resource.get(field);
+            if (node.isNull() || (node.isTextual() && node.asText().isBlank())) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
         return null;
     }
 }

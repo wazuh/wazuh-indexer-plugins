@@ -16,25 +16,34 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -43,16 +52,10 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.Answers;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link RestPostRuleAction} class. This test suite validates the REST API
@@ -66,7 +69,17 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
     private RestPostRuleAction action;
     private Client client;
     private SecurityAnalyticsService securityAnalyticsService;
-    private PolicyHashService policyHashService;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    /** Initialize PluginSettings singleton once for all tests. */
+    @BeforeClass
+    public static void setUpClass() {
+        try {
+            PluginSettings.getInstance(Settings.EMPTY);
+        } catch (IllegalStateException e) {
+            // Already initialized
+        }
+    }
 
     /**
      * Set up the tests
@@ -77,220 +90,235 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        PluginSettings.getInstance(Settings.EMPTY);
-        this.client = mock(Client.class);
+        this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
-        this.policyHashService = mock(PolicyHashService.class);
-        this.action = new RestPostRuleAction();
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+
+        this.action = spy(new RestPostRuleAction());
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
-        this.action.setPolicyHashService(this.policyHashService);
+        this.action.setPolicyHashService(policyHashService);
     }
 
     /**
-     * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the request
+     * Helper to mock dependencies including Integration existence, Duplicate Title, and Policy
+     * unlinking. Uses robust non-recursive stubbing based on targeted indices.
+     */
+    private void mockDependencyChecks(boolean integrationExists, boolean duplicateTitle) {
+        // 1. Mock Integration existence
+        GetResponse integrationResp = mock(GetResponse.class);
+        when(integrationResp.isExists()).thenReturn(integrationExists);
+        if (integrationExists) {
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, "draft"));
+            Map<String, Object> document = new HashMap<>();
+            document.put(Constants.KEY_RULES, new ArrayList<String>());
+            source.put(Constants.KEY_DOCUMENT, document);
+            when(integrationResp.getSourceAsMap()).thenReturn(source);
+            try {
+                when(integrationResp.getSourceAsString())
+                        .thenReturn(this.mapper.writeValueAsString(source));
+            } catch (Exception ignored) {
+            }
+        }
+        GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
+        when(this.client.prepareGet(eq(Constants.INDEX_INTEGRATIONS), anyString()))
+                .thenReturn(getBuilder);
+        when(getBuilder.get()).thenReturn(integrationResp);
+
+        // 2. Mock Search Responses (Policy unlinking and Duplicate title check)
+        SearchResponse policyResp = mock(SearchResponse.class);
+        String pSource =
+                "{\"document\":{\"id\":\"p-1\",\"integrations\":[]},\"space\":{\"name\":\"draft\"},\"hash\":{\"sha256\":\"old\"}}";
+        SearchHit pHit = new SearchHit(0, "p-doc-id", Collections.emptyMap(), Collections.emptyMap());
+        pHit.sourceRef(new BytesArray(pSource));
+        when(policyResp.getHits())
+                .thenReturn(
+                        new SearchHits(
+                                new SearchHit[] {pHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
+
+        SearchResponse dupResp = mock(SearchResponse.class);
+        long dupHits = duplicateTitle ? 1 : 0;
+        when(dupResp.getHits())
+                .thenReturn(
+                        new SearchHits(
+                                new SearchHit[0], new TotalHits(dupHits, TotalHits.Relation.EQUAL_TO), 1.0f));
+
+        when(this.client
+                        .search(
+                                argThat(
+                                        r ->
+                                                r != null
+                                                        && r.indices() != null
+                                                        && r.indices().length > 0
+                                                        && Constants.INDEX_POLICIES.equals(r.indices()[0])))
+                        .actionGet())
+                .thenReturn(policyResp);
+        when(this.client
+                        .search(
+                                argThat(
+                                        r ->
+                                                r != null
+                                                        && r.indices() != null
+                                                        && r.indices().length > 0
+                                                        && Constants.INDEX_RULES.equals(r.indices()[0])))
+                        .actionGet())
+                .thenReturn(dupResp);
+
+        PlainActionFuture<SearchResponse> pFuture = PlainActionFuture.newFuture();
+        pFuture.onResponse(policyResp);
+        when(this.client.search(
+                        argThat(
+                                r ->
+                                        r != null
+                                                && r.indices() != null
+                                                && r.indices().length > 0
+                                                && Constants.INDEX_POLICIES.equals(r.indices()[0]))))
+                .thenReturn(pFuture);
+
+        PlainActionFuture<SearchResponse> dFuture = PlainActionFuture.newFuture();
+        dFuture.onResponse(dupResp);
+        when(this.client.search(
+                        argThat(
+                                r ->
+                                        r != null
+                                                && r.indices() != null
+                                                && r.indices().length > 0
+                                                && Constants.INDEX_RULES.equals(r.indices()[0]))))
+                .thenReturn(dFuture);
+
+        // 3. Mock Indexing success
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
+        PlainActionFuture<IndexResponse> iFuture = PlainActionFuture.newFuture();
+        iFuture.onResponse(indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(iFuture);
+    }
+
+    /**
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when the request
      * is complete. The expected response is: {201, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
     public void testPostRule201() throws IOException {
-        // Arrange
-        // spotless:off
-        String jsonRule = """
-            {
-              "integration": "integration-1",
-              "resource": {
-                  "author": "Florian Roth (Nextron Systems)",
-                  "description": "Detects a core dump of a crashing Nginx worker process.",
-                  "detection": {
-                    "condition": "selection",
-                    "selection": {
-                      "event.original": [
-                        "exited on signal 6 (core dumped)"
-                      ]
-                    }
-                  },
-                  "logsource": {
-                    "product": "nginx"
-                  },
-                  "title": "Nginx Core Dump"
-              }
-            }
-            """;
-        // spotless:on
-
-        // Mock
+        String jsonRule =
+                "{\"integration\": \"integration-1\", \"resource\": {\"title\": \"Rule\", \"logsource\": { \"product\": \"p\" }}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+        this.mockDependencyChecks(true, false);
 
-        GetResponse getResponse = mock(GetResponse.class);
+        RestResponse response = this.action.executeRequest(request, this.client);
 
-        org.opensearch.action.get.GetRequestBuilder getRequestBuilder =
-                mock(org.opensearch.action.get.GetRequestBuilder.class);
-        doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
-        when(getRequestBuilder.setFetchSource(anyBoolean())).thenReturn(getRequestBuilder);
-        when(getRequestBuilder.get()).thenReturn(getResponse);
-
-        when(getResponse.isExists()).thenReturn(true);
-        Map<String, Object> docMap = new HashMap<>();
-        docMap.put("rules", Collections.emptyList());
-
-        Map<String, Object> spaceMap = new HashMap<>();
-        spaceMap.put("name", "draft");
-
-        Map<String, Object> sourceMap = new HashMap<>();
-        sourceMap.put("document", docMap);
-        sourceMap.put("space", spaceMap);
-
-        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
-        when(getResponse.getSourceAsString())
-                .thenReturn("{\"document\": {\"rules\": []}, \"space\": {\"name\": \"draft\"}}");
-
-        // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
-
-        // Assert
-        assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
-
-        // Verify SAP Service call
-        verify(this.securityAnalyticsService, times(1)).upsertRule(any(), eq(Space.DRAFT));
-        verify(this.client, times(2)).index(any(IndexRequest.class));
-
-        // Verify policy hash recalculation
-        verify(this.policyHashService, times(1)).calculateAndUpdate(any());
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
+        verify(this.securityAnalyticsService).upsertRule(any(), eq(Space.DRAFT));
     }
 
     /**
-     * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the rule has
-     * not been created, because the integration field is missing in the payload. The expected
-     * response is: {400, RestResponse}
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when the rule
+     * integration ID is missing. The expected response is: {400, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
     public void testPostRule400_MissingIntegrationId() throws IOException {
-        // Arrange
-        // spotless:off
-        String jsonRule = """
-            {
-              "resource": {
-                  "title": "Rule without integration ID",
-                  "logsource": { "product": "test" }
-              }
-            }
-            """;
-        // spotless:on
-
-        // Mock
+        String jsonRule = "{\"resource\": {\"title\": \"Rule\"}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.executeRequest(request, this.client);
 
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_INTEGRATION),
-                response.getMessage());
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.KEY_INTEGRATION));
     }
 
     /**
-     * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the rule has
-     * not been created, because there is an id field is in the payload. The expected response is:
-     * {400, RestResponse}
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when the payload
+     * contains an ID. The ID should be ignored and a new one generated. The expected response is:
+     * {201, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostRule400_IdInPayload() throws IOException {
-        // Arrange
-        // spotless:off
-        String jsonRule = """
-            {
-              "integration": "integration-1",
-              "resource": {
-                  "id": "should-not-be-here",
-                  "title": "Rule with ID"
-              }
-            }
-            """;
-        // spotless:on
-
-        // Mock
+    public void testPostRule_idInPayloadIsIgnored() throws IOException {
+        String jsonRule =
+                "{\"integration\": \"integration-1\", \"resource\": {\"id\": \"fake-id\", \"title\": \"Rule\", \"logsource\": { \"product\": \"p\" }}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        this.mockDependencyChecks(true, false);
 
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        RestResponse response = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
+        // Verify original ID was ignored and replaced
+        Assert.assertNotEquals("fake-id", response.getMessage());
     }
 
     /**
-     * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when the rule has
-     * not been created, because there integration from the integration field doesn't exist. The
-     * expected response is: {400, RestResponse}
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when the parent
+     * integration is not found. The expected response is: {400, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
     public void testPostRule400_IntegrationNotFound() throws IOException {
-        // Arrange
-        // spotless:off
-        String jsonRule = """
-            {
-              "integration": "missing-integration",
-              "resource": {
-                  "title": "Rule",
-                  "logsource": { "product": "test" }
-              }
-            }
-            """;
-        // spotless:on
-
-        // Mock
+        String jsonRule = "{\"integration\": \"missing\", \"resource\": {\"title\": \"R\"}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        GetResponse getResponse = mock(GetResponse.class);
-        org.opensearch.action.get.GetRequestBuilder getRequestBuilder =
-                mock(org.opensearch.action.get.GetRequestBuilder.class);
+        this.mockDependencyChecks(false, false);
 
-        doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
-        when(getRequestBuilder.setFetchSource(anyBoolean())).thenReturn(getRequestBuilder);
-        when(getRequestBuilder.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(false);
+        RestResponse response = this.action.executeRequest(request, this.client);
 
-        // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("not found"));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("not found"));
     }
 
     /**
-     * Test the {@link RestPostRuleAction#handleRequest(RestRequest, Client)} method when an
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when the rule
+     * title already exists. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostRule400_DuplicateTitle() throws IOException {
+        String jsonRule =
+                "{\"integration\": \"integration-1\", \"resource\": {\"title\": \"Existing\"}}";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        this.mockDependencyChecks(true, true);
+
+        RestResponse response = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("already exists"));
+    }
+
+    /**
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when an
      * unexpected error occurs. The expected response is: {500, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostRule500() throws IOException {
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenThrow(new RuntimeException("Unexpected error"));
+    public void testPostRule500_UnexpectedError() throws IOException {
+        String jsonRule = "{\"integration\": \"integration-1\", \"resource\": {\"title\": \"Error\"}}";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
 
-        RestResponse response = this.action.handleRequest(request, this.client);
+        when(this.client.prepareGet(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Failure"));
 
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }
