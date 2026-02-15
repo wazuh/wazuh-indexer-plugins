@@ -323,11 +323,12 @@ public class ContentUtils {
 
     /**
      * Validates that the provided JSON node contains specific mandatory fields. Checks if the field
-     * exists and if its text representation is not blank.
+     * exists and is not null. For text fields, it also checks if they are blank. Objects and Arrays
+     * are considered valid if they exist and are not null.
      *
      * @param resource The JSON node to validate (usually the 'resource' object).
      * @param requiredFields A list of keys that must be present.
-     * @return A RestResponse with an error if a field is missing, or null if valid.
+     * @return A RestResponse with an error if a field is missing or invalid, or null if valid.
      */
     public static RestResponse validateRequiredFields(
             JsonNode resource, List<String> requiredFields) {
@@ -337,7 +338,13 @@ public class ContentUtils {
         }
 
         for (String field : requiredFields) {
-            if (!resource.has(field) || resource.get(field).asText().isBlank()) {
+            if (!resource.has(field)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            JsonNode node = resource.get(field);
+            if (node.isNull() || (node.isTextual() && node.asText().isBlank())) {
                 return new RestResponse(
                         String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
                         RestStatus.BAD_REQUEST.getStatus());

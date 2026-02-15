@@ -106,7 +106,6 @@ public class DocumentValidations {
                             .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space))
                             .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_TITLE, title)));
             sourceBuilder.size(1);
-            // We only need the ID to compare
             sourceBuilder.fetchSource(false);
 
             searchRequest.source(sourceBuilder);
