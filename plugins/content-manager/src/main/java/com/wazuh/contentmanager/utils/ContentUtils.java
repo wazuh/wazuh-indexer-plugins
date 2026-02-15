@@ -178,9 +178,10 @@ public class ContentUtils {
      * @param client OpenSearch client.
      * @param resourceId The ID of the resource to unlink.
      * @param listKey The key of the list field in the integration document (e.g., "rules").
+     * @throws IOException If searching or updating the integration fails.
      */
     public static void unlinkResourceFromIntegrations(
-            Client client, String resourceId, String listKey) {
+            Client client, String resourceId, String listKey) throws IOException {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
         searchRequest
                 .source()
@@ -206,6 +207,7 @@ public class ContentUtils {
             }
         } catch (Exception e) {
             log.error("Error unlinking resource [{}] from integrations: {}", resourceId, e.getMessage());
+            throw new IOException("Failed to unlink resource from integrations: " + e.getMessage(), e);
         }
     }
 

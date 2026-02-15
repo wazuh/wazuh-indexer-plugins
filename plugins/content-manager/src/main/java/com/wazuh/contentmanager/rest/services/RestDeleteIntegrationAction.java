@@ -157,45 +157,41 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
      * integrations, and updates the policy hash.
      */
     @Override
-    protected void unlinkFromParent(Client client, String id) {
-        try {
-            ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
-            TermQueryBuilder queryBuilder =
-                    new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-            ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
+    protected void unlinkFromParent(Client client, String id) throws Exception {
+        ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
+        TermQueryBuilder queryBuilder =
+                new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
+        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
 
-            if (searchResult == null
-                    || !searchResult.has(Constants.Q_HITS)
-                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
-                throw new IllegalStateException("Draft policy not found");
+        if (searchResult == null
+                || !searchResult.has(Constants.Q_HITS)
+                || searchResult.get(Constants.Q_HITS).isEmpty()) {
+            throw new IllegalStateException("Draft policy not found");
+        }
+
+        ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+        JsonNode draftPolicyHit = hitsArray.get(0);
+        String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+        JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
+
+        ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
+        if (integrations == null) return;
+
+        ArrayNode updatedIntegrations = MAPPER.createArrayNode();
+        boolean removed = false;
+        for (JsonNode integrationId : integrations) {
+            if (!integrationId.asText().equals(id)) {
+                updatedIntegrations.add(integrationId);
+            } else {
+                removed = true;
             }
+        }
 
-            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-            JsonNode draftPolicyHit = hitsArray.get(0);
-            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
-            JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
-
-            ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
-            if (integrations == null) return;
-
-            ArrayNode updatedIntegrations = MAPPER.createArrayNode();
-            boolean removed = false;
-            for (JsonNode integrationId : integrations) {
-                if (!integrationId.asText().equals(id)) {
-                    updatedIntegrations.add(integrationId);
-                } else {
-                    removed = true;
-                }
-            }
-
-            if (removed) {
-                ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
-                String hash = HashCalculator.sha256(document.toString());
-                ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-                policiesIndex.create(draftPolicyId, draftPolicyHit, false);
-            }
-        } catch (Exception e) {
-            // Error is being thrown in the AbstractClasses
+        if (removed) {
+            ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
+            String hash = HashCalculator.sha256(document.toString());
+            ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+            policiesIndex.create(draftPolicyId, draftPolicyHit, false);
         }
     }
 

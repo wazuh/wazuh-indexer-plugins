@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.rest.services;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
@@ -96,7 +97,7 @@ public class RestDeleteKvdbAction extends AbstractDeleteAction {
     }
 
     @Override
-    protected void unlinkFromParent(Client client, String id) {
+    protected void unlinkFromParent(Client client, String id) throws IOException {
         ContentUtils.unlinkResourceFromIntegrations(client, id, Constants.KEY_KVDBS);
     }
 }

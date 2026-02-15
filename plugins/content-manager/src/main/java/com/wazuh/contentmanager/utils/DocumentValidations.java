@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 /**

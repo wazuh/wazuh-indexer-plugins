@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
@@ -108,22 +109,35 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
             try {
                 this.deleteExternalServices(id);
             } catch (Exception e) {
-                log.warn(
-                        "Failed to delete {} [{}] from external service. Reason: {}",
-                        this.getResourceType(),
-                        id,
-                        e.getMessage());
+                if (this.isNotFoundException(e)) {
+                    log.warn(
+                            "Resource {} [{}] not found in external service, continuing deletion.",
+                            this.getResourceType(),
+                            id);
+                } else {
+                    log.error(
+                            "Failed to delete {} [{}] from external service. Reason: {}",
+                            this.getResourceType(),
+                            id,
+                            e.getMessage());
+                    return new RestResponse(
+                            "Failed to delete from external service: " + e.getMessage(),
+                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                }
             }
 
             // 4. Unlink Parent
             try {
                 this.unlinkFromParent(client, id);
             } catch (Exception e) {
-                log.warn(
+                log.error(
                         "Failed to unlink {} [{}] from parent. Reason: {}",
                         this.getResourceType(),
                         id,
                         e.getMessage());
+                return new RestResponse(
+                        "Failed to unlink from parent: " + e.getMessage(),
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
 
             // 5. Delete from Index
@@ -173,5 +187,24 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
      * Unlinks the just deleted resource to its parent container (e.g., deleting Rule ID to
      * Integration).
      */
-    protected abstract void unlinkFromParent(Client client, String id);
+    protected abstract void unlinkFromParent(Client client, String id) throws Exception;
+
+    /**
+     * Checks if the exception corresponds to a Not Found (404) error.
+     *
+     * @param e The exception to check.
+     * @return true if it is a Not Found error, false otherwise.
+     */
+    private boolean isNotFoundException(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof OpenSearchStatusException statusException) {
+                if (statusException.status() == RestStatus.NOT_FOUND) {
+                    return true;
+                }
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
 }

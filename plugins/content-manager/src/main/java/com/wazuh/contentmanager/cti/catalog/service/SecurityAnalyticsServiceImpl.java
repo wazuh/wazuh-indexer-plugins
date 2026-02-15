@@ -108,7 +108,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
-            throw new OpenSearchException("Failed to delete Integration");
+            throw new OpenSearchException("Failed to delete Integration", e.getMessage());
         }
     }
 
@@ -166,6 +166,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             log.info("Rule [{}] deleted successfully.", id);
         } catch (Exception e) {
             log.error("Failed to delete Rule [{}]: {}", id, e.getMessage());
+            throw new OpenSearchException("Failed to delete Rule", e.getMessage());
         }
     }
 
@@ -215,6 +216,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             log.info("Detector [{}] deleted successfully.", id);
         } catch (Exception e) {
             log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
+            throw new OpenSearchException("Failed to delete Detector", e.getMessage());
         }
     }
 }
