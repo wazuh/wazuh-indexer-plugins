@@ -30,26 +30,11 @@ import org.opensearch.transport.client.Client;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
-/**
- * Utility class providing common validation methods for REST handlers.
- *
- * <p>This class centralizes validation logic for document operations, including:
- *
- * <ul>
- *   <li>Validating documents exist and are in draft space
- *   <li>Validating engine service availability
- *   <li>Validating request content presence
- *   <li>Validates the standard structure of a resource payload
- * </ul>
- *
- * <p>Error messages are normalized to follow the pattern: "[DocType] [ID] [action/state]." TODO get
- * rid of this class completely during refactors. No static methods. Use hierarchy instead.
- */
+/** Utility class providing common validation methods for REST handlers. */
 public class DocumentValidations {
 
     /** Private constructor to prevent instantiation. */
@@ -127,7 +112,7 @@ public class DocumentValidations {
             searchRequest.source(sourceBuilder);
             SearchResponse response = client.search(searchRequest).actionGet();
 
-            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() > 0) {
+            if (response.getHits().getTotalHits().value() > 0) {
                 if (currentId != null) {
                     String foundId = response.getHits().getAt(0).getId();
                     if (foundId.equals(currentId)) {
@@ -177,18 +162,22 @@ public class DocumentValidations {
     }
 
     /**
-     * Validates that a string is a valid UUID format.
+     * Validates that a string is a valid UUID v4 format.
      *
      * @param value the string value to validate as UUID
+     * @param fieldName the name of the field being validated
      * @return a RestResponse with error if validation fails, null otherwise
      */
-    public static RestResponse validateUUID(String value) {
+    public static RestResponse validateUUID(String value, String fieldName) {
         try {
-            java.util.UUID.fromString(value);
+            java.util.UUID uuid = java.util.UUID.fromString(value);
+            if (uuid.version() != 4) {
+                throw new IllegalArgumentException();
+            }
             return null;
         } catch (IllegalArgumentException e) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, value),
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, fieldName),
                     RestStatus.BAD_REQUEST.getStatus());
         }
     }

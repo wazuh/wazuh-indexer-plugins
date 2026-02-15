@@ -66,7 +66,11 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
         // 1. Validate Request Content
         RestResponse validationError = DocumentValidations.validateRequestHasContent(request);
         if (validationError != null) {
-            log.warn("Update failed for {}: Request body is missing.", this.getResourceType());
+            log.warn(
+                    Constants.W_LOG_OPERATION_FAILED,
+                    "Update",
+                    this.getResourceType(),
+                    "Request body is missing");
             return validationError;
         }
 
@@ -77,15 +81,20 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             validationError = DocumentValidations.validateRequiredParam(id, Constants.KEY_ID);
             if (validationError != null) return validationError;
 
-            validationError = DocumentValidations.validateUUID(id);
+            validationError = DocumentValidations.validateUUID(id, Constants.KEY_ID);
             if (validationError != null) {
-                log.warn("Update failed for {}: Invalid UUID [{}]", this.getResourceType(), id);
+                log.warn(
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Update",
+                        this.getResourceType(),
+                        id,
+                        "Invalid UUID");
                 return validationError;
             }
 
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
             if (!index.exists(id)) {
-                log.warn("Update failed: {} [{}] not found.", this.getResourceType(), id);
+                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, this.getResourceType(), id);
                 return new RestResponse(
                         Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
             }
@@ -95,9 +104,11 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
                             client, this.getIndexName(), id, this.getResourceType());
             if (spaceError != null) {
                 log.warn(
-                        "Update failed for {} [{}]: Resource is not in Draft space.",
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Update",
                         this.getResourceType(),
-                        id);
+                        id,
+                        "Resource is not in Draft space");
                 return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -106,7 +117,12 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             try {
                 rootNode = MAPPER.readTree(request.content().streamInput());
             } catch (IOException e) {
-                log.warn("Update failed for {} [{}]: Invalid JSON format.", this.getResourceType(), id);
+                log.warn(
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Update",
+                        this.getResourceType(),
+                        id,
+                        "Invalid JSON format");
                 return new RestResponse(
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
@@ -115,7 +131,8 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             validationError = DocumentValidations.validateResourcePayload(rootNode, false);
             if (validationError != null) {
                 log.warn(
-                        "Payload validation failed for {} [{}]: {}",
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Payload validation",
                         this.getResourceType(),
                         id,
                         validationError.getMessage());
@@ -129,7 +146,8 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             validationError = this.validatePayload(client, rootNode, resourceNode);
             if (validationError != null) {
                 log.warn(
-                        "Business logic validation failed for {} [{}]: {}",
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Business logic validation",
                         this.getResourceType(),
                         id,
                         validationError.getMessage());
@@ -141,7 +159,8 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             validationError = this.preserveMetadata(index, id, resourceNode);
             if (validationError != null) {
                 log.warn(
-                        "Preserve metadata validation failed for {} [{}]: {}",
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Preserve metadata validation",
                         this.getResourceType(),
                         id,
                         validationError.getMessage());
@@ -152,10 +171,11 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             validationError = this.syncExternalServices(id, resourceNode);
             if (validationError != null) {
                 log.error(
-                        "Failed to sync updated {} [{}] with external services. Reason: {}",
+                        Constants.E_LOG_FAILED_TO,
+                        "sync updated",
                         this.getResourceType(),
                         id,
-                        validationError.getMessage());
+                        "with external services. Reason: " + validationError.getMessage());
                 return validationError;
             }
 
@@ -166,15 +186,11 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             // 9. Update Hash
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            log.info("Successfully updated {} [{}]", this.getResourceType(), id);
+            log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error updating {} [{}]. Reason: {}",
-                    this.getResourceType(),
-                    id,
-                    e.getMessage());
+            log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
                     "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }

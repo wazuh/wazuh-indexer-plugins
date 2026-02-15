@@ -66,14 +66,19 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
                     DocumentValidations.validateRequiredParam(id, Constants.KEY_ID);
             if (validationError != null) return validationError;
 
-            validationError = DocumentValidations.validateUUID(id);
+            validationError = DocumentValidations.validateUUID(id, Constants.KEY_ID);
             if (validationError != null) {
-                log.warn("Delete failed for {}: Invalid UUID [{}]", this.getResourceType(), id);
+                log.warn(
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Delete",
+                        this.getResourceType(),
+                        id,
+                        "Invalid UUID");
                 return validationError;
             }
 
             if (!IndexHelper.indexExists(client, this.getIndexName())) {
-                log.error("Delete failed: Index [{}] does not exist.", this.getIndexName());
+                log.error(Constants.E_LOG_INDEX_NOT_FOUND, this.getIndexName());
                 return new RestResponse(
                         "Index not found: " + this.getIndexName(),
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -81,7 +86,7 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
 
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
             if (!index.exists(id)) {
-                log.warn("Delete failed: {} [{}] not found.", this.getResourceType(), id);
+                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, this.getResourceType(), id);
                 return new RestResponse(
                         Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
             }
@@ -90,7 +95,12 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
                     DocumentValidations.validateDocumentInSpace(
                             client, this.getIndexName(), id, this.getResourceType());
             if (spaceError != null) {
-                log.warn("Delete failed: {} [{}] is not in Draft space.", this.getResourceType(), id);
+                log.warn(
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Delete",
+                        this.getResourceType(),
+                        id,
+                        "Resource is not in Draft space");
                 return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -98,7 +108,8 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
             validationError = this.validateDelete(client, id);
             if (validationError != null) {
                 log.warn(
-                        "Delete validation failed for {} [{}]: {}",
+                        Constants.W_LOG_OPERATION_FAILED_ID,
+                        "Delete validation",
                         this.getResourceType(),
                         id,
                         validationError.getMessage());
@@ -110,16 +121,14 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
                 this.deleteExternalServices(id);
             } catch (Exception e) {
                 if (this.isNotFoundException(e)) {
-                    log.warn(
-                            "Resource {} [{}] not found in external service, continuing deletion.",
-                            this.getResourceType(),
-                            id);
+                    log.warn(Constants.W_LOG_EXTERNAL_NOT_FOUND, this.getResourceType(), id);
                 } else {
                     log.error(
-                            "Failed to delete {} [{}] from external service. Reason: {}",
+                            Constants.E_LOG_FAILED_TO,
+                            "delete",
                             this.getResourceType(),
                             id,
-                            e.getMessage());
+                            "from external service: " + e.getMessage());
                     return new RestResponse(
                             "Failed to delete from external service: " + e.getMessage(),
                             RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -131,10 +140,11 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
                 this.unlinkFromParent(client, id);
             } catch (Exception e) {
                 log.error(
-                        "Failed to unlink {} [{}] from parent. Reason: {}",
+                        Constants.E_LOG_FAILED_TO,
+                        "unlink",
                         this.getResourceType(),
                         id,
-                        e.getMessage());
+                        "from parent: " + e.getMessage());
                 return new RestResponse(
                         "Failed to unlink from parent: " + e.getMessage(),
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -146,15 +156,11 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
             // 6. Hash Update
             this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
 
-            log.info("Successfully deleted {} [{}]", this.getResourceType(), id);
+            log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error deleting {} [{}]. Reason: {}",
-                    this.getResourceType(),
-                    id,
-                    e.getMessage());
+            log.error(Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
                     "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
