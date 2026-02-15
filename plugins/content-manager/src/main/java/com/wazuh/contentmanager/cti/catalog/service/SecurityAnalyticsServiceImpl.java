@@ -54,41 +54,39 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void upsertIntegration(JsonNode doc, Space space, Method method) {
-        try {
-            if (!doc.has(Constants.KEY_ID)) {
-                log.warn("Integration document missing ID. Skipping upsert.");
-                return;
-            }
-
-            String id = doc.get(Constants.KEY_ID).asText();
-            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
-            String description =
-                    doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).asText() : "";
-            String category = CategoryFormatter.format(doc, false);
-
-            log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
-
-            WIndexIntegrationRequest request =
-                    new WIndexIntegrationRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            method,
-                            new Integration(
-                                    id,
-                                    null,
-                                    name,
-                                    description,
-                                    category,
-                                    space.asSecurityAnalyticsSource(),
-                                    new HashMap<>()));
-
-            // Execute synchronously to ensure dependency order in Synchronizer
+        WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
+        if (request != null) {
             this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
-            log.info("Integration [{}] synced successfully.", name);
-
-        } catch (Exception e) {
-            log.error("Failed to upsert Integration: {}", e.getMessage());
         }
+    }
+
+    public WIndexIntegrationRequest buildIntegrationRequest(
+            JsonNode doc, Space space, Method method) {
+        if (!doc.has(Constants.KEY_ID)) {
+            log.warn("Integration document missing ID. Skipping upsert.");
+            return null;
+        }
+
+        String id = doc.get(Constants.KEY_ID).asText();
+        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
+        String description =
+                doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).asText() : "";
+        String category = CategoryFormatter.format(doc, false);
+
+        log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
+
+        return new WIndexIntegrationRequest(
+                id,
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                method,
+                new Integration(
+                        id,
+                        null,
+                        name,
+                        description,
+                        category,
+                        space.asSecurityAnalyticsSource(),
+                        new HashMap<>()));
     }
 
     @Override
@@ -114,43 +112,31 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void upsertRule(JsonNode doc, Space space) {
-        try {
-            if (!doc.has(Constants.KEY_ID)) {
-                log.warn("Rule document missing ID. Skipping upsert.");
-                return;
-            }
+        if (!doc.has(Constants.KEY_ID)) {
+            log.warn("Rule document missing ID. Skipping upsert.");
+            return;
+        }
 
-            String id = doc.get(Constants.KEY_ID).asText();
-            String product = ContentIndex.extractProduct(doc);
+        String id = doc.get(Constants.KEY_ID).asText();
+        String product = ContentIndex.extractProduct(doc);
+        String body = doc.toString();
 
-            log.info("Creating/Updating Rule [{}] in SAP", id);
+        log.info("Creating/Updating Rule [{}] in SAP", id);
 
-            if (space != Space.STANDARD) {
-                WIndexCustomRuleRequest ruleRequest =
-                        new WIndexCustomRuleRequest(
-                                id,
-                                WriteRequest.RefreshPolicy.IMMEDIATE,
-                                product,
-                                Method.POST,
-                                doc.toString(),
-                                true);
-                this.client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
-                log.info("Custom Rule [{}] synced successfully.", id);
-            } else {
-                WIndexRuleRequest ruleRequest =
-                        new WIndexRuleRequest(
-                                id,
-                                WriteRequest.RefreshPolicy.IMMEDIATE,
-                                product,
-                                Method.POST,
-                                doc.toString(),
-                                true);
-                this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
-                log.info("Rule [{}] synced successfully.", id);
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to upsert Rule: {}", e.getMessage());
+        if (space != Space.STANDARD) {
+            this.client
+                    .execute(
+                            WIndexCustomRuleAction.INSTANCE,
+                            new WIndexCustomRuleRequest(
+                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, Method.POST, body, true))
+                    .actionGet();
+        } else {
+            this.client
+                    .execute(
+                            WIndexRuleAction.INSTANCE,
+                            new WIndexRuleRequest(
+                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, Method.POST, body, true))
+                    .actionGet();
         }
     }
 
@@ -172,36 +158,34 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void upsertDetector(JsonNode doc, boolean rawCategory) {
-        try {
-            if (!doc.has(Constants.KEY_ID)) {
-                log.warn("Detector document missing ID. Skipping upsert.");
-                return;
-            }
-
-            String id = doc.get(Constants.KEY_ID).asText();
-            String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
-            String category = CategoryFormatter.format(doc, rawCategory);
-            List<String> rules = new ArrayList<>();
-
-            if (doc.has(Constants.KEY_RULES)) {
-                doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
-            }
-            if (rules.isEmpty()) {
-                return;
-            }
-
-            log.info("Creating/Updating Detector [{}] for Integration", name);
-
-            WIndexDetectorRequest request =
-                    new WIndexDetectorRequest(
-                            id, name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
-
+        WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
+        if (request != null) {
             this.client.execute(WIndexDetectorAction.INSTANCE, request).actionGet();
-            log.info("Detector [{}] synced successfully.", name);
-
-        } catch (Exception e) {
-            log.error("Failed to upsert Detector: {}", e.getMessage());
         }
+    }
+
+    public WIndexDetectorRequest buildDetectorRequest(JsonNode doc, boolean rawCategory) {
+        if (!doc.has(Constants.KEY_ID)) {
+            log.warn("Detector document missing ID. Skipping upsert.");
+            return null;
+        }
+
+        String id = doc.get(Constants.KEY_ID).asText();
+        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
+        String category = CategoryFormatter.format(doc, rawCategory);
+        List<String> rules = new ArrayList<>();
+
+        if (doc.has(Constants.KEY_RULES)) {
+            doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
+        }
+        if (rules.isEmpty()) {
+            return null;
+        }
+
+        log.info("Creating/Updating Detector [{}] for Integration", name);
+
+        return new WIndexDetectorRequest(
+                id, name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
     @Override
