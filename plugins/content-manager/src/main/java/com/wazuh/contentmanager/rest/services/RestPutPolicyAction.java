@@ -58,6 +58,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private final SpaceService spaceService;
     private NodeClient client;
     private PolicyHashService policyHashService;
+    private final ContentUtils contentUtils = new ContentUtils();
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -198,7 +199,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             // Validate enrichments: only allowed values, no duplicates
             RestResponse enrichmentsValidationError =
-                    ContentUtils.validateEnrichments(policy.getEnrichments());
+                    this.contentUtils.validateEnrichments(policy.getEnrichments());
             if (enrichmentsValidationError != null) {
                 return enrichmentsValidationError;
             }
@@ -257,7 +258,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
         // Validation for integrations array: allow reordering but prevent addition/removal
         RestResponse validationError =
-                ContentUtils.validateListEquality(
+                this.contentUtils.validateListEquality(
                         currentIntegrations, newIntegrations, Constants.KEY_INTEGRATIONS);
         if (validationError != null) {
             throw new IllegalArgumentException(validationError.getMessage());
@@ -279,10 +280,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
         try {
             // Build CTI wrapper with automatic hash calculation (resource)
-            JsonNode document = ContentUtils.buildCtiWrapper(policyNode, Space.DRAFT.toString());
+            JsonNode document = this.contentUtils.buildCtiWrapper(policyNode, Space.DRAFT.toString());
             String draftPolicyId =
                     this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
-            IndexResponse indexResponse = index.create(draftPolicyId, document);
+            IndexResponse indexResponse = index.create(draftPolicyId, document, false);
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());

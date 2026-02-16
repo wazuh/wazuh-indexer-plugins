@@ -116,7 +116,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -153,7 +153,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "2ebb3a6b-c4a3-47fb-aae5-a0d9bd8cbfed";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, true);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -192,7 +192,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R1";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -230,7 +230,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R2";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -374,7 +374,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "test-resource-id";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
