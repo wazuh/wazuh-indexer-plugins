@@ -459,10 +459,10 @@ class ContentManagerTester:
                 self.tracker.record(name, False)
 
         try:
-            run_step("Integration CRUD", self.test_integration)
-            run_step("Decoder CRUD", self.test_decoder)
-            run_step("KVDB CRUD", self.test_kvdb)
-            run_step("Rule CRUD", self.test_rule)
+            run_step("Integration CUD", self.test_integration)
+            run_step("Decoder CUD", self.test_decoder)
+            run_step("KVDB CUD", self.test_kvdb)
+            run_step("Rule CUD", self.test_rule)
             run_step("Policy Update", self.test_policy)
             run_step("Promotion Cycle", self.test_promotion)
             run_step("Logtest", self.test_logtest)
