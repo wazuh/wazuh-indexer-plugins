@@ -28,6 +28,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
@@ -36,17 +37,20 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
+import com.wazuh.securityanalytics.action.*;
 
 /**
  * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
@@ -61,7 +65,7 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    private final SecurityAnalyticsService securityAnalyticsService;
+    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final PolicyHashService policyHashService;
 
     /**
@@ -85,16 +89,31 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
     }
 
+    /**
+     * Retrieves the context name for this synchronizer.
+     *
+     * @return The context string.
+     */
     @Override
     protected String getContext() {
         return this.CONTEXT;
     }
 
+    /**
+     * Retrieves the consumer name for this synchronizer.
+     *
+     * @return The consumer string.
+     */
     @Override
     protected String getConsumer() {
         return this.CONSUMER;
     }
 
+    /**
+     * Returns the mappings configuration for the indices handled by this synchronizer.
+     *
+     * @return A map where keys are resource types and values are mapping file paths.
+     */
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
@@ -107,12 +126,23 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
         return mappings;
     }
 
+    /**
+     * Returns the aliases configuration for the indices.
+     *
+     * @return An empty map as indices are accessed by their names directly.
+     */
     @Override
     protected Map<String, String> getAliases() {
         // We use the alias names as the actual index names, so we do not create separate aliases.
         return Collections.emptyMap();
     }
 
+    /**
+     * Triggered when the primary synchronization is finished. Refreshes indices, initializes spaces,
+     * and synchronizes SAP resources.
+     *
+     * @param isUpdated Indicates if the content was updated during sync.
+     */
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
@@ -140,73 +170,246 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
         }
     }
 
+    /**
+     * Synchronizes Integrations from the internal index to the Security Analytics Plugin. Uses
+     * parallel execution with a CountDownLatch to ensure all async requests complete.
+     */
     private void syncIntegrations() {
         if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
             return;
         }
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
+        SearchHit[] hits = searchResponse.getHits().getHits();
+        if (hits.length == 0) return;
+
+        CountDownLatch latch = new CountDownLatch(hits.length);
+
+        for (SearchHit hit : hits) {
             JsonNode source = this.parseHit(hit);
             if (source == null) {
+                latch.countDown();
                 continue;
             }
-
             JsonNode doc = this.extractDocument(source, hit.getId());
             if (doc == null) {
+                latch.countDown();
+                continue;
+            }
+            Space space = this.extractSpace(source);
+            WIndexIntegrationRequest request =
+                    this.securityAnalyticsService.buildIntegrationRequest(
+                            doc, space, RestRequest.Method.POST);
+
+            if (request == null) {
+                latch.countDown();
                 continue;
             }
 
-            Space space = this.extractSpace(source);
-            this.securityAnalyticsService.upsertIntegration(doc, space, RestRequest.Method.POST);
+            this.client.execute(
+                    WIndexIntegrationAction.INSTANCE,
+                    request,
+                    new ActionListener<WIndexIntegrationResponse>() {
+                        @Override
+                        public void onResponse(WIndexIntegrationResponse response) {
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error("Failed to sync integration {}: {}", hit.getId(), e.getMessage());
+                            latch.countDown();
+                        }
+                    });
+        }
+
+        try {
+            if (!latch.await(60, TimeUnit.SECONDS)) {
+                log.warn("Timed out waiting for integrations sync");
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted waiting for integrations sync", e);
+            Thread.currentThread().interrupt();
         }
     }
 
+    /**
+     * Synchronizes Rules from the internal index to the Security Analytics Plugin. Supports both
+     * Standard and Custom rules.
+     */
     private void syncRules() {
         if (!this.indexExists(Constants.INDEX_RULES)) {
             return;
         }
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_RULES);
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
+        SearchHit[] hits = searchResponse.getHits().getHits();
+        if (hits.length == 0) return;
+
+        CountDownLatch latch = new CountDownLatch(hits.length);
+
+        for (SearchHit hit : hits) {
             JsonNode source = this.parseHit(hit);
             if (source == null) {
+                latch.countDown();
                 continue;
             }
-
             JsonNode doc = this.extractDocument(source, hit.getId());
             if (doc == null) {
+                latch.countDown();
+                continue;
+            }
+            Space space = this.extractSpace(source);
+            if (!doc.has(Constants.KEY_ID)) {
+                latch.countDown();
                 continue;
             }
 
-            Space space = this.extractSpace(source);
-            this.securityAnalyticsService.upsertRule(doc, space);
+            String id = doc.get(Constants.KEY_ID).asText();
+            String product = ContentIndex.extractProduct(doc);
+            String body = doc.toString();
+
+            if (space != Space.STANDARD) {
+                WIndexCustomRuleRequest request =
+                        new WIndexCustomRuleRequest(
+                                id,
+                                WriteRequest.RefreshPolicy.IMMEDIATE,
+                                product,
+                                RestRequest.Method.POST,
+                                body,
+                                true);
+
+                this.client.execute(
+                        WIndexCustomRuleAction.INSTANCE,
+                        request,
+                        new ActionListener<WIndexRuleResponse>() {
+                            @Override
+                            public void onResponse(WIndexRuleResponse response) {
+                                latch.countDown();
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                log.error("Failed to sync rule {}: {}", hit.getId(), e.getMessage());
+                                latch.countDown();
+                            }
+                        });
+            } else {
+                WIndexRuleRequest request =
+                        new WIndexRuleRequest(
+                                id,
+                                WriteRequest.RefreshPolicy.IMMEDIATE,
+                                product,
+                                RestRequest.Method.POST,
+                                body,
+                                true);
+
+                this.client.execute(
+                        WIndexRuleAction.INSTANCE,
+                        request,
+                        new ActionListener<WIndexRuleResponse>() {
+                            @Override
+                            public void onResponse(WIndexRuleResponse response) {
+                                latch.countDown();
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                log.error("Failed to sync rule {}: {}", hit.getId(), e.getMessage());
+                                latch.countDown();
+                            }
+                        });
+            }
+        }
+
+        try {
+            if (!latch.await(60, TimeUnit.SECONDS)) {
+                log.warn("Timed out waiting for rules sync");
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted waiting for rules sync", e);
+            Thread.currentThread().interrupt();
         }
     }
 
+    /**
+     * Synchronizes Threat Detectors to the Security Analytics Plugin. Detectors are created only for
+     * Standard integrations and are processed sequentially.
+     */
     private void syncDetectors() {
         if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
             return;
         }
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
-        for (SearchHit hit : searchResponse.getHits().getHits()) {
+        SearchHit[] hits = searchResponse.getHits().getHits();
+
+        List<SearchHit> hitsToProcess = new ArrayList<>();
+        for (SearchHit hit : hits) {
             JsonNode source = this.parseHit(hit);
-            if (source == null) {
-                continue;
-            }
-
-            JsonNode doc = this.extractDocument(source, hit.getId());
-            if (doc == null) {
-                continue;
-            }
-
-            // Only create detectors for Standard space integrations
-            Space space = this.extractSpace(source);
-            if (space == Space.STANDARD) {
-                this.securityAnalyticsService.upsertDetector(doc, true);
+            if (source != null && this.extractSpace(source) == Space.STANDARD) {
+                hitsToProcess.add(hit);
             }
         }
+
+        if (hitsToProcess.isEmpty()) return;
+
+        CountDownLatch latch = new CountDownLatch(1);
+        this.processNextDetector(hitsToProcess.iterator(), latch);
+
+        try {
+            if (!latch.await(60, TimeUnit.SECONDS)) {
+                log.warn("Timed out waiting for detectors sync");
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted waiting for detectors sync", e);
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Recursively processes the next detector in the list. Sequential processing is used to avoid
+     * race conditions during detector configuration index creation in SAP.
+     *
+     * @param iterator Iterator for the list of search hits to process.
+     * @param latch Latch used to signal completion of the entire list.
+     */
+    private void processNextDetector(Iterator<SearchHit> iterator, CountDownLatch latch) {
+        if (!iterator.hasNext()) {
+            latch.countDown();
+            return;
+        }
+
+        SearchHit hit = iterator.next();
+        JsonNode source = this.parseHit(hit);
+        JsonNode doc = source != null ? this.extractDocument(source, hit.getId()) : null;
+
+        if (doc == null) {
+            this.processNextDetector(iterator, latch);
+            return;
+        }
+
+        WIndexDetectorRequest request = this.securityAnalyticsService.buildDetectorRequest(doc, true);
+        if (request == null) {
+            this.processNextDetector(iterator, latch);
+            return;
+        }
+
+        this.client.execute(
+                WIndexDetectorAction.INSTANCE,
+                request,
+                new ActionListener<WIndexDetectorResponse>() {
+                    @Override
+                    public void onResponse(WIndexDetectorResponse response) {
+                        RulesetConsumerSynchronizer.this.processNextDetector(iterator, latch);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to sync detector {}: {}", hit.getId(), e.getMessage());
+                        RulesetConsumerSynchronizer.this.processNextDetector(iterator, latch);
+                    }
+                });
     }
 
     /**
@@ -238,7 +441,8 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
             // Proceed only if no document with this space name exists
             if (Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() == 0) {
-                String date = ContentUtils.getCurrentDate();
+                ContentUtils contentUtils = new ContentUtils();
+                String date = contentUtils.getCurrentDate();
                 String title = "Custom policy";
 
                 Policy policy = new Policy();

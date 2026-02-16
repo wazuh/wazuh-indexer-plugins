@@ -175,10 +175,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Mock search response to return existing draft policy
         PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
         searchFuture.onResponse(this.searchResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        // We need to mock getHits() but SearchHits is final, so the test will handle
-        // NullPointerException
-        // The actual method in RestPutPolicyAction will catch any exception from searchByQuery
 
         // Mock index response
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
@@ -239,9 +235,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
         searchFuture.onResponse(this.searchResponse);
         when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        // We need to mock getHits() but SearchHits is final, so the test will handle
-        // NullPointerException
-        // The actual method in RestPutPolicyAction will catch any exception from searchByQuery
 
         // Mock index response
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
