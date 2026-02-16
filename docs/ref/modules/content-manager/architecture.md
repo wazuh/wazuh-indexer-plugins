@@ -11,14 +11,14 @@ The plugin exposes a set of REST endpoints under `/_plugins/content-manager/` to
 The `CtiConsole` acts as the authentication manager. It handles the storage and retrieval of authentication tokens required to communicate with the remote Wazuh CTI Console API.
 
 ### 3. Job Scheduler & Sync Job
-The plugin implements the `JobSchedulerExtension` to register the `CatalogSyncJob`. This job runs periodically (configured via `content_manager.catalog.sync_interval`) to synchronize content. It manages synchronization for different contexts, such as `rules` and `decoders`.
+The plugin implements the `JobSchedulerExtension` to register the `CatalogSyncJob`. This job runs periodically (configured via `plugins.content_manager.catalog.sync_interval`) to synchronize content. It manages synchronization for the unified content context, handling all content types (rules, decoders, etc.) in a single job.
 
 ## Synchronization Services
 
-The core logic is divided into three services:
+The core logic is divided into four services:
 
 * **Consumer Service (`ConsumerServiceImpl`)**:
-    * Manages the state of "Consumers" (entities that consume content, e.g., a Rules consumer).
+    * Manages the state of "Consumers" (entities that consume content).
     * Compares the local state (stored in the `.cti-consumers` index) with the remote state from the CTI API.
     * Decides whether to perform a Snapshot Initialization or a Differential Update.
 
@@ -33,6 +33,11 @@ The core logic is divided into three services:
     * Fetches a list of changes based on the current offset.
     * Applies operations (CREATE, UPDATE, DELETE) to the content indices.
     * Updates the consumer offset upon success.
+
+* **Security Analytics Service (`SecurityAnalyticsServiceImpl`)**:
+    *  Acts as an interface to execute Security Analytics Plugin actions using the OpenSearch Client.
+    *  Performs upsert and delete operations for Rules, Integrations, and Detectors directly into the Security Analytics plugin.
+    *  Manages dependencies during deletion, ensuring Detectors are removed before their parent Integrations.
 
 ## Data Persistence
 

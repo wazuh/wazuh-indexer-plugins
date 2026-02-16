@@ -48,7 +48,24 @@ on:
 #   | https://docs.github.com/en/actions/learn-github-actions/expressions#example
 
 jobs:
+  branches:
+    runs-on: ubuntu-24.04
+    outputs:
+      sap_plugin_ref: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve branches
+        id: resolve
+        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
+        with:
+          branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+
+      - name: Display resolved branches
+        run: |
+          echo "Security Analytics branch: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}"
   build:
+    needs: branches
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -63,15 +80,35 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Get version
+        if: inputs.plugin == 'content-manager'
         id: version
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Clone Security Analytics repository
+        if: inputs.plugin == 'content-manager'
+        uses: actions/checkout@v6
+        with:
+          repository: wazuh/wazuh-indexer-security-analytics
+          ref: ${{ needs.branches.outputs.sap_plugin_ref }}
+          path: wazuh-indexer-security-analytics
+
+      - name: Publish to Maven Local
+        if: inputs.plugin == 'content-manager'
+        working-directory: wazuh-indexer-security-analytics
+        run: |
+          ./gradlew wazuh-indexer-security-analytics-commons:publishToMavenLocal -x check \
+            -Dversion=${{ steps.version.outputs.version }} \
+            -Drevision=${{ inputs.revision }}
+          ./gradlew publishToMavenLocal -x check \
+            -Dversion=${{ steps.version.outputs.version }} \
+            -Drevision=${{ inputs.revision }}
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}
         run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
           path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip

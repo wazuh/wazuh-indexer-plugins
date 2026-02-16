@@ -30,7 +30,6 @@ def generate_random_data(number):
     data = []
     for _ in range(number):
         event_data = {
-            "agent": generate_random_agent(),
             "checksum": generate_random_checksum(),
             "host": generate_random_host(True),
             "interface": generate_random_interface(),
@@ -117,6 +116,7 @@ def generate_random_interface(is_root_level=False):
 
 def generate_random_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": f"wazuh-cluster-{random.randint(0, 10)}",
             "node": f"wazuh-cluster-node-{random.randint(0, 10)}",

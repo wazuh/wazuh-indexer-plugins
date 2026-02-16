@@ -4,63 +4,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
 9.1.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
-9.1.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
-9.1.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
-9.1.0,true,agent,agent.host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
-9.1.0,true,agent,agent.host.cpu.cores,long,custom,,4,Number of CPU cores.
-9.1.0,true,agent,agent.host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-7700HQ CPU,CPU Model name.
-9.1.0,true,agent,agent.host.cpu.speed,long,custom,,2800,CPU clock speed.
-9.1.0,true,agent,agent.host.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
-9.1.0,true,agent,agent.host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
-9.1.0,true,agent,agent.host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
-9.1.0,true,agent,agent.host.domain,keyword,extended,,CONTOSO,Name of the directory the group is a member of.
-9.1.0,true,agent,agent.host.geo.city_name,keyword,core,,Montreal,City name.
-9.1.0,true,agent,agent.host.geo.continent_code,keyword,core,,NA,Continent code.
-9.1.0,true,agent,agent.host.geo.continent_name,keyword,core,,North America,Name of the continent.
-9.1.0,true,agent,agent.host.geo.country_iso_code,keyword,core,,CA,Country ISO code.
-9.1.0,true,agent,agent.host.geo.country_name,keyword,core,,Canada,Country name.
-9.1.0,true,agent,agent.host.geo.location,geo_point,core,,"{ ""lon"": -73.614830, ""lat"": 45.505918 }",Longitude and latitude.
-9.1.0,true,agent,agent.host.geo.name,keyword,extended,,boston-dc,User-defined description of a location.
-9.1.0,true,agent,agent.host.geo.postal_code,keyword,core,,94040,Postal code.
-9.1.0,true,agent,agent.host.geo.region_iso_code,keyword,core,,CA-QC,Region ISO code.
-9.1.0,true,agent,agent.host.geo.region_name,keyword,core,,Quebec,Region name.
-9.1.0,true,agent,agent.host.geo.timezone,keyword,core,,America/Argentina/Buenos_Aires,Time zone.
-9.1.0,true,agent,agent.host.hostname,keyword,core,,,Hostname of the host.
-9.1.0,true,agent,agent.host.id,keyword,core,,,Unique host id.
-9.1.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
-9.1.0,true,agent,agent.host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
-9.1.0,true,agent,agent.host.memory,object,custom,,"""total"": 100000, ""free"": 90000, ""used"": {""percentage"": 10}",Memory-related data.
-9.1.0,true,agent,agent.host.memory.free,long,custom,,1024,Free memory in MB.
-9.1.0,true,agent,agent.host.memory.total,long,custom,,1024,Total memory in MB.
-9.1.0,true,agent,agent.host.memory.used,object,custom,,"""percentage"": 10",Used memory-related data.
-9.1.0,true,agent,agent.host.memory.used.percentage,long,custom,,10,Used memory percentage.
-9.1.0,true,agent,agent.host.name,keyword,core,,,Name of the host.
-9.1.0,true,agent,agent.host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
-9.1.0,true,agent,agent.host.network.egress.drops,long,custom,,10,Number of dropped transmitted packets.
-9.1.0,true,agent,agent.host.network.egress.errors,long,custom,,10,Number of transmission errors.
-9.1.0,true,agent,agent.host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
-9.1.0,true,agent,agent.host.network.egress.queue,long,custom,,10,Transmit queue length.
-9.1.0,true,agent,agent.host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
-9.1.0,true,agent,agent.host.network.ingress.drops,long,custom,,10,Number of dropped received packets.
-9.1.0,true,agent,agent.host.network.ingress.errors,long,custom,,10,Number of reception errors.
-9.1.0,true,agent,agent.host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
-9.1.0,true,agent,agent.host.network.ingress.queue,long,custom,,10,Receive queue length.
-9.1.0,true,agent,agent.host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
-9.1.0,true,agent,agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
-9.1.0,true,agent,agent.host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
-9.1.0,true,agent,agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
-9.1.0,true,agent,agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
-9.1.0,true,agent,agent.host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
-9.1.0,true,agent,agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
-9.1.0,true,agent,agent.host.pid_ns_ino,keyword,extended,,256383,Pid namespace inode
-9.1.0,true,agent,agent.host.risk.calculated_level,keyword,extended,,High,A risk classification level calculated by an internal system as part of entity analytics and entity risk scoring.
-9.1.0,true,agent,agent.host.risk.calculated_score,float,extended,,880.73,A risk classification score calculated by an internal system as part of entity analytics and entity risk scoring.
-9.1.0,true,agent,agent.host.risk.calculated_score_norm,float,extended,,88.73,A normalized risk score calculated by an internal system.
-9.1.0,true,agent,agent.host.risk.static_level,keyword,extended,,High,"A risk classification level obtained from outside the system, such as from some external Threat Intelligence Platform."
-9.1.0,true,agent,agent.host.risk.static_score,float,extended,,830.0,"A risk classification score obtained from outside the system, such as from some external Threat Intelligence Platform."
-9.1.0,true,agent,agent.host.risk.static_score_norm,float,extended,,83.0,A normalized risk score calculated by an external system.
-9.1.0,true,agent,agent.host.type,keyword,core,,,Type of host.
-9.1.0,true,agent,agent.host.uptime,long,extended,,1325,Seconds the host has been up.
 9.1.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
@@ -401,6 +344,21 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.subject,keyword,extended,,Please see this important message.,The subject of the email message.
 9.1.0,true,email,email.to.address,keyword,extended,array,user1@example.com,Email address of recipient
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
+9.1.0,true,enrichments,enrichments.custom.anonymous,keyword,custom,,,Indicates whether the indicator was reported anonymously by the submitter.
+9.1.0,true,enrichments,enrichments.custom.id,keyword,custom,,,Unique identifier of the indicator.
+9.1.0,true,enrichments,enrichments.custom.malware,keyword,custom,,,Malware family or identifier associated with the indicator.
+9.1.0,true,enrichments,enrichments.custom.malware_alias,keyword,custom,array,,Alternative or secondary name used to refer to the same malware family.
+9.1.0,true,enrichments,enrichments.custom.malware_printable,keyword,custom,,,Human-readable or normalized malware name intended for display purposes.
+9.1.0,true,enrichments,enrichments.custom.tags,keyword,custom,array,,List of tags associated with the indicator used to classify or group related threats or campaigns.
+9.1.0,true,enrichments,enrichments.custom.threat_type,keyword,custom,,,High-level classification of the threat associated with the indicator.
+9.1.0,true,enrichments,enrichments.indicator.confidence,keyword,custom,,,Indicator confidence rating.
+9.1.0,true,enrichments,enrichments.indicator.first_seen,date,custom,,,Date/time indicator was first reported.
+9.1.0,true,enrichments,enrichments.indicator.last_seen,date,custom,,,Date/time indicator was last reported.
+9.1.0,true,enrichments,enrichments.indicator.name,keyword,custom,,,Indicator display name.
+9.1.0,true,enrichments,enrichments.indicator.provider,keyword,custom,,,Indicator provider.
+9.1.0,true,enrichments,enrichments.indicator.reference,keyword,custom,,,Indicator reference URL.
+9.1.0,true,enrichments,enrichments.indicator.type,keyword,custom,,,Type of indicator.
+9.1.0,true,enrichments,enrichments.source,keyword,custom,,,Source of the enrichment data identifying the external provider that supplied the indicator.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
 9.1.0,true,error,error.id,keyword,core,,,Unique identifier for the error.
 9.1.0,true,error,error.message,keyword,core,,,Error message.
@@ -2150,6 +2108,70 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,vulnerability,vulnerability.score.temporal,float,extended,,,Vulnerability Temporal score.
 9.1.0,true,vulnerability,vulnerability.score.version,keyword,extended,,2.0,CVSS version.
 9.1.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
+9.1.0,true,wazuh,wazuh.agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
+9.1.0,true,wazuh,wazuh.agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
+9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
+9.1.0,true,wazuh,wazuh.agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
+9.1.0,true,wazuh,wazuh.agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
+9.1.0,true,wazuh,wazuh.agent.host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
+9.1.0,true,wazuh,wazuh.agent.host.cpu.cores,long,custom,,4,Number of CPU cores.
+9.1.0,true,wazuh,wazuh.agent.host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-7700HQ CPU,CPU Model name.
+9.1.0,true,wazuh,wazuh.agent.host.cpu.speed,long,custom,,2800,CPU clock speed.
+9.1.0,true,wazuh,wazuh.agent.host.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
+9.1.0,true,wazuh,wazuh.agent.host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
+9.1.0,true,wazuh,wazuh.agent.host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
+9.1.0,true,wazuh,wazuh.agent.host.domain,keyword,extended,,CONTOSO,Name of the directory the group is a member of.
+9.1.0,true,wazuh,wazuh.agent.host.geo.city_name,keyword,core,,Montreal,City name.
+9.1.0,true,wazuh,wazuh.agent.host.geo.continent_code,keyword,core,,NA,Continent code.
+9.1.0,true,wazuh,wazuh.agent.host.geo.continent_name,keyword,core,,North America,Name of the continent.
+9.1.0,true,wazuh,wazuh.agent.host.geo.country_iso_code,keyword,core,,CA,Country ISO code.
+9.1.0,true,wazuh,wazuh.agent.host.geo.country_name,keyword,core,,Canada,Country name.
+9.1.0,true,wazuh,wazuh.agent.host.geo.location,geo_point,core,,"{ ""lon"": -73.614830, ""lat"": 45.505918 }",Longitude and latitude.
+9.1.0,true,wazuh,wazuh.agent.host.geo.name,keyword,extended,,boston-dc,User-defined description of a location.
+9.1.0,true,wazuh,wazuh.agent.host.geo.postal_code,keyword,core,,94040,Postal code.
+9.1.0,true,wazuh,wazuh.agent.host.geo.region_iso_code,keyword,core,,CA-QC,Region ISO code.
+9.1.0,true,wazuh,wazuh.agent.host.geo.region_name,keyword,core,,Quebec,Region name.
+9.1.0,true,wazuh,wazuh.agent.host.geo.timezone,keyword,core,,America/Argentina/Buenos_Aires,Time zone.
+9.1.0,true,wazuh,wazuh.agent.host.hostname,keyword,core,,,Hostname of the host.
+9.1.0,true,wazuh,wazuh.agent.host.id,keyword,core,,,Unique host id.
+9.1.0,true,wazuh,wazuh.agent.host.ip,ip,core,array,,Host ip addresses.
+9.1.0,true,wazuh,wazuh.agent.host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
+9.1.0,true,wazuh,wazuh.agent.host.memory,object,custom,,"""total"": 100000, ""free"": 90000, ""used"": {""percentage"": 10}",Memory-related data.
+9.1.0,true,wazuh,wazuh.agent.host.memory.free,long,custom,,1024,Free memory in MB.
+9.1.0,true,wazuh,wazuh.agent.host.memory.total,long,custom,,1024,Total memory in MB.
+9.1.0,true,wazuh,wazuh.agent.host.memory.used,object,custom,,"""percentage"": 10",Used memory-related data.
+9.1.0,true,wazuh,wazuh.agent.host.memory.used.percentage,long,custom,,10,Used memory percentage.
+9.1.0,true,wazuh,wazuh.agent.host.name,keyword,core,,,Name of the host.
+9.1.0,true,wazuh,wazuh.agent.host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
+9.1.0,true,wazuh,wazuh.agent.host.network.egress.drops,long,custom,,10,Number of dropped transmitted packets.
+9.1.0,true,wazuh,wazuh.agent.host.network.egress.errors,long,custom,,10,Number of transmission errors.
+9.1.0,true,wazuh,wazuh.agent.host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
+9.1.0,true,wazuh,wazuh.agent.host.network.egress.queue,long,custom,,10,Transmit queue length.
+9.1.0,true,wazuh,wazuh.agent.host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
+9.1.0,true,wazuh,wazuh.agent.host.network.ingress.drops,long,custom,,10,Number of dropped received packets.
+9.1.0,true,wazuh,wazuh.agent.host.network.ingress.errors,long,custom,,10,Number of reception errors.
+9.1.0,true,wazuh,wazuh.agent.host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
+9.1.0,true,wazuh,wazuh.agent.host.network.ingress.queue,long,custom,,10,Receive queue length.
+9.1.0,true,wazuh,wazuh.agent.host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
+9.1.0,true,wazuh,wazuh.agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
+9.1.0,true,wazuh,wazuh.agent.host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
+9.1.0,true,wazuh,wazuh.agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
+9.1.0,true,wazuh,wazuh.agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
+9.1.0,true,wazuh,wazuh.agent.host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
+9.1.0,true,wazuh,wazuh.agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
+9.1.0,true,wazuh,wazuh.agent.host.pid_ns_ino,keyword,extended,,256383,Pid namespace inode
+9.1.0,true,wazuh,wazuh.agent.host.risk.calculated_level,keyword,extended,,High,A risk classification level calculated by an internal system as part of entity analytics and entity risk scoring.
+9.1.0,true,wazuh,wazuh.agent.host.risk.calculated_score,float,extended,,880.73,A risk classification score calculated by an internal system as part of entity analytics and entity risk scoring.
+9.1.0,true,wazuh,wazuh.agent.host.risk.calculated_score_norm,float,extended,,88.73,A normalized risk score calculated by an internal system.
+9.1.0,true,wazuh,wazuh.agent.host.risk.static_level,keyword,extended,,High,"A risk classification level obtained from outside the system, such as from some external Threat Intelligence Platform."
+9.1.0,true,wazuh,wazuh.agent.host.risk.static_score,float,extended,,830.0,"A risk classification score obtained from outside the system, such as from some external Threat Intelligence Platform."
+9.1.0,true,wazuh,wazuh.agent.host.risk.static_score_norm,float,extended,,83.0,A normalized risk score calculated by an external system.
+9.1.0,true,wazuh,wazuh.agent.host.type,keyword,core,,,Type of host.
+9.1.0,true,wazuh,wazuh.agent.host.uptime,long,extended,,1325,Seconds the host has been up.
+9.1.0,true,wazuh,wazuh.agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
+9.1.0,true,wazuh,wazuh.agent.name,keyword,core,,foo,Custom name of the agent.
+9.1.0,true,wazuh,wazuh.agent.type,keyword,core,,filebeat,Type of the agent.
+9.1.0,true,wazuh,wazuh.agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
 9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,wazuh-cluster-1,Wazuh cluster name.
 9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,wazuh-cluster-node-1,Wazuh cluster node name.
 9.1.0,true,wazuh,wazuh.integration.category,keyword,custom,,security,Wazuh integration category.
@@ -2159,6 +2181,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.location,keyword,custom,,/var/log/auth.log,Source of the log as retrieved by the Wazuh Agent.
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
+9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.
 9.1.0,true,zeek,zeek.capture_loss_acks,long,custom,,12345,Total number of ACKs seen in the previous measurement interval.
 9.1.0,true,zeek,zeek.capture_loss_gaps,long,custom,,12345,Number of missed ACKs from the previous measurement interval.
 9.1.0,true,zeek,zeek.capture_loss_peer,keyword,custom,,example-capture_loss_peer,Distinguishes individual Zeek instances when multiple peers log to the same host. Provides unique peer identification.

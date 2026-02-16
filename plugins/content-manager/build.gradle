@@ -13,15 +13,15 @@ buildscript {
 
   repositories {
     mavenLocal()
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
   }
 
   dependencies {
     classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
   }
 }
+
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -96,13 +96,14 @@ dependencies {
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
 
-  compileOnly files('./lib/wazuh-indexer-security-analytics-commons.jar')
+  compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
   // ZipArchive dependencies used for integration tests
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
   zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}" // Dependency of SAP
-  zipArchive files('lib/wazuh-indexer-security-analytics-5.0.0.0.zip')
+  zipArchive group: 'org.opensearch', name: 'wazuh-indexer-security-analytics', version: "${version}"
+
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -148,6 +149,8 @@ task integTest(type: RestIntegTestTask) {
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
+tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("generatePomFileForPluginZipPublication") }
+
 integTest {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
   if (System.getProperty("test.debug") != null) {
@@ -157,30 +160,25 @@ integTest {
 
 testClusters.integTest {
   systemProperty "INDEXER_TEST_ENV", "true"
-  
+  setting 'plugins.content_manager.catalog.update_on_start', 'false'
+  setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
+
   // Installs all registered zipArchive dependencies on integTest cluster nodes
-  def resolvePlugin = { String fileNameFragment ->
-    provider(new Callable<RegularFile>() {
+  configurations.zipArchive.asFileTree.each {
+    plugin(provider(new Callable<RegularFile>(){
       @Override
       RegularFile call() throws Exception {
         return new RegularFile() {
           @Override
           File getAsFile() {
-            def file = configurations.zipArchive.find { it.name.contains(fileNameFragment) }
-            if (file == null) {
-              throw new GradleException("Could not find plugin containing '${fileNameFragment}' in zipArchive configuration.")
-            }
-            return file
+            return it
           }
         }
       }
-    })
+    }))
   }
-
   testDistribution = "ARCHIVE"
-  plugin(resolvePlugin("opensearch-job-scheduler"))
-  plugin resolvePlugin('alerting')
-  plugin(resolvePlugin("wazuh-indexer-security-analytics"))
+  // This installs our plugin into the testClusters
   plugin(project.tasks.bundlePlugin.archiveFile)
 }
 

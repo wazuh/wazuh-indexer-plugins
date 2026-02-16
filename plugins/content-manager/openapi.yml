@@ -28,6 +28,18 @@ tags:
     description: Operations for managing CTI subscriptions and credentials
   - name: Content Updates
     description: Operations for triggering content updates
+  - name: KVDBs
+    description: Manage key-value databases used by content
+  - name: Decoders
+    description: Manage decoders for parsing and normalization
+  - name: Rules
+    description: Manage detection rules and analytics
+  - name: Integrations
+    description: Manage integration metadata and related content
+  - name: Logtest
+    description: Execute logtest against sample events
+  - name: Promotion
+    description: Preview and promote content across spaces
 
 security:
   - bearerAuth: []
@@ -51,7 +63,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubscriptionPostRequest'
+              $ref: "#/components/schemas/SubscriptionPostRequest"
             examples:
               registration:
                 summary: Example subscription registration
@@ -61,14 +73,14 @@ paths:
                   expires_in: 1800
                   interval: 5
       responses:
-        '201': 
-          $ref: '#/components/responses/SubscriptionCreated'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "201":
+          $ref: "#/components/responses/SubscriptionCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     get:
       summary: Retrieve CTI Credentials
@@ -79,14 +91,14 @@ paths:
       tags:
         - Subscription Management
       responses:
-        '200':
-          $ref: '#/components/responses/GetCredentialsSuccess'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "200":
+          $ref: "#/components/responses/GetCredentialsSuccess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     delete:
       summary: Delete CTI Subscription
       description: |
@@ -96,14 +108,14 @@ paths:
       tags:
         - Subscription Management
       responses:
-        '200':
-          $ref: '#/components/responses/SubscriptionDeleted'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "200":
+          $ref: "#/components/responses/SubscriptionDeleted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /update:
     description: On demand content update
@@ -114,27 +126,611 @@ paths:
         This operation is asynchronous and returns immediately with a task identifier.
         The update process runs in the background and may take several minutes to complete
         depending on the volume of new threat intelligence data.
-        
+
         **Rate Limiting**: This endpoint is rate-limited to prevent excessive API calls.
         The default limit is 10 requests per hour.
       operationId: updateContent
       tags:
         - Content Updates
       responses:
-        '202':
-          $ref: '#/components/responses/UpdateAccepted'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "202":
+          $ref: "#/components/responses/UpdateAccepted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # KVDB management endpoints
+  /kvdbs:
+    post:
+      tags: [KVDBs]
+      summary: Create KVDB
+      description: |
+        Creates a KVDB in the draft space. The server generates the UUID.
+      operationId: createKvdb
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KvdbResource"
+            examples:
+              create_kvdb:
+                summary: Example KVDB creation
+                value:
+                  integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+                  resource:
+                    title: "azure-functions"
+                    author: "Wazuh Inc."
+                    description: "This integration supports Azure Functions app logs."
+                    documentation: "test1234"
+                    references:
+                      - "https://wazuh.com"
+                    enabled: true
+                    content:
+                      key1: "value1"
+                      key2: "value2"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /kvdbs/{id}:
+    put:
+      tags: [KVDBs]
+      summary: Update KVDB
+      operationId: updateKvdb
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KvdbResourceUpdate"
+            examples:
+              update_kvdb:
+                summary: Example KVDB update
+                value:
+                  resource:
+                    title: "azure-functions (Updated)"
+                    author: "Wazuh Inc."
+                    description: "Updated description for Azure Functions KVDB."
+                    documentation: "updated documentation"
+                    references:
+                      - "https://wazuh.com"
+                      - "https://azure.microsoft.com"
+                    enabled: false
+                    content:
+                      key1: "new_value1"
+                      key3: "value3"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [KVDBs]
+      summary: Delete KVDB
+      operationId: deleteKvdb
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Decoder management endpoints
+  /decoders:
+    post:
+      tags: [Decoders]
+      summary: Create Decoder
+      description: |
+        Creates a decoder in the draft space. The server generates the UUID for the decoder.
+        The decoder is validated against the Wazuh engine before being stored.
+        The decoder is automatically linked to the specified integration.
+      operationId: createDecoder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - integration
+                - resource
+              properties:
+                integration:
+                  type: string
+                  format: uuid
+                  description: The integration ID to which this decoder belongs
+                  example: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+                resource:
+                  $ref: "#/components/schemas/DecoderResourceCreate"
+            examples:
+              create_decoder:
+                summary: Example decoder creation
+                value:
+                  integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+                  resource:
+                    enabled: true
+                    name: "decoder/netflow-default/0"
+                    check:
+                      - {}
+                    normalize: []
+                    metadata:
+                      title: "NetFlow decoder"
+                      description: "Decoder for NetFlow logs."
+                      module: "netflow"
+                      compatibility: 'This integration has been tested against logs provided by Elastic. - "0.0.1"'
+                      author:
+                        name: "Wazuh, Inc."
+                        email: "info@wazuh.com"
+                        url: "https://wazuh.com"
+                      references:
+                        - "https://www.cisco.com/..."
+                      versions:
+                        - "All known webhook formats"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /decoders/{id}:
+    put:
+      tags: [Decoders]
+      summary: Update Decoder
+      description: |
+        Updates an existing decoder in the draft space. The decoder is validated against the Wazuh engine before being stored.
+        The decoder ID in the path must match the resource ID in the payload (if provided).
+      operationId: updateDecoder
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource
+              properties:
+                resource:
+                  $ref: "#/components/schemas/DecoderResource"
+            examples:
+              update_decoder:
+                summary: Example decoder update
+                value:
+                  resource:
+                    enabled: true
+                    name: "decoder/netflow-default/0"
+                    check:
+                      - {}
+                    normalize: []
+                    metadata:
+                      title: "NetFlow decoder (Updated)"
+                      description: "Updated decoder description."
+                      module: "netflow"
+                      compatibility: 'This integration has been tested against logs provided by Elastic. - "0.0.1"'
+                      author:
+                        name: "Wazuh, Inc."
+                        email: "info@wazuh.com"
+                        url: "https://wazuh.com"
+                      references:
+                        - "https://www.cisco.com/c/en/us/products/ios-nx-os-software/ios-netflow/index.html"
+                      versions:
+                        - "All known webhook formats"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Decoders]
+      summary: Delete Decoder
+      description: |
+        Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
+      operationId: deleteDecoder
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Rule management endpoints
+  /rules:
+    post:
+      tags: [Rules]
+      summary: Create Rule
+      description: |
+        Creates a rule in the draft space. The server generates the UUID.
+        The rule is validated against the Wazuh engine before being stored.
+        The rule is automatically linked to the specified integration.
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - integration
+                - resource
+              properties:
+                integration:
+                  type: string
+                  format: uuid
+                  description: The integration resource ID
+
+                resource:
+                  $ref: "#/components/schemas/RuleResourceCreate"
+            examples:
+              create_rule:
+                summary: Example rule creation
+                value:
+                  integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
+                  resource:
+                    title: "Test Hash Generation Rule"
+                    description: "A rule to verify that SHA-256 hashes are calculated correctly upon creation."
+                    author: "Tester"
+                    sigma_id: "test_sigma_001"
+                    enabled: true
+                    status: "experimental"
+                    level: "low"
+                    references:
+                      - "https://wazuh.com"
+                    logsource:
+                      product: "system"
+                      category: "system"
+                    detection:
+                      condition: "selection"
+                      selection:
+                        event.action:
+                          - "hash_test_event"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rules/{id}:
+    put:
+      tags: [Rules]
+      summary: Update Rule
+      description: |
+        Updates an existing rule in the draft space and returns its identifier.
+        The rule is validated against the Wazuh engine before being stored.
+      operationId: updateRule
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource
+              properties:
+                resource:
+                  $ref: "#/components/schemas/RuleResource"
+            examples:
+              update_rule:
+                summary: Example rule update
+                value:
+                  resource:
+                    title: "Test Hash Generation Rule (Updated)"
+                    description: "Updated rule description for better clarity."
+                    author: "Tester"
+                    sigma_id: "test_sigma_001"
+                    enabled: false
+                    status: "stable"
+                    level: "medium"
+                    references:
+                      - "https://wazuh.com"
+                    logsource:
+                      product: "system"
+                      category: "system"
+                    detection:
+                      condition: "selection"
+                      selection:
+                        event.action:
+                          - "hash_test_event"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Rules]
+      summary: Delete Rule
+      description: |
+        Deletes a rule from the draft space. The rule is also removed from any integrations that reference it.
+      operationId: deleteRule
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Integration metadata management endpoints
+  /integrations:
+    post:
+      tags: [Integrations]
+      summary: Create Integration
+      description: |
+        Creates a new integration in the draft space. The indexer generates the UUID for the integration.
+        The integration is validated against the Wazuh engine before being stored.
+
+        **Required fields in resource:**
+        - `author` - Integration author name
+        - `category` - Integration category
+        - `title` - Integration title
+
+        **Note:** The `id` field must NOT be included in the request body; it is auto-generated by the indexer.
+      operationId: createIntegration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource
+              properties:
+                resource:
+                  $ref: "#/components/schemas/IntegrationResourceCreate"
+            examples:
+              create_integration:
+                summary: Example integration creation
+                value:
+                  resource:
+                    title: "azure-functions"
+                    author: "Wazuh Inc."
+                    category: "cloud-services"
+                    description: "This integration supports Azure Functions app logs."
+                    documentation: "test1234"
+                    enabled: true
+                    references:
+                      - "https://wazuh.com"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /integrations/{id}:
+    put:
+      tags: [Integrations]
+      summary: Update Integration
+      description: |
+        Updates an existing integration in the draft space. The integration is validated against the Wazuh engine before being stored.
+        Only integrations in the 'draft' space can be updated.
+
+        **Required fields in resource:**
+        - `author` - Integration author name
+        - `category` - Integration category
+        - `decoders` - Array of decoder definitions
+        - `description` - Integration description
+        - `documentation` - Documentation URL or text
+        - `kvdbs` - Array of KVDB references
+        - `references` - Array of reference URLs
+        - `rules` - Array of rule references
+        - `title` - Integration title
+
+        **Note:** The `id` field must NOT be included in the request body; the ID is taken from the URL path parameter.
+      operationId: updateIntegration
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource
+              properties:
+                resource:
+                  $ref: "#/components/schemas/IntegrationResourceUpdate"
+            examples:
+              update_integration:
+                summary: Example integration update
+                value:
+                  resource:
+                    title: "azure-functions (Updated)"
+                    author: "Wazuh Inc."
+                    category: "cloud-services"
+                    description: "Updated description for Azure Functions integration."
+                    documentation: "updated documentation"
+                    enabled: true
+                    references:
+                      - "https://wazuh.com"
+                      - "https://azure.microsoft.com"
+                    rules: []
+                    decoders: []
+                    kvdbs: []
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Integrations]
+      summary: Delete Integration
+      description: |
+        Deletes an existing integration from the draft space.
+        Only integrations in the 'draft' space can be deleted.
+
+        This operation will:
+        - Remove the integration from the Security Analytics Plugin
+        - Delete the integration from the CTI integrations index
+        - Recalculate the space hash for the draft policy
+
+      operationId: deleteIntegration
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/IntegrationHasDependencies"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Logtest execution endpoint
+  /logtest:
+    post:
+      tags: [Logtest]
+      summary: Execute logtest
+      operationId: executeLogtest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogtestRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/LogtestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Promotion endpoints: move content from draft/test into next space
+  /promote:
+    get:
+      tags: [Promotion]
+      summary: Preview promotion differences
+      description: |
+        Calculates the differences between the current space and the next space in the promotion chain.
+        Returns a list of operations (add, update, remove) that would be performed during promotion.
+      operationId: promotePreview
+      parameters:
+        - name: space
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [draft, test]
+      responses:
+        "200":
+          $ref: "#/components/responses/PromotionPreviewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Promotion]
+      summary: Execute promotion
+      description: |
+        Executes the promotion of content from the source space to the target space based on the
+        provided changes.
+      operationId: promote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/PolicyDiff"
+                - $ref: "#/components/schemas/PromotionSpace"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /policy:
+    put:
+      tags: [Draft Policy]
+      summary: Update full draft policy
+      operationId: policy_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Policy"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
 components:
+  # Shared path parameters for resource identifiers (UUIDs)
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   # --- Data Schemas ---
   schemas:
     SubscriptionPostRequest:
@@ -179,14 +775,630 @@ components:
         - access_token
         - token_type
 
+    # Request body for logtest execution
+    LogtestRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - queue
+        - location
+        - event
+      properties:
+        queue:
+          type: integer
+          minimum: 0
+          description: Queue number used for logtest execution
+          example: 1
+
+        location:
+          type: string
+          description: Log file path or logical source location
+          example: "/var/log/auth.log"
+
+        agent_metadata:
+          type: object
+          additionalProperties: true
+          description: Optional agent metadata passed to the logtest engine
+          example: {}
+
+        event:
+          type: string
+          description: Raw log event to be tested
+          example: "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2"
+
+        trace_level:
+          type: string
+          enum:
+            - NONE
+            - BASIC
+            - FULL
+          description: Trace verbosity level
+          example: "NONE"
+
+    # Response body showing differences during promotion preview
+    PolicyDiff:
+      type: object
+      properties:
+        changes:
+          type: object
+          properties:
+            policy:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+            integrations:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+            kvdbs:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+            decoders:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+            filters:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+
+    PromotionDiffItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - operation
+      properties:
+        id:
+          type: string
+          description: Resource identifier (UUID)
+          example: "m98uk4kBlb9cbROIpEj2"
+        operation:
+          type: string
+          description: Operation to be performed (add, update, remove)
+          enum: [add, update, remove]
+          example: "update"
+
+    # Request body to execute promotion from a given space with full policy
+    PromotionSpace:
+      type: object
+      properties:
+        space:
+          type: string
+          description: The source space to promote from.
+          enum: [draft, test]
+          example: draft
+
+    # Request schema for creating an integration (POST)
+    IntegrationResourceCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - author
+        - category
+      properties:
+        title:
+          type: string
+          description: Integration title
+
+        author:
+          type: string
+          description: Integration author name
+
+        category:
+          type: string
+          description: Integration category (e.g., cloud-services)
+
+        description:
+          type: string
+          description: Integration description
+
+        documentation:
+          type: string
+          description: Documentation text or URL
+
+        references:
+          type: array
+          items:
+            type: string
+          description: Reference URLs
+
+        enabled:
+          type: boolean
+          description: Whether the integration is enabled
+
+    # Request schema for updating an integration (PUT)
+    IntegrationResourceUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - author
+        - category
+        - description
+        - documentation
+        - references
+        - rules
+        - decoders
+        - kvdbs
+      properties:
+        title:
+          type: string
+          description: Integration title
+
+        author:
+          type: string
+          description: Integration author name
+
+        category:
+          type: string
+          description: Integration category
+
+        description:
+          type: string
+          description: Integration description
+
+        documentation:
+          type: string
+          description: Documentation text or URL
+
+        references:
+          type: array
+          items:
+            type: string
+          description: Reference URLs
+
+        enabled:
+          type: boolean
+          description: Whether the integration is enabled
+
+        # The following arrays are mandatory to allow reordering
+        rules:
+          type: array
+          items:
+            type: string
+          description: Ordered list of Rule IDs
+
+        decoders:
+          type: array
+          items:
+            type: string
+          description: Ordered list of Decoder IDs
+
+        kvdbs:
+          type: array
+          items:
+            type: string
+          description: Ordered list of KVDB IDs
+
+    # Decoder document schema for creation (id is auto-generated)
+    DecoderResourceCreate:
+      type: object
+      additionalProperties: false
+      # No required fields (None is mandatory)
+      properties:
+        enabled:
+          type: boolean
+          description: Whether the decoder is enabled
+
+        name:
+          type: string
+          description: Decoder name identifier
+
+        check:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Decoder check logic
+
+        normalize:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Normalization rules
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                url:
+                  type: string
+
+            compatibility:
+              type: string
+              description: Compatibility description
+
+            description:
+              type: string
+              description: Decoder description
+
+            module:
+              type: string
+              description: Module name
+
+            references:
+              type: array
+              items:
+                type: string
+              description: Reference URLs
+
+            title:
+              type: string
+              description: Human-readable decoder title
+
+            versions:
+              type: array
+              items:
+                type: string
+              description: Version numbers
+
+    # Decoder document schema (engine-specific definitions and metadata)
+    DecoderResource:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+          description: Whether the decoder is enabled
+
+        name:
+          type: string
+          description: Decoder name identifier
+
+        check:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Decoder check logic
+
+        normalize:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Normalization rules
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                url:
+                  type: string
+
+            compatibility:
+              type: string
+              description: Compatibility description
+
+            description:
+              type: string
+              description: Decoder description
+
+            module:
+              type: string
+              description: Module name
+
+            references:
+              type: array
+              items:
+                type: string
+              description: Reference URLs
+
+            title:
+              type: string
+              description: Human-readable decoder title
+
+            versions:
+              type: array
+              items:
+                type: string
+              description: Version numbers
+
+    # KVDB document schema (key-value data managed by the engine)
+    KvdbResource:
+      type: object
+      additionalProperties: false
+      required:
+        - integration
+        - resource
+      properties:
+        integration:
+          type: string
+          format: uuid
+          description: The integration resource ID
+
+        resource:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - author
+            - content
+          properties:
+            title:
+              type: string
+              description: Title of the resource
+
+            author:
+              type: string
+              description: Author of the integration
+
+            description:
+              type: string
+              description: Description of the integration
+
+            documentation:
+              type: string
+
+            references:
+              type: array
+              items:
+                type: string
+
+            enabled:
+              type: boolean
+
+            content:
+              type: object
+              additionalProperties: true
+              minProperties: 1
+              description: KVDB key-value content (engine-managed)
+
+    KvdbResourceUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - resource
+      properties:
+        resource:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - author
+            - description
+            - documentation
+            - references
+            - content
+          properties:
+            title:
+              type: string
+              description: Title of the resource
+
+            author:
+              type: string
+              description: Author of the integration
+
+            description:
+              type: string
+              description: Description of the integration
+
+            documentation:
+              type: string
+
+            references:
+              type: array
+              items:
+                type: string
+
+            enabled:
+              type: boolean
+
+            content:
+              type: object
+              additionalProperties: true
+              minProperties: 1
+              description: KVDB key-value content (engine-managed)
+
+    # Rule document schema (Sigma-like)
+    RuleResourceCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Rule title
+
+        description:
+          type: string
+          description: Rule description
+
+        author:
+          type: string
+          description: Rule author
+
+        sigma_id:
+          type: string
+          description: Sigma rule ID
+
+        references:
+          type: array
+          items:
+            type: string
+          description: Reference URLs
+
+        enabled:
+          type: boolean
+          description: Whether the rule is enabled
+
+        status:
+          type: string
+          description: Rule status (e.g., experimental, stable)
+
+        level:
+          type: string
+          description: Alert level (e.g., low, medium, high)
+
+        logsource:
+          type: object
+          additionalProperties: false
+          properties:
+            product:
+              type: string
+            category:
+              type: string
+
+        detection:
+          type: object
+          additionalProperties: true
+          required:
+            - condition
+          properties:
+            condition:
+              type: string
+              description: Detection condition logic
+          description: Sigma detection logic (contains condition and selection fields)
+
+    RuleResource:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - detection
+        - logsource
+      properties:
+        title:
+          type: string
+          description: Rule title
+
+        description:
+          type: string
+          description: Rule description
+
+        author:
+          type: string
+          description: Rule author
+
+        sigma_id:
+          type: string
+          description: Sigma rule ID
+
+        references:
+          type: array
+          items:
+            type: string
+          description: Reference URLs
+
+        enabled:
+          type: boolean
+          description: Whether the rule is enabled
+
+        status:
+          type: string
+          description: Rule status (e.g., experimental, stable)
+
+        level:
+          type: string
+          description: Alert level (e.g., low, medium, high)
+
+        logsource:
+          type: object
+          additionalProperties: false
+          properties:
+            product:
+              type: string
+            category:
+              type: string
+
+        detection:
+          type: object
+          additionalProperties: true
+          required:
+            - condition
+          properties:
+            condition:
+              type: string
+              description: Detection condition logic
+          description: Sigma detection logic
+
+    # Policy Resource
+    Policy:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - root_decoder
+        - integrations
+      properties:
+        type:
+          type: string
+          enum: [policy]
+          description: Resource type identifier
+          example: "policy"
+
+        root_decoder:
+          type: string
+          description: Reference to the root decoder asset
+          example: "decoder/integrations/0"
+
+        integrations:
+          type: array
+          items:
+            type: string
+          description: List of integration asset references
+          example: ["integration/wazuh-core/0"]
+
+        enrichments:
+          type: array
+          items:
+            type: string
+            enum: [file, domain-name, ip, url, geo]
+          description: List of enrichment types to apply. Allowed values are file, domain-name, ip, url, geo. No duplicates allowed.
+          example: ["file", "ip", "geo"]
+
+        author:
+          type: string
+          description: Author of the policy
+          example: "Wazuh Inc."
+
+        description:
+          type: string
+          description: Brief description of the policy
+          example: "Policy description"
+
+        documentation:
+          type: string
+          description: Detailed documentation for the policy
+          example: "Detailed documentation"
+
+        references:
+          type: string
+          description: External references or links
+          example: "External references"
+
     RestResponse:
       type: object
-      description: Standard error response schema.
+      description: Standard response schema.
       properties:
-        error:
+        message:
           type: string
+        status:
+          type: integer
       required:
-        - error
+        - message
+        - status
 
   # --- Responses schemas ---
   responses:
@@ -199,7 +1411,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/SubscriptionGetResponse'
+            $ref: "#/components/schemas/SubscriptionGetResponse"
           examples:
             credentials:
               summary: Valid credentials response
@@ -229,31 +1441,120 @@ components:
             type: integer
             example: 1699963200
 
-    # --- Error Responses ---
-    BadRequest:
-      description: Bad Request - Invalid input parameters.
+    OkResponse:
+      description: |
+        OK - The request was successful.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: "#/components/schemas/RestResponse"
           examples:
-            missing_parameter:
-              summary: Missing required parameter
+            success:
+              summary: Generic success response
               value:
-                error: "Required parameter 'client_id' is missing."
+                message: "0d40f751-efa5-4b6f-822d-5f82e7532f1e"
+                status: 200
+
+    ResourceCreated:
+      description: |
+        OK - The resource was created successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            success:
+              summary: Generic success response
+              value:
+                message: "0d40f751-efa5-4b6f-822d-5f82e7532f1e"
+                status: 201
+
+    # --- Error Responses ---
+    BadRequest:
+      description: |
+        Bad Request - The request could not be processed due to invalid input.
+
+        Common causes:
+        - Missing required fields in the request body
+        - Invalid field format (e.g., invalid UUID)
+        - Invalid resource type
+        - Engine validation failed (payload does not pass Wazuh Engine validation)
+        - Resource not in draft space (only draft resources can be modified)
+        - Resource has dependent resources that must be deleted first
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            missing_field:
+              summary: Missing required field
+              value:
+                message: "Missing [<field_name>] field."
+                status: 400
+            invalid_body:
+              summary: Invalid request body
+              value:
+                message: "Invalid request body"
+                status: 400
+            invalid_uuid:
+              summary: Invalid UUID format
+              value:
+                message: "'invalid-id' is not a valid UUID"
+                status: 400
+            not_in_draft:
+              summary: Resource not in draft space
+              value:
+                message: "Integration [9e301671-382d-4c1a-9abf-3d9d9544789c] is not in draft space"
+                status: 400
 
     Unauthorized:
       description: Unauthorized - Authentication failed or credentials are invalid.
 
+    ResourceDeleted:
+      description: OK - Resource deleted successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            resource_deleted:
+              summary: Resource deletion confirmation
+              value:
+                message: "m98uk4kBlb9cbROIpEj2"
+                status: 200
+
+    IntegrationHasDependencies:
+      description: OK - Integration has dependent resources.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            has_dependencies:
+              summary: Integration has dependent resources
+              value:
+                message: "Cannot delete integration because it has decoders attached"
+                status: 400
+
     NotFound:
       description: Not Found - The requested resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            resource_not_found:
+              summary: Resource not found
+              value:
+                message: "Resource not found."
+                status: 404
 
     Conflict:
       description: Conflict - Undergoing content update.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: "#/components/schemas/RestResponse"
           examples:
             undergoing_update:
               summary: Content update in progress
@@ -286,7 +1587,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: "#/components/schemas/RestResponse"
           examples:
             rate_limit_exceeded:
               summary: Rate limit exceeded
@@ -294,17 +1595,67 @@ components:
                 error: "Too many update requests. Please try again later."
 
     InternalServerError:
-      description: Internal Server Error - Server encountered an unexpected error.
+      description: |
+        Internal Server Error - The server encountered an unexpected error.
+
+        Common causes:
+        - Engine service is unavailable
+        - Security Analytics service is unavailable
+        - Indexer operation failed
+        - Unexpected exception during processing
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: "#/components/schemas/RestResponse"
           examples:
             internal_error:
               summary: Internal server error
               value:
-                error: "An unexpected error occurred while processing your request."
-    
+                message: "Internal Server Error"
+                status: 500
+
+    # Response body for logtest execution results (pass-through)
+    LogtestResponse:
+      description: Logtest result
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              status:
+                type: string
+                example: "OK"
+              result:
+                type: object
+                properties:
+                  output:
+                    type: string
+                    example: '{"wazuh":{"protocol":{"queue":1,"location":"syscheck"},"integration":{"category":"Security","name":"integration/wazuh-core/0","decoders":["core-wazuh-message","integrations"]}},"name":"nahuel","event":{"original":"File /etc/passwd modified"},"@timestamp":"2025-12-26T17:33:22Z"}'
+                  asset_traces:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        asset:
+                          type: string
+                          example: "decoder/core-wazuh-message/0"
+                        success:
+                          type: boolean
+                          example: true
+                        traces:
+                          type: array
+                          items:
+                            type: string
+                          example: ["@timestamp: get_date -> Success"]
+
+    PromotionPreviewResponse:
+      description: Promotion preview result
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PolicyDiff"
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -313,7 +1664,7 @@ components:
       description: |
         Bearer token authentication using JWT (JSON Web Token).
         Include the token in the Authorization header as: `Authorization: Bearer <token>`
-        
+
         Tokens can be obtained through the Wazuh authentication system.
     basicAuth:
       type: http
@@ -321,4 +1672,3 @@ components:
       description: |
         **Secure Basic Authentication**.
         Clients must provide username and password encoded in Base64.
-        

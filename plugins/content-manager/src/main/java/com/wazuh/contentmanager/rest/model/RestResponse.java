@@ -1,20 +1,39 @@
+/*
+ * Copyright (C) 2024-2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * General response model for REST API endpoints.
  *
- * <p>This class provides a standardized format for API responses that include
- * a human-readable message and an HTTP status code. It can be serialized to
- * OpenSearch XContent via the {@link org.opensearch.core.xcontent.ToXContent}
- * interface implementation.
+ * <p>This class provides a standardized format for API responses that include a human-readable
+ * message and an HTTP status code. It can be serialized to OpenSearch XContent via the {@link
+ * org.opensearch.core.xcontent.ToXContent} interface implementation.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RestResponse implements ToXContent {
@@ -23,19 +42,18 @@ public class RestResponse implements ToXContent {
 
     @JsonProperty(MESSAGE)
     private String message;
+
     @JsonProperty(STATUS)
     private int status;
 
-    /**
-     * Default constructor for frameworks that require a no-arg constructor
-     */
-    public RestResponse() { }
+    /** Default constructor for frameworks that require a no-arg constructor */
+    public RestResponse() {}
 
     /**
      * Creates an ErrorResponse with the provided message and HTTP status code.
      *
      * @param message human-readable error message
-     * @param status  HTTP status code representing the error condition
+     * @param status HTTP status code representing the error condition
      */
     public RestResponse(String message, int status) {
         this.message = message;
@@ -79,24 +97,14 @@ public class RestResponse implements ToXContent {
     }
 
     @Override
-    /**
-     * Returns a compact string representation of this ErrorResponse.
-     *
-     * @return string representation containing message and status
-     */
     public String toString() {
-        return "{" +
-            "message='" + this.message + '\'' +
-            ", status=" + this.status +
-            '}';
+        return "{" + "message='" + this.message + '\'' + ", status=" + this.status + '}';
     }
 
     /**
-     * Serializes this RestResponse into an {@link XContentBuilder} using JSON
-     * format.
+     * Serializes this RestResponse into an {@link XContentBuilder} using JSON format.
      *
-     * @return an {@link XContentBuilder} containing the JSON representation
-     *         of this RestResponse
+     * @return an {@link XContentBuilder} containing the JSON representation of this RestResponse
      * @throws IOException if an I/O error occurs while building the content
      */
     public XContentBuilder toXContent() throws IOException {
@@ -104,23 +112,55 @@ public class RestResponse implements ToXContent {
     }
 
     /**
-     * Writes the fields of this RestResponse into the provided
-     * {@link XContentBuilder}. The resulting structure is a JSON object with
-     * the keys {@code message} and {@code status}.
+     * Writes the fields of this RestResponse into the provided {@link XContentBuilder}. The resulting
+     * structure is a JSON object with the keys {@code message} and {@code status}.
      *
      * @param builder the XContent builder to write into
-     * @param params  optional parameters (may be ignored)
+     * @param params optional parameters (ignored in this implementation, required by override)
      * @return the same {@link XContentBuilder} instance passed as {@code builder}
      * @throws IOException if an I/O error occurs while writing to the builder
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject()
-            .field(MESSAGE, this.getMessage())
-            .field(STATUS, this.getStatus())
-            .endObject();
+        builder
+                .startObject()
+                .field(MESSAGE, this.getMessage())
+                .field(STATUS, this.getStatus())
+                .endObject();
 
         return builder;
     }
-}
 
+    /**
+     * Generate a BytesRestResponse instance for the API.
+     *
+     * @return this RestResponse instance as a BytesRestResponse
+     */
+    public BytesRestResponse toBytesRestResponse() {
+        try {
+            return new BytesRestResponse(RestStatus.fromCode(this.status), this.toXContent());
+        } catch (IOException e) {
+            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * Invoked internally by Mockito.
+     *
+     * @param other the reference object with which to compare.
+     * @return true if the instances are equal, false otherwise.
+     */
+    @Override
+    public boolean equals(Object other) {
+        if (other == null || this.getClass() != other.getClass()) {
+            return false;
+        }
+        RestResponse response = (RestResponse) other;
+        return this.status == response.status && Objects.equals(this.message, response.message);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.message, this.status);
+    }
+}

@@ -6,9 +6,7 @@ The Content Manager manages multiple Contexts, having a single Consumer each. Th
 
 The Content Manager periodically looks for new content on the CTI API by comparing the offsets. On its first run, the content is initialized using a snapshot. From there on, the content is patched to match the latest offset available. Simple information about the context, the consumer, the current offset and the snapshot URL are saved in an index.
 
-The Content Manager also offers the possibility of offline content updates, from a snapshot file. The content is stored in indices.
-
-1. [**ONLINE**] For each context, the scheduled job checks if there is new content available on the CTI API.
+1. For each context, the scheduled job checks if there is new content available on the CTI API.
     1. If the offset is `0`, the context will be initialized from a snapshot
         1. The Content Manager gets the URL for the latest snapshot from `GET /api/v1/catalog/contexts/:context/consumers/:consumer`
         2. The Content Manager downloads the snapshot.
@@ -20,8 +18,6 @@ The Content Manager also offers the possibility of offline content updates, from
         2. While `difference > 0`
             - Fetch changes in batches of 1000 elements as maximum
             - Apply JSON-patch to the content.
-2. [**OFFLINE**] The Content Manager exposes an API endpoint that accepts the URI to the snapshot file (e.g. `file:///tmp/snapshot.zip`).
-   1. From `1.1.2` to `1.1.5`
 
 ```mermaid
 ---
@@ -54,7 +50,7 @@ sequenceDiagram
   },
 ]
 ```
-[OFFLINE] or [INITIALIZATION]
+[INITIALIZATION]
 ```json
 [
   {

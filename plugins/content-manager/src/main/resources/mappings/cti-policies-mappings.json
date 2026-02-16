@@ -3,6 +3,9 @@
   "properties": {
     "document": {
       "properties": {
+        "id": {
+          "type": "keyword"
+        },
         "root_decoder": {
           "type": "keyword"
         },
@@ -25,6 +28,12 @@
           "type": "keyword"
         },
         "integrations": {
+          "type": "keyword"
+        },
+        "filters": {
+          "type": "keyword"
+        },
+        "enrichments": {
           "type": "keyword"
         },
         "title": {

@@ -45,8 +45,8 @@ public class UnzipTests extends OpenSearchTestCase {
 
         // Environment set up
         this.tempDestinationDirectory = createTempDir();
-        tempZipPath = this.tempDestinationDirectory.resolve("file.zip");
-        destinationPath = this.tempDestinationDirectory.resolve("");
+        this.tempZipPath = this.tempDestinationDirectory.resolve("file.zip");
+        this.destinationPath = this.tempDestinationDirectory.resolve("");
         Settings settings =
                 Settings.builder()
                         .put("path.home", this.tempDestinationDirectory.toString()) // Required by OpenSearch
@@ -55,7 +55,7 @@ public class UnzipTests extends OpenSearchTestCase {
         this.environment = new Environment(settings, this.tempDestinationDirectory);
 
         try (ZipOutputStream zipOutputStream =
-                new ZipOutputStream(Files.newOutputStream(tempZipPath))) {
+                new ZipOutputStream(Files.newOutputStream(this.tempZipPath))) {
             ZipEntry entry = new ZipEntry(this.testFile);
             zipOutputStream.putNextEntry(entry);
             zipOutputStream.write(this.testFileMessage.getBytes(StandardCharsets.UTF_8));
@@ -83,7 +83,7 @@ public class UnzipTests extends OpenSearchTestCase {
     }
 
     /** Test NullPointerException */
-    public void testNullPointerException() throws IOException {
+    public void testNullPointerException() {
         assertThrows(
                 NullPointerException.class, () -> Unzip.unzip(null, this.tempDestinationDirectory));
     }
@@ -93,6 +93,7 @@ public class UnzipTests extends OpenSearchTestCase {
         assertThrows(
                 FileNotFoundException.class,
                 () ->
-                        Unzip.unzip(environment.tmpDir().resolve("fake.txt"), this.tempDestinationDirectory));
+                        Unzip.unzip(
+                                this.environment.tmpDir().resolve("fake.txt"), this.tempDestinationDirectory));
     }
 }

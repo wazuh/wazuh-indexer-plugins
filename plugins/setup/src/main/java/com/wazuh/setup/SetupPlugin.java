@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,10 +16,14 @@
  */
 package com.wazuh.setup;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -51,7 +55,12 @@ import com.wazuh.setup.utils.JsonUtils;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
+    private static final Logger log = LogManager.getLogger(SetupPlugin.class);
+    public static final String CLUSTER_DEFAULT_NUMBER_OF_REPLICAS =
+            "cluster.default_number_of_replicas";
     private final List<Index> indices = new ArrayList<>();
+    private Client client;
+    private ClusterService clusterService;
     // spotless:off
     private final String[] categories = {
         "access-management", // No integration in this category yet
@@ -83,6 +92,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        this.client = client;
+        this.clusterService = clusterService;
         // spotless:off
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
@@ -115,6 +126,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
         this.indices.add(new StateIndex("wazuh-statistics", "templates/statistics"));
+
         // spotless:on
 
         // Inject dependencies
@@ -133,6 +145,30 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Initialize the indices only if this node is the cluster manager node.
         if (localNode.isClusterManagerNode()) {
+
+            // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
+            try {
+                String defaultNumberOfReplicas =
+                        this.clusterService.getSettings().get(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS);
+                if (defaultNumberOfReplicas != null) {
+                    ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+                    request.persistentSettings(
+                            Settings.builder()
+                                    .put(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS, defaultNumberOfReplicas)
+                                    .build());
+                    this.client
+                            .admin()
+                            .cluster()
+                            .updateSettings(request)
+                            .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+                    log.info(
+                            "Successfully updated cluster.default_number_of_replicas to {}",
+                            defaultNumberOfReplicas);
+                }
+            } catch (Exception e) {
+                log.error("Failed to update cluster.default_number_of_replicas", e);
+            }
+
             this.indices.forEach(Index::initialize);
         }
     }

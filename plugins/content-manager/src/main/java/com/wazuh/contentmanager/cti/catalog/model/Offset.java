@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -26,10 +29,10 @@ import java.util.*;
 
 /**
  * Data Transfer Object representing a change offset from the CTI API.
- * <p>
- * This class encapsulates a single synchronization event, defining what action
- * took place (Create, Update, Delete), which resource was affected, and the
- * data associated with that change (either a full payload or a list of patch operations).
+ *
+ * <p>This class encapsulates a single synchronization event, defining what action took place
+ * (Create, Update, Delete), which resource was affected, and the data associated with that change
+ * (either a full payload or a list of patch operations).
  */
 public class Offset implements ToXContentObject {
     private static final String CONTEXT = "context";
@@ -48,20 +51,55 @@ public class Offset implements ToXContentObject {
     private final List<Operation> operations;
     private final Map<String, Object> payload;
 
-    public enum Type { CREATE, UPDATE, DELETE }
+    /**
+     * Defines the type of modification operation performed on a resource in the CTI catalog. This
+     * enum is used to identify whether a change event represents resource creation, update, or
+     * deletion.
+     */
+    public enum Type {
+        /** Indicates a new resource was created in the CTI catalog. */
+        CREATE,
+
+        /** Indicates an existing resource was modified in the CTI catalog. */
+        UPDATE,
+
+        /** Indicates a resource was removed from the CTI catalog. */
+        DELETE;
+
+        /**
+         * Parses the type from a string value, case-insensitive.
+         *
+         * <p>Used internally by Jackson to deserialize the JSON into the model.
+         *
+         * @param value The string value to parse.
+         * @return The corresponding Type enum constant.
+         */
+        @JsonCreator
+        public static Type fromString(String value) {
+            return value == null ? null : Type.valueOf(value.toUpperCase(Locale.ROOT));
+        }
+    }
 
     /**
      * Constructs a new Offset instance.
      *
-     * @param context    The context or category of the content (e.g., catalog ID).
-     * @param offset     The sequential ID of this event. Defaults to 0 if null.
-     * @param resource   The unique identifier of the specific resource being modified.
-     * @param type       The type of modification (CREATE, UPDATE, DELETE).
-     * @param version    The version number of the resource. Defaults to 0 if null.
+     * @param context The context or category of the content (e.g., catalog ID).
+     * @param offset The sequential ID of this event. Defaults to 0 if null.
+     * @param resource The unique identifier of the specific resource being modified.
+     * @param type The type of modification (CREATE, UPDATE, DELETE).
+     * @param version The version number of the resource. Defaults to 0 if null.
      * @param operations A list of patch operations (typically used with UPDATE).
-     * @param payload    The full resource content (typically used with CREATE).
+     * @param payload The full resource content (typically used with CREATE).
      */
-    public Offset(String context, long offset, String resource, Type type, long version, List<Operation> operations, Map<String, Object> payload) {
+    @JsonCreator
+    public Offset(
+            @JsonProperty(CONTEXT) String context,
+            @JsonProperty(OFFSET) long offset,
+            @JsonProperty(RESOURCE) String resource,
+            @JsonProperty(TYPE) Type type,
+            @JsonProperty(VERSION) long version,
+            @JsonProperty(OPERATIONS) List<Operation> operations,
+            @JsonProperty(PAYLOAD) Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;
@@ -98,7 +136,8 @@ public class Offset implements ToXContentObject {
                     case TYPE -> type = Type.valueOf(parser.text().trim().toUpperCase(Locale.ROOT));
                     case VERSION -> version = parser.longValue();
                     case OPERATIONS -> {
-                        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                        XContentParserUtils.ensureExpectedToken(
+                                XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             operations.add(Operation.parse(parser));
                         }
@@ -112,7 +151,14 @@ public class Offset implements ToXContentObject {
                 }
             }
         }
-        return new Offset(context, offset != null ? offset : 0, resource, type, version != null ? version : 0, operations, payload);
+        return new Offset(
+                context,
+                offset != null ? offset : 0,
+                resource,
+                type,
+                version != null ? version : 0,
+                operations,
+                payload);
     }
 
     /**
@@ -120,41 +166,51 @@ public class Offset implements ToXContentObject {
      *
      * @return The resource ID string.
      */
-    public String getResource() { return this.resource; }
+    public String getResource() {
+        return this.resource;
+    }
 
     /**
      * Gets the type of modification performed.
      *
      * @return The {@link Type} enum value (CREATE, UPDATE, DELETE).
      */
-    public Type getType() { return this.type; }
+    public Type getType() {
+        return this.type;
+    }
 
     /**
      * Gets the list of patch operations associated with this change.
      *
      * @return A list of {@link Operation} objects, or an empty list if none exist.
      */
-    public List<Operation> getOperations() { return this.operations; }
+    public List<Operation> getOperations() {
+        return this.operations;
+    }
 
     /**
      * Gets the sequential offset ID of this change event.
      *
      * @return The offset value as a long.
      */
-    public long getOffset() { return this.offset; }
+    public long getOffset() {
+        return this.offset;
+    }
 
     /**
      * Gets the full content payload of the resource.
      *
      * @return A Map representing the resource JSON, or null if not present.
      */
-    public Map<String, Object> getPayload() { return this.payload; }
+    public Map<String, Object> getPayload() {
+        return this.payload;
+    }
 
     /**
      * Serializes this object into an {@link XContentBuilder}.
      *
      * @param builder The builder to write to.
-     * @param params  Contextual parameters for the serialization.
+     * @param params Contextual parameters for the serialization.
      * @return The builder instance for chaining.
      * @throws IOException If an error occurs while writing to the builder.
      */
