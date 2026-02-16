@@ -53,6 +53,10 @@ public class PluginSettings {
     private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
     private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3_test";
 
+    // Default values for Context and Consumer
+    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider";
+    private static final String DEFAULT_IOC_CONSUMER = "iocp_v1";
+
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
 
@@ -152,6 +156,22 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Context for IoC Content. */
+    public static final Setting<String> IOC_CONTEXT =
+            Setting.simpleString(
+                    "plugins.content_manager.ioc.content.context",
+                    DEFAULT_IOC_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Consumer for IoC Content. */
+    public static final Setting<String> IOC_CONSUMER =
+            Setting.simpleString(
+                    "plugins.content_manager.ioc.content.consumer",
+                    DEFAULT_IOC_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final int maximumConcurrentBulks;
@@ -161,6 +181,8 @@ public class PluginSettings {
     private final boolean updateOnSchedule;
     private final String contentContext;
     private final String contentConsumer;
+    private final String iocContext;
+    private final String iocConsumer;
     private final boolean createDetectors;
 
     /**
@@ -178,6 +200,8 @@ public class PluginSettings {
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
         this.contentContext = CONTENT_CONTEXT.get(settings);
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
+        this.iocContext = IOC_CONTEXT.get(settings);
+        this.iocConsumer = IOC_CONSUMER.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -297,6 +321,24 @@ public class PluginSettings {
      */
     public boolean getCreateDetectors() {
         return this.createDetectors;
+    }
+
+    /**
+     * Retrieves the IOC Context.
+     *
+     * @return the context string.
+     */
+    public String getIocContext() {
+        return this.iocContext;
+    }
+
+    /**
+     * Retrieves the IOC Consumer.
+     *
+     * @return the consumer string.
+     */
+    public String getIocConsumer() {
+        return this.iocConsumer;
     }
 
     @Override

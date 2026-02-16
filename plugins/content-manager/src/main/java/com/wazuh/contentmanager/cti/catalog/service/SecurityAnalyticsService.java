@@ -16,7 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -31,32 +32,35 @@ public interface SecurityAnalyticsService {
      * Creates or updates an Integration in SAP.
      *
      * @param doc The JSON document containing the integration data.
-     * @param space
-     * @param method
+     * @param space The space of the integration.
+     * @param method The HTTP method (POST/PUT).
      */
-    void upsertIntegration(JsonObject doc, Space space, Method method);
+    void upsertIntegration(JsonNode doc, Space space, Method method);
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
      * first.
      *
      * @param id The identifier of the integration to delete.
+     * @param isStandard Whether the integration is a Standard integration (true) or Custom (false).
      */
-    void deleteIntegration(String id);
+    void deleteIntegration(String id, boolean isStandard);
 
     /**
      * Creates or updates a Rule in SAP.
      *
      * @param doc The JSON document containing the rule data.
+     * @param space The space the rule belongs to (determines if it's standard or custom).
      */
-    void upsertRule(JsonObject doc);
+    void upsertRule(JsonNode doc, Space space);
 
     /**
      * Deletes a Rule from SAP.
      *
      * @param id The identifier of the rule to delete.
+     * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
      */
-    void deleteRule(String id);
+    void deleteRule(String id, boolean isStandard);
 
     /**
      * Creates or updates a Threat Detector in SAP.
@@ -64,7 +68,7 @@ public interface SecurityAnalyticsService {
      * @param doc The JSON document containing the integration data used to build the detector.
      * @param rawCategory Whether to use the raw category string (true) or formatted/pretty (false).
      */
-    void upsertDetector(JsonObject doc, boolean rawCategory);
+    void upsertDetector(JsonNode doc, boolean rawCategory);
 
     /**
      * Deletes a Threat Detector from SAP.

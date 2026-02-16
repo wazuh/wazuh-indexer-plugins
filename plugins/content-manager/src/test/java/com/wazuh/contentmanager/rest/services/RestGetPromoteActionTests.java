@@ -30,10 +30,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -210,7 +213,12 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("Missing required parameter"));
+        assertTrue(
+                response
+                        .content()
+                        .utf8ToString()
+                        .contains(
+                                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE)));
     }
 
     /**
@@ -280,5 +288,73 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        assertTrue(response.content().utf8ToString().contains(Constants.E_500_INTERNAL_SERVER_ERROR));
+    }
+
+    /**
+     * Test that the response body contains only plural resource keys (no singular duplicates).
+     *
+     * <p>This test ensures the changes body does not contain duplicate keys like "decoder" alongside
+     * "decoders", "rule" alongside "rules", etc. Only the plural forms should be present.
+     *
+     * @throws IOException if parsing the response fails.
+     */
+    @SuppressWarnings("unchecked")
+    public void testGetPromote200_ResponseContainsOnlyPluralKeys() throws IOException {
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("space", "draft"))
+                        .build();
+
+        // Mock all resource types to ensure comprehensive coverage (excluding policy to simplify)
+        Map<String, Map<String, String>> sourceResources = new HashMap<>();
+        sourceResources.put("decoders", Collections.emptyMap());
+        sourceResources.put("rules", Collections.emptyMap());
+        sourceResources.put("kvdbs", Collections.emptyMap());
+        sourceResources.put("integrations", Collections.emptyMap());
+        sourceResources.put("filters", Collections.emptyMap());
+
+        Map<String, Map<String, String>> targetResources = new HashMap<>();
+        targetResources.put("decoders", Collections.emptyMap());
+        targetResources.put("rules", Collections.emptyMap());
+        targetResources.put("kvdbs", Collections.emptyMap());
+        targetResources.put("integrations", Collections.emptyMap());
+        targetResources.put("filters", Collections.emptyMap());
+
+        when(this.spaceService.getSpaceResources("draft")).thenReturn(sourceResources);
+        when(this.spaceService.getSpaceResources("test")).thenReturn(targetResources);
+
+        // Act
+        RestResponse restResponse = this.action.handleRequest(request);
+        BytesRestResponse response = restResponse.toBytesRestResponse();
+
+        // Assert
+        assertEquals(RestStatus.OK, response.status());
+
+        Map<String, Object> map =
+                XContentHelper.convertToMap(response.content(), false, XContentType.JSON).v2();
+        assertTrue(map.containsKey("changes"));
+        Map<String, Object> changes = (Map<String, Object>) map.get("changes");
+
+        // Define allowed keys (plural forms only)
+        Set<String> allowedKeys =
+                Set.of("decoders", "rules", "kvdbs", "integrations", "filters", "policy");
+
+        // Define forbidden singular keys that should NOT be present
+        Set<String> forbiddenKeys = Set.of("decoder", "rule", "kvdb", "integration");
+
+        // Verify no forbidden singular keys are present
+        for (String forbiddenKey : forbiddenKeys) {
+            assertFalse(
+                    "Response should not contain singular key '" + forbiddenKey + "'",
+                    changes.containsKey(forbiddenKey));
+        }
+
+        // Verify all keys in response are from the allowed set
+        for (String key : changes.keySet()) {
+            assertTrue(
+                    "Unexpected key '" + key + "' in changes body. Allowed keys: " + allowedKeys,
+                    allowedKeys.contains(key));
+        }
     }
 }

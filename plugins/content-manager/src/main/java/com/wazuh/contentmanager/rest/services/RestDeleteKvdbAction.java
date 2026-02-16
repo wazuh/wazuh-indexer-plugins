@@ -16,63 +16,47 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
- * REST handler for deleting CTI KVDBs.
+ * DELETE /_plugins/content-manager/kvdbs/{id}
  *
- * <p>Endpoint: DELETE /_plugins/_content_manager/kvdbs/{kvdb_id}
+ * <p>Deletes an existing KVDB from the draft space.
  *
- * <p>This handler processes KVDB deletion requests. When a KVDB is deleted, it is also removed from
- * any integrations that reference it.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The KVDB exists and is in the draft space.
+ *   <li>The KVDB is unlinked from any integrations that reference it.
+ *   <li>The KVDB is deleted from the index and the space hash is recalculated.
+ * </ul>
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
- *   <li>201 Created: KVDB deleted successfully.
- *   <li>400 Bad Request: KVDB ID is missing or invalid.
- *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ *   <li>200 OK: KVDB deleted successfully.
+ *   <li>400 Bad Request: KVDB is not in draft space.
+ *   <li>404 Not Found: KVDB with specified ID was not found.
+ *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
  */
-public class RestDeleteKvdbAction extends BaseRestHandler {
+public class RestDeleteKvdbAction extends AbstractDeleteAction {
+
     private static final String ENDPOINT_NAME = "content_manager_kvdb_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_delete";
 
-    private static final Logger log = LogManager.getLogger(RestDeleteKvdbAction.class);
-
-    private final EngineService engine;
-    private PolicyHashService policyHashService;
-
-    /**
-     * Constructs a new RestDeleteKvdbAction handler.
-     *
-     * @param engine The service instance to communicate with the local engine service.
-     */
     public RestDeleteKvdbAction(EngineService engine) {
-        this.engine = engine;
+        super(engine);
     }
 
     /** Return a short identifier for this handler. */
@@ -96,87 +80,23 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for processing.
-     *
-     * @param request the incoming REST request containing the KVDB ID
-     * @param client the node client for executing operations
-     * @return a consumer that executes the delete operation and sends the response
-     * @throws IOException if an I/O error occurs during request preparation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        // Consume path params early to avoid unrecognized parameter errors.
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_KVDBS;
     }
 
-    /**
-     * Sets the policy hash service for testing purposes.
-     *
-     * @param policyHashService the PolicyHashService instance to use
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_KVDB;
     }
 
-    /**
-     * Handles the KVDB deletion request.
-     *
-     * <p>This method validates the request, ensures the KVDB exists and is in draft space, deletes
-     * the KVDB from the index, and removes references to the KVDB from any integrations that include
-     * it.
-     *
-     * @param request the incoming REST request containing the KVDB ID to delete
-     * @param client the OpenSearch client for index operations
-     * @return a RestResponse indicating success or failure of the deletion
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        try {
-            if (this.engine == null) {
-                return new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
+    @Override
+    protected void deleteExternalServices(String id) {
+        // No explicit KVDB delete in external services
+    }
 
-            String kvdbId = request.param(Constants.KEY_ID);
-            if (kvdbId == null || kvdbId.isBlank()) {
-                return new RestResponse("KVDB ID is required.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Ensure Index Exists
-            if (!IndexHelper.indexExists(client, Constants.INDEX_KVDBS)) {
-                return new RestResponse("KVDB index not found.", RestStatus.NOT_FOUND.getStatus());
-            }
-
-            // Validate KVDB exists and is in draft space
-            String spaceError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
-            if (spaceError != null) {
-                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
-
-            // Unlink from Integrations
-            ContentUtils.unlinkResourceFromIntegrations(client, kvdbId, Constants.KEY_KVDBS);
-
-            // Delete KVDB
-            kvdbIndex.delete(kvdbId);
-            // Recalculate policy hashes for draft space
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse("KVDB deleted successfully.", RestStatus.CREATED.getStatus());
-        } catch (Exception e) {
-            log.error("Error deleting KVDB: {}", e.getMessage(), e);
-            return new RestResponse(
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "An unexpected error occurred while processing your request.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+    @Override
+    protected void unlinkFromParent(Client client, String id) throws IOException {
+        this.contentUtils.unlinkResourceFromIntegrations(client, id, Constants.KEY_KVDBS);
     }
 }

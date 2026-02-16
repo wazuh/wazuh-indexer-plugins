@@ -63,12 +63,6 @@ public abstract class AbstractConsumerSynchronizer {
     /** The OpenSearch environment configuration. */
     protected final Environment environment;
 
-    public static final String POLICY = "policy";
-    public static final String RULE = "rule";
-    public static final String DECODER = "decoder";
-    public static final String KVDB = "kvdb";
-    public static final String INTEGRATION = "integration";
-
     /**
      * Constructs a new AbstractConsumerSynchronizer.
      *
@@ -93,7 +87,7 @@ public abstract class AbstractConsumerSynchronizer {
 
     /**
      * Returns the consumer name for this synchronizer. The consumer identifies the type of content
-     * being synchronized (e.g., "rules", "decoders").
+     * being synchronized (e.g., "Constants.KEY_RULEs", "Constants.KEY_DECODERs").
      *
      * @return The consumer name.
      */
@@ -140,12 +134,18 @@ public abstract class AbstractConsumerSynchronizer {
      * @return The unified index name.
      */
     public String getIndexName(String type) {
+        // TODO Normalize the Resource types at resource creation to avoid this mapping and simplify
+        // index management
+        // e.g. always use the `type` in plural (decoders, rules, etc.) and remove the need for this
+        // mapping
         return switch (type) {
-            case RULE -> Constants.INDEX_RULES;
-            case DECODER -> Constants.INDEX_DECODERS;
-            case KVDB -> Constants.INDEX_KVDBS;
-            case INTEGRATION -> Constants.INDEX_INTEGRATIONS;
-            case POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_RULE -> Constants.INDEX_RULES;
+            case Constants.KEY_DECODER -> Constants.INDEX_DECODERS;
+            case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
+            case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
+            case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_FILTERS -> Constants.INDEX_FILTERS;
+            case Constants.KEY_IOCS -> Constants.INDEX_IOCS;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
     }

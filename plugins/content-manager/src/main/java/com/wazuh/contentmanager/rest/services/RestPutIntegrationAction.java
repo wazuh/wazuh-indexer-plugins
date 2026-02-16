@@ -17,82 +17,60 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.transport.client.node.NodeClient;
+import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /**
  * PUT /_plugins/content-manager/integrations/{id}
  *
- * <p>Updates an existing integration in the local engine.
+ * <p>Updates an existing integration in the draft space.
  *
- * <p>Possible HTTP responses: - 200 OK: Integration updated successfully. - 400 Bad Request: Wazuh
- * Engine replied with an error response or invalid request. - 404 Not Found: Integration with
- * specified ID was not found. - 500 Internal Server Error: Unexpected error during processing.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The integration exists and is in the draft space.
+ *   <li>The request body contains all mandatory fields (title, author, category).
+ *   <li>The lists of linked resources (Rules, Decoders, KVDBs) match the existing document (they
+ *       cannot be modified via this endpoint).
+ *   <li>Immutable metadata (creation date) is preserved from the existing document.
+ *   <li>The updated integration is synchronized with the Security Analytics Plugin (SAP).
+ *   <li>The updated integration payload is validated by the Engine.
+ *   <li>The integration is re-indexed and the space hash is recalculated.
+ * </ul>
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Integration updated successfully.
+ *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name or attempt to modify
+ *       linked resource lists.
+ *   <li>404 Not Found: Integration with specified ID was not found.
+ *   <li>500 Internal Server Error: Unexpected error during processing or external service failure.
+ * </ul>
  */
-public class RestPutIntegrationAction extends BaseRestHandler {
+public class RestPutIntegrationAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_update";
 
-    private ContentIndex integrationsIndex;
-    private PolicyHashService policyHashService;
-    private SecurityAnalyticsService service;
-    private final EngineService engine;
-    private final Logger log = LogManager.getLogger(RestPutIntegrationAction.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private NodeClient nodeClient;
-
-    /**
-     * Constructs a new RestPutIntegrationAction.
-     *
-     * @param engine The service instance to communicate with the local engine service.
-     */
     public RestPutIntegrationAction(EngineService engine) {
-        this.engine = engine;
-    }
-
-    /**
-     * Generate current date in YYYY-MM-DD format.
-     *
-     * @return String representing current date in YYYY-MM-DD format
-     */
-    public static String generateDate() {
-        return LocalDate.now(TimeZone.getDefault().toZoneId()).toString();
+        super(engine);
     }
 
     /** Return a short identifier for this handler. */
@@ -116,332 +94,106 @@ public class RestPutIntegrationAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for updating an integration.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        request.param(Constants.KEY_ID);
-        this.nodeClient = client;
-        this.setPolicyHashService(new PolicyHashService(client));
-        this.setIntegrationsContentIndex(new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null));
-        this.setSecurityAnalyticsService(new SecurityAnalyticsServiceImpl(client));
-        return channel -> channel.sendResponse(this.handleRequest(request).toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_INTEGRATIONS;
     }
 
-    /**
-     * @param policyHashService the policy hash service to set
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_INTEGRATION;
     }
 
-    /**
-     * Setter for the integrations index, used in tests.
-     *
-     * @param integrationsIndex the integrations index ContentIndex object
-     */
-    public void setIntegrationsContentIndex(ContentIndex integrationsIndex) {
-        this.integrationsIndex = integrationsIndex;
-    }
-
-    /**
-     * @param service the security analytics service to set
-     */
-    public void setSecurityAnalyticsService(SecurityAnalyticsService service) {
-        this.service = service;
-    }
-
-    /**
-     * Setter for the node client, used in tests.
-     *
-     * @param nodeClient the node client to set
-     */
-    public void setNodeClient(NodeClient nodeClient) {
-        this.nodeClient = nodeClient;
-    }
-
-    /**
-     * Handles the incoming PUT integration request.
-     *
-     * @param request incoming request
-     * @return a RestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public RestResponse handleRequest(RestRequest request) throws IOException {
-        String id = request.param(Constants.KEY_ID);
-        this.log.debug(
-                "PUT integration request received (id={}, hasContent={}, uri={})",
-                id,
-                request.hasContent(),
-                request.uri());
-
-        // Check if ID is provided
-        if (id == null || id.isEmpty()) {
-            this.log.warn("Request rejected: integration ID is required");
-            return new RestResponse("Integration ID is required.", RestStatus.BAD_REQUEST.getStatus());
+    /** Preserves metadata and validates that linked resource lists have not changed. */
+    @Override
+    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
+        RestResponse response = super.preserveMetadata(index, id, resourceNode);
+        if (response != null) {
+            return response;
         }
 
-        // Check if engine service exists
-        if (this.engine == null) {
-            this.log.error("Engine instance is null");
-            return new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check if security analytics service exists
-        if (this.service == null) {
-            this.log.error("Security Analytics service instance is null");
-            return new RestResponse(
-                    "Security Analytics service instance is null.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // Check request's payload exists
-        if (!request.hasContent()) {
-            this.log.warn("Request rejected: JSON request body missing");
-            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Check request's payload is valid JSON
-        JsonNode requestBody;
-        try {
-            requestBody = MAPPER.readTree(request.content().streamInput()).deepCopy();
-        } catch (IOException ex) {
-            this.log.warn("Request rejected: invalid JSON content", ex);
-            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Verify request is of type "integration"
-        if (!requestBody.has(Constants.KEY_TYPE)
-                || !requestBody.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_INTEGRATION)) {
-            this.log.warn(
-                    "Request rejected: invalid resource type (type={})",
-                    requestBody.has(Constants.KEY_TYPE)
-                            ? requestBody.get(Constants.KEY_TYPE).asText()
-                            : null);
-            return new RestResponse("Invalid resource type.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Check that there is no ID field in the request body (ID comes from URL)
-        if (!requestBody.at("/resource/id").isMissingNode()) {
-            this.log.warn("Request rejected: id field present in request body");
-            return new RestResponse(
-                    "ID field is not allowed in the request body. Use the URL path parameter instead.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Verify integration exists and is in draft space
-        GetRequest getRequest = new GetRequest(Constants.INDEX_INTEGRATIONS, id);
-        GetResponse getResponse;
-        try {
-            getResponse = this.nodeClient.get(getRequest).actionGet();
-        } catch (Exception e) {
-            this.log.error("Failed to retrieve existing integration (id={})", id, e);
-            return new RestResponse(
-                    "Failed to retrieve existing integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        if (!getResponse.isExists()) {
-            this.log.warn("Request rejected: integration not found (id={})", id);
-            return new RestResponse("Integration not found: " + id, RestStatus.NOT_FOUND.getStatus());
-        }
-
-        // Verify integration is in draft space
-        Map<String, Object> existingSource = getResponse.getSourceAsMap();
-        if (existingSource.containsKey(Constants.KEY_SPACE)) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> space = (Map<String, Object>) existingSource.get(Constants.KEY_SPACE);
-            String spaceName = (String) space.get(Constants.KEY_NAME);
-            if (!Space.DRAFT.equals(spaceName)) {
-                this.log.warn(
-                        "Request rejected: cannot update integration in space '{}' (id={})", spaceName, id);
-                return new RestResponse(
-                        "Cannot update integration from space '"
-                                + spaceName
-                                + "'. Only 'draft' space is modifiable.",
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-        } else {
-            this.log.warn("Request rejected: integration has undefined space (id={})", id);
-            return new RestResponse(
-                    "Cannot update integration with undefined space.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Extract /resource
-        JsonNode resource = requestBody.at("/resource");
-        if (!resource.isObject()) {
-            this.log.warn(
-                    "Request rejected: /resource is not an object (nodeType={})", resource.getNodeType());
-            return new RestResponse(
-                    "Invalid JSON structure: /resource must be an object.",
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // Validate dependencies (rules, decoders, kvdbs) to ensure no additions/removals
-        if (existingSource.containsKey(Constants.KEY_DOCUMENT)) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> existingDocument =
-                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
-
-            try {
-                if (validateList(existingDocument, resource, Constants.KEY_RULES) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_RULES);
-                }
-                if (validateList(existingDocument, resource, Constants.KEY_DECODERS) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_DECODERS);
-                }
-                if (validateList(existingDocument, resource, Constants.KEY_KVDBS) != null) {
-                    return validateList(existingDocument, resource, Constants.KEY_KVDBS);
-                }
-            } catch (IllegalArgumentException e) {
-                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-        }
-
-        // Insert ID from URL
-        ((ObjectNode) resource).put(Constants.KEY_ID, id);
-
-        // Insert modification date
-        String currentDate = RestPutIntegrationAction.generateDate();
-        ((ObjectNode) resource).put(Constants.KEY_MODIFIED, currentDate);
-
-        // Check if date is present in existing document to preserve it
-        String createdDate = null;
-        JsonNode existingDoc = this.integrationsIndex.getDocument(id);
+        JsonNode existingDoc = index.getDocument(id);
         if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
-            JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-            if (doc.has(Constants.KEY_DATE)) {
-                createdDate = doc.get(Constants.KEY_DATE).asText();
-            } else {
-                createdDate = RestPutIntegrationAction.generateDate();
-            }
-        }
-
-        // Remove date field if present
-        ((ObjectNode) resource).put(Constants.KEY_DATE, createdDate);
-
-        // Check if enabled is set (if it's not, preserve existing value or set to true by default)
-        if (!resource.has(Constants.KEY_ENABLED)) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> existingDocument =
-                    (Map<String, Object>) existingSource.get(Constants.KEY_DOCUMENT);
-            if (existingDocument != null && existingDocument.containsKey(Constants.KEY_ENABLED)) {
-                ((ObjectNode) resource)
-                        .put(Constants.KEY_ENABLED, (Boolean) existingDocument.get(Constants.KEY_ENABLED));
-            } else {
-                ((ObjectNode) resource).put(Constants.KEY_ENABLED, true);
-            }
+            Map<String, Object> existing =
+                    MAPPER.convertValue(existingDoc.get(Constants.KEY_DOCUMENT), Map.class);
+
+            RestResponse error;
+            error = checkListEquality(existing, resourceNode, Constants.KEY_RULES);
+            if (error != null) return error;
+
+            error = checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
+            if (error != null) return error;
+
+            error = checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
+            if (error != null) return error;
         }
+        return null;
+    }
 
-        // Insert "draft" into /resource/space/name
-        ((ObjectNode) requestBody)
-                .putObject(Constants.KEY_SPACE)
-                .put(Constants.KEY_NAME, Space.DRAFT.toString());
+    /**
+     * Checks if two lists are equal ot not, if not it returns a RestResponse with the error
+     *
+     * @param existing Current document
+     * @param resource New document
+     * @param key Key of the list to check if is equal or not
+     */
+    private RestResponse checkListEquality(
+            Map<String, Object> existing, JsonNode resource, String key) {
+        @SuppressWarnings("unchecked")
+        List<String> oldList = (List<String>) existing.getOrDefault(key, Collections.emptyList());
+        List<String> newList = this.contentUtils.extractStringList(resource, key);
+        return this.contentUtils.validateListEquality(oldList, newList, key);
+    }
 
-        // Calculate and add a hash to the integration
-        String hash = HashCalculator.sha256(resource.toString());
-        ((ObjectNode) requestBody).putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, hash);
-        this.log.debug(
-                "Computed integration sha256 hash for id={} (hashPrefix={})",
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        RestResponse requiredFields =
+                this.contentUtils.validateRequiredFields(
+                        resource,
+                        List.of(
+                                Constants.KEY_TITLE,
+                                Constants.KEY_AUTHOR,
+                                Constants.KEY_CATEGORY,
+                                Constants.KEY_DESCRIPTION,
+                                "documentation",
+                                "references"));
+        if (requiredFields != null) return requiredFields;
+
+        String title = resource.get(Constants.KEY_TITLE).asText();
+        String id = resource.get(Constants.KEY_ID).asText();
+
+        return this.documentValidations.validateDuplicateTitle(
+                client,
+                Constants.INDEX_INTEGRATIONS,
+                Space.DRAFT.toString(),
+                title,
                 id,
-                hash.length() >= 12 ? hash.substring(0, 12) : hash);
+                Constants.KEY_INTEGRATION);
+    }
 
-        // Update integration in SAP (put the contents of "resource" inside Constants.KEY_DOCUMENT key)
-        this.log.debug("Updating integration in Security Analytics (id={})", id);
-        this.service.upsertIntegration(
-                this.toJsonObject(MAPPER.createObjectNode().set(Constants.KEY_DOCUMENT, resource)),
-                Space.DRAFT,
-                PUT);
-
-        // Construct engine validation payload
-        this.log.debug("Validating integration with Engine (id={})", id);
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        // 1. Engine Validate
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
 
-        // Validate integration with Wazuh Engine
-        final RestResponse validationResponse = this.engine.validate(enginePayload);
-
-        try {
-            MAPPER.readTree(validationResponse.getMessage()).isObject();
-        } catch (Exception e) {
-            this.log.error(
-                    "Engine validation failed (id={}, status={}); SAP update may be inconsistent",
-                    id,
-                    validationResponse.getStatus());
+        RestResponse engineResponse = this.engine.validate(enginePayload);
+        if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    "Failed to update Integration, Invalid validation response: "
-                            + validationResponse.getMessage()
-                            + ".",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        // If validation failed, return error (SAP was already updated, may need manual reconciliation)
-        if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
-            this.log.error(
-                    "Engine validation failed (id={}, status={})", id, validationResponse.getStatus());
-            return new RestResponse(
-                    "Failed to update Integration, Validation response: "
-                            + validationResponse.getStatus()
-                            + ".",
+                    "Engine Validation Failed: " + engineResponse.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
+        // 2. SAP Upsert
         try {
-            this.log.debug(
-                    "Indexing updated integration into {} (id={})", Constants.INDEX_INTEGRATIONS, id);
-            ObjectNode integrationsIndexPayload = MAPPER.createObjectNode();
-            integrationsIndexPayload.set(Constants.KEY_DOCUMENT, resource);
-            integrationsIndexPayload
-                    .putObject(Constants.KEY_SPACE)
-                    .put(Constants.KEY_NAME, Space.DRAFT.toString());
-            IndexResponse integrationIndexResponse =
-                    this.integrationsIndex.create(id, integrationsIndexPayload);
-
-            // Check indexing response. We are expecting for a 200 OK status for update.
-            if (integrationIndexResponse == null
-                    || (integrationIndexResponse.status() != RestStatus.OK
-                            && integrationIndexResponse.status() != RestStatus.CREATED)) {
-                this.log.error(
-                        "Indexing integration failed (id={}, status={})",
-                        id,
-                        integrationIndexResponse != null ? integrationIndexResponse.status() : null);
-                return new RestResponse(
-                        "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-
-            // Update the space's hash in the policy
-            this.log.debug(
-                    "Recalculating space hash for draft space after integration update (id={})", id);
-
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            this.log.info("Integration updated successfully (id={})", id);
-            return new RestResponse(
-                    "Integration updated successfully with ID: " + id, RestStatus.OK.getStatus());
+            this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
         } catch (Exception e) {
-            this.log.error("Unexpected error updating integration (id={})", id, e);
             return new RestResponse(
-                    "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "SAP Upsert Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-    }
 
-    private JsonObject toJsonObject(JsonNode jsonNode) {
-        return JsonParser.parseString(jsonNode.toString()).getAsJsonObject();
-    }
-
-    private RestResponse validateList(
-            Map<String, Object> existingDoc, JsonNode resourceNode, String key) {
-        @SuppressWarnings("unchecked")
-        List<String> existingList =
-                (List<String>) existingDoc.getOrDefault(key, Collections.emptyList());
-        List<String> incomingList = ContentUtils.extractStringList(resourceNode, key);
-        return ContentUtils.validateListEquality(existingList, incomingList, key);
+        return null;
     }
 }

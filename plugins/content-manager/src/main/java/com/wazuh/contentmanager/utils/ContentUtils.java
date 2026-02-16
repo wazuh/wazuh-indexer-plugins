@@ -34,11 +34,13 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,78 +51,75 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 public class ContentUtils {
 
     private static final Logger log = LogManager.getLogger(ContentUtils.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    private ContentUtils() {}
+    public ContentUtils() {}
 
     /**
-     * Adds or updates timestamp metadata (date, modified) and author structure in the resource node.
+     * Generate current date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
      *
-     * @param resourceNode The resource object to update.
-     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
+     * @return String representing current date.
      */
-    public static void updateTimestampMetadata(ObjectNode resourceNode, boolean isCreate) {
-        String currentTimestamp = Instant.now().toString();
-
-        // Ensure metadata node exists
-        ObjectNode metadataNode;
-        if (resourceNode.has(Constants.KEY_METADATA)
-                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-        } else {
-            metadataNode = mapper.createObjectNode();
-            resourceNode.set(Constants.KEY_METADATA, metadataNode);
-        }
-
-        // Ensure author node exists
-        ObjectNode authorNode;
-        if (metadataNode.has(Constants.KEY_AUTHOR)
-                && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-        } else {
-            authorNode = mapper.createObjectNode();
-            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-        }
-
-        // Set timestamps
-        if (isCreate) {
-            authorNode.put(Constants.KEY_DATE, currentTimestamp);
-        }
-        authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+    public String getCurrentDate() {
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
     /**
-     * Validates that the metadata.author structure does not contain date or modified fields.
+     * Adds or updates timestamp metadata (date, modified) in the resource node.
      *
-     * @param resourceNode The resource JSON node.
-     * @return RestResponse if validation fails, null otherwise.
+     * <p>If {@code isDecoder} is true, fields are set in {@code metadata.author}. Otherwise, fields
+     * are set at the root level.
+     *
+     * @param resourceNode The resource object to update.
+     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
+     * @param isDecoder If true, uses the decoder specific metadata structure.
      */
-    public static RestResponse validateMetadataFields(JsonNode resourceNode) {
-        if (resourceNode.has(Constants.KEY_METADATA)) {
-            JsonNode metadata = resourceNode.get(Constants.KEY_METADATA);
-            if (metadata.has(Constants.KEY_AUTHOR)) {
-                JsonNode author = metadata.get(Constants.KEY_AUTHOR);
-                if (author.has(Constants.KEY_DATE) || author.has(Constants.KEY_MODIFIED)) {
-                    return new RestResponse(
-                            "Fields 'metadata.author.date' and 'metadata.author.modified' are managed by the system.",
-                            RestStatus.BAD_REQUEST.getStatus());
-                }
+    public void updateTimestampMetadata(
+            ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
+        String currentTimestamp = getCurrentDate();
+
+        if (isDecoder) {
+            // Decoders: metadata.author.date/modified
+            ObjectNode metadataNode;
+            if (resourceNode.has(Constants.KEY_METADATA)
+                    && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+                metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+            } else {
+                metadataNode = mapper.createObjectNode();
+                resourceNode.set(Constants.KEY_METADATA, metadataNode);
             }
+
+            ObjectNode authorNode;
+            if (metadataNode.has(Constants.KEY_AUTHOR)
+                    && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+                authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
+            } else {
+                authorNode = mapper.createObjectNode();
+                metadataNode.set(Constants.KEY_AUTHOR, authorNode);
+            }
+
+            if (isCreate) {
+                authorNode.put(Constants.KEY_DATE, currentTimestamp);
+            }
+            authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
+        } else {
+            // Rules, Integrations, KVDBs: root date/modified
+            if (isCreate) {
+                resourceNode.put(Constants.KEY_DATE, currentTimestamp);
+            }
+            resourceNode.put(Constants.KEY_MODIFIED, currentTimestamp);
         }
-        return null;
     }
 
     /**
      * Builds the standard CTI wrapper payload containing type, document, space, and hash.
      *
-     * @param type The resource type (e.g., "decoder", "kvdb").
      * @param resourceNode The content of the resource.
      * @param spaceName The space name (e.g., "draft").
      * @return The constructed JsonNode wrapper.
      */
-    public static JsonNode buildCtiWrapper(String type, JsonNode resourceNode, String spaceName) {
+    public JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = mapper.createObjectNode();
-        wrapper.put(Constants.KEY_TYPE, type);
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
 
         // Space
@@ -147,7 +146,7 @@ public class ContentUtils {
      * @throws IOException If the integration cannot be found or updated.
      */
     @SuppressWarnings("unchecked")
-    public static void linkResourceToIntegration(
+    public void linkResourceToIntegration(
             Client client, String integrationId, String resourceId, String listKey) throws IOException {
         GetResponse response = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
 
@@ -178,9 +177,10 @@ public class ContentUtils {
      * @param client OpenSearch client.
      * @param resourceId The ID of the resource to unlink.
      * @param listKey The key of the list field in the integration document (e.g., "rules").
+     * @throws IOException If searching or updating the integration fails.
      */
-    public static void unlinkResourceFromIntegrations(
-            Client client, String resourceId, String listKey) {
+    public void unlinkResourceFromIntegrations(Client client, String resourceId, String listKey)
+            throws IOException {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
         searchRequest
                 .source()
@@ -206,6 +206,7 @@ public class ContentUtils {
             }
         } catch (Exception e) {
             log.error("Error unlinking resource [{}] from integrations: {}", resourceId, e.getMessage());
+            throw new IOException("Failed to unlink resource from integrations: " + e.getMessage(), e);
         }
     }
 
@@ -218,7 +219,7 @@ public class ContentUtils {
      * @param source The full source map including metadata.
      * @throws IOException If indexing fails.
      */
-    public static void updateIntegrationSource(
+    public void updateIntegrationSource(
             Client client, String id, Map<String, Object> document, Map<String, Object> source)
             throws IOException {
         JsonNode documentNode = mapper.valueToTree(document);
@@ -246,7 +247,7 @@ public class ContentUtils {
      * @return A List of strings extracted from the JSON array.
      * @throws IllegalArgumentException If the field exists but is not an array.
      */
-    public static List<String> extractStringList(JsonNode parentNode, String key) {
+    public List<String> extractStringList(JsonNode parentNode, String key) {
         List<String> list = new ArrayList<>();
         if (parentNode.has(key)) {
             JsonNode node = parentNode.get(key);
@@ -270,7 +271,7 @@ public class ContentUtils {
      * @param fieldName The name of the field for error reporting.
      * @return A RestResponse error if the sets differ, or null if they are equal.
      */
-    public static RestResponse validateListEquality(
+    public RestResponse validateListEquality(
             List<String> existingList, List<String> incomingList, String fieldName) {
         Set<String> existingSet =
                 new HashSet<>(existingList != null ? existingList : Collections.emptyList());
@@ -283,6 +284,69 @@ public class ContentUtils {
                             + fieldName
                             + "' cannot be added or removed via update. Please use the specific resource endpoints.",
                     RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /**
+     * Validates enrichment types in a policy. Enrichments can be added, removed, or reordered, but
+     * only allowed values are accepted and duplicates are not permitted.
+     *
+     * @param enrichments The list of enrichment types to validate.
+     * @return A RestResponse error if validation fails, or null if valid.
+     */
+    public RestResponse validateEnrichments(List<String> enrichments) {
+        if (enrichments == null || enrichments.isEmpty()) {
+            return null;
+        }
+
+        Set<String> seen = new HashSet<>();
+        for (String enrichment : enrichments) {
+            // Check for duplicates
+            if (!seen.add(enrichment)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, enrichment),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+
+            // Check for invalid values
+            if (!Constants.ALLOWED_ENRICHMENT_TYPES.contains(enrichment)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, enrichment),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Validates that the provided JSON node contains specific mandatory fields. Checks if the field
+     * exists and is not null. For text fields, it also checks if they are blank. Objects and Arrays
+     * are considered valid if they exist and are not null.
+     *
+     * @param resource The JSON node to validate (usually the 'resource' object).
+     * @param requiredFields A list of keys that must be present.
+     * @return A RestResponse with an error if a field is missing or invalid, or null if valid.
+     */
+    public RestResponse validateRequiredFields(JsonNode resource, List<String> requiredFields) {
+        if (resource == null) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        for (String field : requiredFields) {
+            if (!resource.has(field)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            JsonNode node = resource.get(field);
+            if (node.isNull() || (node.isTextual() && node.asText().isBlank())) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
         }
         return null;
     }

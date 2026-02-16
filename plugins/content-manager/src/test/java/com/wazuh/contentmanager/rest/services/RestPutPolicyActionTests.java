@@ -36,7 +36,11 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -49,6 +53,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -95,6 +100,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         Map<String, Object> space = new HashMap<>();
         document.put(Constants.KEY_ID, "12345");
         document.put(Constants.KEY_INTEGRATIONS, List.of("integration-1"));
+        document.put("filters", Collections.emptyList());
+        document.put("enrichments", Collections.emptyList());
         hash.put("sha256", "12345");
         space.put(Constants.KEY_NAME, Space.DRAFT.toString());
         policy.put(Constants.KEY_DOCUMENT, document);
@@ -147,6 +154,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration/wazuh-core/0\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -166,10 +175,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Mock search response to return existing draft policy
         PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
         searchFuture.onResponse(this.searchResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        // We need to mock getHits() but SearchHits is final, so the test will handle
-        // NullPointerException
-        // The actual method in RestPutPolicyAction will catch any exception from searchByQuery
 
         // Mock index response
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
@@ -184,11 +189,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(
-                response
-                        .getMessage()
-                        .contains(
-                                "Content of 'integrations' cannot be added or removed via update. Please use the specific resource endpoints."));
+        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
     }
 
     /**
@@ -212,6 +213,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -232,14 +235,12 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
         searchFuture.onResponse(this.searchResponse);
         when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        // We need to mock getHits() but SearchHits is final, so the test will handle
-        // NullPointerException
-        // The actual method in RestPutPolicyAction will catch any exception from searchByQuery
 
         // Mock index response
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
 
         PolicyHashService policyHashService = mock(PolicyHashService.class);
         this.action.setPolicyHashService(policyHashService);
@@ -250,7 +251,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Assert
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         assertTrue(response.getMessage().contains("policy"));
-        verify(this.client, times(1)).index(any(IndexRequest.class));
+
+        // Verify PolicyHashService was called to regenerate space hash
+        verify(policyHashService).calculateAndUpdate(anyList());
     }
 
     /**
@@ -332,7 +335,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("JSON request body is required"));
+        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -357,7 +360,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains(Constants.E_400_INVALID_JSON_CONTENT));
+        assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -382,7 +385,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Missing ["));
+        assertTrue(response.getMessage().contains("Missing"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -415,7 +418,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Missing ["));
+        assertTrue(response.getMessage().contains("Missing"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -440,6 +443,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
@@ -471,6 +476,280 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Failed to update policy"));
+        assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains valid enrichments. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_ValidEnrichments_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        // Arrange - policy with valid enrichments
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"enrichments\": [\"file\", \"ip\", \"url\"],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        // Mock search response
+        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
+        searchFuture.onResponse(this.searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        assertEquals("test-policy-id", response.getMessage());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains an invalid enrichment type. The expected response is: {400, RestResponse}
+     */
+    public void testPutPolicy_InvalidEnrichmentType_400() {
+        // Arrange - policy with invalid enrichment type
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"enrichments\": [\"file\", \"invalid-type\", \"ip\"],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertEquals(
+                String.format(Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, "invalid-type"),
+                response.getMessage());
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains duplicate enrichment types. The expected response is: {400, RestResponse}
+     */
+    public void testPutPolicy_DuplicateEnrichments_400() {
+        // Arrange - policy with duplicate enrichment types
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"enrichments\": [\"file\", \"ip\", \"file\"],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        assertEquals(
+                String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, "file"),
+                response.getMessage());
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains all valid enrichment types. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_AllValidEnrichmentTypes_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        // Arrange - policy with all valid enrichment types
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"enrichments\": [\"file\", \"domain-name\", \"ip\", \"url\", \"geo\"],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        // Mock search response
+        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
+        searchFuture.onResponse(this.searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        assertEquals("test-policy-id", response.getMessage());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains an empty enrichments array. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_EmptyEnrichments_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        // Arrange - policy with empty enrichments array
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"enrichments\": [],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        // Mock search response
+        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
+        searchFuture.onResponse(this.searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        this.action.setPolicyHashService(policyHashService);
+
+        // Act
+        RestResponse response = this.action.handleRequest(request);
+
+        // Assert
+        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        assertEquals("test-policy-id", response.getMessage());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 }

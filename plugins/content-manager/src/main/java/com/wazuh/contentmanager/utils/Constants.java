@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.utils;
 
 import java.util.Map;
+import java.util.Set;
 
 // spotless:off
 /**
@@ -37,19 +38,38 @@ import java.util.Map;
 public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
-    public static final String E_500_UNEXPECTED_INDEX_STATE =
-            "Missing [%s] field for document [%s] in [%s] index.";
-    public static final String E_500_POLICIES_ARE_NULL = "Source or target policies are null.";
-    public static final String E_500_POLICY_ID_IS_NULL_OR_BLANK = "Policy ID is null or blank.";
-    public static final String E_500_POLICY_UPDATE_FAILED = "Failed to update policy.";
-    public static final String E_500_ENGINE_INSTANCE_IS_NULL = "Engine instance is null.";
-    public static final String E_400_JSON_REQUEST_BODY_IS_REQUIRED = "JSON request body is required.";
-    public static final String E_400_INVALID_JSON_CONTENT = "Invalid JSON content.";
+    public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
+    public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
+    public static final String E_400_RESOURCE_NOT_FOUND = "%s [%s] not found.";
+    public static final String E_400_RESOURCE_NOT_IN_DRAFT = "%s with ID '%s' is not in draft space.";
+    public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
+    public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
+    public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
+    public static final String E_400_INTEGRATION_HAS_RESOURCES =
+            "Cannot delete integration because it has %s attached.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
+    public static final String E_400_DUPLICATE_NAME =
+            "A %s with the name '%s' already exists in the %s space.";
+
+    // Log messages
+    public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
+    public static final String E_LOG_ENGINE_VALIDATION = "Engine validation failed: {}";
+    public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
+    public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
+    public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
+    public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
+    public static final String W_LOG_VALIDATION_ERROR = "Validation error during {}: {}";
+    public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
+    public static final String D_LOG_OPERATION = "{} {} (id={})";
+    public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
+    public static final String W_LOG_OPERATION_FAILED_ID = "{} failed for {} [{}]: {}";
+    public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
+    public static final String W_LOG_EXTERNAL_NOT_FOUND =
+            "Resource {} [{}] not found in external service, continuing deletion.";
 
     // Index Constants
     public static final String INDEX_POLICIES = ".cti-policies";
@@ -57,6 +77,7 @@ public class Constants {
     public static final String INDEX_RULES = ".cti-rules";
     public static final String INDEX_KVDBS = ".cti-kvdbs";
     public static final String INDEX_DECODERS = ".cti-decoders";
+    public static final String INDEX_IOCS = ".cti-iocs";
     public static final String INDEX_FILTERS = ".engine-filters";
 
     // Resource Types Keys
@@ -65,6 +86,7 @@ public class Constants {
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
     public static final String KEY_DECODERS = "decoders";
+    public static final String KEY_IOCS = "iocs";
     public static final String KEY_FILTERS = "filters";
 
     // Resource Metadata Keys
@@ -79,6 +101,18 @@ public class Constants {
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_DESCRIPTION = "description";
+
+    // Ioc content fields
+    public static final String KEY_ENRICHMENTS = "enrichments";
+
+    // Enrichment types allowed in policy
+    public static final Set<String> ALLOWED_ENRICHMENT_TYPES =
+            Set.of("file", "domain-name", "ip", "url", "geo");
+    public static final String E_400_INVALID_ENRICHMENT =
+            "Invalid enrichment type '%s'. Allowed values are: file, domain-name, ip, url, geo.";
+    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -87,19 +121,38 @@ public class Constants {
     public static final String KEY_KVDB = "kvdb";
     public static final String KEY_DECODER = "decoder";
     public static final String KEY_RULE = "rule";
+    public static final String KEY_LOGSOURCE = "logsource";
+    public static final String KEY_PRODUCT = "product";
+    public static final String KEY_CATEGORY = "category";
+
+    // Engine promotion payload keys
+    public static final String KEY_RESOURCES = "resources";
+    public static final String KEY_FULL_POLICY = "full_policy";
+    public static final String KEY_PROMOTE = "load_in_tester";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
-                    KEY_POLICY, INDEX_POLICIES,
-                    KEY_INTEGRATIONS, INDEX_INTEGRATIONS,
-                    KEY_RULES, INDEX_RULES,
-                    KEY_KVDBS, INDEX_KVDBS,
-                    KEY_DECODERS, INDEX_DECODERS,
-                    KEY_FILTERS, INDEX_FILTERS);
+                    KEY_POLICY,
+                    INDEX_POLICIES,
+                    KEY_INTEGRATIONS,
+                    INDEX_INTEGRATIONS,
+                    KEY_RULES,
+                    INDEX_RULES,
+                    KEY_KVDBS,
+                    INDEX_KVDBS,
+                    KEY_DECODERS,
+                    INDEX_DECODERS,
+                    KEY_IOCS,
+                    INDEX_IOCS,
+                    KEY_FILTERS,
+                    INDEX_FILTERS);
 
     // Queries
     public static final String Q_SPACE_NAME = "space.name";
+    public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_DOCUMENT_TITLE = "document.title";
+    public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
 
     // Operations

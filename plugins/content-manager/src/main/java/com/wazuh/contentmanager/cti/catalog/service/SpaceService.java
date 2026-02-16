@@ -84,8 +84,8 @@ public class SpaceService {
                     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
                     // Filter by space and fetch document.id
-                    sourceBuilder.query(QueryBuilders.termQuery("space.name", spaceName));
-                    sourceBuilder.fetchSource(new String[] {"hash.sha256", "document.id"}, null);
+                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+                    sourceBuilder.fetchSource(new String[] {Constants.Q_HASH, Constants.Q_DOCUMENT_ID}, null);
                     sourceBuilder.size(10000);
 
                     searchRequest.source(sourceBuilder);
@@ -139,9 +139,9 @@ public class SpaceService {
                 // Update the space field to target space
                 @SuppressWarnings("unchecked")
                 Map<String, String> spaceMap =
-                        (Map<String, String>) doc.getOrDefault("space", new HashMap<>());
-                spaceMap.put("name", targetSpace);
-                doc.put("space", spaceMap);
+                        (Map<String, String>) doc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                spaceMap.put(Constants.KEY_NAME, targetSpace);
+                doc.put(Constants.KEY_SPACE, spaceMap);
 
                 // Find existing _id in target space to overwrite it, otherwise create new
                 String targetId = this.findDocumentId(indexName, targetSpace, docId);
@@ -186,7 +186,7 @@ public class SpaceService {
             if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
                 SearchRequest searchRequest = new SearchRequest(indexName);
                 SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                sourceBuilder.query(QueryBuilders.termQuery("space.name", spaceName));
+                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
                 sourceBuilder.size(10000);
                 searchRequest.source(sourceBuilder);
 
@@ -244,7 +244,7 @@ public class SpaceService {
 
         // Root payload structure
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
-        rootPayload.put("load_in_tester", true);
+        rootPayload.put(Constants.KEY_PROMOTE, true);
 
         // Create the full_policy object
         ObjectNode fullPolicyNode = this.objectMapper.createObjectNode();
@@ -258,7 +258,7 @@ public class SpaceService {
             JsonNode policyContentNode = this.objectMapper.valueToTree(policyDoc);
             policyNode.setAll((ObjectNode) policyContentNode);
         }
-        fullPolicyNode.set("policy", policyNode);
+        fullPolicyNode.set(Constants.KEY_POLICY, policyNode);
 
         // Build the resources object
         ObjectNode resourcesNode = this.objectMapper.createObjectNode();
@@ -307,10 +307,10 @@ public class SpaceService {
         resourcesNode.set(Constants.KEY_FILTERS, filtersArray);
 
         // Add resources to full_policy
-        fullPolicyNode.set("resources", resourcesNode);
+        fullPolicyNode.set(Constants.KEY_RESOURCES, resourcesNode);
 
         // Add full_policy to root
-        rootPayload.set("full_policy", fullPolicyNode);
+        rootPayload.set(Constants.KEY_FULL_POLICY, fullPolicyNode);
 
         return rootPayload;
     }
@@ -397,7 +397,7 @@ public class SpaceService {
         try {
             SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery("space.name", space));
+            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
             sourceBuilder.size(1);
             searchRequest.source(sourceBuilder);
 
@@ -468,7 +468,7 @@ public class SpaceService {
     private String getDocumentId(Map<String, Object> source) {
         if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
             Map<String, Object> doc = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
-            return (String) doc.get("id");
+            return (String) doc.get(Constants.KEY_ID);
         }
         return null;
     }
@@ -481,14 +481,14 @@ public class SpaceService {
      * @param documentId The logical document ID.
      * @return The real _id, or null if not found.
      */
-    private String findDocumentId(String indexName, String spaceName, String documentId) {
+    public String findDocumentId(String indexName, String spaceName, String documentId) {
         try {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
             sourceBuilder.query(
                     QueryBuilders.boolQuery()
-                            .must(QueryBuilders.termQuery("space.name", spaceName))
-                            .must(QueryBuilders.termQuery("document.id", documentId)));
+                            .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                            .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, documentId)));
             sourceBuilder.size(1);
             sourceBuilder.fetchSource(false); // We only need the _id
             searchRequest.source(sourceBuilder);

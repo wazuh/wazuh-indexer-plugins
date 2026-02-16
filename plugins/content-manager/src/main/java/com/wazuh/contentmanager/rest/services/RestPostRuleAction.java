@@ -17,63 +17,53 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * POST /_plugins/content-manager/rules
  *
- * <p>Creates a rule in the local engine and updates the corresponding integration.
+ * <p>Creates a new Rule in the draft space.
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The payload contains all mandatory fields (title).
+ *   <li>The parent integration exists and is in the draft space.
+ *   <li>A new UUID and creation timestamps are generated.
+ *   <li>The rule is created in the Security Analytics Plugin (SAP).
+ *   <li>The rule is indexed in the draft space.
+ *   <li>The new rule is linked to the parent Integration.
+ * </ul>
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>201 Created: Rule created successfully.
+ *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name or parent integration
+ *       validation failure.
+ *   <li>500 Internal Server Error: SAP error or unexpected error.
+ * </ul>
  */
-public class RestPostRuleAction extends BaseRestHandler {
+public class RestPostRuleAction extends AbstractCreateAction {
+
     private static final String ENDPOINT_NAME = "content_manager_rule_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
 
-    private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
-    private PolicyHashService policyHashService;
-
-    /** Default constructor. */
-    public RestPostRuleAction() {}
-
-    /**
-     * Setter for the policy hash service, used in tests.
-     *
-     * @param policyHashService the policy hash service to set
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+    public RestPostRuleAction() {
+        super(null);
     }
 
     /** Return a short identifier for this handler. */
@@ -97,132 +87,51 @@ public class RestPostRuleAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepare the request for execution.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a {@link RestChannelConsumer} that executes the create operation
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        this.policyHashService = new PolicyHashService(client);
-        RestResponse response = this.handleRequest(request, client);
-        return channel -> channel.sendResponse(response.toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_RULES;
     }
 
-    /**
-     * Handles the rule creation request.
-     *
-     * <p>This method performs the following steps:
-     *
-     * <ol>
-     *   <li>Validates the request body structure (type: "rule", resource: {...}).
-     *   <li>Validates the resource fields (e.g., {@code integration}).
-     *   <li>Ensures the payload does not contain an {@code id} field.
-     *   <li>Calls the Security Analytics Plugin (SAP) to create the rule in the engine.
-     *   <li>Calculates the SHA-256 hash of the rule document.
-     *   <li>Indexes the rule in the CTI rules index.
-     *   <li>Updates the corresponding integration in the CTI integrations index to link the new rule.
-     * </ol>
-     *
-     * @param request the incoming REST request
-     * @param client the client to execute actions
-     * @return a {@link RestResponse} indicating the outcome of the operation
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_RULE;
+    }
+
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        RestResponse fieldValidation =
+                this.contentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
+        if (fieldValidation != null) return fieldValidation;
+
+        String title = resource.get(Constants.KEY_TITLE).asText();
+        RestResponse duplicateValidation =
+                this.documentValidations.validateDuplicateTitle(
+                        client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, null, Constants.KEY_RULE);
+        if (duplicateValidation != null) return duplicateValidation;
+
+        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
+        String spaceError =
+                this.documentValidations.validateDocumentInSpace(
+                        client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
+        if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+
+        return null;
+    }
+
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
         try {
-            if (!request.hasContent()) {
-                return new RestResponse("Missing request body", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(request.content().streamInput());
-
-            // 1. Validate Wrapper Structure
-            if (!rootNode.has(Constants.KEY_TYPE)
-                    || !Constants.KEY_RULE.equals(rootNode.get(Constants.KEY_TYPE).asText())) {
-                return new RestResponse(
-                        "Invalid or missing 'type'. Expected 'rule'.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            if (!rootNode.has(Constants.KEY_RESOURCE)) {
-                return new RestResponse("Missing 'resource' field.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            JsonNode resourceNode = rootNode.get(Constants.KEY_RESOURCE);
-
-            // 2. Validate Payload (Resource)
-            if (resourceNode.has(Constants.KEY_ID)) {
-                return new RestResponse(
-                        "ID must not be provided during creation", RestStatus.BAD_REQUEST.getStatus());
-            }
-            if (!rootNode.has(Constants.KEY_INTEGRATION)) {
-                return new RestResponse("Integration ID is required", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            String integrationId = rootNode.get(Constants.KEY_INTEGRATION).asText();
-
-            // Validate that the Integration exists and is in draft space
-            String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-            if (spaceValidationError != null) {
-                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            String ruleId = UUID.randomUUID().toString();
-
-            // Prepare rule object
-            ObjectNode ruleNode = resourceNode.deepCopy();
-            ruleNode.put(Constants.KEY_ID, ruleId);
-
-            // Metadata operations
-            if (!ruleNode.has(Constants.KEY_DATE)) {
-                ruleNode.put(Constants.KEY_DATE, Instant.now().toString());
-            }
-            if (!ruleNode.has(Constants.KEY_ENABLED)) {
-                ruleNode.put(Constants.KEY_ENABLED, true);
-            }
-
-            String product = ContentIndex.extractProduct(ruleNode);
-            String payloadString = ruleNode.toString();
-
-            // 3. Call SAP -> Custom Action
-            try {
-                WIndexCustomRuleRequest ruleRequest =
-                        new WIndexCustomRuleRequest(
-                                ruleId, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, payloadString, true);
-
-                client.execute(WIndexCustomRuleAction.INSTANCE, ruleRequest).actionGet();
-                log.info("RestPostRuleAction: SAP created rule successfully (Custom).");
-            } catch (Exception e) {
-                log.error("RestPostRuleAction: SAP creation failed.", e);
-                throw e;
-            }
-
-            // 4. Store in CTI Rules Index
-            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
-            rulesIndex.indexCtiContent(ruleId, ruleNode, Space.DRAFT.toString());
-
-            // 5. Link in Integration
-            ContentUtils.linkResourceToIntegration(client, integrationId, ruleId, Constants.KEY_RULES);
-
-            // 6. Regenerate space hash because rule was added to space
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse(
-                    "Custom rule created successfully with ID " + ruleId, RestStatus.CREATED.getStatus());
-
+            this.securityAnalyticsService.upsertRule(resource, Space.DRAFT);
+            return null;
         } catch (Exception e) {
-            log.error("Error creating rule: {}", e.getMessage(), e);
-            // If validation error return bad request
-            if (e.getMessage() != null && e.getMessage().contains("Invalid rule")) {
-                return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-            }
-            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return new RestResponse(
+                    "SAP Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+    }
+
+    @Override
+    protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
+        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
+        this.contentUtils.linkResourceToIntegration(client, integrationId, id, Constants.KEY_RULES);
     }
 }

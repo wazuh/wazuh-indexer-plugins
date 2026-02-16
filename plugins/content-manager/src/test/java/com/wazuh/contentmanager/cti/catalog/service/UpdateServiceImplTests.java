@@ -40,10 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -149,7 +146,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         // Verify CREATE
-        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
+        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class), eq(false));
 
         // Verify UPDATE
         verify(this.ruleIndex).update(eq("rule-2"), any(List.class));
@@ -163,6 +160,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         LocalConsumer updated = consumerCaptor.getValue();
         assertEquals(12, updated.getLocalOffset());
+        assertEquals(12, updated.getRemoteOffset());
         assertEquals(CONSUMER, updated.getName());
     }
 
@@ -201,8 +199,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(19, 20);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), anyBoolean());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), anyBoolean());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
@@ -223,7 +221,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(1, 5);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), anyBoolean());
         verify(this.consumersIndex, never()).setConsumer(any());
     }
 
@@ -257,7 +255,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class));
+                .create(anyString(), any(JsonNode.class), anyBoolean());
 
         // Act
         this.updateService.update(29, 30);
@@ -306,8 +304,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(39, 40);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), anyBoolean());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), anyBoolean());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());

@@ -16,43 +16,58 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchResponseSections;
+import org.opensearch.action.search.ShardSearchFailure;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleAction;
-import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
-import com.wazuh.securityanalytics.action.WIndexRuleResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for the {@link RestPutRuleAction} class. */
 public class RestPutRuleActionTests extends OpenSearchTestCase {
 
     private RestPutRuleAction action;
-    private Client client;
+    private NodeClient nodeClient;
+    private SecurityAnalyticsService securityAnalyticsService;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Set up the tests
@@ -63,137 +78,141 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        PluginSettings.getInstance(Settings.EMPTY);
-        this.client = mock(Client.class);
-        this.action = new RestPutRuleAction();
+        // Initialize PluginSettings with valid defaults
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.max_items_per_bulk", 25)
+                        .put("plugins.content_manager.max_concurrent_bulks", 5)
+                        .put("plugins.content_manager.client.timeout", 10)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        this.nodeClient = mock(NodeClient.class);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        PolicyHashService policyHashService = mock(PolicyHashService.class);
+
+        this.action = spy(new RestPutRuleAction());
+        this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
+        this.action.setPolicyHashService(policyHashService);
+    }
+
+    private void mockPrepareGetChain(GetResponse response, String id) {
+        GetRequestBuilder builder = mock(GetRequestBuilder.class);
+        when(builder.setFetchSource(anyBoolean())).thenReturn(builder);
+        when(builder.get()).thenReturn(response);
+        when(this.nodeClient.prepareGet(anyString(), eq(id))).thenReturn(builder);
+    }
+
+    private void mockSearch(long totalHits) {
+        SearchHits hits =
+                new SearchHits(
+                        new SearchHit[0], new TotalHits(totalHits, TotalHits.Relation.EQUAL_TO), 0.0f);
+        SearchResponseSections sections =
+                new SearchResponseSections(hits, null, null, false, null, null, 1);
+        SearchResponse searchResponse =
+                new SearchResponse(
+                        sections,
+                        null,
+                        1,
+                        1,
+                        0,
+                        1,
+                        ShardSearchFailure.EMPTY_ARRAY,
+                        SearchResponse.Clusters.EMPTY);
+
+        PlainActionFuture<SearchResponse> future = new PlainActionFuture<>();
+        future.onResponse(searchResponse);
+        when(this.nodeClient.search(any(SearchRequest.class))).thenReturn(future);
+    }
+
+    private GetResponse createMockGetResponse(String space, boolean exists) {
+        GetResponse getResponse = mock(GetResponse.class);
+        when(getResponse.isExists()).thenReturn(exists);
+        if (exists) {
+            Map<String, Object> source =
+                    Map.of(
+                            Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, space),
+                            Constants.KEY_DOCUMENT, Map.of(Constants.KEY_DATE, "2021-01-01"));
+            when(getResponse.getSourceAsMap()).thenReturn(source);
+            try {
+                when(getResponse.getSourceAsString()).thenReturn(mapper.writeValueAsString(source));
+            } catch (Exception ignored) {
+            }
+        }
+        return getResponse;
     }
 
     /**
-     * Test the {@link RestPutRuleAction#handleRequest(RestRequest, Client)} method when the request
+     * Test the {@link RestPutRuleAction#executeRequest(RestRequest, Client)} method when the request
      * is complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException
      */
     public void testPutRule200() throws IOException {
-        // Arrange
         String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
-
-        // spotless:off
-        String jsonRule = """
-            {
-              "type": "rule",
-              "resource": {
-                  "author": "Florian Roth",
-                  "description": "Updated Description.",
-                  "detection": {
-                    "condition": "selection",
-                    "selection": {
-                      "event.original": [
-                        "exited on signal 6"
-                      ]
-                    }
-                  },
-                  "enabled": true,
-                  "level": "medium",
-                  "logsource": {
-                    "product": "nginx"
-                  },
-                  "title": "Nginx Core Dump Updated"
-              }
-            }
-            """;
-        // spotless:on
-
-        // Mock
+        String jsonRule =
+                "{\"resource\": {\"title\": \"Nginx Core Dump Updated\", \"author\": \"Florian\", \"description\": \"D\", \"documentation\": \"D\", \"references\": []}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", ruleId))
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        GetRequestBuilder getRequestBuilder = mock(GetRequestBuilder.class);
-        GetResponse getResponse = mock(GetResponse.class);
-        doReturn(getRequestBuilder).when(this.client).prepareGet(anyString(), anyString());
-        when(getRequestBuilder.setFetchSource(any(String[].class), any()))
-                .thenReturn(getRequestBuilder);
-        when(getRequestBuilder.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-        Map<String, Object> docMap = new HashMap<>();
-        docMap.put("date", "2021-05-31");
-        // Add space information for draft space validation
-        Map<String, Object> spaceMap = new HashMap<>();
-        spaceMap.put("name", "draft");
-        Map<String, Object> sourceMap = new HashMap<>();
-        sourceMap.put("document", docMap);
-        sourceMap.put("space", spaceMap);
-        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
-        when(getResponse.getSourceAsString())
-                .thenReturn("{\"document\": {\"date\": \"2021-05-31\"}, \"space\": {\"name\": \"draft\"}}");
+        mockPrepareGetChain(createMockGetResponse("draft", true), ruleId);
+        mockSearch(0);
 
-        ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
-        when(sapFuture.actionGet()).thenReturn(new WIndexRuleResponse(ruleId, 2L, RestStatus.OK));
-        doReturn(sapFuture)
-                .when(this.client)
-                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.OK);
+        PlainActionFuture<IndexResponse> indexFuture = new PlainActionFuture<>();
+        indexFuture.onResponse(indexResponse);
+        when(this.nodeClient.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
-        // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
-
-        // Assert
-        assertEquals(RestStatus.OK, response.status());
-        verify(this.client, times(1))
-                .execute(eq(WIndexCustomRuleAction.INSTANCE), any(WIndexCustomRuleRequest.class));
-        verify(this.client, times(1)).index(any(IndexRequest.class));
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.securityAnalyticsService)
+                .upsertRule(any(), eq(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT));
     }
 
     /**
-     * Test the {@link RestPutRuleAction#handleRequest(RestRequest, Client)} method when the rule has
+     * Test the {@link RestPutRuleAction#executeRequest(RestRequest, Client)} method when the rule has
      * not been updated (mock). The expected response is: {400, RestResponse}
-     *
-     * @throws IOException
      */
-    public void testPutRule400_MissingId() throws IOException {
+    public void testPutRule400_MissingId() {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
-
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
-
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /**
-     * Test the {@link RestPutRuleAction#handleRequest(RestRequest, Client)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
+     * Test the {@link RestPutRuleAction#executeRequest(RestRequest, Client)} method when an
+     * unexpected error occurs. The expected response is: {500, RestResponse}
      */
-    public void testPutRule500() throws IOException {
-        // Arrange
-        String ruleId = "some-id";
-        // Ensure structure is valid so validation passes and exception is hit
-        String jsonRule = "{\"resource\": {}, \"type\": \"rule\"}";
-
-        // Mock
+    public void testPutRule404_NotFound() {
+        String ruleId = "missing-id";
+        String jsonRule = "{\"resource\": {\"title\": \"T\"}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", ruleId))
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        doThrow(new RuntimeException("Simulated error"))
-                .when(this.client)
-                .prepareGet(anyString(), anyString());
+        mockPrepareGetChain(createMockGetResponse("draft", false), ruleId);
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), response.getStatus());
+    }
 
-        // Act
-        BytesRestResponse response = this.action.handleRequest(request, this.client);
+    public void testPutRule500() {
+        String ruleId = "error-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .withContent(new BytesArray("{\"resource\":{\"title\":\"T\"}}"), XContentType.JSON)
+                        .build();
 
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        when(this.nodeClient.prepareGet(anyString(), eq(ruleId)))
+                .thenThrow(new RuntimeException("Crash"));
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }

@@ -16,9 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -41,6 +42,7 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots. It
@@ -51,17 +53,15 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     // Keys to navigate the JSON structure
     private static final String JSON_PAYLOAD_KEY = "payload";
-    private static final String JSON_TYPE_KEY = "type";
-    private static final String JSON_DOCUMENT_KEY = "document";
-    private static final String JSON_ID_KEY = "id";
 
     private final String context;
     private final String consumer;
-    private final Map<String, ContentIndex> indicesMap;
+    protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
     private final Environment environment;
     private final PluginSettings pluginSettings;
+    private final ObjectMapper mapper;
 
     /**
      * Constructs a new SnapshotServiceImpl.
@@ -84,6 +84,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
+        this.mapper = new ObjectMapper();
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -195,21 +196,28 @@ public class SnapshotServiceImpl implements SnapshotService {
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
-                    JsonObject rootJson = JsonParser.parseString(line).getAsJsonObject();
+                    JsonNode rootJson = this.mapper.readTree(line);
 
                     // 1. Validate and Extract Payload
                     if (!rootJson.has(JSON_PAYLOAD_KEY)) {
                         log.warn("Snapshot entry missing '{}'. Skipping.", JSON_PAYLOAD_KEY);
                         continue;
                     }
-                    JsonObject payload = rootJson.getAsJsonObject(JSON_PAYLOAD_KEY);
+                    JsonNode payload = rootJson.get(JSON_PAYLOAD_KEY);
 
-                    // 2. Determine Index from 'type' inside payload
-                    if (!payload.has(JSON_TYPE_KEY)) {
-                        log.warn("Payload missing '{}'. Skipping.", JSON_TYPE_KEY);
+                    // 2. Determine Index.
+                    // - If payload has the "enrichments" key, then it is an IOC.
+                    // - If payload has the "type" key, obtain the "type" from the "type" key.
+                    // - Otherwise, skip.
+                    String type;
+                    if (payload.has(Constants.KEY_ENRICHMENTS)) {
+                        type = Constants.KEY_IOCS;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
+                        type = payload.get(Constants.KEY_TYPE).asText();
+                    } else {
+                        log.warn("Could not identify resource type. Skipping.");
                         continue;
                     }
-                    String type = payload.get(JSON_TYPE_KEY).getAsString();
 
                     // 3. Select correct index based on type
                     ContentIndex indexHandler = this.indicesMap.get(type);
@@ -217,19 +225,20 @@ public class SnapshotServiceImpl implements SnapshotService {
                         log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
-                    JsonObject processedPayload = indexHandler.processPayload(payload);
+                    ObjectNode processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
-                    // 4. Create Index Request
+                    // Create Index Request
                     IndexRequest indexRequest =
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
-                    // Determine ID
-                    if (processedPayload.has(JSON_DOCUMENT_KEY)) {
-                        JsonObject innerDocument = processedPayload.getAsJsonObject(JSON_DOCUMENT_KEY);
-                        if (innerDocument.has(JSON_ID_KEY)) {
-                            indexRequest.id(innerDocument.get(JSON_ID_KEY).getAsString());
-                        }
+                    // Determine ID (root level "name" key)
+                    if (rootJson.has(Constants.KEY_NAME)) {
+                        String name = rootJson.get(Constants.KEY_NAME).asText();
+                        indexRequest.id(name);
+                    } else {
+                        throw new IOException(
+                                "Missing 'name' key in CTI resource. {offset}:" + rootJson.get("offset").asInt());
                     }
 
                     bulkRequest.add(indexRequest);
@@ -242,7 +251,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         docCount = 0;
                     }
 
-                } catch (JsonSyntaxException e) {
+                } catch (IOException e) {
                     log.error("Error parsing/indexing JSON line: {}", e.getMessage());
                 }
             }
@@ -252,7 +261,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                 executorIndex.executeBulk(bulkRequest);
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
         }
     }

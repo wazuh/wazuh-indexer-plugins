@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -28,14 +27,15 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -43,10 +43,17 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link RestPutDecoderAction} class. This test suite validates the REST API
@@ -58,7 +65,6 @@ import static org.mockito.Mockito.*;
 public class RestPutDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutDecoderAction action;
-    private final ObjectMapper mapper = new ObjectMapper();
     private static final String DECODER_PAYLOAD =
             "{"
                     + "\"type\": \"decoder\","
@@ -97,29 +103,34 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
     public static void setUpClass() {
-        // Initialize PluginSettings singleton - it will persist across all tests
         try {
             PluginSettings.getInstance(Settings.EMPTY);
         } catch (IllegalStateException e) {
-            // Already initialized, ignore
+            // Already initialized
         }
     }
 
+    /**
+     * Set up the tests
+     *
+     * @throws Exception rethrown from parent method
+     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        this.action = new RestPutDecoderAction(this.service);
+        this.action = spy(new RestPutDecoderAction(this.service));
+        this.action.setPolicyHashService(mock(PolicyHashService.class));
     }
 
     /**
-     * Test successful decoder update returns 200 OK.
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {200, RestResponse}
      *
-     * @throws Exception When an error occurs during test execution.
+     * @throws Exception if an error occurs during the test
      */
     public void testPutDecoderSuccess() throws Exception {
-        // Arrange
         String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
@@ -129,152 +140,129 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
 
         Client client = this.buildClientForIndex();
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
+        RestResponse actualResponse = this.action.executeRequest(request, client);
 
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
-
-        // Assert
-        assertEquals(RestStatus.OK, bytesRestResponse.status());
-
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().startsWith("Decoder updated successfully with ID:"));
+        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(decoderId, actualResponse.getMessage());
 
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.service).validateResource(anyString(), payloadCaptor.capture());
-        JsonNode captured = payloadCaptor.getValue();
-        assertEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", captured.get("id").asText());
-
-        verify(policyHashService).calculateAndUpdate(anyList());
+        Assert.assertEquals(decoderId, payloadCaptor.getValue().get("id").asText());
     }
 
-    /** Test that missing decoder ID returns 400 Bad Request. */
-    public void testPutDecoderMissingIdReturns400() {
-        // Arrange
+    /**
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * payload contains a different ID. The ID in the payload should be ignored and the path ID used.
+     * The expected response is: {200, RestResponse}
+     *
+     * @throws Exception if an error occurs during the test
+     */
+    public void testPutDecoderIdInPayloadIsIgnored() throws Exception {
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID_MISMATCH, decoderId);
+        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
+
+        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+
+        Client client = this.buildClientForIndex();
+
+        RestResponse actualResponse = this.action.executeRequest(request, client);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(decoderId, actualResponse.getMessage());
+
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
+        // Verify that the path ID was preferred over the payload ID
+        Assert.assertEquals(decoderId, payloadCaptor.getValue().get("id").asText());
+    }
+
+    /**
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * decoder ID is missing. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPutDecoderMissingIdReturns400() throws IOException {
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, null);
+        RestResponse actualResponse = this.action.executeRequest(request, null);
 
-        // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse expectedResponse =
-                new RestResponse("Decoder ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
-
-        verify(this.service, never()).validate(any(JsonNode.class));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains(Constants.KEY_ID));
     }
 
-    /** Test that missing request body returns 400 Bad Request. */
-    public void testPutDecoderMissingBodyReturns400() {
-        // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+    /**
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * request body is missing. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPutDecoderMissingBodyReturns400() throws IOException {
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", decoderId))
                         .build();
 
-        // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+        RestResponse actualResponse = this.action.executeRequest(request, null);
 
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse expectedResponse =
-                new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
-
-        verify(this.service, never()).validate(any(JsonNode.class));
-    }
-
-    /** Test that missing resource field returns 400 Bad Request. */
-    public void testPutDecoderMissingResourceReturns400() {
-        // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD_MISSING_RESOURCE, decoderId);
-
-        // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse expectedResponse =
-                new RestResponse("Resource payload is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
-
-        verify(this.service, never()).validate(any(JsonNode.class));
-    }
-
-    /** Test that decoder ID mismatch returns 400 Bad Request. */
-    public void testPutDecoderIdMismatchReturns400() {
-        // Arrange
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD_WITH_ID_MISMATCH, decoderId);
-
-        // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-        assertEquals(
-                "Resource ID does not match resource ID.",
-                this.parseResponse(bytesRestResponse).getMessage());
-        verify(this.service, never()).validateResource(anyString(), any(JsonNode.class));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, actualResponse.getMessage());
     }
 
     /**
-     * Test that decoder not found returns 404 Not Found.
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * resource field is missing. The expected response is: {400, RestResponse}
      *
-     * @throws Exception When an error occurs during test execution.
+     * @throws Exception if an error occurs during the test
      */
-    public void testPutDecoderNotFoundReturns404() throws Exception {
-        // Arrange
-        String decoderId = "d_non-existent-12345";
-        RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
-        RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
-        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
-        Client client = this.buildClientWithNonExistentDecoder();
+    public void testPutDecoderMissingResourceReturns400() throws Exception {
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD_MISSING_RESOURCE, decoderId);
+        Client client = this.buildClientForIndex();
 
-        // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, client).toBytesRestResponse();
+        RestResponse actualResponse = this.action.executeRequest(request, client);
 
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertTrue(actualResponse.getMessage().contains("decoder [" + decoderId + "] not found"));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains(Constants.KEY_RESOURCE));
     }
 
-    /** Test that null engine service returns 500 Internal Server Error. */
-    public void testPutDecoderEngineUnavailableReturns500() {
-        // Arrange
-        this.action = new RestPutDecoderAction(null);
-        String decoderId = "d_82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+    /**
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * decoder is not found. The expected response is: {404, RestResponse}
+     *
+     * @throws Exception if an error occurs during the test
+     */
+    public void testPutDecoderNotFoundReturns404() throws Exception {
+        String decoderId = "11111111-1111-1111-1111-111111111111";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
+        Client client = this.buildClientWithNonExistentDecoder();
 
-        // Act
-        BytesRestResponse bytesRestResponse =
-                this.action.handleRequest(request, null).toBytesRestResponse();
+        RestResponse actualResponse = this.action.executeRequest(request, client);
 
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(Constants.E_404_RESOURCE_NOT_FOUND, actualResponse.getMessage());
+    }
 
-        RestResponse expectedResponse =
-                new RestResponse(
-                        "Engine service unavailable.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
+    /**
+     * Test the {@link RestPutDecoderAction#executeRequest(RestRequest, Client)} method when an
+     * unexpected error occurs. The expected response is: {500, RestResponse}
+     *
+     * @throws Exception if an error occurs during the test
+     */
+    public void testPutDecoderEngineUnavailableReturns500() throws Exception {
+        this.action = spy(new RestPutDecoderAction(null));
+        this.action.setPolicyHashService(mock(PolicyHashService.class));
+
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);
+        Client client = this.buildClientForIndex();
+
+        RestResponse actualResponse = this.action.executeRequest(request, client);
+
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("Internal Server Error."));
     }
 
     private RestRequest buildRequest(String payload, String decoderId) {
@@ -287,11 +275,6 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         return builder.build();
     }
 
-    private RestResponse parseResponse(BytesRestResponse response) {
-        JsonNode node = FixtureFactory.from(response.content().utf8ToString());
-        return new RestResponse(node.get("message").asText(), node.get("status").asInt());
-    }
-
     private Client buildClientForIndex() throws Exception {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
@@ -301,17 +284,14 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
         when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        // Mock ContentIndex.exists() - decoder exists
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(existsResponse);
 
-        // Mock validateDecoderSpace - decoder exists and is in draft space
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
-        // Mock getSourceAsString for ContentIndex.getDocument()
         when(spaceResponse.getSourceAsString())
                 .thenReturn(
                         "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
@@ -325,18 +305,11 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         Client client = mock(Client.class, RETURNS_DEEP_STUBS);
         when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
 
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock ContentIndex.exists() - decoder does not exist
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
                 .thenReturn(existsResponse);
 
-        // Mock validateDecoderSpace - decoder does not exist
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
