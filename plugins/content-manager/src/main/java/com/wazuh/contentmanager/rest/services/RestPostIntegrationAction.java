@@ -161,7 +161,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
 
     @Override
     protected void rollbackExternalServices(String id) {
-        this.securityAnalyticsService.deleteIntegration(id);
+        this.securityAnalyticsService.deleteIntegration(id, false);
     }
 
     /**

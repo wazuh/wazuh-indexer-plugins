@@ -194,7 +194,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
         Assert.assertEquals(INTEGRATION_ID, actualResponse.getMessage());
-        verify(this.saService).deleteIntegration(INTEGRATION_ID);
+        verify(this.saService).deleteIntegration(INTEGRATION_ID, false);
         verify(this.client).delete(any(DeleteRequest.class), any());
     }
 

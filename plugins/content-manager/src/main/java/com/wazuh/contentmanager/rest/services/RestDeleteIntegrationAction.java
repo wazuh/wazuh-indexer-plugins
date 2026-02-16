@@ -147,7 +147,7 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
     /** Deletes the integration from the Security Analytics Plugin. */
     @Override
     protected void deleteExternalServices(String id) {
-        this.securityAnalyticsService.deleteIntegration(id);
+        this.securityAnalyticsService.deleteIntegration(id, false);
     }
 
     /**

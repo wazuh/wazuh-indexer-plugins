@@ -42,8 +42,9 @@ public interface SecurityAnalyticsService {
      * first.
      *
      * @param id The identifier of the integration to delete.
+     * @param isStandard Whether the integration is a Standard integration (true) or Custom (false).
      */
-    void deleteIntegration(String id);
+    void deleteIntegration(String id, boolean isStandard);
 
     /**
      * Creates or updates a Rule in SAP.
