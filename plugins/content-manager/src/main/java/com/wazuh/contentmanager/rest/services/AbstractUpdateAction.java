@@ -147,7 +147,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Business logic validation",
+                        "Validation",
                         this.getResourceType(),
                         id,
                         validationError.getMessage());

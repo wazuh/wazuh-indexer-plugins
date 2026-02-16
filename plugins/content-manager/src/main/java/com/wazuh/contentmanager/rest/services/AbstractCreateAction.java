@@ -109,7 +109,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED,
-                        "Business logic validation",
+                        "Validation",
                         this.getResourceType(),
                         validationError.getMessage());
                 return validationError;

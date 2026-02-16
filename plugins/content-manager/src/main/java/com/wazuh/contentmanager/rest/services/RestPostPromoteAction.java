@@ -178,15 +178,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             return new RestResponse(message, RestStatus.BAD_REQUEST.getStatus());
         } catch (IndexNotFoundException e) {
-            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage(), e);
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (IOException e) {
-            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage(), e);
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
-            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage(), e);
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
