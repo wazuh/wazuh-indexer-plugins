@@ -164,7 +164,7 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
             this.syncRules();
 
             // Sync Detectors
-            if (this.pluginSettings.getCreateDetectors()) {
+            if (PluginSettings.getInstance().getCreateDetectors()) {
                 this.syncDetectors();
             }
 
