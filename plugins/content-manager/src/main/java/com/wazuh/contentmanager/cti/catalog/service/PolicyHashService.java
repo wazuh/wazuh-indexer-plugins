@@ -157,7 +157,6 @@ public class PolicyHashService {
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
                 this.client.bulk(bulkUpdateRequest).actionGet();
-                log.info("Updated policy hashes.");
             }
 
         } catch (Exception e) {

@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.rest.RestStatus;
@@ -27,6 +29,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
@@ -46,6 +49,7 @@ import com.wazuh.contentmanager.utils.ContentUtils;
  */
 public abstract class AbstractContentAction extends BaseRestHandler {
 
+    private static final Logger log = LogManager.getLogger(AbstractContentAction.class);
     protected final EngineService engine;
     protected final ContentUtils contentUtils;
     protected PolicyHashService policyHashService;
@@ -117,8 +121,9 @@ public abstract class AbstractContentAction extends BaseRestHandler {
 
             SearchResponse response = client.search(searchRequest).actionGet();
 
-            if (response.getHits().getTotalHits().value() == 0) {
-                return new RestResponse("Draft policy not found.", RestStatus.BAD_REQUEST.getStatus());
+            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
+                log.error("Failed to find Draft policy document");
+                return new RestResponse("Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception e) {
             return new RestResponse(
