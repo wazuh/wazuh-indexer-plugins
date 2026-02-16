@@ -355,7 +355,7 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
         if (hitsToProcess.isEmpty()) return;
 
         CountDownLatch latch = new CountDownLatch(1);
-        processNextDetector(hitsToProcess.iterator(), latch);
+        this.processNextDetector(hitsToProcess.iterator(), latch);
 
         try {
             if (!latch.await(60, TimeUnit.SECONDS)) {
@@ -385,13 +385,13 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
         JsonNode doc = source != null ? this.extractDocument(source, hit.getId()) : null;
 
         if (doc == null) {
-            processNextDetector(iterator, latch);
+            this.processNextDetector(iterator, latch);
             return;
         }
 
         WIndexDetectorRequest request = this.securityAnalyticsService.buildDetectorRequest(doc, true);
         if (request == null) {
-            processNextDetector(iterator, latch);
+            this.processNextDetector(iterator, latch);
             return;
         }
 
@@ -401,13 +401,13 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
                 new ActionListener<WIndexDetectorResponse>() {
                     @Override
                     public void onResponse(WIndexDetectorResponse response) {
-                        processNextDetector(iterator, latch);
+                        RulesetConsumerSynchronizer.this.processNextDetector(iterator, latch);
                     }
 
                     @Override
                     public void onFailure(Exception e) {
                         log.error("Failed to sync detector {}: {}", hit.getId(), e.getMessage());
-                        processNextDetector(iterator, latch);
+                        RulesetConsumerSynchronizer.this.processNextDetector(iterator, latch);
                     }
                 });
     }
