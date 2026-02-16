@@ -34,7 +34,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 /**
@@ -56,6 +55,8 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractUpdateAction.class);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected final DocumentValidations documentValidations = new DocumentValidations();
+
 
     public AbstractUpdateAction(EngineService engine) {
         super(engine);
@@ -64,7 +65,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
     @Override
     protected RestResponse executeRequest(RestRequest request, Client client) {
         // 1. Validate Request Content
-        RestResponse validationError = DocumentValidations.validateRequestHasContent(request);
+        RestResponse validationError = this.documentValidations.validateRequestHasContent(request);
         if (validationError != null) {
             log.warn(
                     Constants.W_LOG_OPERATION_FAILED,
@@ -78,10 +79,10 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
 
         try {
             // 2. Validate ID and Space
-            validationError = DocumentValidations.validateRequiredParam(id, Constants.KEY_ID);
+            validationError = this.documentValidations.validateRequiredParam(id, Constants.KEY_ID);
             if (validationError != null) return validationError;
 
-            validationError = DocumentValidations.validateIdFormat(id, Constants.KEY_ID);
+            validationError = this.documentValidations.validateIdFormat(id, Constants.KEY_ID);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
@@ -100,7 +101,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             String spaceError =
-                    DocumentValidations.validateDocumentInSpace(
+                    this.documentValidations.validateDocumentInSpace(
                             client, this.getIndexName(), id, this.getResourceType());
             if (spaceError != null) {
                 log.warn(
@@ -128,7 +129,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 4. Validate Payload
-            validationError = DocumentValidations.validateResourcePayload(rootNode, false);
+            validationError = this.documentValidations.validateResourcePayload(rootNode, false);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
@@ -155,7 +156,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 6. Update Timestamps & Preserve Metadata
-            ContentUtils.updateTimestampMetadata(resourceNode, false, this.isDecoder());
+            this.contentUtils.updateTimestampMetadata(resourceNode, false, this.isDecoder());
             validationError = this.preserveMetadata(index, id, resourceNode);
             if (validationError != null) {
                 log.warn(
@@ -180,7 +181,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 8. Indexing
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = this.contentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
             index.create(id, ctiWrapper, this.isDecoder());
 
             // 9. Update Hash

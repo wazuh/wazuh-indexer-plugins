@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -66,7 +65,6 @@ import static org.mockito.Mockito.when;
 public class RestPutDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutDecoderAction action;
-    private final ObjectMapper mapper = new ObjectMapper();
     private static final String DECODER_PAYLOAD =
             "{"
                     + "\"type\": \"decoder\","

@@ -115,9 +115,6 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 .thenReturn(
                         new SearchHits(
                                 new SearchHit[] {hit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
-
-        // Use argument matchers to return the correct mock based on the targeted index
-        // This avoids the recursive thenAnswer calls that caused StackOverflow
         when(this.client
                         .search(
                                 argThat(

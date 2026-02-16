@@ -51,6 +51,8 @@ import com.wazuh.contentmanager.utils.DocumentValidations;
 public abstract class AbstractDeleteAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractDeleteAction.class);
+    protected final DocumentValidations documentValidations = new DocumentValidations();
+
 
     public AbstractDeleteAction(EngineService engine) {
         super(engine);
@@ -63,10 +65,10 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
         try {
             // 1. Validation
             RestResponse validationError =
-                    DocumentValidations.validateRequiredParam(id, Constants.KEY_ID);
+                    this.documentValidations.validateRequiredParam(id, Constants.KEY_ID);
             if (validationError != null) return validationError;
 
-            validationError = DocumentValidations.validateIdFormat(id, Constants.KEY_ID);
+            validationError =  this.documentValidations.validateIdFormat(id, Constants.KEY_ID);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
@@ -92,7 +94,7 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
             }
 
             String spaceError =
-                    DocumentValidations.validateDocumentInSpace(
+                    this.documentValidations.validateDocumentInSpace(
                             client, this.getIndexName(), id, this.getResourceType());
             if (spaceError != null) {
                 log.warn(

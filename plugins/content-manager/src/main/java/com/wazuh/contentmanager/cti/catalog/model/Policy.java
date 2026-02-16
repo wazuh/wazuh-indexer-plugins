@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.jobscheduler.repackage.com.cronutils.utils.VisibleForTesting;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -233,7 +235,7 @@ public class Policy {
      *
      * @return Map representation of the policy.
      */
-    // TODO: This method is only used in the tests and can probably be deleted
+    @VisibleForTesting
     public Map<String, Object> toMap() {
         return MAPPER.convertValue(this, Map.class);
     }
@@ -243,7 +245,7 @@ public class Policy {
      *
      * @return ObjectNode representation of the policy.
      */
-    // TODO: This method is only used in the tests and can probably be deleted
+    @VisibleForTesting
     public ObjectNode toJson() {
         return MAPPER.valueToTree(this);
     }
@@ -253,7 +255,7 @@ public class Policy {
      *
      * @param integrationId The integration ID to add.
      */
-    // TODO: This method is only used in the tests and can probably be deleted
+    @VisibleForTesting
     public void addIntegration(String integrationId) {
         if (integrationId != null && !this.integrations.contains(integrationId)) {
             this.integrations.add(integrationId);
@@ -266,7 +268,7 @@ public class Policy {
      * @param integrationId The integration ID to remove.
      * @return true if the list contained the specified element.
      */
-    // TODO: This method is only used in the tests and can probably be deleted
+    @VisibleForTesting
     public boolean removeIntegration(String integrationId) {
         return this.integrations.remove(integrationId);
     }

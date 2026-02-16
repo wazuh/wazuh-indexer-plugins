@@ -35,7 +35,6 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -108,7 +107,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse fieldValidation =
-                ContentUtils.validateRequiredFields(
+                this.contentUtils.validateRequiredFields(
                         resource, List.of(Constants.KEY_TITLE, Constants.KEY_CATEGORY, Constants.KEY_AUTHOR));
 
         if (fieldValidation != null) {
@@ -117,7 +116,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
 
         String title = resource.get(Constants.KEY_TITLE).asText();
         RestResponse duplicateValidation =
-                DocumentValidations.validateDuplicateTitle(
+                this.documentValidations.validateDuplicateTitle(
                         client,
                         Constants.INDEX_INTEGRATIONS,
                         Space.DRAFT.toString(),

@@ -35,7 +35,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 /**
@@ -57,6 +56,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractCreateAction.class);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected final DocumentValidations documentValidations = new DocumentValidations();
 
     public AbstractCreateAction(EngineService engine) {
         super(engine);
@@ -65,7 +65,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
     @Override
     protected RestResponse executeRequest(RestRequest request, Client client) {
         // 1. Validate Request Content
-        RestResponse validationError = DocumentValidations.validateRequestHasContent(request);
+        RestResponse validationError = this.documentValidations.validateRequestHasContent(request);
         if (validationError != null) {
             log.warn(
                     Constants.W_LOG_OPERATION_FAILED,
@@ -92,7 +92,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
 
             // 2. Validate Payload Structure
             validationError =
-                    DocumentValidations.validateResourcePayload(rootNode, this.requiresIntegrationId());
+                    this.documentValidations.validateResourcePayload(rootNode, this.requiresIntegrationId());
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED,
@@ -118,7 +118,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             // 4. Generate ID and Metadata
             String id = UUID.randomUUID().toString();
             resourceNode.put(Constants.KEY_ID, id);
-            ContentUtils.updateTimestampMetadata(resourceNode, true, this.isDecoder());
+            this.contentUtils.updateTimestampMetadata(resourceNode, true, this.isDecoder());
 
             if (!resourceNode.has(Constants.KEY_ENABLED)) {
                 resourceNode.put(Constants.KEY_ENABLED, true);
@@ -138,7 +138,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
 
             // 7. Indexing
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = this.contentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
 
             index.create(id, ctiWrapper, this.isDecoder());
 

@@ -35,6 +35,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.ContentUtils;
 
 /**
  * Base abstract class for Content Manager REST actions.
@@ -46,6 +47,7 @@ import com.wazuh.contentmanager.utils.Constants;
 public abstract class AbstractContentAction extends BaseRestHandler {
 
     protected final EngineService engine;
+    protected final ContentUtils contentUtils;
     protected PolicyHashService policyHashService;
     protected SecurityAnalyticsService securityAnalyticsService;
 
@@ -56,6 +58,7 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      */
     public AbstractContentAction(EngineService engine) {
         this.engine = engine;
+        this.contentUtils = new ContentUtils();
     }
 
     /**

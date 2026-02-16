@@ -441,7 +441,8 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
             // Proceed only if no document with this space name exists
             if (Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() == 0) {
-                String date = ContentUtils.getCurrentDate();
+                ContentUtils contentUtils = new ContentUtils();
+                String date = contentUtils.getCurrentDate();
                 String title = "Custom policy";
 
                 Policy policy = new Policy();

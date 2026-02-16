@@ -47,21 +47,20 @@ import java.util.Set;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
-// TODO: Study if this class is necessary and if is make it dynamic instead of static
 /** Common utility methods for Content Manager REST actions. */
 public class ContentUtils {
 
     private static final Logger log = LogManager.getLogger(ContentUtils.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    private ContentUtils() {}
+    public ContentUtils() {}
 
     /**
      * Generate current date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
      *
      * @return String representing current date.
      */
-    public static String getCurrentDate() {
+    public String getCurrentDate() {
         return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
@@ -75,7 +74,7 @@ public class ContentUtils {
      * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
      * @param isDecoder If true, uses the decoder specific metadata structure.
      */
-    public static void updateTimestampMetadata(
+    public void updateTimestampMetadata(
             ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
         String currentTimestamp = getCurrentDate();
 
@@ -119,7 +118,7 @@ public class ContentUtils {
      * @param spaceName The space name (e.g., "draft").
      * @return The constructed JsonNode wrapper.
      */
-    public static JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
+    public JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = mapper.createObjectNode();
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
 
@@ -147,7 +146,7 @@ public class ContentUtils {
      * @throws IOException If the integration cannot be found or updated.
      */
     @SuppressWarnings("unchecked")
-    public static void linkResourceToIntegration(
+    public void linkResourceToIntegration(
             Client client, String integrationId, String resourceId, String listKey) throws IOException {
         GetResponse response = client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
 
@@ -180,8 +179,8 @@ public class ContentUtils {
      * @param listKey The key of the list field in the integration document (e.g., "rules").
      * @throws IOException If searching or updating the integration fails.
      */
-    public static void unlinkResourceFromIntegrations(
-            Client client, String resourceId, String listKey) throws IOException {
+    public void unlinkResourceFromIntegrations(Client client, String resourceId, String listKey)
+            throws IOException {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
         searchRequest
                 .source()
@@ -220,7 +219,7 @@ public class ContentUtils {
      * @param source The full source map including metadata.
      * @throws IOException If indexing fails.
      */
-    public static void updateIntegrationSource(
+    public void updateIntegrationSource(
             Client client, String id, Map<String, Object> document, Map<String, Object> source)
             throws IOException {
         JsonNode documentNode = mapper.valueToTree(document);
@@ -248,7 +247,7 @@ public class ContentUtils {
      * @return A List of strings extracted from the JSON array.
      * @throws IllegalArgumentException If the field exists but is not an array.
      */
-    public static List<String> extractStringList(JsonNode parentNode, String key) {
+    public List<String> extractStringList(JsonNode parentNode, String key) {
         List<String> list = new ArrayList<>();
         if (parentNode.has(key)) {
             JsonNode node = parentNode.get(key);
@@ -272,7 +271,7 @@ public class ContentUtils {
      * @param fieldName The name of the field for error reporting.
      * @return A RestResponse error if the sets differ, or null if they are equal.
      */
-    public static RestResponse validateListEquality(
+    public RestResponse validateListEquality(
             List<String> existingList, List<String> incomingList, String fieldName) {
         Set<String> existingSet =
                 new HashSet<>(existingList != null ? existingList : Collections.emptyList());
@@ -296,7 +295,7 @@ public class ContentUtils {
      * @param enrichments The list of enrichment types to validate.
      * @return A RestResponse error if validation fails, or null if valid.
      */
-    public static RestResponse validateEnrichments(List<String> enrichments) {
+    public RestResponse validateEnrichments(List<String> enrichments) {
         if (enrichments == null || enrichments.isEmpty()) {
             return null;
         }
@@ -330,8 +329,7 @@ public class ContentUtils {
      * @param requiredFields A list of keys that must be present.
      * @return A RestResponse with an error if a field is missing or invalid, or null if valid.
      */
-    public static RestResponse validateRequiredFields(
-            JsonNode resource, List<String> requiredFields) {
+    public RestResponse validateRequiredFields(JsonNode resource, List<String> requiredFields) {
         if (resource == null) {
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());

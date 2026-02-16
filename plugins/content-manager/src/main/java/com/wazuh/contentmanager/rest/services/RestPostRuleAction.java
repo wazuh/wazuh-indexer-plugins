@@ -29,7 +29,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -102,18 +101,18 @@ public class RestPostRuleAction extends AbstractCreateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse fieldValidation =
-                ContentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
+                this.contentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
         if (fieldValidation != null) return fieldValidation;
 
         String title = resource.get(Constants.KEY_TITLE).asText();
         RestResponse duplicateValidation =
-                DocumentValidations.validateDuplicateTitle(
+                this.documentValidations.validateDuplicateTitle(
                         client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, null, Constants.KEY_RULE);
         if (duplicateValidation != null) return duplicateValidation;
 
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
         String spaceError =
-                DocumentValidations.validateDocumentInSpace(
+                this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
         if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
 
@@ -134,6 +133,6 @@ public class RestPostRuleAction extends AbstractCreateAction {
     @Override
     protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        ContentUtils.linkResourceToIntegration(client, integrationId, id, Constants.KEY_RULES);
+        this.contentUtils.linkResourceToIntegration(client, integrationId, id, Constants.KEY_RULES);
     }
 }

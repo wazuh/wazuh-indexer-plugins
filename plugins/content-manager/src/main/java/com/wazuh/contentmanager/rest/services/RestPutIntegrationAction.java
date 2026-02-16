@@ -33,7 +33,6 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -144,14 +143,14 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
             Map<String, Object> existing, JsonNode resource, String key) {
         @SuppressWarnings("unchecked")
         List<String> oldList = (List<String>) existing.getOrDefault(key, Collections.emptyList());
-        List<String> newList = ContentUtils.extractStringList(resource, key);
-        return ContentUtils.validateListEquality(oldList, newList, key);
+        List<String> newList = this.contentUtils.extractStringList(resource, key);
+        return this.contentUtils.validateListEquality(oldList, newList, key);
     }
 
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse requiredFields =
-                ContentUtils.validateRequiredFields(
+                this.contentUtils.validateRequiredFields(
                         resource,
                         List.of(
                                 Constants.KEY_TITLE,
@@ -165,7 +164,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
         String title = resource.get(Constants.KEY_TITLE).asText();
         String id = resource.get(Constants.KEY_ID).asText();
 
-        return DocumentValidations.validateDuplicateTitle(
+        return this.documentValidations.validateDuplicateTitle(
                 client,
                 Constants.INDEX_INTEGRATIONS,
                 Space.DRAFT.toString(),

@@ -24,7 +24,6 @@ import java.util.List;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -98,6 +97,6 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     @Override
     protected void unlinkFromParent(Client client, String id) throws IOException {
-        ContentUtils.unlinkResourceFromIntegrations(client, id, Constants.KEY_RULES);
+        this.contentUtils.unlinkResourceFromIntegrations(client, id, Constants.KEY_RULES);
     }
 }

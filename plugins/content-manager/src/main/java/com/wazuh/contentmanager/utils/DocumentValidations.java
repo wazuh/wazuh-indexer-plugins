@@ -41,8 +41,9 @@ public class DocumentValidations {
 
     private static final Pattern ID_PATTERN = Pattern.compile("^[a-zA-Z0-9-_]+$");
 
-    /** Private constructor to prevent instantiation. */
-    private DocumentValidations() {}
+
+    /** Public constructor to allow instantiation. */
+    public DocumentValidations() {}
 
     /**
      * Validates that a document exists and is in the draft space.
@@ -53,8 +54,7 @@ public class DocumentValidations {
      * @param docType the document type name for error messages (e.g., "Decoder", "Integration")
      * @return an error message if validation fails, null otherwise
      */
-    public static String validateDocumentInSpace(
-            Client client, String index, String docId, String docType) {
+    public String validateDocumentInSpace(Client client, String index, String docId, String docType) {
         GetResponse response = client.prepareGet(index, docId).get();
         docType = Strings.capitalize(docType);
 
@@ -94,7 +94,7 @@ public class DocumentValidations {
      * @param resourceType the type of resource for error messages
      * @return a RestResponse with error if a duplicate is found, null otherwise
      */
-    public static RestResponse validateDuplicateTitle(
+    public RestResponse validateDuplicateTitle(
             Client client,
             String indexName,
             String space,
@@ -143,7 +143,7 @@ public class DocumentValidations {
      * @param engine the engine service to validate
      * @return a RestResponse with error if engine is unavailable, null otherwise
      */
-    public static RestResponse validateEngineAvailable(EngineService engine) {
+    public RestResponse validateEngineAvailable(EngineService engine) {
         if (engine == null) {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -157,7 +157,7 @@ public class DocumentValidations {
      * @param request the REST request to validate
      * @return a RestResponse with error if content is missing, null otherwise
      */
-    public static RestResponse validateRequestHasContent(RestRequest request) {
+    public RestResponse validateRequestHasContent(RestRequest request) {
         if (!request.hasContent()) {
             return new RestResponse(
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
@@ -172,7 +172,7 @@ public class DocumentValidations {
      * @param paramName the name of the parameter for error messages
      * @return a RestResponse with error if validation fails, null otherwise
      */
-    public static RestResponse validateRequiredParam(String value, String paramName) {
+    public RestResponse validateRequiredParam(String value, String paramName) {
         if (value == null || value.isBlank()) {
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, paramName),
@@ -188,7 +188,7 @@ public class DocumentValidations {
      * @param fieldName the name of the field being validated
      * @return a RestResponse with error if validation fails, null otherwise
      */
-    public static RestResponse validateIdFormat(String value, String fieldName) {
+    public RestResponse validateIdFormat(String value, String fieldName) {
         if (value == null || !ID_PATTERN.matcher(value).matches()) {
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, fieldName),
@@ -204,8 +204,7 @@ public class DocumentValidations {
      * @param requireIntegrationId If true, checks for 'integration' field (for Creates).
      * @return RestResponse if error, null if valid.
      */
-    public static RestResponse validateResourcePayload(
-            JsonNode payload, boolean requireIntegrationId) {
+    public RestResponse validateResourcePayload(JsonNode payload, boolean requireIntegrationId) {
         // Validation for Integration ID presence
         if (requireIntegrationId) {
             if (!payload.has(Constants.KEY_INTEGRATION)

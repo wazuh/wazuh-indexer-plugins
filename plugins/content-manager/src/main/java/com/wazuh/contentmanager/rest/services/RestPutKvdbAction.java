@@ -28,7 +28,6 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -98,7 +97,8 @@ public class RestPutKvdbAction extends AbstractUpdateAction {
 
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        return ContentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE, "content"));
+        return this.contentUtils.validateRequiredFields(
+                resource, List.of(Constants.KEY_TITLE, "content"));
     }
 
     @Override

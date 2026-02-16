@@ -29,7 +29,6 @@ import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -106,7 +105,7 @@ public class RestPostDecoderAction extends AbstractCreateAction {
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
         String spaceError =
-                com.wazuh.contentmanager.utils.DocumentValidations.validateDocumentInSpace(
+                this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
         if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
         return null;
@@ -126,6 +125,6 @@ public class RestPostDecoderAction extends AbstractCreateAction {
     @Override
     protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        ContentUtils.linkResourceToIntegration(client, integrationId, id, Constants.KEY_DECODERS);
+        this.contentUtils.linkResourceToIntegration(client, integrationId, id, Constants.KEY_DECODERS);
     }
 }

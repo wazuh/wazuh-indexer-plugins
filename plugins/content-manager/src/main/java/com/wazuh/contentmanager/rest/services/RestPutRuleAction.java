@@ -28,7 +28,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
 import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -101,13 +100,13 @@ public class RestPutRuleAction extends AbstractUpdateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse requiredFields =
-                ContentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
+                this.contentUtils.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
         if (requiredFields != null) return requiredFields;
 
         String title = resource.get(Constants.KEY_TITLE).asText();
         String id = resource.get(Constants.KEY_ID).asText();
 
-        return DocumentValidations.validateDuplicateTitle(
+        return this.documentValidations.validateDuplicateTitle(
                 client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, id, Constants.KEY_RULE);
     }
 
