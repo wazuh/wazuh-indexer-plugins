@@ -883,6 +883,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,f5_bigip,f5_bigip.log.failover_status,keyword,custom,,example-failover_status,Failover status in F5 BIG-IP cluster.
 9.1.0,true,f5_bigip,f5_bigip.log.flow.id,keyword,custom,,example-id,Flow identifier for network traffic in F5 BIG-IP.
 9.1.0,true,f5_bigip,f5_bigip.log.fragment,keyword,custom,,example-fragment,IP fragmentation information in F5 BIG-IP logs.
+9.1.0,true,f5_bigip,f5_bigip.log.geo.country,keyword,custom,,example-country,Country from geolocation data in F5 BIG-IP.
+9.1.0,true,f5_bigip,f5_bigip.log.geo.info,keyword,custom,,example-info,Geolocation information in F5 BIG-IP logs.
+9.1.0,true,f5_bigip,f5_bigip.log.geo.location,keyword,custom,,example-location,Geographic location in F5 BIG-IP logs.
 9.1.0,true,f5_bigip,f5_bigip.log.global_bigiq_conf,keyword,custom,,example-global_bigiq_conf,Global BIG-IQ configuration status in F5 BIG-IP.
 9.1.0,true,f5_bigip,f5_bigip.log.gtm_config_time,date,custom,,2023-01-01T00:00:00.000Z,GTM configuration timestamp in F5 BIG-IP.
 9.1.0,true,f5_bigip,f5_bigip.log.hardware_drops,long,custom,,12345,Number of hardware-level packet drops in F5 BIG-IP.

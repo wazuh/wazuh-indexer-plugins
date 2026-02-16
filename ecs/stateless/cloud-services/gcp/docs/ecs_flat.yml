@@ -6212,14 +6212,14 @@ gcp_audit.actor.entity_id:
   type: nested
 gcp_audit.authenticationinfo.principalsubject:
   dashed_name: gcp-audit-authenticationinfo-principalsubject
-  description: The purpose of this field needs to be defined
+  description: Specifies the authenticated principa that made the request.
   example: example-principalsubject
   flat_name: gcp_audit.authenticationinfo.principalsubject
   ignore_above: 1024
   level: custom
   name: gcp_audit.authenticationinfo.principalsubject
   normalize: []
-  short: The purpose of this field needs to be defined
+  short: Specifies the authenticated principa that made the request.
   type: keyword
 gcp_audit.authenticationinfo.serviceaccountdelegationinfo:
   dashed_name: gcp-audit-authenticationinfo-serviceaccountdelegationinfo
@@ -6227,10 +6227,35 @@ gcp_audit.authenticationinfo.serviceaccountdelegationinfo:
   flat_name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo
   level: custom
   name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo
-  normalize:
-  - array
+  normalize: []
   short: The service account delegatio information
-  type: nested
+  type: object
+gcp_audit.authenticationinfo.serviceaccountdelegationinfo.firstPartyPrincipal.principalEmail:
+  dashed_name: gcp-audit-authenticationinfo-serviceaccountdelegationinfo-firstPartyPrincipal-principalEmail
+  description: The email address of the first-party principal (such as a user or service
+    account)
+  example: example-principalEmail
+  flat_name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo.firstPartyPrincipal.principalEmail
+  ignore_above: 1024
+  level: custom
+  name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo.firstPartyPrincipal.principalEmail
+  normalize: []
+  short: The email address of the first-party principal (such as a user or service
+    account)
+  type: keyword
+gcp_audit.authenticationinfo.serviceaccountdelegationinfo.principalSubject:
+  dashed_name: gcp-audit-authenticationinfo-serviceaccountdelegationinfo-principalSubject
+  description: Canonical identifier of the delegated principal, providing a stable,
+    system-level reference to the authenticated entity.
+  example: example-principalSubject
+  flat_name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo.principalSubject
+  ignore_above: 1024
+  level: custom
+  name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo.principalSubject
+  normalize: []
+  short: Canonical identifier of the delegated principal, providing a stable, system-level
+    reference to the authenticated entity.
+  type: keyword
 gcp_audit.authenticationinfo.serviceaccountkeyname:
   dashed_name: gcp-audit-authenticationinfo-serviceaccountkeyname
   description: This field captures authentication details whenever an API call or
@@ -6250,8 +6275,7 @@ gcp_audit.authorizationinfo:
   flat_name: gcp_audit.authorizationinfo
   level: custom
   name: gcp_audit.authorizationinfo
-  normalize:
-  - array
+  normalize: []
   short: The gcp audit log authorization information
   type: nested
 gcp_audit.event_provider:
@@ -6274,6 +6298,17 @@ gcp_audit.labels:
   normalize: []
   short: The GCP audit labels information
   type: object
+gcp_audit.metadata:
+  dashed_name: gcp-audit-metadata
+  description: The complete metadata object containing additional information about
+    the audit log entry.
+  flat_name: gcp_audit.metadata
+  level: custom
+  name: gcp_audit.metadata
+  normalize: []
+  short: The complete metadata object containing additional information about the
+    audit log entry.
+  type: object
 gcp_audit.metadata.@type:
   dashed_name: gcp-audit-metadata-type
   description: The type of GCP audit metadata
@@ -6293,8 +6328,7 @@ gcp_audit.metadata.accessLevels:
   ignore_above: 1024
   level: custom
   name: gcp_audit.metadata.accessLevels
-  normalize:
-  - array
+  normalize: []
   short: The access levels in the gcp audit metadata
   type: keyword
 gcp_audit.metadata.identityDelegationChain:
@@ -6305,96 +6339,8 @@ gcp_audit.metadata.identityDelegationChain:
   ignore_above: 1024
   level: custom
   name: gcp_audit.metadata.identityDelegationChain
-  normalize:
-  - array
+  normalize: []
   short: The identity delegation chain in the gcp audit metadata
-  type: keyword
-gcp_audit.metadata.ingressViolations:
-  dashed_name: gcp-audit-metadata-ingressViolations
-  description: The GCP audit metadata ingress violations information
-  flat_name: gcp_audit.metadata.ingressViolations
-  level: custom
-  name: gcp_audit.metadata.ingressViolations
-  normalize:
-  - array
-  short: The GCP audit metadata ingress violations information
-  type: nested
-gcp_audit.metadata.operationType:
-  dashed_name: gcp-audit-metadata-operationType
-  description: The operation type in the GCP audit metadata
-  example: example-operationType
-  flat_name: gcp_audit.metadata.operationType
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.metadata.operationType
-  normalize: []
-  short: The operation type in the GCP audit metadata
-  type: keyword
-gcp_audit.metadata.resourceNames:
-  dashed_name: gcp-audit-metadata-resourceNames
-  description: The resource names in the GCP audit metadata
-  example: example-resourceNames
-  flat_name: gcp_audit.metadata.resourceNames
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.metadata.resourceNames
-  normalize:
-  - array
-  short: The resource names in the GCP audit metadata
-  type: keyword
-gcp_audit.metadata.securityPolicyInfo.organizationId:
-  dashed_name: gcp-audit-metadata-securityPolicyInfo-organizationId
-  description: The organization identifier in the security policy information
-  example: example-organizationId
-  flat_name: gcp_audit.metadata.securityPolicyInfo.organizationId
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.metadata.securityPolicyInfo.organizationId
-  normalize: []
-  short: The organization identifier in the security policy information
-  type: keyword
-gcp_audit.metadata.securityPolicyInfo.servicePerimeterName:
-  dashed_name: gcp-audit-metadata-securityPolicyInfo-servicePerimeterName
-  description: The service perimeter in the security policy information
-  example: example-servicePerimeterName
-  flat_name: gcp_audit.metadata.securityPolicyInfo.servicePerimeterName
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.metadata.securityPolicyInfo.servicePerimeterName
-  normalize: []
-  short: The service perimeter in the security policy information
-  type: keyword
-gcp_audit.metadata.usedResources.attachedDisks:
-  dashed_name: gcp-audit-metadata-usedResources-attachedDisks
-  description: The attached disks in the used resources
-  flat_name: gcp_audit.metadata.usedResources.attachedDisks
-  level: custom
-  name: gcp_audit.metadata.usedResources.attachedDisks
-  normalize:
-  - array
-  short: The attached disks in the used resources
-  type: nested
-gcp_audit.metadata.violationReason:
-  dashed_name: gcp-audit-metadata-violationReason
-  description: The violation reason information stored in the metadata
-  example: example-violationReason
-  flat_name: gcp_audit.metadata.violationReason
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.metadata.violationReason
-  normalize: []
-  short: The violation reason information stored in the metadata
-  type: keyword
-gcp_audit.metadata.vpcServiceControlsUniqueId:
-  dashed_name: gcp-audit-metadata-vpcServiceControlsUniqueId
-  description: The VPC service controls unique identifier in the metadata
-  example: example-vpcServiceControlsUniqueId
-  flat_name: gcp_audit.metadata.vpcServiceControlsUniqueId
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.metadata.vpcServiceControlsUniqueId
-  normalize: []
-  short: The VPC service controls unique identifier in the metadata
   type: keyword
 gcp_audit.numresponseitems:
   dashed_name: gcp-audit-numresponseitems
@@ -6471,329 +6417,83 @@ gcp_audit.related.entity:
   normalize: []
   short: Information about related entities connected to the audited operation
   type: nested
-gcp_audit.request.@type:
-  dashed_name: gcp-audit-request-type
-  description: The message type of the request payload
-  example: example-@type
-  flat_name: gcp_audit.request.@type
-  ignore_above: 1024
+gcp_audit.request:
+  dashed_name: gcp-audit-request
+  description: The complete request payload object containing all parameters and details
+    sent with the audit log request.
+  flat_name: gcp_audit.request
   level: custom
-  name: gcp_audit.request.@type
+  name: gcp_audit.request
   normalize: []
-  short: The message type of the request payload
-  type: keyword
-gcp_audit.request.apiVersion:
-  dashed_name: gcp-audit-request-apiVersion
-  description: The version of the API used in the request
-  example: example-apiVersion
-  flat_name: gcp_audit.request.apiVersion
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.apiVersion
-  normalize: []
-  short: The version of the API used in the request
-  type: keyword
-gcp_audit.request.disks:
-  dashed_name: gcp-audit-request-disks
-  description: The details of the disks in the request information
-  example: example-disks
-  flat_name: gcp_audit.request.disks
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.disks
-  normalize:
-  - array
-  short: The details of the disks in the request information
-  type: keyword
-gcp_audit.request.family:
-  dashed_name: gcp-audit-request-family
-  description: Indicates the resource family or category associated with the audit
-    request
-  example: example-family
-  flat_name: gcp_audit.request.family
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.family
-  normalize: []
-  short: Indicates the resource family or category associated with the audit request
-  type: keyword
-gcp_audit.request.guestOsFeatures:
-  dashed_name: gcp-audit-request-guestOsFeatures
-  description: Specifies the operating system features requested for a guest VM instance
-  flat_name: gcp_audit.request.guestOsFeatures
-  level: custom
-  name: gcp_audit.request.guestOsFeatures
-  normalize:
-  - array
-  short: Specifies the operating system features requested for a guest VM instance
-  type: nested
-gcp_audit.request.kind:
-  dashed_name: gcp-audit-request-kind
-  description: Identifies the type of API resource or operation object in the request
-  example: example-kind
-  flat_name: gcp_audit.request.kind
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.kind
-  normalize: []
-  short: Identifies the type of API resource or operation object in the request
-  type: keyword
-gcp_audit.request.machineType:
-  dashed_name: gcp-audit-request-machineType
-  description: The Compute Engine machine type (CPU/memory configuration) requested
-    for a VM
-  example: example-machineType
-  flat_name: gcp_audit.request.machineType
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.machineType
-  normalize: []
-  short: The Compute Engine machine type (CPU/memory configuration) requested for
-    a VM
-  type: keyword
-gcp_audit.request.metadata.creationTimestamp:
-  dashed_name: gcp-audit-request-metadata-creationTimestamp
-  description: The timestamp indicating when the resource was created
-  example: '2023-01-01T00:00:00.000Z'
-  flat_name: gcp_audit.request.metadata.creationTimestamp
-  level: custom
-  name: gcp_audit.request.metadata.creationTimestamp
-  normalize: []
-  short: The timestamp indicating when the resource was created
-  type: date
-gcp_audit.request.name:
-  dashed_name: gcp-audit-request-name
-  description: The name assigned to the resource being created or modified
-  example: example-name
-  flat_name: gcp_audit.request.name
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.name
-  normalize: []
-  short: The name assigned to the resource being created or modified
-  type: keyword
-gcp_audit.request.networkInterfaces:
-  dashed_name: gcp-audit-request-networkInterfaces
-  description: The list of network interfaces attached to a VM (e.g., IPs, subnets,
-    VPCs)
-  flat_name: gcp_audit.request.networkInterfaces
-  level: custom
-  name: gcp_audit.request.networkInterfaces
-  normalize:
-  - array
-  short: The list of network interfaces attached to a VM (e.g., IPs, subnets, VPCs)
-  type: nested
-gcp_audit.request.pageSize:
-  dashed_name: gcp-audit-request-pageSize
-  description: The maximum number of items to return in a paginated API response
-  example: example-pageSize
-  flat_name: gcp_audit.request.pageSize
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.pageSize
-  normalize: []
-  short: The maximum number of items to return in a paginated API response
-  type: keyword
-gcp_audit.request.page_token:
-  dashed_name: gcp-audit-request-page-token
-  description: A continuation token to fetch the next page of results in paginated
-    requests
-  example: example-page_token
-  flat_name: gcp_audit.request.page_token
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.page_token
-  normalize: []
-  short: A continuation token to fetch the next page of results in paginated requests
-  type: keyword
-gcp_audit.request.policy.bindings:
-  dashed_name: gcp-audit-request-policy-bindings
-  description: The IAM role-to-member mappings defined in a policy
-  flat_name: gcp_audit.request.policy.bindings
-  level: custom
-  name: gcp_audit.request.policy.bindings
-  normalize:
-  - array
-  short: The IAM role-to-member mappings defined in a policy
-  type: nested
-gcp_audit.request.policy.etag:
-  dashed_name: gcp-audit-request-policy-etag
-  description: A unique identifier used for concurrency control when updating an IAM
-    policy
-  example: example-etag
-  flat_name: gcp_audit.request.policy.etag
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.policy.etag
-  normalize: []
-  short: A unique identifier used for concurrency control when updating an IAM policy
-  type: keyword
-gcp_audit.request.policyvalue:
-  dashed_name: gcp-audit-request-policyvalue
-  description: The full IAM policy object or value applied to a resource
-  example: example-policyvalue
-  flat_name: gcp_audit.request.policyvalue
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.policyvalue
-  normalize: []
-  short: The full IAM policy object or value applied to a resource
-  type: keyword
-gcp_audit.request.rawDisk.source:
-  dashed_name: gcp-audit-request-rawDisk-source
-  description: The source disk or image used when creating a new raw disk
-  example: example-source
-  flat_name: gcp_audit.request.rawDisk.source
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.rawDisk.source
-  normalize: []
-  short: The source disk or image used when creating a new raw disk
-  type: keyword
-gcp_audit.request.resource:
-  dashed_name: gcp-audit-request-resource
-  description: Specifies the type or specification of the resource targeted in the
-    request
-  example: example-resource
-  flat_name: gcp_audit.request.resource
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.resource
-  normalize: []
-  short: Specifies the type or specification of the resource targeted in the request
-  type: keyword
-gcp_audit.request.resourceName:
-  dashed_name: gcp-audit-request-resourceName
-  description: The fully qualified name of the resource on which the action is performed
-  example: example-resourceName
-  flat_name: gcp_audit.request.resourceName
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.resourceName
-  normalize: []
-  short: The fully qualified name of the resource on which the action is performed
-  type: keyword
-gcp_audit.request.serviceAccounts:
-  dashed_name: gcp-audit-request-serviceAccounts
-  description: Lists the service accounts associated with the resource (e.g., attached
-    to a VM)
-  flat_name: gcp_audit.request.serviceAccounts
-  level: custom
-  name: gcp_audit.request.serviceAccounts
-  normalize:
-  - array
-  short: Lists the service accounts associated with the resource (e.g., attached to
-    a VM)
-  type: nested
-gcp_audit.request.sourceType:
-  dashed_name: gcp-audit-request-sourceType
-  description: Indicates the origin type of the resource or workload (e.g., image,
-    snapshot, or template)
-  example: example-sourceType
-  flat_name: gcp_audit.request.sourceType
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.sourceType
-  normalize: []
-  short: Indicates the origin type of the resource or workload (e.g., image, snapshot,
-    or template)
-  type: keyword
-gcp_audit.request.spec.group:
-  dashed_name: gcp-audit-request-spec-group
-  description: Represents the API group of the resource specification, commonly used
-    in Kubernetes-style APIs
-  flat_name: gcp_audit.request.spec.group
-  level: custom
-  name: gcp_audit.request.spec.group
-  normalize:
-  - array
-  short: Represents the API group of the resource specification, commonly used in
-    Kubernetes-style APIs
-  type: nested
-gcp_audit.request.spec.nonResourceAttributes.path:
-  dashed_name: gcp-audit-request-spec-nonResourceAttributes-path
-  description: The API path accessed when the request does not target a specific resource
-    (e.g., /healthz)
-  example: example-path
-  flat_name: gcp_audit.request.spec.nonResourceAttributes.path
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.spec.nonResourceAttributes.path
-  normalize: []
-  short: The API path accessed when the request does not target a specific resource
-    (e.g., /healthz)
-  type: keyword
-gcp_audit.request.spec.nonResourceAttributes.verb:
-  dashed_name: gcp-audit-request-spec-nonResourceAttributes-verb
-  description: The HTTP verb or action used in the non-resource request (e.g., get,
-    list, create)
-  example: example-verb
-  flat_name: gcp_audit.request.spec.nonResourceAttributes.verb
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.spec.nonResourceAttributes.verb
-  normalize: []
-  short: The HTTP verb or action used in the non-resource request (e.g., get, list,
-    create)
-  type: keyword
-gcp_audit.request.spec.strategy.$retainKeys:
-  dashed_name: gcp-audit-request-spec-strategy-$retainKeys
-  description: Indicates which keys should be retained when applying a strategy-based
-    resource update.
-  example: example-$retainKeys
-  flat_name: gcp_audit.request.spec.strategy.$retainKeys
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.request.spec.strategy.$retainKeys
-  normalize: []
-  short: Indicates which keys should be retained when applying a strategy-based resource
-    update.
-  type: keyword
-gcp_audit.request.spec.template.spec:
-  dashed_name: gcp-audit-request-spec-template-spec
-  description: Contains the detailed specification template for the resource (e.g.,
-    pod spec in GKE).
-  flat_name: gcp_audit.request.spec.template.spec
-  level: custom
-  name: gcp_audit.request.spec.template.spec
-  normalize: []
-  short: Contains the detailed specification template for the resource (e.g., pod
-    spec in GKE).
+  short: The complete request payload object containing all parameters and details
+    sent with the audit log request.
   type: object
-gcp_audit.request.spec.user:
-  dashed_name: gcp-audit-request-spec-user
-  description: The user identity specified in the resource configuration or request
-  example: example-user
-  flat_name: gcp_audit.request.spec.user
+gcp_audit.request.disks.autoDelete:
+  dashed_name: gcp-audit-request-disks-autoDelete
+  description: Custom field for gcp
+  example: true
+  flat_name: gcp_audit.request.disks.autoDelete
+  level: custom
+  name: gcp_audit.request.disks.autoDelete
+  normalize: []
+  short: Custom field for gcp
+  type: boolean
+gcp_audit.request.disks.boot:
+  dashed_name: gcp-audit-request-disks-boot
+  description: Custom field for gcp
+  example: true
+  flat_name: gcp_audit.request.disks.boot
+  level: custom
+  name: gcp_audit.request.disks.boot
+  normalize: []
+  short: Custom field for gcp
+  type: boolean
+gcp_audit.request.disks.deviceName:
+  dashed_name: gcp-audit-request-disks-deviceName
+  description: Custom field for gcp
+  example: example-deviceName
+  flat_name: gcp_audit.request.disks.deviceName
   ignore_above: 1024
   level: custom
-  name: gcp_audit.request.spec.user
+  name: gcp_audit.request.disks.deviceName
   normalize: []
-  short: The user identity specified in the resource configuration or request
+  short: Custom field for gcp
   type: keyword
-gcp_audit.request.status.allowed:
-  dashed_name: gcp-audit-request-status-allowed
-  description: Indicates whether the requested action was authorized (true) or denied
-    (false)
-  example: true
-  flat_name: gcp_audit.request.status.allowed
+gcp_audit.request.disks.initializeParams.sourceImage:
+  dashed_name: gcp-audit-request-disks-initializeParams-sourceImage
+  description: Custom field for gcp
+  example: example-sourceImage
+  flat_name: gcp_audit.request.disks.initializeParams.sourceImage
+  ignore_above: 1024
   level: custom
-  name: gcp_audit.request.status.allowed
+  name: gcp_audit.request.disks.initializeParams.sourceImage
   normalize: []
-  short: Indicates whether the requested action was authorized (true) or denied (false)
-  type: boolean
+  short: Custom field for gcp
+  type: keyword
+gcp_audit.request.disks.type:
+  dashed_name: gcp-audit-request-disks-type
+  description: Custom field for gcp
+  example: example-type
+  flat_name: gcp_audit.request.disks.type
+  ignore_above: 1024
+  level: custom
+  name: gcp_audit.request.disks.type
+  normalize: []
+  short: Custom field for gcp
+  type: keyword
 gcp_audit.resourcelocation.currentlocation:
   dashed_name: gcp-audit-resourcelocation-currentlocation
   description: Specifies the geographic location or region where the resource currently
     resides
+  example: example-currentlocation
   flat_name: gcp_audit.resourcelocation.currentlocation
+  ignore_above: 1024
   level: custom
   name: gcp_audit.resourcelocation.currentlocation
-  normalize:
-  - array
+  normalize: []
   short: Specifies the geographic location or region where the resource currently
     resides
-  type: nested
+  type: keyword
 gcp_audit.resourcename:
   dashed_name: gcp-audit-resourcename
   description: The name of the resource that was accessed or modified in the audit
@@ -6806,736 +6506,17 @@ gcp_audit.resourcename:
   normalize: []
   short: The name of the resource that was accessed or modified in the audit event
   type: keyword
-gcp_audit.response.@type:
-  dashed_name: gcp-audit-response-type
-  description: The message type of the response payload
-  example: example-@type
-  flat_name: gcp_audit.response.@type
-  ignore_above: 1024
+gcp_audit.response:
+  dashed_name: gcp-audit-response
+  description: The complete response payload object containing all parameters and
+    details returned from the audit log operation.
+  flat_name: gcp_audit.response
   level: custom
-  name: gcp_audit.response.@type
+  name: gcp_audit.response
   normalize: []
-  short: The message type of the response payload
-  type: keyword
-gcp_audit.response.apiVersion:
-  dashed_name: gcp-audit-response-apiVersion
-  description: Specifies the API version used in the response.
-  example: example-apiVersion
-  flat_name: gcp_audit.response.apiVersion
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.apiVersion
-  normalize: []
-  short: Specifies the API version used in the response.
-  type: keyword
-gcp_audit.response.bindings:
-  dashed_name: gcp-audit-response-bindings
-  description: Defines role bindings that associate users or groups with roles.
-  flat_name: gcp_audit.response.bindings
-  level: custom
-  name: gcp_audit.response.bindings
-  normalize:
-  - array
-  short: Defines role bindings that associate users or groups with roles.
-  type: nested
-gcp_audit.response.details.group:
-  dashed_name: gcp-audit-response-details-group
-  description: Indicates the group of the resource in the response details.
-  example: example-group
-  flat_name: gcp_audit.response.details.group
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.details.group
-  normalize: []
-  short: Indicates the group of the resource in the response details.
-  type: keyword
-gcp_audit.response.details.kind:
-  dashed_name: gcp-audit-response-details-kind
-  description: Specifies the kind of the resource in the response details.
-  example: example-kind
-  flat_name: gcp_audit.response.details.kind
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.details.kind
-  normalize: []
-  short: Specifies the kind of the resource in the response details.
-  type: keyword
-gcp_audit.response.details.name:
-  dashed_name: gcp-audit-response-details-name
-  description: Provides the name of the resource in the response details.
-  example: example-name
-  flat_name: gcp_audit.response.details.name
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.details.name
-  normalize: []
-  short: Provides the name of the resource in the response details.
-  type: keyword
-gcp_audit.response.details.uid:
-  dashed_name: gcp-audit-response-details-uid
-  description: Represents the unique identifier (UID) of the resource.
-  example: example-uid
-  flat_name: gcp_audit.response.details.uid
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.details.uid
-  normalize: []
-  short: Represents the unique identifier (UID) of the resource.
-  type: keyword
-gcp_audit.response.etag:
-  dashed_name: gcp-audit-response-etag
-  description: ETag value used for optimistic concurrency control.
-  example: example-etag
-  flat_name: gcp_audit.response.etag
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.etag
-  normalize: []
-  short: ETag value used for optimistic concurrency control.
-  type: keyword
-gcp_audit.response.id:
-  dashed_name: gcp-audit-response-id
-  description: Unique identifier of the resource in the response.
-  example: example-id
-  flat_name: gcp_audit.response.id
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.id
-  normalize: []
-  short: Unique identifier of the resource in the response.
-  type: keyword
-gcp_audit.response.insertTime:
-  dashed_name: gcp-audit-response-insertTime
-  description: Timestamp when the resource was inserted.
-  example: example-insertTime
-  flat_name: gcp_audit.response.insertTime
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.insertTime
-  normalize: []
-  short: Timestamp when the resource was inserted.
-  type: keyword
-gcp_audit.response.kind:
-  dashed_name: gcp-audit-response-kind
-  description: Specifies the type or category of the resource.
-  example: example-kind
-  flat_name: gcp_audit.response.kind
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.kind
-  normalize: []
-  short: Specifies the type or category of the resource.
-  type: keyword
-gcp_audit.response.metadata.annotations:
-  dashed_name: gcp-audit-response-metadata-annotations
-  description: Annotations metadata associated with the resource.
-  flat_name: gcp_audit.response.metadata.annotations
-  level: custom
-  name: gcp_audit.response.metadata.annotations
-  normalize: []
-  short: Annotations metadata associated with the resource.
+  short: The complete response payload object containing all parameters and details
+    returned from the audit log operation.
   type: object
-gcp_audit.response.metadata.creationTimestamp:
-  dashed_name: gcp-audit-response-metadata-creationTimestamp
-  description: Timestamp of when the resource was created.
-  example: '2023-01-01T00:00:00.000Z'
-  flat_name: gcp_audit.response.metadata.creationTimestamp
-  level: custom
-  name: gcp_audit.response.metadata.creationTimestamp
-  normalize: []
-  short: Timestamp of when the resource was created.
-  type: date
-gcp_audit.response.metadata.generation:
-  dashed_name: gcp-audit-response-metadata-generation
-  description: Version number or generation of the resource.
-  example: example-generation
-  flat_name: gcp_audit.response.metadata.generation
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.metadata.generation
-  normalize: []
-  short: Version number or generation of the resource.
-  type: keyword
-gcp_audit.response.metadata.labels:
-  dashed_name: gcp-audit-response-metadata-labels
-  description: Labels metadata assigned to the resource.
-  flat_name: gcp_audit.response.metadata.labels
-  level: custom
-  name: gcp_audit.response.metadata.labels
-  normalize: []
-  short: Labels metadata assigned to the resource.
-  type: object
-gcp_audit.response.metadata.managedFields:
-  dashed_name: gcp-audit-response-metadata-managedFields
-  description: Managed fields metadata describing changes to the resource.
-  flat_name: gcp_audit.response.metadata.managedFields
-  level: custom
-  name: gcp_audit.response.metadata.managedFields
-  normalize:
-  - array
-  short: Managed fields metadata describing changes to the resource.
-  type: nested
-gcp_audit.response.metadata.name:
-  dashed_name: gcp-audit-response-metadata-name
-  description: Name of the resource in the metadata section.
-  example: example-name
-  flat_name: gcp_audit.response.metadata.name
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.metadata.name
-  normalize: []
-  short: Name of the resource in the metadata section.
-  type: keyword
-gcp_audit.response.metadata.namespace:
-  dashed_name: gcp-audit-response-metadata-namespace
-  description: Namespace associated with the resource.
-  example: example-namespace
-  flat_name: gcp_audit.response.metadata.namespace
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.metadata.namespace
-  normalize: []
-  short: Namespace associated with the resource.
-  type: keyword
-gcp_audit.response.metadata.resourceVersion:
-  dashed_name: gcp-audit-response-metadata-resourceVersion
-  description: Resource version used for concurrency control.
-  example: example-resourceVersion
-  flat_name: gcp_audit.response.metadata.resourceVersion
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.metadata.resourceVersion
-  normalize: []
-  short: Resource version used for concurrency control.
-  type: keyword
-gcp_audit.response.metadata.uid:
-  dashed_name: gcp-audit-response-metadata-uid
-  description: Unique identifier (UID) of the resource in metadata.
-  example: example-uid
-  flat_name: gcp_audit.response.metadata.uid
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.metadata.uid
-  normalize: []
-  short: Unique identifier (UID) of the resource in metadata.
-  type: keyword
-gcp_audit.response.name:
-  dashed_name: gcp-audit-response-name
-  description: Name of the resource defined in the response.
-  example: example-name
-  flat_name: gcp_audit.response.name
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.name
-  normalize: []
-  short: Name of the resource defined in the response.
-  type: keyword
-gcp_audit.response.operationType:
-  dashed_name: gcp-audit-response-operationType
-  description: Specifies the type of operation performed.
-  example: example-operationType
-  flat_name: gcp_audit.response.operationType
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.operationType
-  normalize: []
-  short: Specifies the type of operation performed.
-  type: keyword
-gcp_audit.response.progress:
-  dashed_name: gcp-audit-response-progress
-  description: Indicates progress of the requested operation.
-  example: example-progress
-  flat_name: gcp_audit.response.progress
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.progress
-  normalize: []
-  short: Indicates progress of the requested operation.
-  type: keyword
-gcp_audit.response.selfLink:
-  dashed_name: gcp-audit-response-selfLink
-  description: Self-link URL for accessing the resource.
-  example: example-selfLink
-  flat_name: gcp_audit.response.selfLink
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.selfLink
-  normalize: []
-  short: Self-link URL for accessing the resource.
-  type: keyword
-gcp_audit.response.selfLinkWithId:
-  dashed_name: gcp-audit-response-selfLinkWithId
-  description: Self-link URL including the resource identifier.
-  example: example-selfLinkWithId
-  flat_name: gcp_audit.response.selfLinkWithId
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.selfLinkWithId
-  normalize: []
-  short: Self-link URL including the resource identifier.
-  type: keyword
-gcp_audit.response.spec.group:
-  dashed_name: gcp-audit-response-spec-group
-  description: Defines a group specification for the resource.
-  flat_name: gcp_audit.response.spec.group
-  level: custom
-  name: gcp_audit.response.spec.group
-  normalize:
-  - array
-  short: Defines a group specification for the resource.
-  type: nested
-gcp_audit.response.spec.nonResourceAttributes.path:
-  dashed_name: gcp-audit-response-spec-nonResourceAttributes-path
-  description: Path value for non-resource attribute specifications.
-  example: example-path
-  flat_name: gcp_audit.response.spec.nonResourceAttributes.path
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.nonResourceAttributes.path
-  normalize: []
-  short: Path value for non-resource attribute specifications.
-  type: keyword
-gcp_audit.response.spec.nonResourceAttributes.verb:
-  dashed_name: gcp-audit-response-spec-nonResourceAttributes-verb
-  description: HTTP verb associated with the non-resource attribute.
-  example: example-verb
-  flat_name: gcp_audit.response.spec.nonResourceAttributes.verb
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.nonResourceAttributes.verb
-  normalize: []
-  short: HTTP verb associated with the non-resource attribute.
-  type: keyword
-gcp_audit.response.spec.progressDeadlineSeconds:
-  dashed_name: gcp-audit-response-spec-progressDeadlineSeconds
-  description: Deadline in seconds for operation progress.
-  example: example-progressDeadlineSeconds
-  flat_name: gcp_audit.response.spec.progressDeadlineSeconds
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.progressDeadlineSeconds
-  normalize: []
-  short: Deadline in seconds for operation progress.
-  type: keyword
-gcp_audit.response.spec.replicas:
-  dashed_name: gcp-audit-response-spec-replicas
-  description: Number of replicas defined for the resource.
-  example: example-replicas
-  flat_name: gcp_audit.response.spec.replicas
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.replicas
-  normalize: []
-  short: Number of replicas defined for the resource.
-  type: keyword
-gcp_audit.response.spec.revisionHistoryLimit:
-  dashed_name: gcp-audit-response-spec-revisionHistoryLimit
-  description: Number of revisions to retain for rollback.
-  example: example-revisionHistoryLimit
-  flat_name: gcp_audit.response.spec.revisionHistoryLimit
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.revisionHistoryLimit
-  normalize: []
-  short: Number of revisions to retain for rollback.
-  type: keyword
-gcp_audit.response.spec.selector.matchLabels.k8s-app:
-  dashed_name: gcp-audit-response-spec-selector-matchLabels-k8s-app
-  description: Match label used to identify Kubernetes apps.
-  example: example-k8s-app
-  flat_name: gcp_audit.response.spec.selector.matchLabels.k8s-app
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.selector.matchLabels.k8s-app
-  normalize: []
-  short: Match label used to identify Kubernetes apps.
-  type: keyword
-gcp_audit.response.spec.strategy.rollingUpdate.maxSurge:
-  dashed_name: gcp-audit-response-spec-strategy-rollingUpdate-maxSurge
-  description: Maximum number of pods that can be scheduled above desired replicas
-    during update.
-  example: example-maxSurge
-  flat_name: gcp_audit.response.spec.strategy.rollingUpdate.maxSurge
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.strategy.rollingUpdate.maxSurge
-  normalize: []
-  short: Maximum number of pods that can be scheduled above desired replicas during
-    update.
-  type: keyword
-gcp_audit.response.spec.strategy.rollingUpdate.maxUnavailable:
-  dashed_name: gcp-audit-response-spec-strategy-rollingUpdate-maxUnavailable
-  description: Maximum number of pods that can be unavailable during update.
-  example: example-maxUnavailable
-  flat_name: gcp_audit.response.spec.strategy.rollingUpdate.maxUnavailable
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.strategy.rollingUpdate.maxUnavailable
-  normalize: []
-  short: Maximum number of pods that can be unavailable during update.
-  type: keyword
-gcp_audit.response.spec.strategy.type:
-  dashed_name: gcp-audit-response-spec-strategy-type
-  description: Strategy type used for rolling updates.
-  example: example-type
-  flat_name: gcp_audit.response.spec.strategy.type
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.strategy.type
-  normalize: []
-  short: Strategy type used for rolling updates.
-  type: keyword
-gcp_audit.response.spec.template.metadata.annotations:
-  dashed_name: gcp-audit-response-spec-template-metadata-annotations
-  description: Annotations in the pod template metadata.
-  flat_name: gcp_audit.response.spec.template.metadata.annotations
-  level: custom
-  name: gcp_audit.response.spec.template.metadata.annotations
-  normalize: []
-  short: Annotations in the pod template metadata.
-  type: object
-gcp_audit.response.spec.template.metadata.creationTimestamp:
-  dashed_name: gcp-audit-response-spec-template-metadata-creationTimestamp
-  description: Creation timestamp of the pod template.
-  example: '2023-01-01T00:00:00.000Z'
-  flat_name: gcp_audit.response.spec.template.metadata.creationTimestamp
-  level: custom
-  name: gcp_audit.response.spec.template.metadata.creationTimestamp
-  normalize: []
-  short: Creation timestamp of the pod template.
-  type: date
-gcp_audit.response.spec.template.metadata.labels.k8s-app:
-  dashed_name: gcp-audit-response-spec-template-metadata-labels-k8s-app
-  description: Labels in the pod template metadata.
-  example: example-k8s-app
-  flat_name: gcp_audit.response.spec.template.metadata.labels.k8s-app
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.metadata.labels.k8s-app
-  normalize: []
-  short: Labels in the pod template metadata.
-  type: keyword
-gcp_audit.response.spec.template.spec.containers:
-  dashed_name: gcp-audit-response-spec-template-spec-containers
-  description: List of containers defined in the pod specification.
-  flat_name: gcp_audit.response.spec.template.spec.containers
-  level: custom
-  name: gcp_audit.response.spec.template.spec.containers
-  normalize: []
-  short: List of containers defined in the pod specification.
-  type: nested
-gcp_audit.response.spec.template.spec.dnsPolicy:
-  dashed_name: gcp-audit-response-spec-template-spec-dnsPolicy
-  description: DNS policy applied to the pod specification.
-  example: example-dnsPolicy
-  flat_name: gcp_audit.response.spec.template.spec.dnsPolicy
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.dnsPolicy
-  normalize: []
-  short: DNS policy applied to the pod specification.
-  type: keyword
-gcp_audit.response.spec.template.spec.nodeSelector:
-  dashed_name: gcp-audit-response-spec-template-spec-nodeSelector
-  description: Node selector used to schedule the pod.
-  flat_name: gcp_audit.response.spec.template.spec.nodeSelector
-  level: custom
-  name: gcp_audit.response.spec.template.spec.nodeSelector
-  normalize: []
-  short: Node selector used to schedule the pod.
-  type: object
-gcp_audit.response.spec.template.spec.priorityClassName:
-  dashed_name: gcp-audit-response-spec-template-spec-priorityClassName
-  description: Priority class name assigned to the pod.
-  example: example-priorityClassName
-  flat_name: gcp_audit.response.spec.template.spec.priorityClassName
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.priorityClassName
-  normalize: []
-  short: Priority class name assigned to the pod.
-  type: keyword
-gcp_audit.response.spec.template.spec.restartPolicy:
-  dashed_name: gcp-audit-response-spec-template-spec-restartPolicy
-  description: Restart policy applied to the pod.
-  example: example-restartPolicy
-  flat_name: gcp_audit.response.spec.template.spec.restartPolicy
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.restartPolicy
-  normalize: []
-  short: Restart policy applied to the pod.
-  type: keyword
-gcp_audit.response.spec.template.spec.schedulerName:
-  dashed_name: gcp-audit-response-spec-template-spec-schedulerName
-  description: Scheduler name used for the pod scheduling.
-  example: example-schedulerName
-  flat_name: gcp_audit.response.spec.template.spec.schedulerName
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.schedulerName
-  normalize: []
-  short: Scheduler name used for the pod scheduling.
-  type: keyword
-gcp_audit.response.spec.template.spec.securityContext.fsGroup:
-  dashed_name: gcp-audit-response-spec-template-spec-securityContext-fsGroup
-  description: File system group ID in the pod security context.
-  example: example-fsGroup
-  flat_name: gcp_audit.response.spec.template.spec.securityContext.fsGroup
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.securityContext.fsGroup
-  normalize: []
-  short: File system group ID in the pod security context.
-  type: keyword
-gcp_audit.response.spec.template.spec.securityContext.runAsGroup:
-  dashed_name: gcp-audit-response-spec-template-spec-securityContext-runAsGroup
-  description: Run-as group ID in the pod security context.
-  example: example-runAsGroup
-  flat_name: gcp_audit.response.spec.template.spec.securityContext.runAsGroup
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.securityContext.runAsGroup
-  normalize: []
-  short: Run-as group ID in the pod security context.
-  type: keyword
-gcp_audit.response.spec.template.spec.securityContext.runAsUser:
-  dashed_name: gcp-audit-response-spec-template-spec-securityContext-runAsUser
-  description: Run-as user ID in the pod security context.
-  example: example-runAsUser
-  flat_name: gcp_audit.response.spec.template.spec.securityContext.runAsUser
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.securityContext.runAsUser
-  normalize: []
-  short: Run-as user ID in the pod security context.
-  type: keyword
-gcp_audit.response.spec.template.spec.serviceAccount:
-  dashed_name: gcp-audit-response-spec-template-spec-serviceAccount
-  description: Service account associated with the pod.
-  example: example-serviceAccount
-  flat_name: gcp_audit.response.spec.template.spec.serviceAccount
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.serviceAccount
-  normalize: []
-  short: Service account associated with the pod.
-  type: keyword
-gcp_audit.response.spec.template.spec.serviceAccountName:
-  dashed_name: gcp-audit-response-spec-template-spec-serviceAccountName
-  description: Name of the service account assigned to the pod.
-  example: example-serviceAccountName
-  flat_name: gcp_audit.response.spec.template.spec.serviceAccountName
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.serviceAccountName
-  normalize: []
-  short: Name of the service account assigned to the pod.
-  type: keyword
-gcp_audit.response.spec.template.spec.terminationGracePeriodSeconds:
-  dashed_name: gcp-audit-response-spec-template-spec-terminationGracePeriodSeconds
-  description: Time in seconds before terminating the pod.
-  example: example-terminationGracePeriodSeconds
-  flat_name: gcp_audit.response.spec.template.spec.terminationGracePeriodSeconds
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.template.spec.terminationGracePeriodSeconds
-  normalize: []
-  short: Time in seconds before terminating the pod.
-  type: keyword
-gcp_audit.response.spec.template.spec.tolerations:
-  dashed_name: gcp-audit-response-spec-template-spec-tolerations
-  description: Tolerations applied to the pod specification.
-  flat_name: gcp_audit.response.spec.template.spec.tolerations
-  level: custom
-  name: gcp_audit.response.spec.template.spec.tolerations
-  normalize:
-  - array
-  short: Tolerations applied to the pod specification.
-  type: nested
-gcp_audit.response.spec.template.spec.topologySpreadConstraints:
-  dashed_name: gcp-audit-response-spec-template-spec-topologySpreadConstraints
-  description: Topology spread constraints for distributing pods.
-  flat_name: gcp_audit.response.spec.template.spec.topologySpreadConstraints
-  level: custom
-  name: gcp_audit.response.spec.template.spec.topologySpreadConstraints
-  normalize:
-  - array
-  short: Topology spread constraints for distributing pods.
-  type: nested
-gcp_audit.response.spec.template.spec.volumes:
-  dashed_name: gcp-audit-response-spec-template-spec-volumes
-  description: Volumes defined in the pod specification.
-  flat_name: gcp_audit.response.spec.template.spec.volumes
-  level: custom
-  name: gcp_audit.response.spec.template.spec.volumes
-  normalize:
-  - array
-  short: Volumes defined in the pod specification.
-  type: nested
-gcp_audit.response.spec.user:
-  dashed_name: gcp-audit-response-spec-user
-  description: User associated with the resource specification.
-  example: example-user
-  flat_name: gcp_audit.response.spec.user
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.spec.user
-  normalize: []
-  short: User associated with the resource specification.
-  type: keyword
-gcp_audit.response.startTime:
-  dashed_name: gcp-audit-response-startTime
-  description: Start time of the operation or process.
-  example: example-startTime
-  flat_name: gcp_audit.response.startTime
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.startTime
-  normalize: []
-  short: Start time of the operation or process.
-  type: keyword
-gcp_audit.response.status.allowed:
-  dashed_name: gcp-audit-response-status-allowed
-  description: Indicates whether the request or action was allowed.
-  example: true
-  flat_name: gcp_audit.response.status.allowed
-  level: custom
-  name: gcp_audit.response.status.allowed
-  normalize: []
-  short: Indicates whether the request or action was allowed.
-  type: boolean
-gcp_audit.response.status.availableReplicas:
-  dashed_name: gcp-audit-response-status-availableReplicas
-  description: Number of replicas available at the time of the response.
-  example: example-availableReplicas
-  flat_name: gcp_audit.response.status.availableReplicas
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.status.availableReplicas
-  normalize: []
-  short: Number of replicas available at the time of the response.
-  type: keyword
-gcp_audit.response.status.conditions:
-  dashed_name: gcp-audit-response-status-conditions
-  description: Conditions describing the current status of the resource.
-  flat_name: gcp_audit.response.status.conditions
-  level: custom
-  name: gcp_audit.response.status.conditions
-  normalize:
-  - array
-  short: Conditions describing the current status of the resource.
-  type: nested
-gcp_audit.response.status.observedGeneration:
-  dashed_name: gcp-audit-response-status-observedGeneration
-  description: Most recent observed generation of the resource.
-  example: example-observedGeneration
-  flat_name: gcp_audit.response.status.observedGeneration
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.status.observedGeneration
-  normalize: []
-  short: Most recent observed generation of the resource.
-  type: keyword
-gcp_audit.response.status.readyReplicas:
-  dashed_name: gcp-audit-response-status-readyReplicas
-  description: Number of replicas ready for service.
-  example: example-readyReplicas
-  flat_name: gcp_audit.response.status.readyReplicas
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.status.readyReplicas
-  normalize: []
-  short: Number of replicas ready for service.
-  type: keyword
-gcp_audit.response.status.reason:
-  dashed_name: gcp-audit-response-status-reason
-  description: Reason for the current status of the resource.
-  example: example-reason
-  flat_name: gcp_audit.response.status.reason
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.status.reason
-  normalize: []
-  short: Reason for the current status of the resource.
-  type: keyword
-gcp_audit.response.status.replicas:
-  dashed_name: gcp-audit-response-status-replicas
-  description: Total number of replicas of the resource.
-  example: example-replicas
-  flat_name: gcp_audit.response.status.replicas
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.status.replicas
-  normalize: []
-  short: Total number of replicas of the resource.
-  type: keyword
-gcp_audit.response.status.updatedReplicas:
-  dashed_name: gcp-audit-response-status-updatedReplicas
-  description: Number of replicas updated to the latest version.
-  example: example-updatedReplicas
-  flat_name: gcp_audit.response.status.updatedReplicas
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.status.updatedReplicas
-  normalize: []
-  short: Number of replicas updated to the latest version.
-  type: keyword
-gcp_audit.response.statusvalue:
-  dashed_name: gcp-audit-response-statusvalue
-  description: Current status value of the resource.
-  example: example-statusvalue
-  flat_name: gcp_audit.response.statusvalue
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.statusvalue
-  normalize: []
-  short: Current status value of the resource.
-  type: keyword
-gcp_audit.response.targetId:
-  dashed_name: gcp-audit-response-targetId
-  description: Identifier of the target resource.
-  example: example-targetId
-  flat_name: gcp_audit.response.targetId
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.targetId
-  normalize: []
-  short: Identifier of the target resource.
-  type: keyword
-gcp_audit.response.targetLink:
-  dashed_name: gcp-audit-response-targetLink
-  description: Target link URL of the resource.
-  example: example-targetLink
-  flat_name: gcp_audit.response.targetLink
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.targetLink
-  normalize: []
-  short: Target link URL of the resource.
-  type: keyword
-gcp_audit.response.user:
-  dashed_name: gcp-audit-response-user
-  description: User who initiated the request or operation.
-  example: example-user
-  flat_name: gcp_audit.response.user
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.user
-  normalize: []
-  short: User who initiated the request or operation.
-  type: keyword
-gcp_audit.response.zone:
-  dashed_name: gcp-audit-response-zone
-  description: Zone in which the resource resides.
-  example: example-zone
-  flat_name: gcp_audit.response.zone
-  ignore_above: 1024
-  level: custom
-  name: gcp_audit.response.zone
-  normalize: []
-  short: Zone in which the resource resides.
-  type: keyword
 gcp_audit.servicename:
   dashed_name: gcp-audit-servicename
   description: The name of the Google Cloud service that processed the request
@@ -7559,14 +6540,15 @@ gcp_audit.status.code:
   type: long
 gcp_audit.status.details:
   dashed_name: gcp-audit-status-details
-  description: The purpose of this field needs to be defined
+  description: Provides additional information or context about the status of the
+    audit event
   flat_name: gcp_audit.status.details
   level: custom
   name: gcp_audit.status.details
-  normalize:
-  - array
-  short: The purpose of this field needs to be defined
-  type: nested
+  normalize: []
+  short: Provides additional information or context about the status of the audit
+    event
+  type: object
 gcp_audit.status.message:
   dashed_name: gcp-audit-status-message
   description: A human-readable description of the status code
@@ -8117,14 +7099,15 @@ gcp_firewall.rule_details.direction:
   type: keyword
 gcp_firewall.rule_details.ip_port_info:
   dashed_name: gcp-firewall-rule-details-ip-port-info
-  description: The IP protocol specified in the firewall rule
+  description: An array of objects containing details about the IP protocol and port
+    range used in the firewall rule
   flat_name: gcp_firewall.rule_details.ip_port_info
   level: custom
   name: gcp_firewall.rule_details.ip_port_info
-  normalize:
-  - array
-  short: The IP protocol specified in the firewall rule
-  type: nested
+  normalize: []
+  short: An array of objects containing details about the IP protocol and port range
+    used in the firewall rule
+  type: object
 gcp_firewall.rule_details.reference:
   dashed_name: gcp-firewall-rule-details-reference
   description: A reference identifier for the firewall rule
@@ -8144,8 +7127,7 @@ gcp_firewall.rule_details.source_range:
   ignore_above: 1024
   level: custom
   name: gcp_firewall.rule_details.source_range
-  normalize:
-  - array
+  normalize: []
   short: An array of source IP ranges specified in the firewall rule
   type: keyword
 gcp_firewall.rule_details.target_tag:
@@ -8156,8 +7138,7 @@ gcp_firewall.rule_details.target_tag:
   ignore_above: 1024
   level: custom
   name: gcp_firewall.rule_details.target_tag
-  normalize:
-  - array
+  normalize: []
   short: An array of target tags defined in the firewall rule
   type: keyword
 gcp_firewall.rule_name:
@@ -8367,16 +7348,14 @@ gcp_vpcflow.rtt_msec:
   type: long
 gcp_vpcflow.src_instance.project_id:
   dashed_name: gcp-vpcflow-src-instance-project-id
-  description: The project ID where the source instance resides. This helps identify
-    which GCP project owns the VM that initiated the traffic
+  description: The project ID where the source instance resides.
   example: example-project_id
   flat_name: gcp_vpcflow.src_instance.project_id
   ignore_above: 1024
   level: custom
   name: gcp_vpcflow.src_instance.project_id
   normalize: []
-  short: GCP project ID where source instance resides. Identifies which project owns
-    the VM that initiated the traffic.
+  short: The project ID where the source instance resides.
   type: keyword
 gcp_vpcflow.src_instance.region:
   dashed_name: gcp-vpcflow-src-instance-region
@@ -8393,16 +7372,14 @@ gcp_vpcflow.src_instance.region:
   type: keyword
 gcp_vpcflow.src_instance.vm_name:
   dashed_name: gcp-vpcflow-src-instance-vm-name
-  description: The name of the virtual machine that originated the traffic. Useful
-    for correlating flow data with VM-level logs or audit events
+  description: The name of the virtual machine that originated the traffic.
   example: example-vm_name
   flat_name: gcp_vpcflow.src_instance.vm_name
   ignore_above: 1024
   level: custom
   name: gcp_vpcflow.src_instance.vm_name
   normalize: []
-  short: Name of virtual machine that originated the traffic. Useful for correlating
-    flow data with VM-level logs or events.
+  short: The name of the virtual machine that originated the traffic.
   type: keyword
 gcp_vpcflow.src_instance.zone:
   dashed_name: gcp-vpcflow-src-instance-zone
@@ -8836,6 +7813,15 @@ gen_ai.usage.output_tokens:
     stability: development
   short: The number of tokens used in the GenAI response (completion).
   type: integer
+google_scc.asset.access_level.basic.conditions.devicePolicy:
+  dashed_name: google-scc-asset-access-level-basic-conditions-devicePolicy
+  description: Custom field for google-scc
+  flat_name: google_scc.asset.access_level.basic.conditions.devicePolicy
+  level: custom
+  name: google_scc.asset.access_level.basic.conditions.devicePolicy
+  normalize: []
+  short: Custom field for google-scc
+  type: object
 google_scc.asset.access_policy.create_time:
   dashed_name: google-scc-asset-access-policy-create-time
   description: The timestamp when the AccessPolicy was created
@@ -8904,12 +7890,14 @@ google_scc.asset.ancestors:
   dashed_name: google-scc-asset-ancestors
   description: The complete ancestry path of the asset in the Google Cloud resource
     hierarchy
+  example: example-ancestors
   flat_name: google_scc.asset.ancestors
+  ignore_above: 1024
   level: custom
   name: google_scc.asset.ancestors
   normalize: []
   short: The complete ancestry path of the asset in the Google Cloud resource hierarchy
-  type: nested
+  type: keyword
 google_scc.asset.asset_type:
   dashed_name: google-scc-asset-asset-type
   description: The type of the Google Cloud resource as defined in the Cloud Asset
@@ -8963,15 +7951,6 @@ google_scc.asset.name:
   normalize: []
   short: The full name of the asset following Google Cloud resource naming conventions
   type: keyword
-google_scc.asset.org_policy:
-  dashed_name: google-scc-asset-org-policy
-  description: Organization policy constraints applied to this asset
-  flat_name: google_scc.asset.org_policy
-  level: custom
-  name: google_scc.asset.org_policy
-  normalize: []
-  short: Organization policy constraints applied to this asset
-  type: nested
 google_scc.asset.os_inventory.items:
   dashed_name: google-scc-asset-os-inventory-items
   description: Detailed inventory items related to the VM including installed packages
@@ -8980,7 +7959,7 @@ google_scc.asset.os_inventory.items:
   name: google_scc.asset.os_inventory.items
   normalize: []
   short: Detailed inventory items related to the VM including installed packages
-  type: nested
+  type: object
 google_scc.asset.os_inventory.name:
   dashed_name: google-scc-asset-os-inventory-name
   description: The full resource name of the OS inventory data
@@ -9093,12 +8072,14 @@ google_scc.asset.os_inventory.update_time:
 google_scc.asset.prior.ancestors:
   dashed_name: google-scc-asset-prior-ancestors
   description: The ancestry path of the asset in its previous state
+  example: example-ancestors
   flat_name: google_scc.asset.prior.ancestors
+  ignore_above: 1024
   level: custom
   name: google_scc.asset.prior.ancestors
   normalize: []
   short: The ancestry path of the asset in its previous state
-  type: nested
+  type: keyword
 google_scc.asset.prior.name:
   dashed_name: google-scc-asset-prior-name
   description: The full name of the asset in its previous state
@@ -9257,12 +8238,14 @@ google_scc.asset.prior_asset_state:
 google_scc.asset.related_asset.ancestors:
   dashed_name: google-scc-asset-related-asset-ancestors
   description: The ancestry path of related assets
+  example: example-ancestors
   flat_name: google_scc.asset.related_asset.ancestors
+  ignore_above: 1024
   level: custom
   name: google_scc.asset.related_asset.ancestors
   normalize: []
   short: The ancestry path of related assets
-  type: nested
+  type: keyword
 google_scc.asset.related_asset.name:
   dashed_name: google-scc-asset-related-asset-name
   description: The full name of assets that are related to this asset
@@ -9304,9 +8287,8 @@ google_scc.asset.resource.data:
   level: custom
   name: google_scc.asset.resource.data
   normalize: []
-  norms: false
   short: The complete content and configuration of the resource
-  type: text
+  type: object
 google_scc.asset.resource.discovery.document_uri:
   dashed_name: google-scc-asset-resource-discovery-document-uri
   description: The URI of the discovery document containing the JSON schema for the
@@ -9554,17 +8536,41 @@ google_scc.finding.class:
   normalize: []
   short: The class of the finding which can be THREAT VULNERABILITY or MISCONFIGURATION
   type: keyword
-google_scc.finding.compliances:
-  dashed_name: google-scc-finding-compliances
-  description: Compliance framework mappings showing how this finding relates to security
-    standards
-  flat_name: google_scc.finding.compliances
+google_scc.finding.compliances.ids:
+  dashed_name: google-scc-finding-compliances-ids
+  description: Policies within the standard or benchmark, for example, A.12.4.1.
+  example: example-ids
+  flat_name: google_scc.finding.compliances.ids
+  ignore_above: 1024
   level: custom
-  name: google_scc.finding.compliances
+  name: google_scc.finding.compliances.ids
   normalize: []
-  short: Compliance framework mappings showing how this finding relates to security
-    standards
-  type: nested
+  short: Policies within the standard or benchmark, for example, A.12.4.1.
+  type: keyword
+google_scc.finding.compliances.standard:
+  dashed_name: google-scc-finding-compliances-standard
+  description: Industry-wide compliance standards or benchmarks, such as "cis", "pci",
+    and "owasp".
+  example: example-standard
+  flat_name: google_scc.finding.compliances.standard
+  ignore_above: 1024
+  level: custom
+  name: google_scc.finding.compliances.standard
+  normalize: []
+  short: Industry-wide compliance standards or benchmarks, such as "cis", "pci", and
+    "owasp".
+  type: keyword
+google_scc.finding.compliances.version:
+  dashed_name: google-scc-finding-compliances-version
+  description: Version of the standard or benchmark, for example, "1.1".
+  example: example-version
+  flat_name: google_scc.finding.compliances.version
+  ignore_above: 1024
+  level: custom
+  name: google_scc.finding.compliances.version
+  normalize: []
+  short: Version of the standard or benchmark, for example, "1.1".
+  type: keyword
 google_scc.finding.contacts:
   dashed_name: google-scc-finding-contacts
   description: Contact information for individuals or teams responsible for addressing
@@ -9650,6 +8656,52 @@ google_scc.finding.log_entries:
   normalize: []
   short: Related log entries and audit trail information
   type: nested
+google_scc.finding.log_entries.cloud_logging_entry.insert_id:
+  dashed_name: google-scc-finding-log-entries-cloud-logging-entry-insert-id
+  description: A unique identifier for the log entry.
+  example: example-insert_id
+  flat_name: google_scc.finding.log_entries.cloud_logging_entry.insert_id
+  ignore_above: 1024
+  level: custom
+  name: google_scc.finding.log_entries.cloud_logging_entry.insert_id
+  normalize: []
+  short: A unique identifier for the log entry.
+  type: keyword
+google_scc.finding.log_entries.cloud_logging_entry.log_id:
+  dashed_name: google-scc-finding-log-entries-cloud-logging-entry-log-id
+  description: The type of the log.
+  example: example-log_id
+  flat_name: google_scc.finding.log_entries.cloud_logging_entry.log_id
+  ignore_above: 1024
+  level: custom
+  name: google_scc.finding.log_entries.cloud_logging_entry.log_id
+  normalize: []
+  short: The type of the log.
+  type: keyword
+google_scc.finding.log_entries.cloud_logging_entry.resource_container:
+  dashed_name: google-scc-finding-log-entries-cloud-logging-entry-resource-container
+  description: The organization, folder, or project of the monitored resource that
+    produced this log entry.
+  example: example-resource_container
+  flat_name: google_scc.finding.log_entries.cloud_logging_entry.resource_container
+  ignore_above: 1024
+  level: custom
+  name: google_scc.finding.log_entries.cloud_logging_entry.resource_container
+  normalize: []
+  short: The organization, folder, or project of the monitored resource that produced
+    this log entry.
+  type: keyword
+google_scc.finding.log_entries.cloud_logging_entry.timestamp:
+  dashed_name: google-scc-finding-log-entries-cloud-logging-entry-timestamp
+  description: The time the event described by the log entry occurred.
+  example: example-timestamp
+  flat_name: google_scc.finding.log_entries.cloud_logging_entry.timestamp
+  ignore_above: 1024
+  level: custom
+  name: google_scc.finding.log_entries.cloud_logging_entry.timestamp
+  normalize: []
+  short: The time the event described by the log entry occurred.
+  type: keyword
 google_scc.finding.mitre_attack:
   dashed_name: google-scc-finding-mitre-attack
   description: MITRE ATT&CK framework tactics techniques and procedures associated

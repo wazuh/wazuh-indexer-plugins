@@ -10663,6 +10663,39 @@ f5_bigip.log.fragment:
   normalize: []
   short: IP fragmentation information in F5 BIG-IP logs.
   type: keyword
+f5_bigip.log.geo.country:
+  dashed_name: f5-bigip-log-geo-country
+  description: Country from geolocation data in F5 BIG-IP.
+  example: example-country
+  flat_name: f5_bigip.log.geo.country
+  ignore_above: 1024
+  level: custom
+  name: f5_bigip.log.geo.country
+  normalize: []
+  short: Country from geolocation data in F5 BIG-IP.
+  type: keyword
+f5_bigip.log.geo.info:
+  dashed_name: f5-bigip-log-geo-info
+  description: Geolocation information in F5 BIG-IP logs.
+  example: example-info
+  flat_name: f5_bigip.log.geo.info
+  ignore_above: 1024
+  level: custom
+  name: f5_bigip.log.geo.info
+  normalize: []
+  short: Geolocation information in F5 BIG-IP logs.
+  type: keyword
+f5_bigip.log.geo.location:
+  dashed_name: f5-bigip-log-geo-location
+  description: Geographic location in F5 BIG-IP logs.
+  example: example-location
+  flat_name: f5_bigip.log.geo.location
+  ignore_above: 1024
+  level: custom
+  name: f5_bigip.log.geo.location
+  normalize: []
+  short: Geographic location in F5 BIG-IP logs.
+  type: keyword
 f5_bigip.log.global_bigiq_conf:
   dashed_name: f5-bigip-log-global-bigiq-conf
   description: Global BIG-IQ configuration status in F5 BIG-IP.

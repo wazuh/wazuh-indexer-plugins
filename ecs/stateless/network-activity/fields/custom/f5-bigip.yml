@@ -837,6 +837,21 @@
     level: custom
     description: IP fragmentation information in F5 BIG-IP logs.
     example: example-fragment
+  - name: f5_bigip.log.geo.country
+    type: keyword
+    level: custom
+    description: Country from geolocation data in F5 BIG-IP.
+    example: example-country
+  - name: f5_bigip.log.geo.info
+    type: keyword
+    level: custom
+    description: Geolocation information in F5 BIG-IP logs.
+    example: example-info
+  - name: f5_bigip.log.geo.location
+    type: keyword
+    level: custom
+    description: Geographic location in F5 BIG-IP logs.
+    example: example-location
   - name: f5_bigip.log.global_bigiq_conf
     type: keyword
     level: custom

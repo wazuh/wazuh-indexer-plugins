@@ -517,13 +517,15 @@
     description: The specific compliance control or requirement being evaluated.
     example: example-control
   - name: ocsf.compliance.requirements
-    type: nested
+    type: keyword
     level: custom
     description: The compliance requirements or standards that apply to this evaluation.
+    example: example-requirements
   - name: ocsf.compliance.standards
-    type: nested
+    type: keyword
     level: custom
     description: The compliance standards or frameworks being evaluated.
+    example: example-standards
   - name: ocsf.compliance.status
     type: keyword
     level: custom
@@ -597,11 +599,12 @@
     description: The human-readable message associated with the HTTP response status
       code.
   - name: ocsf.malware.classification_ids
-    type: nested
+    type: long
     level: custom
     description: >-
       The numeric classification identifiers for the malware based on standard malware
       taxonomies.
+    example: 12345
   - name: ocsf.malware.name
     type: keyword
     level: custom

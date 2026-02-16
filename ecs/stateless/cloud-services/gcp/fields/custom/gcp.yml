@@ -4,22 +4,19 @@
   root: true
   fields:
   - name: gcp_audit.actor.entity_id
-    type: nested
+    type: keyword
     level: custom
     description: Identifier of the user or service account that performed the action
-    normalize:
-    - array
+    example: example-entity_id
   - name: gcp_audit.authenticationinfo.principalsubject
     type: keyword
     level: custom
-    description: The purpose of this field needs to be defined
+    description: Specifies the authenticated principa that made the request.
     example: example-principalsubject
   - name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo
-    type: nested
+    type: object
     level: custom
     description: The service account delegatio information
-    normalize:
-    - array
   - name: gcp_audit.authenticationinfo.serviceaccountkeyname
     type: keyword
     level: custom
@@ -31,8 +28,6 @@
     type: nested
     level: custom
     description: The gcp audit log authorization information
-    normalize:
-    - array
   - name: gcp_audit.labels
     type: object
     level: custom
@@ -47,59 +42,17 @@
     level: custom
     description: The access levels in the gcp audit metadata
     example: example-accessLevels
-    normalize:
-    - array
   - name: gcp_audit.metadata.identityDelegationChain
     type: keyword
     level: custom
     description: The identity delegation chain in the gcp audit metadata
     example: example-identityDelegationChain
-    normalize:
-    - array
-  - name: gcp_audit.metadata.ingressViolations
-    type: nested
+  - name: gcp_audit.metadata
+    type: object
     level: custom
-    description: The GCP audit metadata ingress violations information
-    normalize:
-    - array
-  - name: gcp_audit.metadata.operationType
-    type: keyword
-    level: custom
-    description: The operation type in the GCP audit metadata
-    example: example-operationType
-  - name: gcp_audit.metadata.resourceNames
-    type: keyword
-    level: custom
-    description: The resource names in the GCP audit metadata
-    example: example-resourceNames
-    normalize:
-    - array
-  - name: gcp_audit.metadata.securityPolicyInfo.organizationId
-    type: keyword
-    level: custom
-    description: The organization identifier in the security policy information
-    example: example-organizationId
-  - name: gcp_audit.metadata.securityPolicyInfo.servicePerimeterName
-    type: keyword
-    level: custom
-    description: The service perimeter in the security policy information
-    example: example-servicePerimeterName
-  - name: gcp_audit.metadata.usedResources.attachedDisks
-    type: nested
-    level: custom
-    description: The attached disks in the used resources
-    normalize:
-    - array
-  - name: gcp_audit.metadata.violationReason
-    type: keyword
-    level: custom
-    description: The violation reason information stored in the metadata
-    example: example-violationReason
-  - name: gcp_audit.metadata.vpcServiceControlsUniqueId
-    type: keyword
-    level: custom
-    description: The VPC service controls unique identifier in the metadata
-    example: example-vpcServiceControlsUniqueId
+    description: >-
+      The complete metadata object containing additional information about the audit
+      log entry.
   - name: gcp_audit.numresponseitems
     type: long
     level: custom
@@ -132,527 +85,33 @@
     description: The zone present in the resource tags in the policy violation information
     example: example-zone
   - name: gcp_audit.related.entity
-    type: nested
+    type: keyword
     level: custom
     description: Any other relevant entities that may be connected to the logged event
-    normalize:
-    - array
-  - name: gcp_audit.request.@type
-    type: keyword
-    level: custom
-    description: The message type of the request payload
-    example: example-@type
-  - name: gcp_audit.request.apiVersion
-    type: keyword
-    level: custom
-    description: The version of the API used in the request
-    example: example-apiVersion
-  - name: gcp_audit.request.disks
-    type: keyword
-    level: custom
-    description: The details of the disks in the request information
-    example: example-disks
-    normalize:
-    - array
-  - name: gcp_audit.request.family
-    type: keyword
-    level: custom
-    description: Indicates the resource family or category associated with the audit
-      request
-    example: example-family
-  - name: gcp_audit.request.guestOsFeatures
-    type: nested
-    level: custom
-    description: Specifies the operating system features requested for a guest VM
-      instance
-    normalize:
-    - array
-  - name: gcp_audit.request.kind
-    type: keyword
-    level: custom
-    description: Identifies the type of API resource or operation object in the request
-    example: example-kind
-  - name: gcp_audit.request.machineType
-    type: keyword
-    level: custom
-    description: The Compute Engine machine type (CPU/memory configuration) requested
-      for a VM
-    example: example-machineType
-  - name: gcp_audit.request.metadata.creationTimestamp
-    type: date
-    level: custom
-    description: The timestamp indicating when the resource was created
-    example: '2023-01-01T00:00:00.000Z'
-  - name: gcp_audit.request.name
-    type: keyword
-    level: custom
-    description: The name assigned to the resource being created or modified
-    example: example-name
-  - name: gcp_audit.request.networkInterfaces
-    type: nested
-    level: custom
-    description: The list of network interfaces attached to a VM (e.g., IPs, subnets,
-      VPCs)
-    normalize:
-    - array
-  - name: gcp_audit.request.pageSize
-    type: keyword
-    level: custom
-    description: The maximum number of items to return in a paginated API response
-    example: example-pageSize
-  - name: gcp_audit.request.page_token
-    type: keyword
-    level: custom
-    description: A continuation token to fetch the next page of results in paginated
-      requests
-    example: example-page_token
-  - name: gcp_audit.request.policy.bindings
-    type: nested
-    level: custom
-    description: The IAM role-to-member mappings defined in a policy
-    normalize:
-    - array
-  - name: gcp_audit.request.policy.etag
-    type: keyword
-    level: custom
-    description: A unique identifier used for concurrency control when updating an
-      IAM policy
-    example: example-etag
-  - name: gcp_audit.request.policyvalue
-    type: keyword
-    level: custom
-    description: The full IAM policy object or value applied to a resource
-    example: example-policyvalue
-  - name: gcp_audit.request.rawDisk.source
-    type: keyword
-    level: custom
-    description: The source disk or image used when creating a new raw disk
-    example: example-source
-  - name: gcp_audit.request.resource
-    type: keyword
-    level: custom
-    description: Specifies the type or specification of the resource targeted in the
-      request
-    example: example-resource
-  - name: gcp_audit.request.resourceName
-    type: keyword
-    level: custom
-    description: The fully qualified name of the resource on which the action is performed
-    example: example-resourceName
-  - name: gcp_audit.request.serviceAccounts
-    type: nested
-    level: custom
-    description: Lists the service accounts associated with the resource (e.g., attached
-      to a VM)
-    normalize:
-    - array
-  - name: gcp_audit.request.sourceType
-    type: keyword
-    level: custom
-    description: >-
-      Indicates the origin type of the resource or workload (e.g., image, snapshot,
-      or template)
-    example: example-sourceType
-  - name: gcp_audit.request.spec.group
-    type: nested
-    level: custom
-    description: >-
-      Represents the API group of the resource specification, commonly used in Kubernetes-style
-      APIs
-    normalize:
-    - array
-  - name: gcp_audit.request.spec.nonResourceAttributes.path
-    type: keyword
-    level: custom
-    description: >-
-      The API path accessed when the request does not target a specific resource (e.g.,
-      /healthz)
-    example: example-path
-  - name: gcp_audit.request.spec.nonResourceAttributes.verb
-    type: keyword
-    level: custom
-    description: >-
-      The HTTP verb or action used in the non-resource request (e.g., get, list, create)
-    example: example-verb
-  - name: gcp_audit.request.spec.strategy.$retainKeys
-    type: keyword
-    level: custom
-    description: >-
-      Indicates which keys should be retained when applying a strategy-based resource
-      update.
-    example: example-$retainKeys
-  - name: gcp_audit.request.spec.template.spec
+    example: example-entity
+  - name: gcp_audit.request
     type: object
     level: custom
     description: >-
-      Contains the detailed specification template for the resource (e.g., pod spec
-      in GKE).
-  - name: gcp_audit.request.spec.user
-    type: keyword
-    level: custom
-    description: The user identity specified in the resource configuration or request
-    example: example-user
-  - name: gcp_audit.request.status.allowed
-    type: boolean
-    level: custom
-    description: Indicates whether the requested action was authorized (true) or denied
-      (false)
-    example: true
+      The complete request payload object containing all parameters and details sent
+      with the audit log request.
   - name: gcp_audit.resourcelocation.currentlocation
-    type: nested
+    type: keyword
     level: custom
     description: Specifies the geographic location or region where the resource currently
       resides
-    normalize:
-    - array
+    example: example-currentlocation
   - name: gcp_audit.resourcename
     type: keyword
     level: custom
     description: The full name of the resource involved in the audit event
     example: example-resourcename
-  - name: gcp_audit.response.@type
-    type: keyword
-    level: custom
-    description: The message type of the response payload
-    example: example-@type
-  - name: gcp_audit.response.apiVersion
-    type: keyword
-    level: custom
-    description: Specifies the API version used in the response.
-    example: example-apiVersion
-  - name: gcp_audit.response.bindings
-    type: nested
-    level: custom
-    description: Defines role bindings that associate users or groups with roles.
-    normalize:
-    - array
-  - name: gcp_audit.response.details.group
-    type: keyword
-    level: custom
-    description: Indicates the group of the resource in the response details.
-    example: example-group
-  - name: gcp_audit.response.details.kind
-    type: keyword
-    level: custom
-    description: Specifies the kind of the resource in the response details.
-    example: example-kind
-  - name: gcp_audit.response.details.name
-    type: keyword
-    level: custom
-    description: Provides the name of the resource in the response details.
-    example: example-name
-  - name: gcp_audit.response.details.uid
-    type: keyword
-    level: custom
-    description: Represents the unique identifier (UID) of the resource.
-    example: example-uid
-  - name: gcp_audit.response.etag
-    type: keyword
-    level: custom
-    description: ETag value used for optimistic concurrency control.
-    example: example-etag
-  - name: gcp_audit.response.id
-    type: keyword
-    level: custom
-    description: Unique identifier of the resource in the response.
-    example: example-id
-  - name: gcp_audit.response.insertTime
-    type: keyword
-    level: custom
-    description: Timestamp when the resource was inserted.
-    example: example-insertTime
-  - name: gcp_audit.response.kind
-    type: keyword
-    level: custom
-    description: Specifies the type or category of the resource.
-    example: example-kind
-  - name: gcp_audit.response.metadata.annotations
+  - name: gcp_audit.response
     type: object
-    level: custom
-    description: Annotations metadata associated with the resource.
-  - name: gcp_audit.response.metadata.creationTimestamp
-    type: date
-    level: custom
-    description: Timestamp of when the resource was created.
-    example: '2023-01-01T00:00:00.000Z'
-  - name: gcp_audit.response.metadata.generation
-    type: keyword
-    level: custom
-    description: Version number or generation of the resource.
-    example: example-generation
-  - name: gcp_audit.response.metadata.labels
-    type: object
-    level: custom
-    description: Labels metadata assigned to the resource.
-  - name: gcp_audit.response.metadata.managedFields
-    type: nested
-    level: custom
-    description: Managed fields metadata describing changes to the resource.
-    normalize:
-    - array
-  - name: gcp_audit.response.metadata.name
-    type: keyword
-    level: custom
-    description: Name of the resource in the metadata section.
-    example: example-name
-  - name: gcp_audit.response.metadata.namespace
-    type: keyword
-    level: custom
-    description: Namespace associated with the resource.
-    example: example-namespace
-  - name: gcp_audit.response.metadata.resourceVersion
-    type: keyword
-    level: custom
-    description: Resource version used for concurrency control.
-    example: example-resourceVersion
-  - name: gcp_audit.response.metadata.uid
-    type: keyword
-    level: custom
-    description: Unique identifier (UID) of the resource in metadata.
-    example: example-uid
-  - name: gcp_audit.response.name
-    type: keyword
-    level: custom
-    description: Name of the resource defined in the response.
-    example: example-name
-  - name: gcp_audit.response.operationType
-    type: keyword
-    level: custom
-    description: Specifies the type of operation performed.
-    example: example-operationType
-  - name: gcp_audit.response.progress
-    type: keyword
-    level: custom
-    description: Indicates progress of the requested operation.
-    example: example-progress
-  - name: gcp_audit.response.selfLink
-    type: keyword
-    level: custom
-    description: Self-link URL for accessing the resource.
-    example: example-selfLink
-  - name: gcp_audit.response.selfLinkWithId
-    type: keyword
-    level: custom
-    description: Self-link URL including the resource identifier.
-    example: example-selfLinkWithId
-  - name: gcp_audit.response.spec.group
-    type: nested
-    level: custom
-    description: Defines a group specification for the resource.
-    normalize:
-    - array
-  - name: gcp_audit.response.spec.nonResourceAttributes.path
-    type: keyword
-    level: custom
-    description: Path value for non-resource attribute specifications.
-    example: example-path
-  - name: gcp_audit.response.spec.nonResourceAttributes.verb
-    type: keyword
-    level: custom
-    description: HTTP verb associated with the non-resource attribute.
-    example: example-verb
-  - name: gcp_audit.response.spec.progressDeadlineSeconds
-    type: keyword
-    level: custom
-    description: Deadline in seconds for operation progress.
-    example: example-progressDeadlineSeconds
-  - name: gcp_audit.response.spec.replicas
-    type: keyword
-    level: custom
-    description: Number of replicas defined for the resource.
-    example: example-replicas
-  - name: gcp_audit.response.spec.revisionHistoryLimit
-    type: keyword
-    level: custom
-    description: Number of revisions to retain for rollback.
-    example: example-revisionHistoryLimit
-  - name: gcp_audit.response.spec.selector.matchLabels.k8s-app
-    type: keyword
-    level: custom
-    description: Match label used to identify Kubernetes apps.
-    example: example-k8s-app
-  - name: gcp_audit.response.spec.strategy.rollingUpdate.maxSurge
-    type: keyword
     level: custom
     description: >-
-      Maximum number of pods that can be scheduled above desired replicas during update.
-    example: example-maxSurge
-  - name: gcp_audit.response.spec.strategy.rollingUpdate.maxUnavailable
-    type: keyword
-    level: custom
-    description: Maximum number of pods that can be unavailable during update.
-    example: example-maxUnavailable
-  - name: gcp_audit.response.spec.strategy.type
-    type: keyword
-    level: custom
-    description: Strategy type used for rolling updates.
-    example: example-type
-  - name: gcp_audit.response.spec.template.metadata.annotations
-    type: object
-    level: custom
-    description: Annotations in the pod template metadata.
-  - name: gcp_audit.response.spec.template.metadata.creationTimestamp
-    type: date
-    level: custom
-    description: Creation timestamp of the pod template.
-    example: '2023-01-01T00:00:00.000Z'
-  - name: gcp_audit.response.spec.template.metadata.labels.k8s-app
-    type: keyword
-    level: custom
-    description: Labels in the pod template metadata.
-    example: example-k8s-app
-  - name: gcp_audit.response.spec.template.spec.containers
-    type: nested
-    level: custom
-    description: List of containers defined in the pod specification.
-  - name: gcp_audit.response.spec.template.spec.dnsPolicy
-    type: keyword
-    level: custom
-    description: DNS policy applied to the pod specification.
-    example: example-dnsPolicy
-  - name: gcp_audit.response.spec.template.spec.nodeSelector
-    type: object
-    level: custom
-    description: Node selector used to schedule the pod.
-  - name: gcp_audit.response.spec.template.spec.priorityClassName
-    type: keyword
-    level: custom
-    description: Priority class name assigned to the pod.
-    example: example-priorityClassName
-  - name: gcp_audit.response.spec.template.spec.restartPolicy
-    type: keyword
-    level: custom
-    description: Restart policy applied to the pod.
-    example: example-restartPolicy
-  - name: gcp_audit.response.spec.template.spec.schedulerName
-    type: keyword
-    level: custom
-    description: Scheduler name used for the pod scheduling.
-    example: example-schedulerName
-  - name: gcp_audit.response.spec.template.spec.securityContext.fsGroup
-    type: keyword
-    level: custom
-    description: File system group ID in the pod security context.
-    example: example-fsGroup
-  - name: gcp_audit.response.spec.template.spec.securityContext.runAsGroup
-    type: keyword
-    level: custom
-    description: Run-as group ID in the pod security context.
-    example: example-runAsGroup
-  - name: gcp_audit.response.spec.template.spec.securityContext.runAsUser
-    type: keyword
-    level: custom
-    description: Run-as user ID in the pod security context.
-    example: example-runAsUser
-  - name: gcp_audit.response.spec.template.spec.serviceAccount
-    type: keyword
-    level: custom
-    description: Service account associated with the pod.
-    example: example-serviceAccount
-  - name: gcp_audit.response.spec.template.spec.serviceAccountName
-    type: keyword
-    level: custom
-    description: Name of the service account assigned to the pod.
-    example: example-serviceAccountName
-  - name: gcp_audit.response.spec.template.spec.terminationGracePeriodSeconds
-    type: keyword
-    level: custom
-    description: Time in seconds before terminating the pod.
-    example: example-terminationGracePeriodSeconds
-  - name: gcp_audit.response.spec.template.spec.tolerations
-    type: nested
-    level: custom
-    description: Tolerations applied to the pod specification.
-    normalize:
-    - array
-  - name: gcp_audit.response.spec.template.spec.topologySpreadConstraints
-    type: nested
-    level: custom
-    description: Topology spread constraints for distributing pods.
-    normalize:
-    - array
-  - name: gcp_audit.response.spec.template.spec.volumes
-    type: nested
-    level: custom
-    description: Volumes defined in the pod specification.
-    normalize:
-    - array
-  - name: gcp_audit.response.spec.user
-    type: keyword
-    level: custom
-    description: User associated with the resource specification.
-    example: example-user
-  - name: gcp_audit.response.startTime
-    type: keyword
-    level: custom
-    description: Start time of the operation or process.
-    example: example-startTime
-  - name: gcp_audit.response.status.allowed
-    type: boolean
-    level: custom
-    description: Indicates whether the request or action was allowed.
-    example: true
-  - name: gcp_audit.response.status.availableReplicas
-    type: keyword
-    level: custom
-    description: Number of replicas available at the time of the response.
-    example: example-availableReplicas
-  - name: gcp_audit.response.status.conditions
-    type: nested
-    level: custom
-    description: Conditions describing the current status of the resource.
-    normalize:
-    - array
-  - name: gcp_audit.response.status.observedGeneration
-    type: keyword
-    level: custom
-    description: Most recent observed generation of the resource.
-    example: example-observedGeneration
-  - name: gcp_audit.response.status.readyReplicas
-    type: keyword
-    level: custom
-    description: Number of replicas ready for service.
-    example: example-readyReplicas
-  - name: gcp_audit.response.status.reason
-    type: keyword
-    level: custom
-    description: Reason for the current status of the resource.
-    example: example-reason
-  - name: gcp_audit.response.status.replicas
-    type: keyword
-    level: custom
-    description: Total number of replicas of the resource.
-    example: example-replicas
-  - name: gcp_audit.response.status.updatedReplicas
-    type: keyword
-    level: custom
-    description: Number of replicas updated to the latest version.
-    example: example-updatedReplicas
-  - name: gcp_audit.response.statusvalue
-    type: keyword
-    level: custom
-    description: Current status value of the resource.
-    example: example-statusvalue
-  - name: gcp_audit.response.targetId
-    type: keyword
-    level: custom
-    description: Identifier of the target resource.
-    example: example-targetId
-  - name: gcp_audit.response.targetLink
-    type: keyword
-    level: custom
-    description: Target link URL of the resource.
-    example: example-targetLink
-  - name: gcp_audit.response.user
-    type: keyword
-    level: custom
-    description: User who initiated the request or operation.
-    example: example-user
-  - name: gcp_audit.response.zone
-    type: keyword
-    level: custom
-    description: Zone in which the resource resides.
-    example: example-zone
+      The complete response payload object containing all parameters and details returned
+      from the audit log operation.
   - name: gcp_audit.servicename
     type: keyword
     level: custom
@@ -664,22 +123,22 @@
     description: Numeric status code representing the outcome of the request
     example: 12345
   - name: gcp_audit.status.details
-    type: nested
+    type: object
     level: custom
-    description: The purpose of this field needs to be defined
-    normalize:
-    - array
+    description: Provides additional information or context about the status of the
+      audit event
   - name: gcp_audit.status.message
     type: keyword
     level: custom
     description: A human-readable description of the status code
     example: example-message
   - name: gcp_audit.target.entity_id
-    type: nested
+    type: keyword
     level: custom
-    description: The purpose of this field needs to be defined
-    normalize:
-    - array
+    description: >-
+      Represents the unique identifier of the target entity involved in the audit
+      event
+    example: example-entity_id
   - name: gcp_audit.type
     type: keyword
     level: custom
@@ -948,12 +407,6 @@
     description: >-
       An array of objects containing details about the IP protocol and port range
       used in the firewall rule
-  - name: gcp_firewall.rule_details.ip_port_info
-    type: nested
-    level: custom
-    description: The IP protocol specified in the firewall rule
-    normalize:
-    - array
   - name: gcp_firewall.rule_details.reference
     type: keyword
     level: custom
@@ -964,15 +417,11 @@
     level: custom
     description: An array of source IP ranges specified in the firewall rule
     example: example-source_range
-    normalize:
-    - array
   - name: gcp_firewall.rule_details.target_tag
     type: keyword
     level: custom
     description: An array of target tags defined in the firewall rule
     example: example-target_tag
-    normalize:
-    - array
   - name: gcp_loadbalancer.backend_service_name
     type: keyword
     level: custom
@@ -1029,12 +478,7 @@
   - name: gcp_vpcflow.src_instance.project_id
     type: keyword
     level: custom
-    short: >-
-      GCP project ID where source instance resides. Identifies which project owns
-      the VM that initiated the traffic.
-    description: >-
-      The project ID where the source instance resides. This helps identify which
-      GCP project owns the VM that initiated the traffic
+    description: The project ID where the source instance resides.
     example: example-project_id
   - name: gcp_vpcflow.src_instance.region
     type: keyword
@@ -1046,12 +490,7 @@
   - name: gcp_vpcflow.src_instance.vm_name
     type: keyword
     level: custom
-    short: >-
-      Name of virtual machine that originated the traffic. Useful for correlating
-      flow data with VM-level logs or events.
-    description: >-
-      The name of the virtual machine that originated the traffic. Useful for correlating
-      flow data with VM-level logs or audit events
+    description: The name of the virtual machine that originated the traffic.
     example: example-vm_name
   - name: gcp_vpcflow.src_instance.zone
     type: keyword
@@ -1134,3 +573,42 @@
     level: custom
     description: The firewall rul name triggered in the GCP firewall allow/block action
     example: example-rule_name
+  - name: >-
+      gcp_audit.authenticationinfo.serviceaccountdelegationinfo.firstPartyPrincipal.principalEmail
+    type: keyword
+    level: custom
+    description: >-
+      The email address of the first-party principal (such as a user or service account)
+    example: example-principalEmail
+  - name: gcp_audit.authenticationinfo.serviceaccountdelegationinfo.principalSubject
+    type: keyword
+    level: custom
+    description: >-
+      Canonical identifier of the delegated principal, providing a stable, system-level
+      reference to the authenticated entity.
+    example: example-principalSubject
+  - name: gcp_audit.request.disks.autoDelete
+    type: boolean
+    level: custom
+    description: Custom field for gcp
+    example: true
+  - name: gcp_audit.request.disks.boot
+    type: boolean
+    level: custom
+    description: Custom field for gcp
+    example: true
+  - name: gcp_audit.request.disks.deviceName
+    type: keyword
+    level: custom
+    description: Custom field for gcp
+    example: example-deviceName
+  - name: gcp_audit.request.disks.initializeParams.sourceImage
+    type: keyword
+    level: custom
+    description: Custom field for gcp
+    example: example-sourceImage
+  - name: gcp_audit.request.disks.type
+    type: keyword
+    level: custom
+    description: Custom field for gcp
+    example: example-type

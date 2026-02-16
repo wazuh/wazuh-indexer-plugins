@@ -193,11 +193,6 @@
     type: nested
     level: custom
     description: Related log entries and audit trail information
-  - name: google_scc.finding.compliances
-    type: nested
-    level: custom
-    description: >-
-      Compliance framework mappings showing how this finding relates to security standards
   - name: google_scc.finding.resource
     type: object
     level: custom
@@ -263,7 +258,7 @@
       hierarchy
     example: example-parent
   - name: google_scc.asset.resource.data
-    type: text
+    type: object
     level: custom
     description: The complete content and configuration of the resource
   - name: google_scc.asset.resource.location
@@ -286,19 +281,16 @@
     level: custom
     description: The collection of IAM policy bindings that associate members to roles
   - name: google_scc.asset.ancestors
-    type: nested
+    type: keyword
     level: custom
     description: The complete ancestry path of the asset in the Google Cloud resource
       hierarchy
+    example: example-ancestors
   - name: google_scc.asset.update_time
     type: date
     level: custom
     description: The timestamp when the asset was last updated
     example: '2023-01-01T00:00:00.000Z'
-  - name: google_scc.asset.org_policy
-    type: nested
-    level: custom
-    description: Organization policy constraints applied to this asset
   - name: google_scc.asset.access_policy.name
     type: keyword
     level: custom
@@ -376,7 +368,7 @@
     description: The version of the Google Cloud OS Config agent
     example: example-osconfigagent_version
   - name: google_scc.asset.os_inventory.items
-    type: nested
+    type: object
     level: custom
     description: Detailed inventory items related to the VM including installed packages
   - name: google_scc.asset.os_inventory.update_time
@@ -384,6 +376,10 @@
     level: custom
     description: The timestamp when the OS inventory information was last collected
     example: '2023-01-01T00:00:00.000Z'
+  - name: google_scc.asset.access_level.basic.conditions.devicePolicy
+    type: object
+    level: custom
+    description: Custom field for google-scc
   - name: gcp_audit.event_provider
     type: keyword
     level: custom
@@ -486,9 +482,10 @@
       state
     example: example-document_uri
   - name: google_scc.asset.prior.ancestors
-    type: nested
+    type: keyword
     level: custom
     description: The ancestry path of the asset in its previous state
+    example: example-ancestors
   - name: google_scc.asset.prior.name
     type: keyword
     level: custom
@@ -555,6 +552,46 @@
     description: The full name of assets that are related to this asset
     example: example-name
   - name: google_scc.asset.related_asset.ancestors
-    type: nested
+    type: keyword
     level: custom
     description: The ancestry path of related assets
+    example: example-ancestors
+  - name: google_scc.finding.compliances.ids
+    type: keyword
+    level: custom
+    description: Policies within the standard or benchmark, for example, A.12.4.1.
+    example: example-ids
+  - name: google_scc.finding.compliances.standard
+    type: keyword
+    level: custom
+    description: >-
+      Industry-wide compliance standards or benchmarks, such as "cis", "pci", and
+      "owasp".
+    example: example-standard
+  - name: google_scc.finding.compliances.version
+    type: keyword
+    level: custom
+    description: Version of the standard or benchmark, for example, "1.1".
+    example: example-version
+  - name: google_scc.finding.log_entries.cloud_logging_entry.insert_id
+    type: keyword
+    level: custom
+    description: A unique identifier for the log entry.
+    example: example-insert_id
+  - name: google_scc.finding.log_entries.cloud_logging_entry.log_id
+    type: keyword
+    level: custom
+    description: The type of the log.
+    example: example-log_id
+  - name: google_scc.finding.log_entries.cloud_logging_entry.resource_container
+    type: keyword
+    level: custom
+    description: >-
+      The organization, folder, or project of the monitored resource that produced
+      this log entry.
+    example: example-resource_container
+  - name: google_scc.finding.log_entries.cloud_logging_entry.timestamp
+    type: keyword
+    level: custom
+    description: The time the event described by the log entry occurred.
+    example: example-timestamp
