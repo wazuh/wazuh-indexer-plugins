@@ -57,8 +57,9 @@ public interface SecurityAnalyticsService {
      * Deletes a Rule from SAP.
      *
      * @param id The identifier of the rule to delete.
+     * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
      */
-    void deleteRule(String id);
+    void deleteRule(String id, boolean isStandard);
 
     /**
      * Creates or updates a Threat Detector in SAP.

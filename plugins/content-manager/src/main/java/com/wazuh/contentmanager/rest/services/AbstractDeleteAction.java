@@ -53,7 +53,6 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
     private static final Logger log = LogManager.getLogger(AbstractDeleteAction.class);
     protected final DocumentValidations documentValidations = new DocumentValidations();
 
-
     public AbstractDeleteAction(EngineService engine) {
         super(engine);
     }
@@ -68,7 +67,7 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
                     this.documentValidations.validateRequiredParam(id, Constants.KEY_ID);
             if (validationError != null) return validationError;
 
-            validationError =  this.documentValidations.validateIdFormat(id, Constants.KEY_ID);
+            validationError = this.documentValidations.validateIdFormat(id, Constants.KEY_ID);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,

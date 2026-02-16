@@ -57,7 +57,6 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected final DocumentValidations documentValidations = new DocumentValidations();
 
-
     public AbstractUpdateAction(EngineService engine) {
         super(engine);
     }

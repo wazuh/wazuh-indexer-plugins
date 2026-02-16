@@ -41,7 +41,6 @@ public class DocumentValidations {
 
     private static final Pattern ID_PATTERN = Pattern.compile("^[a-zA-Z0-9-_]+$");
 
-
     /** Public constructor to allow instantiation. */
     public DocumentValidations() {}
 

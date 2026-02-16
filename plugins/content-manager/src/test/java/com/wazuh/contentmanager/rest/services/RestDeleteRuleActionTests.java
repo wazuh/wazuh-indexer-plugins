@@ -148,7 +148,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         // Assert
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertEquals(ruleId, response.getMessage());
-        verify(this.securityAnalyticsService).deleteRule(ruleId);
+        verify(this.securityAnalyticsService).deleteRule(ruleId, false);
         verify(this.client).delete(any(DeleteRequest.class), any());
 
         // Verify policy hash recalculation

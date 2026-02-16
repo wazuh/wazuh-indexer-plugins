@@ -92,7 +92,7 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     @Override
     protected void deleteExternalServices(String id) {
-        this.securityAnalyticsService.deleteRule(id);
+        this.securityAnalyticsService.deleteRule(id, false);
     }
 
     @Override

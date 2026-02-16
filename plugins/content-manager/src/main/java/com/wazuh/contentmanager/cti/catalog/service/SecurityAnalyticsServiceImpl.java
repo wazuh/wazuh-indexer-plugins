@@ -141,14 +141,23 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteRule(String id) {
+    public void deleteRule(String id, boolean isStandard) {
         try {
-            log.info("Deleting Rule [{}] from SAP", id);
-            this.client
-                    .execute(
-                            WDeleteRuleAction.INSTANCE,
-                            new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
-                    .actionGet();
+            if (isStandard) {
+                log.info("Deleting Standard Rule [{}] from SAP", id);
+                this.client
+                        .execute(
+                                WDeleteRuleAction.INSTANCE,
+                                new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                        .actionGet();
+            } else {
+                log.info("Deleting Custom Rule [{}] from SAP", id);
+                this.client
+                        .execute(
+                                WDeleteCustomRuleAction.INSTANCE,
+                                new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                        .actionGet();
+            }
             log.info("Rule [{}] deleted successfully.", id);
         } catch (Exception e) {
             log.error("Failed to delete Rule [{}]: {}", id, e.getMessage());
