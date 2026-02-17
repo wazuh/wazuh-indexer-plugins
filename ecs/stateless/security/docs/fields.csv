@@ -1,6 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-9.1.0,true,base,compliance,nested,custom,,,Array of compliance objects to support multiple frameworks per event.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
@@ -9,7 +8,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
+9.1.0,true,check,check.compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
@@ -88,13 +141,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
-9.1.0,true,compliance,compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
-9.1.0,true,compliance,compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
-9.1.0,true,compliance,compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
-9.1.0,true,compliance,compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
-9.1.0,true,compliance,compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
-9.1.0,true,compliance,compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
-9.1.0,true,compliance,compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -565,14 +666,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,log,log.syslog.severity.name,keyword,extended,,Error,Syslog text-based severity of the event.
 9.1.0,true,log,log.syslog.structured_data,flat_object,extended,,,Structured data expressed in RFC 5424 messages.
 9.1.0,true,log,log.syslog.version,keyword,extended,,1,Syslog protocol version.
-9.1.0,true,modsecurity,modsecurity.audit_data_details,keyword,custom,array,example-audit_data_details,"Provides detailed information from ModSecurity audit logs, including contextual data about web requests and responses."
-9.1.0,true,modsecurity,modsecurity.audit_data_messages,keyword,custom,array,example-audit_data_messages,"Captures audit log messages generated by ModSecurity on Apache, offering insights into detected security events."
-9.1.0,true,modsecurity,modsecurity.audit_data_server,keyword,custom,,example-audit_data_server,"Specifies the server details where ModSecurity is running, particularly for Apache-based configurations."
-9.1.0,true,modsecurity,modsecurity.transaction_id,keyword,custom,,example-transaction_id,ModSecurity transaction ID for Apache deployments. Used for request tracking and correlation.
-9.1.0,true,modsecurity,modsecurity.transaction_messages_details,keyword,custom,array,example-transaction_messages_details,Provides additional context or details related to ModSecurity transaction messages in NGINX environments.
-9.1.0,true,modsecurity,modsecurity.transaction_messages_message,keyword,custom,array,example-transaction_messages_message,Contains log messages generated by ModSecurity during transaction processing in NGINX environments.
-9.1.0,true,modsecurity,modsecurity.transaction_producer_connector,keyword,custom,,example-transaction_producer_connector,"Identifies the ModSecurity server connector used for traffic processing, specifically in NGINX environments."
-9.1.0,true,modsecurity,modsecurity.transaction_response_headers_Server,keyword,custom,,example-transaction_response_headers_Server,Stores server header information captured by ModSecurity during response analysis in NGINX environments.
 9.1.0,true,network,network.application,keyword,extended,,aim,Application level protocol name.
 9.1.0,true,network,network.broadcast,ip,custom,,192.168.0.255,Broadcast address.
 9.1.0,true,network,network.bytes,long,core,,368,Total bytes transferred in both directions.
@@ -1162,27 +1255,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.target.version,keyword,core,,3.2.4,Version of the service.
 9.1.0,true,service,service.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.version,keyword,core,,3.2.4,Version of the service.
-9.1.0,true,snort,snort.action,keyword,custom,,example-action,"The action taken by snort (e.g., allowed, blocked, etc.)."
-9.1.0,true,snort,snort.class,keyword,custom,,example-class,Snort's classification type of the event.
-9.1.0,true,snort,snort.dgm.length,long,custom,,12345,Length of \n
-9.1.0,true,snort,snort.eth.length,long,custom,,12345,Length of the Ethernet header and payload.
-9.1.0,true,snort,snort.gid,long,custom,,12345,GID identifies which Snort component generates an event when a rule fires.
-9.1.0,true,snort,snort.icmp.code,long,custom,,12345,ICMP code.
-9.1.0,true,snort,snort.icmp.id,long,custom,,12345,ID of the echo request/reply
-9.1.0,true,snort,snort.icmp.seq,long,custom,,12345,ICMP sequence number.
-9.1.0,true,snort,snort.icmp.type,long,custom,,12345,ICMP type.
-9.1.0,true,snort,snort.ip.flags,keyword,custom,,example-flags,IP flags.
-9.1.0,true,snort,snort.ip.id,long,custom,,12345,ID of the packet
-9.1.0,true,snort,snort.ip.length,long,custom,,12345,Length of the IP header and payload.
-9.1.0,true,snort,snort.ip.tos,long,custom,,12345,IP Type of Service identification.
-9.1.0,true,snort,snort.ip.ttl,long,custom,,12345,Time To Live (TTL) of the packet
-9.1.0,true,snort,snort.sid,keyword,custom,,example-sid,The Snort id of the rule that generated the event.
-9.1.0,true,snort,snort.tcp.ack,long,custom,,12345,TCP Acknowledgment number.
-9.1.0,true,snort,snort.tcp.flags,keyword,custom,,example-flags,TCP flags.
-9.1.0,true,snort,snort.tcp.length,long,custom,,12345,Length of the TCP header and payload.
-9.1.0,true,snort,snort.tcp.seq,long,custom,,12345,TCP sequence number.
-9.1.0,true,snort,snort.tcp.window,long,custom,,12345,Advertised TCP window size.
-9.1.0,true,snort,snort.udp.length,long,custom,,12345,Length of the UDP header and payload.
 9.1.0,true,source,source.address,keyword,extended,,,Source network address.
 9.1.0,true,source,source.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,source,source.as.organization.name,keyword,extended,,Google LLC,Organization name.
@@ -1219,177 +1291,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,source,source.user.name,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,source,source.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,span,span.id,keyword,extended,,3ff9a8981b7ccd5a,Unique identifier of the span within the scope of its trace.
-9.1.0,true,suricata,suricata.alert.category,keyword,custom,,example-category,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.gid,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.attack_target,keyword,custom,,example-attack_target,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.capec_id,keyword,custom,,example-capec_id,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.created_at,date,custom,,2023-01-01T00:00:00.000Z,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.cve,keyword,custom,,example-cve,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.cvss_v2_base,keyword,custom,,example-cvss_v2_base,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.cvss_v2_temporal,keyword,custom,,example-cvss_v2_temporal,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.cvss_v3_base,keyword,custom,,example-cvss_v3_base,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.cvss_v3_temporal,keyword,custom,,example-cvss_v3_temporal,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.metadata.cwe_id,keyword,custom,,example-cwe_id,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.rev,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.signature,keyword,custom,,example-signature,Custom field for suricata
-9.1.0,true,suricata,suricata.alert.signature_id,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.dns.id,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.dns.rrname,keyword,custom,,example-rrname,Custom field for suricata
-9.1.0,true,suricata,suricata.dns.rrtype,keyword,custom,,example-rrtype,Custom field for suricata
-9.1.0,true,suricata,suricata.dns.tx_id,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.dns.type,keyword,custom,,example-type,Custom field for suricata
-9.1.0,true,suricata,suricata.event_type,keyword,custom,,example-event_type,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.gaps,boolean,custom,,True,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.md5,keyword,custom,,example-md5,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.sha1,keyword,custom,,example-sha1,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.sha256,keyword,custom,,example-sha256,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.state,keyword,custom,,example-state,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.stored,boolean,custom,,True,Custom field for suricata
-9.1.0,true,suricata,suricata.fileinfo.tx_id,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.flow.age,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.flow.alerted,boolean,custom,,True,Custom field for suricata
-9.1.0,true,suricata,suricata.flow.end,date,custom,,2023-01-01T00:00:00.000Z,Custom field for suricata
-9.1.0,true,suricata,suricata.flow.reason,keyword,custom,,example-reason,Custom field for suricata
-9.1.0,true,suricata,suricata.flow.state,keyword,custom,,example-state,Custom field for suricata
-9.1.0,true,suricata,suricata.flow_id,keyword,custom,,example-flow_id,Custom field for suricata
-9.1.0,true,suricata,suricata.http.http_content_type,keyword,custom,,example-http_content_type,Custom field for suricata
-9.1.0,true,suricata,suricata.http.http_port,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.http.protocol,keyword,custom,,example-protocol,Custom field for suricata
-9.1.0,true,suricata,suricata.in_iface,keyword,custom,,example-in_iface,Custom field for suricata
-9.1.0,true,suricata,suricata.ssh.client.proto_version,keyword,custom,,example-proto_version,Custom field for suricata
-9.1.0,true,suricata,suricata.ssh.client.software_version,keyword,custom,,example-software_version,Custom field for suricata
-9.1.0,true,suricata,suricata.ssh.server.proto_version,keyword,custom,,example-proto_version,Custom field for suricata
-9.1.0,true,suricata,suricata.ssh.server.software_version,keyword,custom,,example-software_version,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.dcerpc_tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.dcerpc_udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.dns_tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.dns_udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.failed_tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.failed_udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.ftp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.http,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.imap,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.msn,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.smb,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.smtp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.ssh,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.flow.tls,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.dcerpc_tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.dcerpc_udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.dns_tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.dns_udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.ftp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.http,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.smb,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.smtp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.ssh,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.app_layer.tx.tls,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.capture.kernel_drops,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.capture.kernel_ifdrops,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.capture.kernel_packets,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.avg_pkt_size,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.bytes,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.dce.pkt_too_small,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.erspan,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ethernet,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.gre,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.icmpv4,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.icmpv6,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ieee8021ah,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.invalid,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ipraw.invalid_ip_version,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ipv4,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ipv4_in_ipv6,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ipv6,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ipv6_in_ipv6,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ltnull.pkt_too_small,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ltnull.unsupported_type,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.max_pkt_size,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.mpls,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.null,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.pkts,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.ppp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.pppoe,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.raw,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.sctp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.sll,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.teredo,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.vlan,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.decoder.vlan_qinq,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.ipv4.fragments,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.ipv4.reassembled,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.ipv4.timeouts,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.ipv6.fragments,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.ipv6.reassembled,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.ipv6.timeouts,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.defrag.max_frag_hits,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.detect.alert,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.dns.memcap_global,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.dns.memcap_state,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.dns.memuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.file_store.open_files,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.emerg_mode_entered,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.emerg_mode_over,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.icmpv4,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.icmpv6,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.memcap,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.memuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.spare,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.tcp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.tcp_reuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow.udp,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.bypassed_pruned,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.closed_pruned,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.est_pruned,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.flows_checked,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.flows_notimeout,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.flows_removed,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.flows_timeout,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.flows_timeout_inuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.new_pruned,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.rows_busy,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.rows_checked,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.rows_empty,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.rows_maxlen,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.flow_mgr.rows_skipped,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.http.memcap,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.http.memuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.insert_data_normal_fail,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.insert_data_overlap_fail,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.insert_list_fail,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.invalid_checksum,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.memuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.no_flow,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.overlap,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.overlap_diff_data,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.pseudo,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.pseudo_failed,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.reassembly_gap,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.reassembly_memuse,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.rst,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.segment_memcap_drop,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.sessions,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.ssn_memcap_drop,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.stream_depth_reached,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.syn,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.tcp.synack,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.stats.uptime,long,custom,,12345,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.fingerprint,keyword,custom,,example-fingerprint,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.issuerdn,keyword,custom,,example-issuerdn,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.ja3.hash,keyword,custom,,example-hash,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.ja3.string,keyword,custom,,example-string,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.ja3s.hash,keyword,custom,,example-hash,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.ja3s.string,keyword,custom,,example-string,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.notafter,date,custom,,2023-01-01T00:00:00.000Z,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.notbefore,date,custom,,2023-01-01T00:00:00.000Z,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.serial,keyword,custom,,example-serial,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.session_resumed,boolean,custom,,True,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.sni,keyword,custom,,example-sni,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.subject,keyword,custom,,example-subject,Custom field for suricata
-9.1.0,true,suricata,suricata.tls.version,keyword,custom,,example-version,Custom field for suricata
-9.1.0,true,suricata,suricata.tx_id,long,custom,,12345,Custom field for suricata
 9.1.0,true,threat,threat.enrichments,nested,extended,array,,List of objects containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator,object,extended,,,Object containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
@@ -2081,314 +1982,3 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
 9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.
-9.1.0,true,zeek,zeek.capture_loss_acks,long,custom,,12345,Total number of ACKs seen in the previous measurement interval.
-9.1.0,true,zeek,zeek.capture_loss_gaps,long,custom,,12345,Number of missed ACKs from the previous measurement interval.
-9.1.0,true,zeek,zeek.capture_loss_peer,keyword,custom,,example-capture_loss_peer,Distinguishes individual Zeek instances when multiple peers log to the same host. Provides unique peer identification.
-9.1.0,true,zeek,zeek.capture_loss_percent_lost,long,custom,,12345,Percentage of ACKs seen where the data being ACKed wasn't seen.
-9.1.0,true,zeek,zeek.capture_loss_ts_delta,long,custom,,12345,The time delay between this measurement and the last.
-9.1.0,true,zeek,zeek.conn_history,keyword,custom,,example-conn_history,These are connection flags indicating the history of the session.
-9.1.0,true,zeek,zeek.conn_icmp_code,long,custom,,12345,This indicates the ICMP message code.
-9.1.0,true,zeek,zeek.conn_icmp_type,long,custom,,12345,This indicates the ICMP message type.
-9.1.0,true,zeek,zeek.conn_local_orig,boolean,custom,,True,This indicates whether the session is originated locally.
-9.1.0,true,zeek,zeek.conn_local_resp,boolean,custom,,True,This indicates whether the session is responded locally.
-9.1.0,true,zeek,zeek.conn_missed_bytes,long,custom,,12345,This indicates the missed bytes for the session.
-9.1.0,true,zeek,zeek.conn_state,keyword,custom,,example-conn_state,This is a code indicating the state of the session.
-9.1.0,true,zeek,zeek.conn_state_message,keyword,custom,,example-conn_state_message,This indicates the state of the session.
-9.1.0,true,zeek,zeek.dce_rpc_endpoint,keyword,custom,,example-dce_rpc_endpoint,This is the endpoint name looked up from the uuid.
-9.1.0,true,zeek,zeek.dce_rpc_named_pipe,keyword,custom,,example-dce_rpc_named_pipe,This is the name of the remote pipe.
-9.1.0,true,zeek,zeek.dce_rpc_operation,keyword,custom,,example-dce_rpc_operation,This is the operation as seen in the call.
-9.1.0,true,zeek,zeek.dce_rpc_rtt,long,custom,,12345,"Round trip time from the request to the response. If either the request or response wasn't seen, this will be null."
-9.1.0,true,zeek,zeek.dhcp_agent_remote_id,keyword,custom,,example-dhcp_agent_remote_id,A globally unique identifier added by relay agents to identify the remote host end of the circuit.
-9.1.0,true,zeek,zeek.dhcp_assigned_addr,keyword,custom,,example-dhcp_assigned_addr,This is the IP address assigned by the server.
-9.1.0,true,zeek,zeek.dhcp_circuit_id,keyword,custom,,example-dhcp_circuit_id,DHCP relay agent circuit ID from switched/permanent circuits. Typically represents router or switch interface number.
-9.1.0,true,zeek,zeek.dhcp_client_addr,keyword,custom,,example-dhcp_client_addr,Client IP address. Helpful for INFORM-only transactions with no lease exchange. Requires non-broadcast source address.
-9.1.0,true,zeek,zeek.dhcp_client_message,keyword,custom,,example-dhcp_client_message,Message accompanying DHCP_DECLINE explaining why client rejected the assigned address.
-9.1.0,true,zeek,zeek.dhcp_client_software,keyword,custom,,example-dhcp_client_software,The software reported by the client in the vendor_class option.
-9.1.0,true,zeek,zeek.dhcp_domain,keyword,custom,,example-dhcp_domain,This is the domain given by the server in option 15.
-9.1.0,true,zeek,zeek.dhcp_duration,long,custom,,12345,This is the duration of the DHCP â€œsessionâ€ representing the time from the first message to the last.
-9.1.0,true,zeek,zeek.dhcp_host_name,keyword,custom,,example-dhcp_host_name,This is the name given by client in Hostname option 12.
-9.1.0,true,zeek,zeek.dhcp_lease_time,long,custom,,12345,This is the IP address lease interval.
-9.1.0,true,zeek,zeek.dhcp_mac,keyword,custom,,example-dhcp_mac,This is the client's hardware address.
-9.1.0,true,zeek,zeek.dhcp_msg_orig,keyword,custom,,example-dhcp_msg_orig,The address that originated each message from the msg_types field.
-9.1.0,true,zeek,zeek.dhcp_msg_types,keyword,custom,,example-dhcp_msg_types,The DHCP message types seen by this DHCP transaction.
-9.1.0,true,zeek,zeek.dhcp_requested_addr,keyword,custom,,example-dhcp_requested_addr,This is the IP address requested by the client.
-9.1.0,true,zeek,zeek.dhcp_server_addr,keyword,custom,,example-dhcp_server_addr,IP address of server handing out the lease. Requires server to source packets from non-broadcast address.
-9.1.0,true,zeek,zeek.dhcp_server_message,keyword,custom,,example-dhcp_server_message,Message typically accompanied with a DHCP_NAK to let the client know why it rejected the request.
-9.1.0,true,zeek,zeek.dhcp_server_software,keyword,custom,,example-dhcp_server_software,This is the software reported by the server in the vendor_class option.
-9.1.0,true,zeek,zeek.dhcp_subscriber_id,keyword,custom,,example-dhcp_subscriber_id,"Subscriber ID independent of physical network config, ensuring correct DHCP configuration."
-9.1.0,true,zeek,zeek.dhcp_uids,keyword,custom,,example-dhcp_uids,Unique identifiers of connections over which DHCP occurs.
-9.1.0,true,zeek,zeek.dnp3_fc_reply,keyword,custom,,example-dnp3_fc_reply,This is the name of the function message in the reply.
-9.1.0,true,zeek,zeek.dnp3_fc_request,keyword,custom,,example-dnp3_fc_request,This the name of the function message in the request.
-9.1.0,true,zeek,zeek.dnp3_iin,long,custom,,12345,This is the response's â€œinternal indication numberâ€.
-9.1.0,true,zeek,zeek.dns_TTLs,long,custom,,12345,This is the caching intervals of the associated RRs described by the answers field.
-9.1.0,true,zeek,zeek.dns_answers,keyword,custom,,example-dns_answers,This is the set of resource descriptions in the query answer.
-9.1.0,true,zeek,zeek.dns_qclass,long,custom,,12345,This is the QCLASS value specifying the class of the query.
-9.1.0,true,zeek,zeek.dns_qclass_name,keyword,custom,,example-dns_qclass_name,This is a descriptive name for the class of the query.
-9.1.0,true,zeek,zeek.dns_qtype,long,custom,,12345,This is a QTYPE value specifying the type of the query.
-9.1.0,true,zeek,zeek.dns_qtype_name,keyword,custom,,example-dns_qtype_name,This is a descriptive name for the type of the query.
-9.1.0,true,zeek,zeek.dns_query,keyword,custom,,example-dns_query,This is the domain name that is the subject of the DNS query.
-9.1.0,true,zeek,zeek.dns_rcode,long,custom,,12345,This is the response code value in DNS response messages.
-9.1.0,true,zeek,zeek.dns_rcode_name,keyword,custom,,example-dns_rcode_name,This is a descriptive name for the response code value.
-9.1.0,true,zeek,zeek.dns_rejected,boolean,custom,,True,This indicates whether the DNS query was rejected by the server.
-9.1.0,true,zeek,zeek.dns_rtt,long,custom,,12345,This is the round trip time for the query and response.
-9.1.0,true,zeek,zeek.dns_trans_id,keyword,custom,,example-dns_trans_id,This is the DNS transaction identifier.
-9.1.0,true,zeek,zeek.dpd_analyzer,keyword,custom,,example-dpd_analyzer,This is the analyzer that generated the violation.
-9.1.0,true,zeek,zeek.dpd_failure_reason,keyword,custom,,example-dpd_failure_reason,This is the textual reason for the analysis failure.
-9.1.0,true,zeek,zeek.files_analyzers,keyword,custom,,example-files_analyzers,This is a set of analysis types done during the file analysis.
-9.1.0,true,zeek,zeek.files_depth,long,custom,,12345,File depth relative to source. MIME attachment depth in SMTP or request depth within TCP connection in HTTP.
-9.1.0,true,zeek,zeek.files_duration,long,custom,,12345,This is the duration the file was analyzed for. Not the duration of the session.
-9.1.0,true,zeek,zeek.files_fuid,keyword,custom,,example-files_fuid,This is a file unique identifier.
-9.1.0,true,zeek,zeek.files_is_orig,boolean,custom,,True,Indicates if file is sent by connection originator or responder when source is a network connection.
-9.1.0,true,zeek,zeek.files_local_orig,boolean,custom,,True,Indicates if file data originated from local network when source is a network connection.
-9.1.0,true,zeek,zeek.files_missing_bytes,long,custom,,12345,The number of bytes in the file stream that were completely missed during the process of analysis.
-9.1.0,true,zeek,zeek.files_overflow_bytes,long,custom,,12345,Bytes in file stream not delivered to analyzers. Includes overlapping or unassembled bytes.
-9.1.0,true,zeek,zeek.files_rx_host,ip,custom,,192.168.1.1,This is the host that received the file.
-9.1.0,true,zeek,zeek.files_seen_bytes,long,custom,,12345,This is the number of bytes provided to the file analysis engine for the file.
-9.1.0,true,zeek,zeek.files_source,keyword,custom,,example-files_source,"Identification of file data source (network protocol, local file path, or other input source)."
-9.1.0,true,zeek,zeek.files_timedout,boolean,custom,,True,This indicates whether the file analysis timed out at least once for the file.
-9.1.0,true,zeek,zeek.files_tx_host,ip,custom,,192.168.1.1,This is the host that transferred the file.
-9.1.0,true,zeek,zeek.ftp_arg,keyword,custom,,example-ftp_arg,This is the argument for the command if one was given.
-9.1.0,true,zeek,zeek.ftp_data_channel_orig_h,ip,custom,,192.168.1.1,This is the host that will be initiating the data connection.
-9.1.0,true,zeek,zeek.ftp_data_channel_passive,boolean,custom,,True,This indicates whether PASV mode is toggled for control channel.
-9.1.0,true,zeek,zeek.ftp_data_channel_resp_h,ip,custom,,192.168.1.1,This is the host that will be accepting the data connection.
-9.1.0,true,zeek,zeek.ftp_data_channel_resp_p,long,custom,,12345,This is the port at which the acceptor is listening for the data connection.
-9.1.0,true,zeek,zeek.ftp_fuid,keyword,custom,,example-ftp_fuid,File unique ID. (present if base/protocols/ftp/files.bro is loaded).
-9.1.0,true,zeek,zeek.ftp_password,keyword,custom,,example-ftp_password,This is the password if one was captured by Zeek.
-9.1.0,true,zeek,zeek.ftp_reply_code,long,custom,,12345,This is the reply code from the server in response to the command.
-9.1.0,true,zeek,zeek.ftp_reply_msg,keyword,custom,,example-ftp_reply_msg,This is the eply message from the server in response to the command.
-9.1.0,true,zeek,zeek.http_resp_fuids,keyword,custom,,example-http_resp_fuids,This is an ordered vector of file unique IDs from the responder.
-9.1.0,true,zeek,zeek.http_resp_mime_types,keyword,custom,,example-http_resp_mime_types,This is an ordered vector of mime types from the responder.
-9.1.0,true,zeek,zeek.http_status_msg,keyword,custom,,example-http_status_msg,This is the status message returned by the server.
-9.1.0,true,zeek,zeek.http_tags,keyword,custom,,example-http_tags,This is a set of indicators of various attributes discovered and related to a particular request/response pair.
-9.1.0,true,zeek,zeek.http_trans_depth,long,custom,,12345,This field represents the pipelined depth into the connection of this request/response transaction.
-9.1.0,true,zeek,zeek.intel_matched,keyword,custom,,example-intel_matched,The event to represent a match in the intelligence data from data that was seen.
-9.1.0,true,zeek,zeek.intel_seen_indicator,keyword,custom,,example-intel_seen_indicator,This field represents the intelligence indicator.
-9.1.0,true,zeek,zeek.intel_seen_indicator_type,keyword,custom,,example-intel_seen_indicator_type,This field represents the type of data the indicator represents.
-9.1.0,true,zeek,zeek.intel_seen_node,keyword,custom,,example-intel_seen_node,This field represents the name of the node where the match was discovered.
-9.1.0,true,zeek,zeek.intel_seen_where,keyword,custom,,example-intel_seen_where,This field represents where the data was discovered.
-9.1.0,true,zeek,zeek.intel_sources,keyword,custom,,example-intel_sources,This field represents the sources which supplied data for this match.
-9.1.0,true,zeek,zeek.irc_addl,keyword,custom,,example-irc_addl,This field represents any additional data for the command.
-9.1.0,true,zeek,zeek.irc_nick,keyword,custom,,example-irc_nick,This is the nickname given for the connection.
-9.1.0,true,zeek,zeek.irc_value,keyword,custom,,example-irc_value,This is the value for the command given by the client.
-9.1.0,true,zeek,zeek.kerberos_auth_ticket,keyword,custom,,example-kerberos_auth_ticket,Hash of ticket returned by the KDC. (present if policy/protocols/krb/ticket-logging.zeek is loaded).
-9.1.0,true,zeek,zeek.kerberos_cert_client_fuid,keyword,custom,,example-kerberos_cert_client_fuid,"File unique ID of client cert, if any. (present if base/protocols/krb/files.zeek is loaded)."
-9.1.0,true,zeek,zeek.kerberos_cert_client_subject,keyword,custom,,example-kerberos_cert_client_subject,"Subject of server certificate, if any. (present if base/protocols/krb/files.zeek is loaded)."
-9.1.0,true,zeek,zeek.kerberos_cert_server_fuid,keyword,custom,,example-kerberos_cert_server_fuid,"File unique ID of server cert, if any. (present if base/protocols/krb/files.zeek is loaded)."
-9.1.0,true,zeek,zeek.kerberos_cert_server_subject,keyword,custom,,example-kerberos_cert_server_subject,"Subject of server certificate, if any. (present if base/protocols/krb/files.zeek is loaded)."
-9.1.0,true,zeek,zeek.kerberos_cert_server_value,keyword,custom,,example-kerberos_cert_server_value,This is the value of the server certificate.
-9.1.0,true,zeek,zeek.kerberos_cipher,keyword,custom,,example-kerberos_cipher,This is the value of the ticket encryption type.
-9.1.0,true,zeek,zeek.kerberos_error_code,long,custom,,12345,This is the value of the error code.
-9.1.0,true,zeek,zeek.kerberos_error_msg,keyword,custom,,example-kerberos_error_msg,This is the value of the error message.
-9.1.0,true,zeek,zeek.kerberos_forwardable,boolean,custom,,True,This is the value of the forwardable ticket requested.
-9.1.0,true,zeek,zeek.kerberos_from,date,custom,,2023-01-01T00:00:00.000Z,This is the date ticket is valid from.
-9.1.0,true,zeek,zeek.kerberos_new_ticket,keyword,custom,,example-kerberos_new_ticket,Hash of ticket returned by the KDC. (present if policy/protocols/krb/ticket-logging.zeek is loaded).
-9.1.0,true,zeek,zeek.kerberos_renewable,boolean,custom,,True,This is the value of the renewable ticket requested.
-9.1.0,true,zeek,zeek.kerberos_service,keyword,custom,,example-kerberos_service,This is the value of the service name.
-9.1.0,true,zeek,zeek.kerberos_success,boolean,custom,,True,This is the value of the request result.
-9.1.0,true,zeek,zeek.kerberos_till,keyword,custom,,example-kerberos_till,This is the date the ticket is valid until.
-9.1.0,true,zeek,zeek.mysql_arg,keyword,custom,,example-mysql_arg,This is the argument issued to the command.
-9.1.0,true,zeek,zeek.mysql_response,keyword,custom,,example-mysql_response,"This is the server message, if any."
-9.1.0,true,zeek,zeek.mysql_rows,long,custom,,12345,"This is the number of affected rows, if any."
-9.1.0,true,zeek,zeek.mysql_success,boolean,custom,,True,This indicates whether the command succeeded.
-9.1.0,true,zeek,zeek.notice_actions,keyword,custom,,example-notice_actions,These are the actions which have been applied to this notice.
-9.1.0,true,zeek,zeek.notice_dropped,boolean,custom,,True,This indicates if the source IP address was dropped and denied network access.
-9.1.0,true,zeek,zeek.notice_fuid,keyword,custom,,example-notice_fuid,This is a file unique ID if this notice is related to a file.
-9.1.0,true,zeek,zeek.notice_msg,keyword,custom,,example-notice_msg,This is a human readable message for the notice.
-9.1.0,true,zeek,zeek.notice_note,keyword,custom,,example-notice_note,This is the type of the notice.
-9.1.0,true,zeek,zeek.notice_peer_descr,keyword,custom,,example-notice_peer_descr,This is the textual description for the peer that raised this notice.
-9.1.0,true,zeek,zeek.notice_sub,keyword,custom,,example-notice_sub,This is the human readable sub-message.
-9.1.0,true,zeek,zeek.notice_suppress_for,long,custom,,12345,This field indicates the length of time that this unique notice should be suppressed.
-9.1.0,true,zeek,zeek.ntlm_hostname,keyword,custom,,example-ntlm_hostname,This is the hostname given by the client.
-9.1.0,true,zeek,zeek.ntlm_server_dns_computer_name,keyword,custom,,example-ntlm_server_dns_computer_name,This is the DNS name given by the server in a CHALLENGE.
-9.1.0,true,zeek,zeek.ntlm_server_nb_computer_name,keyword,custom,,example-ntlm_server_nb_computer_name,This is the NetBIOS name given by the server in a CHALLENGE.
-9.1.0,true,zeek,zeek.ntlm_server_tree_name,keyword,custom,,example-ntlm_server_tree_name,This field indicates the tree name given by the server in a CHALLENGE.
-9.1.0,true,zeek,zeek.ntp_mode,long,custom,,12345,This field indicates the NTP mode being used.
-9.1.0,true,zeek,zeek.ntp_num_exts,long,custom,,12345,This field indicates the number of extension fields (which are not currently parsed).
-9.1.0,true,zeek,zeek.ntp_org_time,date,custom,,2023-01-01T00:00:00.000Z,This field indicates the time at the client when the request departed for the NTP server.
-9.1.0,true,zeek,zeek.ntp_poll,long,custom,,12345,This field indicates the maximum interval between successive messages in seconds.
-9.1.0,true,zeek,zeek.ntp_precision,long,custom,,12345,This is the precision of the system clock in seconds.
-9.1.0,true,zeek,zeek.ntp_rec_time,date,custom,,2023-01-01T00:00:00.000Z,This is the time at the server when the request arrived from the NTP client.
-9.1.0,true,zeek,zeek.ntp_ref_id,keyword,custom,,example-ntp_ref_id,"Reference clock ID: 4-char debug string (stratum 0), IANA ID (stratum 1), or IP/hash (higher strata)."
-9.1.0,true,zeek,zeek.ntp_ref_time,date,custom,,2023-01-01T00:00:00.000Z,This is the time when the system clock was last set or correct.
-9.1.0,true,zeek,zeek.ntp_root_delay,float,custom,,,This is the total round-trip delay to the reference clock in seconds.
-9.1.0,true,zeek,zeek.ntp_root_disp,float,custom,,,This is the total dispersion to the reference clock in seconds.
-9.1.0,true,zeek,zeek.ntp_stratum,long,custom,,12345,"This field indicates the stratum (primary server, secondary server, etc.)."
-9.1.0,true,zeek,zeek.ntp_version,long,custom,,12345,"This field indicates the NTP version number (1, 2, 3, 4)."
-9.1.0,true,zeek,zeek.ntp_xmt_time,date,custom,,2023-01-01T00:00:00.000Z,This is the time at the server when the response departed for the NTP client.
-9.1.0,true,zeek,zeek.ocsp_cert_status,keyword,custom,,example-ocsp_cert_status,This is the status of the affected certificate.
-9.1.0,true,zeek,zeek.ocsp_hash_algorithm,keyword,custom,,example-ocsp_hash_algorithm,This is the hash algorithm used to generate issuerNameHash and issuerKeyHash.
-9.1.0,true,zeek,zeek.ocsp_id,keyword,custom,,example-ocsp_id,This is the file id of the OCSP reply.
-9.1.0,true,zeek,zeek.ocsp_issuer_key_hash,keyword,custom,,example-ocsp_issuer_key_hash,This is the hash of the issuer's public key.
-9.1.0,true,zeek,zeek.ocsp_issuer_name_hash,keyword,custom,,example-ocsp_issuer_name_hash,This is the hash of the issuer's public key.
-9.1.0,true,zeek,zeek.ocsp_next_update,date,custom,,2023-01-01T00:00:00.000Z,This is the latest time at which new information about the status of the certificate will be available.
-9.1.0,true,zeek,zeek.ocsp_revokereason,keyword,custom,,example-ocsp_revokereason,This is the reason for which the certificate was revoked.
-9.1.0,true,zeek,zeek.ocsp_revoketime,date,custom,,2023-01-01T00:00:00.000Z,This is the time at which the certificate was revoked.
-9.1.0,true,zeek,zeek.ocsp_serial_number,keyword,custom,,example-ocsp_serial_number,This is the serial number of the affected certificate.
-9.1.0,true,zeek,zeek.ocsp_this_update,date,custom,,2023-01-01T00:00:00.000Z,This is the time at which the status being shows is known to have been correct.
-9.1.0,true,zeek,zeek.pe_compile_ts,date,custom,,2023-01-01T00:00:00.000Z,This is the time that the file was created at.
-9.1.0,true,zeek,zeek.pe_has_cert_table,boolean,custom,,True,This indicates whether the file has an attribute certificate table.
-9.1.0,true,zeek,zeek.pe_has_debug_data,boolean,custom,,True,This indicates whether the file has a debug table.
-9.1.0,true,zeek,zeek.pe_has_export_table,boolean,custom,,True,This indicates whether the file has a export table.
-9.1.0,true,zeek,zeek.pe_has_import_table,boolean,custom,,True,This indicates whether the file has a import table.
-9.1.0,true,zeek,zeek.pe_id,keyword,custom,,example-pe_id,This is the file id of this portable executable file.
-9.1.0,true,zeek,zeek.pe_is_64bit,boolean,custom,,True,This indicates whether the file is a 64-bit executable.
-9.1.0,true,zeek,zeek.pe_is_exe,boolean,custom,,True,"This indicates whether the file is an executable, or just an object file."
-9.1.0,true,zeek,zeek.pe_machine,keyword,custom,,example-pe_machine,This is the target machine that the file was compiled for.
-9.1.0,true,zeek,zeek.pe_os,keyword,custom,,example-pe_os,This is the he required operating system.
-9.1.0,true,zeek,zeek.pe_section_names,keyword,custom,,example-pe_section_names,"These are the names of the sections, in order."
-9.1.0,true,zeek,zeek.pe_subsystem,keyword,custom,,example-pe_subsystem,This is the subsystem that is required to run this file.
-9.1.0,true,zeek,zeek.pe_uses_aslr,boolean,custom,,True,This indicates whether the file supports Address Space Layout Randomization.
-9.1.0,true,zeek,zeek.pe_uses_code_integrity,boolean,custom,,True,This indicates whether the file enforces code integrity checks.
-9.1.0,true,zeek,zeek.pe_uses_dep,boolean,custom,,True,This indicates whether the file supports Data Execution Prevention.
-9.1.0,true,zeek,zeek.pe_uses_seh,boolean,custom,,True,This indicates whether the file uses use structured exception handing.
-9.1.0,true,zeek,zeek.radius_mac,keyword,custom,,example-radius_mac,"This indicates the MAC address, if present."
-9.1.0,true,zeek,zeek.rdp_cert_count,long,custom,,12345,This is the number of certs seen. X.509 can transfer an entire certificate chain.
-9.1.0,true,zeek,zeek.rdp_cert_permanent,boolean,custom,,True,This indicates if the provided certificate or certificate chain is permanent or temporary.
-9.1.0,true,zeek,zeek.rdp_cert_type,keyword,custom,,example-rdp_cert_type,"This indicates if the connection is being encrypted with native RDP encryption, this is the type of cert being used."
-9.1.0,true,zeek,zeek.rdp_client_build,keyword,custom,,example-rdp_client_build,This is the RDP client version used by the client machine.
-9.1.0,true,zeek,zeek.rdp_client_dig_product_id,keyword,custom,,example-rdp_client_dig_product_id,This is the product ID of the client machine.
-9.1.0,true,zeek,zeek.rdp_client_name,keyword,custom,,example-rdp_client_name,This is the name of the client machine.
-9.1.0,true,zeek,zeek.rdp_desktop_height,long,custom,,12345,This is the desktop height of the client machine.
-9.1.0,true,zeek,zeek.rdp_desktop_width,long,custom,,12345,This is the desktop width of the client machine.
-9.1.0,true,zeek,zeek.rdp_encryption_level,keyword,custom,,example-rdp_encryption_level,This indicates the encryption level of the connection.
-9.1.0,true,zeek,zeek.rdp_encryption_method,keyword,custom,,example-rdp_encryption_method,This indicates the encryption method of the connection.
-9.1.0,true,zeek,zeek.rdp_requested_color_depth,keyword,custom,,example-rdp_requested_color_depth,This indicates the color depth requested by the client in the high_color_depth field.
-9.1.0,true,zeek,zeek.rdp_result,keyword,custom,,example-rdp_result,Connection status result combining RDP negotiation failure messages and GCC server create response messages.
-9.1.0,true,zeek,zeek.rdp_security_protocol,keyword,custom,,example-rdp_security_protocol,This indicates the security protocol chosen by the server.
-9.1.0,true,zeek,zeek.rfb_auth,boolean,custom,,True,This indicates whether or not authentication was successful.
-9.1.0,true,zeek,zeek.rfb_authentication_method,keyword,custom,,example-rfb_authentication_method,This indicates the identifier of authentication method used.
-9.1.0,true,zeek,zeek.rfb_client_major_version,keyword,custom,,example-rfb_client_major_version,This is the major version of the client.
-9.1.0,true,zeek,zeek.rfb_client_minor_version,keyword,custom,,example-rfb_client_minor_version,This is the minor version of the client.
-9.1.0,true,zeek,zeek.rfb_desktop_name,keyword,custom,,example-rfb_desktop_name,This is the name of the screen that is being shared.
-9.1.0,true,zeek,zeek.rfb_height,long,custom,,12345,This is the height of the screen that is being shared.
-9.1.0,true,zeek,zeek.rfb_server_major_version,keyword,custom,,example-rfb_server_major_version,This is the major version of the server.
-9.1.0,true,zeek,zeek.rfb_server_minor_version,keyword,custom,,example-rfb_server_minor_version,This is the minor version of the server.
-9.1.0,true,zeek,zeek.rfb_share_flag,boolean,custom,,True,This indicates whether the client has an exclusive or a shared session.
-9.1.0,true,zeek,zeek.rfb_width,long,custom,,12345,This indicates the width of the screen that is being shared.
-9.1.0,true,zeek,zeek.signature_event_msg,keyword,custom,,example-signature_event_msg,This is a more descriptive message of the signature-matching event.
-9.1.0,true,zeek,zeek.signature_note,keyword,custom,,example-signature_note,This is a otice associated with signature event.
-9.1.0,true,zeek,zeek.signature_sig_id,keyword,custom,,example-signature_sig_id,This is thenname of the signature that matched.
-9.1.0,true,zeek,zeek.signature_sub_msg,keyword,custom,,example-signature_sub_msg,This is the extracted payload data or extra message.
-9.1.0,true,zeek,zeek.sip_call_id,keyword,custom,,example-sip_call_id,These are the contents of the Call-ID: header from the client.
-9.1.0,true,zeek,zeek.sip_request_body_len,long,custom,,12345,These are the contents of the Content-Length: header from the client.
-9.1.0,true,zeek,zeek.sip_request_from,keyword,custom,,example-sip_request_from,Contents of request From header. Note: tag= value usually appended to sender is stripped and not logged.
-9.1.0,true,zeek,zeek.sip_request_path,keyword,custom,,example-sip_request_path,"This is the client message transmission path, as extracted from the headers."
-9.1.0,true,zeek,zeek.sip_request_to,keyword,custom,,example-sip_request_to,These are the contents of the To: header.
-9.1.0,true,zeek,zeek.sip_response_body_len,long,custom,,12345,These are the contents of the Content-Length: header from the server.
-9.1.0,true,zeek,zeek.sip_response_from,keyword,custom,,example-sip_response_from,Contents of response From header. Note: tag= value usually appended to sender is stripped and not logged.
-9.1.0,true,zeek,zeek.sip_response_path,keyword,custom,,example-sip_response_path,"This is the server message transmission path, as extracted from the headers."
-9.1.0,true,zeek,zeek.sip_response_to,keyword,custom,,example-sip_response_to,These are the contents of the response To: header.
-9.1.0,true,zeek,zeek.sip_seq,keyword,custom,,example-sip_seq,These are the contents of the CSeq: header from the client.
-9.1.0,true,zeek,zeek.sip_status_code,long,custom,,12345,This is the status code returned by the server.
-9.1.0,true,zeek,zeek.sip_status_msg,keyword,custom,,example-sip_status_msg,This is the status message returned by the server.
-9.1.0,true,zeek,zeek.sip_trans_depth,long,custom,,12345,This value represents the pipelined depth into the connection of this request/response transaction.
-9.1.0,true,zeek,zeek.smb_cmd_argument,keyword,custom,,example-smb_cmd_argument,"Command argument sent by the client, if any."
-9.1.0,true,zeek,zeek.smb_cmd_referenced_file_action,keyword,custom,,example-smb_cmd_referenced_file_action,This the action this log record represents.
-9.1.0,true,zeek,zeek.smb_cmd_referenced_file_id_orig_h,ip,custom,,192.168.1.1,This is the address of the transmitting host.
-9.1.0,true,zeek,zeek.smb_cmd_referenced_file_id_resp_h,ip,custom,,192.168.1.1,This is the address of the receiving host.
-9.1.0,true,zeek,zeek.smb_cmd_referenced_file_name,keyword,custom,,example-smb_cmd_referenced_file_name,This is the filename if one was seen.
-9.1.0,true,zeek,zeek.smb_cmd_referenced_file_ts,date,custom,,2023-01-01T00:00:00.000Z,This is the time when referenced file was captured by Zeek.
-9.1.0,true,zeek,zeek.smb_cmd_referenced_file_uid,keyword,custom,,example-smb_cmd_referenced_file_uid,This is the UID of the referenced file.
-9.1.0,true,zeek,zeek.smb_cmd_rtt,long,custom,,12345,This is the round trip time from the request to the response.
-9.1.0,true,zeek,zeek.smb_cmd_status,keyword,custom,,example-smb_cmd_status,This is the server reply to the client's command.
-9.1.0,true,zeek,zeek.smb_cmd_tree,keyword,custom,,example-smb_cmd_tree,"If this is related to a tree, this is the tree that was used for the current command."
-9.1.0,true,zeek,zeek.smb_cmd_tree_service,keyword,custom,,example-smb_cmd_tree_service,"The type of tree (disk share, printer share, named pipe, etc.)."
-9.1.0,true,zeek,zeek.smb_cmd_version,keyword,custom,,example-smb_cmd_version,This is the version of SMB for the command.
-9.1.0,true,zeek,zeek.smb_mapping_native_file_system,keyword,custom,,example-smb_mapping_native_file_system,This is the file system of the tree.
-9.1.0,true,zeek,zeek.smb_mapping_path,keyword,custom,,example-smb_mapping_path,This is the name of the tree path.
-9.1.0,true,zeek,zeek.smb_mapping_service,keyword,custom,,example-smb_mapping_service,"This is the type of resource of the tree (disk share, printer share, named pipe, etc.)."
-9.1.0,true,zeek,zeek.smb_mapping_share_type,keyword,custom,,example-smb_mapping_share_type,"If this is SMB2, a share type will be included. For SMB1, the type of share will be deduced and included as well."
-9.1.0,true,zeek,zeek.smtp_date,date,custom,,2023-01-01T00:00:00.000Z,These are the contents of the Date header.
-9.1.0,true,zeek,zeek.smtp_fuids,keyword,custom,,example-smtp_fuids,An ordered vector of file unique IDs seen attached to the message. (present if base/protocols/smtp/files.bro is loaded).
-9.1.0,true,zeek,zeek.smtp_helo,keyword,custom,,example-smtp_helo,These are the contents of the Helo header.
-9.1.0,true,zeek,zeek.smtp_is_webmail,boolean,custom,,True,This indicates if the message was sent through a webmail interface.
-9.1.0,true,zeek,zeek.smtp_last_reply,keyword,custom,,example-smtp_last_reply,This is the last message that the server sent to the client.
-9.1.0,true,zeek,zeek.smtp_mailfrom,keyword,custom,,example-smtp_mailfrom,This is the email addresses found in the MAIL FROM header.
-9.1.0,true,zeek,zeek.smtp_msg_id,keyword,custom,,example-smtp_msg_id,These are the contents of the MsgID header.
-9.1.0,true,zeek,zeek.smtp_path,keyword,custom,,example-smtp_path,"The message transmission path, as extracted from the headers."
-9.1.0,true,zeek,zeek.smtp_rcptto,keyword,custom,,example-smtp_rcptto,These are the email addresses found in the RCPT TO header.
-9.1.0,true,zeek,zeek.smtp_subject,keyword,custom,,example-smtp_subject,These are the contents of the Subject header.
-9.1.0,true,zeek,zeek.smtp_trans_depth,long,custom,,12345,Count representing message transaction depth in a single connection with multiple message transfers.
-9.1.0,true,zeek,zeek.smtp_user_agent,keyword,custom,,example-smtp_user_agent,This is the value of the User-Agent header from the client.
-9.1.0,true,zeek,zeek.snmp_duration,long,custom,,12345,The amount of time between the first packet beloning to the SNMP session and the latest one seen.
-9.1.0,true,zeek,zeek.snmp_get_bulk_requests,long,custom,,12345,The number of variable bindings in GetBulkRequest PDUs seen for the session.
-9.1.0,true,zeek,zeek.snmp_get_requests,long,custom,,12345,The number of variable bindings in GetRequest/GetNextRequest PDUs seen for the session.
-9.1.0,true,zeek,zeek.snmp_get_responses,long,custom,,12345,The number of variable bindings in GetResponse/Response PDUs seen for the session.
-9.1.0,true,zeek,zeek.snmp_set_requests,long,custom,,12345,The number of variable bindings in SetRequest PDUs seen for the session.
-9.1.0,true,zeek,zeek.snmp_up_since,date,custom,,2023-01-01T00:00:00.000Z,The time at which the SNMP responder endpoint claims it's been up since.
-9.1.0,true,zeek,zeek.snmp_version,keyword,custom,,example-snmp_version,This is the version of SNMP being used.
-9.1.0,true,zeek,zeek.socks_bound_host,keyword,custom,,example-socks_bound_host,"Server bound address. Could be an address, a name or both."
-9.1.0,true,zeek,zeek.socks_bound_p,long,custom,,12345,This is the server bound port.
-9.1.0,true,zeek,zeek.socks_request_name,keyword,custom,,example-socks_request_name,"Client requested SOCKS address. Could be an address, a name or both."
-9.1.0,true,zeek,zeek.socks_request_p,keyword,custom,,example-socks_request_p,This is the client requested port.
-9.1.0,true,zeek,zeek.socks_status,keyword,custom,,example-socks_status,This is the server status for the attempt at using the proxy.
-9.1.0,true,zeek,zeek.socks_version,long,custom,,12345,This is the protocol version of SOCKS.
-9.1.0,true,zeek,zeek.software_host,ip,custom,,192.168.1.1,The IP address detected running the software.
-9.1.0,true,zeek,zeek.software_name,keyword,custom,,example-software_name,This is the name of the software (e.g. Apache).
-9.1.0,true,zeek,zeek.software_type,keyword,custom,,example-software_type,This is the type of software detected.
-9.1.0,true,zeek,zeek.software_unparsed_version,keyword,custom,,example-software_unparsed_version,This is the full unparsed version of the software.
-9.1.0,true,zeek,zeek.software_version_addl,keyword,custom,,example-software_version_addl,This field contains additional version information.
-9.1.0,true,zeek,zeek.software_version_major,long,custom,,12345,This is the major version of software.
-9.1.0,true,zeek,zeek.software_version_minor,long,custom,,12345,This is the minor version of software.
-9.1.0,true,zeek,zeek.software_version_minor2,long,custom,,12345,This is the 2nd minor version of software.
-9.1.0,true,zeek,zeek.software_version_minor3,long,custom,,12345,This is the 3rd minor version of software.
-9.1.0,true,zeek,zeek.ssh_auth_attempts,long,custom,,12345,"Number of observed authentication attempts. Includes successful multi-factor auth (e.g., password AND pubkey)."
-9.1.0,true,zeek,zeek.ssh_auth_success,boolean,custom,,True,"Authentication result (T=success, F=failure, unset=unknown)."
-9.1.0,true,zeek,zeek.ssh_cipher_alg,keyword,custom,,example-ssh_cipher_alg,This is the encryption algorithm in use.
-9.1.0,true,zeek,zeek.ssh_client,keyword,custom,,example-ssh_client,This is the client's version string.
-9.1.0,true,zeek,zeek.ssh_compression_alg,keyword,custom,,example-ssh_compression_alg,This is the compression algorithm in use.
-9.1.0,true,zeek,zeek.ssh_direction,keyword,custom,,example-ssh_direction,"Connection direction. OUTBOUND for local client to external host, INBOUND for external client to local host."
-9.1.0,true,zeek,zeek.ssh_host_key,keyword,custom,,example-ssh_host_key,This is the server's key thumbprint.
-9.1.0,true,zeek,zeek.ssh_host_key_alg,keyword,custom,,example-ssh_host_key_alg,This is the server host key's algorithm.
-9.1.0,true,zeek,zeek.ssh_kex_alg,keyword,custom,,example-ssh_kex_alg,This is the key exchange algorithm in use.
-9.1.0,true,zeek,zeek.ssh_mac_alg,keyword,custom,,example-ssh_mac_alg,This is the signing (MAC) algorithm in use.
-9.1.0,true,zeek,zeek.ssh_server,keyword,custom,,example-ssh_server,This is the server's version string.
-9.1.0,true,zeek,zeek.ssh_version,long,custom,,12345,This is the SSH major version (1 or 2).
-9.1.0,true,zeek,zeek.ssl_cert_chain,keyword,custom,,example-ssl_cert_chain,This is the chain of certificates offered by the server to validate its complete signing chain.
-9.1.0,true,zeek,zeek.ssl_cert_chain_fuids,keyword,custom,,example-ssl_cert_chain_fuids,This is an ordered vector of certificate file identifiers for the certificates offered by the server.
-9.1.0,true,zeek,zeek.ssl_client_cert_chain,keyword,custom,,example-ssl_client_cert_chain,This is the chain of certificates offered by the client to validate its complete signing chain.
-9.1.0,true,zeek,zeek.ssl_client_cert_chain_fuids,keyword,custom,,example-ssl_client_cert_chain_fuids,This is an ordered vector of certificate file identifiers for the certificates offered by the client.
-9.1.0,true,zeek,zeek.ssl_client_issuer,keyword,custom,,example-ssl_client_issuer,This is the issuer of the client's SSL certificate.
-9.1.0,true,zeek,zeek.ssl_client_subject,keyword,custom,,example-ssl_client_subject,This is the subject of the client's SSL certificate.
-9.1.0,true,zeek,zeek.ssl_issuer,keyword,custom,,example-ssl_issuer,This is the issuer of the server's SSL certificate.
-9.1.0,true,zeek,zeek.ssl_server_name,keyword,custom,,example-ssl_server_name,Server Name Indicator SSL/TLS extension value. Indicates the server name requested by the client.
-9.1.0,true,zeek,zeek.ssl_subject,keyword,custom,,example-ssl_subject,This is the subject of the server's SSL certificate.
-9.1.0,true,zeek,zeek.ssl_validation_code,keyword,custom,,example-ssl_validation_code,"This is the result of certificate validation for this connection, given as OpenSSL validation code."
-9.1.0,true,zeek,zeek.ssl_validation_status,keyword,custom,,example-ssl_validation_status,This is the result of certificate validation for this connection.
-9.1.0,true,zeek,zeek.ssl_version,keyword,custom,,example-ssl_version,This is the SSL/TLS version that was logged.
-9.1.0,true,zeek,zeek.stats_active_dns_requests,long,custom,,12345,This is the current number of DNS requests awaiting a reply.
-9.1.0,true,zeek,zeek.stats_active_files,long,custom,,12345,This is the number of active files.
-9.1.0,true,zeek,zeek.stats_active_icmp_conns,long,custom,,12345,This is the number of active ICMP connections.
-9.1.0,true,zeek,zeek.stats_active_tcp_conns,long,custom,,12345,This is the number of active TCP connections.
-9.1.0,true,zeek,zeek.stats_active_timers,long,custom,,12345,This is the number of active timers.
-9.1.0,true,zeek,zeek.stats_active_udp_conns,long,custom,,12345,This is the number of active UDP connections.
-9.1.0,true,zeek,zeek.stats_bytes_recv,long,custom,,12345,This is the number of bytes received since the last stats interval if reading live traffic.
-9.1.0,true,zeek,zeek.stats_dns_requests,long,custom,,12345,This is the number of DNS requests.
-9.1.0,true,zeek,zeek.stats_event_proc,long,custom,,12345,This is the number of events processed.
-9.1.0,true,zeek,zeek.stats_event_queued,long,custom,,12345,This is the number of events queued.
-9.1.0,true,zeek,zeek.stats_files,long,custom,,12345,This is the number of files.
-9.1.0,true,zeek,zeek.stats_icmp_conns,long,custom,,12345,This is the number of ICMP connections.
-9.1.0,true,zeek,zeek.stats_mem,long,custom,,12345,The amount of memory currently in use in MB.
-9.1.0,true,zeek,zeek.stats_peer,keyword,custom,,example-stats_peer,This is the peer identifier.
-9.1.0,true,zeek,zeek.stats_pkt_lag,float,custom,,,This is the lag between the wall clock and packet timestamps if reading live traffic.
-9.1.0,true,zeek,zeek.stats_pkts_dropped,long,custom,,12345,This is the number of packets dropped since the last stats interval.
-9.1.0,true,zeek,zeek.stats_pkts_link,long,custom,,12345,This is the number of packets seen on the link since the last stats interval if reading live traffic.
-9.1.0,true,zeek,zeek.stats_pkts_proc,long,custom,,12345,This is the number of packets processed since the last stats interval.
-9.1.0,true,zeek,zeek.stats_reassem_file_size,long,custom,,12345,This is the size of the file reassembly buffer.
-9.1.0,true,zeek,zeek.stats_reassem_frag_size,long,custom,,12345,This is the size of fragment reassembly buffer.
-9.1.0,true,zeek,zeek.stats_reassem_tcp_size,long,custom,,12345,This is the size of the TCP reassembly buffer.
-9.1.0,true,zeek,zeek.stats_reassem_unknown_size,long,custom,,12345,This is the size of the unknown reassembly buffer.
-9.1.0,true,zeek,zeek.stats_tcp_conns,long,custom,,12345,This is the number of TCP connections.
-9.1.0,true,zeek,zeek.stats_timers,long,custom,,12345,This is the number of timers.
-9.1.0,true,zeek,zeek.stats_udp_conns,long,custom,,12345,This is the number of UDP connections.
-9.1.0,true,zeek,zeek.tunnel_type,keyword,custom,,example-tunnel_type,This is the type of tunnel used in the connection.
-9.1.0,true,zeek,zeek.uid,keyword,custom,,example-uid,This is Zeek's unique identifier for the connection.
-9.1.0,true,zeek,zeek.weird_addl,keyword,custom,,example-weird_addl,This field represents any additional data for the weird event.
-9.1.0,true,zeek,zeek.weird_name,keyword,custom,,example-weird_name,This is the name of the weird event.
-9.1.0,true,zeek,zeek.weird_notice,boolean,custom,,True,This indicates whether the weird event triggered a notice.
-9.1.0,true,zeek,zeek.weird_peer,keyword,custom,,example-weird_peer,This is the peer identifier where the weird event was observed.
-9.1.0,true,zeek,zeek.x509_basic_constraints_ca,boolean,custom,,True,Indicates whether the certificate is a CA certificate.
-9.1.0,true,zeek,zeek.x509_basic_constraints_path_len,long,custom,,12345,Specifies the maximum depth of valid certification paths that include this certificate.
-9.1.0,true,zeek,zeek.x509_certificate_issuer,keyword,custom,,example-x509_certificate_issuer,This is the issuer of the X.509 certificate.
-9.1.0,true,zeek,zeek.x509_certificate_key_type,keyword,custom,,example-x509_certificate_key_type,This is the type of key used in the X.509 certificate.
-9.1.0,true,zeek,zeek.x509_certificate_subject,keyword,custom,,example-x509_certificate_subject,This is the subject of the X.509 certificate.

@@ -611,12 +611,3 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  # Integration fields
-  modsecurity:
-    fields: "*"
-  snort:
-    fields: "*"
-  suricata:
-    fields: "*"
-  zeek:
-    fields: "*"
