@@ -20,43 +20,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,check,check.remediation,keyword,custom,,"""To establish the recommended configuration, set the following registry value to 24 or more password(s):""",Actions to take to remediate the check.
 9.1.0,true,check,check.result,keyword,custom,,failed,Result of the check.
 9.1.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",Rules to be evaluated.
-9.1.0,true,cisco,cisco.umbrella.amp_disposition,keyword,custom,,example-amp_disposition,AMP (Advanced Malware Protection) disposition for the file.
-9.1.0,true,cisco,cisco.umbrella.amp_malware_name,keyword,custom,,example-amp_malware_name,Name of the malware detected by AMP.
-9.1.0,true,cisco,cisco.umbrella.amp_score,keyword,custom,,example-amp_score,AMP score indicating the threat level.
-9.1.0,true,cisco,cisco.umbrella.audit.after,nested,custom,array,,The policy or setting after the change was made.
-9.1.0,true,cisco,cisco.umbrella.audit.after_values,object,custom,,,The individual values of the policy or setting after the change was made.
-9.1.0,true,cisco,cisco.umbrella.audit.before,nested,custom,array,,The policy or setting before the change was made.
-9.1.0,true,cisco,cisco.umbrella.audit.before_values,object,custom,,,The individual values of the policy or setting before the change was made.
-9.1.0,true,cisco,cisco.umbrella.audit.type,keyword,custom,,example-type,"Where the change was made, such as settings or a policy."
-9.1.0,true,cisco,cisco.umbrella.av_detections,keyword,custom,,example-av_detections,Antivirus detections associated with the event.
-9.1.0,true,cisco,cisco.umbrella.blocked_categories,keyword,custom,array,example-blocked_categories,Categories that caused the request to be blocked.
-9.1.0,true,cisco,cisco.umbrella.categories,keyword,custom,array,example-categories,The security or content categories that the destination matches.
-9.1.0,true,cisco,cisco.umbrella.certificate_errors,keyword,custom,,example-certificate_errors,SSL/TLS certificate error details. Identifies connection risks.
-9.1.0,true,cisco,cisco.umbrella.classification,keyword,custom,,example-classification,"Attack category detected by rule, part of general attack class (e.g., trojan-activity, attempted-user, unknown)."
-9.1.0,true,cisco,cisco.umbrella.cves,keyword,custom,,example-cves,A list of information about security vulnerabilities and exposures.
-9.1.0,true,cisco,cisco.umbrella.data_classification,keyword,custom,,example-data_classification,The data classification whose data identifier matched on the violation.
-9.1.0,true,cisco,cisco.umbrella.data_identifier,keyword,custom,,example-data_identifier,The data identifier that matched on the request.
-9.1.0,true,cisco,cisco.umbrella.datacenter,keyword,custom,,example-datacenter,The name of the Umbrella Data Center that processed the user-generated traffic.
-9.1.0,true,cisco,cisco.umbrella.destination_lists_id,keyword,custom,,example-destination_lists_id,The ID number umbrella assigns to a destination list.
-9.1.0,true,cisco,cisco.umbrella.dlp_status,keyword,custom,,example-dlp_status,"DLP status for the event. Shows if sensitive data was detected, blocked, allowed, or flagged according to DLP policies."
-9.1.0,true,cisco,cisco.umbrella.file_action,keyword,custom,,example-file_action,Action taken on the file.
-9.1.0,true,cisco,cisco.umbrella.file_label,keyword,custom,,example-file_label,The file name label that matched on the file properties.
-9.1.0,true,cisco,cisco.umbrella.fqdns,keyword,custom,array,example-fqdns,The fully qualified domain names (FQDNs) that match the request.
-9.1.0,true,cisco,cisco.umbrella.gid,keyword,custom,,example-gid,Unique ID assigned to the part of the IPS which generated the event.
-9.1.0,true,cisco,cisco.umbrella.identities,keyword,custom,array,example-identities,An array of the different identities related to the event.
-9.1.0,true,cisco,cisco.umbrella.identity,keyword,custom,,example-identity,Identity that made the request. Can be high-level entity (network) or granular (single user).
-9.1.0,true,cisco,cisco.umbrella.identity_types,keyword,custom,array,example-identity_types,"The type of identity that made the request. For example, Roaming Computer or Network."
-9.1.0,true,cisco,cisco.umbrella.isolate_action,keyword,custom,,example-isolate_action,Action taken to isolate the threat.
-9.1.0,true,cisco,cisco.umbrella.message,keyword,custom,,example-message,A brief description of the signature.
-9.1.0,true,cisco,cisco.umbrella.origin_id,keyword,custom,,example-origin_id,The unique identity of the network tunnel.
-9.1.0,true,cisco,cisco.umbrella.policy_identity_type,keyword,custom,,example-policy_identity_type,Type of identity policy applied.
-9.1.0,true,cisco,cisco.umbrella.puas,keyword,custom,,example-puas,Potentially unwanted applications detected.
-9.1.0,true,cisco,cisco.umbrella.ruleset_id,keyword,custom,,example-ruleset_id,ID of the ruleset that matched the event.
-9.1.0,true,cisco,cisco.umbrella.severity,keyword,custom,,example-severity,"The severity level of the rule, such as Low/Info, Medium/Warn, High/Alert or Critical."
-9.1.0,true,cisco,cisco.umbrella.sha_sha256,keyword,custom,,example-sha_sha256,SHA256 hash of the file involved in the event.
-9.1.0,true,cisco,cisco.umbrella.sid,keyword,custom,,example-sid,Used to uniquely identify signatures.
-9.1.0,true,cisco,cisco.umbrella.signature_list_id,keyword,custom,,example-signature_list_id,Unique ID assigned to a Default or Custom Signature List.
-9.1.0,true,cisco,cisco.umbrella.warn_status,keyword,custom,,example-warn_status,Warning status for the event.
 9.1.0,true,client,client.address,keyword,extended,,,Client network address.
 9.1.0,true,client,client.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,client,client.as.organization.name,keyword,extended,,Google LLC,Organization name.
