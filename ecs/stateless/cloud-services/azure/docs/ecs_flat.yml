@@ -14453,33 +14453,6 @@ message:
     stability: stable
   short: Log message optimized for viewing in a log viewer.
   type: keyword
-metricset.name:
-  dashed_name: metricset-name
-  description: This field represents the name of the metricset that collected the
-    data. It identifies which type of Azure metrics (e.g. storage_account container_service
-    compute_vm) the event belongs to
-  example: example-name
-  flat_name: metricset.name
-  ignore_above: 1024
-  level: custom
-  name: metricset.name
-  normalize: []
-  short: Name of metricset that collected data. Identifies Azure metric type (storage_account,
-    container_service, compute_vm).
-  type: keyword
-metricset.period:
-  dashed_name: metricset-period
-  description: This field represents the collection interval (in milliseconds) for
-    the metricset. It indicates how frequently the metrics were gathered from the
-    Azure resource
-  example: 12345
-  flat_name: metricset.period
-  level: custom
-  name: metricset.period
-  normalize: []
-  short: Collection interval (ms) for the metricset. Indicates how frequently metrics
-    were gathered from Azure resource.
-  type: long
 network.application:
   dashed_name: network-application
   description: 'When a specific application or service is identified from network

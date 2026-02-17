@@ -776,10 +776,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,http,http.response.mime_type,keyword,extended,,image/gif,Mime type of the body of the response.
 9.1.0,true,http,http.response.status_code,long,extended,,404,HTTP response status code.
 9.1.0,true,http,http.version,keyword,extended,,1.1,HTTP version.
-9.1.0,true,iis,iis.bytes_received_by_client,long,custom,,12345,This is the number of bytes received by the client.
-9.1.0,true,iis,iis.bytes_sent_by_server,long,custom,,12345,This is the number of bytes sent by the server.
-9.1.0,true,iis,iis.sub_status,long,custom,,12345,This field represents the substatus error code in the iis log.
-9.1.0,true,iis,iis.win32_status,long,custom,,12345,This field represents the Windows status code in the iis log.
 9.1.0,true,interface,interface.alias,keyword,extended,,outside,Interface alias
 9.1.0,true,interface,interface.id,keyword,extended,,10,Interface ID
 9.1.0,true,interface,interface.mtu,long,custom,,1500,Maximum transmission unit size.
@@ -878,14 +874,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,observer,observer.type,keyword,core,,firewall,The type of the observer the data is coming from.
 9.1.0,true,observer,observer.vendor,keyword,core,,Symantec,Vendor name of the observer.
 9.1.0,true,observer,observer.version,keyword,core,,,Observer version.
-9.1.0,true,oracle,oracle.weblogic.diagnostic_context_id,keyword,custom,,example-diagnostic_context_id,Unique identifier for correlating related log messages across components in a request flow.
-9.1.0,true,oracle,oracle.weblogic.machine_name,keyword,custom,,example-machine_name,Physical or virtual machine name running WebLogic server. Identifies the node generated logs in clustered environments.
-9.1.0,true,oracle,oracle.weblogic.message_id,keyword,custom,,example-message_id,Unique identifier for the specific message or event type being logged. Used by WebLogic to categorize log entries.
-9.1.0,true,oracle,oracle.weblogic.meta,keyword,custom,,example-meta,Additional metadata or context information for the log entry. Contains supplementary details about the logged event.
-9.1.0,true,oracle,oracle.weblogic.server_name,keyword,custom,,example-server_name,"WebLogic server instance name that generated the log (AdminServer, ManagedServer1, etc.). Identifies source server."
-9.1.0,true,oracle,oracle.weblogic.subsystem,keyword,custom,,example-subsystem,"WebLogic subsystem that generated the log (Security, JTA, JDBC, JMS, EJB, HTTP). Categorizes logs by functional area."
-9.1.0,true,oracle,oracle.weblogic.thread_id,keyword,custom,,example-thread_id,Thread identifier that generated the log message. Helps track which WebLogic thread pool handled the logged operation.
-9.1.0,true,oracle,oracle.weblogic.transaction_id,keyword,custom,,example-transaction_id,Transaction identifier for the log entry. Tracks operations spanning multiple components within a business transaction.
 9.1.0,true,orchestrator,orchestrator.api_version,keyword,extended,,v1beta1,API version being used to carry out the action
 9.1.0,true,orchestrator,orchestrator.cluster.id,keyword,extended,,,Unique ID of the cluster.
 9.1.0,true,orchestrator,orchestrator.cluster.name,keyword,extended,,,Name of the cluster.
@@ -1437,36 +1425,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,source,source.user.name,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,source,source.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,span,span.id,keyword,extended,,3ff9a8981b7ccd5a,Unique identifier of the span within the scope of its trace.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after,object,custom,,,"Memory usage statistics after garbage collection, across memory pools."
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.code_cache,object,custom,,,Memory usage of the Code Cache after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.compressed_class_space,object,custom,,,Memory usage of the Compressed Class Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.g1_eden_space,object,custom,,,Memory usage of the G1 Eden Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.g1_old_gen,object,custom,,,Memory usage of the G1 Old Generation space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.g1_survivor_space,object,custom,,,Memory usage of the G1 Survivor Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.metaspace,object,custom,,,Memory usage of the JVM Metaspace after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.ps_eden_space,object,custom,,,Memory usage of the PS Eden Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.ps_old_gen,object,custom,,,Memory usage of the PS Old Generation space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.ps_survivor_space,object,custom,,,Memory usage of the PS Survivor Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before,object,custom,,,"Memory usage statistics before garbage collection, across memory pools."
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.code_cache,object,custom,,,Memory usage of the Code Cache before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.compressed_class_space,object,custom,,,Memory usage of the Compressed Class Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.g1_eden_space,object,custom,,,Memory usage of the G1 Eden Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.g1_old_gen,object,custom,,,Memory usage of the G1 Old Generation space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.g1_survivor_space,object,custom,,,Memory usage of the G1 Survivor Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.metaspace,object,custom,,,Memory usage of the JVM Metaspace before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.ps_eden_space,object,custom,,,Memory usage of the PS Eden Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.ps_old_gen,object,custom,,,Memory usage of the PS Old Generation space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.ps_survivor_space,object,custom,,,Memory usage of the PS Survivor Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.time.duration,long,custom,,12345,"Duration of the garbage collection cycle, in milliseconds."
-9.1.0,true,springboot,springboot.gc.last_info.time.end,long,custom,,12345,End timestamp of the garbage collection cycle.
-9.1.0,true,springboot,springboot.gc.last_info.time.start,long,custom,,12345,Start timestamp of the garbage collection cycle.
-9.1.0,true,springboot,springboot.gc.name,keyword,custom,,example-name,The name of the garbage collector used by the JVM.
-9.1.0,true,springboot,springboot.http_trace.principal,keyword,custom,,example-principal,The authenticated user principal recorded in the HTTP trace.
-9.1.0,true,springboot,springboot.http_trace.session,keyword,custom,,example-session,The session identifier associated with the HTTP trace.
-9.1.0,true,squid,squid.code,keyword,custom,,example-code,Squid result code representing outcome of request (TCP_HIT/TCP_MISS etc)
-9.1.0,true,squid,squid.peerstatus,keyword,custom,,example-peerstatus,Code explaining how request was handled (forwarding to peer or direct to source)
-9.1.0,true,squid,squid.status,long,custom,,12345,HTTP status code of the result
-9.1.0,true,squid,squid.type,keyword,custom,,example-type,Content type from HTTP reply header
 9.1.0,true,threat,threat.enrichments,nested,extended,array,,List of objects containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator,object,extended,,,Object containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
@@ -2158,171 +2116,3 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
 9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.cancelled.total,long,custom,,12345,Total number of cancelled alarms in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.create.total,long,custom,,12345,Total number of alarms created in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.fired.total,long,custom,,12345,Total number of alarms fired in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.latency_seconds,long,custom,,12345,Latency of alarm manager operations in seconds.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.pending_alarms,long,custom,,12345,Number of pending alarms in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.appname,keyword,custom,,example-appname,Application name for WebSphere metrics.
-9.1.0,true,websphere,websphere.metrics.authentication.assertion_type,keyword,custom,,example-assertion_type,Type of authentication assertion used in WebSphere.
-9.1.0,true,websphere,websphere.metrics.authentication.authentications.total,long,custom,,12345,Total number of authentication operations performed.
-9.1.0,true,websphere,websphere.metrics.authentication.credential_creation.time_seconds.total,long,custom,,12345,Total time spent in credential creation operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.credential_creations.total,long,custom,,12345,Total number of credential creation operations performed.
-9.1.0,true,websphere,websphere.metrics.authentication.identity_assertion.time_seconds.total,long,custom,,12345,Total time spent in identity assertion operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.identity_assertions.total,long,custom,,12345,Total number of identity assertion operations performed.
-9.1.0,true,websphere,websphere.metrics.authentication.tai_request.time_seconds.total,long,custom,,12345,Total time spent in TAI request processing in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.tai_requests.total,long,custom,,12345,Total number of TAI (Trust Association Interceptor) requests.
-9.1.0,true,websphere,websphere.metrics.authentication.time_seconds.total,long,custom,,12345,Total time spent in authentication operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.type,keyword,custom,,example-type,Type of authentication mechanism used in WebSphere.
-9.1.0,true,websphere,websphere.metrics.authorization.authorization_time_seconds.total,long,custom,,12345,Total time spent in authorization operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authorization.authorizations.total,long,custom,,12345,Total number of authorization operations performed.
-9.1.0,true,websphere,websphere.metrics.cacheobject,keyword,custom,,example-cacheobject,Identifier for the cache object in use.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.cache_entries,long,custom,,12345,Number of entries in the dynamic cache.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.distributed_requests.total,long,custom,,12345,Total number of distributed cache requests performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.explicit_invalidate.total,long,custom,,12345,Total number of explicit cache invalidations performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.hit.total,long,custom,,12345,Total number of dynamic cache hits recorded.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.in_memory_and_disk_cache_entries.total,long,custom,,12345,Total number of cache entries in memory and disk.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.invalidate.total,long,custom,,12345,Total number of cache invalidations performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.miss.total,long,custom,,12345,Total number of dynamic cache misses recorded.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.remote_create.total,long,custom,,12345,Total number of remote cache creates performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.remote_hit.total,long,custom,,12345,Total number of remote cache hits recorded.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.requests.total,long,custom,,12345,Total number of dynamic cache requests performed.
-9.1.0,true,websphere,websphere.metrics.extension_registry.displacement.total,long,custom,,12345,Total number of extension registry displacements performed.
-9.1.0,true,websphere,websphere.metrics.extension_registry.hit.total,long,custom,,12345,Total number of extension registry hits recorded.
-9.1.0,true,websphere,websphere.metrics.extension_registry.requests.total,long,custom,,12345,Total number of extension registry requests performed.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_rebuild.time_seconds.total,long,custom,,12345,Total time spent rebuilding bulletin board in seconds.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_rebuild.total,long,custom,,12345,Total number of bulletin board rebuilds performed.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_subjects,long,custom,,12345,Number of bulletin board subjects in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_subscriptions,long,custom,,12345,Number of bulletin board subscriptions in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.group_state_rebuild.time_seconds.total,long,custom,,12345,Total time spent rebuilding group state in seconds.
-9.1.0,true,websphere,websphere.metrics.ha_manager.group_state_rebuild.total,long,custom,,12345,Total number of group state rebuilds performed.
-9.1.0,true,websphere,websphere.metrics.ha_manager.local.bulletin_board_subjects,long,custom,,12345,Number of local bulletin board subjects in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.local.bulletin_board_subscriptions,long,custom,,12345,Number of local bulletin board subscriptions in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.local.groups,long,custom,,12345,Number of local HA groups in the manager.
-9.1.0,true,websphere,websphere.metrics.hitstype,keyword,custom,,example-hitstype,Type of cache hits for the metric.
-9.1.0,true,websphere,websphere.metrics.interceptor,keyword,custom,,example-interceptor,Identifier for the interceptor in use.
-9.1.0,true,websphere,websphere.metrics.jax_ws.dispatch.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS dispatch operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.dispatch.total,long,custom,,12345,Total number of JAX-WS dispatch operations performed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.payloads.bytes.total,long,custom,,12345,Total size of JAX-WS payloads in bytes.
-9.1.0,true,websphere,websphere.metrics.jax_ws.payloads.total,long,custom,,12345,Total number of JAX-WS payloads processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.reply.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS reply operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.reply.total,long,custom,,12345,Total number of JAX-WS reply operations performed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.request.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS request processing in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests.total,long,custom,,12345,Total number of JAX-WS requests processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests_dispatched.total,long,custom,,12345,Total number of JAX-WS requests dispatched.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests_received.total,long,custom,,12345,Total number of JAX-WS requests received.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests_successful.total,long,custom,,12345,Total number of successful JAX-WS requests processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.response.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS response processing in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.responses.total,long,custom,,12345,Total number of JAX-WS responses processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.services_loaded.total,long,custom,,12345,Total number of JAX-WS services loaded.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.allocated,long,custom,,12345,Number of allocated JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.closed,long,custom,,12345,Number of closed JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.connection_handles,long,custom,,12345,Number of JDBC connection handles in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.created,long,custom,,12345,Number of created JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.fault.total,long,custom,,12345,Total number of JDBC connection faults encountered.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.free,long,custom,,12345,Number of free JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.handles,long,custom,,12345,Number of JDBC connection handles in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.jdbc_operation_time_seconds.total,long,custom,,12345,Total time spent in JDBC operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.jdbc_operations.total,long,custom,,12345,Total number of JDBC operations performed.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.managed,long,custom,,12345,Number of managed JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.managed_connections,long,custom,,12345,Number of managed JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.prep_stmt_cache_discard.total,long,custom,,12345,Total number of prepared statement cache discards performed.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.returned,long,custom,,12345,Number of returned JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.in_use,long,custom,,12345,Total number of JDBC connections in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.operations_calls,long,custom,,12345,Total number of JDBC connection operations calls performed.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.operations_seconds,long,custom,,12345,Total time spent in JDBC connection operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.seconds_in_use,long,custom,,12345,Total seconds JDBC connections have been in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.wait,long,custom,,12345,Total number of JDBC connection waits encountered.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.wait_seconds,long,custom,,12345,Total wait time for JDBC connections in seconds.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.waiting_threads,long,custom,,12345,Number of threads waiting for JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.data_source,keyword,custom,,example-data_source,Identifier for the JDBC data source in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.percent_used,long,custom,,12345,Percentage of JDBC connection pool used.
-9.1.0,true,websphere,websphere.metrics.jdbc.pool_size,long,custom,,12345,Size of the JDBC connection pool in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.total_cache_discarded,long,custom,,12345,Number of JDBC connections that were discarded from the cache.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.area,keyword,custom,,example-area,Identifier for the JVM memory area in use.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.committed_bytes,long,custom,,12345,Committed JVM memory in bytes.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.max_bytes,long,custom,,12345,Maximum JVM memory in bytes.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.used_bytes,long,custom,,12345,Used JVM memory in bytes.
-9.1.0,true,websphere,websphere.metrics.object_pool.allocate.total,long,custom,,12345,Total number of object pool allocations performed.
-9.1.0,true,websphere,websphere.metrics.object_pool.create.total,long,custom,,12345,Total number of object pool creations performed.
-9.1.0,true,websphere,websphere.metrics.object_pool.idle_objects,long,custom,,12345,Number of idle objects in the object pool.
-9.1.0,true,websphere,websphere.metrics.object_pool.return.total,long,custom,,12345,Total number of objects returned to the object pool.
-9.1.0,true,websphere,websphere.metrics.objectpool,keyword,custom,,example-objectpool,Identifier for the object pool in use.
-9.1.0,true,websphere,websphere.metrics.orb.concurrent_requests,long,custom,,12345,Number of concurrent ORB requests processed.
-9.1.0,true,websphere,websphere.metrics.orb.lookup.time_seconds.total,long,custom,,12345,Total time spent in ORB lookup operations in seconds.
-9.1.0,true,websphere,websphere.metrics.orb.lookup.total,long,custom,,12345,Total number of ORB lookup operations performed.
-9.1.0,true,websphere,websphere.metrics.orb.processing.time_seconds.total,long,custom,,12345,Total time spent in ORB processing in seconds.
-9.1.0,true,websphere,websphere.metrics.orb.processing.total,long,custom,,12345,Total number of ORB processing operations performed.
-9.1.0,true,websphere,websphere.metrics.orb.requests.total,long,custom,,12345,Total number of ORB requests processed.
-9.1.0,true,websphere,websphere.metrics.portlet.concurrent_requests,long,custom,,12345,Number of concurrent portlet requests processed.
-9.1.0,true,websphere,websphere.metrics.portlet.errors.total,long,custom,,12345,Total number of portlet errors encountered.
-9.1.0,true,websphere,websphere.metrics.portlet.requests.total,long,custom,,12345,Total number of portlet requests processed.
-9.1.0,true,websphere,websphere.metrics.process.cpu_utilization,long,custom,,12345,CPU utilization of the process in percentage.
-9.1.0,true,websphere,websphere.metrics.process.uptime_seconds,long,custom,,12345,Process uptime in seconds since start.
-9.1.0,true,websphere,websphere.metrics.scrape.duration_seconds,long,custom,,12345,Duration of metrics scrape operation in seconds.
-9.1.0,true,websphere,websphere.metrics.servlet.app_name,keyword,custom,,example-app_name,Application name for servlet metrics in WebSphere.
-9.1.0,true,websphere,websphere.metrics.servlet.async_context.response_time_seconds,long,custom,,12345,Response time for async context operations in seconds.
-9.1.0,true,websphere,websphere.metrics.servlet.async_context.responses.total,long,custom,,12345,Total number of async context responses processed.
-9.1.0,true,websphere,websphere.metrics.servlet.errors,long,custom,,12345,Number of servlet errors encountered during processing.
-9.1.0,true,websphere,websphere.metrics.servlet.loaded,long,custom,,12345,Number of loaded servlets in the application.
-9.1.0,true,websphere,websphere.metrics.servlet.reloaded,long,custom,,12345,Number of reloaded servlets in the application.
-9.1.0,true,websphere,websphere.metrics.servlet.requests.concurrent,long,custom,,12345,Number of concurrent servlet requests processed.
-9.1.0,true,websphere,websphere.metrics.servlet.requests.processed,long,custom,,12345,Number of processed servlet requests in total.
-9.1.0,true,websphere,websphere.metrics.servlet.response_time_seconds,long,custom,,12345,Servlet response time in seconds for requests.
-9.1.0,true,websphere,websphere.metrics.servlet.responses.processed,long,custom,,12345,Number of processed servlet responses in total.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.async_context.response_time_seconds,long,custom,,12345,Response time for async context operations by URI in seconds.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.async_context.responses.total,long,custom,,12345,Total number of async context responses by URI processed.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.requests.concurrent,long,custom,,12345,Number of concurrent requests by URI processed.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.requests.total,long,custom,,12345,Total number of requests by URI processed.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.response_time_seconds,long,custom,,12345,Response time by URI in seconds for requests.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.responses.total,long,custom,,12345,Total number of responses by URI processed.
-9.1.0,true,websphere,websphere.metrics.session.activated.total,long,custom,,12345,Total number of activated sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session.finished.total,long,custom,,12345,Total number of finished sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session.session_objects.bytes.total,long,custom,,12345,Total size of session objects in bytes.
-9.1.0,true,websphere,websphere.metrics.session.session_objects.total,long,custom,,12345,Total number of session objects in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.activated_non_existent_sessions,long,custom,,12345,Number of activated non-existent sessions encountered.
-9.1.0,true,websphere,websphere.metrics.session_manager.affinity_breaks,long,custom,,12345,Number of session affinity breaks encountered.
-9.1.0,true,websphere,websphere.metrics.session_manager.cache_discarded,long,custom,,12345,Number of discarded session cache entries in the manager.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.bytes.read,long,custom,,12345,Bytes read from external session storage in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.bytes.written,long,custom,,12345,Bytes written to external session storage in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.time_seconds.read,long,custom,,12345,Time spent reading from external session storage in seconds.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.time_seconds.written,long,custom,,12345,Time spent writing to external session storage in seconds.
-9.1.0,true,websphere,websphere.metrics.session_manager.no_room_for_new_sessions,long,custom,,12345,Number of times there was no room for new sessions.
-9.1.0,true,websphere,websphere.metrics.session_manager.persistent_stores.data_read,long,custom,,12345,Amount of data read from persistent session stores in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.persistent_stores.data_written,long,custom,,12345,Amount of data written to persistent session stores in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.active,long,custom,,12345,Number of active sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.created,long,custom,,12345,Number of created sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.current,long,custom,,12345,Current number of sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.invalidated.by_timeouts,long,custom,,12345,Number of sessions invalidated by timeouts encountered.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.invalidated.total,long,custom,,12345,Total number of invalidated sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.life_time,long,custom,,12345,Lifetime of sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.time_since_session_last_activated,long,custom,,12345,Time since session was last activated in seconds.
-9.1.0,true,websphere,websphere.metrics.system.cpu_utilization,long,custom,,12345,System CPU utilization in percentage.
-9.1.0,true,websphere,websphere.metrics.system.memory.free_bytes,long,custom,,12345,Free system memory in bytes available.
-9.1.0,true,websphere,websphere.metrics.threadpool.active_time_seconds,long,custom,,12345,Active time of thread pool in seconds.
-9.1.0,true,websphere,websphere.metrics.threadpool.name,keyword,custom,,example-name,Name of the thread pool in use.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.active,long,custom,,12345,Number of active threads in the thread pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.cleared,long,custom,,12345,Number of cleared threads in the thread pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.stopped.concurrent,long,custom,,12345,Number of concurrent stopped threads in the pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.stopped.declared,long,custom,,12345,Number of declared stopped threads in the pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.total,long,custom,,12345,Total number of threads in the thread pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.total.active,long,custom,,12345,Total number of active threads across all thread pools.
-9.1.0,true,websphere,websphere.metrics.threadpool.total.created,long,custom,,12345,Total number of threads created across all thread pools.
-9.1.0,true,websphere,websphere.metrics.threadpool.total.destroyed,long,custom,,12345,Total number of threads destroyed across all thread pools.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.active_transactions,long,custom,,12345,Number of active transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.before_completion.seconds.total,long,custom,,12345,Total time spent in before completion operations in seconds.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.before_completion.total,long,custom,,12345,Total number of before completion operations performed.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.begun.total,long,custom,,12345,Total number of transactions begun in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.commit.time_seconds.total,long,custom,,12345,Total time spent in commit operations in seconds.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.committed.total,long,custom,,12345,Total number of committed transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.global_involved.total,long,custom,,12345,Total number of global transactions involved in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.global_prepare.time_seconds.total,long,custom,,12345,Total time spent in global prepare operations in seconds.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.global_prepare.total,long,custom,,12345,Total number of global prepare operations performed.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.optimization.total,long,custom,,12345,Total number of transaction optimizations performed.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.rolledback.total,long,custom,,12345,Total number of rolled back transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.timedout.total,long,custom,,12345,Total number of timed out transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.transaction.time_seconds.total,long,custom,,12345,Total transaction time in seconds for all transactions.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.transactions.total,long,custom,,12345,Total number of transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transactiontype,keyword,custom,,example-transactiontype,Type of transaction for the metric.
-9.1.0,true,websphere,websphere.metrics.type,keyword,custom,,example-type,Type of metric for the WebSphere integration.
-9.1.0,true,websphere,websphere.metrics.workmanager,keyword,custom,,example-workmanager,Identifier for the work manager in use.

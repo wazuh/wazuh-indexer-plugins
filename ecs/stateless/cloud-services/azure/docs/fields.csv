@@ -1154,8 +1154,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,log,log.syslog.severity.name,keyword,extended,,Error,Syslog text-based severity of the event.
 9.1.0,true,log,log.syslog.structured_data,flat_object,extended,,,Structured data expressed in RFC 5424 messages.
 9.1.0,true,log,log.syslog.version,keyword,extended,,1,Syslog protocol version.
-9.1.0,true,metricset,metricset.name,keyword,custom,,example-name,"Name of metricset that collected data. Identifies Azure metric type (storage_account, container_service, compute_vm)."
-9.1.0,true,metricset,metricset.period,long,custom,,12345,Collection interval (ms) for the metricset. Indicates how frequently metrics were gathered from Azure resource.
 9.1.0,true,network,network.application,keyword,extended,,aim,Application level protocol name.
 9.1.0,true,network,network.broadcast,ip,custom,,192.168.0.255,Broadcast address.
 9.1.0,true,network,network.bytes,long,core,,368,Total bytes transferred in both directions.

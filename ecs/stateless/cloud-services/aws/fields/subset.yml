@@ -611,14 +611,3 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  # Integration fields
-  amazon-security-lake:
-    fields: "*"
-  aws:
-    fields: "*"
-  aws-bedrock:
-    fields: "*"
-  aws-firehose:
-    fields: "*"
-  aws-logs:
-    fields: "*"
