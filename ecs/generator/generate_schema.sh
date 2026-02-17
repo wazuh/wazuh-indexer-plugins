@@ -157,8 +157,13 @@ function copy_files() {
   local resources_path="plugins/setup/src/main/resources"
   local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/opensearch-template.json"
   for ecs_module in "${modules_to_update[@]}"; do
-    # Copying index templates to the initialization plugin resources folder
+    # Skip modules without a template mapping (e.g., stateless/main)
     destination_file=${module_to_file[$ecs_module]}
+    if [[ -z "$destination_file" ]]; then
+      echo "  - '$ecs_module' skipped (no index template)"
+      continue
+    fi
+    # Copying index templates to the initialization plugin resources folder
     cp "$repo_path/ecs/$ecs_module/$mappings_path" "$resources_path/$destination_file"
     echo "  - '$destination_file' updated"
   done
