@@ -84,8 +84,272 @@
         "check": {
           "properties": {
             "compliance": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "properties": {
+                "cmmc": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "fedramp": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "gdpr": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "hipaa": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "iso_27001": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "mitre_attack": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "nis2": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "nist_800_171": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "nist_800_53": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "pci_dss": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "tsc": {
+                  "properties": {
+                    "category": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "publisher": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "requirements": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "version": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                }
+              }
             },
             "condition": {
               "ignore_above": 1024,
@@ -495,38 +759,271 @@
         },
         "compliance": {
           "properties": {
-            "category": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "name": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "publisher": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "requirement": {
+            "cmmc": {
               "properties": {
-                "description": {
-                  "type": "match_only_text"
-                },
-                "id": {
+                "category": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
-                "title": {
-                  "type": "match_only_text"
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
                 }
               }
             },
-            "version": {
-              "ignore_above": 1024,
-              "type": "keyword"
+            "fedramp": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "gdpr": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "hipaa": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "iso_27001": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "mitre_attack": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "nis2": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "nist_800_171": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "nist_800_53": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "pci_dss": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "tsc": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirements": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
             }
-          },
-          "type": "nested"
+          }
         },
         "container": {
           "properties": {

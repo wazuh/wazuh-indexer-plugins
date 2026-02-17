@@ -609,3 +609,5 @@ fields:
     fields: "*"
   policy:
     fields: "*"
+  compliance:
+    fields: "*"
