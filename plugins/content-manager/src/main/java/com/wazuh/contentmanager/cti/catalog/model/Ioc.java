@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -103,6 +104,18 @@ public class Ioc extends Resource {
      */
     public void setEnrichments(List<Map<String, Object>> enrichments) {
         this.enrichments = enrichments;
+    }
+
+    /**
+     * Overrides the getSpace method to exclude space from JSON serialization. IoC resources should
+     * not expose space information in their output.
+     *
+     * @return The space object (inherited from Resource).
+     */
+    @Override
+    @JsonIgnore
+    public Map<String, Object> getSpace() {
+        return super.getSpace();
     }
 
     @Override

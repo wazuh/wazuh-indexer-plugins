@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
@@ -29,7 +30,6 @@ import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.utils.CategoryFormatter;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.*;
 import com.wazuh.securityanalytics.model.Integration;
@@ -71,7 +71,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
         String description =
                 doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).asText() : "";
-        String category = CategoryFormatter.format(doc, false);
+        String category = this.formatCategory(doc, false);
 
         log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
 
@@ -92,10 +92,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteIntegration(String id, boolean isStandard) {
         try {
-            if(isStandard){
+            if (isStandard) {
                 // Delete detector first
                 this.deleteDetector(id);
-
             }
             this.client
                     .execute(
@@ -181,7 +180,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
         String id = doc.get(Constants.KEY_ID).asText();
         String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
-        String category = CategoryFormatter.format(doc, rawCategory);
+        String category = this.formatCategory(doc, rawCategory);
         List<String> rules = new ArrayList<>();
 
         if (doc.has(Constants.KEY_RULES)) {
@@ -211,5 +210,34 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
             throw new OpenSearchException("Failed to delete Detector", e.getMessage());
         }
+    }
+
+    /**
+     * Formats category strings from CTI documents. Transforms raw category identifiers into
+     * human-readable format. This method was moved from CategoryFormatter.
+     *
+     * @param doc The JSON document containing the category field.
+     * @param isDetector If true, returns the raw category without formatting.
+     * @return The formatted category string, or the raw category for detectors.
+     */
+    private String formatCategory(JsonNode doc, boolean isDetector) {
+        if (!doc.has(Constants.KEY_CATEGORY)) {
+            return "";
+        }
+        String rawCategory = doc.get(Constants.KEY_CATEGORY).asText();
+
+        // Do not pretty print category for detectors
+        if (isDetector) {
+            return rawCategory;
+        }
+
+        // TODO remove when CTI applies the changes to the categorization.
+        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
+        if (rawCategory.contains("cloud-services")) {
+            rawCategory = rawCategory.substring(0, 14);
+        }
+        return Arrays.stream(rawCategory.split("-"))
+                .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
+                .trim();
     }
 }
