@@ -430,7 +430,7 @@ public class ContentIndex {
         try {
             // Preserve the type field before processing
             String type =
-                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : "none";
+                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
 
             // 1. Delegate parsing logic to the appropriate Model
             if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
