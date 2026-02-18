@@ -56,10 +56,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         this.client = client;
     }
 
-    // ========================================================================
-    // Integration operations
-    // ========================================================================
-
     @Override
     public void upsertIntegration(JsonNode doc, Space space, Method method) {
         WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
@@ -74,6 +70,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
         if (request != null) {
             executeAsync(WIndexIntegrationAction.INSTANCE, request, listener);
+        } else {
+            listener.onResponse(null);
         }
     }
 
@@ -156,10 +154,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
     }
 
-    // ========================================================================
-    // Rule operations
-    // ========================================================================
-
     @Override
     public void upsertRule(JsonNode doc, Space space, Method method) {
         if (!doc.has(Constants.KEY_ID)) {
@@ -195,6 +189,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         if (!doc.has(Constants.KEY_ID)) {
             log.warn("Rule document missing ID. Skipping upsert.");
+            listener.onResponse(null);
             return;
         }
 
@@ -262,10 +257,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
     }
 
-    // ========================================================================
-    // Detector operations
-    // ========================================================================
-
     @Override
     public void upsertDetector(JsonNode doc, boolean rawCategory, Method method) {
         WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
@@ -283,6 +274,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
         if (request != null) {
             executeAsync(WIndexDetectorAction.INSTANCE, request, listener);
+        } else {
+            listener.onResponse(null);
         }
     }
 
@@ -341,10 +334,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
                 listener);
     }
-
-    // ========================================================================
-    // Utility methods
-    // ========================================================================
 
     /**
      * Executes an action asynchronously, bridging between the wildcard listener from the interface

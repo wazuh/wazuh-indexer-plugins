@@ -30,8 +30,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
  */
 public interface SecurityAnalyticsService {
 
-    // ---- Integrations (synchronous) ----
-
     /**
      * Creates or updates an Integration in SAP.
      *
@@ -50,8 +48,6 @@ public interface SecurityAnalyticsService {
      */
     void deleteIntegration(String id, boolean isStandard);
 
-    // ---- Rules (synchronous) ----
-
     /**
      * Creates or updates a Rule in SAP.
      *
@@ -69,8 +65,6 @@ public interface SecurityAnalyticsService {
      */
     void deleteRule(String id, boolean isStandard);
 
-    // ---- Detectors (synchronous) ----
-
     /**
      * Creates or updates a Threat Detector in SAP.
      *
@@ -86,8 +80,6 @@ public interface SecurityAnalyticsService {
      * @param id The identifier of the detector to delete.
      */
     void deleteDetector(String id);
-
-    // ---- Integrations (asynchronous) ----
 
     /**
      * Asynchronously creates or updates an Integration in SAP.
@@ -110,8 +102,6 @@ public interface SecurityAnalyticsService {
     void deleteIntegrationAsync(
             String id, boolean isStandard, ActionListener<? extends ActionResponse> listener);
 
-    // ---- Rules (asynchronous) ----
-
     /**
      * Asynchronously creates or updates a Rule in SAP.
      *
@@ -132,8 +122,6 @@ public interface SecurityAnalyticsService {
      */
     void deleteRuleAsync(
             String id, boolean isStandard, ActionListener<? extends ActionResponse> listener);
-
-    // ---- Detectors (asynchronous) ----
 
     /**
      * Asynchronously creates or updates a Threat Detector in SAP.
