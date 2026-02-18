@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-original
+name: wazuh-events-raw
 fields:
   # Base fields - only timestamp, no message (raw data goes in event.original)
   base:

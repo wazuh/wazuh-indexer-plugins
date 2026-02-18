@@ -1,12 +1,12 @@
 {
   "index_patterns": [
-    "wazuh-events-v5-original*"
+    "wazuh-events-v5-raw*"
   ],
   "priority": 1,
   "data_stream": {},
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": "wazuh-events-v5-original",
+      "plugins.index_state_management.rollover_alias": "wazuh-events-v5-raw",
       "mapping.total_fields.limit": 100,
       "mapping.nested_fields.limit": 10,
       "index": {

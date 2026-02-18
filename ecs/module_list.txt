@@ -28,8 +28,8 @@ module_to_file=(
   [stateless/cloud-services/gcp]=templates/streams/cloud-services-gcp.json
   [stateless/cloud-services/main]=templates/streams/cloud-services.json
   [stateless/network-activity]=templates/streams/network-activity.json
-  [stateless/original]=templates/streams/original.json
   [stateless/other]=templates/streams/other.json
+  [stateless/raw]=templates/streams/raw.json
   [stateless/security]=templates/streams/security.json
   [stateless/system-activity]=templates/streams/system-activity.json
 )
