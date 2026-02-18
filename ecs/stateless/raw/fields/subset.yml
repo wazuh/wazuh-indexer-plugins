@@ -1,14 +1,11 @@
 ---
 name: wazuh-events-raw
 fields:
-  # Base fields - only timestamp, no message (raw data goes in event.original)
   base:
     fields:
       "@timestamp": {}
-  # Event fields - ONLY event.original, no categorization or classification
   event:
     fields:
       original: {}
-  # Wazuh metadata fields - all wazuh.* fields are metadata
   wazuh:
     fields: "*"
