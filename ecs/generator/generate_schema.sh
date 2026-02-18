@@ -14,7 +14,7 @@ set -euo pipefail
 # Global variables
 declare -a modules_to_update
 declare -A module_to_file
-declare force_update=true
+declare force_update=false
 
 # ====
 # Checks that the script is run from the intended location
