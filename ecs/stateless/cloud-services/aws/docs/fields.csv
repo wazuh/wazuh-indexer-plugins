@@ -1,6 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-9.1.0,true,base,compliance,nested,custom,,,Array of compliance objects to support multiple frameworks per event.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
@@ -9,688 +8,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-9.1.0,true,aws,aws.amazonmq.broker,keyword,custom,,example-broker,Name or identifier of the Amazon MQ message broker instance
-9.1.0,true,aws,aws.amazonmq.queue,keyword,custom,,example-queue,Name of the specific message queue within Amazon MQ
-9.1.0,true,aws,aws.apigateway.api_id,keyword,custom,,example-api_id,Unique identifier for the Amazon API Gateway API
-9.1.0,true,aws,aws.apigateway_api_id,keyword,custom,,example-apigateway_api_id,The identifier API Gateway assigns to your API.
-9.1.0,true,aws,aws.apigateway_caller,keyword,custom,,example-apigateway_caller,The principal identifier of the caller making the request.
-9.1.0,true,aws,aws.apigateway_connection_id,keyword,custom,,example-apigateway_connection_id,A unique ID for the connection that can be used to make a callback to the client.
-9.1.0,true,aws,aws.apigateway_domain_name,keyword,custom,,example-apigateway_domain_name,The full domain name used to invoke the API.
-9.1.0,true,aws,aws.apigateway_event_type,keyword,custom,,example-apigateway_event_type,"The event type: CONNECT, MESSAGE, or DISCONNECT."
-9.1.0,true,aws,aws.apigateway_http_method,keyword,custom,,example-apigateway_http_method,"The HTTP method used. Valid values include: DELETE, GET, HEAD, OPTIONS, PATCH, POST, and PUT."
-9.1.0,true,aws,aws.apigateway_ip,keyword,custom,,example-apigateway_ip,The internet address of the requester.
-9.1.0,true,aws,aws.apigateway_protocol,keyword,custom,,example-apigateway_protocol,"API Gateway APIs can accept HTTP/2 requests, but API Gateway sends requests to backend integrations using HTTP/1.1."
-9.1.0,true,aws,aws.apigateway_request_id,keyword,custom,,example-apigateway_request_id,An ID for the request. Clients can override this request ID.
-9.1.0,true,aws,aws.apigateway_request_time,date,custom,,2023-01-01T00:00:00.000Z,The CLF-formatted request time as reported by the log source.
-9.1.0,true,aws,aws.apigateway_resource_path,keyword,custom,,example-apigateway_resource_path,The path to your resource.
-9.1.0,true,aws,aws.apigateway_response_length,long,custom,,12345,The response payload length in bytes.
-9.1.0,true,aws,aws.apigateway_route_key,keyword,custom,,example-apigateway_route_key,The selected route key as reported by the log source.
-9.1.0,true,aws,aws.apigateway_stage,keyword,custom,,example-apigateway_stage,"The deployment stage of the API call (for example, beta or prod)."
-9.1.0,true,aws,aws.apigateway_status,long,custom,,12345,The response status as reported by AWS API Gateway.
-9.1.0,true,aws,aws.apigateway_user,keyword,custom,,example-apigateway_user,The principal identifier of the user making the request.
-9.1.0,true,aws,aws.cloudfront_domain,keyword,custom,,example-cloudfront_domain,The domain name of the CloudFront distribution as reported by AWS CloudFront.
-9.1.0,true,aws,aws.cloudfront_edge_detailed_result_type,keyword,custom,,example-cloudfront_edge_detailed_result_type,Error type when x-edge-result-type is Error
-9.1.0,true,aws,aws.cloudfront_edge_location,keyword,custom,,example-cloudfront_edge_location,"Edge location serving request (3-letter IATA airport code + number, e.g., DFW3) identifying geographic location"
-9.1.0,true,aws,aws.cloudfront_edge_response_result_type,keyword,custom,,example-cloudfront_edge_response_result_type,Server response classification just before returning response to viewer (see also x-edge-result-type field)
-9.1.0,true,aws,aws.cloudfront_edge_result_type,keyword,custom,,example-cloudfront_edge_result_type,Server response classification after last byte sent; result type can change during response transmission
-9.1.0,true,aws,aws.cloudfront_forwarded_ip,keyword,custom,,example-cloudfront_forwarded_ip,This field contains client IP addresses collected by CloudFront.
-9.1.0,true,aws,aws.cloudfront_range_end,long,custom,,12345,"When the response contains the HTTP Content-Range header, this field contains the range end value."
-9.1.0,true,aws,aws.cloudfront_range_start,long,custom,,12345,"When the response contains the HTTP Content-Range header, this field contains the range start value."
-9.1.0,true,aws,aws.cloudfront_time_to_first_byte,float,custom,,,"Seconds between receiving request and writing first response byte, measured on server"
-9.1.0,true,aws,aws.cloudtrail_additional_event_data,keyword,custom,,example-cloudtrail_additional_event_data,Additional data about the event that was not part of the request or response.
-9.1.0,true,aws,aws.cloudtrail_api_version,keyword,custom,,example-cloudtrail_api_version,The API version associated with the AwsApiCall eventType value.
-9.1.0,true,aws,aws.cloudtrail_console_login_additional_event_data_login_to,keyword,custom,,example-cloudtrail_console_login_additional_event_data_login_to,The URL that the user navigated to when logging into the AWS Management Console.
-9.1.0,true,aws,aws.cloudtrail_console_login_additional_event_data_mfa_used,boolean,custom,,True,Indicates whether multi-factor authentication (MFA) was used during console login.
-9.1.0,true,aws,aws.cloudtrail_console_login_additional_event_data_mobile_version,boolean,custom,,True,Indicates whether the mobile version of the console was used for login.
-9.1.0,true,aws,aws.cloudtrail_digest_end_time,date,custom,,2023-01-01T00:00:00.000Z,The end time for the digest delivery time range.
-9.1.0,true,aws,aws.cloudtrail_digest_log_files,nested,custom,,,A list of log files that are covered by the digest file.
-9.1.0,true,aws,aws.cloudtrail_digest_newest_event_time,date,custom,,2023-01-01T00:00:00.000Z,The timestamp of the newest event in the digest file.
-9.1.0,true,aws,aws.cloudtrail_digest_oldest_event_time,date,custom,,2023-01-01T00:00:00.000Z,The timestamp of the oldest event in the digest file.
-9.1.0,true,aws,aws.cloudtrail_digest_previous_hash_algorithm,keyword,custom,,example-cloudtrail_digest_previous_hash_algorithm,The hash algorithm used for the previous digest file.
-9.1.0,true,aws,aws.cloudtrail_digest_previous_s3_bucket,keyword,custom,,example-cloudtrail_digest_previous_s3_bucket,The S3 bucket where the previous digest file was delivered.
-9.1.0,true,aws,aws.cloudtrail_digest_public_key_fingerprint,keyword,custom,,example-cloudtrail_digest_public_key_fingerprint,The fingerprint of the public key used to validate the digest file.
-9.1.0,true,aws,aws.cloudtrail_digest_s3_bucket,keyword,custom,,example-cloudtrail_digest_s3_bucket,The S3 bucket where the digest file was delivered.
-9.1.0,true,aws,aws.cloudtrail_digest_signature_algorithm,keyword,custom,,example-cloudtrail_digest_signature_algorithm,The algorithm used to sign the digest file.
-9.1.0,true,aws,aws.cloudtrail_digest_start_time,date,custom,,2023-01-01T00:00:00.000Z,The start time for the digest delivery time range.
-9.1.0,true,aws,aws.cloudtrail_error_code,keyword,custom,,example-cloudtrail_error_code,The AWS service error if the request returns an error.
-9.1.0,true,aws,aws.cloudtrail_error_message,keyword,custom,,example-cloudtrail_error_message,"If the request returns an error, the description of the error."
-9.1.0,true,aws,aws.cloudtrail_event_category,keyword,custom,,example-cloudtrail_event_category,"The category of the CloudTrail event, such as Management, Data, or Insight."
-9.1.0,true,aws,aws.cloudtrail_event_id,keyword,custom,,example-cloudtrail_event_id,A unique ID for this event. This can be used to identify a specific event.
-9.1.0,true,aws,aws.cloudtrail_event_source,keyword,custom,,example-cloudtrail_event_source,The source of the CloudTrail event.
-9.1.0,true,aws,aws.cloudtrail_event_type,keyword,custom,,example-cloudtrail_event_type,"Identifies the type of event, such as AwsApiCall, AwsServiceEvent, or AwsConsoleSignIn."
-9.1.0,true,aws,aws.cloudtrail_event_version,keyword,custom,,example-cloudtrail_event_version,The version of the CloudTrail event format.
-9.1.0,true,aws,aws.cloudtrail_insight_details,object,custom,,,Additional information about an Insights event.
-9.1.0,true,aws,aws.cloudtrail_management_event,boolean,custom,,True,Indicates whether the event is a management event. A value of true indicates a management event.
-9.1.0,true,aws,aws.cloudtrail_read_only,boolean,custom,,True,Identifies whether an event is a read-only event or a write event.
-9.1.0,true,aws,aws.cloudtrail_recipient_account_id,keyword,custom,,example-cloudtrail_recipient_account_id,Represents the account ID that received this event.
-9.1.0,true,aws,aws.cloudtrail_request_id,keyword,custom,,example-cloudtrail_request_id,The value that identifies the request. The service being called generates this value.
-9.1.0,true,aws,aws.cloudtrail_request_parameters,keyword,custom,,example-cloudtrail_request_parameters,"The parameters, if any, that were sent with the request."
-9.1.0,true,aws,aws.cloudtrail_resources,nested,custom,,,A list of resources accessed in the event.
-9.1.0,true,aws,aws.cloudtrail_response_elements,keyword,custom,,example-cloudtrail_response_elements,The response elements from the service that processed the request.
-9.1.0,true,aws,aws.cloudtrail_shared_event_id,keyword,custom,,example-cloudtrail_shared_event_id,GUID generated by CloudTrail to uniquely identify CloudTrail events from the same AWS action.
-9.1.0,true,aws,aws.cloudtrail_user_identity_access_key_id,keyword,custom,,example-cloudtrail_user_identity_access_key_id,The access key ID that was used to sign the request.
-9.1.0,true,aws,aws.cloudtrail_user_identity_arn,keyword,custom,,example-cloudtrail_user_identity_arn,The Amazon Resource Name (ARN) of the principal that made the call.
-9.1.0,true,aws,aws.cloudtrail_user_identity_invoked_by,keyword,custom,,example-cloudtrail_user_identity_invoked_by,"The name of the AWS service that made the request, such as signin.amazonaws.com."
-9.1.0,true,aws,aws.cloudtrail_user_identity_session_context_creation_date,date,custom,,2023-01-01T00:00:00.000Z,The date and time when the session credentials were issued.
-9.1.0,true,aws,aws.cloudtrail_user_identity_session_context_mfa_authenticated,keyword,custom,,example-cloudtrail_user_identity_session_context_mfa_authenticated,"If MFA was used to authenticate the request, shows whether MFA was authenticated or not."
-9.1.0,true,aws,aws.cloudtrail_user_identity_session_context_session_issuer_account_id,keyword,custom,,example-cloudtrail_user_identity_session_context_session_issuer_account_id,The account that owns the entity that was used to get credentials.
-9.1.0,true,aws,aws.cloudtrail_user_identity_session_context_session_issuer_arn,keyword,custom,,example-cloudtrail_user_identity_session_context_session_issuer_arn,"The ARN of the source (account, IAM user, or role) that was used to get temporary credentials."
-9.1.0,true,aws,aws.cloudtrail_user_identity_session_context_session_issuer_principal_id,keyword,custom,,example-cloudtrail_user_identity_session_context_session_issuer_principal_id,The internal ID of the entity that was used to get credentials.
-9.1.0,true,aws,aws.cloudtrail_user_identity_session_context_session_issuer_type,keyword,custom,,example-cloudtrail_user_identity_session_context_session_issuer_type,"The type of session issuer, such as Role or IAMUser."
-9.1.0,true,aws,aws.cloudtrail_user_identity_type,keyword,custom,,example-cloudtrail_user_identity_type,"The type of identity that made the request, such as IAMUser, AssumedRole, or Root."
-9.1.0,true,aws,aws.cloudtrail_vpc_endpoint_id,keyword,custom,,example-cloudtrail_vpc_endpoint_id,Identifies the VPC endpoint in which requests were made from a VPC to another AWS service.
-9.1.0,true,aws,aws.cloudwatch.event_id,keyword,custom,,example-event_id,The unique identifier for the CloudWatch log event.
-9.1.0,true,aws,aws.cloudwatch.ingestion_time,date,custom,,2023-01-01T00:00:00.000Z,The time the CloudWatch log event was ingested.
-9.1.0,true,aws,aws.cloudwatch.log_group,keyword,custom,,example-log_group,CloudWatch log group name that organizes log streams
-9.1.0,true,aws,aws.cloudwatch.log_stream,keyword,custom,,example-log_stream,CloudWatch log stream name that represents a sequence of log events from the same source
-9.1.0,true,aws,aws.cloudwatch.log_stream_name,keyword,custom,,example-log_stream_name,The name of the CloudWatch log stream.
-9.1.0,true,aws,aws.cloudwatch.metric.name,keyword,custom,,example-name,CloudWatch metric name extracted from OpenTelemetry format data
-9.1.0,true,aws,aws.cloudwatch.metric.value,long,custom,,12345,CloudWatch metric value extracted from OpenTelemetry format data
-9.1.0,true,aws,aws.cloudwatch.namespace,keyword,custom,,example-namespace,The namespace specified when querying CloudWatch API for organizing metrics into groups
-9.1.0,true,aws,aws.cloudwatch.otel_timestamp,long,custom,,12345,OpenTelemetry timestamp in nanoseconds since Unix epoch
-9.1.0,true,aws,aws.cloudwatch.start_timestamp,keyword,custom,,example-start_timestamp,Start timestamp from CloudWatch metrics data indicating when the monitoring period began
-9.1.0,true,aws,aws.cloudwatch.timestamp,keyword,custom,,example-timestamp,Original timestamp from CloudWatch metrics data in ISO8601 format
-9.1.0,true,aws,aws.dimensions,object,custom,,,CloudWatch metric dimensions as key-value pairs that provide additional context for metrics
-9.1.0,true,aws,aws.ec2_ip_address,ip,custom,,192.168.1.1,The IP address of the EC2 instance.
-9.1.0,true,aws,aws.elb_action_executed,keyword,custom,,example-elb_action_executed,The action executed by the load balancer.
-9.1.0,true,aws,aws.elb_alpn_be_protocol,keyword,custom,,example-elb_alpn_be_protocol,The Application-Layer Protocol Negotiation (ALPN) protocol used for the back-end connection.
-9.1.0,true,aws,aws.elb_alpn_client_preference_list,keyword,custom,,example-elb_alpn_client_preference_list,The list of ALPN protocols preferred by the client.
-9.1.0,true,aws,aws.elb_alpn_fe_protocol,keyword,custom,,example-elb_alpn_fe_protocol,The Application-Layer Protocol Negotiation (ALPN) protocol used for the front-end connection.
-9.1.0,true,aws,aws.elb_backend_http_response_status_code,long,custom,,12345,The HTTP response status code from the backend.
-9.1.0,true,aws,aws.elb_backend_ip,ip,custom,,192.168.1.1,The IP address of the backend instance.
-9.1.0,true,aws,aws.elb_backend_port,keyword,custom,,example-elb_backend_port,The port number of the backend instance.
-9.1.0,true,aws,aws.elb_backend_processing_time_sec,float,custom,,,Total seconds load balancer spent sending request to backend and receiving response from instance
-9.1.0,true,aws,aws.elb_chosen_cert.arn,keyword,custom,,example-arn,The ARN of the chosen certificate as reported by the log source.
-9.1.0,true,aws,aws.elb_chosen_cert_arn,keyword,custom,,example-elb_chosen_cert_arn,The ARN of the chosen certificate.
-9.1.0,true,aws,aws.elb_chosen_cert_serial,keyword,custom,,example-elb_chosen_cert_serial,The serial number of the chosen certificate.
-9.1.0,true,aws,aws.elb_classification,keyword,custom,,example-elb_classification,The classification of the request.
-9.1.0,true,aws,aws.elb_classification_reason,keyword,custom,,example-elb_classification_reason,The reason for the classification.
-9.1.0,true,aws,aws.elb_connection_time.ms,float,custom,,,"The time, in milliseconds, that the connection was open."
-9.1.0,true,aws,aws.elb_connection_time_ms,float,custom,,,"The total time, in milliseconds, that the connection was open."
-9.1.0,true,aws,aws.elb_error_reason,keyword,custom,,example-elb_error_reason,The reason for the error.
-9.1.0,true,aws,aws.elb_incoming_tls_alert,keyword,custom,,example-elb_incoming_tls_alert,The TLS alert received from the client.
-9.1.0,true,aws,aws.elb_leaf_client_cert_not_after,date,custom,,2023-01-01T00:00:00.000Z,The date and time after which the client certificate is not valid.
-9.1.0,true,aws,aws.elb_leaf_client_cert_not_before,date,custom,,2023-01-01T00:00:00.000Z,The date and time before which the client certificate is not valid.
-9.1.0,true,aws,aws.elb_leaf_client_cert_serial_number,keyword,custom,,example-elb_leaf_client_cert_serial_number,The serial number of the client certificate.
-9.1.0,true,aws,aws.elb_leaf_client_cert_subject,keyword,custom,,example-elb_leaf_client_cert_subject,The subject of the client certificate.
-9.1.0,true,aws,aws.elb_listener,keyword,custom,,example-elb_listener,The listener associated with the connection.
-9.1.0,true,aws,aws.elb_matched_rule_priority,keyword,custom,,example-elb_matched_rule_priority,The priority of the matched rule.
-9.1.0,true,aws,aws.elb_name,keyword,custom,,example-elb_name,The name of the Elastic Load Balancer.
-9.1.0,true,aws,aws.elb_protocol,keyword,custom,,example-elb_protocol,"The protocol used by the Elastic Load Balancer (e.g., HTTP, HTTPS)."
-9.1.0,true,aws,aws.elb_redirect_url,keyword,custom,,example-elb_redirect_url,The URL to which the request was redirected.
-9.1.0,true,aws,aws.elb_request_processing_time_sec,float,custom,,,Total seconds load balancer spent receiving request from client and sending to backend instance
-9.1.0,true,aws,aws.elb_response_processing_time_sec,float,custom,,,Total seconds load balancer spent receiving backend response and sending to client
-9.1.0,true,aws,aws.elb_ssl_cipher,keyword,custom,,example-elb_ssl_cipher,The SSL cipher used for the connection.
-9.1.0,true,aws,aws.elb_ssl_named_group,keyword,custom,,example-elb_ssl_named_group,The named group used for the SSL connection.
-9.1.0,true,aws,aws.elb_ssl_protocol,keyword,custom,,example-elb_ssl_protocol,The SSL protocol used for the connection.
-9.1.0,true,aws,aws.elb_target_group.arn,keyword,custom,,example-arn,The Amazon Resource Name (ARN) of the target group as reported.
-9.1.0,true,aws,aws.elb_target_group_arn,keyword,custom,,example-elb_target_group_arn,The ARN of the target group.
-9.1.0,true,aws,aws.elb_target_port,keyword,custom,,example-elb_target_port,The port of the target.
-9.1.0,true,aws,aws.elb_target_status_code,keyword,custom,,example-elb_target_status_code,The status code of the target.
-9.1.0,true,aws,aws.elb_tls_connection_creation_time,date,custom,,2023-01-01T00:00:00.000Z,The time when the TLS connection was created.
-9.1.0,true,aws,aws.elb_tls_connection_creation_time_str,date,custom,,2023-01-01T00:00:00.000Z,The time when the TLS connection was created as reported by the log source.
-9.1.0,true,aws,aws.elb_tls_error_code,keyword,custom,,example-elb_tls_error_code,The TLS error code as reported by AWS ELB.
-9.1.0,true,aws,aws.elb_tls_handshake_latency,float,custom,,,The latency of the TLS handshake as reported by the log source.
-9.1.0,true,aws,aws.elb_tls_handshake_time.ms,float,custom,,,"The time, in milliseconds, that the TLS handshake took."
-9.1.0,true,aws,aws.elb_tls_handshake_time_ms,float,custom,,,"The total time, in milliseconds, that the TLS handshake took."
-9.1.0,true,aws,aws.elb_tls_verify_status,keyword,custom,,example-elb_tls_verify_status,The TLS verification status as reported by AWS ELB.
-9.1.0,true,aws,aws.elb_trace_id,keyword,custom,,example-elb_trace_id,The trace ID of the request.
-9.1.0,true,aws,aws.elb_type,keyword,custom,,example-elb_type,"The type of Elastic Load Balancer (e.g., application, network)."
-9.1.0,true,aws,aws.exporter.arn,keyword,custom,,example-arn,Amazon Resource Name (ARN) of the CloudWatch metric stream exporter
-9.1.0,true,aws,aws.firehose.arn,keyword,custom,,example-arn,Amazon Resource Name (ARN) for the Kinesis Data Firehose delivery stream
-9.1.0,true,aws,aws.firehose.delivery_stream_arn,keyword,custom,,example-delivery_stream_arn,Amazon Resource Name (ARN) of the Kinesis Data Firehose delivery stream used for log delivery
-9.1.0,true,aws,aws.firehose.delivery_stream_request_id,keyword,custom,,example-delivery_stream_request_id,Unique request identifier for the Firehose delivery stream operation
-9.1.0,true,aws,aws.firehose.request_id,keyword,custom,,example-request_id,Unique identifier for the Firehose HTTP request
-9.1.0,true,aws,aws.firehose.subscription_filters,keyword,custom,,example-subscription_filters,CloudWatch Logs subscription filters associated with the Firehose delivery stream
-9.1.0,true,aws,aws.firehose.timestamp,keyword,custom,,example-timestamp,Original timestamp from Firehose log data preserving the exact time when the log event was generated
-9.1.0,true,aws,aws.firewall_alert_category,keyword,custom,,example-firewall_alert_category,The category of the alert generated by the AWS Network Firewall.
-9.1.0,true,aws,aws.firewall_alert_rev_id,keyword,custom,,example-firewall_alert_rev_id,The revision ID of the alert signature.
-9.1.0,true,aws,aws.firewall_alert_severity,long,custom,,12345,The severity level of the alert generated by the AWS Network Firewall.
-9.1.0,true,aws,aws.firewall_alert_signature,keyword,custom,,example-firewall_alert_signature,The name or description of the alert signature.
-9.1.0,true,aws,aws.firewall_alert_signature_id,long,custom,,12345,The unique identifier for the alert signature.
-9.1.0,true,aws,aws.firewall_flow,nested,custom,,,The network flow information related to the event.
-9.1.0,true,aws,aws.firewall_flow.age,long,custom,,12345,The age of the network flow in seconds.
-9.1.0,true,aws,aws.firewall_flow.bytes,long,custom,,12345,The total number of bytes transferred in the network flow.
-9.1.0,true,aws,aws.firewall_flow.end,keyword,custom,,example-end,The timestamp indicating when the network flow ended.
-9.1.0,true,aws,aws.firewall_flow.id,keyword,custom,,example-id,The unique identifier for the network flow.
-9.1.0,true,aws,aws.firewall_flow.max_ttl,long,custom,,12345,The maximum time-to-live (TTL) value observed in the network flow.
-9.1.0,true,aws,aws.firewall_flow.min_ttl,long,custom,,12345,The minimum time-to-live (TTL) value observed in the network flow.
-9.1.0,true,aws,aws.firewall_flow.pkts,long,custom,,12345,The total number of packets transferred in the network flow.
-9.1.0,true,aws,aws.firewall_flow.start,keyword,custom,,example-start,The timestamp indicating when the network flow started.
-9.1.0,true,aws,aws.firewall_tcp_flags,keyword,custom,,example-firewall_tcp_flags,The TCP flags associated with the event.
-9.1.0,true,aws,aws.guardduty.account_id,keyword,custom,,example-account_id,The twelve-digit AWS account ID associated with the GuardDuty finding.
-9.1.0,true,aws,aws.guardduty.arn,keyword,custom,,example-arn,The Amazon Resource Name (ARN) generated for the specific GuardDuty finding.
-9.1.0,true,aws,aws.guardduty.confidence,float,custom,,,The confidence level (0-100) associated with the accuracy of the finding.
-9.1.0,true,aws,aws.guardduty.created_at,date,custom,,2023-01-01T00:00:00.000Z,The timestamp indicating when the finding was initially created by GuardDuty.
-9.1.0,true,aws,aws.guardduty.description,keyword,custom,,example-description,A detailed description explaining the potential security issue identified by GuardDuty.
-9.1.0,true,aws,aws.guardduty.id,keyword,custom,,example-id,The unique identifier assigned to this specific GuardDuty finding event.
-9.1.0,true,aws,aws.guardduty.partition,keyword,custom,,example-partition,"The AWS partition where the finding occurred (e.g., aws, aws-cn)."
-9.1.0,true,aws,aws.guardduty.region,keyword,custom,,example-region,The specific AWS Region where the potential security issue was detected.
-9.1.0,true,aws,aws.guardduty.resource.access_key_details.accesskey_id,keyword,custom,,example-accesskey_id,The access key ID related to the compromised AWS resource finding.
-9.1.0,true,aws,aws.guardduty.resource.access_key_details.principal_id,keyword,custom,,example-principal_id,The principal ID associated with the identified AWS access key event.
-9.1.0,true,aws,aws.guardduty.resource.access_key_details.user.name,keyword,custom,,example-name,The username connected to the involved AWS access key credentials involved.
-9.1.0,true,aws,aws.guardduty.resource.access_key_details.user.type,keyword,custom,,example-type,"The type of user associated with the access key (e.g., IAMUser)."
-9.1.0,true,aws,aws.guardduty.resource.container_details.container_runtime,keyword,custom,,example-container_runtime,The runtime environment used by the container involved in the finding.
-9.1.0,true,aws,aws.guardduty.resource.container_details.id,keyword,custom,,example-id,The unique identifier of the container involved in the detected event.
-9.1.0,true,aws,aws.guardduty.resource.container_details.image.prefix,keyword,custom,,example-prefix,The prefix part of the container image name identified in finding.
-9.1.0,true,aws,aws.guardduty.resource.container_details.image.value,keyword,custom,,example-value,The full name of the container image related to the finding.
-9.1.0,true,aws,aws.guardduty.resource.container_details.name,keyword,custom,,example-name,The specific name of the container associated with the security finding.
-9.1.0,true,aws,aws.guardduty.resource.container_details.security_context.privileged,boolean,custom,,True,Indicates if the container was running with elevated (privileged) permissions.
-9.1.0,true,aws,aws.guardduty.resource.container_details.volume_mounts,nested,custom,,,Details about volume mounts configured for the affected container resource.
-9.1.0,true,aws,aws.guardduty.resource.ebs_volume_details.scanned_volume_details,nested,custom,,,Information about the EBS volumes that were successfully scanned by GuardDuty.
-9.1.0,true,aws,aws.guardduty.resource.ebs_volume_details.skipped_volume_details,nested,custom,,,Information about the EBS volumes that GuardDuty skipped during the scan.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.active_services_count,long,custom,,12345,The total number of active services running within the ECS cluster.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.arn,keyword,custom,,example-arn,The Amazon Resource Name (ARN) identifying the affected ECS cluster resource.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.name,keyword,custom,,example-name,The friendly name assigned to the ECS cluster involved in finding.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.registered_container_instances_count,long,custom,,12345,Count of container instances registered within the relevant ECS cluster.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.running_tasks_count,long,custom,,12345,The number of tasks currently running within the specified ECS cluster.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.status,keyword,custom,,example-status,"The current operational status of the ECS cluster (e.g., ACTIVE)."
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.tags,nested,custom,,,Key-value tags associated with the ECS cluster resource for categorization.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.arn,keyword,custom,,example-arn,The Amazon Resource Name (ARN) of the specific ECS task involved.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.containers,nested,custom,,,Details about the containers running as part of the ECS task.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.created_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the involved ECS task resource was created.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.definitionarn,keyword,custom,,example-definitionarn,The ARN of the ECS task definition used by the task.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.group,keyword,custom,,example-group,The group name associated with the affected ECS task finding.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.started_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the involved ECS task actually started running.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.started_by,keyword,custom,,example-started_by,Identifier for the entity that initiated the start of the task.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.tags,nested,custom,,,Key-value tags associated with the specific ECS task for identification.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.version,keyword,custom,,example-version,The version number associated with the ECS task involved in finding.
-9.1.0,true,aws,aws.guardduty.resource.ecs_cluster_details.task_details.volumes,nested,custom,,,Information regarding volumes attached or used by the specific ECS task.
-9.1.0,true,aws,aws.guardduty.resource.eks_cluster_details.arn,keyword,custom,,example-arn,The Amazon Resource Name (ARN) of the EKS cluster resource.
-9.1.0,true,aws,aws.guardduty.resource.eks_cluster_details.created_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the specified EKS cluster resource was created.
-9.1.0,true,aws,aws.guardduty.resource.eks_cluster_details.name,keyword,custom,,example-name,The user-defined name identifying the EKS cluster involved in finding.
-9.1.0,true,aws,aws.guardduty.resource.eks_cluster_details.status,keyword,custom,,example-status,"The current operational status of the EKS cluster (e.g., ACTIVE)."
-9.1.0,true,aws,aws.guardduty.resource.eks_cluster_details.tags,nested,custom,,,Key-value tags that are associated with the EKS cluster resource.
-9.1.0,true,aws,aws.guardduty.resource.eks_cluster_details.vpcid,keyword,custom,,example-vpcid,The VPC ID associated with the EKS cluster identified in finding.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.availability_zone,keyword,custom,,example-availability_zone,The Availability Zone where the EC2 instance is currently located.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.iaminstance_profile,nested,custom,,,Details of the IAM instance profile attached to the EC2 instance.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.image.description,keyword,custom,,example-description,Textual description of the AMI used to launch the instance.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.image.id,keyword,custom,,example-id,The unique identifier (AMI ID) of the image used for instance.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.instance.id,keyword,custom,,example-id,The unique instance ID of the EC2 resource involved in finding.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.instance.state,keyword,custom,,example-state,"The current operational state of the EC2 instance (e.g., running)."
-9.1.0,true,aws,aws.guardduty.resource.instance_details.instance.type,keyword,custom,,example-type,"The type classification of the EC2 instance (e.g., t2.micro)."
-9.1.0,true,aws,aws.guardduty.resource.instance_details.launch_time,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the EC2 instance was initially launched successfully.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.network_interfaces,nested,custom,,,Details regarding network interfaces attached to the specific EC2 instance.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.outpost_arn,keyword,custom,,example-outpost_arn,The ARN of the AWS Outpost if the instance resides there.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.platform,keyword,custom,,example-platform,"The operating system platform of the instance (e.g., Linux, Windows)."
-9.1.0,true,aws,aws.guardduty.resource.instance_details.product_codes,nested,custom,,,Product codes associated with the AMI used by the EC2 instance.
-9.1.0,true,aws,aws.guardduty.resource.instance_details.tags,nested,custom,,,Key-value tags associated with the EC2 instance resource for identification.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_user_details.groups,keyword,custom,,example-groups,An array of group names the Kubernetes user belongs to.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_user_details.uid,keyword,custom,,example-uid,The unique identifier (UID) of the Kubernetes user involved in action.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_user_details.user_name,keyword,custom,,example-user_name,The username of the Kubernetes user performing the related API call.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.containers,nested,custom,,,Details about containers that are part of the Kubernetes workload.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.host_network,boolean,custom,,True,Indicates if the Kubernetes workload is using the host network namespace.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.name,keyword,custom,,example-name,"The name assigned to the specific Kubernetes workload (e.g., deployment name)."
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.name_space,keyword,custom,,example-name_space,The Kubernetes namespace where the workload resource is currently operating.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.type,keyword,custom,,example-type,"The type of Kubernetes workload (e.g., Pod, Deployment, StatefulSet)."
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.uid,keyword,custom,,example-uid,The unique identifier (UID) associated with the Kubernetes workload resource.
-9.1.0,true,aws,aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.volumes,nested,custom,,,Information about volumes associated or used by the Kubernetes workload.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_instance_details.cluster_identifier,keyword,custom,,example-cluster_identifier,The identifier of the cluster if the RDS instance is clustered.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_instance_details.engine,keyword,custom,,example-engine,"The database engine type used by the RDS instance (e.g., mysql)."
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_instance_details.engine_version,keyword,custom,,example-engine_version,The specific version of the database engine running on instance.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_instance_details.instance_arn,keyword,custom,,example-instance_arn,The Amazon Resource Name (ARN) for the affected RDS DB instance.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_instance_details.instance_identifier,keyword,custom,,example-instance_identifier,The unique identifier for the RDS database instance resource involved.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_user_details.application,keyword,custom,,example-application,The application name reported by the client during RDS connection attempt.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_user_details.auth_method,keyword,custom,,example-auth_method,The authentication method used during the reported RDS login attempt.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_user_details.database,keyword,custom,,example-database,The name of the database the user attempted to access.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_user_details.ssl,keyword,custom,,example-ssl,Indicates the SSL status used for the database connection attempt.
-9.1.0,true,aws,aws.guardduty.resource.rdsdb_user_details.user,keyword,custom,,example-user,The database username involved in the detected RDS login attempt.
-9.1.0,true,aws,aws.guardduty.resource.s3_bucket_details,nested,custom,,,Detailed information about S3 buckets related to the security finding.
-9.1.0,true,aws,aws.guardduty.resource.type,keyword,custom,,example-type,The general type category of the AWS resource affected by finding.
-9.1.0,true,aws,aws.guardduty.schema_version,keyword,custom,,example-schema_version,The version number of the GuardDuty finding format schema being used.
-9.1.0,true,aws,aws.guardduty.service.action.dns_request_action.blocked,boolean,custom,,True,Indicates if the DNS request associated with the finding was blocked.
-9.1.0,true,aws,aws.guardduty.service.action.dns_request_action.domain,keyword,custom,,example-domain,The domain name requested in the DNS query related to finding.
-9.1.0,true,aws,aws.guardduty.service.action.dns_request_action.protocol,keyword,custom,,example-protocol,"Network protocol used for the observed DNS request (e.g., UDP)."
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.parameters,keyword,custom,,example-parameters,Parameters included in the Kubernetes API call related to the finding.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.city.name,keyword,custom,,example-name,City name associated with the remote IP making the K8s call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.country.code,keyword,custom,,example-code,Country code associated with the remote IP making the K8s call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.country.name,keyword,custom,,example-name,Country name associated with the remote IP making the K8s call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.geo_location,nested,custom,,,Geographical location details for the remote IP making the K8s call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.ip_address_v4,ip,custom,,192.168.1.1,The remote IPv4 address making the Kubernetes API call action.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.asn,keyword,custom,,example-asn,ASN associated with the remote IP making the Kubernetes API call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.asnorg,keyword,custom,,example-asnorg,ASN organization name for the remote IP making the K8s call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.isp,keyword,custom,,example-isp,ISP associated with the remote IP making the Kubernetes API call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.org,keyword,custom,,example-org,Organization name for the remote IP making the Kubernetes API call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.request_uri,keyword,custom,,example-request_uri,The specific request URI targeted by the Kubernetes API call action.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.source_ips,keyword,custom,,example-source_ips,An array containing source IP addresses involved in the K8s API call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.status_code,long,custom,,12345,The HTTP status code returned in response to the API call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.user_agent,keyword,custom,,example-user_agent,The user agent string reported by the client making API call.
-9.1.0,true,aws,aws.guardduty.service.action.kubernetes_api_call_action.verb,keyword,custom,,example-verb,"The HTTP verb (e.g., GET, POST) used in the Kubernetes API call."
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.local_port_details.port.name,keyword,custom,,example-name,"The common name associated with the local port number, if known."
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.city.name,keyword,custom,,example-name,The city name associated with the remote IP address location.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.country.code,keyword,custom,,example-code,The country code corresponding to the remote IP address location.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.country.name,keyword,custom,,example-name,The full country name associated with the remote IP address.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.geo_location,nested,custom,,,"Geographical location details (latitude, longitude) for the remote IP address."
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.ip_address_v4,ip,custom,,192.168.1.1,The remote IPv4 address involved in the network connection action.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.asn,keyword,custom,,example-asn,The Autonomous System Number (ASN) associated with the remote IP.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.asnorg,keyword,custom,,example-asnorg,The organization name associated with the ASN of the remote IP.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.isp,keyword,custom,,example-isp,The Internet Service Provider (ISP) associated with the remote IP address.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.org,keyword,custom,,example-org,The organization owning or managing the remote IP address space.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_port_details.port.name,keyword,custom,,example-name,"The common name associated with the remote port number, if known."
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.remote_port_details.port.value,long,custom,,12345,The numerical value of the remote port used in connection.
-9.1.0,true,aws,aws.guardduty.service.action.network_connection_action.transport,keyword,custom,,example-transport,"The transport protocol used for the network connection (e.g., TCP)."
-9.1.0,true,aws,aws.guardduty.service.action.port_probe_action.port_probe_details,nested,custom,,,Details about the specific ports probed during the port probe action.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.city.name,keyword,custom,,example-name,City name associated with the remote IP attempting RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.country.code,keyword,custom,,example-code,Country code associated with the remote IP attempting RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.country.name,keyword,custom,,example-name,Country name associated with the remote IP attempting RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.geo_location,nested,custom,,,Geographical location details for the remote IP attempting RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.geo_location.lat,long,custom,,12345,The latitude of the geographic location associated with the remote IP address.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.geo_location.lon,long,custom,,12345,The longitude of the geographic location associated with the remote IP address.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.ip_address_v4,ip,custom,,192.168.1.1,The remote IPv4 address attempting the RDS database login action.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.asn,keyword,custom,,example-asn,ASN associated with the remote IP attempting the RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.asnorg,keyword,custom,,example-asnorg,ASN organization name for the remote IP attempting RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.isp,keyword,custom,,example-isp,ISP associated with the remote IP attempting the RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.org,keyword,custom,,example-org,Organization name for the remote IP attempting the RDS login.
-9.1.0,true,aws,aws.guardduty.service.action.type,keyword,custom,,example-type,"The type of action observed by GuardDuty (e.g., NETWORK_CONNECTION, DNS_REQUEST)."
-9.1.0,true,aws,aws.guardduty.service.additional_info,keyword,custom,,example-additional_info,Contains supplementary information specific to the particular GuardDuty finding type.
-9.1.0,true,aws,aws.guardduty.service.archived,boolean,custom,,True,Indicates whether the finding has been archived within GuardDuty console.
-9.1.0,true,aws,aws.guardduty.service.count,long,custom,,12345,The aggregated count of similar events contributing to this finding.
-9.1.0,true,aws,aws.guardduty.service.detector_id,keyword,custom,,example-detector_id,The unique identifier of the GuardDuty detector that generated finding.
-9.1.0,true,aws,aws.guardduty.service.event.first_seen,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the first event related to finding occurred.
-9.1.0,true,aws,aws.guardduty.service.event.last_seen,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the most recent event related finding occurred.
-9.1.0,true,aws,aws.guardduty.service.evidence.threat_intelligence_details,nested,custom,,,Provides supporting evidence details related to the detected security finding.
-9.1.0,true,aws,aws.guardduty.service.feature_name,keyword,custom,,example-feature_name,The specific GuardDuty feature name that generated the current finding.
-9.1.0,true,aws,aws.guardduty.service.resource_role,keyword,custom,,example-resource_role,"Identifies the role of the resource in the finding (e.g., TARGET)."
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.address_family,keyword,custom,,example-address_family,"Network address family observed in runtime event (e.g., INET, INET6)."
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.command_line_example,keyword,custom,,example-command_line_example,An example command line associated with the detected runtime activity.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.file_system_type,keyword,custom,,example-file_system_type,The type of file system involved in the runtime context finding.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.flags,keyword,custom,,example-flags,An array of flags related to the specific runtime context event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.iana_protocol_number,keyword,custom,,example-iana_protocol_number,The IANA protocol number related to the network activity observed.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.ld_preload,keyword,custom,,example-ld_preload,The value of LD_PRELOAD environment variable related to the event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.library_path,keyword,custom,,example-library_path,The library path value associated with the runtime detection context.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.memory_regions,keyword,custom,,example-memory_regions,Regions of memory involved or targeted in the runtime finding.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.modified_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the resource within the context was modified.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.modifying_process,nested,custom,,,Details about the process responsible for modifications detected during runtime.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.module_file_path,keyword,custom,,example-module_file_path,File path of the kernel module related to the runtime event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.module_name,keyword,custom,,example-module_name,Name of the kernel module associated with the runtime finding.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.module_sha256,keyword,custom,,example-module_sha256,The SHA256 hash of the kernel module related to the event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.mount_source,keyword,custom,,example-mount_source,The source path used in the file system mount operation event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.mount_target,keyword,custom,,example-mount_target,The target path used in the file system mount operation event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.release_agent_path,keyword,custom,,example-release_agent_path,Path to the release agent involved in the runtime context.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.runc_binary_path,keyword,custom,,example-runc_binary_path,The file path to the runC binary related to container event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.script_path,keyword,custom,,example-script_path,The file path of the script executed during the runtime event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.service_name,keyword,custom,,example-service_name,The name of the system service involved in the runtime context.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.shell_history_file_path,keyword,custom,,example-shell_history_file_path,The file path to the shell history file potentially modified.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.socket_path,keyword,custom,,example-socket_path,Path to the socket involved in the detected runtime communication event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.target_process,nested,custom,,,Details about the target process affected by the runtime activity.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.threat_file_path,keyword,custom,,example-threat_file_path,The file path identified as potentially malicious or related to threat.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.tool_category,keyword,custom,,example-tool_category,Category classification of the tool used in the runtime event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.context.tool_name,keyword,custom,,example-tool_name,Name of the specific tool identified during the runtime analysis.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.euid,long,custom,,12345,The effective user ID (EUID) of the process during runtime event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.executable_path,keyword,custom,,example-executable_path,The full file system path of the process executable binary.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.executable_sha256,keyword,custom,,example-executable_sha256,The SHA256 hash calculated for the process executable file content.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.lineage,nested,custom,,,Information about the parent processes related to the observed process.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.name,keyword,custom,,example-name,The name of the process observed during the runtime security event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.namespace_pid,long,custom,,12345,The process ID (PID) within its specific namespace context.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.parent_uuid,keyword,custom,,example-parent_uuid,The unique identifier (UUID) of the parent process that started this.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.pid,long,custom,,12345,The process ID (PID) of the process involved in runtime event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.pwd,keyword,custom,,example-pwd,The present working directory (PWD) of the process during event.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.start_time,date,custom,,2023-01-01T00:00:00.000Z,The timestamp indicating when the involved process actually started execution.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.user,keyword,custom,,example-user,The username associated with the process identified in the finding.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.user_id,long,custom,,12345,The user ID (UID) associated with the running process instance.
-9.1.0,true,aws,aws.guardduty.service.runtime_details.process.uuid,keyword,custom,,example-uuid,The unique identifier (UUID) assigned to this specific process instance.
-9.1.0,true,aws,aws.guardduty.service.service_name,keyword,custom,,example-service_name,The name of the AWS service that generated the finding (guardduty).
-9.1.0,true,aws,aws.guardduty.severity.code,long,custom,,12345,"The numerical severity code assigned by GuardDuty (e.g., 2.0, 5.0, 8.0)."
-9.1.0,true,aws,aws.guardduty.severity.value,keyword,custom,,example-value,"The severity label (Low, Medium, High) derived from the numerical severity code."
-9.1.0,true,aws,aws.guardduty.title,keyword,custom,,example-title,The concise title summarizing the nature of the GuardDuty finding.
-9.1.0,true,aws,aws.guardduty.type,keyword,custom,,example-type,"The specific type classification for the GuardDuty finding reported (e.g., Recon:EC2/PortProbeUnprotectedPort)."
-9.1.0,true,aws,aws.guardduty.updated_at,date,custom,,2023-01-01T00:00:00.000Z,The timestamp indicating the last time the finding was updated by GuardDuty.
-9.1.0,true,aws,aws.inspector.aws_account_id,keyword,custom,,example-aws_account_id,The twelve-digit AWS account ID where the Inspector finding was generated.
-9.1.0,true,aws,aws.inspector.description,keyword,custom,,example-description,A detailed textual description of the AWS Inspector finding identified.
-9.1.0,true,aws,aws.inspector.finding_arn,keyword,custom,,example-finding_arn,The unique Amazon Resource Name (ARN) identifying the specific Inspector finding.
-9.1.0,true,aws,aws.inspector.first_observed_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when this finding was first observed by AWS Inspector.
-9.1.0,true,aws,aws.inspector.fix_available,keyword,custom,,example-fix_available,Indicates whether a fix is available for the reported finding (YES/NO/PARTIAL).
-9.1.0,true,aws,aws.inspector.inspector_score,float,custom,,,The overall score assigned by AWS Inspector based on its assessment.
-9.1.0,true,aws,aws.inspector.inspector_score_details.adjusted_cvss.adjustments,nested,custom,,,Details about adjustments made to the CVSS score by Inspector.
-9.1.0,true,aws,aws.inspector.inspector_score_details.adjusted_cvss.cvss_source,keyword,custom,,example-cvss_source,Source information regarding the base CVSS score used for adjustment calculation.
-9.1.0,true,aws,aws.inspector.inspector_score_details.adjusted_cvss.score.source,keyword,custom,,example-source,"The source providing the base CVSS score value (e.g., NVD)."
-9.1.0,true,aws,aws.inspector.inspector_score_details.adjusted_cvss.score.value,float,custom,,,The final adjusted CVSS score after applying Inspector's contextual adjustments.
-9.1.0,true,aws,aws.inspector.inspector_score_details.adjusted_cvss.scoring_vector,keyword,custom,,example-scoring_vector,The CVSS scoring vector string representing the detailed base metrics.
-9.1.0,true,aws,aws.inspector.inspector_score_details.adjusted_cvss.version,keyword,custom,,example-version,"The version number of the CVSS standard used for scoring (e.g., 3.1)."
-9.1.0,true,aws,aws.inspector.last_observed_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating the most recent time this finding was observed.
-9.1.0,true,aws,aws.inspector.network_reachability_details.network_path.steps,nested,custom,,,Detailed steps outlining the network path identified in the reachability finding.
-9.1.0,true,aws,aws.inspector.network_reachability_details.open_port_range.begin,long,custom,,12345,The starting port number of the open range in reachability finding.
-9.1.0,true,aws,aws.inspector.network_reachability_details.open_port_range.end,long,custom,,12345,The ending port number of the open range in reachability finding.
-9.1.0,true,aws,aws.inspector.network_reachability_details.protocol,keyword,custom,,example-protocol,"The network protocol associated with the reachability finding (e.g., TCP)."
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.cvss,nested,custom,,,Contains CVSS score details associated with the specific package vulnerability.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.reference_urls,keyword,custom,,example-reference_urls,An array of URLs providing reference information for the vulnerability.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.related_vulnerabilities,keyword,custom,,example-related_vulnerabilities,An array of identifiers for vulnerabilities related to this finding.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.source.url,nested,custom,,,Parsed URI components pointing to the source of the vulnerability data.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.source.value,keyword,custom,,example-value,"The source from which the vulnerability information was obtained (e.g., NVD)."
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.vendor.created_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp when the vendor first published information about the vulnerability.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.vendor.severity,keyword,custom,,example-severity,The severity level assigned to the vulnerability by the vendor.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.vendor.updated_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp when the vendor last updated information about the vulnerability.
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.vulnerability_id,keyword,custom,,example-vulnerability_id,"The unique identifier for the vulnerability (e.g., CVE-2023-12345)."
-9.1.0,true,aws,aws.inspector.package_vulnerability_details.vulnerable_packages,nested,custom,,,Details about the specific software packages identified as vulnerable.
-9.1.0,true,aws,aws.inspector.remediation.recommendation.text,keyword,custom,,example-text,Textual description of the recommended steps to remediate the finding.
-9.1.0,true,aws,aws.inspector.remediation.recommendation.url,nested,custom,,,Parsed URI components linking to detailed remediation recommendations or information.
-9.1.0,true,aws,aws.inspector.resources,nested,custom,,,Details about the specific AWS resources affected by this finding.
-9.1.0,true,aws,aws.inspector.severity,keyword,custom,,example-severity,"The severity level assigned to the finding (e.g., HIGH, MEDIUM, LOW)."
-9.1.0,true,aws,aws.inspector.status,keyword,custom,,example-status,"The current status of the finding within Inspector (e.g., ACTIVE, SUPPRESSED)."
-9.1.0,true,aws,aws.inspector.title,keyword,custom,,example-title,A concise title summarizing the nature of the Inspector security finding.
-9.1.0,true,aws,aws.inspector.type,keyword,custom,,example-type,"The type classification of the finding (e.g., PACKAGE_VULNERABILITY, NETWORK_REACHABILITY)."
-9.1.0,true,aws,aws.inspector.updated_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating the last time this specific finding was updated.
-9.1.0,true,aws,aws.instance_id,keyword,custom,,example-instance_id,The EC2 instance ID from which the DNS query was initiated.
-9.1.0,true,aws,aws.kinesis.name,keyword,custom,,example-name,Name of the Amazon Kinesis stream used as a data source for Firehose
-9.1.0,true,aws,aws.kinesis.stream.name,keyword,custom,,example-name,Name of the specific Amazon Kinesis Data Stream
-9.1.0,true,aws,aws.kinesis.type,keyword,custom,,example-type,Type of Amazon Kinesis service being used (typically 'deliverystream' or 'stream')
-9.1.0,true,aws,aws.lambda.function.name,keyword,custom,,example-name,Name of the AWS Lambda function associated with the log or metric data
-9.1.0,true,aws,aws.rds.db_instance_identifier,keyword,custom,,example-db_instance_identifier,Unique identifier for the Amazon RDS database instance
-9.1.0,true,aws,aws.region,keyword,custom,,example-region,The AWS region where the event occurred.
-9.1.0,true,aws,aws.route53.edge_location,keyword,custom,,example-edge_location,The AWS edge location that received the DNS query request initially.
-9.1.0,true,aws,aws.route53.edns_client_subnet,keyword,custom,,example-edns_client_subnet,The EDNS client subnet information included in the DNS query request.
-9.1.0,true,aws,aws.route53.firewall.action,keyword,custom,,example-action,"The action taken by Route 53 Resolver DNS Firewall (e.g., ALLOW, BLOCK)."
-9.1.0,true,aws,aws.route53.firewall.dns.answers,nested,custom,,,The DNS answers returned by Route 53 Resolver DNS Firewall for the query.
-9.1.0,true,aws,aws.route53.firewall.domain_list.id,keyword,custom,,example-id,The unique identifier of the firewall domain list that was matched.
-9.1.0,true,aws,aws.route53.firewall.rule_group.id,keyword,custom,,example-id,The unique identifier of the firewall rule group that was matched.
-9.1.0,true,aws,aws.route53.hosted_zone_id,keyword,custom,,example-hosted_zone_id,The unique identifier for the Route 53 public hosted zone queried.
-9.1.0,true,aws,aws.s3.bucket.arn,keyword,custom,,example-arn,The ARN of the S3 bucket involved in the event.
-9.1.0,true,aws,aws.s3.bucket.name,keyword,custom,,example-name,The name of the S3 bucket involved in the event.
-9.1.0,true,aws,aws.s3.name,keyword,custom,,example-name,"The name of the S3 event (e.g., ObjectCreated:Put)."
-9.1.0,true,aws,aws.s3.object.e_tag,keyword,custom,,example-e_tag,The ETag of the S3 object.
-9.1.0,true,aws,aws.s3.object.key,keyword,custom,,example-key,The key (path) of the S3 object involved in the event.
-9.1.0,true,aws,aws.s3.object.sequencer,keyword,custom,,example-sequencer,The sequencer value for the S3 event.
-9.1.0,true,aws,aws.s3.object.size,long,custom,,12345,The size of the S3 object in bytes.
-9.1.0,true,aws,aws.s3.source,keyword,custom,,example-source,The source of the S3 event notification.
-9.1.0,true,aws,aws.s3.time,date,custom,,2023-01-01T00:00:00.000Z,The time the S3 event occurred.
-9.1.0,true,aws,aws.s3.user.identity.principal_id,keyword,custom,,example-principal_id,principal_id: The principal ID of the user who triggered the S3 event.
-9.1.0,true,aws,aws.s3access.access_point_arn,keyword,custom,,example-access_point_arn,The Amazon Resource Name (ARN) of the access point receiving request.
-9.1.0,true,aws,aws.s3access.aclrequired,keyword,custom,,example-aclrequired,Indicates if an Access Control List (ACL) was required for request.
-9.1.0,true,aws,aws.s3access.authentication_type,keyword,custom,,example-authentication_type,"The type of authentication used for the request (e.g., AuthHeader, QueryString)."
-9.1.0,true,aws,aws.s3access.bucket,keyword,custom,,example-bucket,The name of the S3 bucket that the request was processed against.
-9.1.0,true,aws,aws.s3access.bucket_owner,keyword,custom,,example-bucket_owner,The canonical user ID of the owner of the source S3 bucket.
-9.1.0,true,aws,aws.s3access.bytes_sent,long,custom,,12345,The total number of response bytes sent from S3 for request.
-9.1.0,true,aws,aws.s3access.cipher_suite,keyword,custom,,example-cipher_suite,The SSL cipher suite negotiated for the secure HTTPS connection used.
-9.1.0,true,aws,aws.s3access.error_code,keyword,custom,,example-error_code,The S3 error code if the request returned an error response.
-9.1.0,true,aws,aws.s3access.host_header,keyword,custom,,example-host_header,The endpoint specified in the Host header of the HTTP request.
-9.1.0,true,aws,aws.s3access.host_id,keyword,custom,,example-host_id,"The S3 host ID serving the request, aiding in AWS support."
-9.1.0,true,aws,aws.s3access.http_status,long,custom,,12345,The numerical HTTP status code returned by S3 for the request.
-9.1.0,true,aws,aws.s3access.key,keyword,custom,,example-key,"The object key specified in the S3 request, URL-encoded."
-9.1.0,true,aws,aws.s3access.object_size,long,custom,,12345,The total size in bytes of the object specified in request.
-9.1.0,true,aws,aws.s3access.operation,keyword,custom,,example-operation,"The type of S3 REST operation performed (e.g., GET.OBJECT, PUT.OBJECT)."
-9.1.0,true,aws,aws.s3access.referrer,keyword,custom,,example-referrer,The value of the Referer header from the incoming HTTP request.
-9.1.0,true,aws,aws.s3access.remote_ip,ip,custom,,192.168.1.1,The apparent internet address of the entity making the S3 request.
-9.1.0,true,aws,aws.s3access.request_id,keyword,custom,,example-request_id,The unique string generated by S3 to uniquely identify the request.
-9.1.0,true,aws,aws.s3access.request_uri,keyword,custom,,example-request_uri,The raw Request-URI part of the HTTP request line sent to S3.
-9.1.0,true,aws,aws.s3access.requester,keyword,custom,,example-requester,The canonical user ID or ARN of the user making the request.
-9.1.0,true,aws,aws.s3access.signature_version,keyword,custom,,example-signature_version,"The signature version (e.g., SigV4) used to authenticate the request."
-9.1.0,true,aws,aws.s3access.tls_version,keyword,custom,,example-tls_version,The Transport Layer Security (TLS) version negotiated for the connection.
-9.1.0,true,aws,aws.s3access.total_time,long,custom,,12345,The total time in milliseconds the request was being processed by S3.
-9.1.0,true,aws,aws.s3access.turn_around_time,long,custom,,12345,The time in milliseconds S3 spent processing the request internally.
-9.1.0,true,aws,aws.s3access.user_agent,keyword,custom,,example-user_agent,The value of the User-Agent header identifying the client application.
-9.1.0,true,aws,aws.s3access.version_id,keyword,custom,,example-version_id,The version ID of the object involved in the S3 request.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.affected_resources,nested,custom,,,Provides details about the resources specifically affected by the API call.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.api,keyword,custom,,example-api,The specific AWS API method name that was invoked for action.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.caller.type,keyword,custom,,example-type,Indicates the type of principal that invoked the detected API call.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.domain_details.domain,keyword,custom,,example-domain,"The domain name associated with the API call action, if applicable."
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.city.name,keyword,custom,,example-name,The city name derived from the remote IP address making call.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.country.code,keyword,custom,,example-code,The country code derived from the remote IP address location.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.country.name,keyword,custom,,example-name,The country name derived from the remote IP address location.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.geolocation.latitude,float,custom,,,The latitude coordinate associated with the remote IP address geolocation.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.geolocation.longitude,float,custom,,,The longitude coordinate associated with the remote IP address geolocation.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.ip.address_v4,ip,custom,,192.168.1.1,The IPv4 address of the remote host making the API call.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.organization.asn,keyword,custom,,example-asn,The Autonomous System Number (ASN) associated with the remote IP address.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.organization.asn_organization,keyword,custom,,example-asn_organization,The name of the organization associated with the remote IP's ASN.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.organization.internet_provider,keyword,custom,,example-internet_provider,The name of the organization registered to the remote IP address.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.remote_ip.organization.internet_service_provider,keyword,custom,,example-internet_service_provider,The Internet Service Provider (ISP) associated with the remote IP address.
-9.1.0,true,aws,aws.securityhub_findings.action.aws_api_call.service.name,keyword,custom,,example-name,The AWS service name where the API call action was invoked.
-9.1.0,true,aws,aws.securityhub_findings.action.dns_request.blocked,boolean,custom,,True,Indicates whether the DNS request action was blocked by security controls.
-9.1.0,true,aws,aws.securityhub_findings.action.dns_request.domain,keyword,custom,,example-domain,The domain name that was requested in the observed DNS query.
-9.1.0,true,aws,aws.securityhub_findings.action.dns_request.protocol,keyword,custom,,example-protocol,The network protocol used for the detected DNS request action observed.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.blocked,boolean,custom,,True,Indicates whether the network connection action was blocked by controls.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.direction,keyword,custom,,example-direction,"The direction of the network connection observed (e.g., INBOUND, OUTBOUND)."
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.local.port.name,keyword,custom,,example-name,"The common name associated with the local port number, if known."
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.local.port.number,long,custom,,12345,The local port number involved in the detected network connection action.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.protocol,keyword,custom,,example-protocol,"The network protocol used for the detected network connection (e.g., TCP)."
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote.port.name,keyword,custom,,example-name,"The common name associated with the remote port number, if known."
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote.port.number,long,custom,,12345,The remote port number involved in the detected network connection action.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.city.name,keyword,custom,,example-name,The city name derived from the remote IP address in connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.country.code,keyword,custom,,example-code,The country code derived from the remote IP address in connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.country.name,keyword,custom,,example-name,The country name derived from the remote IP address in connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.geolocation.latitude,float,custom,,,The latitude coordinate associated with the remote IP in the connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.geolocation.longitude,float,custom,,,The longitude coordinate associated with the remote IP in the connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.ip.address_v4,ip,custom,,192.168.1.1,The IPv4 address of the remote host in the network connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.organization.asn,keyword,custom,,example-asn,The ASN associated with the remote IP address in the connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.organization.asn_organization,keyword,custom,,example-asn_organization,The ASN organization name for the remote IP in the connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.organization.internet_provider,keyword,custom,,example-internet_provider,The organization name registered to the remote IP in the connection.
-9.1.0,true,aws,aws.securityhub_findings.action.network_connection.remote_ip.organization.internet_service_provider,keyword,custom,,example-internet_service_provider,The ISP associated with the remote IP address in the connection.
-9.1.0,true,aws,aws.securityhub_findings.action.port_probe.blocked,boolean,custom,,True,Indicates whether the port probe action was blocked by security controls.
-9.1.0,true,aws,aws.securityhub_findings.action.port_probe.details,nested,custom,,,Contains detailed information about the ports included in the probe action.
-9.1.0,true,aws,aws.securityhub_findings.action.type,keyword,custom,,example-type,The type of action that was detected for the finding.
-9.1.0,true,aws,aws.securityhub_findings.aws_account_id,keyword,custom,,example-aws_account_id,The twelve-digit AWS account ID associated with the Security Hub finding.
-9.1.0,true,aws,aws.securityhub_findings.company.name,keyword,custom,,example-name,The name of the company that owns the product generating finding.
-9.1.0,true,aws,aws.securityhub_findings.compliance.related_requirements,keyword,custom,,example-related_requirements,An array of requirements related to the compliance status check reported.
-9.1.0,true,aws,aws.securityhub_findings.compliance.security_control_id,keyword,custom,,example-security_control_id,The unique identifier of the security control related to the finding.
-9.1.0,true,aws,aws.securityhub_findings.compliance.status,keyword,custom,,example-status,The compliance status of the resource related to the security control.
-9.1.0,true,aws,aws.securityhub_findings.compliance.status_reasons,nested,custom,,,Provides reasons for the current compliance status for the resource.
-9.1.0,true,aws,aws.securityhub_findings.confidence,long,custom,,12345,The level of confidence (0-100) in the accuracy of the finding.
-9.1.0,true,aws,aws.securityhub_findings.created_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the finding record was initially created in Hub.
-9.1.0,true,aws,aws.securityhub_findings.criticality,long,custom,,12345,The level of importance (0-100) assigned to the resource associated.
-9.1.0,true,aws,aws.securityhub_findings.description,keyword,custom,,example-description,A detailed description of the Security Hub finding providing context.
-9.1.0,true,aws,aws.securityhub_findings.first_observed_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the potential security issue was first observed.
-9.1.0,true,aws,aws.securityhub_findings.generator.id,keyword,custom,,example-id,The identifier for the solution-specific component generating the resource finding.
-9.1.0,true,aws,aws.securityhub_findings.id,keyword,custom,,example-id,The unique identifier assigned to the finding by AWS Security Hub.
-9.1.0,true,aws,aws.securityhub_findings.last_observed_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the potential security issue was most recently observed.
-9.1.0,true,aws,aws.securityhub_findings.malware,nested,custom,,,Provides details about malware detected that is related to finding.
-9.1.0,true,aws,aws.securityhub_findings.network.destination.domain,keyword,custom,,example-domain,The destination domain name involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.destination.ip.v4,ip,custom,,192.168.1.1,The destination IPv4 address involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.destination.ip.v6,ip,custom,,192.168.1.1,The destination IPv6 address involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.destination.port,keyword,custom,,example-port,The destination port number involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.direction,keyword,custom,,example-direction,"The direction of the network traffic observed (e.g., IN, OUT)."
-9.1.0,true,aws,aws.securityhub_findings.network.open_port_range.begin,long,custom,,12345,The starting port number of an open range on the resource.
-9.1.0,true,aws,aws.securityhub_findings.network.open_port_range.end,long,custom,,12345,The ending port number of an open range on the resource.
-9.1.0,true,aws,aws.securityhub_findings.network.protocol,keyword,custom,,example-protocol,"The network protocol used in the observed network traffic (e.g., TCP)."
-9.1.0,true,aws,aws.securityhub_findings.network.source.domain,keyword,custom,,example-domain,The source domain name involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.source.ip.v4,ip,custom,,192.168.1.1,The source IPv4 address involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.source.ip.v6,ip,custom,,192.168.1.1,The source IPv6 address involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.source.mac,keyword,custom,,example-mac,The source MAC address involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network.source.port,keyword,custom,,example-port,The source port number involved in the observed network traffic.
-9.1.0,true,aws,aws.securityhub_findings.network_path,nested,custom,,,Details about the network path associated with the current finding.
-9.1.0,true,aws,aws.securityhub_findings.note.text,keyword,custom,,example-text,The text content of the note added to the finding.
-9.1.0,true,aws,aws.securityhub_findings.note.updated_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the note associated with the finding was updated.
-9.1.0,true,aws,aws.securityhub_findings.note.updated_by,keyword,custom,,example-updated_by,The principal that added or updated the note for the finding.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.failed.count,keyword,custom,,example-count,The number of patches that failed to install successfully.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.id,keyword,custom,,example-id,The identifier for the patch compliance summary related to finding.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.installed.count,keyword,custom,,example-count,The number of patches that installed successfully on the resource.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.installed.other.count,keyword,custom,,example-count,Number of installed patches not related to common security updates.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.installed.pending_reboot,keyword,custom,,example-pending_reboot,Number of installed patches that require a system reboot.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.installed.rejected.count,keyword,custom,,example-count,The number of installed patches that were subsequently rejected.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.missing.count,keyword,custom,,example-count,The number of patches that are missing from the resource.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.operation.end_time,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the patch operation concluded for the resource.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.operation.start_time,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the patch operation began for the resource.
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.operation.type,keyword,custom,,example-type,"The type of patch operation performed (e.g., Scan, Install)."
-9.1.0,true,aws,aws.securityhub_findings.patch_summary.reboot_option,keyword,custom,,example-reboot_option,"The reboot option specified for the patch operation (e.g., RebootIfNeeded)."
-9.1.0,true,aws,aws.securityhub_findings.process.launched_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the observed process instance was initially launched.
-9.1.0,true,aws,aws.securityhub_findings.process.name,keyword,custom,,example-name,The name of the process observed in the context of finding.
-9.1.0,true,aws,aws.securityhub_findings.process.parent.pid,long,custom,,12345,The process ID (PID) of the parent of the observed process.
-9.1.0,true,aws,aws.securityhub_findings.process.path,keyword,custom,,example-path,The file system path of the executable for the observed process.
-9.1.0,true,aws,aws.securityhub_findings.process.pid,long,custom,,12345,The process ID (PID) of the observed process related to finding.
-9.1.0,true,aws,aws.securityhub_findings.process.terminated_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating when the observed process instance was finally terminated.
-9.1.0,true,aws,aws.securityhub_findings.product.arn,keyword,custom,,example-arn,The ARN generated by Security Hub for the product reporting findings.
-9.1.0,true,aws,aws.securityhub_findings.product.fields,nested,custom,,,Contains product-specific fields associated with the finding not mapped elsewhere.
-9.1.0,true,aws,aws.securityhub_findings.product.name,keyword,custom,,example-name,The name of the AWS service or product reporting the finding.
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.confidence,long,custom,,12345,The finding provider's assessment of the accuracy confidence level (0-100).
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.criticality,long,custom,,12345,The finding provider's assessment of the resource's criticality level (0-100).
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.related_findings,nested,custom,,,Provides details about findings related to this finding from the provider.
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.severity.label,keyword,custom,,example-label,"The severity label assigned by the finding provider (e.g., HIGH)."
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.severity.normalized,keyword,custom,,example-normalized,The finding provider's severity value normalized to the Security Hub scale.
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.severity.original,keyword,custom,,example-original,The original severity value assigned by the finding provider product.
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.severity.product,keyword,custom,,example-product,The severity assigned by the product normalized to provider's scale.
-9.1.0,true,aws,aws.securityhub_findings.provider_fields.types,keyword,custom,,example-types,One or more finding types assigned by the finding provider product.
-9.1.0,true,aws,aws.securityhub_findings.record_state,keyword,custom,,example-record_state,Indicates the current state of the finding record (ACTIVE/ARCHIVED).
-9.1.0,true,aws,aws.securityhub_findings.region,keyword,custom,,example-region,The AWS Region where the finding event was generated or occurred.
-9.1.0,true,aws,aws.securityhub_findings.related_findings,nested,custom,,,Details about other findings that are related to the current finding.
-9.1.0,true,aws,aws.securityhub_findings.remediation.recommendation.text,keyword,custom,,example-text,Text describing the recommended steps to remediate the identified finding.
-9.1.0,true,aws,aws.securityhub_findings.remediation.recommendation.url,keyword,custom,,example-url,A URL linking to additional information about the finding remediation.
-9.1.0,true,aws,aws.securityhub_findings.resources,nested,custom,,,Contains details about the AWS resources affected by the finding.
-9.1.0,true,aws,aws.securityhub_findings.sample,boolean,custom,,True,Indicates whether the current finding is a sample finding from Hub.
-9.1.0,true,aws,aws.securityhub_findings.schema.version,keyword,custom,,example-version,The schema version number of the AWS Security Finding Format used.
-9.1.0,true,aws,aws.securityhub_findings.severity.label,keyword,custom,,example-label,"The severity label assigned by Security Hub (e.g., HIGH, MEDIUM, LOW)."
-9.1.0,true,aws,aws.securityhub_findings.severity.normalized,keyword,custom,,example-normalized,The finding severity normalized to a 0-100 scale by Security Hub.
-9.1.0,true,aws,aws.securityhub_findings.severity.original,keyword,custom,,example-original,The original severity value as assigned by the finding originating product.
-9.1.0,true,aws,aws.securityhub_findings.severity.product,keyword,custom,,example-product,The product's severity value normalized to its own scale (0-100).
-9.1.0,true,aws,aws.securityhub_findings.source_url,keyword,custom,,example-source_url,A URL pointing to the source of the finding information details.
-9.1.0,true,aws,aws.securityhub_findings.threat_intel_indicators,nested,custom,,,Provides details about threat intelligence indicators related to the finding.
-9.1.0,true,aws,aws.securityhub_findings.title,keyword,custom,,example-title,A concise title summarizing the nature of the Security Hub finding.
-9.1.0,true,aws,aws.securityhub_findings.types,keyword,custom,,example-types,One or more finding types using the ASFF format classification taxonomy.
-9.1.0,true,aws,aws.securityhub_findings.updated_at,date,custom,,2023-01-01T00:00:00.000Z,Timestamp indicating the last time the finding record was updated.
-9.1.0,true,aws,aws.securityhub_findings.user_defined_fields,nested,custom,,,Contains custom key-value fields added by the user to finding.
-9.1.0,true,aws,aws.securityhub_findings.verification_state,keyword,custom,,example-verification_state,"The verification state of the finding (e.g., UNKNOWN, TRUE_POSITIVE, FALSE_POSITIVE)."
-9.1.0,true,aws,aws.securityhub_findings.vulnerabilities,nested,custom,,,Provides details about vulnerabilities associated with the current Security Hub finding.
-9.1.0,true,aws,aws.securityhub_findings.workflow.state,keyword,custom,,example-state,The workflow state of the finding as reported by the finding provider.
-9.1.0,true,aws,aws.securityhub_findings.workflow.status,keyword,custom,,example-status,"The workflow status assigned to the finding (e.g., NEW, NOTIFIED, RESOLVED)."
-9.1.0,true,aws,aws.securityhub_insights.filters.aws_account_id,nested,custom,,,Filter criteria based on the AWS account ID associated with findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.company.name,nested,custom,,,Filter criteria based on the company name of the finding product.
-9.1.0,true,aws,aws.securityhub_insights.filters.compliance.status,nested,custom,,,Filter criteria based on the compliance status of the finding resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.confidence,nested,custom,,,Filter criteria based on the confidence level range of the findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.created_at,nested,custom,,,Filter criteria based on the creation timestamp range of the findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.criticality,nested,custom,,,Filter criteria based on the criticality level range of the findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.description,nested,custom,,,Filter criteria based on matching text within the finding's description field.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.confidence,nested,custom,,,Filter criteria based on the confidence range from finding provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.criticality,nested,custom,,,Filter criteria based on the criticality range from finding provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.related_findings.id,nested,custom,,,Filter criteria based on the ID of related findings in provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.related_findings.product.arn,nested,custom,,,Filter criteria based on product ARN of related findings provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.severity.label,nested,custom,,,Filter criteria based on the severity label from finding provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.severity.original,nested,custom,,,Filter criteria based on original severity value from finding provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.finding_provider_fields.types,nested,custom,,,Filter criteria based on the finding types from finding provider fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.first_observed_at,nested,custom,,,Filter criteria based on the first observed timestamp range of findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.generator.id,nested,custom,,,Filter criteria based on the generator ID associated with the findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.id,nested,custom,,,Filter criteria based on the Security Hub finding ID itself.
-9.1.0,true,aws,aws.securityhub_insights.filters.keyword,nested,custom,,,Filter criteria based on general keyword matches across multiple finding fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.last_observed_at,nested,custom,,,Filter criteria based on the last observed timestamp range of findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.malware.name,nested,custom,,,Filter criteria based on the name of the malware identified.
-9.1.0,true,aws,aws.securityhub_insights.filters.malware.path,nested,custom,,,Filter criteria based on the file path associated with the malware.
-9.1.0,true,aws,aws.securityhub_insights.filters.malware.state,nested,custom,,,Filter criteria based on the state of the identified malware.
-9.1.0,true,aws,aws.securityhub_insights.filters.malware.type,nested,custom,,,Filter criteria based on the type classification of the identified malware.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.destination.domain,nested,custom,,,Filter criteria based on the destination domain involved in network activity.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.destination.ip.v4,nested,custom,,,Filter criteria based on the destination IPv4 address or CIDR range.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.destination.ip.v6,nested,custom,,,Filter criteria based on the destination IPv6 address or CIDR range.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.destination.port,nested,custom,,,Filter criteria based on the destination port number range in network activity.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.direction,nested,custom,,,Filter criteria based on the direction of the observed network traffic.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.protocol,nested,custom,,,Filter criteria based on the network protocol used in the activity.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.source.domain,nested,custom,,,Filter criteria based on the source domain involved in network activity.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.source.ip.v4,nested,custom,,,Filter criteria based on the source IPv4 address or CIDR range.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.source.ip.v6,nested,custom,,,Filter criteria based on the source IPv6 address or CIDR range.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.source.mac,nested,custom,,,Filter criteria based on the source MAC address in network activity.
-9.1.0,true,aws,aws.securityhub_insights.filters.network.source.port,nested,custom,,,Filter criteria based on the source port number range in network activity.
-9.1.0,true,aws,aws.securityhub_insights.filters.note.text,nested,custom,,,Filter criteria based on matching text within the finding's note field.
-9.1.0,true,aws,aws.securityhub_insights.filters.note.updated_at,nested,custom,,,Filter criteria based on the update timestamp range of finding notes.
-9.1.0,true,aws,aws.securityhub_insights.filters.note.updated_by,nested,custom,,,Filter criteria based on the principal who last updated finding note.
-9.1.0,true,aws,aws.securityhub_insights.filters.process.launched_at,nested,custom,,,Filter criteria based on the launch timestamp range of related processes.
-9.1.0,true,aws,aws.securityhub_insights.filters.process.name,nested,custom,,,Filter criteria based on the name of the process involved.
-9.1.0,true,aws,aws.securityhub_insights.filters.process.parent.pid,nested,custom,,,Filter criteria based on the parent process ID range involved.
-9.1.0,true,aws,aws.securityhub_insights.filters.process.path,nested,custom,,,Filter criteria based on the executable path of the process involved.
-9.1.0,true,aws,aws.securityhub_insights.filters.process.pid,nested,custom,,,Filter criteria based on the process ID range involved.
-9.1.0,true,aws,aws.securityhub_insights.filters.process.terminated_at,nested,custom,,,Filter criteria based on the termination timestamp range of related processes.
-9.1.0,true,aws,aws.securityhub_insights.filters.product.arn,nested,custom,,,Filter criteria based on the ARN of the product generating findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.product.fields,nested,custom,,,Filter criteria based on key-value pairs within the product fields data.
-9.1.0,true,aws,aws.securityhub_insights.filters.product.name,nested,custom,,,Filter criteria based on the name of the product generating findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.recommendation_text,nested,custom,,,Filter criteria based on matching text within the finding's recommendation field.
-9.1.0,true,aws,aws.securityhub_insights.filters.record_state,nested,custom,,,Filter criteria based on the record state of the finding (ACTIVE/ARCHIVED).
-9.1.0,true,aws,aws.securityhub_insights.filters.region,nested,custom,,,Filter criteria based on the AWS Region associated with the finding.
-9.1.0,true,aws,aws.securityhub_insights.filters.related_findings.id,nested,custom,,,Filter criteria based on the finding ID of related Security Hub findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.related_findings.product.arn,nested,custom,,,Filter criteria based on product ARN of related Security Hub findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.iam_instance_profile.arn,nested,custom,,,Filter criteria based on the IAM instance profile ARN of EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.image.id,nested,custom,,,Filter criteria based on the AMI image ID of the EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.ip.v4_addresses,nested,custom,,,Filter criteria based on the IPv4 addresses associated with EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.ip.v6_addresses,nested,custom,,,Filter criteria based on the IPv6 addresses associated with EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.key.name,nested,custom,,,Filter criteria based on the key pair name of EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.launched_at,nested,custom,,,Filter criteria based on the launch timestamp range of EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.subnet.id,nested,custom,,,Filter criteria based on the subnet ID associated with EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.type,nested,custom,,,Filter criteria based on the instance type of the EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_ec2_instance.vpc.id,nested,custom,,,Filter criteria based on the VPC ID associated with EC2 resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_iam_access_key.created_at,nested,custom,,,Filter criteria based on the creation timestamp range of IAM access key.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_iam_access_key.principal.name,nested,custom,,,Filter criteria based on the principal name associated with IAM key.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_iam_access_key.status,nested,custom,,,Filter criteria based on the status of the IAM access key.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_iam_access_key.user.name,nested,custom,,,Filter criteria based on the username associated with the IAM key.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_iam_user.user.name,nested,custom,,,Filter criteria based on the username of the IAM user resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_s3_bucket.owner.id,nested,custom,,,Filter criteria based on the owner ID of S3 bucket resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.aws_s3_bucket.owner.name,nested,custom,,,Filter criteria based on the owner name of S3 bucket resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.container.image.id,nested,custom,,,Filter criteria based on the image ID of container resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.container.image.name,nested,custom,,,Filter criteria based on the image name of container resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.container.launched_at,nested,custom,,,Filter criteria based on the launch timestamp range of container resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.container.name,nested,custom,,,Filter criteria based on the name of the container resource involved.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.details_other,nested,custom,,,Filter criteria based on key-value pairs within other resource details.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.id,nested,custom,,,Filter criteria based on the identifier of the resource associated.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.partition,nested,custom,,,Filter criteria based on the AWS partition of the finding resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.region,nested,custom,,,Filter criteria based on the AWS Region of the finding resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.tags,nested,custom,,,Filter criteria based on the key-value tags of the finding resource.
-9.1.0,true,aws,aws.securityhub_insights.filters.resource.type,nested,custom,,,Filter criteria based on the type of the resource associated.
-9.1.0,true,aws,aws.securityhub_insights.filters.sample,nested,custom,,,Filter criteria based on whether the finding is a sample finding.
-9.1.0,true,aws,aws.securityhub_insights.filters.severity.label,nested,custom,,,Filter criteria based on the Security Hub normalized severity label.
-9.1.0,true,aws,aws.securityhub_insights.filters.severity.normalized,nested,custom,,,Filter criteria based on the Security Hub normalized severity score range.
-9.1.0,true,aws,aws.securityhub_insights.filters.severity.product,nested,custom,,,Filter criteria based on the product's normalized severity score range.
-9.1.0,true,aws,aws.securityhub_insights.filters.source_url,nested,custom,,,Filter criteria based on the source URL associated with the finding.
-9.1.0,true,aws,aws.securityhub_insights.filters.threat_intel_indicator.category,nested,custom,,,Filter criteria based on the category of threat intelligence indicator.
-9.1.0,true,aws,aws.securityhub_insights.filters.threat_intel_indicator.last_observed_at,nested,custom,,,Filter criteria based on last observed timestamp range of threat indicator.
-9.1.0,true,aws,aws.securityhub_insights.filters.threat_intel_indicator.source,nested,custom,,,Filter criteria based on the source of the threat intelligence indicator.
-9.1.0,true,aws,aws.securityhub_insights.filters.threat_intel_indicator.source_url,nested,custom,,,Filter criteria based on source URL of the threat intelligence indicator.
-9.1.0,true,aws,aws.securityhub_insights.filters.threat_intel_indicator.type,nested,custom,,,Filter criteria based on the type of the threat intelligence indicator.
-9.1.0,true,aws,aws.securityhub_insights.filters.threat_intel_indicator.value,nested,custom,,,Filter criteria based on the value of the threat intelligence indicator.
-9.1.0,true,aws,aws.securityhub_insights.filters.title,nested,custom,,,Filter criteria based on matching text within the finding's title field.
-9.1.0,true,aws,aws.securityhub_insights.filters.type,nested,custom,,,Filter criteria based on the ASFF type classification of the finding.
-9.1.0,true,aws,aws.securityhub_insights.filters.updated_at,nested,custom,,,Filter criteria based on the update timestamp range of the findings.
-9.1.0,true,aws,aws.securityhub_insights.filters.user_defined_fields,nested,custom,,,Filter criteria based on key-value pairs within user-defined fields.
-9.1.0,true,aws,aws.securityhub_insights.filters.verification.state,nested,custom,,,Filter criteria based on the verification state assigned to the finding.
-9.1.0,true,aws,aws.securityhub_insights.filters.workflow.state,nested,custom,,,The Filter criteria based on the workflow state of the finding.
-9.1.0,true,aws,aws.securityhub_insights.filters.workflow.status,nested,custom,,,Filter criteria based on the workflow status assigned to the finding.
-9.1.0,true,aws,aws.securityhub_insights.group_by_attribute,keyword,custom,,example-group_by_attribute,The attribute used to group findings for this Security Hub insight.
-9.1.0,true,aws,aws.securityhub_insights.insight_arn,keyword,custom,,example-insight_arn,The unique Amazon Resource Name (ARN) identifying this Security Hub insight.
-9.1.0,true,aws,aws.securityhub_insights.name,keyword,custom,,example-name,The user-defined name assigned to this specific Security Hub insight configuration.
-9.1.0,true,aws,aws.vpc_id,keyword,custom,,example-vpc_id,The identifier of the VPC where the DNS query originated from.
-9.1.0,true,aws,aws.vpcflow.account_id,keyword,custom,,example-account_id,The AWS account ID associated with the VPC Flow Log record.
-9.1.0,true,aws,aws.vpcflow.action,keyword,custom,,example-action,The action associated with the traffic (ACCEPT or REJECT).
-9.1.0,true,aws,aws.vpcflow.instance_id,keyword,custom,,example-instance_id,The EC2 instance ID associated with the network interface logged.
-9.1.0,true,aws,aws.vpcflow.interface_id,keyword,custom,,example-interface_id,The unique identifier of the elastic network interface (ENI) involved.
-9.1.0,true,aws,aws.vpcflow.log_status,keyword,custom,,example-log_status,"The logging status of the flow log record (OK, NODATA, SKIPDATA)."
-9.1.0,true,aws,aws.vpcflow.pkt_dst_service,keyword,custom,,example-pkt_dst_service,The IANA service name identified for the packet destination port/protocol.
-9.1.0,true,aws,aws.vpcflow.pkt_dstaddr,ip,custom,,192.168.1.1,The destination IP address of the packet after network address translation.
-9.1.0,true,aws,aws.vpcflow.pkt_src_service,keyword,custom,,example-pkt_src_service,The IANA service name identified for the packet source port/protocol.
-9.1.0,true,aws,aws.vpcflow.pkt_srcaddr,ip,custom,,192.168.1.1,The source IP address of the packet after network address translation.
-9.1.0,true,aws,aws.vpcflow.sublocation.id,keyword,custom,,example-id,The identifier of the sublocation where the traffic originated or terminated.
-9.1.0,true,aws,aws.vpcflow.sublocation.type,keyword,custom,,example-type,The type of the sublocation where the traffic originated or terminated.
-9.1.0,true,aws,aws.vpcflow.subnet_id,keyword,custom,,example-subnet_id,The identifier of the subnet containing the network interface logged.
-9.1.0,true,aws,aws.vpcflow.tcp_flags,keyword,custom,,example-tcp_flags,The bitmask value representing the TCP flags observed in the flow.
-9.1.0,true,aws,aws.vpcflow.tcp_flags_array,keyword,custom,,example-tcp_flags_array,"An array containing the parsed TCP flag names (e.g., syn, ack)."
-9.1.0,true,aws,aws.vpcflow.traffic_path,keyword,custom,,example-traffic_path,The path the traffic took through the network infrastructure elements.
-9.1.0,true,aws,aws.vpcflow.type,keyword,custom,,example-type,"The type of traffic recorded, typically indicating the IP version (IPv4/IPv6)."
-9.1.0,true,aws,aws.vpcflow.version,keyword,custom,,example-version,The version number of the VPC Flow Log record format used.
-9.1.0,true,aws,aws.vpcflow.vpc_id,keyword,custom,,example-vpc_id,The identifier of the VPC containing the network interface logged.
-9.1.0,true,aws,aws.waf.arn,keyword,custom,,example-arn,The Amazon Resource Name (ARN) of the WebACL that processed the request.
-9.1.0,true,aws,aws.waf.id,keyword,custom,,example-id,The identifier part extracted from the full WebACL ARN string.
-9.1.0,true,aws,aws.waf.non_terminating_matching_rules,nested,custom,,,Details about non-terminating rules that matched the incoming web request.
-9.1.0,true,aws,aws.waf.rate_based_rule_list,nested,custom,,,"Details about rate-based rules evaluated, including matched rules and actions."
-9.1.0,true,aws,aws.waf.request.headers,nested,custom,,,Contains the key-value pairs representing the HTTP request headers observed.
-9.1.0,true,aws,aws.waf.rule.id,keyword,custom,,example-id,The unique identifier of the rule that terminated the web request.
-9.1.0,true,aws,aws.waf.rule.ruleset,keyword,custom,,example-ruleset,"The type of rule that terminated the request (e.g., REGULAR, RATE_BASED)."
-9.1.0,true,aws,aws.waf.rule_group_list,nested,custom,,,"Details about rule groups evaluated, including matched rules and actions."
-9.1.0,true,aws,aws.waf.source.id,keyword,custom,,example-id,The identifier of the source that originated the HTTP request logged.
-9.1.0,true,aws,aws.waf.source.name,keyword,custom,,example-name,The name of the source that originated the HTTP request logged.
-9.1.0,true,aws,aws.waf.terminating_matching_rule,nested,custom,,,Details about the specific rule that terminated the web request evaluation.
-9.1.0,true,aws,aws.waf.terminating_rule_match_details,nested,custom,,,Provides specific details about why the terminating rule matched request.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.compliance.violation_code,keyword,custom,,example-violation_code,The specific code identifying the type of compliance violation detected.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.compliance.violation_detected,boolean,custom,,True,Indicates whether a compliance violation was detected during AI model processing.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_body_json,keyword,custom,,example-input_body_json,The JSON string representation of the input request body sent to the AWS Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_body_s3_path,keyword,custom,,example-input_body_s3_path,The S3 path where the input request body is stored when it exceeds size limits.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_content_type,keyword,custom,,example-input_content_type,The content type of the input request body sent to the Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_token_count,long,custom,,12345,The number of tokens in the input request sent to the AWS Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.model.type,keyword,custom,,example-type,The type or family of the AI model used (e.g. anthropic amazon cohere meta ai21).
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.model.version,keyword,custom,,example-version,The version identifier of the AI model used for the request.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.model_id,keyword,custom,,example-model_id,The unique identifier of the AWS Bedrock foundation model used for the invocation.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.completion_text,keyword,custom,,example-completion_text,The generated text completion response from the AWS Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_body_json,keyword,custom,,example-output_body_json,The JSON string representation of the output response body from the AWS Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_body_s3_path,keyword,custom,,example-output_body_s3_path,The S3 path where the output response body is stored when it exceeds size limits.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_content_type,keyword,custom,,example-output_content_type,The content type of the output response body from the Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_token_count,long,custom,,12345,The number of tokens in the output response from the AWS Bedrock model.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.performance.response_time,long,custom,,12345,The response time in milliseconds for the AI model invocation request.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.policy.action,keyword,custom,,example-action,The action taken by AI governance policies during the model invocation.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.policy.violation,object,custom,,,Details about policy violations detected during the AI model invocation.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.request_id,keyword,custom,,example-request_id,The unique identifier for the specific AWS Bedrock model invocation request.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.response.timestamp,date,custom,,2023-01-01T00:00:00.000Z,The timestamp when the AI model response was generated.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.schema_type,keyword,custom,,example-schema_type,The schema type identifier for the AWS Bedrock invocation log format.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.schema_version,keyword,custom,,example-schema_version,The version number of the AWS Bedrock invocation log schema used.
-9.1.0,true,aws_bedrock,aws_bedrock.invocation.user.id,keyword,custom,,example-id,The identifier of the user or principal making the AI model request.
-9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
+9.1.0,true,check,check.compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
@@ -769,13 +141,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
-9.1.0,true,compliance,compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
-9.1.0,true,compliance,compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
-9.1.0,true,compliance,compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
-9.1.0,true,compliance,compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
-9.1.0,true,compliance,compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
-9.1.0,true,compliance,compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
-9.1.0,true,compliance,compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -1320,118 +740,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,observer,observer.type,keyword,core,,firewall,The type of the observer the data is coming from.
 9.1.0,true,observer,observer.vendor,keyword,core,,Symantec,Vendor name of the observer.
 9.1.0,true,observer,observer.version,keyword,core,,,Observer version.
-9.1.0,true,ocsf,ocsf.activity_id,keyword,custom,,example-activity_id,The numeric identifier of the activity that triggered the event as defined by the OCSF schema.
-9.1.0,true,ocsf,ocsf.activity_name,keyword,custom,,example-activity_name,The human-readable name of the activity that triggered the event.
-9.1.0,true,ocsf,ocsf.actor.process.created_time,keyword,custom,,example-created_time,The timestamp when the actor process was created.
-9.1.0,true,ocsf,ocsf.actor.process.file.name,keyword,custom,,example-name,The filename of the executable file that started the actor process.
-9.1.0,true,ocsf,ocsf.actor.process.uid,keyword,custom,,example-uid,The unique identifier of the actor process within the system.
-9.1.0,true,ocsf,ocsf.actor.user.name,keyword,custom,,example-name,The name of the user account under which the actor process is running.
-9.1.0,true,ocsf,ocsf.actor.user.uid,keyword,custom,,example-uid,The unique identifier of the user account under which the actor process is running.
-9.1.0,true,ocsf,ocsf.api.operation,keyword,custom,,example-operation,The name of the API operation or method that was called.
-9.1.0,true,ocsf,ocsf.api.request.uid,keyword,custom,,example-uid,The unique identifier of the API request.
-9.1.0,true,ocsf,ocsf.api.response.error,keyword,custom,,example-error,The error code or identifier returned by the API response when the request failed.
-9.1.0,true,ocsf,ocsf.api.response.error_message,text,custom,,,The human-readable error message returned by the API response when the request failed.
-9.1.0,true,ocsf,ocsf.api.service.name,keyword,custom,,example-name,The name of the API service that processed the request.
-9.1.0,true,ocsf,ocsf.api.version,keyword,custom,,example-version,The version of the API that was used for the request.
-9.1.0,true,ocsf,ocsf.category_name,keyword,custom,,example-category_name,The OCSF event category name such as System Activity or Network Activity.
-9.1.0,true,ocsf,ocsf.category_uid,keyword,custom,,example-category_uid,The numeric unique identifier of the OCSF event category.
-9.1.0,true,ocsf,ocsf.class_name,keyword,custom,,example-class_name,The name of the OCSF event class that defines the schema and structure for this specific type of event.
-9.1.0,true,ocsf,ocsf.class_uid,keyword,custom,,example-class_uid,The numeric unique identifier of the OCSF event class.
-9.1.0,true,ocsf,ocsf.cloud.org.name,keyword,custom,,example-name,The name of the cloud organization or organizational unit associated with this event.
-9.1.0,true,ocsf,ocsf.cloud.org.ou_name,keyword,custom,,example-ou_name,The name of the organizational unit within the cloud organization structure.
-9.1.0,true,ocsf,ocsf.cloud.org.ou_uid,keyword,custom,,example-ou_uid,The unique identifier of the organizational unit.
-9.1.0,true,ocsf,ocsf.cloud.org.uid,keyword,custom,,example-uid,The unique identifier of the cloud organization.
-9.1.0,true,ocsf,ocsf.compliance.control,keyword,custom,,example-control,The specific compliance control or requirement being evaluated.
-9.1.0,true,ocsf,ocsf.compliance.requirements,nested,custom,,,The compliance requirements or standards that apply to this evaluation.
-9.1.0,true,ocsf,ocsf.compliance.standards,nested,custom,,,The compliance standards or frameworks being evaluated.
-9.1.0,true,ocsf,ocsf.compliance.status,keyword,custom,,example-status,The compliance status result such as Pass or Fail.
-9.1.0,true,ocsf,ocsf.compliance.status_id,long,custom,,12345,The numeric identifier representing the compliance status.
-9.1.0,true,ocsf,ocsf.connection_info.boundary,keyword,custom,,example-boundary,The network boundary classification for the connection.
-9.1.0,true,ocsf,ocsf.connection_info.direction_id,long,custom,,12345,The numeric identifier representing the direction of network traffic.
-9.1.0,true,ocsf,ocsf.connection_info.protocol_ver,keyword,custom,,example-protocol_ver,The version of the network protocol used in the connection.
-9.1.0,true,ocsf,ocsf.count,long,custom,,12345,The number of times this event occurred if it represents an aggregated or summarized event.
-9.1.0,true,ocsf,ocsf.device.domain,keyword,custom,,example-domain,The network domain or Active Directory domain of the device involved in the event.
-9.1.0,true,ocsf,ocsf.device.region,keyword,custom,,example-region,The geographic region where the device is located or hosted.
-9.1.0,true,ocsf,ocsf.device.type_id,long,custom,,12345,The numeric identifier representing the type of device.
-9.1.0,true,ocsf,ocsf.dst_endpoint.hostname,keyword,custom,,example-hostname,The hostname of the destination endpoint in network communications.
-9.1.0,true,ocsf,ocsf.dst_endpoint.instance_uid,keyword,custom,,example-instance_uid,The unique identifier of the cloud instance serving as the destination endpoint.
-9.1.0,true,ocsf,ocsf.dst_endpoint.interface_name,keyword,custom,,example-interface_name,The name of the network interface on the destination endpoint.
-9.1.0,true,ocsf,ocsf.dst_endpoint.interface_uid,keyword,custom,,example-interface_uid,The unique identifier of the network interface on the destination endpoint.
-9.1.0,true,ocsf,ocsf.dst_endpoint.name,keyword,custom,,example-name,The name or identifier of the destination endpoint.
-9.1.0,true,ocsf,ocsf.dst_endpoint.uid,keyword,custom,,example-uid,The unique identifier of the destination endpoint.
-9.1.0,true,ocsf,ocsf.dst_endpoint.vpc_uid,keyword,custom,,example-vpc_uid,The unique identifier of the VPC containing the destination endpoint.
-9.1.0,true,ocsf,ocsf.end_time,keyword,custom,,example-end_time,The timestamp when the event or activity ended converted from epoch time.
-9.1.0,true,ocsf,ocsf.file.accessed_time,keyword,custom,,example-accessed_time,The timestamp when the file was last accessed.
-9.1.0,true,ocsf,ocsf.file.created_time,keyword,custom,,example-created_time,The timestamp when the file was created.
-9.1.0,true,ocsf,ocsf.file.modified_time,keyword,custom,,example-modified_time,The timestamp when the file was last modified.
-9.1.0,true,ocsf,ocsf.file.parent_folder,keyword,custom,,example-parent_folder,The path of the parent directory containing the file.
-9.1.0,true,ocsf,ocsf.file.type,keyword,custom,,example-type,The type or category of the file such as Regular File or Directory.
-9.1.0,true,ocsf,ocsf.file.uid,keyword,custom,,example-uid,The unique identifier of the file within the filesystem.
-9.1.0,true,ocsf,ocsf.finding.created_time,date,custom,,2023-01-01T00:00:00.000Z,The timestamp when the security finding was first created.
-9.1.0,true,ocsf,ocsf.finding.desc,text,custom,,,A detailed description of the security finding including what was detected.
-9.1.0,true,ocsf,ocsf.finding.first_seen_time,keyword,custom,,example-first_seen_time,The timestamp when the security issue underlying this finding was first observed.
-9.1.0,true,ocsf,ocsf.finding.last_seen_time,keyword,custom,,example-last_seen_time,The timestamp when the security issue was most recently observed.
-9.1.0,true,ocsf,ocsf.finding.modified_time,keyword,custom,,example-modified_time,The timestamp when the finding was last updated or modified.
-9.1.0,true,ocsf,ocsf.finding.title,keyword,custom,,example-title,A concise title or summary of the security finding.
-9.1.0,true,ocsf,ocsf.finding.uid,keyword,custom,,example-uid,The unique identifier of the security finding within the security system.
-9.1.0,true,ocsf,ocsf.http_request.uid,keyword,custom,,example-uid,The unique identifier of the HTTP request.
-9.1.0,true,ocsf,ocsf.http_request.user_agent,keyword,custom,,example-user_agent,The user agent string provided by the client making the HTTP request.
-9.1.0,true,ocsf,ocsf.http_response.message,text,custom,,,The human-readable message associated with the HTTP response status code.
-9.1.0,true,ocsf,ocsf.malware.classification_ids,nested,custom,,,The numeric classification identifiers for the malware based on standard malware taxonomies.
-9.1.0,true,ocsf,ocsf.malware.name,keyword,custom,,example-name,The name or identifier of the detected malware.
-9.1.0,true,ocsf,ocsf.malware.path,keyword,custom,,example-path,The file system path where the malware was detected or is located.
-9.1.0,true,ocsf,ocsf.message,keyword,custom,,example-message,A human-readable message or description of the event providing additional context.
-9.1.0,true,ocsf,ocsf.metadata.correlation_uid,keyword,custom,,example-correlation_uid,A unique identifier used to correlate related events across different sources or time periods.
-9.1.0,true,ocsf,ocsf.metadata.event_code,keyword,custom,,example-event_code,A source-specific event code or identifier that provides additional classification beyond the standard OCSF fields.
-9.1.0,true,ocsf,ocsf.metadata.log_level,keyword,custom,,example-log_level,The logging level assigned to this event by the source system.
-9.1.0,true,ocsf,ocsf.metadata.log_name,keyword,custom,,example-log_name,The name of the log file stream or source where this event was originally recorded.
-9.1.0,true,ocsf,ocsf.metadata.log_provider,keyword,custom,,example-log_provider,The name of the service application or system that generated the original log entry.
-9.1.0,true,ocsf,ocsf.metadata.log_version,keyword,custom,,example-log_version,The version of the log format or schema used by the source system.
-9.1.0,true,ocsf,ocsf.metadata.logged_time,keyword,custom,,example-logged_time,The timestamp when the event was recorded in the source system's logs.
-9.1.0,true,ocsf,ocsf.metadata.original_time,keyword,custom,,example-original_time,The original timestamp string as it appeared in the source system before any processing.
-9.1.0,true,ocsf,ocsf.metadata.processed_time,keyword,custom,,example-processed_time,The timestamp when the event was processed or transformed into OCSF format.
-9.1.0,true,ocsf,ocsf.metadata.product.name,keyword,custom,,example-name,The name of the product or service that generated this event.
-9.1.0,true,ocsf,ocsf.metadata.product.vendor_name,keyword,custom,,example-vendor_name,The name of the vendor or organization that created the product generating this event.
-9.1.0,true,ocsf,ocsf.metadata.product.version,keyword,custom,,example-version,The version of the product or service that generated this event.
-9.1.0,true,ocsf,ocsf.metadata.sequence,long,custom,,12345,A sequence number that indicates the order of events within a stream or batch.
-9.1.0,true,ocsf,ocsf.metadata.tenant_uid,keyword,custom,,example-tenant_uid,The unique identifier of the tenant or customer associated with this event in multi-tenant environments.
-9.1.0,true,ocsf,ocsf.metadata.uid,keyword,custom,,example-uid,The unique identifier of the event metadata.
-9.1.0,true,ocsf,ocsf.metadata.version,keyword,custom,,example-version,The version of the OCSF schema used to structure this event.
-9.1.0,true,ocsf,ocsf.resource.group.name,keyword,custom,,example-name,The name of the resource group or collection that contains this resource.
-9.1.0,true,ocsf,ocsf.resource.group.uid,keyword,custom,,example-uid,The unique identifier of the resource group containing this resource.
-9.1.0,true,ocsf,ocsf.resource.name,keyword,custom,,example-name,The name of the cloud or system resource involved in the event.
-9.1.0,true,ocsf,ocsf.resource.type,keyword,custom,,example-type,The type or category of the resource such as S3 Bucket or EC2 Instance.
-9.1.0,true,ocsf,ocsf.resource.uid,keyword,custom,,example-uid,The unique identifier of the resource within the cloud or system environment.
-9.1.0,true,ocsf,ocsf.severity,keyword,custom,,example-severity,The textual representation of the event severity such as Informational or Critical.
-9.1.0,true,ocsf,ocsf.severity_id,long,custom,,12345,The numeric severity level of the event ranging from 1 (Informational) to 6 (Fatal).
-9.1.0,true,ocsf,ocsf.src_endpoint.hostname,keyword,custom,,example-hostname,The hostname of the source endpoint in network communications.
-9.1.0,true,ocsf,ocsf.src_endpoint.instance_uid,keyword,custom,,example-instance_uid,The unique identifier of the cloud instance serving as the source endpoint.
-9.1.0,true,ocsf,ocsf.src_endpoint.interface_name,keyword,custom,,example-interface_name,The name of the network interface on the source endpoint.
-9.1.0,true,ocsf,ocsf.src_endpoint.interface_uid,keyword,custom,,example-interface_uid,The unique identifier of the network interface on the source endpoint.
-9.1.0,true,ocsf,ocsf.src_endpoint.name,keyword,custom,,example-name,The name or identifier of the source endpoint.
-9.1.0,true,ocsf,ocsf.src_endpoint.uid,keyword,custom,,example-uid,The unique identifier of the source endpoint.
-9.1.0,true,ocsf,ocsf.src_endpoint.vpc_uid,keyword,custom,,example-vpc_uid,The unique identifier of the VPC containing the source endpoint.
-9.1.0,true,ocsf,ocsf.start_time,keyword,custom,,example-start_time,The timestamp when the event or activity started converted from epoch time.
-9.1.0,true,ocsf,ocsf.status,keyword,custom,,example-status,The textual status of the event such as Success or Failure.
-9.1.0,true,ocsf,ocsf.status_code,keyword,custom,,example-status_code,A status code associated with the event that provides more specific information about the outcome.
-9.1.0,true,ocsf,ocsf.status_id,long,custom,,12345,The numeric identifier corresponding to the status of the event.
-9.1.0,true,ocsf,ocsf.time,keyword,custom,,example-time,The primary timestamp of the event converted from epoch time.
-9.1.0,true,ocsf,ocsf.timezone_offset,long,custom,,12345,The timezone offset from UTC in minutes for the event timestamp.
-9.1.0,true,ocsf,ocsf.traffic.bytes,long,custom,,12345,The total number of bytes transferred in the network communication.
-9.1.0,true,ocsf,ocsf.traffic.bytes_in,long,custom,,12345,The number of bytes received or transferred inbound during the network communication.
-9.1.0,true,ocsf,ocsf.traffic.bytes_out,long,custom,,12345,The number of bytes sent or transferred outbound during the network communication.
-9.1.0,true,ocsf,ocsf.traffic.packets,long,custom,,12345,The total number of network packets transferred in the communication.
-9.1.0,true,ocsf,ocsf.traffic.packets_in,long,custom,,12345,The number of network packets received or transferred inbound.
-9.1.0,true,ocsf,ocsf.traffic.packets_out,long,custom,,12345,The number of network packets sent or transferred outbound.
-9.1.0,true,ocsf,ocsf.type_name,keyword,custom,,example-type_name,The name of the OCSF event type that provides more granular classification within the event class.
-9.1.0,true,ocsf,ocsf.type_uid,keyword,custom,,example-type_uid,The numeric unique identifier of the OCSF event type.
-9.1.0,true,ocsf,ocsf.user.account.name,keyword,custom,,example-name,The name of the user account which may be different from the user's display name.
-9.1.0,true,ocsf,ocsf.user.account.type,keyword,custom,,example-type,The type of user account such as Windows or LDAP.
-9.1.0,true,ocsf,ocsf.user.account.uid,keyword,custom,,example-uid,The unique identifier of the user account within its account system.
-9.1.0,true,ocsf,ocsf.user.credential_uid,keyword,custom,,example-credential_uid,The unique identifier of the credentials used by the user for authentication.
-9.1.0,true,ocsf,ocsf.user.email_addr,keyword,custom,,example-email_addr,The email address associated with the user account.
-9.1.0,true,ocsf,ocsf.user.type,keyword,custom,,example-type,The type of user account such as Regular or Admin.
-9.1.0,true,ocsf,ocsf.user.type_id,long,custom,,12345,The numeric identifier representing the user account type.
 9.1.0,true,orchestrator,orchestrator.api_version,keyword,extended,,v1beta1,API version being used to carry out the action
 9.1.0,true,orchestrator,orchestrator.cluster.id,keyword,extended,,,Unique ID of the cluster.
 9.1.0,true,orchestrator,orchestrator.cluster.name,keyword,extended,,,Name of the cluster.
