@@ -86,8 +86,8 @@ classDiagram
     ContentManagerPlugin --> RestLayer : Registers
     ContentManagerPlugin --> CatalogSyncJob : Schedules
     ContentManagerPlugin --> ContentJobRunner : Registers Jobs
-    
-    
+
+
     %% REST Interactions
     RestLayer --> CtiConsole : Uses
     RestLayer --> CatalogSyncJob : Triggers manually
@@ -97,7 +97,7 @@ classDiagram
     UnifiedConsumerSynchronizer --> ConsumerService : Checks State
     UnifiedConsumerSynchronizer ..> SnapshotServiceImpl : (if offset == 0)
     UnifiedConsumerSynchronizer ..> UpdateServiceImpl : (if offset < remote)
-    
+
     %% SAP Interactions
     SnapshotServiceImpl --> SecurityAnalyticsService : Upserts Content
     UpdateServiceImpl --> SecurityAnalyticsService : Upserts Content
@@ -130,13 +130,13 @@ Retrieves `LocalConsumer` state from `.cti-consumers` and `RemoteConsumer` state
 ##### 3.2 **SnapshotService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/SnapshotServiceImpl.java`
 
-Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content. 
+Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content.
 It supports multiple content types (rules, decoders, etc.) and indexes them into their respective indices.
 
 ##### 3.3 **UpdateService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/UpdateServiceImpl.java`
 
-Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class). 
+Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class).
 It ensures that any modified content is immediately propagated to the Security Analytics plugin.
 
 ##### 3.4 **SecurityAnalyticsService**
@@ -165,7 +165,7 @@ Wraps operations for the `.cti-consumers` index.
 ##### 4.2 **ContentIndex**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/index/ContentIndex.java`
 
-Manages operations for content indices. 
+Manages operations for content indices.
 
 ---
 
@@ -174,7 +174,7 @@ Manages operations for content indices.
 The plugin is configured through the `PluginSettings` class. Settings can be defined in `opensearch.yml`:
 
 | Setting                                              | Default                            | Description                                                                  |
-|------------------------------------------------------|------------------------------------|------------------------------------------------------------------------------|
+| ---------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
 | `plugins.content_manager.cti.api`                    | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
 | `plugins.content_manager.catalog.sync_interval`      | `60`                               | Interval (in minutes) for the periodic synchronization job.                  |
 | `plugins.content_manager.max_items_per_bulk`         | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
@@ -204,9 +204,9 @@ sequenceDiagram
 
     Scheduler->>SyncJob: Trigger Execution
     activate SyncJob
-    
+
     SyncJob->>Synchronizer: synchronize()
-    
+
     Synchronizer->>ConsumerSvc: getLocalConsumer() / getRemoteConsumer()
     ConsumerSvc->>CTI: Fetch Metadata
     ConsumerSvc-->>Synchronizer: Offsets & Metadata
@@ -225,9 +225,9 @@ sequenceDiagram
 
     opt Changes Applied (onSyncComplete)
         Synchronizer->>Indices: Refresh Indices
-        
+
         Note right of Synchronizer: Sync Local Indices to SAP
-        
+
         Synchronizer->>Processors: IntegrationProcessor.process()
         Processors->>Indices: Search Integrations
         loop For each Integration
@@ -290,35 +290,232 @@ If a critical error occurs or data corruption is detected, the system resets `lo
 
 ## 📡 REST API
 
-### Subscription Management
+This API is formally defined in OpenAPI specification ([openapi.yml](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/content-manager/openapi.yml)).
 
-#### GET /subscription
+### User Generate Content Management Endpoints
 
-Retrieves the current subscription token. 
+#### Logtest
 
-`GET /_plugins/content-manager/subscription`
+The Indexer acts as a middleman between the UI and the Engine. The Indexer's `POST /logtest` endpoints accepts the payload and sends it to the engine exactly as provided. No validation is performed. If the engine responds, the Indexer returns it as the response for its endpoint call. If the engine does not respond, a 500 error is returned.
 
-#### POST /subscription 
+<div class="warning">
 
-Creates or updates a subscription. 
+A testing policy needs to be loaded in the Engine for the logtest to be executed successfully. Load a policy via the policy promotion endpoint.
+</div>
 
-`POST /_plugins/content-manager/subscription { "device_code": "...", "client_id": "...", "expires_in": 3600, "interval": 5 }`
+**Diagrams**
 
-#### DELETE /subscription
-
-Deletes the current token/subscription. 
-
-`DELETE /_plugins/content-manager/subscription`
-
-### Update Trigger
-
-#### POST /update 
-
-Manually triggers the `CatalogSyncJob`. 
-
-`POST /_plugins/content-manager/update`
-
+```mermaid
 ---
+title: Logtest execution - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
+
+    User->>UI: run logtest
+
+    UI->>Indexer: POST /logtest
+    Indexer->>Engine: POST /logtest
+    Engine-->>Indexer: response
+    Indexer-->>UI: response
+```
+
+```mermaid
+---
+title: Logtest execution - Flowchart
+---
+flowchart LR
+    UI-- request -->Indexer
+    subgraph indexer_node [Indexer node]
+    Indexer-->Engine
+
+    Engine -.-> Indexer
+    end
+    Indexer -. response .-> UI
+```
+
+#### Decoders
+
+The Content Manager provides REST API endpoints for managing decoders in the draft space. Decoders are validated against the Wazuh engine before being stored.
+
+<div class="warning">
+
+A testing policy needs to be loaded in the Engine for the decoders to be executed successfully. Load a policy via the policy promotion endpoint.
+</div>
+
+**Diagrams**
+
+```mermaid
+---
+title: Decoder creation - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
+    participant DecoderIndex as .cti-decoders
+    participant IntegrationIndex as .cti-integrations
+
+    User->>UI: create decoder
+    UI->>Indexer: POST /_plugins/_content_manager/decoders
+    Indexer->>Indexer: Generate UUID, prefix with d_
+    Indexer->>Engine: POST /content/validate/resource
+    Engine-->>Indexer: validation response
+    Indexer->>DecoderIndex: Index decoder (draft space)
+    Indexer->>IntegrationIndex: Update integration (add decoder reference)
+    Indexer-->>UI: response
+    UI-->>User: decoder created
+```
+
+```mermaid
+---
+title: Decoder update - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
+    participant DecoderIndex as .cti-decoders
+
+    User->>UI: update decoder
+    UI->>Indexer: PUT /_plugins/_content_manager/decoders/{decoder_id}
+    Indexer->>DecoderIndex: Check if decoder exists
+    DecoderIndex-->>Indexer: exists
+    Indexer->>Engine: POST /content/validate/resource
+    Engine-->>Indexer: validation response
+    Indexer->>DecoderIndex: Update decoder
+    Indexer-->>UI: response
+    UI-->>User: decoder updated
+```
+
+```mermaid
+---
+title: Decoder deletion - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant DecoderIndex as .cti-decoders
+    participant IntegrationIndex as .cti-integrations
+
+    User->>UI: delete decoder
+    UI->>Indexer: DELETE /_plugins/_content_manager/decoders/{decoder_id}
+    Indexer->>DecoderIndex: Check if decoder exists
+    DecoderIndex-->>Indexer: exists
+    Indexer->>IntegrationIndex: Update integrations (remove decoder reference)
+    Indexer->>DecoderIndex: Delete decoder
+    Indexer-->>UI: response
+    UI-->>User: decoder deleted
+```
+
+#### Draft Policy Management
+
+The indexer's draft policy management endpoint allows the user to update the Draft-Space policy stored in the Wazuh Indexer.
+
+
+**Diagrams**
+
+```mermaid
+---
+title: Draft Policy Update - Flowchart
+---
+flowchart TD
+    UI[UI] -->|PUT /policy<br/>JSON payload| Indexer
+
+    subgraph indexer_node [Indexer node]
+        Indexer -->|Route request| RestPutPolicyAction
+
+        RestPutPolicyAction -->|1. Validate request| V1{Has content?<br/>Engine available?}
+        V1 -->|No| Error1[Return 400/500 error]
+        V1 -->|Yes| Parse[2. Parse JSON to Policy object]
+
+        Parse -->|Success| V2{3. Validate Policy<br/>fields}
+        Parse -->|Fail| Error2[Return 400 error:<br/>Invalid JSON]
+
+        V2 -->|Field is null| Error3[Return 400 error:<br/>Field cannot be null]
+        V2 -->|All fields valid| Store[4. Store Policy]
+
+        Store -->|Find/generate ID| ContentIndex[ContentIndex.create]
+        ContentIndex -->|Index to| DraftIndex[(.cti-policies.draft)]
+        DraftIndex -->|Success| Success[Return 200 OK<br/>with Policy object]
+
+        Error1 --> Response
+        Error2 --> Response
+        Error3 --> Response
+        Success --> Response
+    end
+
+    Response[Response] -.->|HTTP response| UI
+```
+
+#### Policy Schema
+
+The `.cti-policies` index stores policy configurations that define how the Wazuh Engine processes events. Each indexed document has the following structure:
+
+**Top-level fields:**
+
+| Field      | Type   | Description                                     |
+| ---------- | ------ | ----------------------------------------------- |
+| `document` | object | Contains the policy configuration fields        |
+| `hash`     | object | Contains the policy content hash (`sha256`)     |
+| `space`    | object | Contains the space information (`name`, `hash`) |
+
+**Fields within `document` object:**
+
+| Field           | Type    | Description                                                                           |
+| --------------- | ------- | ------------------------------------------------------------------------------------- |
+| `id`            | keyword | Unique identifier for the policy document                                             |
+| `title`         | keyword | Human-readable name for the policy                                                    |
+| `date`          | date    | Creation timestamp                                                                    |
+| `modified`      | date    | Last modification timestamp                                                           |
+| `root_decoder`  | keyword | Identifier of the root decoder to use for event processing                            |
+| `integrations`  | keyword | Array of integration IDs that define which content modules are active                 |
+| `filters`       | keyword | Array of filter UUIDs for user-generated filtering rules                              |
+| `enrichments`   | keyword | Array of enrichment types (e.g., `"file"`, `"domain-name"`, `"ip"`, `"url"`, `"geo"`) |
+| `author`        | keyword | Policy author identifier                                                              |
+| `description`   | text    | Brief description of the policy purpose                                               |
+| `documentation` | keyword | Link or reference to detailed documentation                                           |
+| `references`    | keyword | Array of external reference URLs                                                      |
+
+**Example Policy Document:**
+
+```json
+{
+  "document": {
+    "id": "policy-123",
+    "title": "Production Policy",
+    "root_decoder": "decoder/core/0",
+    "integrations": [
+      "integration/wazuh-core/0",
+      "integration/wazuh-fim/0"
+    ],
+    "filters": [
+      "5c1df6b6-1458-4b2e-9001-96f67a8b12c8",
+      "f61133f5-90b9-49ed-b1d5-0b88cb04355e"
+    ],
+    "enrichments": ["file", "domain-name", "ip", "url", "geo"],
+    "author": "security-team",
+    "description": "Production environment policy with file and network enrichments",
+    "documentation": "https://docs.wazuh.com/policies/production",
+    "references": ["https://example.com/security-policy"]
+  },
+  "hash": {
+    "sha256": "abc123..."
+  },
+  "space": {
+    "name": "draft",
+    "hash": {
+      "sha256": "xyz789..."
+    }
+  }
+}
+```
 
 ## 🔍 Debugging
 

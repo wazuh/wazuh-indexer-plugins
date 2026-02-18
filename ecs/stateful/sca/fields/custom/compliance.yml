@@ -1,0 +1,10 @@
+---
+- name: compliance
+  title: Compliance
+  description: >
+    Fields related to compliance frameworks and their specific requirements.
+  type: group
+  reusable:
+    top_level: false
+    expected:
+      - check

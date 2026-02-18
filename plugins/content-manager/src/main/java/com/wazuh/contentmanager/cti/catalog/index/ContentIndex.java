@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,9 +18,9 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
@@ -34,16 +34,20 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -56,10 +60,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Ioc;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Manages the index for CTI content, providing methods for index creation, document indexing,
@@ -75,10 +81,17 @@ public class ContentIndex {
     private final String mappingsPath;
     private final String alias;
 
-    private final ObjectMapper jsonMapper;
+    private final ObjectMapper mapper;
 
-    private static final String JSON_TYPE_KEY = "type";
-    private static final String JSON_DECODER_KEY = "decoder";
+    /**
+     * Constructor for existing indices where mapping path isn't immediately required.
+     *
+     * @param client The OpenSearch client.
+     * @param indexName The name of the index.
+     */
+    public ContentIndex(Client client, String indexName) {
+        this(client, indexName, null, null);
+    }
 
     /**
      * Constructs a new ContentIndex manager.
@@ -106,7 +119,7 @@ public class ContentIndex {
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
         this.alias = alias;
-        this.jsonMapper = new ObjectMapper();
+        this.mapper = new ObjectMapper();
     }
 
     /**
@@ -131,6 +144,11 @@ public class ContentIndex {
      */
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
+        if (this.mappingsPath == null) {
+            log.error("Cannot create index [{}]: Mappings path not provided.", this.indexName);
+            return null;
+        }
+
         Settings settings =
                 Settings.builder().put("index.number_of_replicas", 0).put("hidden", true).build();
 
@@ -172,44 +190,47 @@ public class ContentIndex {
     }
 
     /**
-     * Indexes a new document or overwrites an existing one.
+     * Retrieves a document by ID and returns it as a Jackson JsonNode.
      *
-     * <p>The payload is pre-processed (sanitized and enriched) before being indexed.
-     *
-     * @param id The unique identifier for the document.
-     * @param payload The JSON object representing the document content.
-     * @throws IOException If the indexing operation fails.
+     * @param id The document ID.
+     * @return The document source as JsonNode, or null if not found.
      */
-    public void create(String id, JsonObject payload) throws IOException {
-        JsonObject processedPayload = this.processPayload(payload);
-        IndexRequest request =
-                new IndexRequest(this.indexName)
-                        .id(id)
-                        .source(processedPayload.toString(), XContentType.JSON);
-
+    public JsonNode getDocument(String id) {
         try {
-            this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            GetResponse response = this.client.prepareGet(this.indexName, id).get();
+            if (response.isExists() && response.getSourceAsString() != null) {
+                return this.mapper.readTree(response.getSourceAsString());
+            }
         } catch (Exception e) {
-            log.error("Failed to index document [{}]: {}", id, e.getMessage());
-            throw new IOException(e);
+            log.error("Error retrieving document [{}] from [{}]: {}", id, this.indexName, e.getMessage());
         }
+        return null;
     }
 
     /**
-     * Indexes a new document or overwrites an existing one using Jackson JsonNode.
-     *
-     * <p>The payload is pre-processed (sanitized and enriched) before being indexed. This method
-     * accepts a Jackson JsonNode and converts it to Gson JsonObject for compatibility with existing
-     * processing logic.
+     * Indexes a new document or overwrites an existing one.
      *
      * @param id The unique identifier for the document.
-     * @param payload The Jackson JsonNode representing the document content.
+     * @param payload The JSON object representing the document content.
+     * @param isDecoder Whether the document is a decoder resource.
+     * @return The IndexResponse object with the result of the indexing operation.
      * @throws IOException If the indexing operation fails.
      */
-    public void create(String id, JsonNode payload) throws IOException {
-        // Convert Jackson JsonNode to Gson JsonObject for compatibility
-        JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
-        this.create(id, gsonPayload);
+    public IndexResponse create(String id, JsonNode payload, boolean isDecoder) throws IOException {
+        ObjectNode processedPayload = this.processPayload(payload, isDecoder);
+        IndexRequest request =
+                new IndexRequest(this.indexName)
+                        .id(id)
+                        .source(processedPayload.toString(), XContentType.JSON)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        try {
+            return this.client
+                    .index(request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error("Failed to index document [{}]: {}", id, e.getMessage());
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -230,16 +251,14 @@ public class ContentIndex {
         }
 
         // 2. Patch
-        JsonObject currentDoc = JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+        ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
         for (Operation op : operations) {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            op.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            JsonObject opJson = JsonParser.parseString(builder.toString()).getAsJsonObject();
+            JsonNode opJson = this.mapper.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);
         }
 
         // 3. Process
-        JsonObject processedDoc = this.processPayload(currentDoc);
+        ObjectNode processedDoc = this.processPayload(currentDoc);
 
         // 4. Index
         IndexRequest request =
@@ -254,7 +273,8 @@ public class ContentIndex {
      */
     public void delete(String id) {
         this.client.delete(
-                new DeleteRequest(this.indexName, id),
+                new DeleteRequest(this.indexName, id)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
                 new ActionListener<>() {
                     @Override
                     public void onResponse(DeleteResponse response) {
@@ -266,6 +286,70 @@ public class ContentIndex {
                         log.error("Failed to delete {}: {}", id, e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * Determines the product from the document (logsource.product or logsource.category). Defaults to
+     * "linux".
+     *
+     * @param ruleNode The rule Jackson JsonNode.
+     * @return The determined product string.
+     */
+    public static String extractProduct(JsonNode ruleNode) {
+        // TODO: Move this method to a dedicated CTI Resource logic class.
+        String product = "linux";
+        if (ruleNode.has(Constants.KEY_LOGSOURCE)) {
+            JsonNode logsource = ruleNode.get(Constants.KEY_LOGSOURCE);
+            if (logsource.has(Constants.KEY_PRODUCT)) {
+                product = logsource.get(Constants.KEY_PRODUCT).asText();
+            } else if (logsource.has(Constants.KEY_CATEGORY)) {
+                product = logsource.get(Constants.KEY_CATEGORY).asText();
+            }
+        }
+        return product;
+    }
+
+    /**
+     * Searches for a document by a specific field name and value.
+     *
+     * @param queryBuilder The query to execute.
+     * @return A JsonObject representing the found document, or null if not found or on
+     */
+    public ObjectNode searchByQuery(QueryBuilder queryBuilder) {
+        try {
+            // Create search request
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
+            SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
+
+            // Execute search synchronously
+            SearchResponse searchResponse =
+                    this.client
+                            .search(searchRequest)
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+            // Check if we have results
+            if (searchResponse == null
+                    || searchResponse.getHits() == null
+                    || searchResponse.getHits().getTotalHits() == null
+                    || searchResponse.getHits().getTotalHits().value() == 0L) {
+                log.debug(
+                        "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
+                return null;
+            }
+            ArrayNode hitsArray = this.mapper.createArrayNode();
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                ObjectNode hitObject = (ObjectNode) this.mapper.readTree(hit.getSourceAsString());
+                hitObject.put(Constants.KEY_ID, hit.getId());
+                hitsArray.add(hitObject);
+            }
+            ObjectNode result = this.mapper.createObjectNode();
+            result.set(Constants.Q_HITS, hitsArray);
+            result.put("total", searchResponse.getHits().getTotalHits().value());
+            return result;
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
+            log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -303,6 +387,8 @@ public class ContentIndex {
     /**
      * Waits until all pending bulk requests have completed. Use this to ensure all async indexing
      * operations are finished.
+     *
+     * @throws InterruptedException If the thread is interrupted while waiting.
      */
     public void waitForPendingUpdates() throws InterruptedException {
         int permits = this.pluginSettings.getMaximumConcurrentBulks();
@@ -329,25 +415,45 @@ public class ContentIndex {
      * @param payload The JSON payload to process.
      * @return A new JsonObject containing the processed payload.
      */
-    public JsonObject processPayload(JsonObject payload) {
-        try {
-            Resource resource;
+    public ObjectNode processPayload(JsonNode payload) {
+        return this.processPayload(payload, false);
+    }
 
+    /**
+     * Orchestrates the enrichment and sanitization of a payload using Domain Models.
+     *
+     * @param payload The JSON payload to process.
+     * @param isDecoder Whether the payload is a decoder (to trigger specific logic).
+     * @return A new JsonObject containing the processed payload.
+     */
+    public ObjectNode processPayload(JsonNode payload, boolean isDecoder) {
+        try {
+            // Preserve the type field before processing
+            String type =
+                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
+
+            Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
-            if (payload.has(JSON_TYPE_KEY)
-                    && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
+            if (isDecoder || Constants.KEY_DECODER.equalsIgnoreCase(type)) {
                 resource = Decoder.fromPayload(payload);
+            } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
+                resource = Ioc.fromPayload(payload);
             } else {
                 resource = Resource.fromPayload(payload);
             }
 
-            // 2. Convert Model back to JsonObject for OpenSearch indexing
-            String jsonString = this.jsonMapper.writeValueAsString(resource);
-            return JsonParser.parseString(jsonString).getAsJsonObject();
+            // 2. Convert Model
+            ObjectNode result = this.mapper.valueToTree(resource);
 
-        } catch (IOException e) {
+            // 3. Re-add the type field to the result
+            if (type != null) {
+                result.put(Constants.KEY_TYPE, type);
+            }
+
+            return result;
+        } catch (Exception e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);
-            return new JsonObject();
+            return this.mapper.createObjectNode();
         }
     }
 }

@@ -1,5 +1,8 @@
 ---
 - name: agent
+  reusable:
+    expected:
+      - { at: wazuh, as: agent }
   title: Wazuh Agents
   short: Wazuh Inc. custom fields.
   type: group

@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
   agent:
     fields: "*"
   as:
@@ -608,17 +610,4 @@ fields:
   policy:
     fields: "*"
   compliance:
-    fields: "*"
-  # Integration fields
-  azure:
-    fields: "*"
-  azure-app-service:
-    fields: "*"
-  azure-blob-storage:
-    fields: "*"
-  azure-functions:
-    fields: "*"
-  azure-metrics:
-    fields: "*"
-  azure-openai:
     fields: "*"

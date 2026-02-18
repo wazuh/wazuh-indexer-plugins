@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
   agent:
     fields: "*"
   as:
@@ -608,15 +610,4 @@ fields:
   policy:
     fields: "*"
   compliance:
-    fields: "*"
-  # Integration fields
-  amazon-security-lake:
-    fields: "*"
-  aws:
-    fields: "*"
-  aws-bedrock:
-    fields: "*"
-  aws-firehose:
-    fields: "*"
-  aws-logs:
     fields: "*"

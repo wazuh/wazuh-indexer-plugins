@@ -50,6 +50,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Extend OpenAPI document with user-generated content management endpoints [(#736)](https://github.com/wazuh/wazuh-indexer-plugins/pull/736)
 - Define Index schema for IoC content [(#744)](https://github.com/wazuh/wazuh-indexer-plugins/pull/744)
 - Implement SAP Local Maven publisher GHA [(#750)](https://github.com/wazuh/wazuh-indexer-plugins/pull/750)
+- Add API endpoints for Logtest executions [(#746)](https://github.com/wazuh/wazuh-indexer-plugins/pull/746)
+- Add API endpoints for promote preview [(#759)](https://github.com/wazuh/wazuh-indexer-plugins/pull/759)
+- Implement Integrations endpoints [(#749)](https://github.com/wazuh/wazuh-indexer-plugins/pull/749)
+- Add API endpoints for Rules management [(#757)](https://github.com/wazuh/wazuh-indexer-plugins/pull/757)
+- Add decoder management endpoints [(#751)](https://github.com/wazuh/wazuh-indexer-plugins/pull/751)
+- Add kvdb management endpoints [(#752)](https://github.com/wazuh/wazuh-indexer-plugins/pull/752)
+- Add draft policy update endpoint [(#758)](https://github.com/wazuh/wazuh-indexer-plugins/pull/758) [(#762)](https://github.com/wazuh/wazuh-indexer-plugins/pull/762)
+- Create integrations with no rules in the SAP [(#765)](https://github.com/wazuh/wazuh-indexer-plugins/pull/765)
+- Download IoC from CTI API [(#779)](https://github.com/wazuh/wazuh-indexer-plugins/pull/779)
+- Create default policies for user content spaces [(#767)](https://github.com/wazuh/wazuh-indexer-plugins/pull/767)
+- Add engine filters index [(#798)](https://github.com/wazuh/wazuh-indexer-plugins/pull/798)
+- Remove non-standard ip and geo fields from f5-bigip mappings [(#809)](https://github.com/wazuh/wazuh-indexer-plugins/pull/809)
+- Extend policy update endpoint with enrichments [(#808)](https://github.com/wazuh/wazuh-indexer-plugins/pull/808)
+- Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
+- Add script for Content Manager API integration testing [(#821)](https://github.com/wazuh/wazuh-indexer-plugins/pull/821)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -76,18 +91,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adapt WCS generation script to save the ECS flat of stateless module [(#646)](https://github.com/wazuh/wazuh-indexer-plugins/pull/646)
 - Replace time-series indices with data streams [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/pull/562)
 - Rename index templates [(#659)](https://github.com/wazuh/wazuh-indexer-plugins/pull/659)
+- Update WCS compliance fields [(#695)](https://github.com/wazuh/wazuh-indexer-plugins/pull/695)
 - Resolve SAP dependency in Content Manager's build workflow [(#702)](https://github.com/wazuh/wazuh-indexer-plugins/pull/702)
 - Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
 - Avoid creation of Integrations with no rules associated [(#709)](https://github.com/wazuh/wazuh-indexer-plugins/pull/709)
 - Merge `cloud-services` categories [(#710)](https://github.com/wazuh/wazuh-indexer-plugins/pull/710)
 - Send Integration ID to SAP for detector creation [(#712)](https://github.com/wazuh/wazuh-indexer-plugins/pull/712)
 - Update Content Manager docs [(#716)](https://github.com/wazuh/wazuh-indexer-plugins/pull/716)
-- Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725)
+- Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725) [(#787)](https://github.com/wazuh/wazuh-indexer-plugins/pull/787) [(#789)](https://github.com/wazuh/wazuh-indexer-plugins/pull/789)
 - Update content spaces [(#724)](https://github.com/wazuh/wazuh-indexer-plugins/pull/724)
 - Extend JsonPatch to process JsonArray [(#729)](https://github.com/wazuh/wazuh-indexer-plugins/pull/729)
 - Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)
 - Improve spotless implementation [(#740)](https://github.com/wazuh/wazuh-indexer-plugins/pull/740)
 - Unify CTI context [(#747)](https://github.com/wazuh/wazuh-indexer-plugins/pull/747)
+- Relocate agent fields under wazuh object for stateless and stateful indices [(#778)](https://github.com/wazuh/wazuh-indexer-plugins/pull/778)
 
 ### Deprecated
 -
@@ -112,6 +129,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix integrations not being created under the correct category [#705](https://github.com/wazuh/wazuh-indexer-plugins/pull/705)
 - Set `GSON` object-to-number policy to `LONG_OR_DOUBLE` in `Resources` model [#721](https://github.com/wazuh/wazuh-indexer-plugins/pull/721)
 - Fix deserialization bug [(#737)](https://github.com/wazuh/wazuh-indexer-plugins/pull/737)
+- Fix offset value used when updating consumer state [(#802)](https://github.com/wazuh/wazuh-indexer-plugins/pull/802)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

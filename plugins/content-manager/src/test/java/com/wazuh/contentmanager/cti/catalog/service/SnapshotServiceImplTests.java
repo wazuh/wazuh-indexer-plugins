@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,13 +16,15 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -30,9 +32,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -49,7 +49,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link SnapshotServiceImpl} class. This test suite validates the snapshot
@@ -100,10 +106,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         this.snapshotService =
                 new SnapshotServiceImpl(
-                    context, consumer, indicesMap, this.consumersIndex, this.environment);
+                        context, consumer, indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
-        when(this.contentIndexMock.processPayload(any(JsonObject.class)))
+        // Updated matchers to use JsonNode instead of JsonObject
+        when(this.contentIndexMock.processPayload(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-kvdb");
     }
@@ -175,7 +182,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Path zipPath =
                 this.createZipFileWithContent(
                         "data.json",
-                        "{\"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}");
+                        "{\"name\": \"12345678\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}");
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -183,23 +190,23 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.contentIndexMock, times(5)).clear();
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
         BulkRequest request = bulkCaptor.getValue();
-        assertEquals(1, request.numberOfActions());
+        Assert.assertEquals(1, request.numberOfActions());
         IndexRequest indexRequest = (IndexRequest) request.requests().getFirst();
 
-        assertEquals(".test-context-test-consumer-kvdb", indexRequest.index());
-        assertEquals("12345678", indexRequest.id());
+        Assert.assertEquals(".test-context-test-consumer-kvdb", indexRequest.index());
+        Assert.assertEquals("12345678", indexRequest.id());
 
         // Verify waiting for pending updates
         verify(this.contentIndexMock).waitForPendingUpdates();
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        assertEquals(offset, consumerCaptor.getValue().getLocalOffset());
+        Assert.assertEquals(offset, consumerCaptor.getValue().getLocalOffset());
     }
 
     /**
@@ -216,21 +223,22 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         Path zipPath =
                 this.createZipFileWithContent(
-                        "policy.json", "{\"payload\": {\"type\": \"policy\", \"document\": {\"id\": \"p1\"}}}");
+                        "policy.json",
+                        "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"policy\", \"document\": {\"id\": \"123\"}}}");
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
 
-        assertEquals(".test-context-test-consumer-policy", request.index());
-        assertEquals("p1", request.id());
+        Assert.assertEquals(".test-context-test-consumer-policy", request.index());
+        Assert.assertEquals("123", request.id());
     }
 
     /**
@@ -245,7 +253,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"decoder\", \"document\": {\"name\": \"syslog\", \"parent\": \"root\"}}}";
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"decoder\", \"document\": {\"name\": \"syslog\", \"parent\": \"root\"}}}";
         Path zipPath = this.createZipFileWithContent("decoder.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
@@ -254,7 +262,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         // Verify delegation to ContentIndex.processPayload
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -270,7 +278,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-123\", \"type\": \"test-value\"}}}}";
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-123\", \"type\": \"test-value\"}}}}";
         Path zipPath = this.createZipFileWithContent("sigma.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
@@ -278,7 +286,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -317,7 +325,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R2\", \"related\": [{\"sigma_id\": \"999\"}]}}}";
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R2\", \"related\": [{\"sigma_id\": \"999\"}]}}}";
         Path zipPath = this.createZipFileWithContent("sigma_array.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
@@ -325,7 +333,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -344,9 +352,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // spotless:off
         String jsonContent =
             """
-                {"payload": {"type": "reputation", "document": {"id": "1", "ip": "1.1.1.1"}}}
+                {"name": "123", "offset": 1, "payload": {"type": "reputation", "document": {"id": "1", "ip": "1.1.1.1"}}}
                 THIS_IS_NOT_JSON_{{}}
-                {"payload": {"type": "reputation", "document": {"id": "2", "ip": "2.2.2.2"}}}""";
+                {"name": "123", "offset": 1, "payload": {"type": "reputation", "document": {"id": "2", "ip": "2.2.2.2"}}}""";
         // spotless:on
         Path zipPath = this.createZipFileWithContent("mixed.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
@@ -355,7 +363,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -363,7 +371,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         int totalActions =
                 bulkCaptor.getAllValues().stream().mapToInt(BulkRequest::numberOfActions).sum();
 
-        assertEquals("Should index the 2 valid documents and skip the corrupt one", 2, totalActions);
+        Assert.assertEquals(
+                "Should index the 2 valid documents and skip the corrupt one", 2, totalActions);
     }
 
     /**
@@ -378,7 +387,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{\"payload\": {\"type\": \"decoder\", \"document\": "
+                "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"decoder\", \"document\": "
                         + "{\"check\": \"some_regex\", \"name\": \"ssh-decoder\", \"parents\": [\"root\"]}}}";
 
         Path zipPath = this.createZipFileWithContent("decoder_order.json", jsonContent);
@@ -388,7 +397,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 

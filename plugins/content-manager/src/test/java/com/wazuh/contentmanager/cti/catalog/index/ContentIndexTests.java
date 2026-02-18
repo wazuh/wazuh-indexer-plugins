@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -28,8 +29,10 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +43,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link ContentIndex} class. This test suite validates content index operations
@@ -55,6 +61,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
     private ContentIndex contentIndex;
     private AutoCloseable closeable;
     private Client client;
+    private ObjectMapper mapper;
 
     @Mock private IndexResponse indexResponse;
     @Mock private GetResponse getResponse;
@@ -68,6 +75,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
+        this.mapper = new ObjectMapper();
 
         Settings settings = Settings.builder().build();
         PluginSettings.getInstance(settings);
@@ -85,7 +93,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /** Test creating an Integration. Validates that fields are removed during preprocessing. */
-    public void testCreate_Integration_Processing() {
+    public void testCreate_Integration_Processing() throws IOException {
         // Mock
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.indexResponse);
@@ -104,31 +112,27 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         + "  \"enable_decoders\": true"
                         + "}"
                         + "}";
-        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        JsonNode payload = this.mapper.readTree(jsonPayload);
         String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
 
         // Act
-        try {
-            this.contentIndex.create(id, payload);
-        } catch (Exception e) {
-            fail("Create should not throw exception: " + e.getMessage());
-        }
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
 
         IndexRequest request = captor.getValue();
-        assertEquals(INDEX_NAME, request.index());
-        assertEquals(id, request.id());
+        Assert.assertEquals(INDEX_NAME, request.index());
+        Assert.assertEquals(id, request.id());
 
-        JsonObject source = JsonParser.parseString(request.source().utf8ToString()).getAsJsonObject();
-        JsonObject doc = source.getAsJsonObject("document");
-        assertTrue("Title should exist", doc.has("title"));
+        JsonNode source = this.mapper.readTree(request.source().utf8ToString());
+        JsonNode doc = source.get("document");
+        Assert.assertTrue("Title should exist", doc.has("title"));
     }
 
     /** Test creating a Decoder. Validates that the YAML enrichment is generated. */
-    public void testCreate_Decoder_YamlEnrichment() {
+    public void testCreate_Decoder_YamlEnrichment() throws IOException {
         // Mock
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.indexResponse);
@@ -145,33 +149,29 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         + "  \"parents\": [\"decoder/integrations/0\"]"
                         + "}"
                         + "}";
-        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        JsonNode payload = this.mapper.readTree(jsonPayload);
         String id = "2ebb3a6b-c4a3-47fb-aae5-a0d9bd8cbfed";
 
         // Act
-        try {
-            this.contentIndex.create(id, payload);
-        } catch (Exception e) {
-            fail("Create should not throw exception: " + e.getMessage());
-        }
+        this.contentIndex.create(id, payload, true);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
 
-        JsonObject source =
-                JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
+        JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
-        assertTrue("Should contain 'decoder' field", source.has("decoder"));
-        String yaml = source.get("decoder").getAsString();
-        assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
-        assertTrue(yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
+        Assert.assertTrue("Should contain 'decoder' field", source.has("decoder"));
+        String yaml = source.get("decoder").asText();
+        Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
+        Assert.assertTrue(
+                yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
     }
 
     /**
      * Test creating a Rule with Sigma ID. Validates that sigma_id is renamed to id in related object.
      */
-    public void testCreate_Rule_SigmaIdProcessing() {
+    public void testCreate_Rule_SigmaIdProcessing() throws IOException {
         // Mock
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.indexResponse);
@@ -188,34 +188,29 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         + "  }"
                         + "}"
                         + "}";
-        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        JsonNode payload = this.mapper.readTree(jsonPayload);
         String id = "R1";
 
         // Act
-        try {
-            this.contentIndex.create(id, payload);
-        } catch (Exception e) {
-            fail("Create should not throw exception: " + e.getMessage());
-        }
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
 
-        JsonObject source =
-                JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
-        JsonObject related = source.getAsJsonObject("document").getAsJsonObject("related");
+        JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
+        JsonNode related = source.get("document").get("related");
 
-        assertFalse("Should not contain sigma_id", related.has("sigma_id"));
-        assertTrue("Should contain id", related.has("id"));
-        assertEquals("S-123", related.get("id").getAsString());
+        Assert.assertFalse("Should not contain sigma_id", related.has("sigma_id"));
+        Assert.assertTrue("Should contain id", related.has("id"));
+        Assert.assertEquals("S-123", related.get("id").asText());
     }
 
     /**
      * Test creating a Rule with Sigma ID in related array. Validates that sigma_id is renamed to id
      * in related array objects.
      */
-    public void testCreate_Rule_SigmaIdArrayProcessing() {
+    public void testCreate_Rule_SigmaIdArrayProcessing() throws IOException {
         // Mock
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.indexResponse);
@@ -231,35 +226,27 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         + "  }]"
                         + "}"
                         + "}";
-        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        JsonNode payload = this.mapper.readTree(jsonPayload);
         String id = "R2";
 
         // Act
-        try {
-            this.contentIndex.create(id, payload);
-        } catch (Exception e) {
-            fail("Create should not throw exception: " + e.getMessage());
-        }
+        this.contentIndex.create(id, payload, false);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
 
-        JsonObject source =
-                JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
-        JsonObject relatedItem =
-                source.getAsJsonObject("document").getAsJsonArray("related").get(0).getAsJsonObject();
+        JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
+        JsonNode relatedItem = source.get("document").get("related").get(0);
 
-        assertFalse("Should not contain sigma_id", relatedItem.has("sigma_id"));
-        assertTrue("Should contain id", relatedItem.has("id"));
-        assertEquals("999", relatedItem.get("id").getAsString());
+        Assert.assertFalse("Should not contain sigma_id", relatedItem.has("sigma_id"));
+        Assert.assertTrue("Should contain id", relatedItem.has("id"));
+        Assert.assertEquals("999", relatedItem.get("id").asText());
     }
 
     /**
      * Test updating a document. Simulates fetching an existing document, applying operations, and
      * re-indexing.
-     *
-     * @throws Exception
      */
     public void testUpdate_Operations() throws Exception {
         String id = "58dc8e10-0b69-4b81-a851-7a767e831fff";
@@ -302,22 +289,14 @@ public class ContentIndexTests extends OpenSearchTestCase {
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
 
-        JsonObject updatedDoc =
-                JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
+        JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
-        JsonObject mapItem =
-                updatedDoc
-                        .getAsJsonObject("document")
-                        .getAsJsonArray("normalize")
-                        .get(0)
-                        .getAsJsonObject()
-                        .getAsJsonArray("map")
-                        .get(0)
-                        .getAsJsonObject();
+        JsonNode mapItem = updatedDoc.get("document").get("normalize").get(0).get("map").get(0);
 
-        assertTrue("New field should be added", mapItem.has("springboot.gc.last_info.time.duration"));
-        assertEquals(
-                "new_duration", mapItem.get("springboot.gc.last_info.time.duration").getAsString());
+        Assert.assertTrue(
+                "New field should be added", mapItem.has("springboot.gc.last_info.time.duration"));
+        Assert.assertEquals(
+                "new_duration", mapItem.get("springboot.gc.last_info.time.duration").asText());
     }
 
     /** Test delete operation. */
@@ -331,7 +310,108 @@ public class ContentIndexTests extends OpenSearchTestCase {
         ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
         verify(this.client).delete(captor.capture(), any());
 
-        assertEquals(INDEX_NAME, captor.getValue().index());
-        assertEquals(id, captor.getValue().id());
+        Assert.assertEquals(INDEX_NAME, captor.getValue().index());
+        Assert.assertEquals(id, captor.getValue().id());
+    }
+
+    /** Test exists method when document exists. */
+    public void testExists_DocumentExists() {
+        // Arrange
+        String id = "existing-id";
+        when(this.client.prepareGet(INDEX_NAME, id).setFetchSource(false).get().isExists())
+                .thenReturn(true);
+
+        // Act
+        boolean exists = this.contentIndex.exists(id);
+
+        // Assert
+        Assert.assertTrue(exists);
+    }
+
+    /** Test exists method when document does not exist. */
+    public void testExists_DocumentNotExists() {
+        // Arrange
+        String id = "non-existing-id";
+        when(this.client.prepareGet(INDEX_NAME, id).setFetchSource(false).get().isExists())
+                .thenReturn(false);
+
+        // Act
+        boolean exists = this.contentIndex.exists(id);
+
+        // Assert
+        Assert.assertFalse(exists);
+    }
+
+    /** Test getIndexName method. */
+    public void testGetIndexName() {
+        // Act
+        String indexName = this.contentIndex.getIndexName();
+
+        // Assert
+        Assert.assertEquals(INDEX_NAME, indexName);
+    }
+
+    /**
+     * Test that creating a resource produces the expected JSON schema. Validates that the indexed
+     * document contains the required keys: document, hash, and space.
+     */
+    public void testCreate_Resource_ExpectedSchema() throws IOException {
+        // Mock
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        String jsonPayload =
+                "{"
+                        + "\"type\": \"test\","
+                        + "\"document\": {"
+                        + "  \"id\": \"test-resource-id\","
+                        + "  \"title\": \"Test Resource\","
+                        + "  \"enabled\": true"
+                        + "}"
+                        + "}";
+        JsonNode payload = this.mapper.readTree(jsonPayload);
+        String id = "test-resource-id";
+
+        // Act
+        this.contentIndex.create(id, payload, false);
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        IndexRequest request = captor.getValue();
+        Assert.assertEquals(INDEX_NAME, request.index());
+        Assert.assertEquals(id, request.id());
+
+        JsonNode source = this.mapper.readTree(request.source().utf8ToString());
+        Assert.assertTrue("Should contain 'document' key", source.has("document"));
+        Assert.assertTrue("Should contain 'hash' key", source.has("hash"));
+        Assert.assertTrue("Should contain 'space' key", source.has("space"));
+    }
+
+    /** Test update when document does not exist. */
+    public void testUpdate_DocumentNotFound() {
+        // Arrange
+        String id = "non-existing-id";
+
+        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
+        getFuture.onResponse(this.getResponse);
+        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        when(this.getResponse.isExists()).thenReturn(false);
+
+        List<Operation> operations = new ArrayList<>();
+        operations.add(new Operation("add", "/field", null, "value"));
+
+        // Act & Assert
+        Exception exception = null;
+        try {
+            this.contentIndex.update(id, operations);
+        } catch (Exception e) {
+            exception = e;
+        }
+
+        Assert.assertNotNull("Should throw exception when document not found", exception);
+        Assert.assertTrue(exception.getMessage().contains("not found"));
     }
 }

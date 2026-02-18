@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -22,11 +22,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -40,6 +36,7 @@ import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Base class for consumer synchronization logic. Provides common functionality for synchronizing
@@ -90,7 +87,7 @@ public abstract class AbstractConsumerSynchronizer {
 
     /**
      * Returns the consumer name for this synchronizer. The consumer identifies the type of content
-     * being synchronized (e.g., "rules", "decoders").
+     * being synchronized (e.g., "Constants.KEY_RULEs", "Constants.KEY_DECODERs").
      *
      * @return The consumer name.
      */
@@ -131,26 +128,36 @@ public abstract class AbstractConsumerSynchronizer {
     }
 
     /**
-     * Constructs the index name for a given type. The index name follows the pattern:
-     * .context-consumer-type
+     * Overrides index naming to utilize the alias name convention directly.
      *
      * @param type The type identifier for the index.
-     * @return The fully qualified index name.
+     * @return The unified index name.
      */
-    protected String getIndexName(String type) {
-        return String.format(Locale.ROOT, ".%s-%s-%s", this.getContext(), this.getConsumer(), type);
+    public String getIndexName(String type) {
+        // TODO Normalize the Resource types at resource creation to avoid this mapping and simplify
+        // index management
+        // e.g. always use the `type` in plural (decoders, rules, etc.) and remove the need for this
+        // mapping
+        return switch (type) {
+            case Constants.KEY_RULE -> Constants.INDEX_RULES;
+            case Constants.KEY_DECODER -> Constants.INDEX_DECODERS;
+            case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
+            case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
+            case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
+            case Constants.KEY_FILTERS -> Constants.INDEX_FILTERS;
+            case Constants.KEY_IOCS -> Constants.INDEX_IOCS;
+            default -> throw new IllegalArgumentException("Unknown type: " + type);
+        };
     }
 
     /**
-     * Refreshes the specified indices to make recent changes searchable. Converts the type
-     * identifiers to index names and issues a refresh request. Any errors during refresh are logged
-     * as warnings but do not interrupt execution.
+     * Refreshes the specified indices to make recent changes searchable. Any errors during refresh
+     * are logged as warnings but do not interrupt execution.
      *
-     * @param types The type identifiers of indices to refresh.
+     * @param indexNames The index names to refresh.
      */
-    protected void refreshIndices(String... types) {
+    protected void refreshIndices(String... indexNames) {
         try {
-            String[] indexNames = Arrays.stream(types).map(this::getIndexName).toArray(String[]::new);
             this.client.admin().indices().prepareRefresh(indexNames).get();
         } catch (Exception e) {
             log.warn("Error refreshing indices: {}", e.getMessage());

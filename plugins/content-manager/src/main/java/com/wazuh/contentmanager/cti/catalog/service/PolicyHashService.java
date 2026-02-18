@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,13 +28,16 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Service responsible for calculating and updating policy hashes. Computes aggregate hashes (hash
@@ -43,24 +46,6 @@ import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 public class PolicyHashService {
 
     private static final Logger log = LogManager.getLogger(PolicyHashService.class);
-
-    /** Field name for the space metadata within documents. */
-    public static final String SPACE = "space";
-
-    /** Field name for the main document content within index records. */
-    public static final String DOCUMENT = "document";
-
-    /** Field name for the decoders collection within integration documents. */
-    public static final String DECODERS = "decoders";
-
-    /** Field name for the key-value databases collection within integration documents. */
-    public static final String KVDBS = "kvdbs";
-
-    /** Field name for the rules collection within integration documents. */
-    public static final String RULES = "rules";
-
-    /** Field name for the integrations collection within policy documents. */
-    public static final String INTEGRATIONS = "integrations";
 
     /** OpenSearch client for executing index operations and search requests. */
     private final Client client;
@@ -75,27 +60,35 @@ public class PolicyHashService {
     }
 
     /**
+     * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
+     * processes only production spaces.
+     */
+    public void calculateAndUpdate() {
+
+        List<String> productionSpaces =
+                Arrays.stream(Space.values())
+                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TEST))
+                        .map(Space::toString)
+                        .collect(Collectors.toList());
+
+        this.calculateAndUpdate(productionSpaces);
+    }
+
+    /**
      * Calculates and updates the aggregate hash for all policies in the given consumer context.
      *
-     * @param policyIndex      The index containing policy document.
-     * @param integrationIndex The index containing integration documents.
-     * @param decoderIndex     The index containing decoder documents.
-     * @param kvdbIndex        The index containing kvdb documents.
-     * @param ruleIndex        The index containing rule documents.
+     * @param targetSpaces The list of target spaces to process.
      */
-    public void calculateAndUpdate(
-        String policyIndex,
-        String integrationIndex,
-        String decoderIndex,
-        String kvdbIndex,
-        String ruleIndex) {
+    public void calculateAndUpdate(List<String> targetSpaces) {
         try {
-            if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
-                log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
+            if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
+                log.warn(
+                        "Policy index [{}] does not exist. Skipping hash calculation.",
+                        Constants.INDEX_POLICIES);
                 return;
             }
 
-            SearchRequest searchRequest = new SearchRequest(policyIndex);
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
             searchRequest.source().query(QueryBuilders.matchAllQuery()).size(5);
             SearchResponse response = this.client.search(searchRequest).actionGet();
 
@@ -104,39 +97,43 @@ public class PolicyHashService {
             for (SearchHit hit : response.getHits().getHits()) {
                 Map<String, Object> source = hit.getSourceAsMap();
 
-                Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
+                Map<String, Object> space = (Map<String, Object>) source.get(Constants.KEY_SPACE);
                 if (space != null) {
-                    String spaceName = (String) space.get("name");
-                    if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
-                        log.info(
-                                "Skipping hash calculation for policy [{}] because it is in space [{}]",
-                                hit.getId(),
-                                spaceName);
+                    String spaceName = (String) space.get(Constants.KEY_NAME);
+                    // Check if the policy is in one of the target spaces
+                    if (!targetSpaces.contains(spaceName)) {
                         continue;
                     }
+                    log.info(
+                        "Calculating hash calculation for policy [{}] in space [{}]",
+                        hit.getId(),
+                        spaceName);
                 }
 
                 List<String> spaceHashes = new ArrayList<>();
                 spaceHashes.add(HashCalculator.extractHash(source));
 
-                Map<String, Object> document = (Map<String, Object>) source.get(DOCUMENT);
-                if (document != null && document.containsKey(INTEGRATIONS)) {
-                    List<String> integrationIds = (List<String>) document.get(INTEGRATIONS);
+                Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                if (document != null && document.containsKey(Constants.KEY_INTEGRATIONS)) {
+                    List<String> integrationIds = (List<String>) document.get(Constants.KEY_INTEGRATIONS);
 
                     for (String integrationId : integrationIds) {
                         Map<String, Object> integrationSource =
-                                IndexHelper.getDocumentSource(this.client, integrationIndex, integrationId);
+                                IndexHelper.getDocumentSource(
+                                        this.client, Constants.INDEX_INTEGRATIONS, integrationId);
                         if (integrationSource == null) {
                             continue;
                         }
 
                         spaceHashes.add(HashCalculator.extractHash(integrationSource));
 
-                        Map<String, Object> integration = (Map<String, Object>) integrationSource.get(DOCUMENT);
+                        Map<String, Object> integration =
+                                (Map<String, Object>) integrationSource.get(Constants.KEY_DOCUMENT);
                         if (integration != null) {
-                            this.addHashes(integration, DECODERS, decoderIndex, spaceHashes);
-                            this.addHashes(integration, KVDBS, kvdbIndex, spaceHashes);
-                            this.addHashes(integration, RULES, ruleIndex, spaceHashes);
+                            this.addHashes(
+                                    integration, Constants.KEY_DECODERS, Constants.INDEX_DECODERS, spaceHashes);
+                            this.addHashes(integration, Constants.KEY_KVDBS, Constants.INDEX_KVDBS, spaceHashes);
+                            this.addHashes(integration, Constants.KEY_RULES, Constants.INDEX_RULES, spaceHashes);
                         }
                     }
                 }
@@ -145,21 +142,21 @@ public class PolicyHashService {
 
                 Map<String, Object> updateMap = new HashMap<>();
                 Map<String, Object> spaceMap =
-                        (Map<String, Object>) source.getOrDefault(SPACE, new HashMap<>());
+                        (Map<String, Object>) source.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
                 Map<String, Object> hashMap =
-                        (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
+                        (Map<String, Object>) spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
 
-                hashMap.put("sha256", spaceHash);
-                spaceMap.put("hash", hashMap);
-                updateMap.put(SPACE, spaceMap);
+                hashMap.put(Constants.KEY_SHA256, spaceHash);
+                spaceMap.put(Constants.KEY_HASH, hashMap);
+                updateMap.put(Constants.KEY_SPACE, spaceMap);
 
                 bulkUpdateRequest.add(
-                        new UpdateRequest(policyIndex, hit.getId()).doc(updateMap, XContentType.JSON));
+                        new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())
+                                .doc(updateMap, XContentType.JSON));
             }
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
                 this.client.bulk(bulkUpdateRequest).actionGet();
-                log.info("Updated policy hashes.");
             }
 
         } catch (Exception e) {

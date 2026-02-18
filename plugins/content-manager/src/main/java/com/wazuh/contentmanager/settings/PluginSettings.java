@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,9 +28,16 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     // Rest API endpoints
-    public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
+    public static final String PLUGINS_BASE_URI = "/_plugins/_content_manager";
     public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
     public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
+    public static final String LOGTEST_URI = PLUGINS_BASE_URI + "/logtest";
+    public static final String KVDBS_URI = PLUGINS_BASE_URI + "/kvdbs";
+    public static final String DECODERS_URI = PLUGINS_BASE_URI + "/decoders";
+    public static final String RULES_URI = PLUGINS_BASE_URI + "/rules";
+    public static final String INTEGRATIONS_URI = PLUGINS_BASE_URI + "/integrations";
+    public static final String PROMOTE_URI = PLUGINS_BASE_URI + "/promote";
+    public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
@@ -44,6 +51,10 @@ public class PluginSettings {
     // Default values for Context and Consumer
     private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
     private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3_test";
+
+    // Default values for Context and Consumer
+    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider";
+    private static final String DEFAULT_IOC_CONSUMER = "iocp_v1";
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -136,6 +147,22 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Context for IoC Content. */
+    public static final Setting<String> IOC_CONTEXT =
+            Setting.simpleString(
+                    "plugins.content_manager.ioc.content.context",
+                    DEFAULT_IOC_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Consumer for IoC Content. */
+    public static final Setting<String> IOC_CONSUMER =
+            Setting.simpleString(
+                    "plugins.content_manager.ioc.content.consumer",
+                    DEFAULT_IOC_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final int maximumConcurrentBulks;
@@ -145,6 +172,8 @@ public class PluginSettings {
     private final boolean updateOnSchedule;
     private final String contentContext;
     private final String contentConsumer;
+    private final String iocContext;
+    private final String iocConsumer;
 
     /**
      * Private default constructor
@@ -161,6 +190,8 @@ public class PluginSettings {
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
         this.contentContext = CONTENT_CONTEXT.get(settings);
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
+        this.iocContext = IOC_CONTEXT.get(settings);
+        this.iocConsumer = IOC_CONSUMER.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -270,6 +301,24 @@ public class PluginSettings {
      */
     public String getContentConsumer() {
         return this.contentConsumer;
+    }
+
+    /**
+     * Retrieves the IOC Context.
+     *
+     * @return the context string.
+     */
+    public String getIocContext() {
+        return this.iocContext;
+    }
+
+    /**
+     * Retrieves the IOC Consumer.
+     *
+     * @return the consumer string.
+     */
+    public String getIocConsumer() {
+        return this.iocConsumer;
     }
 
     @Override

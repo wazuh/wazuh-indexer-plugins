@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
   agent:
     fields: "*"
   as:
@@ -608,17 +610,4 @@ fields:
   policy:
     fields: "*"
   compliance:
-    fields: "*"
-  # Integration fields
-  audit:
-    fields: "*"
-  microsoft-dhcp:
-    fields: "*"
-  microsoft-dnsserver:
-    fields: "*"
-  microsoft-exchange-server:
-    fields: "*"
-  unifiedlogs:
-    fields: "*"
-  windows:
     fields: "*"

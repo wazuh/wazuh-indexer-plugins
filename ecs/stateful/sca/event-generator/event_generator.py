@@ -87,7 +87,6 @@ def generate_random_data(number):
     data = []
     for _ in range(number):
         event_data = {
-            'agent': generate_random_agent(),
             'policy': generate_random_policy(),
             'check': generate_random_check(),
             'checksum': generate_random_checksum(),
@@ -118,6 +117,7 @@ def generate_random_checksum():
 
 def generate_random_wazuh():
     return {
+        "agent": generate_random_agent(),
         "cluster": {
             "name": f"wazuh-cluster-{random.randint(0, 10)}",
             "node": f"wazuh-cluster-node-{random.randint(0, 10)}",

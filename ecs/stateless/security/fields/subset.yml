@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
   agent:
     fields: "*"
   as:
@@ -608,13 +610,4 @@ fields:
   policy:
     fields: "*"
   compliance:
-    fields: "*"
-  # Integration fields
-  modsecurity:
-    fields: "*"
-  snort:
-    fields: "*"
-  suricata:
-    fields: "*"
-  zeek:
     fields: "*"

@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
   agent:
     fields: "*"
   as:
@@ -608,25 +610,4 @@ fields:
   policy:
     fields: "*"
   compliance:
-    fields: "*"
-  # Integration fields
-  checkpoint:
-    fields: "*"
-  cisco-aironet:
-    fields: "*"
-  cisco-asa:
-    fields: "*"
-  cisco-ios:
-    fields: "*"
-  cisco-meraki:
-    fields: "*"
-  f5-bigip:
-    fields: "*"
-  fortinet:
-    fields: "*"
-  iptables:
-    fields: "*"
-  pfsense:
-    fields: "*"
-  sonicwall-firewall:
     fields: "*"

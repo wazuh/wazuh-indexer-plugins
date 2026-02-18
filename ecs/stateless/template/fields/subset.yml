@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+  enrichments:
+    fields: "*"
   agent:
     fields: "*"
   as:
@@ -609,4 +611,3 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  # Integration fields
