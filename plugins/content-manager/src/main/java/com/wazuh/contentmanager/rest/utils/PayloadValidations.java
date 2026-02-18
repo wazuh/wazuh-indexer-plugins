@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 

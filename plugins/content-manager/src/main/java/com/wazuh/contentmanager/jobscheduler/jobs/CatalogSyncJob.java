@@ -28,9 +28,9 @@ import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
-import com.wazuh.contentmanager.service.AbstractConsumerService;
-import com.wazuh.contentmanager.service.ConsumerIocService;
-import com.wazuh.contentmanager.service.ConsumerRulesetService;
+import com.wazuh.contentmanager.rest.service.AbstractConsumerService;
+import com.wazuh.contentmanager.rest.service.ConsumerIocService;
+import com.wazuh.contentmanager.rest.service.ConsumerRulesetService;
 
 /**
  * Job responsible for executing the synchronization logic for Rules and Decoders consumers. This
