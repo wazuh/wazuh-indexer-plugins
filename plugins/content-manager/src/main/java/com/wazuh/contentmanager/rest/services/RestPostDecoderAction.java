@@ -17,59 +17,65 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-public class RestPostDecoderAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
+/**
+ * POST /_plugins/content-manager/decoders
+ *
+ * <p>Creates a new Decoder in the draft space.
+ *
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The payload contains all mandatory fields.
+ *   <li>The parent integration exists and is in the draft space.
+ *   <li>A new UUID and creation timestamps (in the correct author structure) are generated.
+ *   <li>The decoder content is validated by the Engine.
+ *   <li>The decoder is indexed in the draft space.
+ *   <li>The new decoder is linked to the parent Integration.
+ * </ul>
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>201 Created: Decoder created successfully.
+ *   <li>400 Bad Request: Missing fields, invalid payload, or Engine validation failure.
+ *   <li>500 Internal Server Error: Engine unavailable or unexpected error.
+ * </ul>
+ */
+public class RestPostDecoderAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-    private final EngineService engine;
-    private PolicyHashService policyHashService;
-
-    /**
-     * Constructs a new RestPostDecoderAction handler.
-     *
-     * @param engine The service instance to communicate with the local engine service.
-     */
     public RestPostDecoderAction(EngineService engine) {
-        this.engine = engine;
+        super(engine);
     }
 
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for the delete endpoint
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -81,101 +87,44 @@ public class RestPostDecoderAction extends BaseRestHandler {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        this.policyHashService = new PolicyHashService(client);
-        RestResponse response = this.handleRequest(request, client);
-        return channel -> channel.sendResponse(response.toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_DECODERS;
     }
 
-    /**
-     * Sets the policy hash service for testing purposes.
-     *
-     * @param policyHashService the PolicyHashService instance to use
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_DECODER;
     }
 
-    /**
-     * Handles the decoder creation request.
-     *
-     * @param request incoming REST request containing decoder payload
-     * @param client the node client for index operations
-     * @return a RestResponse describing the outcome
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        // Validate prerequisites
-        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
-        if (validationError != null) {
-            return validationError;
-        }
+    @Override
+    protected boolean isDecoder() {
+        return true;
+    }
 
-        try {
-            JsonNode payload = mapper.readTree(request.content().streamInput());
-            // Validate payload structure
-            validationError = DocumentValidations.validateResourcePayload(payload, null, true);
-            if (validationError != null) {
-                return validationError;
-            }
-            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
-            String integrationId = payload.get(Constants.KEY_INTEGRATION).asText();
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
+        String spaceError =
+                this.documentValidations.validateDocumentInSpace(
+                        client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
+        if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+        return null;
+    }
 
-            // Check non-modifiable fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode, true);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            // Validate integration is in draft space
-            String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-            if (spaceValidationError != null) {
-                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Generate UUID and validate with engine
-            String decoderId = UUID.randomUUID().toString();
-            resourceNode.put(Constants.KEY_ID, decoderId);
-
-            // Add timestamp metadata
-            ContentUtils.updateTimestampMetadata(resourceNode, true, true);
-
-            // Validate integration with Wazuh Engine
-            RestResponse engineValidation =
-                    this.engine.validateResource(Constants.KEY_DECODER, resourceNode);
-            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                log.error(Constants.E_LOG_ENGINE_VALIDATION, engineValidation.getMessage());
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Create decoder using raw UUID
-            ContentIndex decoderIndex = new ContentIndex(client, Constants.INDEX_DECODERS, null);
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
-
-            decoderIndex.create(decoderId, ctiWrapper, true);
-
-            // Link to Integration
-            ContentUtils.linkResourceToIntegration(
-                    client, integrationId, decoderId, Constants.KEY_DECODERS);
-
-            // Regenerate space hash because space composition changed
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            // Response the decoder ID and CREATED (201) status
-            return new RestResponse(decoderId, RestStatus.CREATED.getStatus());
-
-        } catch (IOException e) {
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_DECODER, resource);
+        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, "JSON"),
+                    "Engine Validation Failed: " + engineValidation.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
-        } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "creating", Constants.KEY_DECODER, e.getMessage(), e);
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+        return null;
+    }
+
+    @Override
+    protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
+        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
+        this.contentUtils.linkResourceToIntegration(client, integrationId, id, Constants.KEY_DECODERS);
     }
 }

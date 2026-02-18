@@ -63,7 +63,6 @@ import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Ioc;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -206,59 +205,6 @@ public class ContentIndex {
             log.error("Error retrieving document [{}] from [{}]: {}", id, this.indexName, e.getMessage());
         }
         return null;
-    }
-
-    /**
-     * Indexes a raw CTI document. This method handles: 1. Wrapping the raw content in the "document"
-     * field. 2. Calculating the SHA-256 hash. 3. Adding the "space" metadata. 4. Indexing into
-     * OpenSearch.
-     *
-     * @param id The ID of the document.
-     * @param rawContent The content of the rule/decoder/etc. (Jackson JsonNode).
-     * @param spaceName The space name (e.g., "custom").
-     * @throws IOException If serialization or indexing fails.
-     */
-    // TODO: Study this method it can probably be used or adapted and then used to index the documents
-    public void indexCtiContent(String id, JsonNode rawContent, String spaceName) throws IOException {
-        // TODO: Move this method to a dedicated CTI Resource logic class.
-        ObjectNode ctiWrapper = this.mapper.createObjectNode();
-
-        // 1. Wrap document
-        ctiWrapper.set(Constants.KEY_DOCUMENT, rawContent);
-
-        // 2. Calculate Hash
-        String hash = HashCalculator.sha256(rawContent.toString());
-        ObjectNode hashNode = this.mapper.createObjectNode();
-        hashNode.put(Constants.KEY_SHA256, hash);
-        ctiWrapper.set(Constants.KEY_HASH, hashNode);
-
-        // 3. Set Space
-        ObjectNode spaceNode = this.mapper.createObjectNode();
-        spaceNode.put(Constants.KEY_NAME, spaceName);
-        ctiWrapper.set(Constants.KEY_SPACE, spaceNode);
-
-        // 4. Index
-        IndexRequest indexRequest =
-                new IndexRequest(this.indexName)
-                        .id(id)
-                        .source(ctiWrapper.toString(), XContentType.JSON)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-        this.client.index(indexRequest).actionGet();
-    }
-
-    /**
-     * Indexes a new document or overwrites an existing one.
-     *
-     * <p>The payload is pre-processed (sanitized and enriched) before being indexed.
-     *
-     * @param id The unique identifier for the document.
-     * @param payload The JSON object representing the document content.
-     * @return The IndexResponse object with the result of the indexing operation.
-     * @throws IOException If the indexing operation fails.
-     */
-    public IndexResponse create(String id, JsonNode payload) throws IOException {
-        return this.create(id, payload, false);
     }
 
     /**

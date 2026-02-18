@@ -16,68 +16,47 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
- * DELETE /_plugins/content-manager/rules/{rule_id}
+ * DELETE /_plugins/content-manager/rules/{id}
  *
- * <p>Deletes a rule from the local engine, unlinks it from integrations, and removes it from the
- * CTI index.
+ * <p>Deletes an existing Rule from the draft space.
  *
- * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
- * 404 Not Found: Wazuh Engine replied with an error response. - 500 Internal Server Error:
- * Unexpected error during processing. Wazuh Engine did not respond.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The rule exists and is in the draft space.
+ *   <li>The rule is deleted from the Security Analytics Plugin (SAP).
+ *   <li>The rule is unlinked from any integrations that reference it.
+ *   <li>The rule is deleted from the index and the space hash is recalculated.
+ * </ul>
+ *
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Rule deleted successfully.
+ *   <li>400 Bad Request: Rule is not in draft space.
+ *   <li>404 Not Found: Rule with specified ID was not found.
+ *   <li>500 Internal Server Error: Unexpected error during processing.
+ * </ul>
  */
-public class RestDeleteRuleAction extends BaseRestHandler {
+public class RestDeleteRuleAction extends AbstractDeleteAction {
+
     private static final String ENDPOINT_NAME = "content_manager_rule_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_delete";
-    private static final Logger log = LogManager.getLogger(RestDeleteRuleAction.class);
 
-    private PolicyHashService policyHashService;
-    private SecurityAnalyticsService securityAnalyticsService;
-
-    /** Default constructor. */
-    public RestDeleteRuleAction() {}
-
-    /**
-     * Setter for the policy hash service, used in tests.
-     *
-     * @param policyHashService the policy hash service to set
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
-    }
-
-    /**
-     * Setter for the security analytics service, used in tests.
-     *
-     * @param securityAnalyticsService the security analytics service to set
-     */
-    public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
-        this.securityAnalyticsService = securityAnalyticsService;
+    public RestDeleteRuleAction() {
+        super(null);
     }
 
     /** Return a short identifier for this handler. */
@@ -101,98 +80,23 @@ public class RestDeleteRuleAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepare the request for execution.
-     *
-     * @param request the incoming REST request
-     * @param client the node client used to execute actions
-     * @return a {@link RestChannelConsumer} that executes the logic
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        RestResponse response = this.handleRequest(request, client);
-        return channel -> channel.sendResponse(response.toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_RULES;
     }
 
-    /**
-     * Handles the delete rule request logic.
-     *
-     * <p>This method performs the following steps:
-     *
-     * <ol>
-     *   <li>Validates the presence of the {@code rule_id} parameter.
-     *   <li>Calls the Security Analytics Plugin (SAP) to delete the rule from the engine.
-     *   <li>Searches for any integrations that reference this rule and removes the reference.
-     *   <li>Deletes the rule document from the CTI rules index.
-     * </ol>
-     *
-     * @param request the incoming REST request containing the rule ID
-     * @param client the client to execute OpenSearch actions
-     * @return a {@link RestResponse} indicating the outcome of the operation
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        try {
-            String ruleId = request.param(Constants.KEY_ID);
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_RULE;
+    }
 
-            // Validate ID is present
-            RestResponse validationError =
-                    DocumentValidations.validateRequiredParam(ruleId, Constants.KEY_ID);
-            if (validationError != null) {
-                return validationError;
-            }
+    @Override
+    protected void deleteExternalServices(String id) {
+        this.securityAnalyticsService.deleteRule(id, false);
+    }
 
-            // Validate UUID format
-            validationError = DocumentValidations.validateUUID(ruleId);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            // Check if rule exists
-            ContentIndex rulesIndex = new ContentIndex(client, Constants.INDEX_RULES);
-            if (!rulesIndex.exists(ruleId)) {
-                return new RestResponse(
-                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
-            }
-
-            // Validate rule is in draft space
-            String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_RULES, ruleId, Constants.KEY_RULE);
-            if (spaceValidationError != null) {
-                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // 1. Call SAP to delete rule
-            try {
-                this.securityAnalyticsService.deleteRule(ruleId);
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to delete rule [{}] from Security Analytics Plugin: {}",
-                        ruleId,
-                        e.getMessage());
-            }
-
-            // 2. Unlink from Integrations
-            ContentUtils.unlinkResourceFromIntegrations(client, ruleId, Constants.KEY_RULES);
-
-            // 3. Delete from CTI Rules Index
-            rulesIndex.delete(ruleId);
-
-            // Recalculate policy hashes for draft space
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse(ruleId, RestStatus.OK.getStatus());
-
-        } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "deleting", Constants.KEY_RULE, e.getMessage(), e);
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+    @Override
+    protected void unlinkFromParent(Client client, String id) throws IOException {
+        this.contentUtils.unlinkResourceFromIntegrations(client, id, Constants.KEY_RULES);
     }
 }

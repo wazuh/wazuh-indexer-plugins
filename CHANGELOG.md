@@ -91,6 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adapt WCS generation script to save the ECS flat of stateless module [(#646)](https://github.com/wazuh/wazuh-indexer-plugins/pull/646)
 - Replace time-series indices with data streams [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/pull/562)
 - Rename index templates [(#659)](https://github.com/wazuh/wazuh-indexer-plugins/pull/659)
+- Update WCS compliance fields [(#695)](https://github.com/wazuh/wazuh-indexer-plugins/pull/695)
 - Resolve SAP dependency in Content Manager's build workflow [(#702)](https://github.com/wazuh/wazuh-indexer-plugins/pull/702)
 - Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
 - Avoid creation of Integrations with no rules associated [(#709)](https://github.com/wazuh/wazuh-indexer-plugins/pull/709)

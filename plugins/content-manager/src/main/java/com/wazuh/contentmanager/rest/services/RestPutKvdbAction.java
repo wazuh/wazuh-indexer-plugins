@@ -17,75 +17,51 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /**
- * REST handler for updating CTI KVDBs.
+ * PUT /_plugins/content-manager/kvdbs/{id}
  *
- * <p>Endpoint: PUT /_plugins/content-manager/kvdbs/{kvdb_id}
+ * <p>Updates an existing KVDB in the draft space.
  *
- * <p>This handler processes KVDB update requests. The KVDB is validated against the Wazuh engine
- * before being stored in the index with DRAFT space.
+ * <p>This action ensures that:
+ *
+ * <ul>
+ *   <li>The KVDB exists and is in the draft space.
+ *   <li>The request body contains all mandatory fields (title, content).
+ *   <li>Immutable metadata (creation date) is preserved.
+ *   <li>The updated KVDB content is validated by the Engine.
+ *   <li>The KVDB is re-indexed and the space hash is recalculated.
+ * </ul>
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
- *   <li>200 OK: KVDB updated successfully after engine validation.
- *   <li>400 Bad Request: Missing or invalid request body, KVDB ID mismatch, or validation error.
- *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
+ *   <li>200 OK: KVDB updated successfully.
+ *   <li>400 Bad Request: Missing fields, invalid payload, or Engine validation failure.
+ *   <li>404 Not Found: KVDB with specified ID was not found.
+ *   <li>500 Internal Server Error: Engine unavailable or unexpected error.
  * </ul>
  */
-public class RestPutKvdbAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPutKvdbAction.class);
+public class RestPutKvdbAction extends AbstractUpdateAction {
+
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
 
-    private final EngineService engine;
-    private final ObjectMapper mapper = new ObjectMapper();
-    private PolicyHashService policyHashService;
-
-    /**
-     * Constructs a new RestPutKvdbAction handler.
-     *
-     * @param engine the engine service instance for communication with the Wazuh engine
-     */
     public RestPutKvdbAction(EngineService engine) {
-        this.engine = engine;
-    }
-
-    /**
-     * Setter for the policy hash service, used in tests.
-     *
-     * @param policyHashService the policy hash service to set
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+        super(engine);
     }
 
     /** Return a short identifier for this handler. */
@@ -109,183 +85,30 @@ public class RestPutKvdbAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for processing.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        // Consume path params early to avoid unrecognized parameter errors.
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    protected String getIndexName() {
+        return Constants.INDEX_KVDBS;
     }
 
-    /**
-     * Handles the KVDB update request.
-     *
-     * <p>This method validates the request payload, ensures the KVDB ID matches, validates the KVDB
-     * with the Wazuh engine, and stores the updated KVDB in the index.
-     *
-     * @param request the incoming REST request containing the KVDB data to update
-     * @param client the OpenSearch client for index operations
-     * @return a RestResponse indicating success or failure of the update
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        // Validate prerequisites
-        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
-        if (validationError != null) {
-            return validationError;
-        }
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_KVDB;
+    }
 
-        try {
-            String kvdbId = request.param(Constants.KEY_ID);
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        return this.contentUtils.validateRequiredFields(
+                resource, List.of(Constants.KEY_TITLE, "content"));
+    }
 
-            // Validate ID is present
-            validationError = DocumentValidations.validateRequiredParam(kvdbId, Constants.KEY_ID);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            // Validate UUID format
-            validationError = DocumentValidations.validateUUID(kvdbId);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            JsonNode payload;
-            try {
-                payload = this.mapper.readTree(request.content().streamInput());
-            } catch (IOException e) {
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Validate payload structure
-            validationError = DocumentValidations.validateResourcePayload(payload, kvdbId, false);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
-            resourceNode.put(Constants.KEY_ID, kvdbId);
-
-            // Validate mandatory fields for PUT
-            if (!resourceNode.has(Constants.KEY_TITLE)) {
-                return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_TITLE),
-                    RestStatus.BAD_REQUEST.getStatus());
-            }
-            if (!resourceNode.has(Constants.KEY_AUTHOR)) {
-                return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_AUTHOR),
-                    RestStatus.BAD_REQUEST.getStatus());
-            }
-            if (!resourceNode.has(Constants.KEY_DESCRIPTION)) {
-                return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_DESCRIPTION),
-                    RestStatus.BAD_REQUEST.getStatus());
-            }
-            if (!resourceNode.has("documentation")) {
-                return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "documentation"),
-                    RestStatus.BAD_REQUEST.getStatus());
-            }
-            if (!resourceNode.has("references")) {
-                return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "references"),
-                    RestStatus.BAD_REQUEST.getStatus());
-            }
-            if (!resourceNode.has("content") || resourceNode.get("content").isEmpty()) {
-                return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "content"),
-                    RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Check non-modifiable fields
-            RestResponse metadataError = ContentUtils.validateMetadataFields(resourceNode, false);
-            if (metadataError != null) {
-                return metadataError;
-            }
-
-            // Check if KVDB exists
-            ContentIndex kvdbIndex = new ContentIndex(client, Constants.INDEX_KVDBS, null);
-            if (!kvdbIndex.exists(kvdbId)) {
-                return new RestResponse(
-                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
-            }
-
-            // Validate KVDB is in draft space
-            String spaceError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_KVDBS, kvdbId, Constants.KEY_KVDB);
-            if (spaceError != null) {
-                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Update timestamps
-            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
-
-            // Validate with engine
-            RestResponse engineResponse = this.engine.validateResource(Constants.KEY_KVDB, resourceNode);
-            if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-                log.error(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Fetch existing KVDB to preserve creation date
-            String createdDate = null;
-            JsonNode existingDoc = kvdbIndex.getDocument(kvdbId);
-            if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
-                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-                // Check root date
-                if (doc.has(Constants.KEY_DATE)) {
-                    createdDate = doc.get(Constants.KEY_DATE).asText();
-                }
-            }
-
-            // Update timestamps (root level)
-            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
-
-            // Restore creation date
-            if (createdDate != null) {
-                resourceNode.put(Constants.KEY_DATE, createdDate);
-            }
-
-            // Preserve enabled status if missing, else default true
-            if (!resourceNode.has(Constants.KEY_ENABLED)) {
-                if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
-                    JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-                    if (doc.has(Constants.KEY_ENABLED)) {
-                        resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
-                    } else {
-                        resourceNode.put(Constants.KEY_ENABLED, true);
-                    }
-                } else {
-                    resourceNode.put(Constants.KEY_ENABLED, true);
-                }
-            }
-
-            JsonNode ctiWrapper = ContentUtils.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
-
-            kvdbIndex.create(kvdbId, ctiWrapper);
-
-            // Regenerate space hash because KVDB content changed
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse(kvdbId, RestStatus.OK.getStatus());
-
-        } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_KVDB, e.getMessage(), e);
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_KVDB, resource);
+        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Engine Validation Failed: " + engineValidation.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
+        return null;
     }
 }
