@@ -268,8 +268,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Synchronizes Threat Detectors to the Security Analytics Plugin. Detectors are created only for
-     * Standard integrations and are processed sequentially.
+     * Synchronizes Threat Detectors to the Security Analytics Plugin. The first detector is created
+     * sequentially to ensure the SAP detectors config index exists, then the remaining detectors are
+     * created in parallel.
      */
     private void syncDetectors() {
         if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
@@ -279,61 +280,73 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
         SearchHit[] hits = searchResponse.getHits().getHits();
 
-        List<SearchHit> hitsToProcess = new ArrayList<>();
+        // Pre-filter: only keep standard-space integrations with a valid detector request
+        List<JsonNode> docs = new ArrayList<>();
         for (SearchHit hit : hits) {
             JsonNode source = this.parseHit(hit);
-            if (source != null && this.extractSpace(source) == Space.STANDARD) {
-                hitsToProcess.add(hit);
+            if (source == null || this.extractSpace(source) != Space.STANDARD) {
+                continue;
+            }
+            JsonNode doc = this.extractDocument(source, hit.getId());
+            if (doc != null && this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
+                docs.add(doc);
             }
         }
 
-        if (hitsToProcess.isEmpty()) return;
+        if (docs.isEmpty()) return;
 
-        CountDownLatch latch = new CountDownLatch(1);
-        this.processNextDetector(hitsToProcess.iterator(), latch);
+        log.info(
+                "Syncing {} detectors ({} sequentially, {} in parallel)", docs.size(), 1, docs.size() - 1);
 
-        try {
-            if (!latch.await(60, TimeUnit.SECONDS)) {
-                log.warn("Timed out waiting for detectors sync");
-            }
-        } catch (InterruptedException e) {
-            log.error("Interrupted waiting for detectors sync", e);
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     * Recursively processes the next detector in the list. Sequential processing is used to avoid
-     * race conditions during detector configuration index creation in SAP.
-     *
-     * @param iterator Iterator for the list of search hits to process.
-     * @param latch Latch used to signal completion of the entire list.
-     */
-    private void processNextDetector(Iterator<SearchHit> iterator, CountDownLatch latch) {
-        if (!iterator.hasNext()) {
-            latch.countDown();
-            return;
-        }
-
-        SearchHit hit = iterator.next();
-        JsonNode source = this.parseHit(hit);
-        JsonNode doc = source != null ? this.extractDocument(source, hit.getId()) : null;
-
-        if (doc == null) {
-            this.processNextDetector(iterator, latch);
-            return;
-        }
-
+        // Process the first detector sequentially to ensure the config index is created
+        CountDownLatch firstLatch = new CountDownLatch(1);
         this.securityAnalyticsService.upsertDetectorAsync(
-                doc,
+                docs.get(0),
                 true,
                 RestRequest.Method.POST,
                 ActionListener.wrap(
-                        response -> ConsumerRulesetService.this.processNextDetector(iterator, latch),
+                        response -> firstLatch.countDown(),
                         e -> {
-                            log.error("Failed to sync detector {}: {}", hit.getId(), e.getMessage());
-                            ConsumerRulesetService.this.processNextDetector(iterator, latch);
+                            log.error("Failed to sync first detector: {}", e.getMessage());
+                            firstLatch.countDown();
                         }));
+
+        try {
+            if (!firstLatch.await(30, TimeUnit.SECONDS)) {
+                log.warn("Timed out waiting for first detector creation");
+                return;
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted waiting for first detector", e);
+            Thread.currentThread().interrupt();
+            return;
+        }
+
+        // Process remaining detectors in parallel
+        if (docs.size() > 1) {
+            CountDownLatch parallelLatch = new CountDownLatch(docs.size() - 1);
+            for (int i = 1; i < docs.size(); i++) {
+                this.securityAnalyticsService.upsertDetectorAsync(
+                        docs.get(i),
+                        true,
+                        RestRequest.Method.POST,
+                        ActionListener.wrap(
+                                response -> parallelLatch.countDown(),
+                                e -> {
+                                    log.error("Failed to sync detector: {}", e.getMessage());
+                                    parallelLatch.countDown();
+                                }));
+            }
+
+            try {
+                if (!parallelLatch.await(60, TimeUnit.SECONDS)) {
+                    log.warn("Timed out waiting for parallel detectors sync");
+                }
+            } catch (InterruptedException e) {
+                log.error("Interrupted waiting for detectors sync", e);
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /**
