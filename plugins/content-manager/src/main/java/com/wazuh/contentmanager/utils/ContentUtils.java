@@ -28,6 +28,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
@@ -44,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
@@ -182,9 +184,11 @@ public class ContentUtils {
     public void unlinkResourceFromIntegrations(Client client, String resourceId, String listKey)
             throws IOException {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
-        searchRequest
-                .source()
-                .query(QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + listKey, resourceId));
+        BoolQueryBuilder query =
+                QueryBuilders.boolQuery()
+                        .must(QueryBuilders.termQuery(Constants.KEY_DOCUMENT + "." + listKey, resourceId))
+                        .filter(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+        searchRequest.source().query(query);
 
         try {
             SearchResponse searchResponse = client.search(searchRequest).actionGet();
