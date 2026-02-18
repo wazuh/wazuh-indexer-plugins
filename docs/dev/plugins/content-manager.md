@@ -556,6 +556,216 @@ tail -f logs/opensearch.log | grep -E "ContentManager|CatalogSyncJob|SnapshotSer
 - Offset-based synchronization ensures no content is missed
 
 ---
+## 🧪 Testing
+
+The plugin includes integration tests defined in the `tests/content-manager` directory. These tests cover various scenarios for managing integrations, decoders, rules, and KVDBs through the REST API.
+
+#### 01 - Integrations: Create Integration (9 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create an integration |
+| 2 | Create an integration with the same title as an existing integration |
+| 3 | Create an integration with missing title |
+| 4 | Create an integration with missing author |
+| 5 | Create an integration with missing category |
+| 6 | Create an integration with an explicit id in the resource |
+| 7 | Create an integration with missing resource object |
+| 8 | Create an integration with empty body |
+| 9 | Create an integration without authentication |
+
+#### 01 - Integrations: Update Integration (8 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update an integration |
+| 2 | Update an integration changing its title to a title that already exists in draft space |
+| 3 | Update an integration with missing required fields |
+| 4 | Update an integration that does not exist |
+| 5 | Update an integration with an invalid UUID |
+| 6 | Update an integration with an id in the request body |
+| 7 | Update an integration attempting to add/remove dependency lists |
+| 8 | Update an integration without authentication |
+
+#### 01 - Integrations: Delete Integration (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete an integration with no attached resources |
+| 2 | Delete an integration that has attached resources |
+| 3 | Delete an integration that does not exist |
+| 4 | Delete an integration with an invalid UUID |
+| 5 | Delete an integration without providing an ID |
+| 6 | Delete an integration not in draft space |
+| 7 | Delete an integration without authentication |
+
+#### 02 - Decoders: Create Decoder (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create a decoder |
+| 2 | Create a decoder without an integration reference |
+| 3 | Create a decoder with an explicit id in the resource |
+| 4 | Create a decoder with an integration not in draft space |
+| 5 | Create a decoder with missing resource object |
+| 6 | Create a decoder with empty body |
+| 7 | Create a decoder without authentication |
+
+#### 02 - Decoders: Update Decoder (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update a decoder |
+| 2 | Update a decoder that does not exist |
+| 3 | Update a decoder with an invalid UUID |
+| 4 | Update a decoder not in draft space |
+| 5 | Update a decoder with missing resource object |
+| 6 | Update a decoder with empty body |
+| 7 | Update a decoder without authentication |
+
+#### 02 - Decoders: Delete Decoder (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete a decoder |
+| 2 | Delete a decoder that does not exist |
+| 3 | Delete a decoder with an invalid UUID |
+| 4 | Delete a decoder not in draft space |
+| 5 | Delete a decoder without providing an ID |
+| 6 | Delete a decoder without authentication |
+| 7 | Verify decoder is removed from index after deletion |
+
+#### 03 - Rules: Create Rule (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create a rule |
+| 2 | Create a rule with missing title |
+| 3 | Create a rule without an integration reference |
+| 4 | Create a rule with an explicit id in the resource |
+| 5 | Create a rule with an integration not in draft space |
+| 6 | Create a rule with empty body |
+| 7 | Create a rule without authentication |
+
+#### 03 - Rules: Update Rule (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update a rule |
+| 2 | Update a rule with missing title |
+| 3 | Update a rule that does not exist |
+| 4 | Update a rule with an invalid UUID |
+| 5 | Update a rule not in draft space |
+| 6 | Update a rule with empty body |
+| 7 | Update a rule without authentication |
+
+#### 03 - Rules: Delete Rule (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete a rule |
+| 2 | Delete a rule that does not exist |
+| 3 | Delete a rule with an invalid UUID |
+| 4 | Delete a rule not in draft space |
+| 5 | Delete a rule without providing an ID |
+| 6 | Delete a rule without authentication |
+| 7 | Verify rule is removed from index after deletion |
+
+#### 04 - KVDBs: Create KVDB (9 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create a KVDB |
+| 2 | Create a KVDB with missing title |
+| 3 | Create a KVDB with missing author |
+| 4 | Create a KVDB with missing content |
+| 5 | Create a KVDB without an integration reference |
+| 6 | Create a KVDB with an explicit id in the resource |
+| 7 | Create a KVDB with an integration not in draft space |
+| 8 | Create a KVDB with empty body |
+| 9 | Create a KVDB without authentication |
+
+#### 04 - KVDBs: Update KVDB (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update a KVDB |
+| 2 | Update a KVDB with missing required fields |
+| 3 | Update a KVDB that does not exist |
+| 4 | Update a KVDB with an invalid UUID |
+| 5 | Update a KVDB not in draft space |
+| 6 | Update a KVDB with empty body |
+| 7 | Update a KVDB without authentication |
+
+#### 04 - KVDBs: Delete KVDB (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete a KVDB |
+| 2 | Delete a KVDB that does not exist |
+| 3 | Delete a KVDB with an invalid UUID |
+| 4 | Delete a KVDB not in draft space |
+| 5 | Delete a KVDB without providing an ID |
+| 6 | Delete a KVDB without authentication |
+| 7 | Verify KVDB is removed from index after deletion |
+
+#### 05 - Policy: Policy Initialization (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | The ".cti-policies" index exists |
+| 2 | Exactly four policy documents exist (one per space) |
+| 3 | Standard policy has a different document ID than draft/test/custom |
+| 4 | Draft, test, and custom policies start with empty integrations and root_decoder |
+| 5 | Standard policy contains integrations and a root_decoder from CTI |
+| 6 | Each policy document contains the expected structure |
+| 7 | Each policy has a valid SHA-256 hash |
+
+#### 05 - Policy: Update Draft Policy (12 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update the draft policy |
+| 2 | Update policy with missing type field |
+| 3 | Update policy with wrong type value |
+| 4 | Update policy with missing resource object |
+| 5 | Update policy with missing required fields in resource |
+| 6 | Update policy attempting to add an integration to the list |
+| 7 | Update policy attempting to remove an integration from the list |
+| 8 | Update policy with reordered integrations list (allowed) |
+| 9 | Update policy with empty body |
+| 10 | Update policy without authentication |
+| 11 | Verify policy changes are NOT reflected in test space until promotion |
+| 12 | Verify policy changes are reflected in test space after promotion |
+
+#### 06 - Log Test (4 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully test a log event |
+| 2 | Send log test with empty body |
+| 3 | Send log test with invalid JSON |
+| 4 | Send log test without authentication |
+
+#### 07 - Promote: Preview Promotion (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Preview promotion from draft to test |
+| 2 | Preview promotion from test to custom |
+| 3 | Preview promotion with missing space parameter |
+| 4 | Preview promotion with empty space parameter |
+| 5 | Preview promotion with invalid space value |
+| 6 | Preview promotion from custom (not allowed) |
+| 7 | Preview promotion without authentication |
+
+#### 07 - Promote: Execute Promotion (17 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully promote from draft to test |
+| 2 | Verify resources exist in test space after draft to test promotion |
+| 3 | Verify promoted resources exist in both draft and test spaces |
+| 4 | Verify test space hash is regenerated after draft to test promotion |
+| 5 | Verify promoted resource hashes match between draft and test spaces |
+| 6 | Successfully promote from test to custom |
+| 7 | Verify resources exist in custom space after test to custom promotion |
+| 8 | Verify promoted resources exist in both test and custom spaces |
+| 9 | Verify custom space hash is regenerated after test to custom promotion |
+| 10 | Verify promoted resource hashes match between test and custom spaces |
+| 11 | Promote from custom (not allowed) |
+| 12 | Promote with invalid space |
+| 13 | Promote with missing changes object |
+| 14 | Promote with incomplete changes (missing required resource arrays) |
+| 15 | Promote with non-update operation on policy |
+| 16 | Promote with empty body |
+| 17 | Promote without authentication |
+
+
+---
 
 ## 🔗 Related Documentation
 
