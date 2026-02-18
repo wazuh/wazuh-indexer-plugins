@@ -31,6 +31,7 @@ import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
@@ -215,7 +216,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.executeRequest(request, this.client);
 
         Assert.assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
-        verify(this.securityAnalyticsService).upsertRule(any(), eq(Space.DRAFT));
+        verify(this.securityAnalyticsService).upsertRule(any(), eq(Space.DRAFT), any(Method.class));
     }
 
     /**

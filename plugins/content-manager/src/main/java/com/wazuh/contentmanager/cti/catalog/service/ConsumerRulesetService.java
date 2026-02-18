@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.service;
+package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,15 +43,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.securityanalytics.action.*;
 
 /**
  * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
@@ -198,30 +194,17 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 continue;
             }
             Space space = this.extractSpace(source);
-            WIndexIntegrationRequest request =
-                    this.securityAnalyticsService.buildIntegrationRequest(
-                            doc, space, RestRequest.Method.POST);
 
-            if (request == null) {
-                latch.countDown();
-                continue;
-            }
-
-            this.client.execute(
-                    WIndexIntegrationAction.INSTANCE,
-                    request,
-                    new ActionListener<WIndexIntegrationResponse>() {
-                        @Override
-                        public void onResponse(WIndexIntegrationResponse response) {
-                            latch.countDown();
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to sync integration {}: {}", hit.getId(), e.getMessage());
-                            latch.countDown();
-                        }
-                    });
+            this.securityAnalyticsService.upsertIntegrationAsync(
+                    doc,
+                    space,
+                    RestRequest.Method.POST,
+                    ActionListener.wrap(
+                            response -> latch.countDown(),
+                            e -> {
+                                log.error("Failed to sync integration {}: {}", hit.getId(), e.getMessage());
+                                latch.countDown();
+                            }));
         }
 
         try {
@@ -261,66 +244,17 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 continue;
             }
             Space space = this.extractSpace(source);
-            if (!doc.has(Constants.KEY_ID)) {
-                latch.countDown();
-                continue;
-            }
 
-            String id = doc.get(Constants.KEY_ID).asText();
-            String product = ContentIndex.extractProduct(doc);
-            String body = doc.toString();
-
-            if (space != Space.STANDARD) {
-                WIndexCustomRuleRequest request =
-                        new WIndexCustomRuleRequest(
-                                id,
-                                WriteRequest.RefreshPolicy.IMMEDIATE,
-                                product,
-                                RestRequest.Method.POST,
-                                body,
-                                true);
-
-                this.client.execute(
-                        WIndexCustomRuleAction.INSTANCE,
-                        request,
-                        new ActionListener<WIndexRuleResponse>() {
-                            @Override
-                            public void onResponse(WIndexRuleResponse response) {
-                                latch.countDown();
-                            }
-
-                            @Override
-                            public void onFailure(Exception e) {
+            this.securityAnalyticsService.upsertRuleAsync(
+                    doc,
+                    space,
+                    RestRequest.Method.POST,
+                    ActionListener.wrap(
+                            response -> latch.countDown(),
+                            e -> {
                                 log.error("Failed to sync rule {}: {}", hit.getId(), e.getMessage());
                                 latch.countDown();
-                            }
-                        });
-            } else {
-                WIndexRuleRequest request =
-                        new WIndexRuleRequest(
-                                id,
-                                WriteRequest.RefreshPolicy.IMMEDIATE,
-                                product,
-                                RestRequest.Method.POST,
-                                body,
-                                true);
-
-                this.client.execute(
-                        WIndexRuleAction.INSTANCE,
-                        request,
-                        new ActionListener<WIndexRuleResponse>() {
-                            @Override
-                            public void onResponse(WIndexRuleResponse response) {
-                                latch.countDown();
-                            }
-
-                            @Override
-                            public void onFailure(Exception e) {
-                                log.error("Failed to sync rule {}: {}", hit.getId(), e.getMessage());
-                                latch.countDown();
-                            }
-                        });
-            }
+                            }));
         }
 
         try {
@@ -390,27 +324,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        WIndexDetectorRequest request = this.securityAnalyticsService.buildDetectorRequest(doc, true);
-        if (request == null) {
-            this.processNextDetector(iterator, latch);
-            return;
-        }
-
-        this.client.execute(
-                WIndexDetectorAction.INSTANCE,
-                request,
-                new ActionListener<WIndexDetectorResponse>() {
-                    @Override
-                    public void onResponse(WIndexDetectorResponse response) {
-                        ConsumerRulesetService.this.processNextDetector(iterator, latch);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("Failed to sync detector {}: {}", hit.getId(), e.getMessage());
-                        ConsumerRulesetService.this.processNextDetector(iterator, latch);
-                    }
-                });
+        this.securityAnalyticsService.upsertDetectorAsync(
+                doc,
+                true,
+                RestRequest.Method.POST,
+                ActionListener.wrap(
+                        response -> ConsumerRulesetService.this.processNextDetector(iterator, latch),
+                        e -> {
+                            log.error("Failed to sync detector {}: {}", hit.getId(), e.getMessage());
+                            ConsumerRulesetService.this.processNextDetector(iterator, latch);
+                        }));
     }
 
     /**
@@ -459,10 +382,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 policy.setReferences(List.of("https://wazuh.com"));
                 policy.setDate(date);
                 policy.setModified(date);
-
-                // TODO: Study the model policy and delete the extra fields
                 Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
-                docMap.remove(Constants.KEY_TYPE); // Delete the field type inside the document
 
                 String docJson = this.mapper.writeValueAsString(docMap);
                 String docHash = Resource.computeSha256(docJson);

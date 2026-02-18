@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.NamedRoute;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
@@ -112,7 +113,7 @@ public class RestPutRuleAction extends AbstractUpdateAction {
     @Override
     protected RestResponse syncExternalServices(String id, JsonNode resource) {
         try {
-            this.securityAnalyticsService.upsertRule(resource, Space.DRAFT);
+            this.securityAnalyticsService.upsertRule(resource, Space.DRAFT, Method.PUT);
             return null;
         } catch (Exception e) {
             return new RestResponse(

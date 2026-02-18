@@ -34,6 +34,7 @@ import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
@@ -173,7 +174,8 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         verify(this.securityAnalyticsService)
-                .upsertRule(any(), eq(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT));
+                .upsertRule(
+                        any(), eq(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT), any(Method.class));
     }
 
     /**

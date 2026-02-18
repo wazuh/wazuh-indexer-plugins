@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.service;
+package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,10 +32,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
-import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
