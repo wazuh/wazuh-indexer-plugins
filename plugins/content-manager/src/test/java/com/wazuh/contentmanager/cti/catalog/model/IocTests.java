@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.wazuh.contentmanager.cti.catalog.model.Ioc.IocDocument;
 import org.junit.Assert;
 import org.junit.Before;
 import org.opensearch.test.OpenSearchTestCase;
@@ -29,8 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Unit tests for the {@link Ioc} class. Validates that IoC payloads using flat dot-notation keys
- * (e.g. {@code "software.type"}, {@code "feed.name"}) are correctly deserialized and serialized.
+ * Unit tests for the {@link Ioc} class.
  */
 public class IocTests extends OpenSearchTestCase {
 
@@ -234,22 +234,7 @@ public class IocTests extends OpenSearchTestCase {
     /** Test getters and setters for IocDocument fields. */
     public void testGettersAndSetters_DocumentFields() {
         // Arrange
-        Ioc.IocDocument doc = new Ioc.IocDocument();
-
-        // Act
-        doc.setId("123");
-        doc.setName("test");
-        doc.setType("ip");
-        doc.setConfidence(80L);
-        doc.setFirstSeen("2025-01-01");
-        doc.setLastSeen("2025-06-01");
-        doc.setProvider("test-provider");
-        doc.setReference("https://example.com");
-        doc.setFeedName("test-feed");
-        doc.setSoftwareType("malware");
-        doc.setSoftwareName("test-malware");
-        doc.setSoftwareAlias(Arrays.asList("alias1", "alias2"));
-        doc.setTags(List.of("tag1"));
+        IocDocument doc = getIocDocument();
 
         // Assert
         Assert.assertEquals("123", doc.getId());
@@ -265,6 +250,26 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertEquals("test-malware", doc.getSoftwareName());
         Assert.assertEquals(2, doc.getSoftwareAlias().size());
         Assert.assertEquals(1, doc.getTags().size());
+    }
+
+    private static IocDocument getIocDocument() {
+        IocDocument doc = new IocDocument();
+
+        // Act
+        doc.setId("123");
+        doc.setName("test");
+        doc.setType("ip");
+        doc.setConfidence(80L);
+        doc.setFirstSeen("2025-01-01");
+        doc.setLastSeen("2025-06-01");
+        doc.setProvider("test-provider");
+        doc.setReference("https://example.com");
+        doc.setFeedName("test-feed");
+        doc.setSoftwareType("malware");
+        doc.setSoftwareName("test-malware");
+        doc.setSoftwareAlias(Arrays.asList("alias1", "alias2"));
+        doc.setTags(List.of("tag1"));
+        return doc;
     }
 
     /**
