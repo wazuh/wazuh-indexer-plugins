@@ -53,6 +53,9 @@ Feature: Create Decoder
     And the response body should contain the decoder ID
     And the decoder should exist in the ".cti-decoders"
     And the document "space.name" field should be "draft"
+    And the document should have a non-empty "hash.sha256" field
+    And the decoder ID should be listed in the integration's "decoders" list
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Create a decoder without an integration reference
     When I send a POST request to "/_plugins/_content_manager/decoders" with body:

@@ -45,6 +45,9 @@ Feature: Create KVDB
     And the response body should contain the KVDB ID
     And the KVDB should exist in the ".cti-kvdbs"
     And the document "space.name" field should be "draft"
+    And the document should have a non-empty "hash.sha256" field
+    And the KVDB ID should be listed in the integration's "kvdbs" list
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Create a KVDB with missing title
     When I send a POST request to "/_plugins/_content_manager/kvdbs" with body:

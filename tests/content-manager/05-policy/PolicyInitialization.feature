@@ -20,41 +20,41 @@ Feature: Policy Initialization
 
   Scenario: Standard policy has a different document ID than draft/test/custom
     When I search the ".cti-policies" index with filter "space.name" equal to "draft"
-    And I store the "document.id" field as "shared_policy_id"
+    And I store the "id" field as "shared_policy_id"
     And I search the ".cti-policies" index with filter "space.name" equal to "standard"
-    Then the "document.id" field should NOT equal "{shared_policy_id}"
+    Then the "id" field should NOT equal "{shared_policy_id}"
 
   Scenario: Draft, test, and custom policies start with empty integrations and root_decoder
     When I search the ".cti-policies" index with filter "space.name" equal to "draft"
-    Then the document field "document.integrations" should be an empty list
-    And the document field "document.root_decoder" should be empty
+    Then the document field "integrations" should be an empty list
+    And the document field "root_decoder" should be empty
     When I search the ".cti-policies" index with filter "space.name" equal to "test"
-    Then the document field "document.integrations" should be an empty list
-    And the document field "document.root_decoder" should be empty
+    Then the document field "integrations" should be an empty list
+    And the document field "root_decoder" should be empty
     When I search the ".cti-policies" index with filter "space.name" equal to "custom"
-    Then the document field "document.integrations" should be an empty list
-    And the document field "document.root_decoder" should be empty
+    Then the document field "integrations" should be an empty list
+    And the document field "root_decoder" should be empty
 
   Scenario: Standard policy contains integrations and a root_decoder from CTI
     When I search the ".cti-policies" index with filter "space.name" equal to "standard"
-    Then the document field "document.integrations" should be a non-empty list
-    And the document field "document.root_decoder" should be non-empty
+    Then the document field "integrations" should be a non-empty list
+    And the document field "root_decoder" should be non-empty
 
   Scenario: Each policy document contains the expected structure
     When I search the ".cti-policies" index with filter "space.name" equal to "draft"
     Then the response status code should be 200
-    And the document should contain field "document.id"
-    And the document should contain field "document.title"
-    And the document should contain field "document.date"
-    And the document should contain field "document.modified"
-    And the document should contain field "document.root_decoder"
-    And the document should contain field "document.integrations"
-    And the document should contain field "document.filters"
-    And the document should contain field "document.enrichments"
-    And the document should contain field "document.author"
-    And the document should contain field "document.description"
-    And the document should contain field "document.documentation"
-    And the document should contain field "document.references"
+    And the document should contain field "id"
+    And the document should contain field "title"
+    And the document should contain field "date"
+    And the document should contain field "modified"
+    And the document should contain field "root_decoder"
+    And the document should contain field "integrations"
+    And the document should contain field "filters"
+    And the document should contain field "enrichments"
+    And the document should contain field "author"
+    And the document should contain field "description"
+    And the document should contain field "documentation"
+    And the document should contain field "references"
     And the document should contain field "space.name"
     And the document should contain field "space.hash.sha256"
     And the document should contain field "hash.sha256"

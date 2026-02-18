@@ -37,6 +37,11 @@ Feature: Update Rule
       """
     Then the response status code should be 200
     And the response body should contain the rule ID
+    And the rule document should be correctly updated in the ".cti-rules" index
+    And the document "space.name" field should still be "draft"
+    And the document "hash.sha256" field should have been updated
+    And the rule should be updated in the SAP rules with source "Draft"
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Update a rule with missing title
     When I send a PUT request to "/_plugins/_content_manager/rules/{rule_id}" with body:

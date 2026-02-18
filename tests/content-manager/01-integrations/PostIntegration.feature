@@ -30,7 +30,10 @@ Feature: Create Integration
     And the response body should contain a generated resource ID
     And the integration should exist in the ".cti-integrations"
     And the document "space.name" field should be "draft"
+    And the document should have a non-empty "hash.sha256" field
     And the integration should exist in the SAP logtypes with source "Draft"
+    And the integration ID should be listed in the draft policy "integrations"
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Create an integration with the same title as an existing integration
     Given an integration exists in draft space with the title "test-integration"

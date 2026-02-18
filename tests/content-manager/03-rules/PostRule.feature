@@ -44,6 +44,10 @@ Feature: Create Rule
     And the response body should contain the rule ID
     And the rule should exist in the ".cti-rules"
     And the document "space.name" field should be "draft"
+    And the document should have a non-empty "hash.sha256" field
+    And the rule should exist in the SAP rules with source "Draft"
+    And the rule ID should be listed in the integration's "rules" list
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Create a rule with missing title
     When I send a POST request to "/_plugins/_content_manager/rules" with body:

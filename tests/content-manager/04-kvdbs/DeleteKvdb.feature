@@ -13,6 +13,10 @@ Feature: Delete KVDB
     When I send a DELETE request to "/_plugins/_content_manager/kvdbs/{kvdb_id}"
     Then the response status code should be 200
     And the response body should contain the KVDB ID
+    And the KVDB should no longer exist in the ".cti-kvdbs" index
+    And the KVDB ID should no longer be listed in the integration's "kvdbs" list
+    And the integration's "hash.sha256" field should have been updated
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Delete a KVDB that does not exist
     When I send a DELETE request to "/_plugins/_content_manager/kvdbs/00000000-0000-0000-0000-000000000000"

@@ -30,6 +30,10 @@ Feature: Update Decoder
       """
     Then the response status code should be 200
     And the response body should contain the decoder ID
+    And the decoder document should be correctly updated in the ".cti-decoders" index
+    And the document "space.name" field should still be "draft"
+    And the document "hash.sha256" field should have been updated
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Update a decoder that does not exist
     When I send a PUT request to "/_plugins/_content_manager/decoders/00000000-0000-0000-0000-000000000000" with a valid payload

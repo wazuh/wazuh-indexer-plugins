@@ -42,6 +42,10 @@ Feature: Update KVDB
       """
     Then the response status code should be 200
     And the response body should contain the KVDB ID
+    And the KVDB document should be correctly updated in the ".cti-kvdbs" index
+    And the document "space.name" field should still be "draft"
+    And the document "hash.sha256" field should have been updated
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Update a KVDB with missing required fields
     When I send a PUT request to "/_plugins/_content_manager/kvdbs/{kvdb_id}" with body:

@@ -13,6 +13,11 @@ Feature: Delete Rule
     When I send a DELETE request to "/_plugins/_content_manager/rules/{rule_id}"
     Then the response status code should be 200
     And the response body should contain the rule ID
+    And the rule should no longer exist in the ".cti-rules" index
+    And the rule should no longer exist in the SAP rules with source "Draft"
+    And the rule ID should no longer be listed in the integration's "rules" list
+    And the integration's "hash.sha256" field should have been updated
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Delete a rule that does not exist
     When I send a DELETE request to "/_plugins/_content_manager/rules/00000000-0000-0000-0000-000000000000"

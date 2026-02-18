@@ -13,6 +13,10 @@ Feature: Delete Decoder
     When I send a DELETE request to "/_plugins/_content_manager/decoders/{decoder_id}"
     Then the response status code should be 200
     And the response body should contain the decoder ID
+    And the decoder should no longer exist in the ".cti-decoders" index
+    And the decoder ID should no longer be listed in the integration's "decoders" list
+    And the integration's "hash.sha256" field should have been updated
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Delete a decoder that does not exist
     When I send a DELETE request to "/_plugins/_content_manager/decoders/00000000-0000-0000-0000-000000000000"

@@ -16,6 +16,9 @@ Feature: Delete Integration
     And the response body should contain the integration ID
     And the integration should no longer exist in the ".cti-integrations" index
     And the integration should no longer exists in the secutity analytics logtypes with source "Draft"
+    And the integration ID should no longer be listed in the draft policy "integrations"
+    And the draft policy "space.hash.sha256" should have been updated
+    And the draft policy "hash.sha256" should have been updated
 
   Scenario: Delete an integration that has attached resources
     Given the integration has associated decoders, rules, or kvdbs

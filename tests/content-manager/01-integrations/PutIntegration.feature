@@ -30,6 +30,10 @@ Feature: Update Integration
     Then the response status code should be 200
     And the response body should contain the integration ID
     And the integration document should be correctly updated in the ".cti-integrations" index
+    And the document "space.name" field should still be "draft"
+    And the document "hash.sha256" field should have been updated
+    And the integration should be updated in the SAP logtypes with source "Draft"
+    And the draft policy "space.hash.sha256" should have been updated
 
   Scenario: Update an integration changing its title to a title that already exists in draft space
     Given another integration exists in draft space with the title "test-integration-new-title"
