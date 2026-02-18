@@ -1,8 +1,8 @@
-## `wazuh-events-v5-cloud-services-main` time series index
+## `wazuh-events-v5-cloud-services` time series index
 
-The `wazuh-events-v5-cloud-services-main` indices store events received from monitored endpoints through the relevant integrations.
+The `wazuh-events-v5-cloud-services` indices store events received from monitored endpoints through the relevant integrations.
 
-This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding cloud-services-main integrations.
+This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding cloud-services integrations; it serves as the default index for third-party cloud services outside of the AWS, GCP, and Azure ecosystems.
 
 ### Fields summary
 

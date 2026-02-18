@@ -60,6 +60,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Download IoC from CTI API [(#779)](https://github.com/wazuh/wazuh-indexer-plugins/pull/779)
 - Create default policies for user content spaces [(#767)](https://github.com/wazuh/wazuh-indexer-plugins/pull/767)
 - Add engine filters index [(#798)](https://github.com/wazuh/wazuh-indexer-plugins/pull/798)
+- Remove non-standard ip and geo fields from f5-bigip mappings [(#809)](https://github.com/wazuh/wazuh-indexer-plugins/pull/809)
+- Extend policy update endpoint with enrichments [(#808)](https://github.com/wazuh/wazuh-indexer-plugins/pull/808)
+- Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
+- Add script for Content Manager API integration testing [(#821)](https://github.com/wazuh/wazuh-indexer-plugins/pull/821)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -86,6 +90,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adapt WCS generation script to save the ECS flat of stateless module [(#646)](https://github.com/wazuh/wazuh-indexer-plugins/pull/646)
 - Replace time-series indices with data streams [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/pull/562)
 - Rename index templates [(#659)](https://github.com/wazuh/wazuh-indexer-plugins/pull/659)
+- Update WCS compliance fields [(#695)](https://github.com/wazuh/wazuh-indexer-plugins/pull/695)
 - Resolve SAP dependency in Content Manager's build workflow [(#702)](https://github.com/wazuh/wazuh-indexer-plugins/pull/702)
 - Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
 - Avoid creation of Integrations with no rules associated [(#709)](https://github.com/wazuh/wazuh-indexer-plugins/pull/709)

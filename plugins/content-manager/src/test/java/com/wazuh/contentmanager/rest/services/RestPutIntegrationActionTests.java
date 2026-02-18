@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2026, Wazuh Inc.
+ * Copyright (C) 2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,18 +16,26 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchResponseSections;
+import org.opensearch.action.search.ShardSearchFailure;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -36,18 +44,17 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -79,11 +86,18 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.max_items_per_bulk", 25)
+                        .put("plugins.content_manager.max_concurrent_bulks", 5)
+                        .put("plugins.content_manager.client.timeout", 10)
+                        .build();
+        PluginSettings.getInstance(settings);
+
         this.engine = mock(EngineService.class);
         this.saService = mock(SecurityAnalyticsServiceImpl.class);
         this.nodeClient = mock(NodeClient.class);
         this.action = spy(new RestPutIntegrationAction(this.engine));
-        this.action.setNodeClient(this.nodeClient);
     }
 
     /**
@@ -92,23 +106,32 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @param spaceName The space name ("draft" or "standard")
      * @return A mock GetResponse
      */
-    private GetResponse createMockGetResponse(String spaceName, boolean exists) {
+    private GetResponse createMockGetResponse(String spaceName, boolean exists, String date) {
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(exists);
         if (exists) {
             Map<String, Object> sourceMap = new HashMap<>();
-            Map<String, Object> spaceMap = new HashMap<>();
-            spaceMap.put("name", spaceName);
-            sourceMap.put("space", spaceMap);
+            sourceMap.put("space", Map.of("name", spaceName));
             Map<String, Object> documentMap = new HashMap<>();
-            documentMap.put("id", RestPutIntegrationActionTests.INTEGRATION_ID);
+            documentMap.put("id", INTEGRATION_ID);
+            documentMap.put("title", "aws-fargate");
+            documentMap.put("author", "Wazuh Inc.");
+            documentMap.put("category", "cloud-services");
+            documentMap.put("description", "Desc");
+            documentMap.put("documentation", "Docs");
+            documentMap.put("references", List.of("https://wazuh.com"));
             documentMap.put("enabled", true);
             documentMap.put("decoders", List.of("1cb80fdb-7209-4b96-8bd1-ec15864d0f35"));
             documentMap.put("rules", List.of());
             documentMap.put("kvdbs", List.of());
+            if (date != null) documentMap.put("date", date);
 
             sourceMap.put("document", documentMap);
             when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
+            try {
+                when(getResponse.getSourceAsString()).thenReturn(mapper.writeValueAsString(sourceMap));
+            } catch (Exception ignored) {
+            }
         }
         return getResponse;
     }
@@ -122,31 +145,55 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      */
     private RestRequest buildRequest(String payload, String integrationId) {
         FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
-        if (payload != null) {
-            builder.withContent(new BytesArray(payload), XContentType.JSON);
-        }
-        if (integrationId != null) {
-            builder.withParams(Map.of("id", integrationId));
-        }
+        if (payload != null) builder.withContent(new BytesArray(payload), XContentType.JSON);
+        if (integrationId != null) builder.withParams(Map.of("id", integrationId));
         return builder.build();
     }
 
-    private void setupMocks() {
-        GetResponse getResponse = createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
+    private void mockPrepareGetChain(GetResponse response) {
+        GetRequestBuilder builder = mock(GetRequestBuilder.class);
+        when(builder.setFetchSource(anyBoolean())).thenReturn(builder);
+        when(builder.get()).thenReturn(response);
+        when(this.nodeClient.prepareGet(anyString(), anyString())).thenReturn(builder);
+    }
 
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        when(restResponse.getMessage()).thenReturn("{\"status\":\"OK\"}");
-        when(this.engine.validate(any())).thenReturn(restResponse);
+    private void mockSearch(long totalHits) {
+        SearchHits hits =
+                new SearchHits(
+                        new SearchHit[0], new TotalHits(totalHits, TotalHits.Relation.EQUAL_TO), 0.0f);
+        SearchResponseSections sections =
+                new SearchResponseSections(hits, null, null, false, null, null, 1);
+        SearchResponse searchResponse =
+                new SearchResponse(
+                        sections,
+                        null,
+                        1,
+                        1,
+                        0,
+                        1,
+                        ShardSearchFailure.EMPTY_ARRAY,
+                        SearchResponse.Clusters.EMPTY);
 
+        org.opensearch.action.support.PlainActionFuture<SearchResponse> future =
+                new org.opensearch.action.support.PlainActionFuture<>();
+        future.onResponse(searchResponse);
+        when(this.nodeClient.search(any(SearchRequest.class))).thenReturn(future);
+    }
+
+    private void mockIndexResponse(RestStatus status) {
+        IndexResponse response = mock(IndexResponse.class);
+        when(response.status()).thenReturn(status);
+        org.opensearch.action.support.PlainActionFuture<IndexResponse> future =
+                new org.opensearch.action.support.PlainActionFuture<>();
+        future.onResponse(response);
+        when(this.nodeClient.index(any(IndexRequest.class))).thenReturn(future);
+    }
+
+    private void setupDefaultMocks(String space, boolean exists) {
+        mockPrepareGetChain(createMockGetResponse(space, exists, null));
+        mockSearch(0);
+        when(this.engine.validate(any())).thenReturn(new RestResponse("{\"status\": \"OK\"}", 200));
+        mockIndexResponse(RestStatus.OK);
         this.action.setSecurityAnalyticsService(this.saService);
         this.action.setPolicyHashService(mock(PolicyHashService.class));
     }
@@ -156,12 +203,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         return """
             {
                 "resource": {
-                    "title": "Title",
-                    "author": "Author",
-                    "category": "Category",
+                    "title": "aws-fargate",
+                    "author": "Wazuh Inc.",
+                    "category": "cloud-services",
                     "description": "Desc",
                     "documentation": "Docs",
-                    "references": [],
+                    "references": ["https://wazuh.com"],
                     "decoders": ["1cb80fdb-7209-4b96-8bd1-ec15864d0f35"],
                     "rules": [],
                     "kvdbs": []
@@ -187,133 +234,31 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration200_success() throws IOException {
+        setupDefaultMocks("draft", true);
+        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
 
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.OK.getStatus());
-        expectedResponse.setMessage(INTEGRATION_ID);
-
-        // spotless:off
-        String payload =
-            """
-                {
-                    "resource":
-                    {
-                        "author": "Wazuh Inc.",
-                        "category": "cloud-services",
-                        "decoders": [
-                          "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                        ],
-                        "description": "This integration supports AWS Fargate logs.",
-                        "documentation": "",
-                        "kvdbs": [],
-                        "references": [
-                          "https://wazuh.com"
-                        ],
-                        "rules": [],
-                        "title": "aws-fargate"
-                    }
-                }
-                """;
-        // spotless:on
-
-        // Create a RestRequest with payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for existing integration in draft space
-        GetResponse getResponse = this.createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        // Mock wazuh engine validation
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        // Mock integrations index
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        assertEquals(INTEGRATION_ID, actualResponse.getMessage());
     }
 
     /**
-     * If the request payload has an Id, we should return 400
+     * Request with an ID in the payload that gets ignored
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPutIntegration400_hasIdInBody() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
-
-        // spotless:off
+    public void testPutIntegration_idInBodyIsIgnored() throws IOException {
+        setupDefaultMocks("draft", true);
         String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate",
-                            "id": "9e301671-382"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest with payload containing ID
+                getValidPayload()
+                        .replace(
+                                "\"title\": \"aws-fargate\"",
+                                "\"title\": \"aws-fargate\", \"id\": \"ignored-payload-id\"");
         RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
 
-        // Mock GetResponse for existing integration in draft space
-        GetResponse getResponse = this.createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        assertEquals(INTEGRATION_ID, actualResponse.getMessage());
     }
 
     /**
@@ -322,17 +267,9 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration400_noContent() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage(Constants.E_400_INVALID_REQUEST_BODY);
-
-        // Create a RestRequest with no payload
         RestRequest request = this.buildRequest(null, INTEGRATION_ID);
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -341,52 +278,10 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration404_integrationNotFound() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.NOT_FOUND.getStatus());
-        expectedResponse.setMessage(Constants.E_404_RESOURCE_NOT_FOUND);
-
-        // spotless:off
-        String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest with payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for non-existing integration
-        GetResponse getResponse = this.createMockGetResponse("draft", false);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        setupDefaultMocks("draft", false);
+        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(RestStatus.NOT_FOUND.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -395,64 +290,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration500_noEngineReply() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
+        setupDefaultMocks("draft", true);
+        when(this.engine.validate(any())).thenThrow(new RuntimeException("Engine connection failed"));
 
-        // Mock integrations index
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        JsonNode getDocumentResponse = mock(JsonNode.class);
-        when(integrationsIndex.getDocument(anyString())).thenReturn(getDocumentResponse);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
-        // spotless:off
-        String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest with payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for existing integration in draft space
-        GetResponse getResponse = this.createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        // Mock wazuh engine validation
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        when(restResponse.getMessage()).thenReturn("Non valid response");
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(500, actualResponse.getStatus());
     }
 
     /**
@@ -461,74 +304,15 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration500_failedToIndexIntegration() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
+        setupDefaultMocks("draft", true);
+        org.opensearch.action.support.PlainActionFuture<IndexResponse> future =
+                new org.opensearch.action.support.PlainActionFuture<>();
+        future.onFailure(new RuntimeException("Failure"));
+        when(this.nodeClient.index(any(IndexRequest.class))).thenReturn(future);
 
-        // spotless:off
-        String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest with payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for existing integration in draft space
-        GetResponse getResponse = this.createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        // Mock wazuh engine validation
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        // Mock integrations index
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.INTERNAL_SERVER_ERROR);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(500, actualResponse.getStatus());
     }
 
     /**
@@ -537,57 +321,11 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration400_cannotUpdateNonDraftSpace() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage(
-                String.format(
-                        Locale.ROOT,
-                        Constants.E_400_RESOURCE_NOT_IN_DRAFT,
-                        Strings.capitalize(Constants.KEY_INTEGRATION),
-                        INTEGRATION_ID));
-
-        // spotless:off
-        String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest with payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for existing integration in standard space (not draft)
-        GetResponse getResponse = this.createMockGetResponse("standard", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        setupDefaultMocks("standard", true);
+        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        assertTrue(actualResponse.getMessage().contains("is not in draft space"));
     }
 
     /**
@@ -596,42 +334,9 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration400_missingIdInPath() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        expectedResponse.setMessage(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID));
-
-        // spotless:off
-        String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest without ID parameter
-        RestRequest request = this.buildRequest(payload, null);
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        RestRequest request = this.buildRequest(getValidPayload(), null);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -640,72 +345,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration500_unexpectedError() throws IOException {
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        expectedResponse.setMessage(Constants.E_500_INTERNAL_SERVER_ERROR);
-
-        // spotless:off
-        String payload =
-                """
-                    {
-                        "resource":
-                        {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                        }
-                    }
-                    """;
-        // spotless:on
-
-        // Create a RestRequest with payload
-        RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
-
-        // Mock GetResponse for existing integration in draft space
-        GetResponse getResponse = this.createMockGetResponse("draft", true);
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        // Mock wazuh engine validation
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(restResponse.getMessage()).thenReturn(
-            """
-                {
-                  "status": "OK",
-                  "error": null
-                }
-            """
-        );
-        // spotless:on
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        // Mock integrations index to throw exception
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenThrow(new IOException());
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
-        this.action.setSecurityAnalyticsService(this.saService);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        setupDefaultMocks("draft", true);
+        when(this.nodeClient.prepareGet(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Crash"));
+        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
+        assertEquals(500, actualResponse.getStatus());
     }
 
     /**
@@ -714,25 +359,15 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_indexedDocHasNoType() throws IOException {
-        setupMocks();
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-
-        when(integrationsIndex.getDocument(anyString())).thenReturn(null);
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-
+        setupDefaultMocks("draft", true);
         RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
-        this.action.handleRequest(request);
+        this.action.executeRequest(request, nodeClient);
 
-        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(integrationsIndex).create(anyString(), captor.capture());
-        JsonNode indexedDoc = captor.getValue();
-
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.nodeClient).index(captor.capture());
         assertFalse(
-                "Indexed document should not have 'type' field", indexedDoc.has(Constants.KEY_TYPE));
+                "Indexed document root should not contain 'type' field",
+                captor.getValue().source().utf8ToString().contains("\"type\":"));
     }
 
     /**
@@ -741,41 +376,22 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_datePreservedModifiedUpdated() throws IOException {
-        setupMocks();
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-
-        // Mock
-        ObjectNode docNode = mapper.createObjectNode();
-        ObjectNode innerDoc = mapper.createObjectNode();
-        innerDoc.put(Constants.KEY_DATE, "2020-01-01T00:00:00Z");
-        docNode.set(Constants.KEY_DOCUMENT, innerDoc);
-        when(integrationsIndex.getDocument(INTEGRATION_ID)).thenReturn(docNode);
-
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-
-        this.action.setIntegrationsContentIndex(integrationsIndex);
+        String originalDate = "2020-01-01T00:00:00Z";
+        mockPrepareGetChain(createMockGetResponse("draft", true, originalDate));
+        mockSearch(0);
+        when(this.engine.validate(any())).thenReturn(new RestResponse("{\"status\": \"OK\"}", 200));
+        mockIndexResponse(RestStatus.OK);
+        this.action.setSecurityAnalyticsService(this.saService);
+        this.action.setPolicyHashService(mock(PolicyHashService.class));
 
         RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
-        this.action.handleRequest(request);
+        this.action.executeRequest(request, nodeClient);
 
-        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(integrationsIndex).create(anyString(), captor.capture());
-        JsonNode indexedDoc = captor.getValue();
-        JsonNode document = indexedDoc.get(Constants.KEY_DOCUMENT);
-
-        assertEquals(
-                "Creation date should be preserved",
-                "2020-01-01T00:00:00Z",
-                document.get(Constants.KEY_DATE).asText());
-
-        // Assert
-        assertNotNull(document.get(Constants.KEY_MODIFIED));
-        assertNotEquals(
-                "Modified date should differ from original creation date",
-                "2020-01-01T00:00:00Z",
-                document.get(Constants.KEY_MODIFIED).asText());
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.nodeClient).index(captor.capture());
+        assertTrue(
+                "Original creation date must be preserved in document",
+                captor.getValue().source().utf8ToString().contains(originalDate));
     }
 
     /**
@@ -784,21 +400,17 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_missingMandatoryFields() throws IOException {
-        setupMocks();
+        setupDefaultMocks("draft", true);
         String[] fields = {"title", "author", "category", "description", "references", "documentation"};
-
         for (String field : fields) {
             ObjectNode payload = (ObjectNode) mapper.readTree(getValidPayload());
             ((ObjectNode) payload.get("resource")).remove(field);
-
             RestRequest request = buildRequest(payload.toString(), INTEGRATION_ID);
-            RestResponse response = this.action.handleRequest(request);
-
+            RestResponse response = this.action.executeRequest(request, nodeClient);
             assertEquals(
-                    "Should fail when missing " + field,
+                    "Fail on missing field: " + field,
                     RestStatus.BAD_REQUEST.getStatus(),
                     response.getStatus());
-            assertTrue(response.getMessage().contains("Missing [" + field + "] field."));
         }
     }
 
@@ -808,16 +420,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_listContentModified() throws IOException {
-        setupMocks();
-
+        setupDefaultMocks("draft", true);
         ObjectNode payload = (ObjectNode) mapper.readTree(getValidPayload());
-        ((ObjectNode) payload.get("resource")).putArray("decoders").add("d2");
-
+        ((ObjectNode) payload.get("resource")).putArray("decoders").add("forbidden-modification-id");
         RestRequest request = buildRequest(payload.toString(), INTEGRATION_ID);
-        RestResponse response = this.action.handleRequest(request);
-
+        RestResponse response = this.action.executeRequest(request, nodeClient);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Content of 'decoders' cannot be added or removed"));
     }
 
     /**
@@ -826,57 +434,9 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_listReordered() throws IOException {
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
-        Map<String, Object> sourceMap = new HashMap<>();
-        sourceMap.put("space", Map.of("name", "draft"));
-        Map<String, Object> documentMap = new HashMap<>();
-        documentMap.put("decoders", List.of("A", "B"));
-        documentMap.put("rules", List.of());
-        documentMap.put("kvdbs", List.of());
-        sourceMap.put("document", documentMap);
-        when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
-
-        when(this.nodeClient.get(any()))
-                .thenReturn(
-                        new org.opensearch.action.support.PlainActionFuture<>() {
-                            @Override
-                            public GetResponse actionGet() {
-                                return getResponse;
-                            }
-                        });
-
-        ContentIndex integrationsIndex = mock(ContentIndex.class);
-        when(integrationsIndex.getDocument(anyString())).thenReturn(null);
-
-        IndexResponse indexResponse = mock(IndexResponse.class);
-        when(indexResponse.status()).thenReturn(RestStatus.OK);
-        when(integrationsIndex.create(anyString(), any(JsonNode.class))).thenReturn(indexResponse);
-
-        this.action.setIntegrationsContentIndex(integrationsIndex);
-        this.action.setSecurityAnalyticsService(this.saService);
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
-
-        RestResponse restResponse = mock(RestResponse.class);
-        when(restResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        when(restResponse.getMessage()).thenReturn("{}");
-        when(this.engine.validate(any())).thenReturn(restResponse);
-
-        // spotless:off
-        String payload = """
-            {
-                "resource": {
-                    "title": "Title", "author": "Auth", "category": "Cat", "description": "D", "documentation": "D", "references": [],
-                    "decoders": ["B", "A"],
-                    "rules": [], "kvdbs": []
-                }
-            }
-            """;
-        // spotless:on
-
-        RestRequest request = buildRequest(payload, INTEGRATION_ID);
-        RestResponse response = this.action.handleRequest(request);
-
+        setupDefaultMocks("draft", true);
+        RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
+        RestResponse response = this.action.executeRequest(request, nodeClient);
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
     }
 }

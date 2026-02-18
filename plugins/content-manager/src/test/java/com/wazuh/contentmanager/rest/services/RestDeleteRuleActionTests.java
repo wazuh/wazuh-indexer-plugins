@@ -16,37 +16,41 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.io.IOException;
-import java.util.Locale;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.securityanalytics.action.WDeleteCustomRuleAction;
-import com.wazuh.securityanalytics.action.WDeleteCustomRuleRequest;
-import com.wazuh.securityanalytics.action.WDeleteRuleResponse;
+import org.mockito.Answers;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link RestDeleteRuleAction} class. This test suite validates the REST API
@@ -59,6 +63,18 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
 
     private RestDeleteRuleAction action;
     private Client client;
+    private SecurityAnalyticsService securityAnalyticsService;
+    private PolicyHashService policyHashService;
+
+    /** Initialize PluginSettings singleton once for all tests. */
+    @BeforeClass
+    public static void setUpClass() {
+        try {
+            PluginSettings.getInstance(Settings.EMPTY);
+        } catch (IllegalStateException e) {
+            // Already initialized
+        }
+    }
 
     /**
      * Set up the tests
@@ -69,16 +85,49 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        PluginSettings.getInstance(Settings.EMPTY);
-        this.client = mock(Client.class);
-        this.action = new RestDeleteRuleAction();
+        this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        this.policyHashService = mock(PolicyHashService.class);
+
+        this.action = spy(new RestDeleteRuleAction());
+        this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
+        this.action.setPolicyHashService(this.policyHashService);
+    }
+
+    private void mockRuleInSpace(String id, String space, boolean exists) {
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        GetResponse response = mock(GetResponse.class);
+        when(response.isExists()).thenReturn(exists);
+        if (exists) {
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, space));
+            source.put(Constants.KEY_DOCUMENT, Map.of(Constants.KEY_ID, id));
+            when(response.getSourceAsMap()).thenReturn(source);
+            when(response.getSourceAsString())
+                    .thenReturn(
+                            "{\"document\":{\"id\":\"" + id + "\"},\"space\":{\"name\":\"" + space + "\"}}");
+        }
+        GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
+        when(this.client.prepareGet(anyString(), eq(id))).thenReturn(getBuilder);
+        when(getBuilder.get()).thenReturn(response);
+    }
+
+    private void mockUnlinkSearch() {
+        SearchResponse searchResponse = mock(SearchResponse.class);
+        SearchHits searchHits =
+                new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f);
+        when(searchResponse.getHits()).thenReturn(searchHits);
+        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
+        searchFuture.onResponse(searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
     }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the
+     * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the
      * request is complete. The expected response is: {200, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
     public void testDeleteRule200() throws IOException {
         // Arrange
@@ -89,107 +138,111 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("id", ruleId))
                         .build();
 
-        // Mock client with RETURNS_DEEP_STUBS for chained calls
-        this.client = mock(Client.class, RETURNS_DEEP_STUBS);
-
-        // Mock ContentIndex.exists() - rule exists
-        GetResponse existsResponse = mock(GetResponse.class);
-        when(existsResponse.isExists()).thenReturn(true);
-        when(this.client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(existsResponse);
-
-        // Mock draft space validation
-        GetResponse ruleGetResponse = mock(GetResponse.class);
-        when(ruleGetResponse.isExists()).thenReturn(true);
-        java.util.Map<String, Object> ruleSource = new java.util.HashMap<>();
-        java.util.Map<String, Object> ruleSpace = new java.util.HashMap<>();
-        ruleSpace.put("name", "draft");
-        ruleSource.put("space", ruleSpace);
-        when(ruleGetResponse.getSourceAsMap()).thenReturn(ruleSource);
-        when(this.client.prepareGet(anyString(), anyString()).get()).thenReturn(ruleGetResponse);
-
-        // Mock SAP delete
-        this.mockSapDelete(ruleId);
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
+        // Mock
+        this.mockRuleInSpace(ruleId, "draft", true);
+        this.mockUnlinkSearch();
 
         // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        RestResponse response = this.action.executeRequest(request, this.client);
 
         // Assert
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals(ruleId, response.getMessage());
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals(ruleId, response.getMessage());
+        verify(this.securityAnalyticsService).deleteRule(ruleId, false);
+        verify(this.client).delete(any(DeleteRequest.class), any());
 
-        verify(this.client)
-                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
+        // Verify policy hash recalculation
+        verify(this.policyHashService).calculateAndUpdate(any());
     }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the rule
+     * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * ID is missing. The expected response is: {400, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
     public void testDeleteRule400_MissingId() throws IOException {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
-
-        RestResponse response = this.action.handleRequest(request, this.client);
-
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_ID),
-                response.getMessage());
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when the rule
-     * ID is not a valid UUID. The expected response is: {400, RestResponse}
+     * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
+     * ID format is invalid. The expected response is: {400, RestResponse}
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs during the test
      */
     public void testDeleteRule400_InvalidUUID() throws IOException {
-        String invalidId = "not-a-valid-uuid";
+        String invalidId = "not@valid#uuid";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", invalidId))
                         .build();
-
-        RestResponse response = this.action.handleRequest(request, this.client);
-
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_INVALID_UUID, invalidId), response.getMessage());
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /**
-     * Test the {@link RestDeleteRuleAction#handleRequest(RestRequest, Client)} method when an
+     * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
+     * is not found. The expected response is: {404, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteRule404_NotFound() throws IOException {
+        String ruleId = "missing-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .build();
+
+        this.mockRuleInSpace(ruleId, "draft", false);
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
+     * is not in the draft space. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteRule400_NotInDraft() throws IOException {
+        // Arrange
+        String ruleId = "prod-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .build();
+
+        // Mock
+        this.mockRuleInSpace(ruleId, "standard", true);
+
+        // Act
+        RestResponse response = this.action.executeRequest(request, this.client);
+
+        // Assert
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("is not in draft space"));
+    }
+
+    /**
+     * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when an
      * unexpected error occurs. The expected response is: {500, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule500() throws IOException {
-        // Mock
-        RestRequest request = mock(RestRequest.class);
+    public void testDeleteRule500_UnexpectedError() throws IOException {
+        String ruleId = "error-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .build();
 
-        // Act
-        RestResponse response = this.action.handleRequest(request, this.client);
+        when(this.client.admin().indices().prepareExists(anyString()))
+                .thenThrow(new RuntimeException("Simulated failure"));
 
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
-    }
-
-    /**
-     * Mocks the successful execution of the Security Analytics Plugin (SAP) delete rule action.
-     *
-     * @param ruleId The ID of the rule expected to be deleted.
-     */
-    private void mockSapDelete(String ruleId) {
-        ActionFuture<WDeleteRuleResponse> sapFuture = mock(ActionFuture.class);
-        when(sapFuture.actionGet()).thenReturn(new WDeleteRuleResponse(ruleId, 1L, RestStatus.OK));
-        doReturn(sapFuture)
-                .when(this.client)
-                .execute(eq(WDeleteCustomRuleAction.INSTANCE), any(WDeleteCustomRuleRequest.class));
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }

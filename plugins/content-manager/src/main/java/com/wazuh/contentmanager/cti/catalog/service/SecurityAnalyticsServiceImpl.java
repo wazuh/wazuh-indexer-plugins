@@ -16,12 +16,12 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
@@ -53,212 +53,163 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonObject doc, Space space, Method method) {
-        try {
-            if (!doc.has(Constants.KEY_DOCUMENT)) {
-                return;
-            }
-            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
-            String id = innerDoc.get(Constants.KEY_ID).getAsString();
-            String name = innerDoc.get(Constants.KEY_TITLE).getAsString();
-            String description = innerDoc.get(Constants.KEY_DESCRIPTION).getAsString();
-            String category = CategoryFormatter.format(innerDoc, false);
-
-            log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
-
-            WIndexIntegrationRequest request =
-                    new WIndexIntegrationRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            method,
-                            new Integration(
-                                    id,
-                                    null,
-                                    name,
-                                    description,
-                                    category,
-                                    space.asSecurityAnalyticsSource(),
-                                    new HashMap<>()));
-            this.client.execute(
-                    WIndexIntegrationAction.INSTANCE,
-                    request,
-                    new ActionListener<WIndexIntegrationResponse>() {
-                        @Override
-                        public void onResponse(WIndexIntegrationResponse wIndexIntegrationResponse) {
-                            log.info("Integration [{}] synced successfully.", name);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to upsert Integration: {}", e.getMessage());
-                        }
-                    });
-
-        } catch (Exception e) {
-            log.error("Failed to upsert Integration: {}", e.getMessage());
+    public void upsertIntegration(JsonNode doc, Space space, Method method) {
+        WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
+        if (request != null) {
+            this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
         }
     }
 
+    public WIndexIntegrationRequest buildIntegrationRequest(
+            JsonNode doc, Space space, Method method) {
+        if (!doc.has(Constants.KEY_ID)) {
+            log.warn("Integration document missing ID. Skipping upsert.");
+            return null;
+        }
+
+        String id = doc.get(Constants.KEY_ID).asText();
+        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
+        String description =
+                doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).asText() : "";
+        String category = CategoryFormatter.format(doc, false);
+
+        log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
+
+        return new WIndexIntegrationRequest(
+                id,
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                method,
+                new Integration(
+                        id,
+                        null,
+                        name,
+                        description,
+                        category,
+                        space.asSecurityAnalyticsSource(),
+                        new HashMap<>()));
+    }
+
     @Override
-    public void deleteIntegration(String id) {
+    public void deleteIntegration(String id, boolean isStandard) {
         try {
-            // Delete detector first
-            this.deleteDetector(id);
+            if(isStandard){
+                // Delete detector first
+                this.deleteDetector(id);
 
-            // Then delete integration
-            log.info("Deleting Integration [{}] from SAP", id);
-            this.client.execute(
-                    WDeleteIntegrationAction.INSTANCE,
-                    new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
-                    new ActionListener<WDeleteIntegrationResponse>() {
-                        @Override
-                        public void onResponse(WDeleteIntegrationResponse wDeleteIntegrationResponse) {
-                            log.info("Integration [{}] deleted successfully.", id);
-                        }
+            }
+            this.client
+                    .execute(
+                            WDeleteIntegrationAction.INSTANCE,
+                            new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
+                    .actionGet();
+            log.info("Integration [{}] deleted successfully.", id);
 
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
-                        }
-                    });
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
-            throw new OpenSearchException("Failed to delete Integration");
+            throw new OpenSearchException("Failed to delete Integration", e.getMessage());
         }
     }
 
     @Override
-    public void upsertRule(JsonObject doc) {
+    public void upsertRule(JsonNode doc, Space space) {
+        if (!doc.has(Constants.KEY_ID)) {
+            log.warn("Rule document missing ID. Skipping upsert.");
+            return;
+        }
+
+        String id = doc.get(Constants.KEY_ID).asText();
+        String product = ContentIndex.extractProduct(doc);
+        String body = doc.toString();
+
+        log.info("Creating/Updating Rule [{}] in SAP", id);
+
+        if (space != Space.STANDARD) {
+            this.client
+                    .execute(
+                            WIndexCustomRuleAction.INSTANCE,
+                            new WIndexCustomRuleRequest(
+                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, Method.POST, body, true))
+                    .actionGet();
+        } else {
+            this.client
+                    .execute(
+                            WIndexRuleAction.INSTANCE,
+                            new WIndexRuleRequest(
+                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, Method.POST, body, true))
+                    .actionGet();
+        }
+    }
+
+    @Override
+    public void deleteRule(String id, boolean isStandard) {
         try {
-            if (!doc.has(Constants.KEY_DOCUMENT)) {
-                return;
+            if (isStandard) {
+                log.info("Deleting Standard Rule [{}] from SAP", id);
+                this.client
+                        .execute(
+                                WDeleteRuleAction.INSTANCE,
+                                new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                        .actionGet();
+            } else {
+                log.info("Deleting Custom Rule [{}] from SAP", id);
+                this.client
+                        .execute(
+                                WDeleteCustomRuleAction.INSTANCE,
+                                new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                        .actionGet();
             }
-            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
-            String id = innerDoc.get(Constants.KEY_ID).getAsString();
-
-            String product = ContentIndex.extractProduct(innerDoc);
-
-            log.info("Creating/Updating Rule [{}] in SAP", id);
-
-            WIndexRuleRequest ruleRequest =
-                    new WIndexRuleRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            product,
-                            Method.POST,
-                            innerDoc.toString(),
-                            true);
-            this.client.execute(
-                    WIndexRuleAction.INSTANCE,
-                    ruleRequest,
-                    new ActionListener<WIndexRuleResponse>() {
-                        @Override
-                        public void onResponse(WIndexRuleResponse wIndexRuleResponse) {
-                            log.info("Rule [{}] synced successfully.", id);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to upsert Rule: {}", e.getMessage());
-                        }
-                    });
-
-        } catch (Exception e) {
-            log.error("Failed to upsert Rule: {}", e.getMessage());
-        }
-    }
-
-    @Override
-    public void deleteRule(String id) {
-        try {
-            log.info("Deleting Rule [{}] from SAP", id);
-            this.client.execute(
-                    WDeleteRuleAction.INSTANCE,
-                    new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true),
-                    new ActionListener<WDeleteRuleResponse>() {
-                        @Override
-                        public void onResponse(WDeleteRuleResponse wDeleteRuleResponse) {
-                            log.info("Rule [{}] deleted successfully.", id);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to delete Rule [{}]: {}", id, e.getMessage());
-                        }
-                    });
+            log.info("Rule [{}] deleted successfully.", id);
         } catch (Exception e) {
             log.error("Failed to delete Rule [{}]: {}", id, e.getMessage());
+            throw new OpenSearchException("Failed to delete Rule", e.getMessage());
         }
     }
 
     @Override
-    public void upsertDetector(JsonObject doc, boolean rawCategory) {
-        try {
-            if (!doc.has(Constants.KEY_DOCUMENT)) {
-                return;
-            }
-            JsonObject innerDoc = doc.getAsJsonObject(Constants.KEY_DOCUMENT);
-            String id = innerDoc.get(Constants.KEY_ID).getAsString();
-            String name =
-                    innerDoc.has(Constants.KEY_TITLE) ? innerDoc.get(Constants.KEY_TITLE).getAsString() : "";
-            String category = CategoryFormatter.format(innerDoc, rawCategory);
-            List<String> rules = new ArrayList<>();
-
-            if (innerDoc.has(Constants.KEY_RULES)) {
-                innerDoc
-                        .get(Constants.KEY_RULES)
-                        .getAsJsonArray()
-                        .forEach(item -> rules.add(item.getAsString()));
-            }
-            if (rules.isEmpty()) {
-                return;
-            }
-
-            log.info("Creating/Updating Detector [{}] for Integration", name);
-
-            WIndexDetectorRequest request =
-                    new WIndexDetectorRequest(
-                            id, name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
-            this.client.execute(
-                    WIndexDetectorAction.INSTANCE,
-                    request,
-                    new ActionListener<WIndexDetectorResponse>() {
-                        @Override
-                        public void onResponse(WIndexDetectorResponse wIndexDetectorResponse) {
-                            log.info("Detector [{}] synced successfully.", name);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to upsert Detector: {}", e.getMessage());
-                        }
-                    });
-
-        } catch (Exception e) {
-            log.error("Failed to upsert Detector: {}", e.getMessage());
+    public void upsertDetector(JsonNode doc, boolean rawCategory) {
+        WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
+        if (request != null) {
+            this.client.execute(WIndexDetectorAction.INSTANCE, request).actionGet();
         }
+    }
+
+    public WIndexDetectorRequest buildDetectorRequest(JsonNode doc, boolean rawCategory) {
+        if (!doc.has(Constants.KEY_ID)) {
+            log.warn("Detector document missing ID. Skipping upsert.");
+            return null;
+        }
+
+        String id = doc.get(Constants.KEY_ID).asText();
+        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
+        String category = CategoryFormatter.format(doc, rawCategory);
+        List<String> rules = new ArrayList<>();
+
+        if (doc.has(Constants.KEY_RULES)) {
+            doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
+        }
+        if (rules.isEmpty()) {
+            return null;
+        }
+
+        log.info("Creating/Updating Detector [{}] for Integration", name);
+
+        return new WIndexDetectorRequest(
+                id, name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
     @Override
     public void deleteDetector(String id) {
         try {
             log.info("Deleting Detector [{}] from SAP", id);
-            this.client.execute(
-                    WDeleteDetectorAction.INSTANCE,
-                    new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
-                    new ActionListener<WDeleteDetectorResponse>() {
-                        @Override
-                        public void onResponse(WDeleteDetectorResponse wDeleteDetectorResponse) {
-                            log.info("Detector [{}] deleted successfully.", id);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
-                        }
-                    });
+            this.client
+                    .execute(
+                            WDeleteDetectorAction.INSTANCE,
+                            new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
+                    .actionGet();
+            log.info("Detector [{}] deleted successfully.", id);
         } catch (Exception e) {
             log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
+            throw new OpenSearchException("Failed to delete Detector", e.getMessage());
         }
     }
 }

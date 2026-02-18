@@ -611,8 +611,3 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  # Integration fields
-  gcp:
-    fields: "*"
-  google-scc:
-    fields: "*"
