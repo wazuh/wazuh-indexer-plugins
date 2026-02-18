@@ -47,8 +47,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -148,7 +149,8 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         this.action = spy(new RestPostDecoderAction(this.service));
 
         this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /** Helper method to mock an integration existence and space with mutable collections. */
@@ -263,7 +265,8 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         this.action = spy(new RestPostDecoderAction(null));
         // Must re-set services because spy created a new object
         this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
 
         RestRequest request = this.buildRequest(DECODER_PAYLOAD);
         this.mockIntegrationInSpace("integration-1", "draft", true);

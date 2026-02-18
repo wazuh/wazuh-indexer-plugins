@@ -66,10 +66,6 @@ public class ContentManagerPlugin extends Plugin
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String JOB_ID = "wazuh-catalog-sync-job";
 
-    // Index and mapping constants
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String RULES_MAPPING_PATH = "/mappings/cti-rules-mappings.json";
-
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;

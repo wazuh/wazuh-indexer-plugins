@@ -45,7 +45,8 @@ import org.junit.Before;
 
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -68,7 +69,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutKvdbAction action;
     private NodeClient nodeClient;
-    private PolicyHashService policyHashService;
+    private SpaceService policyHashService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String KVDB_PAYLOAD =
@@ -97,10 +98,11 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
 
         this.service = mock(EngineService.class);
         this.nodeClient = mock(NodeClient.class);
-        this.policyHashService = mock(PolicyHashService.class);
+        this.policyHashService = mock(SpaceService.class);
 
         this.action = spy(new RestPutKvdbAction(this.service));
         this.action.setPolicyHashService(this.policyHashService);
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /** Helper to mock KVDB existence and space verification via fluent API. */

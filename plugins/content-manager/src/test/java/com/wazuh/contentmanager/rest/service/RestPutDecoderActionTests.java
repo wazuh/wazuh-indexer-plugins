@@ -39,7 +39,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -121,7 +122,8 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
         super.setUp();
         this.service = mock(EngineService.class);
         this.action = spy(new RestPutDecoderAction(this.service));
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /**
@@ -253,7 +255,8 @@ public class RestPutDecoderActionTests extends OpenSearchTestCase {
      */
     public void testPutDecoderEngineUnavailableReturns500() throws Exception {
         this.action = spy(new RestPutDecoderAction(null));
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
 
         String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request = this.buildRequest(DECODER_PAYLOAD, decoderId);

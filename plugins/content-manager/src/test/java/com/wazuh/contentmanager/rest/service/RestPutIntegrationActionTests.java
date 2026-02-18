@@ -46,8 +46,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -195,7 +196,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         when(this.engine.validate(any())).thenReturn(new RestResponse("{\"status\": \"OK\"}", 200));
         mockIndexResponse(RestStatus.OK);
         this.action.setSecurityAnalyticsService(this.saService);
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     private String getValidPayload() {
@@ -382,7 +384,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         when(this.engine.validate(any())).thenReturn(new RestResponse("{\"status\": \"OK\"}", 200));
         mockIndexResponse(RestStatus.OK);
         this.action.setSecurityAnalyticsService(this.saService);
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
 
         RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
         this.action.executeRequest(request, nodeClient);

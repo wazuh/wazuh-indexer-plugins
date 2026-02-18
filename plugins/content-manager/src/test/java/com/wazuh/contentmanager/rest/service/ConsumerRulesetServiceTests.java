@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.cti.catalog.synchronizer;
+package com.wazuh.contentmanager.rest.service;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -32,9 +32,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /** Tests for the UnifiedConsumerSynchronizer class. */
-public class RulesetConsumerSynchronizerTests extends OpenSearchTestCase {
+public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
-    private RulesetConsumerSynchronizer synchronizer;
+    private ConsumerRulesetService synchronizer;
     private AutoCloseable closeable;
 
     @Mock private Client client;
@@ -48,7 +48,7 @@ public class RulesetConsumerSynchronizerTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
-                new RulesetConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
+                new ConsumerRulesetService(this.client, this.consumersIndex, this.environment);
     }
 
     @After

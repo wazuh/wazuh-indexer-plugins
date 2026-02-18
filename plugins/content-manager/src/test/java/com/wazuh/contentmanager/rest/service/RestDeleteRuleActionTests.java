@@ -40,8 +40,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -64,7 +65,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     private RestDeleteRuleAction action;
     private Client client;
     private SecurityAnalyticsService securityAnalyticsService;
-    private PolicyHashService policyHashService;
+    private SpaceService policyHashService;
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -87,11 +88,12 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         super.setUp();
         this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
-        this.policyHashService = mock(PolicyHashService.class);
+        this.policyHashService = mock(SpaceService.class);
 
         this.action = spy(new RestDeleteRuleAction());
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
         this.action.setPolicyHashService(this.policyHashService);
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     private void mockRuleInSpace(String id, String space, boolean exists) {

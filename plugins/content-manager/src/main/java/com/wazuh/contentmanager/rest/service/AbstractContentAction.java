@@ -212,6 +212,11 @@ public abstract class AbstractContentAction extends BaseRestHandler {
         this.securityAnalyticsService = securityAnalyticsService;
     }
 
+    /** Sets the integration service (for testing). */
+    public void setIntegrationService(IntegrationService integrationService) {
+        this.integrationService = integrationService;
+    }
+
     /**
      * Checks if the policy document for the draft space exists.
      *

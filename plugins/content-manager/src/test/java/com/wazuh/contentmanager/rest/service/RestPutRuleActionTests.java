@@ -46,8 +46,9 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -89,11 +90,12 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
 
         this.nodeClient = mock(NodeClient.class);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        SpaceService policyHashService = mock(SpaceService.class);
 
         this.action = spy(new RestPutRuleAction());
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
         this.action.setPolicyHashService(policyHashService);
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     private void mockPrepareGetChain(GetResponse response, String id) {

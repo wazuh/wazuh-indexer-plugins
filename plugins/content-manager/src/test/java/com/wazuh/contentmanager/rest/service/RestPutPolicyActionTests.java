@@ -43,7 +43,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -181,9 +180,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
         // Act
         RestResponse response = this.action.handleRequest(request);
 
@@ -242,9 +238,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
         when(this.indexResponse.getId()).thenReturn("test-policy-id");
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
         // Act
         RestResponse response = this.action.handleRequest(request);
 
@@ -253,7 +246,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         assertTrue(response.getMessage().contains("policy"));
 
         // Verify PolicyHashService was called to regenerate space hash
-        verify(policyHashService).calculateAndUpdate(anyList());
+        verify(this.service).calculateAndUpdate(anyList());
     }
 
     /**
@@ -304,9 +297,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request);
@@ -529,9 +519,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
         when(this.indexResponse.getId()).thenReturn("test-policy-id");
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
         // Act
         RestResponse response = this.action.handleRequest(request);
 
@@ -570,9 +557,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request);
@@ -614,9 +598,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         .withParams(params)
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request);
@@ -679,9 +660,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
         when(this.indexResponse.getId()).thenReturn("test-policy-id");
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
         // Act
         RestResponse response = this.action.handleRequest(request);
 
@@ -740,9 +718,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
         when(this.indexResponse.getId()).thenReturn("test-policy-id");
-
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
 
         // Act
         RestResponse response = this.action.handleRequest(request);

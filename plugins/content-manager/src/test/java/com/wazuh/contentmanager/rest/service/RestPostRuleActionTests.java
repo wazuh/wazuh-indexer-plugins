@@ -47,8 +47,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -92,11 +93,12 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
         super.setUp();
         this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
+        SpaceService policyHashService = mock(SpaceService.class);
 
         this.action = spy(new RestPostRuleAction());
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
         this.action.setPolicyHashService(policyHashService);
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /**

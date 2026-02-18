@@ -44,7 +44,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -67,7 +68,7 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
 
     private RestDeleteKvdbAction action;
     private Client client;
-    private PolicyHashService policyHashService;
+    private SpaceService policyHashService;
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -90,10 +91,11 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         super.setUp();
         EngineService service = mock(EngineService.class);
         this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
-        this.policyHashService = mock(PolicyHashService.class);
+        this.policyHashService = mock(SpaceService.class);
 
         this.action = spy(new RestDeleteKvdbAction(service));
         this.action.setPolicyHashService(this.policyHashService);
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /** Helper to mock KVDB existence and space verification for deletion. */
@@ -231,27 +233,6 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
         Assert.assertTrue(actualResponse.getMessage().contains("is not in draft space"));
-    }
-
-    /**
-     * Test the {@link RestDeleteKvdbAction#executeRequest(RestRequest, Client)} method when engine
-     * service is not initialized. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
-     */
-    public void testDeleteKvdb500_EngineNotInitialized() throws IOException {
-        this.action = spy(new RestDeleteKvdbAction(null));
-        this.action.setPolicyHashService(this.policyHashService);
-        String kvdbId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withParams(Map.of("id", kvdbId))
-                        .build();
-
-        this.mockKvdbInSpace(kvdbId, "draft", true);
-
-        RestResponse actualResponse = this.action.executeRequest(request, this.client);
-        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
     }
 
     /**

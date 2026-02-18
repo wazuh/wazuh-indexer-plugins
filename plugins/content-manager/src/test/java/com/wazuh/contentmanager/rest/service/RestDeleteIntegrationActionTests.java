@@ -47,8 +47,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -100,7 +101,8 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         this.action = spy(new RestDeleteIntegrationAction(engine));
         this.action.setSecurityAnalyticsService(this.saService);
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /** Helper method to mock an integration existence, space, and dependent resources. */

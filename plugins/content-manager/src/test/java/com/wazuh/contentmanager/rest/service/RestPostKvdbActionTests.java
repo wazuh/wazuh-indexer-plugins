@@ -48,8 +48,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -123,7 +124,8 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         this.action = spy(new RestPostKvdbAction(this.service));
 
         this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /** Helper method to mock an integration existence and space with mutable collections. */
@@ -224,7 +226,8 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
     public void testPostKvdbEngineUnavailableReturns500() throws IOException {
         this.action = spy(new RestPostKvdbAction(null));
         this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
-        this.action.setPolicyHashService(mock(PolicyHashService.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+        this.action.setIntegrationService(mock(IntegrationService.class));
 
         RestRequest request = this.buildRequest(KVDB_PAYLOAD);
         this.mockIntegrationInSpace("integration-1", "draft", true);

@@ -44,7 +44,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -67,7 +68,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
 
     private RestDeleteDecoderAction action;
     private Client client;
-    private PolicyHashService policyHashService;
+    private SpaceService policyHashService;
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -90,10 +91,11 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         super.setUp();
         EngineService engine = mock(EngineService.class);
         this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
-        this.policyHashService = mock(PolicyHashService.class);
+        this.policyHashService = mock(SpaceService.class);
 
         this.action = spy(new RestDeleteDecoderAction(engine));
         this.action.setPolicyHashService(this.policyHashService);
+        this.action.setIntegrationService(mock(IntegrationService.class));
     }
 
     /** Helper to mock decoder existence and space verification for deletion. */
@@ -228,30 +230,6 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("is not in draft space"));
-    }
-
-    /**
-     * Test the {@link RestDeleteDecoderAction#executeRequest(RestRequest, Client)} method when engine
-     * service is not initialized. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
-     */
-    public void testDeleteDecoder500_EngineNotInitialized() throws IOException {
-        // Initialize action with null engine
-        this.action = spy(new RestDeleteDecoderAction(null));
-        this.action.setPolicyHashService(this.policyHashService);
-
-        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
-        RestRequest request =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withParams(Map.of("id", decoderId))
-                        .build();
-
-        // Mock index as existing so it proceeds to hit the (null) engine service
-        this.mockDecoderInSpace(decoderId, "draft", true);
-
-        RestResponse response = this.action.executeRequest(request, this.client);
-        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 
     /**

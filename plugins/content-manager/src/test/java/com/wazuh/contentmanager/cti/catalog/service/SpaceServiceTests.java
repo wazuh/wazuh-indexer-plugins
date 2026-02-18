@@ -52,9 +52,9 @@ import static org.mockito.Mockito.when;
  * policies with multiple integrations, and correct aggregation of hashes from related resources.
  * Mock objects simulate OpenSearch client interactions to test hash computation logic in isolation.
  */
-public class PolicyHashServiceTests extends OpenSearchTestCase {
+public class SpaceServiceTests extends OpenSearchTestCase {
 
-    private PolicyHashService policyHashService;
+    private SpaceService policyHashService;
     private AutoCloseable closeable;
 
     @Mock private Client client;
@@ -77,7 +77,7 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         super.setUp();
         PluginSettings.getInstance(Settings.EMPTY);
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.policyHashService = new PolicyHashService(this.client);
+        this.policyHashService = new SpaceService(this.client);
     }
 
     @After
