@@ -20,9 +20,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
@@ -32,11 +34,13 @@ import java.io.IOException;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.MockSecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.ContentUtils;
 
@@ -82,16 +86,14 @@ public abstract class AbstractContentAction extends BaseRestHandler {
         }
 
         this.policyHashService = new PolicyHashService(client);
-        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
+        }
 
         return channel -> {
-            RestResponse validation = this.validateDraftPolicyExists(client);
-            if (validation != null) {
-                channel.sendResponse(validation.toBytesRestResponse());
-                return;
-            }
-            RestResponse response = this.executeRequest(request, client);
-            channel.sendResponse(response.toBytesRestResponse());
+            this.validateDraftPolicyExists(client, request, channel);
         };
     }
 
@@ -106,30 +108,64 @@ public abstract class AbstractContentAction extends BaseRestHandler {
     }
 
     /**
-     * Checks if the policy document for the draft space exists.
+     * Checks asynchronously if the policy document for the draft space exists. If the policy exists,
+     * proceeds to execute the request. Otherwise, sends an error response.
      *
      * @param client The OpenSearch client.
-     * @return RestResponse with error if policy is missing, null otherwise.
+     * @param request The incoming REST request.
+     * @param channel The REST channel to send the response on.
      */
-    protected RestResponse validateDraftPolicyExists(Client client) {
+    protected void validateDraftPolicyExists(
+            Client client, RestRequest request, RestChannel channel) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+        sourceBuilder.size(0);
+        searchRequest.source(sourceBuilder);
+
+        client.search(
+                searchRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(SearchResponse response) {
+                        try {
+                            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
+                                log.error("Failed to find Draft policy document");
+                                RestResponse error =
+                                        new RestResponse(
+                                                "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                                channel.sendResponse(error.toBytesRestResponse());
+                                return;
+                            }
+                            RestResponse result = executeRequest(request, client);
+                            channel.sendResponse(result.toBytesRestResponse());
+                        } catch (Exception e) {
+                            sendErrorResponse(channel, e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        sendErrorResponse(channel, e);
+                    }
+                });
+    }
+
+    /**
+     * Sends an error response on the channel.
+     *
+     * @param channel The REST channel.
+     * @param e The exception.
+     */
+    private static void sendErrorResponse(RestChannel channel, Exception e) {
         try {
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
-            sourceBuilder.size(0);
-            searchRequest.source(sourceBuilder);
-
-            SearchResponse response = client.search(searchRequest).actionGet();
-
-            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                log.error("Failed to find Draft policy document");
-                return new RestResponse("Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-        } catch (Exception e) {
-            return new RestResponse(
-                    "Draft policy check failed: " + e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            RestResponse error =
+                    new RestResponse(
+                            "Draft policy check failed: " + e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            channel.sendResponse(error.toBytesRestResponse());
+        } catch (Exception ex) {
+            log.error("Failed to send error response", ex);
         }
-        return null;
     }
 
     /**

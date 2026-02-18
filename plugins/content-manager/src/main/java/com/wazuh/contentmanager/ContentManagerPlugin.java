@@ -52,7 +52,9 @@ import java.util.function.Supplier;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
+import com.wazuh.contentmanager.engine.services.MockEngineService;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
@@ -75,7 +77,7 @@ public class ContentManagerPlugin extends Plugin
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
-    private EngineServiceImpl engine;
+    private EngineService engine;
     private SpaceService spaceService;
 
     /**
@@ -126,7 +128,11 @@ public class ContentManagerPlugin extends Plugin
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
 
         // Initialize Engine service
-        this.engine = new EngineServiceImpl();
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.engine = new MockEngineService();
+        } else {
+            this.engine = new EngineServiceImpl();
+        }
 
         // Initialize Space Service
         this.spaceService = new SpaceService(this.client);
@@ -329,7 +335,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CONTENT_CONTEXT,
                 PluginSettings.CONTENT_CONSUMER,
                 PluginSettings.IOC_CONTEXT,
-                PluginSettings.IOC_CONSUMER);
+                PluginSettings.IOC_CONSUMER,
+                PluginSettings.ENGINE_MOCK_ENABLED);
     }
 
     /**

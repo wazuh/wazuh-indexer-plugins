@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilders;
@@ -105,9 +106,7 @@ public class PolicyHashService {
                         continue;
                     }
                     log.info(
-                        "Calculating hash calculation for policy [{}] in space [{}]",
-                        hit.getId(),
-                        spaceName);
+                            "Calculating hash calculation for policy [{}] in space [{}]", hit.getId(), spaceName);
                 }
 
                 List<String> spaceHashes = new ArrayList<>();
@@ -156,6 +155,7 @@ public class PolicyHashService {
             }
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
+                bulkUpdateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                 this.client.bulk(bulkUpdateRequest).actionGet();
             }
 
