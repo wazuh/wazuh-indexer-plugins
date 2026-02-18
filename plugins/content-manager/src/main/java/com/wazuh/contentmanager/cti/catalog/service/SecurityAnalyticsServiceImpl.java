@@ -92,10 +92,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteIntegration(String id, boolean isStandard) {
         try {
-            if(isStandard){
+            if (isStandard) {
                 // Delete detector first
                 this.deleteDetector(id);
-
             }
             this.client
                     .execute(
