@@ -30,14 +30,18 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Ioc extends Resource {
+public class Ioc {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String DOCUMENT_KEY = "document";
+    private static final String HASH_KEY = "hash";
 
     @JsonProperty(DOCUMENT_KEY)
     private IocDocument document;
+
+    @JsonProperty(HASH_KEY)
+    private IocHash hash;
 
     /** Default constructor. */
     public Ioc() {}
@@ -49,7 +53,12 @@ public class Ioc extends Resource {
      * @return A fully populated Ioc instance.
      */
     public static Ioc fromPayload(JsonNode payload) {
-        return MAPPER.convertValue(payload, Ioc.class);
+        Ioc ioc = MAPPER.convertValue(payload, Ioc.class);
+        if (payload.has(DOCUMENT_KEY)) {
+            String sha256 = Resource.computeSha256(payload.get(DOCUMENT_KEY).toString());
+            ioc.setHash(new IocHash(sha256));
+        }
+        return ioc;
     }
 
     /**
@@ -68,6 +77,24 @@ public class Ioc extends Resource {
      */
     public void setDocument(IocDocument document) {
         this.document = document;
+    }
+
+    /**
+     * Gets the hash.
+     *
+     * @return The IoC hash.
+     */
+    public IocHash getHash() {
+        return this.hash;
+    }
+
+    /**
+     * Sets the hash.
+     *
+     * @param hash The IoC hash.
+     */
+    public void setHash(IocHash hash) {
+        this.hash = hash;
     }
 
     /**
@@ -366,6 +393,46 @@ public class Ioc extends Resource {
          */
         public void setTags(List<String> tags) {
             this.tags = tags;
+        }
+    }
+
+    /** Represents the {@code hash} object within an IoC, containing a SHA-256 checksum. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class IocHash {
+
+        private static final String SHA256_KEY = "sha256";
+
+        @JsonProperty(SHA256_KEY)
+        private String sha256;
+
+        /** Default constructor. */
+        public IocHash() {}
+
+        /**
+         * Creates an IocHash with the given SHA-256 value.
+         *
+         * @param sha256 The SHA-256 hash string.
+         */
+        public IocHash(String sha256) {
+            this.sha256 = sha256;
+        }
+
+        /**
+         * Gets the SHA-256 hash.
+         *
+         * @return The SHA-256 hash string.
+         */
+        public String getSha256() {
+            return this.sha256;
+        }
+
+        /**
+         * Sets the SHA-256 hash.
+         *
+         * @param sha256 The SHA-256 hash string.
+         */
+        public void setSha256(String sha256) {
+            this.sha256 = sha256;
         }
     }
 }
