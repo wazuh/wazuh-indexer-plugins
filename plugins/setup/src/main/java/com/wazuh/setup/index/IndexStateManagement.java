@@ -52,10 +52,6 @@ public class IndexStateManagement extends Index {
     /** Base path for ISM policy files */
     static final String POLICIES_PATH = "policies/";
 
-    /** Path to the stream rollover policy file (for backwards compatibility with tests) */
-    static final String STREAM_ROLLOVER_POLICY_PATH =
-            POLICIES_PATH + STREAM_ROLLOVER_POLICY + ".json";
-
     private final List<String> policies;
 
     /**
