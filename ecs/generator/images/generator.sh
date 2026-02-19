@@ -84,12 +84,7 @@ generate_mappings() {
         "settings": .settings,
         "mappings": .mappings
       }
-    }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
-  fi
-
-  # Remove 'message' field from cti/ioc template
-  if [[ "$ecs_module" == "cti/ioc" ]]; then
-    jq 'del(.template.mappings.properties.message?)' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+    } | del(.template.mappings.properties.message?)' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
   fi
 
   echo "Mappings saved to $out_dir"
