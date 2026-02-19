@@ -1,0 +1,59 @@
+---
+- name: compliance_frameworks
+  title: Compliance Frameworks
+  type: group
+  description: >
+    Reusable group for compliance frameworks information.
+  reusable:
+    top_level: false
+    expected:
+      - { at: check.compliance, as: pci_dss }
+      - { at: check.compliance, as: gdpr }
+      - { at: check.compliance, as: nist_800_53 }
+      - { at: check.compliance, as: nist_800_171 }
+      - { at: check.compliance, as: hipaa }
+      - { at: check.compliance, as: cmmc }
+      - { at: check.compliance, as: iso_27001 }
+      - { at: check.compliance, as: nis2 }
+      - { at: check.compliance, as: tsc }
+      - { at: check.compliance, as: mitre_attack }
+      - { at: check.compliance, as: fedramp }
+      - { at: compliance, as: pci_dss }
+      - { at: compliance, as: gdpr }
+      - { at: compliance, as: nist_800_53 }
+      - { at: compliance, as: nist_800_171 }
+      - { at: compliance, as: hipaa }
+      - { at: compliance, as: cmmc }
+      - { at: compliance, as: iso_27001 }
+      - { at: compliance, as: nis2 }
+      - { at: compliance, as: tsc }
+      - { at: compliance, as: mitre_attack }
+      - { at: compliance, as: fedramp }
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+    - name: version
+      type: keyword
+      level: custom
+      description: >
+        Framework version (4.0, 2018, 5.1, etc.).
+    - name: category
+      type: keyword
+      level: custom
+      description: >
+        Framework category (payment-security, data-protection, etc.).
+    - name: publisher
+      type: keyword
+      level: custom
+      description: >
+        Organization that published the framework.
+    - name: requirements
+      type: keyword
+      level: custom
+      description: >
+        Requirement identifier (11.5, Article 32, AC-3, etc.).
+      normalize:
+        - array

@@ -1,6 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-9.1.0,true,base,compliance,nested,custom,,,Array of compliance objects to support multiple frameworks per event.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
@@ -9,141 +8,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-9.1.0,true,apache_tomcat,apache_tomcat.access.connection_status,keyword,custom,,example-connection_status,Connection status when response is completed.
-9.1.0,true,apache_tomcat,apache_tomcat.access.http.ident,keyword,custom,,example-ident,Remote logical username from identd.
-9.1.0,true,apache_tomcat,apache_tomcat.access.http.useragent,keyword,custom,,example-useragent,The user id of the authenticated user requesting the page (if HTTP authentication is used).
-9.1.0,true,apache_tomcat,apache_tomcat.access.ip.local,ip,custom,,192.168.1.1,The local IP address of the Apache Tomcat server that handled the request.
-9.1.0,true,apache_tomcat,apache_tomcat.access.request_process_time,double,custom,,,"Time taken to process the request, in millis."
-9.1.0,true,apache_tomcat,apache_tomcat.access.response_time,double,custom,,,"Time taken to commit the response, in millis."
-9.1.0,true,apache_tomcat,apache_tomcat.cache.application_name,keyword,custom,,example-application_name,Name of the Apache Tomcat application.
-9.1.0,true,apache_tomcat,apache_tomcat.cache.hit.count,double,custom,,,The number of requests for resources that were served from the cache.
-9.1.0,true,apache_tomcat,apache_tomcat.cache.lookup.count,double,custom,,,The number of requests for resources.
-9.1.0,true,apache_tomcat,apache_tomcat.cache.object.size.max.kb,double,custom,,,The maximum permitted size for a single object in the cache in kB.
-9.1.0,true,apache_tomcat,apache_tomcat.cache.size.current.kb,double,custom,,,The current estimate of the cache size in kB.
-9.1.0,true,apache_tomcat,apache_tomcat.cache.size.max.kb,double,custom,,,The maximum permitted size of the cache in kB.
-9.1.0,true,apache_tomcat,apache_tomcat.cache.ttl.ms,double,custom,,,The time-to-live for cache entries in milliseconds.
-9.1.0,true,apache_tomcat,apache_tomcat.catalina.subsystem,keyword,custom,,example-subsystem,"Apache Tomcat subsystem or module type that generated the message (e.g., RBPM, JMS). Identifies the source component."
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.access_to_underlying_connection_allowed,boolean,custom,,True,Returns the state of connections that will be established when the connection pool is started.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.application_name,keyword,custom,,example-application_name,Name of the Apache Tomcat application.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.cache.state,long,custom,,12345,Cache state of connection pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.abandoned_usage_tracking,boolean,custom,,True,Indicates if full stack traces are required when logAbandoned is true.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.active.count,long,custom,,12345,Number of active connections in pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.autocommit_on_return,boolean,custom,,True,Connections being returned to the pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.clear_statement_pool_on_return,boolean,custom,,True,Keeps track of statements associated with a connection.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.closed,boolean,custom,,True,"Indicates if connection is closed. Helps identify connection issues, network interruptions, or resource exhaustion."
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.database.time.max.ms,long,custom,,12345,Maximum time to wait for a database connection to become available in ms.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.default_transaction_isolation,long,custom,,12345,TransactionIsolation state of connections created by this pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.enable_autocommit_on_return,boolean,custom,,True,Connections being returned to the pool will be checked and configured with Connection.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.fast_fail_validation,boolean,custom,,True,Timeout before a connection validation queries fail.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.count,long,custom,,12345,Idle number of connection pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.exists,boolean,custom,,True,Indicates if connection is idle in pool. Helps monitor connection state and identify inefficient usage.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.max.count,long,custom,,12345,Maximum idle connections allowed in pool. Optimizes resource usage and balances availability with overhead reduction.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.max.size,long,custom,,12345,Returns the maximum number of connections that can remain idle in the pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.max.time.ms,long,custom,,12345,Maximum objects examined per run of the idle object evictor thread. Controls pool cleanup efficiency.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.min.size,long,custom,,12345,The minimum number of established connections that should be kept in the pool at all times.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.idle.min.time.ms,long,custom,,12345,Minimum time an object sits idle in pool before becoming eligible for eviction by the idle object evictor.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.initial_size.count,long,custom,,12345,The initial number of connections that are created when the pool is started.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.lifetime.max.ms,long,custom,,12345,The maximum lifetime in milliseconds of a connection.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.log_expired,boolean,custom,,True,Log expired connection in pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.min_evictable_idle.time,long,custom,,12345,The minimum amount of time an object may sit idle in the pool before it is eligible for eviction.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.remove_abandoned_on_borrow,boolean,custom,,True,Remove abandoned connections from the pool when a connection is borrowed.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.remove_abandoned_on_maintenance,boolean,custom,,True,The commons dbcp parameters which are unique from the Tomcat JDBC connection pool parameters are not being accepted.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.remove_abandoned_timeout,long,custom,,12345,Timeout in seconds before an abandoned (in use) connection can be removed.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.rollback_on_return,boolean,custom,,True,The pool can terminate the transaction by calling rollback on the connection.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.test_on_return,boolean,custom,,True,The indication of whether objects will be validated before being returned to the pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.test_while_idle,boolean,custom,,True,Indicates if pool tests idle connections for validity. Prevents stale connections and improves application reliability.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.time_between_eviction_run.time.ms,long,custom,,12345,The total amount of time in milliseconds to sleep between runs of the idle connection validation/cleaner thread.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.connection.validate,long,custom,,12345,Validate connections from this pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.lifo,boolean,custom,,True,Last In First Out connections.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.max.total,long,custom,,12345,Maximum total of connection pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.prepared_statements,boolean,custom,,True,Validate connections from this pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.test_on_borrow,boolean,custom,,True,The indication of whether objects will be validated before being borrowed from the pool.
-9.1.0,true,apache_tomcat,apache_tomcat.connection_pool.test_on_create,boolean,custom,,True,Property determines whether or not the pool will validate objects immediately after they are created by the pool.
-9.1.0,true,apache_tomcat,apache_tomcat.localhost.subsystem,keyword,custom,,example-subsystem,"Apache Tomcat subsystem or module type that generated the message (e.g., RBPM, JMS). Identifies the source component."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.doc_type,keyword,custom,,example-doc_type,Document type of the event. This should be either 'memory' or 'gc'.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.gc.collection.count,long,custom,,12345,The cumulative number of invoked garbage collections since the start of the server.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.gc.collection.time.ms,long,custom,,12345,The time (in milliseconds) taken by garbage collection during the collection interval.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.gc.valid,long,custom,,12345,G1 garbage collection validity when old GC JMX counter stays at 0 while old space is reclaimed by young collections.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.heap.committed.bytes,keyword,custom,,example-bytes,"Heap memory committed in bytes. Memory guaranteed available for heap use, managed by JVM for performance optimization."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.heap.init.bytes,keyword,custom,,example-bytes,"Heap memory initialized in bytes. Initial memory allocated for heap at JVM startup, configurable via JVM options."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.heap.max.bytes,keyword,custom,,example-bytes,Max heap memory usage in bytes. Value of -1 indicates no predefined size limit was specified by the user.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.heap.used.bytes,keyword,custom,,example-bytes,"The amount of heap memory used, in bytes."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.non_heap.committed.bytes,keyword,custom,,example-bytes,"The amount of non-heap memory committed, in bytes."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.non_heap.init.bytes,keyword,custom,,example-bytes,"Non-heap memory initialized in bytes, configurable via JVM options."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.non_heap.max.bytes,keyword,custom,,example-bytes,Max non-heap memory usage in bytes. Value of -1 indicates no predefined size limit was specified by the user.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.non_heap.used.bytes,keyword,custom,,example-bytes,"The amount of non-heap memory used, in bytes."
-9.1.0,true,apache_tomcat,apache_tomcat.memory.object_pending_finalization.count,long,custom,,12345,Count of object pending finalization.
-9.1.0,true,apache_tomcat,apache_tomcat.memory.verbose,boolean,custom,,True,"Enables memory manager console messages for memory operations when true (1.0=true, 0.0=false)."
-9.1.0,true,apache_tomcat,apache_tomcat.request.count,long,custom,,12345,The total number of requests received.
-9.1.0,true,apache_tomcat,apache_tomcat.request.error.count,long,custom,,12345,The total number of requests that resulted in an error.
-9.1.0,true,apache_tomcat,apache_tomcat.request.nio_connector,keyword,custom,,example-nio_connector,The name of the NIO connector used to process the request.
-9.1.0,true,apache_tomcat,apache_tomcat.request.received.bytes,long,custom,,12345,The total number of bytes received in requests.
-9.1.0,true,apache_tomcat,apache_tomcat.request.sent.bytes,long,custom,,12345,The total number of bytes sent in responses.
-9.1.0,true,apache_tomcat,apache_tomcat.request.time.max,long,custom,,12345,"The maximum time taken to process a request, in milliseconds."
-9.1.0,true,apache_tomcat,apache_tomcat.request.time.total,long,custom,,12345,"The total time taken to process requests, in milliseconds."
-9.1.0,true,apache_tomcat,apache_tomcat.session.active.allowed.max,long,custom,,12345,"The maximum number of active sessions allowed, or -1 for no limit."
-9.1.0,true,apache_tomcat,apache_tomcat.session.active.max,long,custom,,12345,Maximum number of active sessions so far.
-9.1.0,true,apache_tomcat,apache_tomcat.session.active.total,long,custom,,12345,Number of active sessions at this moment.
-9.1.0,true,apache_tomcat,apache_tomcat.session.alive_time.avg,long,custom,,12345,Average time an expired session had been alive.
-9.1.0,true,apache_tomcat,apache_tomcat.session.alive_time.max,long,custom,,12345,Longest time an expired session had been alive.
-9.1.0,true,apache_tomcat,apache_tomcat.session.application_name,keyword,custom,,example-application_name,Name of the Apache Tomcat application.
-9.1.0,true,apache_tomcat,apache_tomcat.session.create.rate,long,custom,,12345,Session creation rate in sessions per minute.
-9.1.0,true,apache_tomcat,apache_tomcat.session.create.total,long,custom,,12345,Total number of sessions created by the manager.
-9.1.0,true,apache_tomcat,apache_tomcat.session.duplicate_ids.count,long,custom,,12345,Number of duplicated session ids generated.
-9.1.0,true,apache_tomcat,apache_tomcat.session.expire.rate,long,custom,,12345,Session expiration rate in sessions per minute.
-9.1.0,true,apache_tomcat,apache_tomcat.session.expire.total,long,custom,,12345,Number of sessions that expired (doesn't include explicit invalidations).
-9.1.0,true,apache_tomcat,apache_tomcat.session.persist_authentication,boolean,custom,,True,"Indicates if sessions persist authentication info when saved (e.g., across application restarts)."
-9.1.0,true,apache_tomcat,apache_tomcat.session.process_expires_frequency.count,long,custom,,12345,The frequency of the manager checks (expiration and passivation).
-9.1.0,true,apache_tomcat,apache_tomcat.session.processing_time,long,custom,,12345,Time spent doing housekeeping and expiration.
-9.1.0,true,apache_tomcat,apache_tomcat.session.rejected.count,long,custom,,12345,Number of sessions we rejected due to maxActive being reached.
-9.1.0,true,apache_tomcat,apache_tomcat.session.warn_on_session_attribute_filter_failure,boolean,custom,,True,Indicates whether a warning should be issued when session attribute filtering fails.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.connection.count,long,custom,,12345,"Total connections managed by Tomcat thread pool. Monitors capacity, usage, and helps identify bottlenecks."
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.connection.linger,long,custom,,12345,The number of seconds during which the sockets used by this connector will linger when they are closed.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.connection.max,long,custom,,12345,The total number of concurrent connections that the server will accept and process.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.connection.timeout,long,custom,,12345,Maximum idle time (ms) for connections in thread pool before closure.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.contention.monitoring_enabled,boolean,custom,,True,This is used to determine if a Java virtual machine enables thread contention monitoring.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.executor_termination.timeout.ms,long,custom,,12345,Time (ms) internal executor waits for request threads to terminate before stopping connector. Default is 5000ms.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.initiated_connector.state,boolean,custom,,True,State of bound when the connector is initiated.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.keep_alive.count,long,custom,,12345,Total keep alive on the ThreadPool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.keep_alive.max_requests,long,custom,,12345,Maximum number of request keep alive in ThreadPool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.keep_alive.timeout,long,custom,,12345,Keep alive timeout on the ThreadPool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.nio_connector,keyword,custom,,example-nio_connector,Indicates if NIO connector is enabled in thread pool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.ssl_enabled,boolean,custom,,True,The status which states whether SSL is enabled for the thread pool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.tcp_no_delay,boolean,custom,,True,Status of tcp no delay option used to improves performance under most circumstances.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.accept.count,long,custom,,12345,Count of all threads accepted.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.active.count,long,custom,,12345,Current active threads at JVM level (from java.lang:type=Threading).
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.allocated_memory.enabled,boolean,custom,,True,Allocated memory enabled in thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.allocated_memory.supported,boolean,custom,,True,Allocated memory supported in thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.current.allocated.bytes,keyword,custom,,example-bytes,Allocated bytes in current thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.current.busy,long,custom,,12345,Current busy threads from the ThreadPool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.current.count,long,custom,,12345,"Current number of threads, taken from the ThreadPool."
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.current.cpu.time.enabled,boolean,custom,,True,This is used to determine if a Java virtual machine enables CPU time for the current thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.current.cpu.time.ms,keyword,custom,,example-ms,CPU time used by the current thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.current.user.time.ms,keyword,custom,,example-ms,User time used by the current thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.daemon.count,long,custom,,12345,Current number of daemon threads in the thread pool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.daemon.status,boolean,custom,,True,The status which states whether the thread is daemon or not.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.paused,boolean,custom,,True,The status which states whether the thread is paused or not.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.peak.count,long,custom,,12345,Peak number of threads at JVM level (from java.lang:type=Threading).
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.port.default,long,custom,,12345,Default port of thread in Apache Tomcat.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.port.offset,long,custom,,12345,The offset to apply to port of thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.port.value,long,custom,,12345,"Network port associated with the Apache Tomcat thread. Used for monitoring, troubleshooting, and performance analysis."
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.port.with_offset,long,custom,,12345,Port of thread with offset.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.priority.acceptor,long,custom,,12345,The priority of the acceptor thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.priority.count,long,custom,,12345,Count of all threads with a specific priority.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.priority.poller,long,custom,,12345,The priority of the poller threads.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.requests.max,long,custom,,12345,"Max threads from the ThreadPool, to be created by the connector and made available for requests."
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.running.min,long,custom,,12345,The minimum number of threads always kept running.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.running.value,boolean,custom,,True,The status which states whether the thread is running or not.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.selector.timeout,long,custom,,12345,Selector timeout for the thread pool.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.sni_parse_limit,long,custom,,12345,SNI parsing limit of thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.supported.contention_monitoring,boolean,custom,,True,This is used to determine if a Java virtual machine supports thread contention monitoring.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.supported.cpu.current.time,boolean,custom,,True,CPU time that the current thread has executed in user mode is supported or not.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.supported.usage.object_monitor,boolean,custom,,True,Support of object monitor usage of thread.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.supported.usage.synchronizer,boolean,custom,,True,Indicates if JVM supports monitoring thread synchronizer usage. Helps diagnose performance bottlenecks and deadlocks.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.thread.total,long,custom,,12345,Total threads at the JVM level (from java.lang:type=Threading).
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.use_inherited_channel,boolean,custom,,True,Returns the channel inherited from the entity that created this Java virtual machine.
-9.1.0,true,apache_tomcat,apache_tomcat.thread_pool.use_send_file,boolean,custom,,True,Use of sendfile will disable any compression that Tomcat may otherwise have performed on the response.
-9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
+9.1.0,true,check,check.compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
@@ -222,13 +141,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
-9.1.0,true,compliance,compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
-9.1.0,true,compliance,compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
-9.1.0,true,compliance,compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
-9.1.0,true,compliance,compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
-9.1.0,true,compliance,compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
-9.1.0,true,compliance,compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
-9.1.0,true,compliance,compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -675,10 +642,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,http,http.response.mime_type,keyword,extended,,image/gif,Mime type of the body of the response.
 9.1.0,true,http,http.response.status_code,long,extended,,404,HTTP response status code.
 9.1.0,true,http,http.version,keyword,extended,,1.1,HTTP version.
-9.1.0,true,iis,iis.bytes_received_by_client,long,custom,,12345,This is the number of bytes received by the client.
-9.1.0,true,iis,iis.bytes_sent_by_server,long,custom,,12345,This is the number of bytes sent by the server.
-9.1.0,true,iis,iis.sub_status,long,custom,,12345,This field represents the substatus error code in the iis log.
-9.1.0,true,iis,iis.win32_status,long,custom,,12345,This field represents the Windows status code in the iis log.
 9.1.0,true,interface,interface.alias,keyword,extended,,outside,Interface alias
 9.1.0,true,interface,interface.id,keyword,extended,,10,Interface ID
 9.1.0,true,interface,interface.mtu,long,custom,,1500,Maximum transmission unit size.
@@ -777,14 +740,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,observer,observer.type,keyword,core,,firewall,The type of the observer the data is coming from.
 9.1.0,true,observer,observer.vendor,keyword,core,,Symantec,Vendor name of the observer.
 9.1.0,true,observer,observer.version,keyword,core,,,Observer version.
-9.1.0,true,oracle,oracle.weblogic.diagnostic_context_id,keyword,custom,,example-diagnostic_context_id,Unique identifier for correlating related log messages across components in a request flow.
-9.1.0,true,oracle,oracle.weblogic.machine_name,keyword,custom,,example-machine_name,Physical or virtual machine name running WebLogic server. Identifies the node generated logs in clustered environments.
-9.1.0,true,oracle,oracle.weblogic.message_id,keyword,custom,,example-message_id,Unique identifier for the specific message or event type being logged. Used by WebLogic to categorize log entries.
-9.1.0,true,oracle,oracle.weblogic.meta,keyword,custom,,example-meta,Additional metadata or context information for the log entry. Contains supplementary details about the logged event.
-9.1.0,true,oracle,oracle.weblogic.server_name,keyword,custom,,example-server_name,"WebLogic server instance name that generated the log (AdminServer, ManagedServer1, etc.). Identifies source server."
-9.1.0,true,oracle,oracle.weblogic.subsystem,keyword,custom,,example-subsystem,"WebLogic subsystem that generated the log (Security, JTA, JDBC, JMS, EJB, HTTP). Categorizes logs by functional area."
-9.1.0,true,oracle,oracle.weblogic.thread_id,keyword,custom,,example-thread_id,Thread identifier that generated the log message. Helps track which WebLogic thread pool handled the logged operation.
-9.1.0,true,oracle,oracle.weblogic.transaction_id,keyword,custom,,example-transaction_id,Transaction identifier for the log entry. Tracks operations spanning multiple components within a business transaction.
 9.1.0,true,orchestrator,orchestrator.api_version,keyword,extended,,v1beta1,API version being used to carry out the action
 9.1.0,true,orchestrator,orchestrator.cluster.id,keyword,extended,,,Unique ID of the cluster.
 9.1.0,true,orchestrator,orchestrator.cluster.name,keyword,extended,,,Name of the cluster.
@@ -1336,36 +1291,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,source,source.user.name,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,source,source.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,span,span.id,keyword,extended,,3ff9a8981b7ccd5a,Unique identifier of the span within the scope of its trace.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after,object,custom,,,"Memory usage statistics after garbage collection, across memory pools."
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.code_cache,object,custom,,,Memory usage of the Code Cache after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.compressed_class_space,object,custom,,,Memory usage of the Compressed Class Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.g1_eden_space,object,custom,,,Memory usage of the G1 Eden Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.g1_old_gen,object,custom,,,Memory usage of the G1 Old Generation space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.g1_survivor_space,object,custom,,,Memory usage of the G1 Survivor Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.metaspace,object,custom,,,Memory usage of the JVM Metaspace after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.ps_eden_space,object,custom,,,Memory usage of the PS Eden Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.ps_old_gen,object,custom,,,Memory usage of the PS Old Generation space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.after.ps_survivor_space,object,custom,,,Memory usage of the PS Survivor Space after garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before,object,custom,,,"Memory usage statistics before garbage collection, across memory pools."
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.code_cache,object,custom,,,Memory usage of the Code Cache before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.compressed_class_space,object,custom,,,Memory usage of the Compressed Class Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.g1_eden_space,object,custom,,,Memory usage of the G1 Eden Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.g1_old_gen,object,custom,,,Memory usage of the G1 Old Generation space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.g1_survivor_space,object,custom,,,Memory usage of the G1 Survivor Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.metaspace,object,custom,,,Memory usage of the JVM Metaspace before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.ps_eden_space,object,custom,,,Memory usage of the PS Eden Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.ps_old_gen,object,custom,,,Memory usage of the PS Old Generation space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.memory_usage.before.ps_survivor_space,object,custom,,,Memory usage of the PS Survivor Space before garbage collection.
-9.1.0,true,springboot,springboot.gc.last_info.time.duration,long,custom,,12345,"Duration of the garbage collection cycle, in milliseconds."
-9.1.0,true,springboot,springboot.gc.last_info.time.end,long,custom,,12345,End timestamp of the garbage collection cycle.
-9.1.0,true,springboot,springboot.gc.last_info.time.start,long,custom,,12345,Start timestamp of the garbage collection cycle.
-9.1.0,true,springboot,springboot.gc.name,keyword,custom,,example-name,The name of the garbage collector used by the JVM.
-9.1.0,true,springboot,springboot.http_trace.principal,keyword,custom,,example-principal,The authenticated user principal recorded in the HTTP trace.
-9.1.0,true,springboot,springboot.http_trace.session,keyword,custom,,example-session,The session identifier associated with the HTTP trace.
-9.1.0,true,squid,squid.code,keyword,custom,,example-code,Squid result code representing outcome of request (TCP_HIT/TCP_MISS etc)
-9.1.0,true,squid,squid.peerstatus,keyword,custom,,example-peerstatus,Code explaining how request was handled (forwarding to peer or direct to source)
-9.1.0,true,squid,squid.status,long,custom,,12345,HTTP status code of the result
-9.1.0,true,squid,squid.type,keyword,custom,,example-type,Content type from HTTP reply header
 9.1.0,true,threat,threat.enrichments,nested,extended,array,,List of objects containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator,object,extended,,,Object containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
@@ -2057,171 +1982,3 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
 9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.cancelled.total,long,custom,,12345,Total number of cancelled alarms in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.create.total,long,custom,,12345,Total number of alarms created in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.fired.total,long,custom,,12345,Total number of alarms fired in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.latency_seconds,long,custom,,12345,Latency of alarm manager operations in seconds.
-9.1.0,true,websphere,websphere.metrics.alarm_manager.pending_alarms,long,custom,,12345,Number of pending alarms in the alarm manager.
-9.1.0,true,websphere,websphere.metrics.appname,keyword,custom,,example-appname,Application name for WebSphere metrics.
-9.1.0,true,websphere,websphere.metrics.authentication.assertion_type,keyword,custom,,example-assertion_type,Type of authentication assertion used in WebSphere.
-9.1.0,true,websphere,websphere.metrics.authentication.authentications.total,long,custom,,12345,Total number of authentication operations performed.
-9.1.0,true,websphere,websphere.metrics.authentication.credential_creation.time_seconds.total,long,custom,,12345,Total time spent in credential creation operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.credential_creations.total,long,custom,,12345,Total number of credential creation operations performed.
-9.1.0,true,websphere,websphere.metrics.authentication.identity_assertion.time_seconds.total,long,custom,,12345,Total time spent in identity assertion operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.identity_assertions.total,long,custom,,12345,Total number of identity assertion operations performed.
-9.1.0,true,websphere,websphere.metrics.authentication.tai_request.time_seconds.total,long,custom,,12345,Total time spent in TAI request processing in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.tai_requests.total,long,custom,,12345,Total number of TAI (Trust Association Interceptor) requests.
-9.1.0,true,websphere,websphere.metrics.authentication.time_seconds.total,long,custom,,12345,Total time spent in authentication operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authentication.type,keyword,custom,,example-type,Type of authentication mechanism used in WebSphere.
-9.1.0,true,websphere,websphere.metrics.authorization.authorization_time_seconds.total,long,custom,,12345,Total time spent in authorization operations in seconds.
-9.1.0,true,websphere,websphere.metrics.authorization.authorizations.total,long,custom,,12345,Total number of authorization operations performed.
-9.1.0,true,websphere,websphere.metrics.cacheobject,keyword,custom,,example-cacheobject,Identifier for the cache object in use.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.cache_entries,long,custom,,12345,Number of entries in the dynamic cache.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.distributed_requests.total,long,custom,,12345,Total number of distributed cache requests performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.explicit_invalidate.total,long,custom,,12345,Total number of explicit cache invalidations performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.hit.total,long,custom,,12345,Total number of dynamic cache hits recorded.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.in_memory_and_disk_cache_entries.total,long,custom,,12345,Total number of cache entries in memory and disk.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.invalidate.total,long,custom,,12345,Total number of cache invalidations performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.miss.total,long,custom,,12345,Total number of dynamic cache misses recorded.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.remote_create.total,long,custom,,12345,Total number of remote cache creates performed.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.remote_hit.total,long,custom,,12345,Total number of remote cache hits recorded.
-9.1.0,true,websphere,websphere.metrics.dynamic_caching.requests.total,long,custom,,12345,Total number of dynamic cache requests performed.
-9.1.0,true,websphere,websphere.metrics.extension_registry.displacement.total,long,custom,,12345,Total number of extension registry displacements performed.
-9.1.0,true,websphere,websphere.metrics.extension_registry.hit.total,long,custom,,12345,Total number of extension registry hits recorded.
-9.1.0,true,websphere,websphere.metrics.extension_registry.requests.total,long,custom,,12345,Total number of extension registry requests performed.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_rebuild.time_seconds.total,long,custom,,12345,Total time spent rebuilding bulletin board in seconds.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_rebuild.total,long,custom,,12345,Total number of bulletin board rebuilds performed.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_subjects,long,custom,,12345,Number of bulletin board subjects in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.bulletin_board_subscriptions,long,custom,,12345,Number of bulletin board subscriptions in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.group_state_rebuild.time_seconds.total,long,custom,,12345,Total time spent rebuilding group state in seconds.
-9.1.0,true,websphere,websphere.metrics.ha_manager.group_state_rebuild.total,long,custom,,12345,Total number of group state rebuilds performed.
-9.1.0,true,websphere,websphere.metrics.ha_manager.local.bulletin_board_subjects,long,custom,,12345,Number of local bulletin board subjects in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.local.bulletin_board_subscriptions,long,custom,,12345,Number of local bulletin board subscriptions in HA manager.
-9.1.0,true,websphere,websphere.metrics.ha_manager.local.groups,long,custom,,12345,Number of local HA groups in the manager.
-9.1.0,true,websphere,websphere.metrics.hitstype,keyword,custom,,example-hitstype,Type of cache hits for the metric.
-9.1.0,true,websphere,websphere.metrics.interceptor,keyword,custom,,example-interceptor,Identifier for the interceptor in use.
-9.1.0,true,websphere,websphere.metrics.jax_ws.dispatch.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS dispatch operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.dispatch.total,long,custom,,12345,Total number of JAX-WS dispatch operations performed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.payloads.bytes.total,long,custom,,12345,Total size of JAX-WS payloads in bytes.
-9.1.0,true,websphere,websphere.metrics.jax_ws.payloads.total,long,custom,,12345,Total number of JAX-WS payloads processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.reply.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS reply operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.reply.total,long,custom,,12345,Total number of JAX-WS reply operations performed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.request.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS request processing in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests.total,long,custom,,12345,Total number of JAX-WS requests processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests_dispatched.total,long,custom,,12345,Total number of JAX-WS requests dispatched.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests_received.total,long,custom,,12345,Total number of JAX-WS requests received.
-9.1.0,true,websphere,websphere.metrics.jax_ws.requests_successful.total,long,custom,,12345,Total number of successful JAX-WS requests processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.response.time_seconds.total,long,custom,,12345,Total time spent in JAX-WS response processing in seconds.
-9.1.0,true,websphere,websphere.metrics.jax_ws.responses.total,long,custom,,12345,Total number of JAX-WS responses processed.
-9.1.0,true,websphere,websphere.metrics.jax_ws.services_loaded.total,long,custom,,12345,Total number of JAX-WS services loaded.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.allocated,long,custom,,12345,Number of allocated JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.closed,long,custom,,12345,Number of closed JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.connection_handles,long,custom,,12345,Number of JDBC connection handles in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.created,long,custom,,12345,Number of created JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.fault.total,long,custom,,12345,Total number of JDBC connection faults encountered.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.free,long,custom,,12345,Number of free JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.handles,long,custom,,12345,Number of JDBC connection handles in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.jdbc_operation_time_seconds.total,long,custom,,12345,Total time spent in JDBC operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.jdbc_operations.total,long,custom,,12345,Total number of JDBC operations performed.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.managed,long,custom,,12345,Number of managed JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.managed_connections,long,custom,,12345,Number of managed JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.prep_stmt_cache_discard.total,long,custom,,12345,Total number of prepared statement cache discards performed.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.returned,long,custom,,12345,Number of returned JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.in_use,long,custom,,12345,Total number of JDBC connections in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.operations_calls,long,custom,,12345,Total number of JDBC connection operations calls performed.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.operations_seconds,long,custom,,12345,Total time spent in JDBC connection operations in seconds.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.seconds_in_use,long,custom,,12345,Total seconds JDBC connections have been in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.wait,long,custom,,12345,Total number of JDBC connection waits encountered.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.total.wait_seconds,long,custom,,12345,Total wait time for JDBC connections in seconds.
-9.1.0,true,websphere,websphere.metrics.jdbc.connection.waiting_threads,long,custom,,12345,Number of threads waiting for JDBC connections in the pool.
-9.1.0,true,websphere,websphere.metrics.jdbc.data_source,keyword,custom,,example-data_source,Identifier for the JDBC data source in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.percent_used,long,custom,,12345,Percentage of JDBC connection pool used.
-9.1.0,true,websphere,websphere.metrics.jdbc.pool_size,long,custom,,12345,Size of the JDBC connection pool in use.
-9.1.0,true,websphere,websphere.metrics.jdbc.total_cache_discarded,long,custom,,12345,Number of JDBC connections that were discarded from the cache.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.area,keyword,custom,,example-area,Identifier for the JVM memory area in use.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.committed_bytes,long,custom,,12345,Committed JVM memory in bytes.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.max_bytes,long,custom,,12345,Maximum JVM memory in bytes.
-9.1.0,true,websphere,websphere.metrics.jvm.memory.used_bytes,long,custom,,12345,Used JVM memory in bytes.
-9.1.0,true,websphere,websphere.metrics.object_pool.allocate.total,long,custom,,12345,Total number of object pool allocations performed.
-9.1.0,true,websphere,websphere.metrics.object_pool.create.total,long,custom,,12345,Total number of object pool creations performed.
-9.1.0,true,websphere,websphere.metrics.object_pool.idle_objects,long,custom,,12345,Number of idle objects in the object pool.
-9.1.0,true,websphere,websphere.metrics.object_pool.return.total,long,custom,,12345,Total number of objects returned to the object pool.
-9.1.0,true,websphere,websphere.metrics.objectpool,keyword,custom,,example-objectpool,Identifier for the object pool in use.
-9.1.0,true,websphere,websphere.metrics.orb.concurrent_requests,long,custom,,12345,Number of concurrent ORB requests processed.
-9.1.0,true,websphere,websphere.metrics.orb.lookup.time_seconds.total,long,custom,,12345,Total time spent in ORB lookup operations in seconds.
-9.1.0,true,websphere,websphere.metrics.orb.lookup.total,long,custom,,12345,Total number of ORB lookup operations performed.
-9.1.0,true,websphere,websphere.metrics.orb.processing.time_seconds.total,long,custom,,12345,Total time spent in ORB processing in seconds.
-9.1.0,true,websphere,websphere.metrics.orb.processing.total,long,custom,,12345,Total number of ORB processing operations performed.
-9.1.0,true,websphere,websphere.metrics.orb.requests.total,long,custom,,12345,Total number of ORB requests processed.
-9.1.0,true,websphere,websphere.metrics.portlet.concurrent_requests,long,custom,,12345,Number of concurrent portlet requests processed.
-9.1.0,true,websphere,websphere.metrics.portlet.errors.total,long,custom,,12345,Total number of portlet errors encountered.
-9.1.0,true,websphere,websphere.metrics.portlet.requests.total,long,custom,,12345,Total number of portlet requests processed.
-9.1.0,true,websphere,websphere.metrics.process.cpu_utilization,long,custom,,12345,CPU utilization of the process in percentage.
-9.1.0,true,websphere,websphere.metrics.process.uptime_seconds,long,custom,,12345,Process uptime in seconds since start.
-9.1.0,true,websphere,websphere.metrics.scrape.duration_seconds,long,custom,,12345,Duration of metrics scrape operation in seconds.
-9.1.0,true,websphere,websphere.metrics.servlet.app_name,keyword,custom,,example-app_name,Application name for servlet metrics in WebSphere.
-9.1.0,true,websphere,websphere.metrics.servlet.async_context.response_time_seconds,long,custom,,12345,Response time for async context operations in seconds.
-9.1.0,true,websphere,websphere.metrics.servlet.async_context.responses.total,long,custom,,12345,Total number of async context responses processed.
-9.1.0,true,websphere,websphere.metrics.servlet.errors,long,custom,,12345,Number of servlet errors encountered during processing.
-9.1.0,true,websphere,websphere.metrics.servlet.loaded,long,custom,,12345,Number of loaded servlets in the application.
-9.1.0,true,websphere,websphere.metrics.servlet.reloaded,long,custom,,12345,Number of reloaded servlets in the application.
-9.1.0,true,websphere,websphere.metrics.servlet.requests.concurrent,long,custom,,12345,Number of concurrent servlet requests processed.
-9.1.0,true,websphere,websphere.metrics.servlet.requests.processed,long,custom,,12345,Number of processed servlet requests in total.
-9.1.0,true,websphere,websphere.metrics.servlet.response_time_seconds,long,custom,,12345,Servlet response time in seconds for requests.
-9.1.0,true,websphere,websphere.metrics.servlet.responses.processed,long,custom,,12345,Number of processed servlet responses in total.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.async_context.response_time_seconds,long,custom,,12345,Response time for async context operations by URI in seconds.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.async_context.responses.total,long,custom,,12345,Total number of async context responses by URI processed.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.requests.concurrent,long,custom,,12345,Number of concurrent requests by URI processed.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.requests.total,long,custom,,12345,Total number of requests by URI processed.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.response_time_seconds,long,custom,,12345,Response time by URI in seconds for requests.
-9.1.0,true,websphere,websphere.metrics.servlet.uri.responses.total,long,custom,,12345,Total number of responses by URI processed.
-9.1.0,true,websphere,websphere.metrics.session.activated.total,long,custom,,12345,Total number of activated sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session.finished.total,long,custom,,12345,Total number of finished sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session.session_objects.bytes.total,long,custom,,12345,Total size of session objects in bytes.
-9.1.0,true,websphere,websphere.metrics.session.session_objects.total,long,custom,,12345,Total number of session objects in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.activated_non_existent_sessions,long,custom,,12345,Number of activated non-existent sessions encountered.
-9.1.0,true,websphere,websphere.metrics.session_manager.affinity_breaks,long,custom,,12345,Number of session affinity breaks encountered.
-9.1.0,true,websphere,websphere.metrics.session_manager.cache_discarded,long,custom,,12345,Number of discarded session cache entries in the manager.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.bytes.read,long,custom,,12345,Bytes read from external session storage in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.bytes.written,long,custom,,12345,Bytes written to external session storage in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.time_seconds.read,long,custom,,12345,Time spent reading from external session storage in seconds.
-9.1.0,true,websphere,websphere.metrics.session_manager.external.time_seconds.written,long,custom,,12345,Time spent writing to external session storage in seconds.
-9.1.0,true,websphere,websphere.metrics.session_manager.no_room_for_new_sessions,long,custom,,12345,Number of times there was no room for new sessions.
-9.1.0,true,websphere,websphere.metrics.session_manager.persistent_stores.data_read,long,custom,,12345,Amount of data read from persistent session stores in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.persistent_stores.data_written,long,custom,,12345,Amount of data written to persistent session stores in total.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.active,long,custom,,12345,Number of active sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.created,long,custom,,12345,Number of created sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.current,long,custom,,12345,Current number of sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.invalidated.by_timeouts,long,custom,,12345,Number of sessions invalidated by timeouts encountered.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.invalidated.total,long,custom,,12345,Total number of invalidated sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.sessions.life_time,long,custom,,12345,Lifetime of sessions in the application.
-9.1.0,true,websphere,websphere.metrics.session_manager.time_since_session_last_activated,long,custom,,12345,Time since session was last activated in seconds.
-9.1.0,true,websphere,websphere.metrics.system.cpu_utilization,long,custom,,12345,System CPU utilization in percentage.
-9.1.0,true,websphere,websphere.metrics.system.memory.free_bytes,long,custom,,12345,Free system memory in bytes available.
-9.1.0,true,websphere,websphere.metrics.threadpool.active_time_seconds,long,custom,,12345,Active time of thread pool in seconds.
-9.1.0,true,websphere,websphere.metrics.threadpool.name,keyword,custom,,example-name,Name of the thread pool in use.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.active,long,custom,,12345,Number of active threads in the thread pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.cleared,long,custom,,12345,Number of cleared threads in the thread pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.stopped.concurrent,long,custom,,12345,Number of concurrent stopped threads in the pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.stopped.declared,long,custom,,12345,Number of declared stopped threads in the pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.threads.total,long,custom,,12345,Total number of threads in the thread pool.
-9.1.0,true,websphere,websphere.metrics.threadpool.total.active,long,custom,,12345,Total number of active threads across all thread pools.
-9.1.0,true,websphere,websphere.metrics.threadpool.total.created,long,custom,,12345,Total number of threads created across all thread pools.
-9.1.0,true,websphere,websphere.metrics.threadpool.total.destroyed,long,custom,,12345,Total number of threads destroyed across all thread pools.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.active_transactions,long,custom,,12345,Number of active transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.before_completion.seconds.total,long,custom,,12345,Total time spent in before completion operations in seconds.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.before_completion.total,long,custom,,12345,Total number of before completion operations performed.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.begun.total,long,custom,,12345,Total number of transactions begun in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.commit.time_seconds.total,long,custom,,12345,Total time spent in commit operations in seconds.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.committed.total,long,custom,,12345,Total number of committed transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.global_involved.total,long,custom,,12345,Total number of global transactions involved in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.global_prepare.time_seconds.total,long,custom,,12345,Total time spent in global prepare operations in seconds.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.global_prepare.total,long,custom,,12345,Total number of global prepare operations performed.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.optimization.total,long,custom,,12345,Total number of transaction optimizations performed.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.rolledback.total,long,custom,,12345,Total number of rolled back transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.timedout.total,long,custom,,12345,Total number of timed out transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.transaction.time_seconds.total,long,custom,,12345,Total transaction time in seconds for all transactions.
-9.1.0,true,websphere,websphere.metrics.transaction_manager.transactions.total,long,custom,,12345,Total number of transactions in the manager.
-9.1.0,true,websphere,websphere.metrics.transactiontype,keyword,custom,,example-transactiontype,Type of transaction for the metric.
-9.1.0,true,websphere,websphere.metrics.type,keyword,custom,,example-type,Type of metric for the WebSphere integration.
-9.1.0,true,websphere,websphere.metrics.workmanager,keyword,custom,,example-workmanager,Identifier for the work manager in use.

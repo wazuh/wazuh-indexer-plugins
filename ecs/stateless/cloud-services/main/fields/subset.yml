@@ -611,6 +611,3 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  # Integration fields
-  cisco-umbrella:
-    fields: "*"
