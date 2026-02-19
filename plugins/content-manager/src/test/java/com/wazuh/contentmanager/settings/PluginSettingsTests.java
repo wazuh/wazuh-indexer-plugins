@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.settings;
 
+import org.junit.Assert;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;

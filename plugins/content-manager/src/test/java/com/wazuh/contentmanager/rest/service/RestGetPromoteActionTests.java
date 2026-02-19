@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.junit.Assert;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;

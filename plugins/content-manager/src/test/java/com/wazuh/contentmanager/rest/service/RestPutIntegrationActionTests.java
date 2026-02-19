@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.lucene.search.TotalHits;
+import org.junit.Assert;
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;

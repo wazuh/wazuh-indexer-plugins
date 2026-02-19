@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.service;
 
 import org.apache.lucene.search.TotalHits;
+import org.junit.Assert;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;

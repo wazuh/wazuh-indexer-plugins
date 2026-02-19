@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.junit.Assert;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Before;

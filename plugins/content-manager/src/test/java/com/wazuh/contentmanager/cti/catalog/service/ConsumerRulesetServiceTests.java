@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;

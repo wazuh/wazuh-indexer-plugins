@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.junit.Assert;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.test.OpenSearchTestCase;

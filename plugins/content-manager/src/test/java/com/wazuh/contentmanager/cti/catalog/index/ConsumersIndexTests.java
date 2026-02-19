@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import org.junit.Assert;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;

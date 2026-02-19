@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.junit.Assert;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
