@@ -66,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
 - Add script for Content Manager API integration testing [(#821)](https://github.com/wazuh/wazuh-indexer-plugins/pull/821)
 - Add Integration Tests definitions in Gherkin format [(#813)](https://github.com/wazuh/wazuh-indexer-plugins/pull/813)
+- Add Unix domain socket permission for Engine communication [(#823)](https://github.com/wazuh/wazuh-indexer-plugins/pull/823)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
