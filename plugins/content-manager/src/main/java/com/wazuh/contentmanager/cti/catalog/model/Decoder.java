@@ -73,7 +73,7 @@ public class Decoder extends Resource {
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has("document")) {
-            decoder.setDecoder(toYamlString(payload));
+            decoder.setDecoder(Decoder.toYamlString(payload));
         }
 
         return decoder;
@@ -124,7 +124,7 @@ public class Decoder extends Resource {
      * @param timestamp The timestamp to set.
      */
     public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
-        ObjectNode authorNode = getOrCreateAuthorNode(resourceNode);
+        ObjectNode authorNode = Decoder.getOrCreateAuthorNode(resourceNode);
         authorNode.put(Constants.KEY_DATE, timestamp);
     }
 
@@ -135,7 +135,7 @@ public class Decoder extends Resource {
      * @param timestamp The timestamp to set.
      */
     public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
-        ObjectNode authorNode = getOrCreateAuthorNode(resourceNode);
+        ObjectNode authorNode = Decoder.getOrCreateAuthorNode(resourceNode);
         authorNode.put(Constants.KEY_MODIFIED, timestamp);
     }
 

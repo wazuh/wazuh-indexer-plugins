@@ -71,13 +71,14 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
                 new RestResponse("Subscription created successfully", RestStatus.CREATED.getStatus());
 
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        assertTrue(
+        Assert.assertTrue(
+                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
+        Assert.assertTrue(
                 bytesRestResponse
                         .content()
                         .utf8ToString()
                         .contains(String.valueOf(expectedResponse.getStatus())));
-        assertEquals(RestStatus.CREATED, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.CREATED, bytesRestResponse.status());
     }
 
     /**
@@ -101,12 +102,13 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
                 new RestResponse("Missing required parameters", RestStatus.BAD_REQUEST.getStatus());
 
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        assertTrue(
+        Assert.assertTrue(
+                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
+        Assert.assertTrue(
                 bytesRestResponse
                         .content()
                         .utf8ToString()
                         .contains(String.valueOf(expectedResponse.getStatus())));
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
     }
 }

@@ -69,7 +69,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
         if (request != null) {
-            executeAsync(WIndexIntegrationAction.INSTANCE, request, listener);
+            this.executeAsync(WIndexIntegrationAction.INSTANCE, request, listener);
         } else {
             listener.onResponse(null);
         }
@@ -140,14 +140,14 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     ActionListener.wrap(
                             detectorResponse -> {
                                 log.info("Detector [{}] deleted. Now deleting integration.", id);
-                                executeAsync(
+                                this.executeAsync(
                                         WDeleteIntegrationAction.INSTANCE,
                                         new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
                                         listener);
                             },
                             listener::onFailure));
         } else {
-            executeAsync(
+            this.executeAsync(
                     WDeleteIntegrationAction.INSTANCE,
                     new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
                     listener);
@@ -200,13 +200,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         log.info("Async creating/updating Rule [{}] in SAP", id);
 
         if (space != Space.STANDARD) {
-            executeAsync(
+            this.executeAsync(
                     WIndexCustomRuleAction.INSTANCE,
                     new WIndexCustomRuleRequest(
                             id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true),
                     listener);
         } else {
-            executeAsync(
+            this.executeAsync(
                     WIndexRuleAction.INSTANCE,
                     new WIndexRuleRequest(
                             id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true),
@@ -244,13 +244,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
         if (isStandard) {
             log.info("Async deleting Standard Rule [{}] from SAP", id);
-            executeAsync(
+            this.executeAsync(
                     WDeleteRuleAction.INSTANCE,
                     new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true),
                     listener);
         } else {
             log.info("Async deleting Custom Rule [{}] from SAP", id);
-            executeAsync(
+            this.executeAsync(
                     WDeleteCustomRuleAction.INSTANCE,
                     new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true),
                     listener);
@@ -273,7 +273,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             ActionListener<? extends ActionResponse> listener) {
         WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
         if (request != null) {
-            executeAsync(WIndexDetectorAction.INSTANCE, request, listener);
+            this.executeAsync(WIndexDetectorAction.INSTANCE, request, listener);
         } else {
             listener.onResponse(null);
         }
@@ -329,7 +329,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
         log.info("Async deleting Detector [{}] from SAP", id);
-        executeAsync(
+        this.executeAsync(
                 WDeleteDetectorAction.INSTANCE,
                 new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
                 listener);

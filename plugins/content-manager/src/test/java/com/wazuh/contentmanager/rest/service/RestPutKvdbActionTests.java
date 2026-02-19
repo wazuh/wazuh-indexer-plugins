@@ -116,7 +116,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                             Constants.KEY_DOCUMENT, Map.of(Constants.KEY_DATE, "2021-01-01"));
             when(response.getSourceAsMap()).thenReturn(source);
             try {
-                when(response.getSourceAsString()).thenReturn(mapper.writeValueAsString(source));
+                when(response.getSourceAsString()).thenReturn(this.mapper.writeValueAsString(source));
             } catch (Exception ignored) {
             }
         }
@@ -164,8 +164,8 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("id", kvdbId))
                         .build();
 
-        mockKvdbInSpace(kvdbId, "draft", true);
-        mockSearchHits(0);
+        this.mockKvdbInSpace(kvdbId, "draft", true);
+        this.mockSearchHits(0);
 
         when(this.service.validateResource(eq(Constants.KEY_KVDB), any(JsonNode.class)))
                 .thenReturn(new RestResponse("OK", 200));
@@ -203,7 +203,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("id", kvdbId))
                         .build();
 
-        mockKvdbInSpace(kvdbId, "draft", false);
+        this.mockKvdbInSpace(kvdbId, "draft", false);
 
         RestResponse response = this.action.executeRequest(request, this.nodeClient);
         Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), response.getStatus());
@@ -218,8 +218,8 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                         .withParams(Map.of("id", kvdbId))
                         .build();
 
-        mockKvdbInSpace(kvdbId, "draft", true);
-        mockSearchHits(0);
+        this.mockKvdbInSpace(kvdbId, "draft", true);
+        this.mockSearchHits(0);
 
         when(this.service.validateResource(anyString(), any()))
                 .thenThrow(new RuntimeException("Engine offline"));

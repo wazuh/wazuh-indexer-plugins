@@ -123,7 +123,7 @@ public class Resource {
     protected static void populateResource(Resource resource, JsonNode payload) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
-            ObjectNode rawDoc = (ObjectNode) payload.get(JSON_DOCUMENT_KEY).deepCopy();
+            ObjectNode rawDoc = payload.get(JSON_DOCUMENT_KEY).deepCopy();
             Resource.preprocessDocument(rawDoc);
 
             resource.setDocument(MAPPER.convertValue(rawDoc, Map.class));

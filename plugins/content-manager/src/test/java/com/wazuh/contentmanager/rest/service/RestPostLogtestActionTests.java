@@ -111,7 +111,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Assert the response is expected
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
         verify(this.engine, times(1)).logtest(any(JsonNode.class));
     }
 
@@ -126,7 +126,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         when(request.content()).thenReturn(null);
 
         RestResponse actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
     }
 
     /**
@@ -173,7 +173,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Assert the response is expected
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
         verify(this.engine, times(1)).logtest(any(JsonNode.class));
     }
 
@@ -223,7 +223,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Assert the response is expected
-        assertEquals(expectedResponse, actualResponse);
+        Assert.assertEquals(expectedResponse, actualResponse);
         verify(this.engine, times(1)).logtest(any(JsonNode.class));
     }
 }

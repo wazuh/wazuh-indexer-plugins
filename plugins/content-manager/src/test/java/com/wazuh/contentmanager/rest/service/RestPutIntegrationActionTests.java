@@ -130,7 +130,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
             sourceMap.put("document", documentMap);
             when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
             try {
-                when(getResponse.getSourceAsString()).thenReturn(mapper.writeValueAsString(sourceMap));
+                when(getResponse.getSourceAsString()).thenReturn(this.mapper.writeValueAsString(sourceMap));
             } catch (Exception ignored) {
             }
         }
@@ -191,10 +191,10 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     }
 
     private void setupDefaultMocks(String space, boolean exists) {
-        mockPrepareGetChain(createMockGetResponse(space, exists, null));
-        mockSearch(0);
+        this.mockPrepareGetChain(this.createMockGetResponse(space, exists, null));
+        this.mockSearch(0);
         when(this.engine.validate(any())).thenReturn(new RestResponse("{\"status\": \"OK\"}", 200));
-        mockIndexResponse(RestStatus.OK);
+        this.mockIndexResponse(RestStatus.OK);
         this.action.setSecurityAnalyticsService(this.saService);
         this.action.setPolicyHashService(mock(SpaceService.class));
         this.action.setIntegrationService(mock(IntegrationService.class));
@@ -236,12 +236,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration200_success() throws IOException {
-        setupDefaultMocks("draft", true);
-        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
+        this.setupDefaultMocks("draft", true);
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
         RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
 
-        assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
-        assertEquals(INTEGRATION_ID, actualResponse.getMessage());
+        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(INTEGRATION_ID, actualResponse.getMessage());
     }
 
     /**
@@ -250,17 +250,17 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_idInBodyIsIgnored() throws IOException {
-        setupDefaultMocks("draft", true);
+        this.setupDefaultMocks("draft", true);
         String payload =
-                getValidPayload()
+                this.getValidPayload()
                         .replace(
                                 "\"title\": \"aws-fargate\"",
                                 "\"title\": \"aws-fargate\", \"id\": \"ignored-payload-id\"");
         RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
 
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
-        assertEquals(INTEGRATION_ID, actualResponse.getMessage());
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(INTEGRATION_ID, actualResponse.getMessage());
     }
 
     /**
@@ -270,8 +270,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      */
     public void testPutIntegration400_noContent() throws IOException {
         RestRequest request = this.buildRequest(null, INTEGRATION_ID);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -280,10 +280,10 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration404_integrationNotFound() throws IOException {
-        setupDefaultMocks("draft", false);
-        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.NOT_FOUND.getStatus(), actualResponse.getStatus());
+        this.setupDefaultMocks("draft", false);
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -292,12 +292,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration500_noEngineReply() throws IOException {
-        setupDefaultMocks("draft", true);
+        this.setupDefaultMocks("draft", true);
         when(this.engine.validate(any())).thenThrow(new RuntimeException("Engine connection failed"));
 
-        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(500, actualResponse.getStatus());
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(500, actualResponse.getStatus());
     }
 
     /**
@@ -306,15 +306,15 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration500_failedToIndexIntegration() throws IOException {
-        setupDefaultMocks("draft", true);
+        this.setupDefaultMocks("draft", true);
         org.opensearch.action.support.PlainActionFuture<IndexResponse> future =
                 new org.opensearch.action.support.PlainActionFuture<>();
         future.onFailure(new RuntimeException("Failure"));
         when(this.nodeClient.index(any(IndexRequest.class))).thenReturn(future);
 
-        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(500, actualResponse.getStatus());
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(500, actualResponse.getStatus());
     }
 
     /**
@@ -323,11 +323,11 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration400_cannotUpdateNonDraftSpace() throws IOException {
-        setupDefaultMocks("standard", true);
-        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains("is not in draft space"));
+        this.setupDefaultMocks("standard", true);
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("is not in draft space"));
     }
 
     /**
@@ -336,9 +336,9 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration400_missingIdInPath() throws IOException {
-        RestRequest request = this.buildRequest(getValidPayload(), null);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        RestRequest request = this.buildRequest(this.getValidPayload(), null);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -347,12 +347,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration500_unexpectedError() throws IOException {
-        setupDefaultMocks("draft", true);
+        this.setupDefaultMocks("draft", true);
         when(this.nodeClient.prepareGet(anyString(), anyString()))
                 .thenThrow(new RuntimeException("Crash"));
-        RestRequest request = this.buildRequest(getValidPayload(), INTEGRATION_ID);
-        RestResponse actualResponse = this.action.executeRequest(request, nodeClient);
-        assertEquals(500, actualResponse.getStatus());
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(500, actualResponse.getStatus());
     }
 
     /**
@@ -361,13 +361,13 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_indexedDocHasNoType() throws IOException {
-        setupDefaultMocks("draft", true);
-        RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
-        this.action.executeRequest(request, nodeClient);
+        this.setupDefaultMocks("draft", true);
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        this.action.executeRequest(request, this.nodeClient);
 
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.nodeClient).index(captor.capture());
-        assertFalse(
+        Assert.assertFalse(
                 "Indexed document root should not contain 'type' field",
                 captor.getValue().source().utf8ToString().contains("\"type\":"));
     }
@@ -379,20 +379,20 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      */
     public void testPutIntegration_datePreservedModifiedUpdated() throws IOException {
         String originalDate = "2020-01-01T00:00:00Z";
-        mockPrepareGetChain(createMockGetResponse("draft", true, originalDate));
-        mockSearch(0);
+        this.mockPrepareGetChain(this.createMockGetResponse("draft", true, originalDate));
+        this.mockSearch(0);
         when(this.engine.validate(any())).thenReturn(new RestResponse("{\"status\": \"OK\"}", 200));
-        mockIndexResponse(RestStatus.OK);
+        this.mockIndexResponse(RestStatus.OK);
         this.action.setSecurityAnalyticsService(this.saService);
         this.action.setPolicyHashService(mock(SpaceService.class));
         this.action.setIntegrationService(mock(IntegrationService.class));
 
-        RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
-        this.action.executeRequest(request, nodeClient);
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        this.action.executeRequest(request, this.nodeClient);
 
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.nodeClient).index(captor.capture());
-        assertTrue(
+        Assert.assertTrue(
                 "Original creation date must be preserved in document",
                 captor.getValue().source().utf8ToString().contains(originalDate));
     }
@@ -403,14 +403,14 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_missingMandatoryFields() throws IOException {
-        setupDefaultMocks("draft", true);
+        this.setupDefaultMocks("draft", true);
         String[] fields = {"title", "author", "category", "description", "references", "documentation"};
         for (String field : fields) {
-            ObjectNode payload = (ObjectNode) mapper.readTree(getValidPayload());
+            ObjectNode payload = (ObjectNode) this.mapper.readTree(this.getValidPayload());
             ((ObjectNode) payload.get("resource")).remove(field);
-            RestRequest request = buildRequest(payload.toString(), INTEGRATION_ID);
-            RestResponse response = this.action.executeRequest(request, nodeClient);
-            assertEquals(
+            RestRequest request = this.buildRequest(payload.toString(), INTEGRATION_ID);
+            RestResponse response = this.action.executeRequest(request, this.nodeClient);
+            Assert.assertEquals(
                     "Fail on missing field: " + field,
                     RestStatus.BAD_REQUEST.getStatus(),
                     response.getStatus());
@@ -423,12 +423,12 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_listContentModified() throws IOException {
-        setupDefaultMocks("draft", true);
-        ObjectNode payload = (ObjectNode) mapper.readTree(getValidPayload());
+        this.setupDefaultMocks("draft", true);
+        ObjectNode payload = (ObjectNode) this.mapper.readTree(this.getValidPayload());
         ((ObjectNode) payload.get("resource")).putArray("decoders").add("forbidden-modification-id");
-        RestRequest request = buildRequest(payload.toString(), INTEGRATION_ID);
-        RestResponse response = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        RestRequest request = this.buildRequest(payload.toString(), INTEGRATION_ID);
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /**
@@ -437,9 +437,9 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_listReordered() throws IOException {
-        setupDefaultMocks("draft", true);
-        RestRequest request = buildRequest(getValidPayload(), INTEGRATION_ID);
-        RestResponse response = this.action.executeRequest(request, nodeClient);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        this.setupDefaultMocks("draft", true);
+        RestRequest request = this.buildRequest(this.getValidPayload(), INTEGRATION_ID);
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
     }
 }

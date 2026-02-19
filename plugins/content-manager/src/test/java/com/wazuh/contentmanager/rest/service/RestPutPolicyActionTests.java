@@ -184,8 +184,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
     }
 
     /**
@@ -242,8 +242,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("policy"));
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("policy"));
 
         // Verify PolicyHashService was called to regenerate space hash
         verify(this.service).calculateAndUpdate(anyList());
@@ -302,7 +302,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 
@@ -324,8 +324,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -349,8 +349,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -374,8 +374,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Missing"));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -407,8 +407,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("Missing"));
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -465,8 +465,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+        Assert.assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
     }
 
     /**
@@ -523,8 +523,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals("test-policy-id", response.getMessage());
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals("test-policy-id", response.getMessage());
         verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 
@@ -562,8 +562,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(
                 String.format(Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, "invalid-type"),
                 response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
@@ -603,8 +603,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(
                 String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, "file"),
                 response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
@@ -664,8 +664,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals("test-policy-id", response.getMessage());
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals("test-policy-id", response.getMessage());
         verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 
@@ -723,8 +723,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         // Assert
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals("test-policy-id", response.getMessage());
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals("test-policy-id", response.getMessage());
         verify(this.client, times(1)).index(any(IndexRequest.class));
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -115,8 +115,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         verify(this.client).index(captor.capture());
 
         IndexRequest request = captor.getValue();
-        assertEquals(ConsumersIndex.INDEX_NAME, request.index());
-        assertEquals("test_context_test_consumer", request.id());
+        Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
+        Assert.assertEquals("test_context_test_consumer", request.id());
     }
 
     /** Tests that setConsumer throws a RuntimeException if the cluster status is RED. */
@@ -136,8 +136,9 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
 
         // Act and Assert
         RuntimeException ex =
-                assertThrows(RuntimeException.class, () -> this.consumersIndex.setConsumer(consumer));
-        assertEquals("Index not ready", ex.getMessage());
+                Assert.assertThrows(
+                        RuntimeException.class, () -> this.consumersIndex.setConsumer(consumer));
+        Assert.assertEquals("Index not ready", ex.getMessage());
     }
 
     /**
@@ -169,8 +170,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         verify(this.client).get(captor.capture());
 
         GetRequest request = captor.getValue();
-        assertEquals(ConsumersIndex.INDEX_NAME, request.index());
-        assertEquals("my_context_my_consumer", request.id());
+        Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
+        Assert.assertEquals("my_context_my_consumer", request.id());
     }
 
     /** Tests exists() delegates correctly to the IndicesExistsRequest. */
@@ -187,11 +188,11 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         boolean result = this.consumersIndex.exists();
 
         // Assert
-        assertTrue(result);
+        Assert.assertTrue(result);
         ArgumentCaptor<IndicesExistsRequest> captor =
                 ArgumentCaptor.forClass(IndicesExistsRequest.class);
         verify(this.client.admin().indices()).exists(captor.capture());
-        assertArrayEquals(new String[] {ConsumersIndex.INDEX_NAME}, captor.getValue().indices());
+        Assert.assertArrayEquals(new String[] {ConsumersIndex.INDEX_NAME}, captor.getValue().indices());
     }
 
     /**
@@ -216,10 +217,10 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         verify(this.client.admin().indices()).create(captor.capture());
 
         CreateIndexRequest request = captor.getValue();
-        assertEquals(ConsumersIndex.INDEX_NAME, request.index());
+        Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
 
         // Validate Settings (Hidden = true, Replicas = 0)
-        assertEquals("true", request.settings().get("hidden"));
-        assertEquals("0", request.settings().get("index.number_of_replicas"));
+        Assert.assertEquals("true", request.settings().get("hidden"));
+        Assert.assertEquals("0", request.settings().get("index.number_of_replicas"));
     }
 }

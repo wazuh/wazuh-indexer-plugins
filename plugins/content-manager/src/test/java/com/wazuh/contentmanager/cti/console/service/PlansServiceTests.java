@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -130,11 +130,11 @@ public class PlansServiceTests extends OpenSearchTestCase {
         List<Plan> plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
 
         // plans must not be null, or empty
-        assertNotNull(plans);
-        assertFalse(plans.isEmpty());
+        Assert.assertNotNull(plans);
+        Assert.assertFalse(plans.isEmpty());
 
         // plan must contain products
-        assertFalse(plans.getFirst().getProducts().isEmpty());
+        Assert.assertFalse(plans.getFirst().getProducts().isEmpty());
     }
 
     /**
@@ -157,11 +157,11 @@ public class PlansServiceTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
         plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
-        assertNull(plans);
+        Assert.assertNull(plans);
 
         // When CTI does not reply, token must be null and exceptions are raised.
         when(this.mockClient.getPlans(any(Token.class))).thenThrow(ExecutionException.class);
         plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
-        assertNull(plans);
+        Assert.assertNull(plans);
     }
 }

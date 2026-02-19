@@ -119,14 +119,14 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
                     MAPPER.convertValue(existingDoc.get(Constants.KEY_DOCUMENT), Map.class);
 
             RestResponse error;
-            error = checkListEquality(existing, resourceNode, Constants.KEY_RULES);
+            error = this.checkListEquality(existing, resourceNode, Constants.KEY_RULES);
             if (error != null) return error;
 
-            error = checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
+            error = this.checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
             if (error != null) return error;
 
-            error = checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
-            if (error != null) return error;
+            error = this.checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
+            return error;
         }
         return null;
     }

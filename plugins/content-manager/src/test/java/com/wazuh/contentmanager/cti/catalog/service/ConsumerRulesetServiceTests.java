@@ -106,7 +106,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
     public void testGetIndexNameReturnsErrorOnInvalidType() {
         Exception exception =
-                expectThrows(
+                LuceneTestCase.expectThrows(
                         IllegalArgumentException.class,
                         () -> {
                             this.synchronizer.getIndexName("invalid_resource");

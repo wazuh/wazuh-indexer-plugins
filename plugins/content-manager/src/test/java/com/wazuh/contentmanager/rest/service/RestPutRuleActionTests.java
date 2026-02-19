@@ -138,7 +138,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
                             Constants.KEY_DOCUMENT, Map.of(Constants.KEY_DATE, "2021-01-01"));
             when(getResponse.getSourceAsMap()).thenReturn(source);
             try {
-                when(getResponse.getSourceAsString()).thenReturn(mapper.writeValueAsString(source));
+                when(getResponse.getSourceAsString()).thenReturn(this.mapper.writeValueAsString(source));
             } catch (Exception ignored) {
             }
         }
@@ -161,8 +161,8 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        mockPrepareGetChain(createMockGetResponse("draft", true), ruleId);
-        mockSearch(0);
+        this.mockPrepareGetChain(this.createMockGetResponse("draft", true), ruleId);
+        this.mockSearch(0);
 
         IndexResponse indexResponse = mock(IndexResponse.class);
         when(indexResponse.status()).thenReturn(RestStatus.OK);
@@ -201,7 +201,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
                         .build();
 
-        mockPrepareGetChain(createMockGetResponse("draft", false), ruleId);
+        this.mockPrepareGetChain(this.createMockGetResponse("draft", false), ruleId);
         RestResponse response = this.action.executeRequest(request, this.nodeClient);
         Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), response.getStatus());
     }

@@ -104,15 +104,15 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         // Assert
-        assertEquals(RestStatus.OK, response.status());
+        Assert.assertEquals(RestStatus.OK, response.status());
 
         // Parse Response Body
         Map<String, Object> map =
                 XContentHelper.convertToMap(response.content(), false, XContentType.JSON).v2();
-        assertTrue(map.containsKey("changes"));
+        Assert.assertTrue(map.containsKey("changes"));
         Map<String, Object> changes = (Map<String, Object>) map.get("changes");
 
-        assertTrue(changes.containsKey("decoders"));
+        Assert.assertTrue(changes.containsKey("decoders"));
         List<Map<String, Object>> decoders = (List<Map<String, Object>>) changes.get("decoders");
 
         // Helper to find item by ID
@@ -121,16 +121,16 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         Map<String, Object> id4 = this.findItem(decoders, "4");
         Map<String, Object> id1 = this.findItem(decoders, "1");
 
-        assertNotNull("ID 2 should be present", id2);
-        assertEquals("update", id2.get("operation"));
+        Assert.assertNotNull("ID 2 should be present", id2);
+        Assert.assertEquals("update", id2.get("operation"));
 
-        assertNotNull("ID 3 should be present", id3);
-        assertEquals("add", id3.get("operation"));
+        Assert.assertNotNull("ID 3 should be present", id3);
+        Assert.assertEquals("add", id3.get("operation"));
 
-        assertNotNull("ID 4 should be present", id4);
-        assertEquals("remove", id4.get("operation"));
+        Assert.assertNotNull("ID 4 should be present", id4);
+        Assert.assertEquals("remove", id4.get("operation"));
 
-        assertNull("ID 1 should NOT be present (no change)", id1);
+        Assert.assertNull("ID 1 should NOT be present (no change)", id1);
 
         verify(this.spaceService).getSpaceResources("draft");
         verify(this.spaceService).getSpaceResources("test");
@@ -168,18 +168,18 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         // Assert
-        assertEquals(RestStatus.OK, response.status());
+        Assert.assertEquals(RestStatus.OK, response.status());
 
         Map<String, Object> map =
                 XContentHelper.convertToMap(response.content(), false, XContentType.JSON).v2();
         Map<String, Object> changes = (Map<String, Object>) map.get("changes");
 
-        assertTrue(changes.containsKey("filters"));
+        Assert.assertTrue(changes.containsKey("filters"));
         List<Map<String, Object>> filters = (List<Map<String, Object>>) changes.get("filters");
 
         Map<String, Object> item = this.findItem(filters, "rule-1");
-        assertNotNull("rule-1 should be present", item);
-        assertEquals("add", item.get("operation"));
+        Assert.assertNotNull("rule-1 should be present", item);
+        Assert.assertEquals("add", item.get("operation"));
 
         verify(this.spaceService).getSpaceResources("test");
         verify(this.spaceService).getSpaceResources("custom");
@@ -212,8 +212,8 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         RestResponse restResponse = this.action.handleRequest(request);
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+        Assert.assertTrue(
                 response
                         .content()
                         .utf8ToString()
@@ -233,7 +233,7 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         RestResponse restResponse = this.action.handleRequest(request);
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
     }
 
     /**
@@ -249,8 +249,8 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         RestResponse restResponse = this.action.handleRequest(request);
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("Unknown space"));
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+        Assert.assertTrue(response.content().utf8ToString().contains("Unknown space"));
     }
 
     /**
@@ -266,8 +266,8 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         RestResponse restResponse = this.action.handleRequest(request);
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        assertTrue(response.content().utf8ToString().contains("cannot be promoted"));
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+        Assert.assertTrue(response.content().utf8ToString().contains("cannot be promoted"));
     }
 
     /**
@@ -287,8 +287,9 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         RestResponse restResponse = this.action.handleRequest(request);
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
-        assertTrue(response.content().utf8ToString().contains(Constants.E_500_INTERNAL_SERVER_ERROR));
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        Assert.assertTrue(
+                response.content().utf8ToString().contains(Constants.E_500_INTERNAL_SERVER_ERROR));
     }
 
     /**
@@ -329,11 +330,11 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
         BytesRestResponse response = restResponse.toBytesRestResponse();
 
         // Assert
-        assertEquals(RestStatus.OK, response.status());
+        Assert.assertEquals(RestStatus.OK, response.status());
 
         Map<String, Object> map =
                 XContentHelper.convertToMap(response.content(), false, XContentType.JSON).v2();
-        assertTrue(map.containsKey("changes"));
+        Assert.assertTrue(map.containsKey("changes"));
         Map<String, Object> changes = (Map<String, Object>) map.get("changes");
 
         // Define allowed keys (plural forms only)
@@ -345,14 +346,14 @@ public class RestGetPromoteActionTests extends OpenSearchTestCase {
 
         // Verify no forbidden singular keys are present
         for (String forbiddenKey : forbiddenKeys) {
-            assertFalse(
+            Assert.assertFalse(
                     "Response should not contain singular key '" + forbiddenKey + "'",
                     changes.containsKey(forbiddenKey));
         }
 
         // Verify all keys in response are from the allowed set
         for (String key : changes.keySet()) {
-            assertTrue(
+            Assert.assertTrue(
                     "Unexpected key '" + key + "' in changes body. Allowed keys: " + allowedKeys,
                     allowedKeys.contains(key));
         }

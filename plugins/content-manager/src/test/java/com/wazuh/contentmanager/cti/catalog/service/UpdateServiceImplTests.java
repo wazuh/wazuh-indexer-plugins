@@ -159,9 +159,9 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
 
         LocalConsumer updated = consumerCaptor.getValue();
-        assertEquals(12, updated.getLocalOffset());
-        assertEquals(12, updated.getRemoteOffset());
-        assertEquals(CONSUMER, updated.getName());
+        Assert.assertEquals(12, updated.getLocalOffset());
+        Assert.assertEquals(12, updated.getRemoteOffset());
+        Assert.assertEquals(CONSUMER, updated.getName());
     }
 
     /**
@@ -204,7 +204,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        assertEquals(20, consumerCaptor.getValue().getLocalOffset());
+        Assert.assertEquals(20, consumerCaptor.getValue().getLocalOffset());
     }
 
     /**
@@ -264,8 +264,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
 
         LocalConsumer resetConsumer = consumerCaptor.getValue();
-        assertEquals(0, resetConsumer.getLocalOffset());
-        assertEquals(CONSUMER, resetConsumer.getName());
+        Assert.assertEquals(0, resetConsumer.getLocalOffset());
+        Assert.assertEquals(CONSUMER, resetConsumer.getName());
     }
 
     /**
@@ -309,7 +309,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());
-        assertEquals(40, captor.getValue().getLocalOffset());
+        Assert.assertEquals(40, captor.getValue().getLocalOffset());
     }
 
     /**

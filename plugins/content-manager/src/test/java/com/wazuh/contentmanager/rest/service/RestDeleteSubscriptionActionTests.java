@@ -72,13 +72,14 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
                 new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
 
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        assertTrue(
+        Assert.assertTrue(
+                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
+        Assert.assertTrue(
                 bytesRestResponse
                         .content()
                         .utf8ToString()
                         .contains(String.valueOf(expectedResponse.getStatus())));
-        assertEquals(RestStatus.OK, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.OK, bytesRestResponse.status());
     }
 
     /**
@@ -99,12 +100,13 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
                 new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
 
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        assertTrue(
+        Assert.assertTrue(
+                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
+        Assert.assertTrue(
                 bytesRestResponse
                         .content()
                         .utf8ToString()
                         .contains(String.valueOf(expectedResponse.getStatus())));
-        assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
     }
 }

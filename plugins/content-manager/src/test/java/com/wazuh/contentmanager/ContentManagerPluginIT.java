@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -47,10 +47,11 @@ public class ContentManagerPluginIT extends OpenSearchIntegTestCase {
      * @throws ParseException rethrown from the string parser of the reply
      */
     public void testPluginInstalled() throws IOException, ParseException {
-        Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
+        Response response =
+                OpenSearchIntegTestCase.getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        logger.info("response body: {}", body);
-        assertTrue(body.contains("wazuh-indexer-content-manager"));
+        this.logger.info("response body: {}", body);
+        Assert.assertTrue(body.contains("wazuh-indexer-content-manager"));
     }
 }

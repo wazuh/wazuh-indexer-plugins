@@ -162,8 +162,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertEquals(expectedResponse.getMessage(), actualResponse.getMessage());
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(expectedResponse.getMessage(), actualResponse.getMessage());
     }
 
     /** If the engine does not respond, return a 500 error. */
@@ -180,7 +180,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
     }
 
     /** If an unexpected error happens, return a 500 error. */
@@ -199,12 +199,12 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
 
         /* SpaceService */
         actualResponse = this.action.handleRequest(request);
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(expectedResponse.getMessage().contains(actualResponse.getMessage()));
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(expectedResponse.getMessage().contains(actualResponse.getMessage()));
     }
 
     /** If the given space does not exist, or is not promotable, return a 400 error. */
@@ -236,8 +236,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
     }
 
     /** If the given space can not be promotable, return a 400 error. */
@@ -269,8 +269,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
     }
 
     /** If the request's payload does not contain all the required fields, return a 400 error. */
@@ -295,8 +295,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains("required"));
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("required"));
 
         // TODO extend with other invalid cases
     }
@@ -316,14 +316,14 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse, actualResponse);
-        assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        Assert.assertEquals(expectedResponse, actualResponse);
+        Assert.assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
     }
 
     /** If any of the documents stated in the request is missing, return a 400 error. */
     @AwaitsFix(bugUrl = "")
     public void testPostPromote400_missingResource() {
-        fail("Not yet implemented");
+        Assert.fail("Not yet implemented");
     }
 
     /** If the requested operation for the policy is not "update", return a 400 error. */
@@ -355,8 +355,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
     }
 
     /**
@@ -376,7 +376,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(expectedResponse.getStatus(), actualResponse.getStatus());
     }
 
     /**
@@ -411,8 +411,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(400, actualResponse.getStatus());
-        assertTrue(actualResponse.getMessage().contains("expected source space"));
+        Assert.assertEquals(400, actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("expected source space"));
     }
 
     /**
@@ -509,7 +509,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Verify
-        assertEquals(200, actualResponse.getStatus());
-        assertEquals(Constants.S_200_PROMOTION_COMPLETED, actualResponse.getMessage());
+        Assert.assertEquals(200, actualResponse.getStatus());
+        Assert.assertEquals(Constants.S_200_PROMOTION_COMPLETED, actualResponse.getMessage());
     }
 }

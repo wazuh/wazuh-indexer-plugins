@@ -77,9 +77,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
                 new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
 
         // Assert
-        assertEquals(RestStatus.ACCEPTED, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.ACCEPTED, bytesRestResponse.status());
         String content = bytesRestResponse.content().utf8ToString();
-        assertTrue(content.contains(expectedResponse.getMessage()));
+        Assert.assertTrue(content.contains(expectedResponse.getMessage()));
 
         // Verify trigger was called
         verify(this.catalogSyncJob, times(1)).trigger();
@@ -103,9 +103,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
                 new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
 
         // Assert
-        assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
         String content = bytesRestResponse.content().utf8ToString();
-        assertTrue(content.contains(expectedResponse.getMessage()));
+        Assert.assertTrue(content.contains(expectedResponse.getMessage()));
 
         // Verify trigger was NOT called
         verify(this.catalogSyncJob, never()).trigger();
@@ -129,9 +129,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         // Expected response
 
         // Assert
-        assertEquals(RestStatus.CONFLICT, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.CONFLICT, bytesRestResponse.status());
         String content = bytesRestResponse.content().utf8ToString();
-        assertTrue(content.contains("An update operation is already in progress"));
+        Assert.assertTrue(content.contains("An update operation is already in progress"));
 
         // Verify trigger was NOT called
         verify(this.catalogSyncJob, never()).trigger();

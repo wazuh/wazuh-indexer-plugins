@@ -69,9 +69,9 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getAccessToken()));
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getTokenType()));
-        assertEquals(RestStatus.OK, bytesRestResponse.status());
+        Assert.assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getAccessToken()));
+        Assert.assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getTokenType()));
+        Assert.assertEquals(RestStatus.OK, bytesRestResponse.status());
     }
 
     /**
@@ -92,12 +92,13 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
                 new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
 
         // Assert
-        assertTrue(bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        assertTrue(
+        Assert.assertTrue(
+                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
+        Assert.assertTrue(
                 bytesRestResponse
                         .content()
                         .utf8ToString()
                         .contains(String.valueOf(expectedResponse.getStatus())));
-        assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
     }
 }
