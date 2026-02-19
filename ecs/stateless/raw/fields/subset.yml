@@ -1,0 +1,11 @@
+---
+name: wazuh-events-raw
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  event:
+    fields:
+      original: {}
+  wazuh:
+    fields: "*"

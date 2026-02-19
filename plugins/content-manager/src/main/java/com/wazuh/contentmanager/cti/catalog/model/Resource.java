@@ -26,10 +26,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Base model representing a generic catalog resource within the CTI context. */
@@ -59,6 +61,48 @@ public class Resource {
     public Resource() {}
 
     /**
+     * Computes the SHA-256 hash of a string payload.
+     *
+     * @param payload The string content to hash.
+     * @return The hexadecimal representation of the SHA-256 hash, or an empty string if hashing
+     *     fails.
+     */
+    public static String computeSha256(String payload) {
+        try {
+            byte[] hash =
+                    MessageDigest.getInstance("SHA-256").digest(payload.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder(2 * hash.length);
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Error hashing content", e);
+            return "";
+        }
+    }
+
+    /**
+     * Extracts the SHA-256 hash value from a document source map.
+     *
+     * @param source The document source as a map.
+     * @return The SHA-256 hash string if present, or an empty string if not found.
+     */
+    @SuppressWarnings("unchecked")
+    public static String extractHash(Map<String, Object> source) {
+        if (source.containsKey(Constants.KEY_HASH)) {
+            Map<String, Object> hashObj = (Map<String, Object>) source.get(Constants.KEY_HASH);
+            return (String) hashObj.getOrDefault(Constants.KEY_SHA256, "");
+        }
+        return "";
+    }
+
+    /**
      * Factory method to create a Resource instance from a raw JsonNode payload.
      *
      * @param payload The raw JSON object containing the resource data.
@@ -79,13 +123,13 @@ public class Resource {
     protected static void populateResource(Resource resource, JsonNode payload) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
-            ObjectNode rawDoc = (ObjectNode) payload.get(JSON_DOCUMENT_KEY).deepCopy();
+            ObjectNode rawDoc = payload.get(JSON_DOCUMENT_KEY).deepCopy();
             Resource.preprocessDocument(rawDoc);
 
             resource.setDocument(MAPPER.convertValue(rawDoc, Map.class));
 
             // 2. Calculate Hash
-            String hashStr = HashCalculator.sha256(rawDoc.toString());
+            String hashStr = Resource.computeSha256(rawDoc.toString());
             if (!hashStr.isEmpty()) {
                 Map<String, String> hashMap = new HashMap<>();
                 hashMap.put("sha256", hashStr);
@@ -116,6 +160,11 @@ public class Resource {
      * @param document The JSON object representing the document content.
      */
     protected static void preprocessDocument(ObjectNode document) {
+        // Remove type field if present
+        if (document.has(Constants.KEY_TYPE)) {
+            document.remove(Constants.KEY_TYPE);
+        }
+
         if (document.has(JSON_METADATA_KEY) && document.get(JSON_METADATA_KEY).isObject()) {
             ObjectNode metadata = (ObjectNode) document.get(JSON_METADATA_KEY);
             metadata.remove(JSON_CUSTOM_FIELDS_KEY);
@@ -147,6 +196,52 @@ public class Resource {
             relatedObj.set(Constants.KEY_ID, relatedObj.get(JSON_SIGMA_ID_KEY));
             relatedObj.remove(JSON_SIGMA_ID_KEY);
         }
+    }
+
+    /**
+     * Wraps the given resource content into a standard CTI JSON payload. The generated wrapper
+     * contains the document, the space information, and a computed SHA-256 hash.
+     *
+     * @param resourceNode The JSON content of the resource to be wrapped.
+     * @param spaceName The target space name (e.g., "draft").
+     * @return The constructed JsonNode wrapper containing the document, space, and hash.
+     */
+    public JsonNode wrapResource(JsonNode resourceNode, String spaceName) {
+        ObjectNode wrapper = MAPPER.createObjectNode();
+        wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
+
+        // Space
+        ObjectNode space = MAPPER.createObjectNode();
+        space.put(Constants.KEY_NAME, spaceName);
+        wrapper.set(Constants.KEY_SPACE, space);
+
+        // Hash
+        String hash = Resource.computeSha256(resourceNode.toString());
+        ObjectNode hashNode = MAPPER.createObjectNode();
+        hashNode.put(Constants.KEY_SHA256, hash);
+        wrapper.set(Constants.KEY_HASH, hashNode);
+
+        return wrapper;
+    }
+
+    /**
+     * Sets the creation time on the given resource JSON node.
+     *
+     * @param resourceNode The resource JSON node.
+     * @param timestamp The timestamp to set.
+     */
+    public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
+        resourceNode.put(Constants.KEY_DATE, timestamp);
+    }
+
+    /**
+     * Sets the last modification time on the given resource JSON node.
+     *
+     * @param resourceNode The resource JSON node.
+     * @param timestamp The timestamp to set.
+     */
+    public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
+        resourceNode.put(Constants.KEY_MODIFIED, timestamp);
     }
 
     /**

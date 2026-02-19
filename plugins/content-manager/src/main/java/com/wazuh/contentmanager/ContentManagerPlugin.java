@@ -55,10 +55,11 @@ import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.helpers.MockEngineService;
+import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.services.*;
+import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Main class of the Content Manager Plugin */
@@ -67,10 +68,6 @@ public class ContentManagerPlugin extends Plugin
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String JOB_ID = "wazuh-catalog-sync-job";
-
-    // Index and mapping constants
-    private static final String CTI_RULES_INDEX = ".cti-rules";
-    private static final String RULES_MAPPING_PATH = "/mappings/cti-rules-mappings.json";
 
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
