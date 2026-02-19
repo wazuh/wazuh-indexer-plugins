@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -85,11 +85,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(createResponse).when(createIndexFuture).actionGet(anyLong());
         doReturn(createIndexFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
-        // Mock the policy file loading
+        // Mock the policy file loading for all policies
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile)
-                .when(this.jsonUtils)
-                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        doReturn(policyFile).when(this.jsonUtils).fromFile(anyString());
 
         // Mock the policy indexing
         ActionFuture indexFuture = mock(ActionFuture.class);
@@ -100,8 +98,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         // Verify that the index was created with the correct request
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
-        // Verify that the policy was indexed
-        verify(this.client).index(any(IndexRequest.class));
+        // Verify that the policies were indexed (2 policies: stream-rollover and raw-events-purge)
+        verify(this.client, times(2)).index(any(IndexRequest.class));
     }
 
     /**
@@ -126,9 +124,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      */
     public void testPolicyFileMissing_LogsError() throws IOException {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
-        doThrow(new IOException("file not found"))
-                .when(jsonUtils)
-                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        // Mock all policy file reads to throw IOException
+        doThrow(new IOException("file not found")).when(jsonUtils).fromFile(anyString());
 
         this.ismIndex.initialize();
 
@@ -145,8 +142,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     public void testPolicyAlreadyExists_LogsInfo() throws IOException {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
 
+        // Mock all policy file reads
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(jsonUtils).fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        doReturn(policyFile).when(jsonUtils).fromFile(anyString());
         doThrow(new ResourceAlreadyExistsException("already exists"))
                 .when(this.client)
                 .index(any(IndexRequest.class));
