@@ -123,7 +123,8 @@ public abstract class AbstractContentAction extends BaseRestHandler {
 
             if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
                 log.error("Failed to find Draft policy document");
-                return new RestResponse("Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                return new RestResponse(
+                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception e) {
             return new RestResponse(

@@ -611,16 +611,3 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  # Integration fields
-  apache-tomcat:
-    fields: "*"
-  iis:
-    fields: "*"
-  oracle-weblogic:
-    fields: "*"
-  springboot:
-    fields: "*"
-  squid:
-    fields: "*"
-  websphere:
-    fields: "*"

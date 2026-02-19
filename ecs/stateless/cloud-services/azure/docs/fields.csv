@@ -1,6 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-9.1.0,true,base,compliance,nested,custom,,,Array of compliance objects to support multiple frameworks per event.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
@@ -9,495 +8,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-9.1.0,true,azure,azure.activitylogs.category,keyword,custom,,example-category,The category of the Azure Activity Log event
-9.1.0,true,azure,azure.activitylogs.event_category,keyword,custom,,example-event_category,The event category for the Azure Activity Log
-9.1.0,true,azure,azure.activitylogs.identity.authorization.action,keyword,custom,,example-action,The action performed by the identity in the authorization context
-9.1.0,true,azure,azure.activitylogs.identity.authorization.evidence.principal_id,keyword,custom,,example-principal_id,The principal ID in the authorization evidence
-9.1.0,true,azure,azure.activitylogs.identity.authorization.evidence.principal_type,keyword,custom,,example-principal_type,The principal type in the authorization evidence
-9.1.0,true,azure,azure.activitylogs.identity.authorization.evidence.role,keyword,custom,,example-role,The role name in the authorization evidence
-9.1.0,true,azure,azure.activitylogs.identity.authorization.evidence.role_assignment_id,keyword,custom,,example-role_assignment_id,The role assignment ID in the authorization evidence
-9.1.0,true,azure,azure.activitylogs.identity.authorization.evidence.role_assignment_scope,keyword,custom,,example-role_assignment_scope,The scope of the role assignment in the authorization evidence
-9.1.0,true,azure,azure.activitylogs.identity.authorization.evidence.role_definition_id,keyword,custom,,example-role_definition_id,The role definition ID in the authorization evidence
-9.1.0,true,azure,azure.activitylogs.identity.authorization.scope,keyword,custom,,example-scope,The authorization scope for the identity
-9.1.0,true,azure,azure.activitylogs.identity.claims,object,custom,,,The claims object containing identity information
-9.1.0,true,azure,azure.activitylogs.identity.claims_initiated_by_user_fullname,keyword,custom,,example-claims_initiated_by_user_fullname,The full name of the user who initiated the action from identity claims
-9.1.0,true,azure,azure.activitylogs.level,long,custom,,12345,This field indicates the severity of an event
-9.1.0,true,azure,azure.activitylogs.operation_name,keyword,custom,,example-operation_name,The name of the operation performed in the Azure Activity Log
-9.1.0,true,azure,azure.activitylogs.operation_version,keyword,custom,,example-operation_version,The version of the operation in the Azure Activity Log
-9.1.0,true,azure,azure.activitylogs.properties.event_category,keyword,custom,,example-event_category,The category of the event that was logged in Azure activity logs
-9.1.0,true,azure,azure.activitylogs.properties.event_properties_cause,keyword,custom,,example-event_properties_cause,The cause of the event as recorded in Azure activity logs
-9.1.0,true,azure,azure.activitylogs.properties.service_request_id,keyword,custom,,example-service_request_id,The service request ID from the properties of the Activity Log
-9.1.0,true,azure,azure.activitylogs.properties.status_code,keyword,custom,,example-status_code,The status code from the properties of the Activity Log
-9.1.0,true,azure,azure.activitylogs.result_signature,keyword,custom,,example-result_signature,The result signature of the Azure Activity Log event
-9.1.0,true,azure,azure.activitylogs.result_type,keyword,custom,,example-result_type,The result type of the Azure Activity Log event (e.g. Success Failure)
-9.1.0,true,azure,azure.activitylogs.tenant_id,keyword,custom,,example-tenant_id,The tenant ID associated with the Azure Activity Log event
-9.1.0,true,azure,azure.app_service.category,keyword,custom,,example-category,Category of the Azure App Service operation
-9.1.0,true,azure,azure.app_service.container_id,keyword,custom,,example-container_id,Azure App Service application container ID
-9.1.0,true,azure,azure.app_service.event_ip_address,ip,custom,,192.168.1.1,IP address of the Azure App Service event
-9.1.0,true,azure,azure.app_service.event_primary_stamp_name,keyword,custom,,example-event_primary_stamp_name,Primary name of the Azure App Service
-9.1.0,true,azure,azure.app_service.event_stamp_name,keyword,custom,,example-event_stamp_name,Name of the Azure App Service stamp
-9.1.0,true,azure,azure.app_service.event_stamp_type,keyword,custom,,example-event_stamp_type,Type values that the Azure App Service supports
-9.1.0,true,azure,azure.app_service.host,keyword,custom,,example-host,Host where the Azure App Service application is running
-9.1.0,true,azure,azure.app_service.level,keyword,custom,,example-level,Verbosity level of the Azure App Service log
-9.1.0,true,azure,azure.app_service.log,keyword,custom,,example-log,Azure App Service log details depending on log level
-9.1.0,true,azure,azure.app_service.operation_name,keyword,custom,,example-operation_name,Azure App Service operation name
-9.1.0,true,azure,azure.app_service.properties.client_ip,ip,custom,,192.168.1.1,Client IP address from Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.client_port,long,custom,,12345,Client port number from Azure App Service
-9.1.0,true,azure,azure.app_service.properties.computer_name,keyword,custom,,example-computer_name,Server name where Azure App Service log entry was generated
-9.1.0,true,azure,azure.app_service.properties.cookie,keyword,custom,,example-cookie,Cookie present in the Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.cs_bytes,long,custom,,12345,Number of bytes received by Azure App Service server
-9.1.0,true,azure,azure.app_service.properties.cs_host,keyword,custom,,example-cs_host,Host name header from Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.cs_method,keyword,custom,,example-cs_method,HTTP request method for Azure App Service (GET/POST/etc)
-9.1.0,true,azure,azure.app_service.properties.cs_uri_query,keyword,custom,,example-cs_uri_query,URI query from Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.cs_uri_stem,keyword,custom,,example-cs_uri_stem,Target path of Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.cs_username,keyword,custom,,example-cs_username,Authenticated username from Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.details,keyword,custom,,example-details,Additional information related to Azure App Service event
-9.1.0,true,azure,azure.app_service.properties.protocol,keyword,custom,,example-protocol,Authentication protocol used by Azure App Service
-9.1.0,true,azure,azure.app_service.properties.referer,keyword,custom,,example-referer,HTTP referer header from Azure App Service request
-9.1.0,true,azure,azure.app_service.properties.result,keyword,custom,,example-result,Success or failure result of Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.s_port,keyword,custom,,example-s_port,Azure App Service server port number
-9.1.0,true,azure,azure.app_service.properties.sc_bytes,long,custom,,12345,Number of bytes sent by Azure App Service server
-9.1.0,true,azure,azure.app_service.properties.sc_status,long,custom,,12345,HTTP status code returned by Azure App Service
-9.1.0,true,azure,azure.app_service.properties.sc_substatus,keyword,custom,,example-sc_substatus,HTTP substatus error code from Azure App Service
-9.1.0,true,azure,azure.app_service.properties.sc_win32status,keyword,custom,,example-sc_win32status,Windows status code from Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.service_endpoint,keyword,custom,,example-service_endpoint,Azure App Service Virtual Network Service Endpoint indicator
-9.1.0,true,azure,azure.app_service.properties.source_system,keyword,custom,,example-source_system,The source system for the Azure App Service log
-9.1.0,true,azure,azure.app_service.properties.time_generated,keyword,custom,,example-time_generated,Time of the Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.time_taken,long,custom,,12345,Time taken by Azure App Service HTTP request in milliseconds
-9.1.0,true,azure,azure.app_service.properties.type,keyword,custom,,example-type,The name of the Azure App Service log table
-9.1.0,true,azure,azure.app_service.properties.user,keyword,custom,,example-user,Username for Azure App Service publishing access
-9.1.0,true,azure,azure.app_service.properties.user_agent,keyword,custom,,example-user_agent,User agent string from Azure App Service HTTP request
-9.1.0,true,azure,azure.app_service.properties.user_display_name,keyword,custom,,example-user_display_name,User email for Azure App Service AAD authentication
-9.1.0,true,azure,azure.app_service.properties.xazurefdid,keyword,custom,,example-xazurefdid,X-Azure-FDID header (Azure Frontdoor ID) from request
-9.1.0,true,azure,azure.app_service.properties.xfdhealth_probe,keyword,custom,,example-xfdhealth_probe,X-FD-HealthProbe header (Azure Frontdoor Health) from request
-9.1.0,true,azure,azure.app_service.properties.xforwarded_for,keyword,custom,,example-xforwarded_for,X-Forwarded-For header from Azure App Service request
-9.1.0,true,azure,azure.app_service.properties.xforwarded_host,keyword,custom,,example-xforwarded_host,X-Forwarded-Host header from Azure App Service request
-9.1.0,true,azure,azure.app_service.result_description,keyword,custom,,example-result_description,Azure App Service log message description
-9.1.0,true,azure,azure.application_gateway.hostname,keyword,custom,,example-hostname,The hostname of the Azure Application Gateway
-9.1.0,true,azure,azure.application_gateway.instance_id,keyword,custom,,example-instance_id,The instance ID of the Azure Application Gateway
-9.1.0,true,azure,azure.application_gateway.operation_name,keyword,custom,,example-operation_name,The operation name for the Azure Application Gateway event
-9.1.0,true,azure,azure.application_gateway.policy.id,keyword,custom,,example-id,The policy ID associated with the Application Gateway event
-9.1.0,true,azure,azure.application_gateway.policy.scope,keyword,custom,,example-scope,The policy scope for the Application Gateway event
-9.1.0,true,azure,azure.application_gateway.policy.scope_name,keyword,custom,,example-scope_name,The policy scope name for the Application Gateway event
-9.1.0,true,azure,azure.application_gateway.transaction_id,keyword,custom,,example-transaction_id,The transaction ID for the Application Gateway event
-9.1.0,true,azure,azure.application_id,keyword,custom,,example-application_id,Azure application ID that uniquely identifies the application associated with the collected metrics.
-9.1.0,true,azure,azure.auditlogs.category,keyword,custom,,example-category,The category of the Azure Audit Log event
-9.1.0,true,azure,azure.auditlogs.identity,keyword,custom,,example-identity,The identity object from the Azure Audit Log containing information about the user or service principal
-9.1.0,true,azure,azure.auditlogs.level,long,custom,,12345,The log level for the Azure Audit Log event
-9.1.0,true,azure,azure.auditlogs.operation_name,keyword,custom,,example-operation_name,The name of the operation performed in the Azure Audit Log event
-9.1.0,true,azure,azure.auditlogs.operation_version,keyword,custom,,example-operation_version,The version of the operation in the Azure Audit Log
-9.1.0,true,azure,azure.auditlogs.properties.activity_datetime,date,custom,,2023-01-01T00:00:00.000Z,The date and time of the activity in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.activity_display_name,keyword,custom,,example-activity_display_name,The display name of the activity in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.additional_details,object,custom,,,Additional details from the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.category,keyword,custom,,example-category,The category in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.correlation_id,keyword,custom,,example-correlation_id,The correlation ID in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.id,keyword,custom,,example-id,The unique identifier in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.app.app_id,keyword,custom,,example-app_id,The unique identifier (App ID) of the application that initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.app.display_name,keyword,custom,,example-display_name,The display name of the application that initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.app.service_principal_id,keyword,custom,,example-service_principal_id,Unique Service Principal ID of the application that initiated the audit log operation.
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.app.service_principal_name,keyword,custom,,example-service_principal_name,The name of the service principal associated with the application that initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.user.display_name,keyword,custom,,example-display_name,The display name of the user who initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.user.id,keyword,custom,,example-id,The unique identifier of the user who initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.user.ipaddress,ip,custom,,192.168.1.1,The IP address from which the audit log operation was initiated
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.user.roles,keyword,custom,,example-roles,The roles assigned to the user who initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.initiated_by.user.user_principal_name,keyword,custom,,example-user_principal_name,The User Principal Name (UPN) of the user who initiated the audit log operation
-9.1.0,true,azure,azure.auditlogs.properties.logged_by_service,keyword,custom,,example-logged_by_service,The service that logged the event in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.operation_type,keyword,custom,,example-operation_type,The type of operation in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.result_description,keyword,custom,,example-result_description,The description of the result in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.result_reason,keyword,custom,,example-result_reason,The reason for the result in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.properties.target_resources,object,custom,,,The target resources affected by the operation in the Audit Log properties
-9.1.0,true,azure,azure.auditlogs.result_signature,keyword,custom,,example-result_signature,The result signature for the Azure Audit Log event
-9.1.0,true,azure,azure.category,keyword,custom,,example-category,"The category of the Azure log entry (always ""FunctionAppLogs"")"
-9.1.0,true,azure,azure.compute_vm.disk_read_bytes.total,float,custom,,,Total bytes read from disk during the monitoring period
-9.1.0,true,azure,azure.compute_vm.inbound_flows_maximum_creation_rate.avg,long,custom,,12345,The maximum creation rate of inbound flows (traffic going into the VM)
-9.1.0,true,azure,azure.compute_vm.network_in.total,long,custom,,12345,The number of bytes received on all network interfaces (incoming traffic)
-9.1.0,true,azure,azure.compute_vm.network_in_total.total,long,custom,,12345,The total number of incoming bytes received across all network interfaces
-9.1.0,true,azure,azure.compute_vm.outbound_flows_maximum_creation_rate.avg,long,custom,,12345,The maximum creation rate of outbound flows (traffic going out of the VM)
-9.1.0,true,azure,azure.compute_vm.percentage_cpu.avg,float,custom,,,The percentage of allocated compute units currently in use by the Virtual Machine
-9.1.0,true,azure,azure.compute_vm_scaleset.cpu_credits_consumed.avg,long,custom,,12345,Total number of credits consumed by the Virtual Machine. Only available on B-series burstable VMs
-9.1.0,true,azure,azure.compute_vm_scaleset.cpu_credits_remaining.avg,long,custom,,12345,This field represents the total number of CPU credits currently available to burst
-9.1.0,true,azure,azure.container_instance.network_bytes_received_per_second.avg,long,custom,,12345,Average number of network bytes received per second by the container instance
-9.1.0,true,azure,azure.container_instance.network_bytes_transmitted_per_second.avg,long,custom,,12345,Average number of network bytes transmitted per second by the container instance
-9.1.0,true,azure,azure.container_registry.agent_pool_cpu_time.total,long,custom,,12345,Total CPU time consumed by the container registry agent pool
-9.1.0,true,azure,azure.container_registry.run_duration.total,long,custom,,12345,Total duration of all container registry tasks run
-9.1.0,true,azure,azure.container_registry.storage_used.avg,long,custom,,12345,The average amount of storage used by the container registry
-9.1.0,true,azure,azure.container_registry.successful_pull_count.total,long,custom,,12345,Number of successful image pulls from the container registry
-9.1.0,true,azure,azure.container_registry.successful_push_count.total,long,custom,,12345,Number of successful image pushes to the container registry
-9.1.0,true,azure,azure.container_registry.total_pull_count.total,long,custom,,12345,Total number of image pulls from the container registry
-9.1.0,true,azure,azure.container_registry.total_push_count.total,long,custom,,12345,Total number of image pushes to the container registry
-9.1.0,true,azure,azure.container_service.kube_node_status_allocatable_cpu_cores.avg,long,custom,,12345,Average allocatable CPU cores across Kubernetes nodes in the container service
-9.1.0,true,azure,azure.container_service.kube_node_status_allocatable_memory_bytes.avg,long,custom,,12345,Average allocatable memory (in bytes) across Kubernetes nodes in the container service
-9.1.0,true,azure,azure.container_service.kube_node_status_condition.avg,long,custom,,12345,Average status condition of Kubernetes nodes in the container service
-9.1.0,true,azure,azure.container_service.kube_pod_status_phase.avg,long,custom,,12345,Average status phase of Kubernetes pods in the container service
-9.1.0,true,azure,azure.container_service.kube_pod_status_ready.avg,long,custom,,12345,Average readiness status of Kubernetes pods in the container service
-9.1.0,true,azure,azure.correlation_id,keyword,custom,,example-correlation_id,Correlation ID that ties together related requests for tracing
-9.1.0,true,azure,azure.database_account.availability.avg,float,custom,,,Average availability percentage of the database account
-9.1.0,true,azure,azure.database_account.data_usage_storage.avg,long,custom,,12345,Average storage used by the database account
-9.1.0,true,azure,azure.database_account.mongo_requests_count.total,long,custom,,12345,Total number of MongoDB requests in the database account
-9.1.0,true,azure,azure.dimensions.api_name,keyword,custom,,example-api_name,"API name dimension for Azure OpenAI metrics, typically ""OpenAI"" for service identification"
-9.1.0,true,azure,azure.dimensions.authentication,keyword,custom,,example-authentication,Authentication type used in the transaction
-9.1.0,true,azure,azure.dimensions.blob_type,keyword,custom,,example-blob_type,Type of blob accessed in the transaction
-9.1.0,true,azure,azure.dimensions.closure_reason,keyword,custom,,example-closure_reason,Reason for Cassandra connection closures
-9.1.0,true,azure,azure.dimensions.command_name,keyword,custom,,example-command_name,This is the MongoDB request command name
-9.1.0,true,azure,azure.dimensions.condition,keyword,custom,,example-condition,This field represents the Pod or Node conditions
-9.1.0,true,azure,azure.dimensions.database_name,keyword,custom,,example-database_name,This is the name of the database accessed
-9.1.0,true,azure,azure.dimensions.feature_name,keyword,custom,,example-feature_name,"Feature name dimension specifying OpenAI model (gpt-35-turbo, gpt-4) for metric categorization"
-9.1.0,true,azure,azure.dimensions.file_share,keyword,custom,,example-file_share,Name of the file share involved in the transaction
-9.1.0,true,azure,azure.dimensions.fingerprint,keyword,custom,,example-fingerprint,Autogenerated fingerprint ID of azure.dimensions object from concatenated dimension values
-9.1.0,true,azure,azure.dimensions.geo_type,keyword,custom,,example-geo_type,Indicates whether the transaction originated from the primary or secondary cluster
-9.1.0,true,azure,azure.dimensions.geolocation,keyword,custom,,example-geolocation,This field represents the geolocation of the container registry
-9.1.0,true,azure,azure.dimensions.lun,keyword,custom,,example-lun,Logical Unit Number is used to identify a specific storage device
-9.1.0,true,azure,azure.dimensions.model_deployment_name,keyword,custom,,example-model_deployment_name,Model deployment name dimension for tracking metrics across different deployments
-9.1.0,true,azure,azure.dimensions.model_version,keyword,custom,,example-model_version,"Model version dimension (e.g., ""0613"", ""0301"") for version-specific metric analysis"
-9.1.0,true,azure,azure.dimensions.namespace,keyword,custom,,example-namespace,This field represents the namespace in which the Pod is running
-9.1.0,true,azure,azure.dimensions.node,keyword,custom,,example-node,This field represents the name of the Node within the Kubernetes cluster
-9.1.0,true,azure,azure.dimensions.phase,keyword,custom,,example-phase,This field represents the lifecycle phase of a Pod such as Pending Running or Succeeded
-9.1.0,true,azure,azure.dimensions.pod,keyword,custom,,example-pod,This field represents the name of the individual Pod in the Kubernetes cluster
-9.1.0,true,azure,azure.dimensions.region,keyword,custom,,example-region,Azure region dimension indicating where OpenAI request was processed for geographic analysis
-9.1.0,true,azure,azure.dimensions.resource_name,keyword,custom,,example-resource_name,This is the name of the Azure database resource
-9.1.0,true,azure,azure.dimensions.response_type,keyword,custom,,example-response_type,Transaction response type (e.g. Success ClientOtherError)
-9.1.0,true,azure,azure.dimensions.status,keyword,custom,,example-status,This field represents the status values for various Node or Pod conditions (e.g. True False Unknown)
-9.1.0,true,azure,azure.dimensions.status_code,keyword,custom,,example-status_code,This is the status code of the database request
-9.1.0,true,azure,azure.dimensions.tier,keyword,custom,,example-tier,Specifies the access tier of the storage transaction
-9.1.0,true,azure,azure.dimensions.transaction_type,keyword,custom,,example-transaction_type,This is the type of transaction (User or System)
-9.1.0,true,azure,azure.dimensions.usage_channel,keyword,custom,,example-usage_channel,"Usage channel dimension indicating service access method, typically ""Cloud"" for tracking"
-9.1.0,true,azure,azure.dimensions.virtual_machine,keyword,custom,,example-virtual_machine,This field is the Virtual Machine name
-9.1.0,true,azure,azure.dimensions.vmname,keyword,custom,,example-vmname,This field represents the VM name
-9.1.0,true,azure,azure.firewall.action,keyword,custom,,example-action,The action taken by the Azure Firewall (e.g. Allow Deny)
-9.1.0,true,azure,azure.firewall.category,keyword,custom,,example-category,The category of the Azure Firewall event
-9.1.0,true,azure,azure.firewall.dnssec_ok_bit,boolean,custom,,True,The DNSSEC OK bit value for the Azure Firewall DNS event
-9.1.0,true,azure,azure.firewall.edns0_buffer_size,long,custom,,12345,The EDNS0 buffer size for the Azure Firewall DNS event
-9.1.0,true,azure,azure.firewall.hostname,keyword,custom,,example-hostname,This is the hostname of the Azure Firewall
-9.1.0,true,azure,azure.firewall.icmp.request.code,keyword,custom,,example-code,Refers to a specific type of ICMP message that Azure Firewall might be configured to handle or log
-9.1.0,true,azure,azure.firewall.instance_id,keyword,custom,,example-instance_id,The instance ID of the Azure Firewall
-9.1.0,true,azure,azure.firewall.is_explicit_proxy_request,boolean,custom,,True,Indicates if the request was an explicit proxy request in the Azure Firewall
-9.1.0,true,azure,azure.firewall.operation_name,keyword,custom,,example-operation_name,The operation name for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.policy,keyword,custom,,example-policy,The policy name for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.policy_id,keyword,custom,,example-policy_id,The policy ID for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.policy_scope,keyword,custom,,example-policy_scope,The policy scope for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.policy_scope_name,keyword,custom,,example-policy_scope_name,The policy scope name for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.request_duration_sec,long,custom,,12345,The duration of the request in seconds for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.request_size,long,custom,,12345,The size of the request in bytes for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.response_size,long,custom,,12345,The size of the response in bytes for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.rule_collection_group,keyword,custom,,example-rule_collection_group,The rule collection group in the Azure Firewall
-9.1.0,true,azure,azure.firewall.rule_name,keyword,custom,,example-rule_name,The name of the rule triggered in the Azure Firewall
-9.1.0,true,azure,azure.firewall.rule_ruleset,keyword,custom,,example-rule_ruleset,The rule set name in the Azure Firewall
-9.1.0,true,azure,azure.firewall.transaction_id,keyword,custom,,example-transaction_id,The transaction ID for the Azure Firewall event
-9.1.0,true,azure,azure.firewall.web_category,keyword,custom,,example-web_category,The web category for the Azure Firewall event
-9.1.0,true,azure,azure.function.app_name,keyword,custom,,example-app_name,The display name of the Azure Functions application as configured in the app settings
-9.1.0,true,azure,azure.function.category,keyword,custom,,example-category,Function category in format 'Function.{function-name}' indicating which function generated log entry
-9.1.0,true,azure,azure.function.event_id,long,custom,,12345,The numeric identifier for the type of event (e.g. 1 for FunctionStarted 3 for FunctionCompleted)
-9.1.0,true,azure,azure.function.event_name,keyword,custom,,example-event_name,The name of the lifecycle event being logged (e.g. FunctionStarted FunctionCompleted FunctionFailed)
-9.1.0,true,azure,azure.function.exception_details,text,custom,,,Complete exception stack trace when function execution fails including inner exceptions (error logs only)
-9.1.0,true,azure,azure.function.exception_message,text,custom,,,The primary exception message describing the error that occurred during function execution (error logs only)
-9.1.0,true,azure,azure.function.exception_type,keyword,custom,,example-exception_type,The .NET type name of the exception that was thrown during function execution (error logs only)
-9.1.0,true,azure,azure.function.host_instance_id,keyword,custom,,example-host_instance_id,The unique identifier of the Azure Functions host instance where the function was executed
-9.1.0,true,azure,azure.function.host_version,keyword,custom,,example-host_version,The version of the Azure Functions runtime host that executed the function
-9.1.0,true,azure,azure.function.invocation_id,keyword,custom,,example-invocation_id,The unique identifier assigned to each function invocation used for tracking and correlation across logs
-9.1.0,true,azure,azure.function.level,keyword,custom,,example-level,The severity level of the log entry (e.g. Information Warning Error) as determined by the Functions runtime
-9.1.0,true,azure,azure.function.level_id,long,custom,,12345,The numeric identifier corresponding to the log level used for programmatic filtering and analysis
-9.1.0,true,azure,azure.function.message,text,custom,,,"Detailed log message about function execution including status, duration, and invocation reason"
-9.1.0,true,azure,azure.function.name,keyword,custom,,example-name,The full name of the Azure function in the format 'Functions.{function-name}' that was executed
-9.1.0,true,azure,azure.function.process_id,long,custom,,12345,The process identifier of the Azure Functions host process that executed the function
-9.1.0,true,azure,azure.function.role_instance,keyword,custom,,example-role_instance,The unique identifier of the Azure Functions host instance processing the function execution
-9.1.0,true,azure,azure.graphactivity.category,keyword,custom,,example-category,The category for Microsoft Graph Activity Logs
-9.1.0,true,azure,azure.graphactivitylogs.category,keyword,custom,,example-category,The category of the Microsoft Graph Activity Log event
-9.1.0,true,azure,azure.graphactivitylogs.operation_name,keyword,custom,,example-operation_name,The name of the operation performed in the Microsoft Graph Activity Log
-9.1.0,true,azure,azure.graphactivitylogs.operation_version,keyword,custom,,example-operation_version,The version of the operation in the Microsoft Graph Activity Log
-9.1.0,true,azure,azure.graphactivitylogs.properties.api_version,keyword,custom,,example-api_version,The API version used for the operation
-9.1.0,true,azure,azure.graphactivitylogs.properties.app_id,keyword,custom,,example-app_id,The application ID associated with the operation
-9.1.0,true,azure,azure.graphactivitylogs.properties.billed_size,long,custom,,12345,The billed size of the operation in bytes
-9.1.0,true,azure,azure.graphactivitylogs.properties.client_auth_method,keyword,custom,,example-client_auth_method,The client authentication method used for the operation
-9.1.0,true,azure,azure.graphactivitylogs.properties.client_request_id,keyword,custom,,example-client_request_id,The client request ID associated with the operation
-9.1.0,true,azure,azure.graphactivitylogs.properties.identity_provider,keyword,custom,,example-identity_provider,The identity provider used for authentication
-9.1.0,true,azure,azure.graphactivitylogs.properties.operation_id,keyword,custom,,example-operation_id,The unique operation ID for the activity
-9.1.0,true,azure,azure.graphactivitylogs.properties.roles,object,custom,,,The roles assigned to the principal as an array of role names
-9.1.0,true,azure,azure.graphactivitylogs.properties.scopes,object,custom,,,The scopes assigned to the principal as an array of scope names
-9.1.0,true,azure,azure.graphactivitylogs.properties.service_principal_id,keyword,custom,,example-service_principal_id,The service principal ID associated with the operation
-9.1.0,true,azure,azure.graphactivitylogs.properties.sign_in_activity,keyword,custom,,example-sign_in_activity,The sign-in activity ID (may be misspelled as 'singInActivityId' in some logs)
-9.1.0,true,azure,azure.graphactivitylogs.properties.sign_in_activity_id,keyword,custom,,example-sign_in_activity_id,This field indicates the sign-in activity ID of the event
-9.1.0,true,azure,azure.graphactivitylogs.properties.time_generated,date,custom,,2023-01-01T00:00:00.000Z,The timestamp when the activity log entry was generated
-9.1.0,true,azure,azure.graphactivitylogs.properties.token_issued_at,date,custom,,2023-01-01T00:00:00.000Z,The timestamp when the token was issued
-9.1.0,true,azure,azure.graphactivitylogs.properties.wids,object,custom,,,The list of role template IDs (well-known IDs) assigned to the principal
-9.1.0,true,azure,azure.graphactivitylogs.result_signature,keyword,custom,,example-result_signature,The result signature of the Microsoft Graph Activity Log event
-9.1.0,true,azure,azure.identity.properties.metric_response_type,keyword,custom,,example-metric_response_type,Metric response type indicating operation success (Success/Failure)
-9.1.0,true,azure,azure.identity.properties.object_key,keyword,custom,,example-object_key,Target object key within the storage account (container/blob path)
-9.1.0,true,azure,azure.identity.requester.app_id,keyword,custom,,example-app_id,Client application ID (GUID) making the storage request
-9.1.0,true,azure,azure.identity.requester.audience,keyword,custom,,example-audience,Access token audience (resource URL) for OAuth authentication
-9.1.0,true,azure,azure.identity.requester.object_id,keyword,custom,,example-object_id,Requester Azure Active Directory object ID (GUID)
-9.1.0,true,azure,azure.identity.requester.tenant_id,keyword,custom,,example-tenant_id,Microsoft Entra (Azure AD) tenant GUID owning the requesting principal
-9.1.0,true,azure,azure.identity.requester.token_issuer,keyword,custom,,example-token_issuer,Security Token Service (STS) issuer URI that issued the OAuth token
-9.1.0,true,azure,azure.identity.requester.upn,keyword,custom,,example-upn,Requester User Principal Name (may be empty for service accounts)
-9.1.0,true,azure,azure.identity.type,keyword,custom,,example-type,Authentication type used for the request (OAuth/Key/SAS)
-9.1.0,true,azure,azure.identity_authorization,object,custom,,,Azure RBAC action executed metadata including roles and permissions
-9.1.0,true,azure,azure.identityprotection.category,keyword,custom,,example-category,The category of the Azure Identity Protection event
-9.1.0,true,azure,azure.identityprotection.operation_name,keyword,custom,,example-operation_name,The name of the operation performed in the Azure Identity Protection event
-9.1.0,true,azure,azure.identityprotection.operation_version,keyword,custom,,example-operation_version,The version of the operation performed in the Azure Identity Protection event
-9.1.0,true,azure,azure.identityprotection.properties.activity,keyword,custom,,example-activity,The activity type or name associated with the event
-9.1.0,true,azure,azure.identityprotection.properties.activity_datetime,date,custom,,2023-01-01T00:00:00.000Z,The date and time when the activity occurred
-9.1.0,true,azure,azure.identityprotection.properties.additional_info,keyword,custom,,example-additional_info,Additional information related to the event
-9.1.0,true,azure,azure.identityprotection.properties.correlation_id,keyword,custom,,example-correlation_id,The correlation ID associated with the event properties
-9.1.0,true,azure,azure.identityprotection.properties.is_deleted,boolean,custom,,True,Indicates if the user or entity is deleted
-9.1.0,true,azure,azure.identityprotection.properties.is_guest,boolean,custom,,True,Indicates if the user is a guest
-9.1.0,true,azure,azure.identityprotection.properties.is_processing,boolean,custom,,True,Indicates if the event is still being processed
-9.1.0,true,azure,azure.identityprotection.properties.last_updated_datetime,date,custom,,2023-01-01T00:00:00.000Z,The date and time when the event or risk was last updated
-9.1.0,true,azure,azure.identityprotection.properties.request_id,keyword,custom,,example-request_id,The request ID associated with the event
-9.1.0,true,azure,azure.identityprotection.properties.risk_detail,keyword,custom,,example-risk_detail,This field provides additional details about the risk
-9.1.0,true,azure,azure.identityprotection.properties.risk_event_type,keyword,custom,,example-risk_event_type,The type of risk event detected
-9.1.0,true,azure,azure.identityprotection.properties.risk_last_updated_datetime,date,custom,,2023-01-01T00:00:00.000Z,The date and time when the risk was last updated
-9.1.0,true,azure,azure.identityprotection.properties.risk_level,keyword,custom,,example-risk_level,The risk level assigned to the event (e.g. low medium high)
-9.1.0,true,azure,azure.identityprotection.properties.risk_state,keyword,custom,,example-risk_state,The state of the risk (e.g. active remediated)
-9.1.0,true,azure,azure.identityprotection.properties.risk_type,keyword,custom,,example-risk_type,The type of risk detected in the event
-9.1.0,true,azure,azure.identityprotection.properties.source,keyword,custom,,example-source,The source of the event or risk
-9.1.0,true,azure,azure.identityprotection.properties.token_issuer_type,keyword,custom,,example-token_issuer_type,The type of token issuer for the event
-9.1.0,true,azure,azure.identityprotection.properties.user_display_name,keyword,custom,,example-user_display_name,The display name of the user associated with the event
-9.1.0,true,azure,azure.identityprotection.properties.user_id,keyword,custom,,example-user_id,The unique identifier of the user associated with the event
-9.1.0,true,azure,azure.identityprotection.properties.user_principal_name,keyword,custom,,example-user_principal_name,The user principal name (UPN) of the user associated with the event
-9.1.0,true,azure,azure.identityprotection.properties.user_type,keyword,custom,,example-user_type,The type of user (e.g. Member Guest)
-9.1.0,true,azure,azure.identityprotection.result_signature,keyword,custom,,example-result_signature,The result signature of the Azure Identity Protection event
-9.1.0,true,azure,azure.metrics.Egress.total,long,custom,,12345,Total egress bytes in the storage account
-9.1.0,true,azure,azure.metrics.Ingress.total,long,custom,,12345,Total ingress bytes in the storage account
-9.1.0,true,azure,azure.metrics.SuccessE2ELatency.avg,long,custom,,12345,Average end-to-end latency for successful storage transactions
-9.1.0,true,azure,azure.metrics.SuccessServerLatency.avg,long,custom,,12345,Average server latency for successful storage transactions
-9.1.0,true,azure,azure.metrics.Transactions.total,long,custom,,12345,Total number of transactions in the storage account
-9.1.0,true,azure,azure.metrics.document_quota.total,long,custom,,12345,This field represents the total number of documents allowed in the Azure Cosmos DB account (document quota)
-9.1.0,true,azure,azure.namespace,keyword,custom,,example-namespace,"Azure service namespace ""Microsoft.CognitiveServices/accounts"" for organizing metrics by service"
-9.1.0,true,azure,azure.open_ai.active_tokens.total,long,custom,,12345,Total tokens minus cached tokens over time representing active token usage for inference
-9.1.0,true,azure,azure.open_ai.asset_identity,keyword,custom,,example-asset_identity,Unique ID for Azure OpenAI asset/resource being accessed for tracking and auditing
-9.1.0,true,azure,azure.open_ai.category,keyword,custom,,example-category,The category of Azure OpenAI log entry indicating the type of operation being logged (Audit GatewayLogs RequestResponse)
-9.1.0,true,azure,azure.open_ai.context_tokens_cache_match_rate.avg,long,custom,,12345,Percentage of prompt tokens hitting cache for PTU-managed deployments indicating efficiency
-9.1.0,true,azure,azure.open_ai.correlation_id,keyword,custom,,example-correlation_id,Unique correlation ID for tracking requests across Azure OpenAI services for distributed tracing
-9.1.0,true,azure,azure.open_ai.deployment_version,keyword,custom,,example-deployment_version,Version ID of Azure OpenAI deployment/gateway service infrastructure that processed request
-9.1.0,true,azure,azure.open_ai.event,keyword,custom,,example-event,"Event type logged by Azure OpenAI (e.g., ShoeboxCallResult) for categorizing operations"
-9.1.0,true,azure,azure.open_ai.fine_tuned_training_hours.total,long,custom,,12345,Training hours processed on OpenAI fine-tuned model measuring custom model training compute
-9.1.0,true,azure,azure.open_ai.generated_tokens.total,long,custom,,12345,Number of output tokens generated by OpenAI model representing completion tokens produced
-9.1.0,true,azure,azure.open_ai.is_request_success,boolean,custom,,True,Boolean flag indicating if OpenAI API request completed successfully for monitoring reliability
-9.1.0,true,azure,azure.open_ai.location,keyword,custom,,example-location,Azure region/location where OpenAI service request was processed for geographic analysis
-9.1.0,true,azure,azure.open_ai.operation_name,keyword,custom,,example-operation_name,"Azure OpenAI operation name (ListKey, ChatCompletions_Create, Create_Thread) being performed"
-9.1.0,true,azure,azure.open_ai.processed_prompt_tokens.total,long,custom,,12345,Number of prompt tokens processed as input representing total input tokens consumed
-9.1.0,true,azure,azure.open_ai.properties.api_id,keyword,custom,,example-api_id,Unique ID of API accessed through Azure API Management for tracking API configuration
-9.1.0,true,azure,azure.open_ai.properties.api_name,keyword,custom,,example-api_name,"Complete Azure OpenAI API name and version (e.g., ""Azure OpenAI API version 2024-02-15-preview"")"
-9.1.0,true,azure,azure.open_ai.properties.api_revision,keyword,custom,,example-api_revision,API revision number indicating which API configuration version processed the request
-9.1.0,true,azure,azure.open_ai.properties.backend_method,keyword,custom,,example-backend_method,"HTTP method for backend OpenAI API request (GET, POST, PUT, DELETE) indicating operation type"
-9.1.0,true,azure,azure.open_ai.properties.backend_protocol,keyword,custom,,example-backend_protocol,"Protocol version for backend OpenAI communication (HTTP/1.1, HTTP/2) for API gateway requests"
-9.1.0,true,azure,azure.open_ai.properties.backend_request_body,object,custom,,,Parsed JSON request body sent to OpenAI API including model parameters and prompts
-9.1.0,true,azure,azure.open_ai.properties.backend_response_body,object,custom,,,"Parsed JSON response body from OpenAI API including content, usage stats, and filtering"
-9.1.0,true,azure,azure.open_ai.properties.backend_response_code,long,custom,,12345,"HTTP status code from OpenAI backend (200=success, 4xx=client error, 5xx=server error)"
-9.1.0,true,azure,azure.open_ai.properties.backend_time,long,custom,,12345,"Processing time in ms by OpenAI backend for AI inference, excluding network latency"
-9.1.0,true,azure,azure.open_ai.properties.backend_url,keyword,custom,,example-backend_url,"Complete OpenAI API endpoint URL with deployment name, operation type, and API version"
-9.1.0,true,azure,azure.open_ai.properties.cache,keyword,custom,,example-cache,Cache status for OpenAI API request (served from cache or fresh computation)
-9.1.0,true,azure,azure.open_ai.properties.model_deployment_name,keyword,custom,,example-model_deployment_name,OpenAI model deployment name in Azure OpenAI service configuration
-9.1.0,true,azure,azure.open_ai.properties.model_name,keyword,custom,,example-model_name,"Underlying OpenAI model name (e.g., gpt-35-turbo, gpt-4) used for the request"
-9.1.0,true,azure,azure.open_ai.properties.model_version,keyword,custom,,example-model_version,"OpenAI model version ID (e.g., ""0301"" for March 2023 release)"
-9.1.0,true,azure,azure.open_ai.properties.object_id,keyword,custom,,example-object_id,Object ID for Azure OpenAI audit operation (user/service principal)
-9.1.0,true,azure,azure.open_ai.properties.operation_id,keyword,custom,,example-operation_id,Unique ID for OpenAI API operation used for log correlation and tracking
-9.1.0,true,azure,azure.open_ai.properties.request_time,long,custom,,12345,Request start timestamp in Windows file time format (100-ns intervals since 1601 UTC)
-9.1.0,true,azure,azure.open_ai.properties.response_time,long,custom,,12345,Response received timestamp in Windows file time format for duration calculation
-9.1.0,true,azure,azure.open_ai.properties.stream_type,keyword,custom,,example-stream_type,OpenAI streaming type: Non-Streaming (single payload) or Streaming (incremental chunks)
-9.1.0,true,azure,azure.open_ai.provisioned_managed_utilization_v2.avg,long,custom,,12345,"PTU utilization % for provisioned deployment: (consumed/deployed)*100, throttled at ≥100%"
-9.1.0,true,azure,azure.open_ai.requests.total,long,custom,,12345,Azure OpenAI API call count over time period for usage monitoring
-9.1.0,true,azure,azure.open_ai.result_signature,keyword,custom,,example-result_signature,OpenAI API request result signature/status code indicating final outcome
-9.1.0,true,azure,azure.open_ai.sku,keyword,custom,,example-sku,"Azure OpenAI service tier/SKU (Basic, Standard, Premium) indicating pricing/features"
-9.1.0,true,azure,azure.open_ai.tenant,keyword,custom,,example-tenant,Azure tenant/region ID where OpenAI service is hosted (geographical location)
-9.1.0,true,azure,azure.open_ai.time_to_response.avg,long,custom,,12345,Average time for first response to appear after prompt submission measured by API gateway (metrics decoder only)
-9.1.0,true,azure,azure.open_ai.token_transaction.total,long,custom,,12345,Inference token count processed by OpenAI model for billing/usage tracking
-9.1.0,true,azure,azure.open_ai.truncated,long,custom,,12345,Log truncation indicator (non-zero = data omitted due to size limits)
-9.1.0,true,azure,azure.operation_name,keyword,custom,,example-operation_name,"The name of the operation being performed in Azure typically ""Microsoft.Web/sites/functions/log"""
-9.1.0,true,azure,azure.platformlogs.activity_id,keyword,custom,,example-activity_id,The unique identifier for the activity in Azure Platform Logs
-9.1.0,true,azure,azure.platformlogs.caller,keyword,custom,,example-caller,The caller or principal that initiated the operation
-9.1.0,true,azure,azure.platformlogs.category,keyword,custom,,example-category,The category of the Azure Platform Log event
-9.1.0,true,azure,azure.platformlogs.ccpnamespace,keyword,custom,,example-ccpnamespace,The CCP namespace associated with the event
-9.1.0,true,azure,azure.platformlogs.cloud,keyword,custom,,example-cloud,The Azure cloud environment where the event was generated
-9.1.0,true,azure,azure.platformlogs.environment,keyword,custom,,example-environment,The Azure environment (such as Production Test etc.) where the event occurred
-9.1.0,true,azure,azure.platformlogs.event_category,keyword,custom,,example-event_category,The event category for the Azure Platform Log
-9.1.0,true,azure,azure.platformlogs.event_time_string,keyword,custom,,example-event_time_string,The string representation of the event time
-9.1.0,true,azure,azure.platformlogs.identity_name,keyword,custom,,example-identity_name,The name of the identity that performed the operation
-9.1.0,true,azure,azure.platformlogs.operation_name,keyword,custom,,example-operation_name,The name of the operation performed in the Azure Platform Log event
-9.1.0,true,azure,azure.platformlogs.properties.auth_type,keyword,custom,,example-auth_type,The type of authentication used for the request such as 'OAuth2' or 'ManagedIdentity'
-9.1.0,true,azure,azure.platformlogs.properties.device_id,keyword,custom,,example-device_id,The unique identifier of the device from which the event originated
-9.1.0,true,azure,azure.platformlogs.properties.direction,keyword,custom,,example-direction,The direction of the communication such as 'Inbound' or 'Outbound'
-9.1.0,true,azure,azure.platformlogs.properties.error_message,keyword,custom,,example-error_message,A descriptive error message associated with the request if any
-9.1.0,true,azure,azure.platformlogs.properties.log,keyword,custom,,example-log,The log field from the properties of the Platform Log
-9.1.0,true,azure,azure.platformlogs.properties.masked_ipaddress,ip,custom,,192.168.1.1,The masked IP address of the client making the request for privacy compliance
-9.1.0,true,azure,azure.platformlogs.properties.namespace,keyword,custom,,example-namespace,The namespace field from the properties of the Platform Log
-9.1.0,true,azure,azure.platformlogs.properties.pod,keyword,custom,,example-pod,The pod name from the properties of the Platform Log
-9.1.0,true,azure,azure.platformlogs.properties.protocol,keyword,custom,,example-protocol,The network protocol used in the request such as 'HTTPS' or 'AMQP'
-9.1.0,true,azure,azure.platformlogs.properties.raw,keyword,custom,,example-raw,The raw properties of the Azure Platform Log event containing unprocessed event data
-9.1.0,true,azure,azure.platformlogs.properties.request_name,keyword,custom,,example-request_name,The name of the request operation initiated
-9.1.0,true,azure,azure.platformlogs.properties.request_size,keyword,custom,,example-request_size,The size of the request payload in bytes
-9.1.0,true,azure,azure.platformlogs.properties.response_size,keyword,custom,,example-response_size,The size of the response payload in bytes
-9.1.0,true,azure,azure.platformlogs.properties.sdk_version,keyword,custom,,example-sdk_version,The version of the SDK used to make the request
-9.1.0,true,azure,azure.platformlogs.properties.status_code,keyword,custom,,example-status_code,The status code from the properties of the Platform Log
-9.1.0,true,azure,azure.platformlogs.properties.stream,keyword,custom,,example-stream,The stream field from the properties of the Platform Log
-9.1.0,true,azure,azure.platformlogs.properties.subscription_id,keyword,custom,,example-subscription_id,The subscription ID from the properties of the Platform Log
-9.1.0,true,azure,azure.platformlogs.result_description,keyword,custom,,example-result_description,The description of the result of the operation
-9.1.0,true,azure,azure.platformlogs.result_signature,keyword,custom,,example-result_signature,The result signature of the operation
-9.1.0,true,azure,azure.platformlogs.result_type,keyword,custom,,example-result_type,The result type of the operation (e.g. Success Failure)
-9.1.0,true,azure,azure.platformlogs.scaleunit,keyword,custom,,example-scaleunit,The scale unit associated with the Azure resource or event
-9.1.0,true,azure,azure.platformlogs.status,keyword,custom,,example-status,The status of the operation (e.g. Succeeded Failed)
-9.1.0,true,azure,azure.provisioning.category,keyword,custom,,example-category,This is the category of the provisioning event
-9.1.0,true,azure,azure.provisioning.identity,keyword,custom,,example-identity,The identity associated with the provisioning operation
-9.1.0,true,azure,azure.provisioning.level,keyword,custom,,example-level,The log level of the provisioning event
-9.1.0,true,azure,azure.provisioning.operation_name,keyword,custom,,example-operation_name,The represents name of the provisioning operation
-9.1.0,true,azure,azure.provisioning.operation_version,keyword,custom,,example-operation_version,The version of the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.action,keyword,custom,,example-action,The action performed in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.activity_datetime,date,custom,,2023-01-01T00:00:00.000Z,The date and time when the provisioning activity occurred
-9.1.0,true,azure,azure.provisioning.properties.change_id,keyword,custom,,example-change_id,The change ID for the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.cycle_id,keyword,custom,,example-cycle_id,The cycle ID for the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.duration_ms,long,custom,,12345,The duration of the provisioning operation in milliseconds
-9.1.0,true,azure,azure.provisioning.properties.id,keyword,custom,,example-id,The unique identifier for the provisioning properties
-9.1.0,true,azure,azure.provisioning.properties.initiated_by.id,keyword,custom,,example-id,The ID of the entity that initiated the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.initiated_by.name,keyword,custom,,example-name,The name of the entity that initiated the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.initiated_by.type,keyword,custom,,example-type,The type of the entity that initiated the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.job_id,keyword,custom,,example-job_id,The job ID for the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.modified_properties,object,custom,,,The modified properties during the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.provisioning_action,keyword,custom,,example-provisioning_action,This field indicates the provisioning action performed
-9.1.0,true,azure,azure.provisioning.properties.provisioning_status_info.error_information.additional_details,keyword,custom,,example-additional_details,Additional details about the error in the provisioning status information
-9.1.0,true,azure,azure.provisioning.properties.provisioning_status_info.error_information.error_category,keyword,custom,,example-error_category,The error category in the provisioning status information
-9.1.0,true,azure,azure.provisioning.properties.provisioning_status_info.error_information.error_code,keyword,custom,,example-error_code,The error code in the provisioning status information
-9.1.0,true,azure,azure.provisioning.properties.provisioning_status_info.error_information.reason,keyword,custom,,example-reason,The reason for the error in the provisioning status information
-9.1.0,true,azure,azure.provisioning.properties.provisioning_status_info.error_information.recommended_action,keyword,custom,,example-recommended_action,The recommended action for the error in the provisioning status information
-9.1.0,true,azure,azure.provisioning.properties.provisioning_status_info.status,keyword,custom,,example-status,The status of the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.provisioning_steps,object,custom,,,The provisioning steps performed during the operation
-9.1.0,true,azure,azure.provisioning.properties.provisioning_steps.provisioning_step_type,keyword,custom,,example-provisioning_step_type,This indicates the type of provisioning step performed
-9.1.0,true,azure,azure.provisioning.properties.service_principal.id,keyword,custom,,example-id,The ID of the service principal involved in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.service_principal.name,keyword,custom,,example-name,The name of the service principal involved in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.source_identity.details.display_name,keyword,custom,,example-display_name,The display name of the source identity
-9.1.0,true,azure,azure.provisioning.properties.source_identity.details.user_principal_name,keyword,custom,,example-user_principal_name,The user principal name of the source identity
-9.1.0,true,azure,azure.provisioning.properties.source_identity.id,keyword,custom,,example-id,The ID of the source identity in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.source_identity.identity_type,keyword,custom,,example-identity_type,The type of the source identity in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.source_identity.name,keyword,custom,,example-name,The name of the source identity in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.source_system.details,object,custom,,,The details object for the source system
-9.1.0,true,azure,azure.provisioning.properties.source_system.details.application_id,keyword,custom,,example-application_id,The application ID of the source system
-9.1.0,true,azure,azure.provisioning.properties.source_system.details.dervice_principal_display_name,keyword,custom,,example-dervice_principal_display_name,The display name of the service principal for the source system
-9.1.0,true,azure,azure.provisioning.properties.source_system.details.service_principal_id,keyword,custom,,example-service_principal_id,The service principal ID for the source system
-9.1.0,true,azure,azure.provisioning.properties.source_system.id,keyword,custom,,example-id,The ID of the source system in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.source_system.name,keyword,custom,,example-name,The name of the source system in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.target_identity.details,object,custom,,,The details object for the target identity
-9.1.0,true,azure,azure.provisioning.properties.target_identity.details.display_name,keyword,custom,,example-display_name,The display name of the target identity
-9.1.0,true,azure,azure.provisioning.properties.target_identity.details.user_principal_name,keyword,custom,,example-user_principal_name,The user principal name of the target identity
-9.1.0,true,azure,azure.provisioning.properties.target_identity.id,keyword,custom,,example-id,The ID of the target identity in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.target_identity.identity_type,keyword,custom,,example-identity_type,The type of the target identity in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.target_identity.name,keyword,custom,,example-name,The name of the target identity in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.target_system.details,object,custom,,,The details object for the target system
-9.1.0,true,azure,azure.provisioning.properties.target_system.details.application_id,keyword,custom,,example-application_id,The application ID of the target system
-9.1.0,true,azure,azure.provisioning.properties.target_system.details.dervice_principal_display_name,keyword,custom,,example-dervice_principal_display_name,The display name of the service principal for the target system
-9.1.0,true,azure,azure.provisioning.properties.target_system.details.service_principal_id,keyword,custom,,example-service_principal_id,The service principal ID for the target system
-9.1.0,true,azure,azure.provisioning.properties.target_system.id,keyword,custom,,example-id,The ID of the target system in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.target_system.name,keyword,custom,,example-name,The name of the target system in the provisioning operation
-9.1.0,true,azure,azure.provisioning.properties.tenant_id,keyword,custom,,example-tenant_id,The tenant ID from the provisioning properties
-9.1.0,true,azure,azure.provisioning.result_signature,keyword,custom,,example-result_signature,The result signature of the provisioning operation
-9.1.0,true,azure,azure.provisioning.result_type,keyword,custom,,example-result_type,The result type of the provisioning operation (e.g. Success Failure)
-9.1.0,true,azure,azure.resource.authorization_rule,keyword,custom,,example-authorization_rule,The authorization rule associated with the Azure resource extracted from the resource ID
-9.1.0,true,azure,azure.resource.group,keyword,custom,,example-group,Azure resource group name containing the OpenAI service for resource organization
-9.1.0,true,azure,azure.resource.id,keyword,custom,,example-id,Complete Azure Resource Manager ID uniquely identifying OpenAI service across subscriptions
-9.1.0,true,azure,azure.resource.name,keyword,custom,,example-name,Azure resource name as defined during provisioning within its resource group
-9.1.0,true,azure,azure.resource.namespace,keyword,custom,,example-namespace,The Azure Resource Provider namespace associated with the resource involved in the event
-9.1.0,true,azure,azure.resource.provider,keyword,custom,,example-provider,"Azure resource provider namespace/type (e.g., microsoft.cognitiveservices/accounts)"
-9.1.0,true,azure,azure.resource.tags,object,custom,,,This field indicates Azure resource tags
-9.1.0,true,azure,azure.resource.type,keyword,custom,,example-type,"Azure resource type (e.g., Microsoft.CognitiveServices/accounts) for categorization"
-9.1.0,true,azure,azure.rule.category,keyword,custom,,example-category,The category of the rule triggered in the Application Gateway
-9.1.0,true,azure,azure.rule.description,keyword,custom,,example-description,The description of the rule in the Application Gateway
-9.1.0,true,azure,azure.rule.id,keyword,custom,,example-id,The unique identifier of the rule in the Application Gateway
-9.1.0,true,azure,azure.rule.ruleset,keyword,custom,,example-ruleset,The rule set name in the Application Gateway
-9.1.0,true,azure,azure.rule.version,keyword,custom,,example-version,The version of the rule set in the Application Gateway
-9.1.0,true,azure,azure.signinlogs.caller_ip_address,ip,custom,,192.168.1.1,The IP address from which the sign-in was attempted
-9.1.0,true,azure,azure.signinlogs.category,keyword,custom,,example-category,The category of the Azure AD Sign-in log event
-9.1.0,true,azure,azure.signinlogs.identity,keyword,custom,,example-identity,The identity value associated with the sign-in event
-9.1.0,true,azure,azure.signinlogs.operation_name,keyword,custom,,example-operation_name,"The name of the operation performed (typically ""Sign-in activity"")"
-9.1.0,true,azure,azure.signinlogs.operation_version,keyword,custom,,example-operation_version,The version of the operation performed
-9.1.0,true,azure,azure.signinlogs.properties.app_display_name,keyword,custom,,example-app_display_name,The display name of the application involved in the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.app_id,keyword,custom,,example-app_id,The application ID involved in the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.applied_conditional_access_policies,object,custom,,,Conditional access policies applied to the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.authentication_details,object,custom,,,Details about the authentication methods used during sign-in
-9.1.0,true,azure,azure.signinlogs.properties.authentication_processing_details,object,custom,,,Details about the authentication processing for the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.authentication_protocol,keyword,custom,,example-authentication_protocol,The authentication protocol used for the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.authentication_requirement,keyword,custom,,example-authentication_requirement,The authentication requirement for the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.authentication_requirement_policies,object,custom,,,The policies that define authentication requirements
-9.1.0,true,azure,azure.signinlogs.properties.autonomous_system_number,long,custom,,12345,The autonomous system number associated with the sign-in source IP
-9.1.0,true,azure,azure.signinlogs.properties.client_app_used,keyword,custom,,example-client_app_used,The client application used for the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.conditional_access_status,keyword,custom,,example-conditional_access_status,The result of conditional access policies applied to the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.correlation_id,keyword,custom,,example-correlation_id,The correlation ID specific to the sign-in log event
-9.1.0,true,azure,azure.signinlogs.properties.created_at,date,custom,,2023-01-01T00:00:00.000Z,The timestamp when the sign-in event was created
-9.1.0,true,azure,azure.signinlogs.properties.cross_tenant_access_type,keyword,custom,,example-cross_tenant_access_type,The type of cross-tenant access for the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.browser,keyword,custom,,example-browser,The browser used on the device for sign-in
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.device_id,keyword,custom,,example-device_id,The device ID of the device used for sign-in
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.display_name,keyword,custom,,example-display_name,The display name of the device used for sign-in
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.is_compliant,boolean,custom,,True,Indicates if the device used for sign-in is compliant
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.is_managed,boolean,custom,,True,Indicates if the device used for sign-in is managed
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.operating_system,keyword,custom,,example-operating_system,The operating system of the device used for sign-in
-9.1.0,true,azure,azure.signinlogs.properties.device_detail.trust_type,keyword,custom,,example-trust_type,The trust type of the device used for sign-in
-9.1.0,true,azure,azure.signinlogs.properties.flagged_for_review,boolean,custom,,True,Indicates if the sign-in event was flagged for review
-9.1.0,true,azure,azure.signinlogs.properties.home_tenant_id,keyword,custom,,example-home_tenant_id,The home tenant ID of the user
-9.1.0,true,azure,azure.signinlogs.properties.id,keyword,custom,,example-id,The unique identifier for the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.incoming_token_type,keyword,custom,,example-incoming_token_type,The type of token presented during sign-in
-9.1.0,true,azure,azure.signinlogs.properties.is_interactive,boolean,custom,,True,Indicates if the sign-in was interactive
-9.1.0,true,azure,azure.signinlogs.properties.is_tenant_restricted,boolean,custom,,True,Indicates if the sign-in was restricted to the tenant
-9.1.0,true,azure,azure.signinlogs.properties.original_request_id,keyword,custom,,example-original_request_id,The original request ID for the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.processing_time_in_ms,long,custom,,12345,The processing time for the sign-in event in milliseconds
-9.1.0,true,azure,azure.signinlogs.properties.resource_display_name,keyword,custom,,example-resource_display_name,The display name of the resource accessed during sign-in
-9.1.0,true,azure,azure.signinlogs.properties.resource_id,keyword,custom,,example-resource_id,The resource ID from the sign-in log properties
-9.1.0,true,azure,azure.signinlogs.properties.resource_tenant_id,keyword,custom,,example-resource_tenant_id,The tenant ID of the resource accessed during sign-in
-9.1.0,true,azure,azure.signinlogs.properties.risk_detail,keyword,custom,,example-risk_detail,Additional details about the risk detected during sign-in
-9.1.0,true,azure,azure.signinlogs.properties.risk_level_aggregated,keyword,custom,,example-risk_level_aggregated,The aggregated risk level for the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.risk_level_during_signIn,keyword,custom,,example-risk_level_during_signIn,The risk level during the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.risk_state,keyword,custom,,example-risk_state,The state of the risk for the sign-in event
-9.1.0,true,azure,azure.signinlogs.properties.service_principal_id,keyword,custom,,example-service_principal_id,The service principal ID associated with the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.service_principal_name,keyword,custom,,example-service_principal_name,The service principal name associated with the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.status.error_code,long,custom,,12345,The error code returned in the sign-in status
-9.1.0,true,azure,azure.signinlogs.properties.token_issuer_type,keyword,custom,,example-token_issuer_type,The type of token issuer for the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.unique_token_identifier,keyword,custom,,example-unique_token_identifier,The unique identifier for the token used in the sign-in
-9.1.0,true,azure,azure.signinlogs.properties.user_display_name,keyword,custom,,example-user_display_name,The display name of the user who attempted sign-in
-9.1.0,true,azure,azure.signinlogs.properties.user_id,keyword,custom,,example-user_id,The unique identifier of the user who attempted sign-in
-9.1.0,true,azure,azure.signinlogs.properties.user_principal_name,keyword,custom,,example-user_principal_name,The user principal name (UPN) of the user who attempted sign-in
-9.1.0,true,azure,azure.signinlogs.properties.user_type,keyword,custom,,example-user_type,The type of user (e.g. Member Guest)
-9.1.0,true,azure,azure.signinlogs.result_description,keyword,custom,,example-result_description,A description of the result of the sign-in attempt
-9.1.0,true,azure,azure.signinlogs.result_signature,keyword,custom,,example-result_signature,The result signature for the sign-in event
-9.1.0,true,azure,azure.signinlogs.result_type,keyword,custom,,example-result_type,The result type for the sign-in event
-9.1.0,true,azure,azure.springcloudlogs.category,keyword,custom,,example-category,The category of the Azure Spring Cloud log (e.g. SystemLogs ApplicationConsole)
-9.1.0,true,azure,azure.springcloudlogs.event_category,keyword,custom,,example-event_category,The event category for the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.level,keyword,custom,,example-level,The log level of the Azure Spring Cloud log entry
-9.1.0,true,azure,azure.springcloudlogs.log_format,keyword,custom,,example-log_format,The log format of the Azure Spring Cloud log entry
-9.1.0,true,azure,azure.springcloudlogs.operation_name,keyword,custom,,example-operation_name,The name of the operation performed in the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.app_name,keyword,custom,,example-app_name,The application name from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.instance_name,keyword,custom,,example-instance_name,The instance name from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.logger,keyword,custom,,example-logger,The logger name from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.service_id,keyword,custom,,example-service_id,The service ID from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.service_name,keyword,custom,,example-service_name,The service name from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.stack,keyword,custom,,example-stack,The stack trace from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.status_code,keyword,custom,,example-status_code,The status code from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.stream,keyword,custom,,example-stream,The stream name from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.thread,keyword,custom,,example-thread,The thread name from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.properties.type,keyword,custom,,example-type,The type field from the properties of the Azure Spring Cloud log
-9.1.0,true,azure,azure.springcloudlogs.result_signature,keyword,custom,,example-result_signature,The result signature of the operation
-9.1.0,true,azure,azure.springcloudlogs.result_type,keyword,custom,,example-result_type,The result type of the operation (e.g. Success Failure)
-9.1.0,true,azure,azure.springcloudlogs.status,keyword,custom,,example-status,The status of the operation (e.g. Succeeded Failed)
-9.1.0,true,azure,azure.storage.account_name,keyword,custom,,example-account_name,Name of the Azure Storage account targeted by the request
-9.1.0,true,azure,azure.storage.client_request_id,keyword,custom,,example-client_request_id,Client-provided request ID for correlation and troubleshooting
-9.1.0,true,azure,azure.storage.conditions_used,keyword,custom,,example-conditions_used,Conditional headers used (If-Modified-Since/If-Match/If-None-Match)
-9.1.0,true,azure,azure.storage.container,keyword,custom,,example-container,Container name(s) referenced by the operation (multi-valued)
-9.1.0,true,azure,azure.storage.content_length_header,long,custom,,12345,Content-Length header value in the HTTP request
-9.1.0,true,azure,azure.storage.duration.ms,long,custom,,12345,End-to-end request duration in milliseconds
-9.1.0,true,azure,azure.storage.etag,keyword,custom,,example-etag,ETag associated with the blob resource for versioning
-9.1.0,true,azure,azure.storage.last_modified_time,date,custom,,2023-01-01T00:00:00.000Z,Last modification timestamp of the blob resource
-9.1.0,true,azure,azure.storage.operation.name,keyword,custom,,example-name,Storage operation name (ListBlobs/GetBlob/PutBlob/DeleteBlob)
-9.1.0,true,azure,azure.storage.operation.version,keyword,custom,,example-version,Azure Storage service API version used for the operation
-9.1.0,true,azure,azure.storage.operation_count,long,custom,,12345,Number of operations performed in this request
-9.1.0,true,azure,azure.storage.request_header_size,long,custom,,12345,Size of the HTTP request headers in bytes
-9.1.0,true,azure,azure.storage.request_md5,keyword,custom,,example-request_md5,Base64-encoded MD5 hash supplied by client for payload integrity
-9.1.0,true,azure,azure.storage.request_url,keyword,custom,,example-request_url,Absolute request URL including path and query parameters
-9.1.0,true,azure,azure.storage.response_header_size,long,custom,,12345,Size of the HTTP response headers in bytes
-9.1.0,true,azure,azure.storage.schema.version,keyword,custom,,example-version,Schema version of the Azure Storage log record format
-9.1.0,true,azure,azure.storage.server_latency.ms,long,custom,,12345,Server processing latency in milliseconds (excluding network time)
-9.1.0,true,azure,azure.storage.server_md5,keyword,custom,,example-server_md5,Server-side MD5 hash for the response payload validation
-9.1.0,true,azure,azure.storage.service_type,keyword,custom,,example-service_type,Storage service type (blob/file/queue/table)
-9.1.0,true,azure,azure.storage.status_text,keyword,custom,,example-status_text,Service-level textual status describing operation outcome
-9.1.0,true,azure,azure.storage_account.availability.avg,long,custom,,12345,Average availability of the storage account
-9.1.0,true,azure,azure.storage_account.used_capacity.avg,long,custom,,12345,Average used storage capacity of the storage account
-9.1.0,true,azure,azure.subscription_id,keyword,custom,,example-subscription_id,Azure subscription ID where OpenAI service is provisioned for billing/access control
-9.1.0,true,azure,azure.tenant_id,keyword,custom,,example-tenant_id,The tenant ID associated with the Azure Audit Log event
-9.1.0,true,azure,azure.timegrain,keyword,custom,,example-timegrain,"Time granularity for Azure metrics (e.g., ""PT1M"" for 1-minute intervals)"
-9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
+9.1.0,true,check,check.compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
@@ -576,13 +141,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
-9.1.0,true,compliance,compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
-9.1.0,true,compliance,compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
-9.1.0,true,compliance,compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
-9.1.0,true,compliance,compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
-9.1.0,true,compliance,compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
-9.1.0,true,compliance,compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
-9.1.0,true,compliance,compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -1053,8 +666,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,log,log.syslog.severity.name,keyword,extended,,Error,Syslog text-based severity of the event.
 9.1.0,true,log,log.syslog.structured_data,flat_object,extended,,,Structured data expressed in RFC 5424 messages.
 9.1.0,true,log,log.syslog.version,keyword,extended,,1,Syslog protocol version.
-9.1.0,true,metricset,metricset.name,keyword,custom,,example-name,"Name of metricset that collected data. Identifies Azure metric type (storage_account, container_service, compute_vm)."
-9.1.0,true,metricset,metricset.period,long,custom,,12345,Collection interval (ms) for the metricset. Indicates how frequently metrics were gathered from Azure resource.
 9.1.0,true,network,network.application,keyword,extended,,aim,Application level protocol name.
 9.1.0,true,network,network.broadcast,ip,custom,,192.168.0.255,Broadcast address.
 9.1.0,true,network,network.bytes,long,core,,368,Total bytes transferred in both directions.
