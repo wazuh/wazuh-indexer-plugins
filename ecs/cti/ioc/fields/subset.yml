@@ -4,6 +4,9 @@ fields:
   base:
     fields:
       message: {}
+      hash:
+        fields:
+          sha256: {}
   document:
     fields:
       confidence: {}
