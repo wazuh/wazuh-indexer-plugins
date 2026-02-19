@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -47,7 +47,10 @@ public class IndexStateManagement extends Index {
 
     // ISM policies names (filename without extension)
     static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
-    static final String STREAM_ROLLOVER_POLICY_PATH = "policies/" + STREAM_ROLLOVER_POLICY + ".json";
+    static final String RAW_EVENTS_PURGE_POLICY = "raw-events-purge-policy";
+
+    /** Base path for ISM policy files */
+    static final String POLICIES_PATH = "policies/";
 
     private final List<String> policies;
 
@@ -63,6 +66,7 @@ public class IndexStateManagement extends Index {
 
         // Add ISM policies to be created
         this.policies.add(STREAM_ROLLOVER_POLICY);
+        this.policies.add(RAW_EVENTS_PURGE_POLICY);
     }
 
     /**
@@ -80,14 +84,11 @@ public class IndexStateManagement extends Index {
      */
     void indexPolicy(String policy) {
         try {
-            Map<String, Object> policyFile;
-
-            policyFile = this.jsonUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
+            String policyPath = POLICIES_PATH + policy + ".json";
+            Map<String, Object> policyFile = this.jsonUtils.fromFile(policyPath);
 
             IndexRequest indexRequest =
-                    new IndexRequest(this.index)
-                            .id(STREAM_ROLLOVER_POLICY)
-                            .source(policyFile, MediaTypeRegistry.JSON);
+                    new IndexRequest(this.index).id(policy).source(policyFile, MediaTypeRegistry.JSON);
 
             this.client
                     .index(indexRequest)
