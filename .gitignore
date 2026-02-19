@@ -9,3 +9,9 @@ build
 
 # Log file
 *.log
+
+# Ignore Python virtual environment directories
+*.venv/
+*.env/
+*venv/
+*env/

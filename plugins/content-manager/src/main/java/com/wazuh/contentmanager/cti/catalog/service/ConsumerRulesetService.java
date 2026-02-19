@@ -161,7 +161,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             this.syncRules();
 
             // Sync Detectors
-            this.syncDetectors();
+            if (PluginSettings.getInstance().getCreateDetectors()) {
+                this.syncDetectors();
+            }
 
             this.spaceService.calculateAndUpdate();
         }
