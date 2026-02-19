@@ -59,27 +59,29 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *   <li>The KVDB ID is listed in the integration's kvdbs list.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On request failure.
      */
     public void testPostKvdb_success() throws IOException {
-        String integrationId = createIntegration("test-kvdb-integration");
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String integrationId = this.createIntegration("test-kvdb-integration");
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
-        String kvdbId = createKvdb(integrationId);
+        String kvdbId = this.createKvdb(integrationId);
 
         // Verify resource exists in draft space
-        assertResourceExistsInDraft(Constants.INDEX_KVDBS, kvdbId);
+        this.assertResourceExistsInDraft(Constants.INDEX_KVDBS, kvdbId);
 
         // Verify space.name and hash
-        JsonNode source = getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
+        JsonNode source = this.getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
         assertNotNull(source);
-        assertSpaceName(source, "draft");
-        assertHashPresent(source, "KVDB");
+        this.assertSpaceName(source);
+        this.assertHashPresent(source, "KVDB");
 
         // Verify KVDB is in integration's kvdbs list
-        assertResourceInIntegrationList(integrationId, Constants.KEY_KVDBS, kvdbId);
+        this.assertResourceInIntegrationList(integrationId, Constants.KEY_KVDBS, kvdbId);
 
         // Verify draft policy space hash changed
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after KVDB creation",
                 policyHashBefore,
@@ -90,9 +92,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      * Create a KVDB with missing title.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request failure.
      */
     public void testPostKvdb_missingTitle() throws IOException {
-        String integrationId = createIntegration("test-kvdb-no-title");
+        String integrationId = this.createIntegration("test-kvdb-no-title");
 
         // spotless:off
         String payload = """
@@ -110,7 +114,8 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.KVDBS_URI, body));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, body));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -119,9 +124,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      * Create a KVDB with missing author.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request failure.
      */
     public void testPostKvdb_missingAuthor() throws IOException {
-        String integrationId = createIntegration("test-kvdb-no-author");
+        String integrationId = this.createIntegration("test-kvdb-no-author");
 
         // spotless:off
         String payload = """
@@ -139,7 +146,8 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.KVDBS_URI, body));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, body));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -148,9 +156,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      * Create a KVDB with missing content.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request failure.
      */
     public void testPostKvdb_missingContent() throws IOException {
-        String integrationId = createIntegration("test-kvdb-no-content");
+        String integrationId = this.createIntegration("test-kvdb-no-content");
 
         // spotless:off
         String payload = """
@@ -168,7 +178,8 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.KVDBS_URI, body));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, body));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -178,7 +189,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostKvdb_missingIntegration() throws IOException {
+    public void testPostKvdb_missingIntegration() {
         // spotless:off
         String payload = """
                 {
@@ -194,7 +205,8 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.KVDBS_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -203,9 +215,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      * Create a KVDB with an explicit id in the resource.
      *
      * <p>Verifies: Response status code is 201 (ID is ignored).
+     *
+     * @throws IOException On request failure.
      */
     public void testPostKvdb_explicitId() throws IOException {
-        String integrationId = createIntegration("test-kvdb-explicit-id");
+        String integrationId = this.createIntegration("test-kvdb-explicit-id");
 
         // spotless:off
         String payload = """
@@ -224,8 +238,8 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
         // spotless:on
 
         // The system silently ignores the explicit ID and auto-generates one (201)
-        Response response = makeRequest("POST", PluginSettings.KVDBS_URI, body);
-        int statusCode = getStatusCode(response);
+        Response response = this.makeRequest("POST", PluginSettings.KVDBS_URI, body);
+        int statusCode = this.getStatusCode(response);
         assertEquals("Status should be 201 (id ignored)", 201, statusCode);
     }
 
@@ -234,7 +248,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostKvdb_nonDraftIntegration() throws IOException {
+    public void testPostKvdb_nonDraftIntegration() {
         // spotless:off
         String payload = """
                 {
@@ -255,9 +269,10 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.KVDBS_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, payload));
         int status = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 for non-existent integration", status == 400);
+        assertEquals("Expected 400 for non-existent integration", 400, status);
     }
 
     /**
@@ -265,10 +280,10 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostKvdb_emptyBody() throws IOException {
+    public void testPostKvdb_emptyBody() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.KVDBS_URI, ""));
+                        ResponseException.class, () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -289,14 +304,16 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On request failure.
      */
     public void testPutKvdb_success() throws IOException {
-        String integrationId = createIntegration("test-kvdb-put-int");
-        String kvdbId = createKvdb(integrationId);
+        String integrationId = this.createIntegration("test-kvdb-put-int");
+        String kvdbId = this.createKvdb(integrationId);
 
-        JsonNode sourceBefore = getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
+        JsonNode sourceBefore = this.getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
         String hashBefore = sourceBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
         // spotless:off
         String payload = """
@@ -320,20 +337,20 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                 """;
         // spotless:on
 
-        Response response = makeRequest("PUT", PluginSettings.KVDBS_URI + "/" + kvdbId, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.makeRequest("PUT", PluginSettings.KVDBS_URI + "/" + kvdbId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify updated in index
-        JsonNode sourceAfter = getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
+        JsonNode sourceAfter = this.getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
         assertNotNull(sourceAfter);
-        assertSpaceName(sourceAfter, "draft");
+        this.assertSpaceName(sourceAfter);
 
         // Verify hash updated
         String hashAfter = sourceAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
         assertNotEquals("KVDB hash should have been updated", hashBefore, hashAfter);
 
         // Verify draft policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated", policyHashBefore, policyHashAfter);
     }
@@ -342,10 +359,12 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      * Update a KVDB with missing required fields.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request failure.
      */
     public void testPutKvdb_missingRequiredFields() throws IOException {
-        String integrationId = createIntegration("test-kvdb-put-missing");
-        String kvdbId = createKvdb(integrationId);
+        String integrationId = this.createIntegration("test-kvdb-put-missing");
+        String kvdbId = this.createKvdb(integrationId);
 
         // spotless:off
         String payload = """
@@ -360,7 +379,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.KVDBS_URI + "/" + kvdbId, payload));
+                        () -> this.makeRequest("PUT", PluginSettings.KVDBS_URI + "/" + kvdbId, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -370,7 +389,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutKvdb_notFound() throws IOException {
+    public void testPutKvdb_notFound() {
         // spotless:off
         String payload = """
                 {
@@ -392,7 +411,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                makeRequest(
+                                this.makeRequest(
                                         "PUT",
                                         PluginSettings.KVDBS_URI + "/00000000-0000-0000-0000-000000000000",
                                         payload));
@@ -404,7 +423,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutKvdb_invalidUuid() throws IOException {
+    public void testPutKvdb_invalidUuid() {
         // spotless:off
         String payload = """
                 {
@@ -421,7 +440,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.KVDBS_URI + "/not-a-uuid", payload));
+                        () -> this.makeRequest("PUT", PluginSettings.KVDBS_URI + "/not-a-uuid", payload));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -429,15 +448,17 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      * Update a KVDB with empty body.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request failure.
      */
     public void testPutKvdb_emptyBody() throws IOException {
-        String integrationId = createIntegration("test-kvdb-put-empty");
-        String kvdbId = createKvdb(integrationId);
+        String integrationId = this.createIntegration("test-kvdb-put-empty");
+        String kvdbId = this.createKvdb(integrationId);
 
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.KVDBS_URI + "/" + kvdbId, "{}"));
+                        () -> this.makeRequest("PUT", PluginSettings.KVDBS_URI + "/" + kvdbId, "{}"));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -458,30 +479,32 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *   <li>The integration's hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On request failure.
      */
     public void testDeleteKvdb_success() throws IOException {
-        String integrationId = createIntegration("test-kvdb-delete-int");
-        String kvdbId = createKvdb(integrationId);
+        String integrationId = this.createIntegration("test-kvdb-delete-int");
+        String kvdbId = this.createKvdb(integrationId);
 
         // Capture hashes before deletion
         JsonNode integrationBefore =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String integrationHashBefore =
                 integrationBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
-        Response response = deleteResource(PluginSettings.KVDBS_URI, kvdbId);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.deleteResource(PluginSettings.KVDBS_URI, kvdbId);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify KVDB no longer exists in draft
-        assertResourceNotInDraft(Constants.INDEX_KVDBS, kvdbId);
+        this.assertResourceNotInDraft(Constants.INDEX_KVDBS, kvdbId);
 
         // Verify KVDB removed from integration's kvdbs list
-        assertResourceNotInIntegrationList(integrationId, Constants.KEY_KVDBS, kvdbId);
+        this.assertResourceNotInIntegrationList(integrationId, Constants.KEY_KVDBS, kvdbId);
 
         // Verify integration's hash was updated
         JsonNode integrationAfter =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String integrationHashAfter =
                 integrationAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
         assertNotEquals(
@@ -490,7 +513,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                 integrationHashAfter);
 
         // Verify policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after KVDB deletion",
                 policyHashBefore,
@@ -502,11 +525,13 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteKvdb_notFound() throws IOException {
+    public void testDeleteKvdb_notFound() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> deleteResource(PluginSettings.KVDBS_URI, "00000000-0000-0000-0000-000000000000"));
+                        () ->
+                                this.deleteResource(
+                                        PluginSettings.KVDBS_URI, "00000000-0000-0000-0000-000000000000"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -515,10 +540,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteKvdb_invalidUuid() throws IOException {
+    public void testDeleteKvdb_invalidUuid() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> deleteResource(PluginSettings.KVDBS_URI, "not-a-uuid"));
+                        ResponseException.class,
+                        () -> this.deleteResource(PluginSettings.KVDBS_URI, "not-a-uuid"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -527,11 +553,12 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 405.
      */
-    public void testDeleteKvdb_missingId() throws IOException {
+    public void testDeleteKvdb_missingId() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("DELETE", PluginSettings.KVDBS_URI + "/"));
+                        ResponseException.class,
+                        () -> this.makeRequest("DELETE", PluginSettings.KVDBS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 405 for missing ID", statusCode == 405);
+        assertEquals("Expected 405 for missing ID", 405, statusCode);
     }
 }

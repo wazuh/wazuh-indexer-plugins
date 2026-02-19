@@ -61,29 +61,32 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *   <li>The integration ID is listed in the draft policy's document.integrations.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testPostIntegration_success() throws IOException {
-        String hashBefore = getDraftPolicySpaceHash();
+        String hashBefore = this.getDraftPolicySpaceHash();
 
-        String integrationId = createIntegration("test-integration-post");
+        String integrationId = this.createIntegration("test-integration-post");
 
         // Verify resource exists in draft space
-        assertResourceExistsInDraft(Constants.INDEX_INTEGRATIONS, integrationId);
+        this.assertResourceExistsInDraft(Constants.INDEX_INTEGRATIONS, integrationId);
 
         // Verify space.name and hash
-        JsonNode source = getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+        JsonNode source =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         assertNotNull(source);
-        assertSpaceName(source, "draft");
-        assertHashPresent(source, "Integration");
+        this.assertSpaceName(source);
+        this.assertHashPresent(source, "Integration");
 
         // Verify integration is in draft policy's integrations list
-        List<String> policyIntegrations = getDraftPolicyIntegrations();
+        List<String> policyIntegrations = this.getDraftPolicyIntegrations();
         assertTrue(
                 "Integration ID should be in draft policy integrations list",
                 policyIntegrations.contains(integrationId));
 
         // Verify draft policy space hash changed
-        String hashAfter = getDraftPolicySpaceHash();
+        String hashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after creation", hashBefore, hashAfter);
     }
@@ -92,9 +95,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * Create an integration with the same title as an existing integration.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testPostIntegration_duplicateTitle() throws IOException {
-        createIntegration("test-integration-dup");
+        this.createIntegration("test-integration-dup");
 
         // spotless:off
         String payload = """
@@ -115,7 +120,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -125,7 +130,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400 and body contains "Missing [title] field."
      */
-    public void testPostIntegration_missingTitle() throws IOException {
+    public void testPostIntegration_missingTitle() {
         // spotless:off
         String payload = """
                 {
@@ -140,7 +145,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -150,7 +155,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400 and body contains "Missing [author] field."
      */
-    public void testPostIntegration_missingAuthor() throws IOException {
+    public void testPostIntegration_missingAuthor() {
         // spotless:off
         String payload = """
                 {
@@ -165,7 +170,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -175,7 +180,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostIntegration_missingCategory() throws IOException {
+    public void testPostIntegration_missingCategory() {
         // spotless:off
         String payload = """
                 {
@@ -190,7 +195,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -199,6 +204,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * Create an integration with an explicit id in the resource.
      *
      * <p>Verifies: Response status code is 201 (ID is ignored).
+     *
+     * @throws IOException on request or response parsing failure.
      */
     public void testPostIntegration_explicitIdIgnored() throws IOException {
         // spotless:off
@@ -217,9 +224,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 """;
         // spotless:on
 
-        Response response = makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
+        Response response = this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
         // The system may accept (ignore the ID) or reject it. Check behavior.
-        int statusCode = getStatusCode(response);
+        int statusCode = this.getStatusCode(response);
         assertEquals("Status should be 201 (id ignored)", 201, statusCode);
     }
 
@@ -228,11 +235,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostIntegration_missingResourceObject() throws IOException {
+    public void testPostIntegration_missingResourceObject() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.INTEGRATIONS_URI, "{}"));
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, "{}"));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -242,11 +249,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostIntegration_emptyBody() throws IOException {
+    public void testPostIntegration_emptyBody() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.INTEGRATIONS_URI, ""));
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -267,14 +274,16 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testPutIntegration_success() throws IOException {
-        String integrationId = createIntegration("test-integration-put");
+        String integrationId = this.createIntegration("test-integration-put");
 
         JsonNode sourceBefore =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String hashBefore = sourceBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
         // spotless:off
         String payload = """
@@ -296,14 +305,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         // spotless:on
 
         Response response =
-                makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+                this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify updated in index
         JsonNode sourceAfter =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         assertNotNull(sourceAfter);
-        assertSpaceName(sourceAfter, "draft");
+        this.assertSpaceName(sourceAfter);
         assertEquals(
                 "Updated description.",
                 sourceAfter.path(Constants.KEY_DOCUMENT).path("description").asText());
@@ -313,7 +322,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         assertNotEquals("Integration hash should have been updated", hashBefore, hashAfter);
 
         // Verify draft policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated", policyHashBefore, policyHashAfter);
     }
@@ -322,10 +331,12 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * Update an integration changing its title to one that already exists in draft space.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testPutIntegration_duplicateTitle() throws IOException {
-        String id1 = createIntegration("test-put-dup-a");
-        createIntegration("test-put-dup-b");
+        String id1 = this.createIntegration("test-put-dup-a");
+        this.createIntegration("test-put-dup-b");
 
         // spotless:off
         String payload = """
@@ -348,7 +359,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + id1, payload));
+                        () -> this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + id1, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -358,7 +369,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutIntegration_notFound() throws IOException {
+    public void testPutIntegration_notFound() {
         // spotless:off
         String payload = """
                 {
@@ -381,7 +392,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                makeRequest(
+                                this.makeRequest(
                                         "PUT",
                                         PluginSettings.INTEGRATIONS_URI + "/00000000-0000-0000-0000-000000000000",
                                         payload));
@@ -393,7 +404,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutIntegration_invalidUuid() throws IOException {
+    public void testPutIntegration_invalidUuid() {
         // spotless:off
         String payload = """
                 {
@@ -415,7 +426,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/not-a-uuid", payload));
+                        () ->
+                                this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/not-a-uuid", payload));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -423,9 +435,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * Update an integration with missing required fields.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testPutIntegration_missingRequiredFields() throws IOException {
-        String integrationId = createIntegration("test-integration-put-missing");
+        String integrationId = this.createIntegration("test-integration-put-missing");
 
         // spotless:off
         String payload = """
@@ -441,7 +455,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload));
+                                this.makeRequest(
+                                        "PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -450,9 +465,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * Update an integration with an id in the request body (should be ignored).
      *
      * <p>Verifies: Response status code is 200, since the ID is ignored on update.
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testPutIntegration_idInBodyIgnored() throws IOException {
-        String integrationId = createIntegration("test-integration-put-idinbody");
+        String integrationId = this.createIntegration("test-integration-put-idinbody");
 
         // spotless:off
         String payload = """
@@ -474,9 +491,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         // spotless:on
 
         Response response =
-                makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
-        Map<String, Object> body = parseResponseAsMap(response);
+                this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+        Map<String, Object> body = this.parseResponseAsMap(response);
         assertEquals("Path ID should be used, not body ID", integrationId, body.get("message"));
     }
 
@@ -496,34 +513,36 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *   <li>The draft policy space.hash.sha256 has been updated.
      *   <li>The draft policy hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testDeleteIntegration_success() throws IOException {
-        String integrationId = createIntegration("test-integration-delete");
+        String integrationId = this.createIntegration("test-integration-delete");
 
-        String policySpaceHashBefore = getDraftPolicySpaceHash();
-        String policyDocHashBefore = getDraftPolicyDocumentHash();
+        String policySpaceHashBefore = this.getDraftPolicySpaceHash();
+        String policyDocHashBefore = this.getDraftPolicyDocumentHash();
 
-        Response response = deleteResource(PluginSettings.INTEGRATIONS_URI, integrationId);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.deleteResource(PluginSettings.INTEGRATIONS_URI, integrationId);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify integration no longer exists in draft
-        assertResourceNotInDraft(Constants.INDEX_INTEGRATIONS, integrationId);
+        this.assertResourceNotInDraft(Constants.INDEX_INTEGRATIONS, integrationId);
 
         // Verify integration removed from draft policy's integrations list
-        List<String> policyIntegrations = getDraftPolicyIntegrations();
+        List<String> policyIntegrations = this.getDraftPolicyIntegrations();
         assertFalse(
                 "Integration ID should no longer be in draft policy integrations list",
                 policyIntegrations.contains(integrationId));
 
         // Verify draft policy space hash updated
-        String policySpaceHashAfter = getDraftPolicySpaceHash();
+        String policySpaceHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after delete",
                 policySpaceHashBefore,
                 policySpaceHashAfter);
 
         // Verify draft policy document hash updated
-        String policyDocHashAfter = getDraftPolicyDocumentHash();
+        String policyDocHashAfter = this.getDraftPolicyDocumentHash();
         assertNotEquals(
                 "Draft policy document hash should have been updated after delete",
                 policyDocHashBefore,
@@ -534,15 +553,17 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * Delete an integration that has attached resources (decoders).
      *
      * <p>Verifies: Response status code is 400 with message about attached resources.
+     *
+     * @throws IOException On request or response parsing failure.
      */
     public void testDeleteIntegration_hasAttachedResources() throws IOException {
-        String integrationId = createIntegration("test-integration-with-deps");
-        createDecoder(integrationId);
+        String integrationId = this.createIntegration("test-integration-with-deps");
+        this.createDecoder(integrationId);
 
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> deleteResource(PluginSettings.INTEGRATIONS_URI, integrationId));
+                        () -> this.deleteResource(PluginSettings.INTEGRATIONS_URI, integrationId));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -552,12 +573,12 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteIntegration_notFound() throws IOException {
+    public void testDeleteIntegration_notFound() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                deleteResource(
+                                this.deleteResource(
                                         PluginSettings.INTEGRATIONS_URI, "00000000-0000-0000-0000-000000000000"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -567,11 +588,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteIntegration_invalidUuid() throws IOException {
+    public void testDeleteIntegration_invalidUuid() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> deleteResource(PluginSettings.INTEGRATIONS_URI, "not-a-uuid"));
+                        () -> this.deleteResource(PluginSettings.INTEGRATIONS_URI, "not-a-uuid"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -580,11 +601,11 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 405.
      */
-    public void testDeleteIntegration_missingId() throws IOException {
+    public void testDeleteIntegration_missingId() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("DELETE", PluginSettings.INTEGRATIONS_URI + "/"));
+                        () -> this.makeRequest("DELETE", PluginSettings.INTEGRATIONS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
         assertEquals("Expected 405 for missing ID", 405, statusCode);
     }

@@ -59,28 +59,30 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *   <li>The rule ID is listed in the integration's rules list.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException
      */
     public void testPostRule_success() throws IOException {
         String integrationTitle = "test-rule-integration";
-        String integrationId = createIntegration(integrationTitle);
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String integrationId = this.createIntegration(integrationTitle);
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
-        String ruleId = createRule(integrationId, integrationTitle);
+        String ruleId = this.createRule(integrationId, integrationTitle);
 
         // Verify resource exists in draft space
-        assertResourceExistsInDraft(Constants.INDEX_RULES, ruleId);
+        this.assertResourceExistsInDraft(Constants.INDEX_RULES, ruleId);
 
         // Verify space.name and hash
-        JsonNode source = getResourceByDocumentId(Constants.INDEX_RULES, ruleId, "draft");
+        JsonNode source = this.getResourceByDocumentId(Constants.INDEX_RULES, ruleId, "draft");
         assertNotNull(source);
-        assertSpaceName(source, "draft");
-        assertHashPresent(source, "Rule");
+        this.assertSpaceName(source);
+        this.assertHashPresent(source, "Rule");
 
         // Verify rule is in integration's rules list
-        assertResourceInIntegrationList(integrationId, Constants.KEY_RULES, ruleId);
+        this.assertResourceInIntegrationList(integrationId, Constants.KEY_RULES, ruleId);
 
         // Verify draft policy space hash changed
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after rule creation",
                 policyHashBefore,
@@ -91,9 +93,11 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      * Create a rule with missing title.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to create integration fixture.
      */
     public void testPostRule_missingTitle() throws IOException {
-        String integrationId = createIntegration("test-rule-no-title");
+        String integrationId = this.createIntegration("test-rule-no-title");
 
         // spotless:off
         String payload = """
@@ -121,7 +125,8 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.RULES_URI, body));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.RULES_URI, body));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -131,7 +136,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostRule_missingIntegration() throws IOException {
+    public void testPostRule_missingIntegration() {
         // spotless:off
         String payload = """
                 {
@@ -155,7 +160,8 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.RULES_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.RULES_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -164,10 +170,12 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      * Create a rule with an explicit id in the resource.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to create integration fixture.
      */
     public void testPostRule_explicitId() throws IOException {
         String integrationTitle = "test-rule-explicit-id";
-        String integrationId = createIntegration(integrationTitle);
+        String integrationId = this.createIntegration(integrationTitle);
 
         // spotless:off
         String payload = """
@@ -200,9 +208,9 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
         // spotless:on
 
         // The system silently ignores the explicit ID and auto-generates one (201)
-        Response response = makeRequest("POST", PluginSettings.RULES_URI, body);
-        int statusCode = getStatusCode(response);
-        assertTrue("Status should be 201 (id ignored)", statusCode == 201);
+        Response response = this.makeRequest("POST", PluginSettings.RULES_URI, body);
+        int statusCode = this.getStatusCode(response);
+        assertEquals("Status should be 201 (id ignored)", 201, statusCode);
     }
 
     /**
@@ -210,7 +218,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostRule_nonDraftIntegration() throws IOException {
+    public void testPostRule_nonDraftIntegration() {
         // spotless:off
         String payload = """
                 {
@@ -236,9 +244,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.RULES_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.RULES_URI, payload));
         int status = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 for non-existent integration", status == 400);
+        assertEquals("Expected 400 for non-existent integration", 400, status);
     }
 
     /**
@@ -246,10 +255,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostRule_emptyBody() throws IOException {
+    public void testPostRule_emptyBody() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.RULES_URI, ""));
+                        ResponseException.class, () -> this.makeRequest("POST", PluginSettings.RULES_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -270,15 +279,18 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On failure to create integration or rule fixtures, or to retrieve documents
+     *     from the index.
      */
     public void testPutRule_success() throws IOException {
         String integrationTitle = "test-rule-put-int";
-        String integrationId = createIntegration(integrationTitle);
-        String ruleId = createRule(integrationId, integrationTitle);
+        String integrationId = this.createIntegration(integrationTitle);
+        String ruleId = this.createRule(integrationId, integrationTitle);
 
-        JsonNode sourceBefore = getResourceByDocumentId(Constants.INDEX_RULES, ruleId, "draft");
+        JsonNode sourceBefore = this.getResourceByDocumentId(Constants.INDEX_RULES, ruleId, "draft");
         String hashBefore = sourceBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
         // spotless:off
         String payload = """
@@ -305,20 +317,20 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 """;
         // spotless:on
 
-        Response response = makeRequest("PUT", PluginSettings.RULES_URI + "/" + ruleId, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.makeRequest("PUT", PluginSettings.RULES_URI + "/" + ruleId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify updated in index
-        JsonNode sourceAfter = getResourceByDocumentId(Constants.INDEX_RULES, ruleId, "draft");
+        JsonNode sourceAfter = this.getResourceByDocumentId(Constants.INDEX_RULES, ruleId, "draft");
         assertNotNull(sourceAfter);
-        assertSpaceName(sourceAfter, "draft");
+        this.assertSpaceName(sourceAfter);
 
         // Verify hash updated
         String hashAfter = sourceAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
         assertNotEquals("Rule hash should have been updated", hashBefore, hashAfter);
 
         // Verify draft policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated", policyHashBefore, policyHashAfter);
     }
@@ -327,11 +339,13 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      * Update a rule with missing title.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to create integration or rule fixtures.
      */
     public void testPutRule_missingTitle() throws IOException {
         String integrationTitle = "test-rule-put-notitle";
-        String integrationId = createIntegration(integrationTitle);
-        String ruleId = createRule(integrationId, integrationTitle);
+        String integrationId = this.createIntegration(integrationTitle);
+        String ruleId = this.createRule(integrationId, integrationTitle);
 
         // spotless:off
         String payload = """
@@ -359,7 +373,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.RULES_URI + "/" + ruleId, payload));
+                        () -> this.makeRequest("PUT", PluginSettings.RULES_URI + "/" + ruleId, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -369,7 +383,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutRule_notFound() throws IOException {
+    public void testPutRule_notFound() {
         // spotless:off
         String payload = """
                 {
@@ -397,7 +411,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                makeRequest(
+                                this.makeRequest(
                                         "PUT",
                                         PluginSettings.RULES_URI + "/00000000-0000-0000-0000-000000000000",
                                         payload));
@@ -409,7 +423,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutRule_invalidUuid() throws IOException {
+    public void testPutRule_invalidUuid() {
         // spotless:off
         String payload = """
                 {
@@ -436,7 +450,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.RULES_URI + "/not-a-uuid", payload));
+                        () -> this.makeRequest("PUT", PluginSettings.RULES_URI + "/not-a-uuid", payload));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -444,16 +458,18 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      * Update a rule with empty body.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to create integration or rule fixtures.
      */
     public void testPutRule_emptyBody() throws IOException {
         String integrationTitle = "test-rule-put-empty";
-        String integrationId = createIntegration(integrationTitle);
-        String ruleId = createRule(integrationId, integrationTitle);
+        String integrationId = this.createIntegration(integrationTitle);
+        String ruleId = this.createRule(integrationId, integrationTitle);
 
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.RULES_URI + "/" + ruleId, "{}"));
+                        () -> this.makeRequest("PUT", PluginSettings.RULES_URI + "/" + ruleId, "{}"));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -474,31 +490,34 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *   <li>The integration's hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On failure to create integration or rule fixtures, or to retrieve documents
+     *     from the index.
      */
     public void testDeleteRule_success() throws IOException {
         String integrationTitle = "test-rule-delete-int";
-        String integrationId = createIntegration(integrationTitle);
-        String ruleId = createRule(integrationId, integrationTitle);
+        String integrationId = this.createIntegration(integrationTitle);
+        String ruleId = this.createRule(integrationId, integrationTitle);
 
         // Capture hashes before deletion
         JsonNode integrationBefore =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String integrationHashBefore =
                 integrationBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
-        Response response = deleteResource(PluginSettings.RULES_URI, ruleId);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.deleteResource(PluginSettings.RULES_URI, ruleId);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify rule no longer exists in draft
-        assertResourceNotInDraft(Constants.INDEX_RULES, ruleId);
+        this.assertResourceNotInDraft(Constants.INDEX_RULES, ruleId);
 
         // Verify rule removed from integration's rules list
-        assertResourceNotInIntegrationList(integrationId, Constants.KEY_RULES, ruleId);
+        this.assertResourceNotInIntegrationList(integrationId, Constants.KEY_RULES, ruleId);
 
         // Verify integration's hash was updated
         JsonNode integrationAfter =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String integrationHashAfter =
                 integrationAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
         assertNotEquals(
@@ -507,7 +526,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 integrationHashAfter);
 
         // Verify policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after rule deletion",
                 policyHashBefore,
@@ -519,11 +538,13 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteRule_notFound() throws IOException {
+    public void testDeleteRule_notFound() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> deleteResource(PluginSettings.RULES_URI, "00000000-0000-0000-0000-000000000000"));
+                        () ->
+                                this.deleteResource(
+                                        PluginSettings.RULES_URI, "00000000-0000-0000-0000-000000000000"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -532,10 +553,11 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteRule_invalidUuid() throws IOException {
+    public void testDeleteRule_invalidUuid() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> deleteResource(PluginSettings.RULES_URI, "not-a-uuid"));
+                        ResponseException.class,
+                        () -> this.deleteResource(PluginSettings.RULES_URI, "not-a-uuid"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -544,11 +566,12 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 405.
      */
-    public void testDeleteRule_missingId() throws IOException {
+    public void testDeleteRule_missingId() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("DELETE", PluginSettings.RULES_URI + "/"));
+                        ResponseException.class,
+                        () -> this.makeRequest("DELETE", PluginSettings.RULES_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 405 for missing ID", statusCode == 405);
+        assertEquals("Expected 405 for missing ID", 405, statusCode);
     }
 }

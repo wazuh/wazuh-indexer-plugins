@@ -82,7 +82,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     @Before
     public void seedPoliciesIndex() throws IOException {
-        ensureRequiredIndicesExist();
+        this.ensureRequiredIndicesExist();
     }
 
     /**
@@ -129,7 +129,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 """;
         // spotless:on
         try {
-            makeRequest("PUT", "/" + indexName, body);
+            this.makeRequest("PUT", "/" + indexName, body);
         } catch (ResponseException e) {
             // 400 resource_already_exists_exception is expected on subsequent tests
             if (e.getResponse().getStatusLine().getStatusCode() != 400) {
@@ -145,12 +145,12 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     private void ensureRequiredIndicesExist() throws IOException {
         // Ensure resource indices exist (plugin validation needs them)
-        ensureIndexExists(Constants.INDEX_INTEGRATIONS);
-        ensureIndexExists(Constants.INDEX_DECODERS);
-        ensureIndexExists(Constants.INDEX_RULES);
-        ensureIndexExists(Constants.INDEX_KVDBS);
-        ensureIndexExists(Constants.INDEX_IOCS);
-        ensureIndexExists(Constants.INDEX_FILTERS);
+        this.ensureIndexExists(Constants.INDEX_INTEGRATIONS);
+        this.ensureIndexExists(Constants.INDEX_DECODERS);
+        this.ensureIndexExists(Constants.INDEX_RULES);
+        this.ensureIndexExists(Constants.INDEX_KVDBS);
+        this.ensureIndexExists(Constants.INDEX_IOCS);
+        this.ensureIndexExists(Constants.INDEX_FILTERS);
 
         // Create the policies index if it does not exist
         // spotless:off
@@ -199,7 +199,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 """;
         // spotless:on
         try {
-            makeRequest("PUT", Constants.INDEX_POLICIES, indexBody);
+            this.makeRequest("PUT", Constants.INDEX_POLICIES, indexBody);
         } catch (ResponseException e) {
             // Index may already exist — 400 resource_already_exists_exception is OK
             if (e.getResponse().getStatusLine().getStatusCode() != 400) {
@@ -244,7 +244,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     }
                     """, documentId, date, date, hash, space, hash);
             // spotless:on
-            makeRequest(
+            this.makeRequest(
                     "PUT",
                     String.format(
                             Locale.ROOT, "%s/_doc/policy-%s?refresh=true", Constants.INDEX_POLICIES, space),
@@ -296,7 +296,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected Response makeRequest(String method, String endpoint, String jsonEntity)
             throws IOException {
-        return makeRequest(method, endpoint, jsonEntity, Collections.emptyMap());
+        return this.makeRequest(method, endpoint, jsonEntity, Collections.emptyMap());
     }
 
     /**
@@ -308,7 +308,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected Response makeRequest(String method, String endpoint) throws IOException {
-        return makeRequest(method, endpoint, null, Collections.emptyMap());
+        return this.makeRequest(method, endpoint, null, Collections.emptyMap());
     }
 
     // ========================
@@ -362,7 +362,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected void refreshIndex(String indexName) throws IOException {
-        makeRequest("POST", indexName + "/_refresh");
+        this.makeRequest("POST", indexName + "/_refresh");
     }
 
     /**
@@ -374,21 +374,19 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected JsonNode searchIndex(String indexName, String queryJson) throws IOException {
-        refreshIndex(indexName);
-        Response response = makeRequest("GET", indexName + "/_search", queryJson);
-        return responseAsJson(response);
+        this.refreshIndex(indexName);
+        Response response = this.makeRequest("GET", indexName + "/_search", queryJson);
+        return this.responseAsJson(response);
     }
 
     /**
      * Searches an index for documents matching a term query.
      *
-     * @param indexName target index
-     * @param field field to filter on
      * @param value expected value
      * @return search response as JsonNode
      * @throws IOException on communication error
      */
-    protected JsonNode searchByTerm(String indexName, String field, String value) throws IOException {
+    protected JsonNode searchByTerm(String value) throws IOException {
         // spotless:off
         String query = """
                 {
@@ -399,53 +397,19 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     }
                 }
                 """;
-        query = String.format(Locale.ROOT, query, field, value);
+        query = String.format(Locale.ROOT, query, "space.name", value);
         // spotless:on
-        return searchIndex(indexName, query);
+        return this.searchIndex(Constants.INDEX_POLICIES, query);
     }
 
     /**
      * Gets all documents from an index.
      *
-     * @param indexName target index
      * @return search response as JsonNode
      * @throws IOException on communication error
      */
-    protected JsonNode getAllDocuments(String indexName) throws IOException {
-        return searchIndex(indexName, "{\"query\":{\"match_all\":{}}}");
-    }
-
-    /**
-     * Gets a specific document by ID from an index.
-     *
-     * @param indexName target index
-     * @param documentId document ID
-     * @return document as JsonNode, or null if not found
-     * @throws IOException on communication error
-     */
-    protected JsonNode getDocument(String indexName, String documentId) throws IOException {
-        try {
-            Response response = makeRequest("GET", indexName + "/_doc/" + documentId);
-            return responseAsJson(response);
-        } catch (ResponseException e) {
-            if (e.getResponse().getStatusLine().getStatusCode() == 404) {
-                return null;
-            }
-            throw e;
-        }
-    }
-
-    /**
-     * Checks whether a document exists in a given index.
-     *
-     * @param indexName target index
-     * @param documentId document ID
-     * @return true if the document exists
-     * @throws IOException on communication error
-     */
-    protected boolean documentExists(String indexName, String documentId) throws IOException {
-        JsonNode doc = getDocument(indexName, documentId);
-        return doc != null && doc.path("found").asBoolean(false);
+    protected JsonNode getAllDocuments() throws IOException {
+        return this.searchIndex(Constants.INDEX_POLICIES, "{\"query\":{\"match_all\":{}}}");
     }
 
     // ========================
@@ -459,9 +423,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected JsonNode getDraftPolicy() throws IOException {
-        JsonNode searchResult = searchByTerm(Constants.INDEX_POLICIES, "space.name", "draft");
+        JsonNode searchResult = this.searchByTerm("draft");
         JsonNode hits = searchResult.path("hits").path("hits");
-        assertTrue("Draft policy should exist", hits.size() > 0);
+        assertFalse("Draft policy should exist", hits.isEmpty());
         return hits.get(0).path("_source");
     }
 
@@ -473,9 +437,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected JsonNode getPolicy(String spaceName) throws IOException {
-        JsonNode searchResult = searchByTerm(Constants.INDEX_POLICIES, "space.name", spaceName);
+        JsonNode searchResult = this.searchByTerm(spaceName);
         JsonNode hits = searchResult.path("hits").path("hits");
-        assertTrue("Policy for space '" + spaceName + "' should exist", hits.size() > 0);
+        assertFalse("Policy for space '" + spaceName + "' should exist", hits.isEmpty());
         return hits.get(0).path("_source");
     }
 
@@ -486,7 +450,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected String getDraftPolicySpaceHash() throws IOException {
-        JsonNode policy = getDraftPolicy();
+        JsonNode policy = this.getDraftPolicy();
         return policy
                 .path(Constants.KEY_SPACE)
                 .path(Constants.KEY_HASH)
@@ -501,7 +465,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected String getDraftPolicyDocumentHash() throws IOException {
-        JsonNode policy = getDraftPolicy();
+        JsonNode policy = this.getDraftPolicy();
         return policy.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
     }
 
@@ -512,7 +476,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected List<String> getDraftPolicyIntegrations() throws IOException {
-        JsonNode policy = getDraftPolicy();
+        JsonNode policy = this.getDraftPolicy();
         JsonNode integrations = policy.path(Constants.KEY_DOCUMENT).path(Constants.KEY_INTEGRATIONS);
         return MAPPER.convertValue(integrations, new TypeReference<>() {});
     }
@@ -530,6 +494,19 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected String createIntegration(String title) throws IOException {
         // spotless:off
+        String payload = getString(title);
+        // spotless:on
+
+        Response response = this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+
+        Map<String, Object> body = this.parseResponseAsMap(response);
+        String id = (String) body.get("message");
+        assertNotNull("Integration ID should not be null", id);
+        return id;
+    }
+
+    private static String getString(String title) {
         String payload = """
                 {
                     "resource": {
@@ -544,15 +521,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 }
                 """;
         payload = String.format(Locale.ROOT, payload, title);
-        // spotless:on
-
-        Response response = makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), getStatusCode(response));
-
-        Map<String, Object> body = parseResponseAsMap(response);
-        String id = (String) body.get("message");
-        assertNotNull("Integration ID should not be null", id);
-        return id;
+        return payload;
     }
 
     /**
@@ -587,10 +556,10 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         payload = String.format(Locale.ROOT, payload, integrationId);
         // spotless:on
 
-        Response response = makeRequest("POST", PluginSettings.DECODERS_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), getStatusCode(response));
+        Response response = this.makeRequest("POST", PluginSettings.DECODERS_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
-        Map<String, Object> body = parseResponseAsMap(response);
+        Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
         assertNotNull("Decoder ID should not be null", id);
         return id;
@@ -634,10 +603,10 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         payload = String.format(Locale.ROOT, payload, integrationId, integrationTitle, integrationTitle, integrationTitle);
         // spotless:on
 
-        Response response = makeRequest("POST", PluginSettings.RULES_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), getStatusCode(response));
+        Response response = this.makeRequest("POST", PluginSettings.RULES_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
-        Map<String, Object> body = parseResponseAsMap(response);
+        Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
         assertNotNull("Rule ID should not be null", id);
         return id;
@@ -670,10 +639,10 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         payload = String.format(Locale.ROOT, payload, integrationId);
         // spotless:on
 
-        Response response = makeRequest("POST", PluginSettings.KVDBS_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), getStatusCode(response));
+        Response response = this.makeRequest("POST", PluginSettings.KVDBS_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
-        Map<String, Object> body = parseResponseAsMap(response);
+        Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
         assertNotNull("KVDB ID should not be null", id);
         return id;
@@ -684,34 +653,6 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     // ========================
 
     /**
-     * Deletes all draft resources from a given index.
-     *
-     * @param indexName the target index
-     * @throws IOException on communication error
-     */
-    protected void deleteAllDraftResources(String indexName) throws IOException {
-        // spotless:off
-        String query = """
-                {
-                    "query": {
-                        "term": {
-                            "space.name": "draft"
-                        }
-                    }
-                }
-                """;
-        // spotless:on
-        try {
-            makeRequest("POST", indexName + "/_delete_by_query?refresh=true", query);
-        } catch (ResponseException e) {
-            // Index might not exist yet, that's fine
-            if (e.getResponse().getStatusLine().getStatusCode() != 404) {
-                throw e;
-            }
-        }
-    }
-
-    /**
      * Deletes a single resource via the Content Manager API.
      *
      * @param endpoint resource endpoint (e.g. INTEGRATIONS_URI)
@@ -720,7 +661,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected Response deleteResource(String endpoint, String resourceId) throws IOException {
-        return makeRequest("DELETE", endpoint + "/" + resourceId);
+        return this.makeRequest("DELETE", endpoint + "/" + resourceId);
     }
 
     // ========================
@@ -736,7 +677,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected void assertResourceExistsInDraft(String indexName, String resourceId)
             throws IOException {
-        refreshIndex(indexName);
+        this.refreshIndex(indexName);
         // spotless:off
         String query = """
                 {
@@ -752,7 +693,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 """;
         query = String.format(Locale.ROOT, query, resourceId);
         // spotless:on
-        JsonNode result = searchIndex(indexName, query);
+        JsonNode result = this.searchIndex(indexName, query);
         long totalHits = result.path("hits").path("total").path("value").asLong(0);
         assertTrue(
                 "Resource " + resourceId + " should exist in draft space of " + indexName, totalHits > 0);
@@ -766,7 +707,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException on communication error
      */
     protected void assertResourceNotInDraft(String indexName, String resourceId) throws IOException {
-        refreshIndex(indexName);
+        this.refreshIndex(indexName);
         // spotless:off
         String query = """
                 {
@@ -782,7 +723,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 """;
         query = String.format(Locale.ROOT, query, resourceId);
         // spotless:on
-        JsonNode result = searchIndex(indexName, query);
+        JsonNode result = this.searchIndex(indexName, query);
         long totalHits = result.path("hits").path("total").path("value").asLong(0);
         assertEquals(
                 "Resource " + resourceId + " should NOT exist in draft space of " + indexName,
@@ -801,7 +742,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected JsonNode getResourceByDocumentId(String indexName, String resourceId, String spaceName)
             throws IOException {
-        refreshIndex(indexName);
+        this.refreshIndex(indexName);
         // spotless:off
         String query = """
                 {
@@ -817,9 +758,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 """;
         query = String.format(Locale.ROOT, query, resourceId, spaceName);
         // spotless:on
-        JsonNode result = searchIndex(indexName, query);
+        JsonNode result = this.searchIndex(indexName, query);
         JsonNode hits = result.path("hits").path("hits");
-        if (hits.size() == 0) {
+        if (hits.isEmpty()) {
             return null;
         }
         return hits.get(0).path("_source");
@@ -840,10 +781,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * Asserts that the space.name field matches the expected value.
      *
      * @param source the document _source as JsonNode
-     * @param expectedSpace expected space name
      */
-    protected void assertSpaceName(JsonNode source, String expectedSpace) {
-        assertEquals(expectedSpace, source.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).asText());
+    protected void assertSpaceName(JsonNode source) {
+        assertEquals("draft", source.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).asText());
     }
 
     /**
@@ -856,7 +796,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected void assertResourceInIntegrationList(
             String integrationId, String listField, String resourceId) throws IOException {
-        assertResourceInIntegrationList(integrationId, listField, resourceId, "draft");
+        this.assertResourceInIntegrationList(integrationId, listField, resourceId, "draft");
     }
 
     /**
@@ -872,7 +812,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
             String integrationId, String listField, String resourceId, String spaceName)
             throws IOException {
         JsonNode integration =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, spaceName);
+            this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, spaceName);
         assertNotNull("Integration " + integrationId + " should exist in " + spaceName, integration);
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
         assertTrue("List '" + listField + "' should be an array", list.isArray());
@@ -904,7 +844,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     protected void assertResourceNotInIntegrationList(
             String integrationId, String listField, String resourceId) throws IOException {
         JsonNode integration =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+            this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         if (integration == null) return; // Integration was deleted, resource is implicitly unlinked
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
         if (!list.isArray()) return;
@@ -926,7 +866,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected void assertResourceExistsInSpace(String indexName, String resourceId, String spaceName)
             throws IOException {
-        JsonNode source = getResourceByDocumentId(indexName, resourceId, spaceName);
+        JsonNode source = this.getResourceByDocumentId(indexName, resourceId, spaceName);
         assertNotNull("Resource " + resourceId + " should exist in space '" + spaceName + "'", source);
     }
 }

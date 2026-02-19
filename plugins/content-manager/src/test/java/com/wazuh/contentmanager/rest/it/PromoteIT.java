@@ -56,9 +56,9 @@ public class PromoteIT extends ContentManagerRestTestCase {
      */
     private String buildPromotionPayload(String space) throws IOException {
         Response previewResponse =
-                makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", space));
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(previewResponse));
-        JsonNode preview = responseAsJson(previewResponse);
+                this.makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", space));
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(previewResponse));
+        JsonNode preview = this.responseAsJson(previewResponse);
         JsonNode changes = preview.path("changes");
 
         // Rebuild the changes as JSON to send back in POST
@@ -84,10 +84,10 @@ public class PromoteIT extends ContentManagerRestTestCase {
      */
     private List<String> createDraftResourceSet(String suffix) throws IOException {
         String integrationTitle = "promote-int-" + suffix;
-        String integrationId = createIntegration(integrationTitle);
-        String decoderId = createDecoder(integrationId);
-        String ruleId = createRule(integrationId, integrationTitle);
-        String kvdbId = createKvdb(integrationId);
+        String integrationId = this.createIntegration(integrationTitle);
+        String decoderId = this.createDecoder(integrationId);
+        String ruleId = this.createRule(integrationId, integrationTitle);
+        String kvdbId = this.createKvdb(integrationId);
         return List.of(integrationId, decoderId, ruleId, kvdbId);
     }
 
@@ -105,15 +105,17 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *   <li>Response body contains a "changes" object.
      *   <li>The changes list operations per resource type.
      * </ul>
+     *
+     * @throws IOException On communication error
      */
     public void testGetPromote_draftToTest() throws IOException {
-        createDraftResourceSet("preview");
+        this.createDraftResourceSet("preview");
 
         Response response =
-                makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "draft"));
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+                this.makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "draft"));
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
-        JsonNode body = responseAsJson(response);
+        JsonNode body = this.responseAsJson(response);
         JsonNode changes = body.path("changes");
         assertFalse("Response should contain 'changes' object", changes.isMissingNode());
 
@@ -132,9 +134,10 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testGetPromote_missingSpace() throws IOException {
+    public void testGetPromote_missingSpace() {
         ResponseException e =
-                expectThrows(ResponseException.class, () -> makeRequest("GET", PluginSettings.PROMOTE_URI));
+                expectThrows(
+                        ResponseException.class, () -> this.makeRequest("GET", PluginSettings.PROMOTE_URI));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -144,11 +147,11 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testGetPromote_emptySpace() throws IOException {
+    public void testGetPromote_emptySpace() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "")));
+                        () -> this.makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "")));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -158,11 +161,12 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testGetPromote_invalidSpace() throws IOException {
+    public void testGetPromote_invalidSpace() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "prod")));
+                        () ->
+                                this.makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "prod")));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -172,11 +176,13 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testGetPromote_customNotAllowed() throws IOException {
+    public void testGetPromote_customNotAllowed() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "custom")));
+                        () ->
+                                this.makeRequest(
+                                        "GET", PluginSettings.PROMOTE_URI, null, Map.of("space", "custom")));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -197,9 +203,11 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *   <li>Test policy space hash is regenerated.
      *   <li>Promoted resource hashes match between draft and test spaces.
      * </ul>
+     *
+     * @throws IOException On communication error
      */
     public void testPostPromote_draftToTest() throws IOException {
-        List<String> resourceIds = createDraftResourceSet("d2t");
+        List<String> resourceIds = this.createDraftResourceSet("d2t");
         String integrationId = resourceIds.get(0);
         String decoderId = resourceIds.get(1);
         String ruleId = resourceIds.get(2);
@@ -207,34 +215,34 @@ public class PromoteIT extends ContentManagerRestTestCase {
 
         // Capture test policy hash before promotion
         String testPolicyHashBefore =
-                getPolicy("test")
+                this.getPolicy("test")
                         .path(Constants.KEY_SPACE)
                         .path(Constants.KEY_HASH)
                         .path(Constants.KEY_SHA256)
                         .asText();
 
         // Build payload from actual preview
-        String payload = buildPromotionPayload("draft");
+        String payload = this.buildPromotionPayload("draft");
 
         // Execute promotion
-        Response response = makeRequest("POST", PluginSettings.PROMOTE_URI, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify resources exist in test space
-        assertResourceExistsInSpace(Constants.INDEX_INTEGRATIONS, integrationId, "test");
-        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
-        assertResourceExistsInSpace(Constants.INDEX_RULES, ruleId, "test");
-        assertResourceExistsInSpace(Constants.INDEX_KVDBS, kvdbId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_INTEGRATIONS, integrationId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_RULES, ruleId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_KVDBS, kvdbId, "test");
 
         // Verify resources still exist in draft space
-        assertResourceExistsInDraft(Constants.INDEX_INTEGRATIONS, integrationId);
-        assertResourceExistsInDraft(Constants.INDEX_DECODERS, decoderId);
-        assertResourceExistsInDraft(Constants.INDEX_RULES, ruleId);
-        assertResourceExistsInDraft(Constants.INDEX_KVDBS, kvdbId);
+        this.assertResourceExistsInDraft(Constants.INDEX_INTEGRATIONS, integrationId);
+        this.assertResourceExistsInDraft(Constants.INDEX_DECODERS, decoderId);
+        this.assertResourceExistsInDraft(Constants.INDEX_RULES, ruleId);
+        this.assertResourceExistsInDraft(Constants.INDEX_KVDBS, kvdbId);
 
         // Verify test policy space hash was regenerated
         String testPolicyHashAfter =
-                getPolicy("test")
+                this.getPolicy("test")
                         .path(Constants.KEY_SPACE)
                         .path(Constants.KEY_HASH)
                         .path(Constants.KEY_SHA256)
@@ -245,10 +253,10 @@ public class PromoteIT extends ContentManagerRestTestCase {
                 testPolicyHashAfter);
 
         // Verify promoted resource hashes match between draft and test
-        assertHashesMatch(Constants.INDEX_INTEGRATIONS, integrationId, "draft", "test");
-        assertHashesMatch(Constants.INDEX_DECODERS, decoderId, "draft", "test");
-        assertHashesMatch(Constants.INDEX_RULES, ruleId, "draft", "test");
-        assertHashesMatch(Constants.INDEX_KVDBS, kvdbId, "draft", "test");
+        this.assertHashesMatch(Constants.INDEX_INTEGRATIONS, integrationId, "draft", "test");
+        this.assertHashesMatch(Constants.INDEX_DECODERS, decoderId, "draft", "test");
+        this.assertHashesMatch(Constants.INDEX_RULES, ruleId, "draft", "test");
+        this.assertHashesMatch(Constants.INDEX_KVDBS, kvdbId, "draft", "test");
     }
 
     /**
@@ -263,47 +271,50 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *   <li>Custom policy space hash is regenerated.
      *   <li>Promoted resource hashes match between test and custom spaces.
      * </ul>
+     *
+     * @throws IOException On communication error
      */
     public void testPostPromote_testToCustom() throws IOException {
-        List<String> resourceIds = createDraftResourceSet("t2c");
+        List<String> resourceIds = this.createDraftResourceSet("t2c");
         String integrationId = resourceIds.get(0);
         String decoderId = resourceIds.get(1);
         String ruleId = resourceIds.get(2);
         String kvdbId = resourceIds.get(3);
 
         // First promote draft -> test
-        String draftPayload = buildPromotionPayload("draft");
-        Response draftPromoteResponse = makeRequest("POST", PluginSettings.PROMOTE_URI, draftPayload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(draftPromoteResponse));
+        String draftPayload = this.buildPromotionPayload("draft");
+        Response draftPromoteResponse =
+                this.makeRequest("POST", PluginSettings.PROMOTE_URI, draftPayload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(draftPromoteResponse));
 
         // Capture custom policy hash before promotion
         String customPolicyHashBefore =
-                getPolicy("custom")
+                this.getPolicy("custom")
                         .path(Constants.KEY_SPACE)
                         .path(Constants.KEY_HASH)
                         .path(Constants.KEY_SHA256)
                         .asText();
 
         // Now promote test -> custom
-        String testPayload = buildPromotionPayload("test");
-        Response response = makeRequest("POST", PluginSettings.PROMOTE_URI, testPayload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        String testPayload = this.buildPromotionPayload("test");
+        Response response = this.makeRequest("POST", PluginSettings.PROMOTE_URI, testPayload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify resources exist in custom space
-        assertResourceExistsInSpace(Constants.INDEX_INTEGRATIONS, integrationId, "custom");
-        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "custom");
-        assertResourceExistsInSpace(Constants.INDEX_RULES, ruleId, "custom");
-        assertResourceExistsInSpace(Constants.INDEX_KVDBS, kvdbId, "custom");
+        this.assertResourceExistsInSpace(Constants.INDEX_INTEGRATIONS, integrationId, "custom");
+        this.assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "custom");
+        this.assertResourceExistsInSpace(Constants.INDEX_RULES, ruleId, "custom");
+        this.assertResourceExistsInSpace(Constants.INDEX_KVDBS, kvdbId, "custom");
 
         // Verify resources still exist in test space
-        assertResourceExistsInSpace(Constants.INDEX_INTEGRATIONS, integrationId, "test");
-        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
-        assertResourceExistsInSpace(Constants.INDEX_RULES, ruleId, "test");
-        assertResourceExistsInSpace(Constants.INDEX_KVDBS, kvdbId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_INTEGRATIONS, integrationId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_RULES, ruleId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_KVDBS, kvdbId, "test");
 
         // Verify custom policy space hash was regenerated
         String customPolicyHashAfter =
-                getPolicy("custom")
+                this.getPolicy("custom")
                         .path(Constants.KEY_SPACE)
                         .path(Constants.KEY_HASH)
                         .path(Constants.KEY_SHA256)
@@ -314,10 +325,10 @@ public class PromoteIT extends ContentManagerRestTestCase {
                 customPolicyHashAfter);
 
         // Verify promoted resource hashes match between test and custom
-        assertHashesMatch(Constants.INDEX_INTEGRATIONS, integrationId, "test", "custom");
-        assertHashesMatch(Constants.INDEX_DECODERS, decoderId, "test", "custom");
-        assertHashesMatch(Constants.INDEX_RULES, ruleId, "test", "custom");
-        assertHashesMatch(Constants.INDEX_KVDBS, kvdbId, "test", "custom");
+        this.assertHashesMatch(Constants.INDEX_INTEGRATIONS, integrationId, "test", "custom");
+        this.assertHashesMatch(Constants.INDEX_DECODERS, decoderId, "test", "custom");
+        this.assertHashesMatch(Constants.INDEX_RULES, ruleId, "test", "custom");
+        this.assertHashesMatch(Constants.INDEX_KVDBS, kvdbId, "test", "custom");
     }
 
     // ========================
@@ -339,37 +350,39 @@ public class PromoteIT extends ContentManagerRestTestCase {
      * </ol>
      *
      * <p>Expected: Only the draft space is modified; the test space remains unchanged.
+     *
+     * @throws IOException On communication error
      */
     public void testPostPromote_draftDeletionDoesNotAffectTestSpace() throws IOException {
         // 1. Create integration + decoder in draft
         String integrationTitle = "promote-isolation";
-        String integrationId = createIntegration(integrationTitle);
-        String decoderId = createDecoder(integrationId);
+        String integrationId = this.createIntegration(integrationTitle);
+        String decoderId = this.createDecoder(integrationId);
 
         // Verify decoder is linked to integration in draft
-        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
+        this.assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
 
         // 2. Promote draft -> test
-        String payload = buildPromotionPayload("draft");
-        Response promoteResponse = makeRequest("POST", PluginSettings.PROMOTE_URI, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(promoteResponse));
+        String payload = this.buildPromotionPayload("draft");
+        Response promoteResponse = this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(promoteResponse));
 
         // Verify decoder exists in test space
-        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
-        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
+        this.assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId, "test");
 
         // 3. Delete the decoder from draft
-        Response deleteResponse = deleteResource(PluginSettings.DECODERS_URI, decoderId);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(deleteResponse));
+        Response deleteResponse = this.deleteResource(PluginSettings.DECODERS_URI, decoderId);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(deleteResponse));
 
         // 4. Verify decoder no longer exists in draft
-        assertResourceNotInDraft(Constants.INDEX_DECODERS, decoderId);
+        this.assertResourceNotInDraft(Constants.INDEX_DECODERS, decoderId);
 
         // 5. Verify decoder still exists in test space
-        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
+        this.assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
 
         // 6. Verify test-space integration still references the decoder
-        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId, "test");
+        this.assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId, "test");
     }
 
     // ========================
@@ -381,7 +394,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostPromote_customNotAllowed() throws IOException {
+    public void testPostPromote_customNotAllowed() {
         // spotless:off
         String payload = """
                 {
@@ -401,7 +414,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -411,7 +424,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostPromote_invalidSpace() throws IOException {
+    public void testPostPromote_invalidSpace() {
         // spotless:off
         String payload = """
                 {
@@ -431,7 +444,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -441,7 +454,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostPromote_missingChanges() throws IOException {
+    public void testPostPromote_missingChanges() {
         // spotless:off
         String payload = """
                 {
@@ -453,7 +466,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -463,7 +476,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostPromote_incompleteChanges() throws IOException {
+    public void testPostPromote_incompleteChanges() {
         // spotless:off
         String payload = """
                 {
@@ -476,7 +489,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -486,7 +499,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostPromote_invalidPolicyOperation() throws IOException {
+    public void testPostPromote_invalidPolicyOperation() {
         // spotless:off
         String payload = """
                 {
@@ -506,7 +519,7 @@ public class PromoteIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -516,10 +529,11 @@ public class PromoteIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostPromote_emptyBody() throws IOException {
+    public void testPostPromote_emptyBody() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.PROMOTE_URI, ""));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -540,8 +554,8 @@ public class PromoteIT extends ContentManagerRestTestCase {
     private void assertHashesMatch(
             String indexName, String resourceId, String sourceSpace, String targetSpace)
             throws IOException {
-        JsonNode sourceDoc = getResourceByDocumentId(indexName, resourceId, sourceSpace);
-        JsonNode targetDoc = getResourceByDocumentId(indexName, resourceId, targetSpace);
+        JsonNode sourceDoc = this.getResourceByDocumentId(indexName, resourceId, sourceSpace);
+        JsonNode targetDoc = this.getResourceByDocumentId(indexName, resourceId, targetSpace);
         assertNotNull("Resource " + resourceId + " should exist in " + sourceSpace, sourceDoc);
         assertNotNull("Resource " + resourceId + " should exist in " + targetSpace, targetDoc);
 

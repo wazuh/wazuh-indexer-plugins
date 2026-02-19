@@ -59,27 +59,29 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *   <li>The decoder ID is listed in the integration's decoders list.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
      */
     public void testPostDecoder_success() throws IOException {
-        String integrationId = createIntegration("test-decoder-integration");
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String integrationId = this.createIntegration("test-decoder-integration");
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
-        String decoderId = createDecoder(integrationId);
+        String decoderId = this.createDecoder(integrationId);
 
         // Verify resource exists in draft space
-        assertResourceExistsInDraft(Constants.INDEX_DECODERS, decoderId);
+        this.assertResourceExistsInDraft(Constants.INDEX_DECODERS, decoderId);
 
         // Verify space.name and hash
-        JsonNode source = getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
+        JsonNode source = this.getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
         assertNotNull(source);
-        assertSpaceName(source, "draft");
-        assertHashPresent(source, "Decoder");
+        this.assertSpaceName(source);
+        this.assertHashPresent(source, "Decoder");
 
         // Verify decoder is in integration's decoders list
-        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
+        this.assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
 
         // Verify draft policy space hash changed
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after decoder creation",
                 policyHashBefore,
@@ -91,7 +93,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400 with "Missing [integration] field."
      */
-    public void testPostDecoder_missingIntegration() throws IOException {
+    public void testPostDecoder_missingIntegration() {
         // spotless:off
         String payload = """
                 {
@@ -106,7 +108,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.DECODERS_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.DECODERS_URI, payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -115,9 +117,11 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      * Create a decoder with an explicit id in the resource.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On
      */
     public void testPostDecoder_explicitId() throws IOException {
-        String integrationId = createIntegration("test-decoder-explicit-id");
+        String integrationId = this.createIntegration("test-decoder-explicit-id");
 
         // spotless:off
         String payload = """
@@ -134,9 +138,9 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         // spotless:on
 
         // The system silently ignores the explicit ID and auto-generates one (201)
-        Response response = makeRequest("POST", PluginSettings.DECODERS_URI, body);
-        int statusCode = getStatusCode(response);
-        assertTrue("Status should be 201 (id ignored)", statusCode == 201);
+        Response response = this.makeRequest("POST", PluginSettings.DECODERS_URI, body);
+        int statusCode = this.getStatusCode(response);
+        assertEquals("Status should be 201 (id ignored)", 201, statusCode);
     }
 
     /**
@@ -144,7 +148,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400 or 404.
      */
-    public void testPostDecoder_nonDraftIntegration() throws IOException {
+    public void testPostDecoder_nonDraftIntegration() {
         // spotless:off
         String payload = """
                 {
@@ -171,18 +175,20 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("POST", PluginSettings.DECODERS_URI, payload));
+                        () -> this.makeRequest("POST", PluginSettings.DECODERS_URI, payload));
         int status = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 for non-existent integration", status == 400);
+        assertEquals("Expected 400 for non-existent integration", 400, status);
     }
 
     /**
      * Create a decoder with missing resource object.
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
      */
     public void testPostDecoder_missingResourceObject() throws IOException {
-        String integrationId = createIntegration("test-decoder-missing-res");
+        String integrationId = this.createIntegration("test-decoder-missing-res");
 
         // spotless:off
         String payload = """
@@ -195,7 +201,8 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.DECODERS_URI, body));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.DECODERS_URI, body));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -205,10 +212,11 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 400.
      */
-    public void testPostDecoder_emptyBody() throws IOException {
+    public void testPostDecoder_emptyBody() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> makeRequest("POST", PluginSettings.DECODERS_URI, ""));
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.DECODERS_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -229,14 +237,17 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
      */
     public void testPutDecoder_success() throws IOException {
-        String integrationId = createIntegration("test-decoder-put-int");
-        String decoderId = createDecoder(integrationId);
+        String integrationId = this.createIntegration("test-decoder-put-int");
+        String decoderId = this.createDecoder(integrationId);
 
-        JsonNode sourceBefore = getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
+        JsonNode sourceBefore =
+                this.getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
         String hashBefore = sourceBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
         // spotless:off
         String payload = """
@@ -261,20 +272,22 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                 """;
         // spotless:on
 
-        Response response = makeRequest("PUT", PluginSettings.DECODERS_URI + "/" + decoderId, payload);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response =
+                this.makeRequest("PUT", PluginSettings.DECODERS_URI + "/" + decoderId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify updated in index
-        JsonNode sourceAfter = getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
+        JsonNode sourceAfter =
+                this.getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
         assertNotNull(sourceAfter);
-        assertSpaceName(sourceAfter, "draft");
+        this.assertSpaceName(sourceAfter);
 
         // Verify hash updated
         String hashAfter = sourceAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
         assertNotEquals("Decoder hash should have been updated", hashBefore, hashAfter);
 
         // Verify draft policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated", policyHashBefore, policyHashAfter);
     }
@@ -284,7 +297,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutDecoder_notFound() throws IOException {
+    public void testPutDecoder_notFound() {
         // spotless:off
         String payload = """
                 {
@@ -312,7 +325,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                makeRequest(
+                                this.makeRequest(
                                         "PUT",
                                         PluginSettings.DECODERS_URI + "/00000000-0000-0000-0000-000000000000",
                                         payload));
@@ -324,7 +337,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testPutDecoder_invalidUuid() throws IOException {
+    public void testPutDecoder_invalidUuid() {
         // spotless:off
         String payload = """
                 {
@@ -340,7 +353,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.DECODERS_URI + "/not-a-uuid", payload));
+                        () -> this.makeRequest("PUT", PluginSettings.DECODERS_URI + "/not-a-uuid", payload));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -348,15 +361,17 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      * Update a decoder with missing resource object (empty body).
      *
      * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
      */
     public void testPutDecoder_emptyBody() throws IOException {
-        String integrationId = createIntegration("test-decoder-put-empty");
-        String decoderId = createDecoder(integrationId);
+        String integrationId = this.createIntegration("test-decoder-put-empty");
+        String decoderId = this.createDecoder(integrationId);
 
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("PUT", PluginSettings.DECODERS_URI + "/" + decoderId, "{}"));
+                        () -> this.makeRequest("PUT", PluginSettings.DECODERS_URI + "/" + decoderId, "{}"));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -377,30 +392,32 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *   <li>The integration's hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
      */
     public void testDeleteDecoder_success() throws IOException {
-        String integrationId = createIntegration("test-decoder-delete-int");
-        String decoderId = createDecoder(integrationId);
+        String integrationId = this.createIntegration("test-decoder-delete-int");
+        String decoderId = this.createDecoder(integrationId);
 
         // Capture hashes before deletion
         JsonNode integrationBefore =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String integrationHashBefore =
                 integrationBefore.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
-        String policyHashBefore = getDraftPolicySpaceHash();
+        String policyHashBefore = this.getDraftPolicySpaceHash();
 
-        Response response = deleteResource(PluginSettings.DECODERS_URI, decoderId);
-        assertEquals(RestStatus.OK.getStatus(), getStatusCode(response));
+        Response response = this.deleteResource(PluginSettings.DECODERS_URI, decoderId);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify decoder no longer exists in draft
-        assertResourceNotInDraft(Constants.INDEX_DECODERS, decoderId);
+        this.assertResourceNotInDraft(Constants.INDEX_DECODERS, decoderId);
 
         // Verify decoder removed from integration's decoders list
-        assertResourceNotInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
+        this.assertResourceNotInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
 
         // Verify integration's hash was updated
         JsonNode integrationAfter =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         String integrationHashAfter =
                 integrationAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
         assertNotEquals(
@@ -409,7 +426,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                 integrationHashAfter);
 
         // Verify policy space hash updated
-        String policyHashAfter = getDraftPolicySpaceHash();
+        String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated after decoder deletion",
                 policyHashBefore,
@@ -421,12 +438,12 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteDecoder_notFound() throws IOException {
+    public void testDeleteDecoder_notFound() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
                         () ->
-                                deleteResource(
+                                this.deleteResource(
                                         PluginSettings.DECODERS_URI, "00000000-0000-0000-0000-000000000000"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -436,11 +453,11 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 404.
      */
-    public void testDeleteDecoder_invalidUuid() throws IOException {
+    public void testDeleteDecoder_invalidUuid() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> deleteResource(PluginSettings.DECODERS_URI, "not-a-uuid"));
+                        () -> this.deleteResource(PluginSettings.DECODERS_URI, "not-a-uuid"));
         assertEquals(RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
@@ -449,11 +466,11 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: Response status code is 405.
      */
-    public void testDeleteDecoder_missingId() throws IOException {
+    public void testDeleteDecoder_missingId() {
         ResponseException e =
                 expectThrows(
                         ResponseException.class,
-                        () -> makeRequest("DELETE", PluginSettings.DECODERS_URI + "/"));
+                        () -> this.makeRequest("DELETE", PluginSettings.DECODERS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
         assertEquals("Expected 405 for missing ID", 405, statusCode);
     }
