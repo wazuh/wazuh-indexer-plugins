@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -51,7 +53,7 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertRule(JsonNode doc, Space space) {
+    public void upsertRule(JsonNode doc, Space space, Method method) {
         log.debug("MockSecurityAnalyticsService.upsertRule called");
     }
 
@@ -61,12 +63,50 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertDetector(JsonNode doc, boolean rawCategory) {
+    public void upsertDetector(JsonNode doc, boolean rawCategory, Method method) {
         log.debug("MockSecurityAnalyticsService.upsertDetector called");
     }
 
     @Override
     public void deleteDetector(String id) {
         log.debug("MockSecurityAnalyticsService.deleteDetector called for id: {}", id);
+    }
+
+    @Override
+    public void upsertIntegrationAsync(
+            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.upsertIntegrationAsync called");
+    }
+
+    @Override
+    public void deleteIntegrationAsync(
+            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.deleteIntegrationAsync called for id: {}", id);
+    }
+
+    @Override
+    public void upsertRuleAsync(
+            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.upsertRuleAsync called");
+    }
+
+    @Override
+    public void deleteRuleAsync(
+            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.deleteRuleAsync called for id: {}", id);
+    }
+
+    @Override
+    public void upsertDetectorAsync(
+            JsonNode doc,
+            boolean rawCategory,
+            Method method,
+            ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.upsertDetectorAsync called");
+    }
+
+    @Override
+    public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.deleteDetectorAsync called for id: {}", id);
     }
 }

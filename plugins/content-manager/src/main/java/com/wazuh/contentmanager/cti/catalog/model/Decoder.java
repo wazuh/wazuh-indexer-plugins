@@ -140,9 +140,9 @@ public class Decoder extends Resource {
     }
 
     /**
-     * Retrieves the author object node from the given resource node's metadata.
-     * If the "metadata" node or its child "author" node do not exist, they are
-     * created and appropriately attached to the resource node hierarchy.
+     * Retrieves the author object node from the given resource node's metadata. If the "metadata"
+     * node or its child "author" node do not exist, they are created and appropriately attached to
+     * the resource node hierarchy.
      *
      * @param resourceNode The resource JSON node to extract or attach the author node to.
      * @return The existing or newly created author {@link ObjectNode}.
