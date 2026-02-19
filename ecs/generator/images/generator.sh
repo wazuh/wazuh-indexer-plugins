@@ -84,7 +84,7 @@ generate_mappings() {
         "settings": .settings,
         "mappings": .mappings
       }
-    } | del(.template.mappings.properties.message?)' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+    }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
   fi
 
   echo "Mappings saved to $out_dir"
