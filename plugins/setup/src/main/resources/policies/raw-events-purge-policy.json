@@ -9,19 +9,7 @@
     "states": [
       {
         "name": "hot",
-        "actions": [
-          {
-            "retry": {
-              "count": 3,
-              "backoff": "exponential",
-              "delay": "1m"
-            },
-            "rollover": {
-              "min_index_age": "1d",
-              "min_primary_shard_size": "25gb"
-            }
-          }
-        ],
+        "actions": [],
         "transitions": [
           {
             "state_name": "delete",
