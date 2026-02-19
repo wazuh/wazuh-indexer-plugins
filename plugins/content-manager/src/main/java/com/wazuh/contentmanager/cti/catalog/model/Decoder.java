@@ -139,6 +139,14 @@ public class Decoder extends Resource {
         authorNode.put(Constants.KEY_MODIFIED, timestamp);
     }
 
+    /**
+     * Retrieves the author object node from the given resource node's metadata.
+     * If the "metadata" node or its child "author" node do not exist, they are
+     * created and appropriately attached to the resource node hierarchy.
+     *
+     * @param resourceNode The resource JSON node to extract or attach the author node to.
+     * @return The existing or newly created author {@link ObjectNode}.
+     */
     private static ObjectNode getOrCreateAuthorNode(ObjectNode resourceNode) {
         ObjectNode metadataNode;
         if (resourceNode.has(Constants.KEY_METADATA)
