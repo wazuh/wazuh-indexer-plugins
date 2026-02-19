@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.cti.catalog.service;
+package com.wazuh.contentmanager.helpers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 
 /**
  * Mock implementation of {@link SecurityAnalyticsService} that performs no-op for all operations.

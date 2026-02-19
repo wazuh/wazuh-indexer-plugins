@@ -697,16 +697,15 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | 6 | Delete a KVDB without authentication |
 | 7 | Verify KVDB is removed from index after deletion |
 
-#### 05 - Policy: Policy Initialization (7 scenarios)
+#### 05 - Policy: Policy Initialization (6 scenarios)
 | # | Scenario |
 |---|----------|
 | 1 | The ".cti-policies" index exists |
 | 2 | Exactly four policy documents exist (one per space) |
 | 3 | Standard policy has a different document ID than draft/test/custom |
 | 4 | Draft, test, and custom policies start with empty integrations and root_decoder |
-| 5 | Standard policy contains integrations and a root_decoder from CTI |
-| 6 | Each policy document contains the expected structure |
-| 7 | Each policy has a valid SHA-256 hash |
+| 5 | Each policy document contains the expected structure |
+| 6 | Each policy has a valid SHA-256 hash |
 
 #### 05 - Policy: Update Draft Policy (12 scenarios)
 | # | Scenario |

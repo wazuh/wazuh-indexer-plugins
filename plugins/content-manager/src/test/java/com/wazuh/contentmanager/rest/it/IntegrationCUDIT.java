@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.resources.it;
+package com.wazuh.contentmanager.rest.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

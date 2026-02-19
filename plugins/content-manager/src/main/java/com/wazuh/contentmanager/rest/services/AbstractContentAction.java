@@ -34,11 +34,11 @@ import java.io.IOException;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.MockSecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.helpers.MockSecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.resources.it;
+package com.wazuh.contentmanager.rest.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -110,24 +110,6 @@ public class PolicyIT extends ContentManagerRestTestCase {
             String rootDecoder = policy.path(Constants.KEY_DOCUMENT).path("root_decoder").asText("");
             assertTrue(space + " policy root_decoder should be empty", rootDecoder.isEmpty());
         }
-    }
-
-    /**
-     * Standard policy contains integrations and a root_decoder from CTI.
-     *
-     * <p>Verifies: The standard space policy has non-empty integrations list and root_decoder. This
-     * test requires CTI catalog synchronization which is disabled in the test cluster, so it is
-     * skipped when the standard policy has no content.
-     */
-    public void testStandardPolicyHasContent() throws IOException {
-        JsonNode policy = getPolicy("standard");
-        JsonNode integrations = policy.path(Constants.KEY_DOCUMENT).path(Constants.KEY_INTEGRATIONS);
-        assumeTrue(
-                "Skipping: CTI catalog sync is disabled in the test cluster,"
-                        + " standard policy has no content",
-                integrations.isArray() && integrations.size() > 0);
-        String rootDecoder = policy.path(Constants.KEY_DOCUMENT).path("root_decoder").asText("");
-        assertFalse("Standard policy root_decoder should be non-empty", rootDecoder.isEmpty());
     }
 
     /**

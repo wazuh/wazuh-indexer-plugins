@@ -54,7 +54,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
-import com.wazuh.contentmanager.engine.services.MockEngineService;
+import com.wazuh.contentmanager.helpers.MockEngineService;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;

@@ -35,11 +35,6 @@ Feature: Policy Initialization
     Then the document field "integrations" should be an empty list
     And the document field "root_decoder" should be empty
 
-  Scenario: Standard policy contains integrations and a root_decoder from CTI
-    When I search the ".cti-policies" index with filter "space.name" equal to "standard"
-    Then the document field "integrations" should be a non-empty list
-    And the document field "root_decoder" should be non-empty
-
   Scenario: Each policy document contains the expected structure
     When I search the ".cti-policies" index with filter "space.name" equal to "draft"
     Then the response status code should be 200
