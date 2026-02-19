@@ -336,7 +336,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CONTENT_CONSUMER,
                 PluginSettings.IOC_CONTEXT,
                 PluginSettings.IOC_CONSUMER,
-                PluginSettings.ENGINE_MOCK_ENABLED);
+                PluginSettings.ENGINE_MOCK_ENABLED,
+                PluginSettings.CREATE_DETECTORS);
     }
 
     /**

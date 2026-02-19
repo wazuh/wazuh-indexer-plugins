@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
@@ -93,7 +92,17 @@ public abstract class AbstractContentAction extends BaseRestHandler {
         }
 
         return channel -> {
-            this.validateDraftPolicyExists(client, request, channel);
+            RestResponse validationError = this.validateDraftPolicyExists(client);
+            if (validationError != null) {
+                channel.sendResponse(validationError.toBytesRestResponse());
+                return;
+            }
+            try {
+                RestResponse result = executeRequest(request, client);
+                channel.sendResponse(result.toBytesRestResponse());
+            } catch (Exception e) {
+                sendErrorResponse(channel, e);
+            }
         };
     }
 
@@ -108,47 +117,31 @@ public abstract class AbstractContentAction extends BaseRestHandler {
     }
 
     /**
-     * Checks asynchronously if the policy document for the draft space exists. If the policy exists,
-     * proceeds to execute the request. Otherwise, sends an error response.
+     * Checks synchronously if the policy document for the draft space exists.
      *
      * @param client The OpenSearch client.
-     * @param request The incoming REST request.
-     * @param channel The REST channel to send the response on.
+     * @return A RestResponse with an error if the draft policy is missing, or {@code null} if valid.
      */
-    protected void validateDraftPolicyExists(
-            Client client, RestRequest request, RestChannel channel) {
-        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
-        sourceBuilder.size(0);
-        searchRequest.source(sourceBuilder);
+    protected RestResponse validateDraftPolicyExists(Client client) {
+        try {
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+            sourceBuilder.size(0);
+            searchRequest.source(sourceBuilder);
 
-        client.search(
-                searchRequest,
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(SearchResponse response) {
-                        try {
-                            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                                log.error("Failed to find Draft policy document");
-                                RestResponse error =
-                                        new RestResponse(
-                                                "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                                channel.sendResponse(error.toBytesRestResponse());
-                                return;
-                            }
-                            RestResponse result = executeRequest(request, client);
-                            channel.sendResponse(result.toBytesRestResponse());
-                        } catch (Exception e) {
-                            sendErrorResponse(channel, e);
-                        }
-                    }
+            SearchResponse response = client.search(searchRequest).actionGet();
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        sendErrorResponse(channel, e);
-                    }
-                });
+            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
+                log.error("Failed to find Draft policy document");
+                return new RestResponse(
+                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+        } catch (Exception ex) {
+            return new RestResponse(
+                    "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
     }
 
     /**
@@ -159,9 +152,9 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      */
     private static void sendErrorResponse(RestChannel channel, Exception e) {
         try {
+            log.error("Error processing request", e);
             RestResponse error =
-                    new RestResponse(
-                            "Draft policy check failed: " + e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+                    new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             channel.sendResponse(error.toBytesRestResponse());
         } catch (Exception ex) {
             log.error("Failed to send error response", ex);
