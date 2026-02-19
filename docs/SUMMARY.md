@@ -16,6 +16,7 @@
   - [Security](dev/plugins/security.md)
   - [Reporting](dev/plugins/reporting.md)
   - [Content Manager](dev/plugins/content-manager.md)
+    - [Content Manager Tutorial](dev/plugins/content-manager-tutorial.md)
 
 # Reference Manual
 - [Introduction]()
@@ -37,7 +38,9 @@
     - [Wazuh Common Schema](ref/modules/setup/schema.md)
   - [Content Manager](ref/modules/content-manager/index.md)
     - [Architecture](ref/modules/content-manager/architecture.md)
+    - [Configuration](ref/modules/content-manager/configuration.md)
     - [API Reference](ref/modules/content-manager/api.md)
+    - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)
     - [Usage](ref/modules/reporting/usage.md)
 - [Upgrade](ref/upgrade.md)
