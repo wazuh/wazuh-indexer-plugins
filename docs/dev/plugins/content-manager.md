@@ -743,7 +743,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | 6 | Preview promotion from custom (not allowed) |
 | 7 | Preview promotion without authentication |
 
-#### 07 - Promote: Execute Promotion (17 scenarios)
+#### 07 - Promote: Execute Promotion (18 scenarios)
 | # | Scenario |
 |---|----------|
 | 1 | Successfully promote from draft to test |
@@ -751,18 +751,19 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | 3 | Verify promoted resources exist in both draft and test spaces |
 | 4 | Verify test space hash is regenerated after draft to test promotion |
 | 5 | Verify promoted resource hashes match between draft and test spaces |
-| 6 | Successfully promote from test to custom |
-| 7 | Verify resources exist in custom space after test to custom promotion |
-| 8 | Verify promoted resources exist in both test and custom spaces |
-| 9 | Verify custom space hash is regenerated after test to custom promotion |
-| 10 | Verify promoted resource hashes match between test and custom spaces |
-| 11 | Promote from custom (not allowed) |
-| 12 | Promote with invalid space |
-| 13 | Promote with missing changes object |
-| 14 | Promote with incomplete changes (missing required resource arrays) |
-| 15 | Promote with non-update operation on policy |
-| 16 | Promote with empty body |
-| 17 | Promote without authentication |
+| 6 | Verify deleting a decoder in draft does not affect promoted test space |
+| 7 | Successfully promote from test to custom |
+| 8 | Verify resources exist in custom space after test to custom promotion |
+| 9 | Verify promoted resources exist in both test and custom spaces |
+| 10 | Verify custom space hash is regenerated after test to custom promotion |
+| 11 | Verify promoted resource hashes match between test and custom spaces |
+| 12 | Promote from custom (not allowed) |
+| 13 | Promote with invalid space |
+| 14 | Promote with missing changes object |
+| 15 | Promote with incomplete changes (missing required resource arrays) |
+| 16 | Promote with non-update operation on policy |
+| 17 | Promote with empty body |
+| 18 | Promote without authentication |
 
 
 ---

@@ -55,6 +55,15 @@ Feature: Execute Promotion
     Given content has been promoted from draft to test
     Then the "hash.sha256" of each promoted resource in "draft" should equal the "hash.sha256" of the corresponding resource in "test"
 
+  # --- Space isolation ---
+
+  Scenario: Deleting a decoder in draft does not affect the promoted test space
+    Given content has been promoted from draft to test
+    When I delete a decoder from the draft space
+    Then the decoder should no longer exist in draft space
+    But the decoder should still exist in the test space
+    And the integration in the test space should still reference the decoder
+
   # --- Test to Custom promotion ---
 
   Scenario: Successfully promote from test to custom

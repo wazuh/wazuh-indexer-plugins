@@ -847,7 +847,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     }
 
     /**
-     * Asserts that a resource ID exists in an integration's sub-resource list.
+     * Asserts that a resource ID exists in an integration's sub-resource list (draft space).
      *
      * @param integrationId the integration document.id
      * @param listField field name (decoders, rules, or kvdbs)
@@ -856,9 +856,24 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected void assertResourceInIntegrationList(
             String integrationId, String listField, String resourceId) throws IOException {
+        assertResourceInIntegrationList(integrationId, listField, resourceId, "draft");
+    }
+
+    /**
+     * Asserts that a resource ID exists in an integration's sub-resource list in a given space.
+     *
+     * @param integrationId the integration document.id
+     * @param listField field name (decoders, rules, or kvdbs)
+     * @param resourceId resource ID to look for
+     * @param spaceName the space to check (draft, test, custom)
+     * @throws IOException on communication error
+     */
+    protected void assertResourceInIntegrationList(
+            String integrationId, String listField, String resourceId, String spaceName)
+            throws IOException {
         JsonNode integration =
-                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
-        assertNotNull("Integration " + integrationId + " should exist", integration);
+                getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, spaceName);
+        assertNotNull("Integration " + integrationId + " should exist in " + spaceName, integration);
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
         assertTrue("List '" + listField + "' should be an array", list.isArray());
         boolean found = false;
@@ -869,7 +884,13 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
             }
         }
         assertTrue(
-                "Resource " + resourceId + " should be in integration's " + listField + " list", found);
+                "Resource "
+                        + resourceId
+                        + " should be in integration's "
+                        + listField
+                        + " list in "
+                        + spaceName,
+                found);
     }
 
     /**

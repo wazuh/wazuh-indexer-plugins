@@ -321,6 +321,58 @@ public class PromoteIT extends ContentManagerRestTestCase {
     }
 
     // ========================
+    // POST Promote - Space Isolation
+    // ========================
+
+    /**
+     * Verify that deleting a decoder in draft does not affect the promoted test space.
+     *
+     * <p>Steps:
+     *
+     * <ol>
+     *   <li>Create an integration and a decoder in draft.
+     *   <li>Promote draft to test.
+     *   <li>Delete the decoder from draft.
+     *   <li>Verify the decoder no longer exists in draft.
+     *   <li>Verify the decoder still exists in the test space.
+     *   <li>Verify the test-space integration still references the decoder.
+     * </ol>
+     *
+     * <p>Expected: Only the draft space is modified; the test space remains unchanged.
+     */
+    public void testPostPromote_draftDeletionDoesNotAffectTestSpace() throws IOException {
+        // 1. Create integration + decoder in draft
+        String integrationTitle = "promote-isolation";
+        String integrationId = createIntegration(integrationTitle);
+        String decoderId = createDecoder(integrationId);
+
+        // Verify decoder is linked to integration in draft
+        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
+
+        // 2. Promote draft -> test
+        String payload = buildPromotionPayload("draft");
+        Response promoteResponse = makeRequest("POST", PluginSettings.PROMOTE_URI, payload);
+        assertEquals(RestStatus.OK.getStatus(), getStatusCode(promoteResponse));
+
+        // Verify decoder exists in test space
+        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
+        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId, "test");
+
+        // 3. Delete the decoder from draft
+        Response deleteResponse = deleteResource(PluginSettings.DECODERS_URI, decoderId);
+        assertEquals(RestStatus.OK.getStatus(), getStatusCode(deleteResponse));
+
+        // 4. Verify decoder no longer exists in draft
+        assertResourceNotInDraft(Constants.INDEX_DECODERS, decoderId);
+
+        // 5. Verify decoder still exists in test space
+        assertResourceExistsInSpace(Constants.INDEX_DECODERS, decoderId, "test");
+
+        // 6. Verify test-space integration still references the decoder
+        assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId, "test");
+    }
+
+    // ========================
     // POST Promote - Error Scenarios
     // ========================
 
