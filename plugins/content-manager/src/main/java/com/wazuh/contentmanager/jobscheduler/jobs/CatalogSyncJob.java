@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.AbstractConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.IocConsumerSynchronizer;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.RulesetConsumerSynchronizer;
+import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 
 /**
@@ -47,7 +47,7 @@ public class CatalogSyncJob implements JobExecutor {
     private final Semaphore semaphore = new Semaphore(1);
 
     private final ThreadPool threadPool;
-    private final List<AbstractConsumerSynchronizer> synchronizers;
+    private final List<AbstractConsumerService> synchronizers;
 
     /**
      * Constructs a new CatalogSyncJob.
@@ -66,8 +66,8 @@ public class CatalogSyncJob implements JobExecutor {
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
-                        new RulesetConsumerSynchronizer(client, consumersIndex, environment),
-                        new IocConsumerSynchronizer(client, consumersIndex, environment));
+                        new ConsumerRulesetService(client, consumersIndex, environment),
+                        new ConsumerIocService(client, consumersIndex, environment));
     }
 
     /**
@@ -140,7 +140,7 @@ public class CatalogSyncJob implements JobExecutor {
      * registered synchronizers and executes them.
      */
     private void performSynchronization() {
-        for (AbstractConsumerSynchronizer synchronizer : this.synchronizers) {
+        for (AbstractConsumerService synchronizer : this.synchronizers) {
             try {
                 synchronizer.synchronize();
                 log.info("{} synchronized successfully.", synchronizer.getClass().getSimpleName());

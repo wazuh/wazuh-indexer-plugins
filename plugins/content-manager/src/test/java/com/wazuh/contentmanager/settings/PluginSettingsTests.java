@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.settings;
 
+import org.junit.Assert;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
@@ -34,7 +35,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        clearInstance();
+        PluginSettingsTests.clearInstance();
     }
 
     /**
@@ -44,7 +45,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
      */
     @After
     public void tearDown() throws Exception {
-        clearInstance();
+        PluginSettingsTests.clearInstance();
         super.tearDown();
     }
 
@@ -69,8 +70,8 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
 
         // Verify default values
-        assertTrue(pluginSettings.isUpdateOnStart());
-        assertTrue(pluginSettings.isUpdateOnSchedule());
+        Assert.assertTrue(pluginSettings.isUpdateOnStart());
+        Assert.assertTrue(pluginSettings.isUpdateOnSchedule());
     }
 
     /**
@@ -88,7 +89,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         PluginSettings pluginSettings = PluginSettings.getInstance(settings);
 
         // Verify custom values
-        assertFalse(pluginSettings.isUpdateOnStart());
-        assertFalse(pluginSettings.isUpdateOnSchedule());
+        Assert.assertFalse(pluginSettings.isUpdateOnStart());
+        Assert.assertFalse(pluginSettings.isUpdateOnSchedule());
     }
 }

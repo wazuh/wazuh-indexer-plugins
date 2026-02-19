@@ -63,7 +63,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
 
-        clearInstance();
+        ContentManagerPluginTests.clearInstance();
     }
 
     /** Cleans up the test environment after each test method. */
@@ -73,7 +73,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
-        clearInstance();
+        ContentManagerPluginTests.clearInstance();
         super.tearDown();
     }
 

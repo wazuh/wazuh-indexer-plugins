@@ -1333,39 +1333,59 @@ components:
               description: Detection condition logic
           description: Sigma detection logic
 
-    # Policy Resource
+    # Policy Resource — wrapped inside { "resource": { ... } }
     Policy:
       type: object
       additionalProperties: false
       required:
-        - type
-        - root_decoder
-        - integrations
+        - resource
       properties:
-        type:
+        resource:
+          $ref: "#/components/schemas/PolicyResource"
+
+    PolicyResource:
+      type: object
+      additionalProperties: false
+      required:
+        - author
+        - description
+        - documentation
+        - references
+      properties:
+        title:
           type: string
-          enum: [policy]
-          description: Resource type identifier
-          example: "policy"
+          description: Human-readable name for the policy
+          example: "Production Policy"
 
         root_decoder:
           type: string
-          description: Reference to the root decoder asset
-          example: "decoder/integrations/0"
+          description: Identifier of the root decoder for event processing
+          example: "decoder/core/0"
 
         integrations:
           type: array
           items:
             type: string
-          description: List of integration asset references
+          description: >
+            List of integration IDs. Reordering is allowed, but adding or
+            removing entries is not (managed via integration CUD endpoints).
           example: ["integration/wazuh-core/0"]
+
+        filters:
+          type: array
+          items:
+            type: string
+          description: List of filter UUIDs
+          example: ["5c1df6b6-1458-4b2e-9001-96f67a8b12c8"]
 
         enrichments:
           type: array
           items:
             type: string
             enum: [file, domain-name, ip, url, geo]
-          description: List of enrichment types to apply. Allowed values are file, domain-name, ip, url, geo. No duplicates allowed.
+          description: >
+            Enrichment types to apply. Allowed values: file, domain-name, ip, url, geo.
+            No duplicates allowed.
           example: ["file", "ip", "geo"]
 
         author:
@@ -1384,9 +1404,11 @@ components:
           example: "Detailed documentation"
 
         references:
-          type: string
-          description: External references or links
-          example: "External references"
+          type: array
+          items:
+            type: string
+          description: External reference URLs
+          example: ["https://wazuh.com"]
 
     RestResponse:
       type: object
