@@ -146,3 +146,164 @@ Always follow existing naming conventions to maintain consistency.
 Use epoch timestamps (in milliseconds) for `last_updated_time` fields.
 
 ISM policies and templates must be properly deployed before the indices are created.
+
+---
+
+## 🚀 Unclassified Events Data Stream (`wazuh-events-v5-unclassified`)
+
+### Overview
+
+The **wazuh-events-v5-unclassified** data stream is a specialized stream designed to capture and store events that do not match any predefined event categories. This provides visibility into edge cases, parsing failures, and events that may require new categorization rules.
+
+### Purpose
+
+- **Investigation and Troubleshooting**: Analyze uncategorized events to identify patterns or issues
+- **Rule Development**: Identify events that need new categorization rules
+- **System Monitoring**: Track parsing failures and anomalies
+
+### Data Stream Configuration
+
+#### Index Template
+- **Location**: `plugins/setup/src/main/resources/templates/streams/unclassified.json`
+- **Index Pattern**: `wazuh-events-v5-unclassified*`
+- **Rollover Alias**: `wazuh-events-v5-unclassified`
+- **Priority**: 2 (higher priority than standard event streams for proper template selection)
+
+#### Fields Included
+- **@timestamp**: Event timestamp
+- **event.original**: Raw, unprocessed event data
+- **wazuh.agent.***: Agent metadata (id, name, version, type)
+- **wazuh.cluster.***: Cluster information (name, node)
+- **wazuh.space.name**: Wazuh space/tenant information
+- **wazuh.schema.version**: Schema version
+- **wazuh.integration.***: Integration metadata (category, name, decoders, rules)
+
+#### Storage Settings
+- **Number of Shards**: 3
+- **Number of Replicas**: 0
+- **Auto-expand Replicas**: 0-1
+- **Refresh Interval**: 5 seconds
+- **Dynamic Mapping**: Strict (prevents unintended field creation)
+
+### ISM Policy
+
+#### Policy Details
+- **Policy Name**: `unclassified-events-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/unclassified-events-policy.json`
+- **Retention Period**: 7 days
+- **Priority**: 100
+
+#### Policy States
+
+1. **Hot State**
+   - Actions: None (events are immediately indexed)
+   - Transition Condition: Transitions to `delete` after 7 days
+
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
+
+### Use Cases
+
+1. **Event Classification Issues**
+   - Events that failed to match any category
+   - Malformed or unusual event formats
+
+2. **Parsing Failures**
+   - Events that couldn't be decoded properly
+   - Invalid event structures
+
+3. **Rule Development**
+   - Analyzing patterns that require new rules
+   - Edge cases not covered by existing rules
+
+4. **System Diagnostics**
+   - Understanding integration performance
+   - Identifying missing integrations or decoders
+
+### Configuration
+
+The data stream is created automatically during plugin initialization. Ensure:
+
+1. The template file `unclassified.json` exists in `templates/streams/`
+2. The ISM policy file `unclassified-events-policy.json` exists in `policies/`
+3. Both are registered in `SetupPlugin.java` and `IndexStateManagement.java`
+
+### Indexing Unclassified Events
+
+To index events into this data stream, use:
+
+```bash
+POST /wazuh-events-v5-unclassified/_doc
+{
+  "@timestamp": "2024-02-19T10:00:00Z",
+  "event": {
+    "original": "raw uncategorized event data"
+  },
+  "wazuh": {
+    "agent": {
+      "id": "001",
+      "name": "agent-name"
+    },
+    "space": {
+      "name": "default"
+    }
+  }
+}
+```
+
+### Monitoring and Analysis
+
+#### Query Unclassified Events
+```bash
+GET /wazuh-events-v5-unclassified/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+```
+
+#### Count Events by Agent
+```bash
+GET /wazuh-events-v5-unclassified/_search
+{
+  "size": 0,
+  "aggs": {
+    "events_by_agent": {
+      "terms": {
+        "field": "wazuh.agent.id",
+        "size": 100
+      }
+    }
+  }
+}
+```
+
+#### Time-based Analysis
+```bash
+GET /wazuh-events-v5-unclassified/_search
+{
+  "size": 0,
+  "aggs": {
+    "events_over_time": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "interval": "1h"
+      }
+    }
+  }
+}
+```
+
+### Testing
+
+Integration tests for the unclassified data stream are located at:
+`plugins/setup/src/test/java/com/wazuh/setup/UnclassifiedEventsIT.java`
+
+These tests verify:
+- Data stream creation
+- Template application
+- ISM policy creation and application
+- Document indexing capability
+- Correct field mappings
