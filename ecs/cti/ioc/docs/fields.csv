@@ -1,6 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
-9.1.0,true,base,type,keyword,custom,,ioc,Type of the IOC document.
 9.1.0,true,document,document.confidence,long,custom,,85,"Confidence level or score for the IoC, typically representing the reliability of the indicator."
 9.1.0,true,document,document.feed.name,keyword,custom,,AlienVault OTX,Name of the threat intelligence feed that provided this IoC.
 9.1.0,true,document,document.first_seen,date,custom,,2024-01-15T08:30:00.000Z,The date and time when the IoC was first observed or reported.
