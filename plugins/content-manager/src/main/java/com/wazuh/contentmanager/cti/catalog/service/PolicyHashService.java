@@ -105,9 +105,7 @@ public class PolicyHashService {
                         continue;
                     }
                     log.info(
-                        "Calculating hash calculation for policy [{}] in space [{}]",
-                        hit.getId(),
-                        spaceName);
+                            "Calculating hash calculation for policy [{}] in space [{}]", hit.getId(), spaceName);
                 }
 
                 List<String> spaceHashes = new ArrayList<>();
