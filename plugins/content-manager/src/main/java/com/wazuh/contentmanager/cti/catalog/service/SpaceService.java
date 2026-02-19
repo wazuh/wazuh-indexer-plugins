@@ -31,6 +31,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilders;
@@ -39,11 +40,16 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -92,7 +98,7 @@ public class SpaceService {
                     SearchResponse response = this.client.search(searchRequest).actionGet();
 
                     for (SearchHit hit : response.getHits().getHits()) {
-                        String hash = HashCalculator.extractHash(hit.getSourceAsMap());
+                        String hash = Resource.extractHash(hit.getSourceAsMap());
                         String docId = this.getDocumentId(hit.getSourceAsMap());
                         if (docId != null) {
                             items.put(docId, hash);
@@ -502,6 +508,166 @@ public class SpaceService {
                     "Error finding document ID for space [{}] and docId [{}]: {}",
                     spaceName,
                     documentId,
+                    e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
+     * processes only production spaces.
+     */
+    public void calculateAndUpdate() {
+
+        List<String> productionSpaces =
+                Arrays.stream(Space.values())
+                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TEST))
+                        .map(Space::toString)
+                        .collect(Collectors.toList());
+
+        this.calculateAndUpdate(productionSpaces);
+    }
+
+    /**
+     * Calculates and updates the aggregate hash for all policies in the given consumer context. This
+     * method was merged from SpaceService.
+     *
+     * @param targetSpaces The list of target spaces to process.
+     */
+    public void calculateAndUpdate(List<String> targetSpaces) {
+        try {
+            if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
+                log.warn(
+                        "Policy index [{}] does not exist. Skipping hash calculation.",
+                        Constants.INDEX_POLICIES);
+                return;
+            }
+
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(5);
+            SearchResponse response = this.client.search(searchRequest).actionGet();
+
+            BulkRequest bulkUpdateRequest = new BulkRequest();
+
+            for (SearchHit hit : response.getHits().getHits()) {
+                Map<String, Object> source = hit.getSourceAsMap();
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> space = (Map<String, Object>) source.get(Constants.KEY_SPACE);
+                if (space != null) {
+                    String spaceName = (String) space.get(Constants.KEY_NAME);
+                    // Check if the policy is in one of the target spaces
+                    if (!targetSpaces.contains(spaceName)) {
+                        continue;
+                    }
+                    log.info(
+                            "Calculating hash calculation for policy [{}] in space [{}]", hit.getId(), spaceName);
+                }
+
+                List<String> spaceHashes = new ArrayList<>();
+                spaceHashes.add(Resource.extractHash(source));
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                if (document != null && document.containsKey(Constants.KEY_INTEGRATIONS)) {
+                    @SuppressWarnings("unchecked")
+                    List<String> integrationIds = (List<String>) document.get(Constants.KEY_INTEGRATIONS);
+
+                    for (String integrationId : integrationIds) {
+                        Map<String, Object> integrationSource =
+                                this.getDocumentSource(Constants.INDEX_INTEGRATIONS, integrationId);
+                        if (integrationSource == null) {
+                            continue;
+                        }
+
+                        spaceHashes.add(Resource.extractHash(integrationSource));
+
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> integration =
+                                (Map<String, Object>) integrationSource.get(Constants.KEY_DOCUMENT);
+                        if (integration != null) {
+                            this.addHashes(
+                                    integration, Constants.KEY_DECODERS, Constants.INDEX_DECODERS, spaceHashes);
+                            this.addHashes(integration, Constants.KEY_KVDBS, Constants.INDEX_KVDBS, spaceHashes);
+                            this.addHashes(integration, Constants.KEY_RULES, Constants.INDEX_RULES, spaceHashes);
+                        }
+                    }
+                }
+
+                String spaceHash = Resource.computeSha256(String.join("", spaceHashes));
+
+                Map<String, Object> updateMap = new HashMap<>();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> spaceMap =
+                        (Map<String, Object>) source.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                @SuppressWarnings("unchecked")
+                Map<String, Object> hashMap =
+                        (Map<String, Object>) spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
+
+                hashMap.put(Constants.KEY_SHA256, spaceHash);
+                spaceMap.put(Constants.KEY_HASH, hashMap);
+                updateMap.put(Constants.KEY_SPACE, spaceMap);
+
+                bulkUpdateRequest.add(
+                        new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())
+                                .doc(updateMap, XContentType.JSON));
+            }
+
+            if (bulkUpdateRequest.numberOfActions() > 0) {
+                this.client.bulk(bulkUpdateRequest).actionGet();
+            }
+
+        } catch (Exception e) {
+            log.error("Error calculating policy hashes: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Adds hashes from resources of a specific type within an integration to the hash list. This
+     * method was merged from SpaceService.
+     *
+     * @param integration The integration document.
+     * @param resource The resource type (decoders, kvdbs, rules).
+     * @param resourceIndex The index containing the resources.
+     * @param spaceHashes The list to add hashes to.
+     */
+    private void addHashes(
+            Map<String, Object> integration,
+            String resource,
+            String resourceIndex,
+            List<String> spaceHashes) {
+        if (integration.containsKey(resource)) {
+            @SuppressWarnings("unchecked")
+            List<String> resourceIds = (List<String>) integration.get(resource);
+            for (String id : resourceIds) {
+                Map<String, Object> resourceSource = this.getDocumentSource(resourceIndex, id);
+                if (resourceSource != null) {
+                    spaceHashes.add(Resource.extractHash(resourceSource));
+                }
+            }
+        }
+    }
+
+    /**
+     * Retrieves the source document for a given document ID from the specified index. This method was
+     * moved from IndexHelper.
+     *
+     * @param indexName The name of the index.
+     * @param documentId The document ID.
+     * @return The document source as a Map, or null if not found.
+     */
+    public Map<String, Object> getDocumentSource(String indexName, String documentId) {
+        try {
+            GetRequest request = new GetRequest(indexName, documentId);
+            GetResponse response = this.client.get(request).actionGet();
+            if (response.isExists()) {
+                return response.getSourceAsMap();
+            }
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to retrieve document [{}] from index [{}]: {}",
+                    documentId,
+                    indexName,
                     e.getMessage());
         }
         return null;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.console;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.junit.Assert;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -104,7 +105,7 @@ public class CtiConsoleTests extends OpenSearchTestCase {
 
         // Ensure onTokenChanged is invoked, and the token in the CtiConsole instance is updated.
         Token tokenB = this.console.getToken();
-        assertEquals(tokenA, tokenB);
+        Assert.assertEquals(tokenA, tokenB);
     }
 
     /**
@@ -139,8 +140,8 @@ public class CtiConsoleTests extends OpenSearchTestCase {
         Token token = this.console.waitForToken();
 
         // Verify the token was obtained
-        assertTrue(this.console.isTokenTaskCompleted());
-        assertNotNull(token);
-        assertEquals("AYjcyMzY3ZDhiNmJkNTY", token.getAccessToken());
+        Assert.assertTrue(this.console.isTokenTaskCompleted());
+        Assert.assertNotNull(token);
+        Assert.assertEquals("AYjcyMzY3ZDhiNmJkNTY", token.getAccessToken());
     }
 }

@@ -445,11 +445,6 @@ public class ContentIndex {
             // 2. Convert Model
             ObjectNode result = this.mapper.valueToTree(resource);
 
-            // 3. Re-add the type field to the result
-            if (type != null) {
-                result.put(Constants.KEY_TYPE, type);
-            }
-
             return result;
         } catch (Exception e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);

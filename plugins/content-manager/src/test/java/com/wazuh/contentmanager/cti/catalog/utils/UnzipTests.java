@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.junit.Assert;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -44,7 +46,7 @@ public class UnzipTests extends OpenSearchTestCase {
         super.setUp();
 
         // Environment set up
-        this.tempDestinationDirectory = createTempDir();
+        this.tempDestinationDirectory = LuceneTestCase.createTempDir();
         this.tempZipPath = this.tempDestinationDirectory.resolve("file.zip");
         this.destinationPath = this.tempDestinationDirectory.resolve("");
         Settings settings =
@@ -74,23 +76,23 @@ public class UnzipTests extends OpenSearchTestCase {
         try {
             Unzip.unzip(this.tempZipPath, this.destinationPath);
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
-            assertTrue("File should be extracted", Files.exists(extractedFilePath));
+            Assert.assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
-            assertEquals("File content should match", this.testFileMessage, fileContent.trim());
+            Assert.assertEquals("File content should match", this.testFileMessage, fileContent.trim());
         } catch (IOException e) {
-            fail("Unexpected IOException: " + e.getMessage());
+            Assert.fail("Unexpected IOException: " + e.getMessage());
         }
     }
 
     /** Test NullPointerException */
     public void testNullPointerException() {
-        assertThrows(
+        Assert.assertThrows(
                 NullPointerException.class, () -> Unzip.unzip(null, this.tempDestinationDirectory));
     }
 
     /** Test FileNotFoundException */
     public void testFileNotFoundException() {
-        assertThrows(
+        Assert.assertThrows(
                 FileNotFoundException.class,
                 () ->
                         Unzip.unzip(
