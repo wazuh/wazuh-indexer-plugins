@@ -35,11 +35,7 @@ public class Ioc {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final String TYPE_KEY = "type";
     private static final String DOCUMENT_KEY = "document";
-
-    @JsonProperty(TYPE_KEY)
-    private String type;
 
     @JsonProperty(DOCUMENT_KEY)
     private IocDocument document;
@@ -55,24 +51,6 @@ public class Ioc {
      */
     public static Ioc fromPayload(JsonNode payload) {
         return MAPPER.convertValue(payload, Ioc.class);
-    }
-
-    /**
-     * Gets the type.
-     *
-     * @return The type.
-     */
-    public String getType() {
-        return this.type;
-    }
-
-    /**
-     * Sets the type.
-     *
-     * @param type The type.
-     */
-    public void setType(String type) {
-        this.type = type;
     }
 
     /**
