@@ -370,7 +370,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return rawCategory;
         }
 
-        // TODO remove when CTI applies the changes to the categorization.
         // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
         if (rawCategory.contains("cloud-services")) {
             rawCategory = rawCategory.substring(0, 14);

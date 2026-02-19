@@ -16,9 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,9 +31,6 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
@@ -81,94 +76,6 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      */
     protected String getCurrentDate() {
         return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-    }
-
-    /**
-     * Adds or updates timestamp metadata (date, modified) in the resource node.
-     *
-     * @param resourceNode The resource object to update.
-     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
-     * @param isDecoder If true, uses the decoder specific metadata structure.
-     */
-    protected void updateTimestampMetadata(
-            ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
-        String currentTimestamp = getCurrentDate();
-
-        if (isDecoder) {
-            ObjectNode metadataNode;
-            if (resourceNode.has(Constants.KEY_METADATA)
-                    && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-                metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-            } else {
-                metadataNode = CONTENT_MAPPER.createObjectNode();
-                resourceNode.set(Constants.KEY_METADATA, metadataNode);
-            }
-
-            ObjectNode authorNode;
-            if (metadataNode.has(Constants.KEY_AUTHOR)
-                    && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-                authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-            } else {
-                authorNode = CONTENT_MAPPER.createObjectNode();
-                metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-            }
-
-            if (isCreate) {
-                authorNode.put(Constants.KEY_DATE, currentTimestamp);
-            }
-            authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-        } else {
-            if (isCreate) {
-                resourceNode.put(Constants.KEY_DATE, currentTimestamp);
-            }
-            resourceNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-        }
-    }
-
-    /**
-     * Builds the standard CTI wrapper payload containing document, space, and hash.
-     *
-     * @param resourceNode The content of the resource.
-     * @param spaceName The space name (e.g., "draft").
-     * @return The constructed JsonNode wrapper.
-     */
-    protected JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
-        ObjectNode wrapper = CONTENT_MAPPER.createObjectNode();
-        wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
-
-        ObjectNode space = CONTENT_MAPPER.createObjectNode();
-        space.put(Constants.KEY_NAME, spaceName);
-        wrapper.set(Constants.KEY_SPACE, space);
-
-        String hash = computeSha256(resourceNode.toString());
-        ObjectNode hashNode = CONTENT_MAPPER.createObjectNode();
-        hashNode.put(Constants.KEY_SHA256, hash);
-        wrapper.set(Constants.KEY_HASH, hashNode);
-
-        return wrapper;
-    }
-
-    /**
-     * Computes SHA-256 hash of a string.
-     *
-     * @param payload The string to hash.
-     * @return The hex representation of the hash.
-     */
-    protected static String computeSha256(String payload) {
-        try {
-            byte[] hash =
-                    MessageDigest.getInstance("SHA-256").digest(payload.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder(2 * hash.length);
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Error hashing content", e);
-            return "";
-        }
     }
 
     /**

@@ -161,8 +161,8 @@ public class Resource {
      */
     protected static void preprocessDocument(ObjectNode document) {
         // Remove type field if present
-        if (document.has("type")) {
-            document.remove("type");
+        if (document.has(Constants.KEY_TYPE)) {
+            document.remove(Constants.KEY_TYPE);
         }
 
         if (document.has(JSON_METADATA_KEY) && document.get(JSON_METADATA_KEY).isObject()) {
@@ -199,13 +199,14 @@ public class Resource {
     }
 
     /**
-     * Builds the standard CTI wrapper payload containing type, document, space, and hash.
+     * Wraps the given resource content into a standard CTI JSON payload. The generated wrapper
+     * contains the document, the space information, and a computed SHA-256 hash.
      *
-     * @param resourceNode The content of the resource.
-     * @param spaceName The space name (e.g., "draft").
-     * @return The constructed JsonNode wrapper.
+     * @param resourceNode The JSON content of the resource to be wrapped.
+     * @param spaceName The target space name (e.g., "draft").
+     * @return The constructed JsonNode wrapper containing the document, space, and hash.
      */
-    public static JsonNode buildCtiWrapper(JsonNode resourceNode, String spaceName) {
+    public JsonNode wrapResource(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = MAPPER.createObjectNode();
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
 
@@ -221,6 +222,26 @@ public class Resource {
         wrapper.set(Constants.KEY_HASH, hashNode);
 
         return wrapper;
+    }
+
+    /**
+     * Sets the creation time on the given resource JSON node.
+     *
+     * @param resourceNode The resource JSON node.
+     * @param timestamp The timestamp to set.
+     */
+    public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
+        resourceNode.put(Constants.KEY_DATE, timestamp);
+    }
+
+    /**
+     * Sets the last modification time on the given resource JSON node.
+     *
+     * @param resourceNode The resource JSON node.
+     * @param timestamp The timestamp to set.
+     */
+    public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
+        resourceNode.put(Constants.KEY_MODIFIED, timestamp);
     }
 
     /**

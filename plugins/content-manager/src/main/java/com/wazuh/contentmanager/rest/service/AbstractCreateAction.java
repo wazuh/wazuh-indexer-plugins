@@ -27,12 +27,12 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -120,7 +120,15 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             // 4. Generate ID and Metadata
             String id = UUID.randomUUID().toString();
             resourceNode.put(Constants.KEY_ID, id);
-            this.updateTimestampMetadata(resourceNode, true, this.isDecoder());
+
+            String currentTimestamp = this.getCurrentDate();
+            if (this.isDecoder()) {
+                Decoder.setCreationTime(resourceNode, currentTimestamp);
+                Decoder.setLastModificationTime(resourceNode, currentTimestamp);
+            } else {
+                Resource.setCreationTime(resourceNode, currentTimestamp);
+                Resource.setLastModificationTime(resourceNode, currentTimestamp);
+            }
 
             if (!resourceNode.has(Constants.KEY_ENABLED)) {
                 resourceNode.put(Constants.KEY_ENABLED, true);
@@ -140,9 +148,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
 
             // 7. Indexing
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            JsonNode ctiWrapper =
-                    com.wazuh.contentmanager.cti.catalog.model.Resource.buildCtiWrapper(
-                            resourceNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
 
             index.create(id, ctiWrapper, this.isDecoder());
 
@@ -217,60 +223,4 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
      * Links the newly created resource to its parent container (e.g., adding Rule ID to Integration).
      */
     protected abstract void linkToParent(Client client, String id, JsonNode root) throws IOException;
-
-    /**
-     * Generate current date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
-     *
-     * @return String representing current date.
-     */
-    protected String getCurrentDate() {
-        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-    }
-
-    /**
-     * Adds or updates timestamp metadata (date, modified) in the resource node.
-     *
-     * <p>If {@code isDecoder} is true, fields are set in {@code metadata.author}. Otherwise, fields
-     * are set at the root level.
-     *
-     * @param resourceNode The resource object to update.
-     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
-     * @param isDecoder If true, uses the decoder specific metadata structure.
-     */
-    protected void updateTimestampMetadata(
-            ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
-        String currentTimestamp = getCurrentDate();
-
-        if (isDecoder) {
-            // Decoders: metadata.author.date/modified
-            ObjectNode metadataNode;
-            if (resourceNode.has(Constants.KEY_METADATA)
-                    && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-                metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-            } else {
-                metadataNode = MAPPER.createObjectNode();
-                resourceNode.set(Constants.KEY_METADATA, metadataNode);
-            }
-
-            ObjectNode authorNode;
-            if (metadataNode.has(Constants.KEY_AUTHOR)
-                    && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-                authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-            } else {
-                authorNode = MAPPER.createObjectNode();
-                metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-            }
-
-            if (isCreate) {
-                authorNode.put(Constants.KEY_DATE, currentTimestamp);
-            }
-            authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-        } else {
-            // Rules, Integrations, KVDBs: root date/modified
-            if (isCreate) {
-                resourceNode.put(Constants.KEY_DATE, currentTimestamp);
-            }
-            resourceNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-        }
-    }
 }

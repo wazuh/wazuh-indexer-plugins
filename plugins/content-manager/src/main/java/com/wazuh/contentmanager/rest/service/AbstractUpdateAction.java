@@ -27,11 +27,11 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -157,7 +157,12 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 6. Update Timestamps & Preserve Metadata
-            this.updateTimestampMetadata(resourceNode, false, this.isDecoder());
+            String currentTimestamp = this.getCurrentDate();
+            if (this.isDecoder()) {
+                Decoder.setLastModificationTime(resourceNode, currentTimestamp);
+            } else {
+                Resource.setLastModificationTime(resourceNode, currentTimestamp);
+            }
             validationError = this.preserveMetadata(index, id, resourceNode);
             if (validationError != null) {
                 log.warn(
@@ -182,7 +187,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 8. Indexing
-            JsonNode ctiWrapper = this.buildCtiWrapper(resourceNode, Space.DRAFT.toString());
+            JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
             index.create(id, ctiWrapper, this.isDecoder());
 
             // 9. Update Hash
@@ -261,60 +266,4 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
      * @return null if successful, RestResponse with error otherwise.
      */
     protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
-
-    /**
-     * Generate current date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
-     *
-     * @return String representing current date.
-     */
-    protected String getCurrentDate() {
-        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-    }
-
-    /**
-     * Adds or updates timestamp metadata (date, modified) in the resource node.
-     *
-     * <p>If {@code isDecoder} is true, fields are set in {@code metadata.author}. Otherwise, fields
-     * are set at the root level.
-     *
-     * @param resourceNode The resource object to update.
-     * @param isCreate If true, sets creation 'date'. Always sets 'modified'.
-     * @param isDecoder If true, uses the decoder specific metadata structure.
-     */
-    protected void updateTimestampMetadata(
-            ObjectNode resourceNode, boolean isCreate, boolean isDecoder) {
-        String currentTimestamp = getCurrentDate();
-
-        if (isDecoder) {
-            // Decoders: metadata.author.date/modified
-            ObjectNode metadataNode;
-            if (resourceNode.has(Constants.KEY_METADATA)
-                    && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-                metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-            } else {
-                metadataNode = MAPPER.createObjectNode();
-                resourceNode.set(Constants.KEY_METADATA, metadataNode);
-            }
-
-            ObjectNode authorNode;
-            if (metadataNode.has(Constants.KEY_AUTHOR)
-                    && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-                authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-            } else {
-                authorNode = MAPPER.createObjectNode();
-                metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-            }
-
-            if (isCreate) {
-                authorNode.put(Constants.KEY_DATE, currentTimestamp);
-            }
-            authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-        } else {
-            // Rules, Integrations, KVDBs: root date/modified
-            if (isCreate) {
-                resourceNode.put(Constants.KEY_DATE, currentTimestamp);
-            }
-            resourceNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-        }
-    }
 }
