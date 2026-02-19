@@ -138,24 +138,27 @@ public class ContentManagerPlugin extends Plugin
      * Triggers the internal {@link #start()} method if the current node is a Cluster Manager to
      * initialize indices. It also ensures the periodic catalog sync job is scheduled.
      *
+     * <p>The startup sync trigger is restricted to the cluster manager node to prevent every node in
+     * the cluster from running a concurrent synchronization on startup.
+     *
      * @param localNode The local node discovery information.
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        // Only cluster managers are responsible for the initialization.
+        // Only cluster managers are responsible for initialization and the startup sync trigger.
         if (localNode.isClusterManagerNode()) {
             this.start();
+
+            // Trigger update on start if enabled
+            if (PluginSettings.getInstance().isUpdateOnStart()) {
+                this.catalogSyncJob.trigger();
+            } else {
+                log.info("Skipping catalog sync job trigger");
+            }
         }
 
-        // Schedule the periodic sync job via OpenSearch Job Scheduler
+        // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
         this.scheduleCatalogSyncJob();
-
-        // Trigger update on start if enabled
-        if (PluginSettings.getInstance().isUpdateOnStart()) {
-            this.catalogSyncJob.trigger();
-        } else {
-            log.info("Skipping catalog sync job trigger");
-        }
     }
 
     /**

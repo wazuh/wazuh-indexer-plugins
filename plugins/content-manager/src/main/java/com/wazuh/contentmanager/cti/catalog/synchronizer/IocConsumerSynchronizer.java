@@ -75,7 +75,7 @@ public class IocConsumerSynchronizer extends AbstractConsumerSynchronizer {
     }
 
     @Override
-    protected void onSyncComplete(boolean isUpdated) {
+    public void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
         }

@@ -36,6 +36,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -144,7 +145,7 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param isUpdated Indicates if the content was updated during sync.
      */
     @Override
-    protected void onSyncComplete(boolean isUpdated) {
+    public void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(
                     Constants.INDEX_RULES,
@@ -418,8 +419,10 @@ public class RulesetConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * Creates default policy documents for user spaces (draft, testing, custom) if they don't exist.
      */
     private void initializeSpaces() {
-        // Generate a single ID to be shared across all default policies so they are linked
-        String sharedDocumentId = UUID.randomUUID().toString();
+        // Generate a deterministic ID shared across all default policies so they are linked.
+        // Using a name-based UUID (v3) ensures all nodes produce the same ID for the same seed.
+        String sharedDocumentId =
+                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
         this.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
         this.initializeSpace(Space.TEST.toString(), sharedDocumentId);
         this.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
