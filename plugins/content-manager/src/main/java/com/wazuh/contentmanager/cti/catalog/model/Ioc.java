@@ -25,9 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
 /**
- * Model representing an IoC (Indicator of Compromise) resource. Structured to match the
- * {@code subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic
- * maps.
+ * Model representing an IoC (Indicator of Compromise) resource. Structured to match the {@code
+ * subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic maps.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -72,8 +71,8 @@ public class Ioc {
     }
 
     /**
-     * Represents the {@code document} object within an IoC. Uses flat dot-notation keys (e.g.
-     * {@code "feed.name"}, {@code "software.type"}) matching the CTI payload structure.
+     * Represents the {@code document} object within an IoC. Uses flat dot-notation keys (e.g. {@code
+     * "feed.name"}, {@code "software.type"}) matching the CTI payload structure.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)

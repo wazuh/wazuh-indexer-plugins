@@ -21,17 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.wazuh.contentmanager.cti.catalog.model.Ioc.IocDocument;
+import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 import org.junit.Before;
-import org.opensearch.test.OpenSearchTestCase;
 
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Unit tests for the {@link Ioc} class.
- */
+import com.wazuh.contentmanager.cti.catalog.model.Ioc.IocDocument;
+
+/** Unit tests for the {@link Ioc} class. */
 public class IocTests extends OpenSearchTestCase {
 
     private ObjectMapper mapper;
@@ -58,7 +57,6 @@ public class IocTests extends OpenSearchTestCase {
 
         // Assert root fields
         Assert.assertNotNull(ioc);
-        Assert.assertEquals("ioc", ioc.getType());
 
         // Assert document fields
         Ioc.IocDocument doc = ioc.getDocument();
@@ -94,10 +92,6 @@ public class IocTests extends OpenSearchTestCase {
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
         JsonNode serialized = this.mapper.valueToTree(ioc);
-
-        // Assert root
-        Assert.assertTrue(serialized.has("type"));
-        Assert.assertEquals("ioc", serialized.get("type").asText());
 
         // Assert document uses dot-notation keys
         JsonNode doc = serialized.get("document");
@@ -153,7 +147,6 @@ public class IocTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertNotNull(ioc);
-        Assert.assertEquals("ioc", ioc.getType());
         Assert.assertNotNull(ioc.getDocument());
         Assert.assertNull(ioc.getDocument().getId());
         Assert.assertNull(ioc.getDocument().getName());
@@ -179,7 +172,6 @@ public class IocTests extends OpenSearchTestCase {
 
         // Assert - should parse without errors and capture known fields
         Assert.assertNotNull(ioc);
-        Assert.assertEquals("ioc", ioc.getType());
         Assert.assertEquals("99999", ioc.getDocument().getId());
         Assert.assertEquals("test-ioc", ioc.getDocument().getName());
     }
@@ -195,7 +187,6 @@ public class IocTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertNotNull(ioc);
-        Assert.assertEquals("ioc", ioc.getType());
         Assert.assertNull(ioc.getDocument());
     }
 
@@ -223,11 +214,9 @@ public class IocTests extends OpenSearchTestCase {
         Ioc ioc = new Ioc();
 
         // Act
-        ioc.setType("ioc");
         ioc.setDocument(new Ioc.IocDocument());
 
         // Assert
-        Assert.assertEquals("ioc", ioc.getType());
         Assert.assertNotNull(ioc.getDocument());
     }
 
