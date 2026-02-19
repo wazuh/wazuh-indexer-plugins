@@ -13,3 +13,4 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,document,document.software.type,keyword,custom,,Trojan,"Type or classification of the software, such as malware, trojan, or ransomware."
 9.1.0,true,document,document.tags,keyword,custom,,"malware, c2, botnet",Tags or labels associated with the IoC for categorization and filtering.
 9.1.0,true,document,document.type,keyword,custom,,domain-name,"Type or category of the IoC, such as IP address, domain, file hash, or URL."
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the IoC document.
