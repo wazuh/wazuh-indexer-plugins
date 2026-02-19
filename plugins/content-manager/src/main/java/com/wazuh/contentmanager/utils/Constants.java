@@ -44,8 +44,9 @@ public class Constants {
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
     public static final String E_400_RESOURCE_NOT_FOUND = "%s [%s] not found.";
     public static final String E_400_RESOURCE_NOT_IN_DRAFT = "%s with ID '%s' is not in draft space.";
-    public static final String E_400_RESOURCE_NOT_IN_PROVIDED_SPACES =
-            "%s with ID '%s' is not in provided spaces.";
+    public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
+    public static final String E_400_RESOURCE_SPACE_MISMATCH =
+            "Invalid space value. Must be one of: %s.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";

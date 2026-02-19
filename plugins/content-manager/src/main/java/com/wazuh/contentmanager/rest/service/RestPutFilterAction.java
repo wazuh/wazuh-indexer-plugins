@@ -14,33 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.services;
+package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.ContentUtils;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
@@ -61,23 +50,35 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
  * </ul>
  */
-public class RestPutFilterAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPutFilterAction.class);
+public class RestPutFilterAction extends AbstractUpdateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_update";
 
-    private final EngineService engine;
-    private final ObjectMapper mapper = new ObjectMapper();
-    private PolicyHashService policyHashService;
+    private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
+    private String spaceName = "";
 
-    /**
-     * Constructs a new RestPutFilterAction handler.
-     *
-     * @param engine the engine service instance for communication with the Wazuh engine
-     */
     public RestPutFilterAction(EngineService engine) {
-        this.engine = engine;
+        super(engine);
+    }
+
+    @Override
+    protected String getIndexName() {
+        return Constants.INDEX_FILTERS;
+    }
+
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_FILTER;
+    }
+
+    @Override
+    protected String getSpaceName() {
+        return this.spaceName;
+    }
+
+    private void setSpaceName(String spaceName) {
+        this.spaceName = spaceName;
     }
 
     @Override
@@ -100,133 +101,60 @@ public class RestPutFilterAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for processing.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        // Consume path params early to avoid unrecognized parameter errors.
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        return channel ->
-                channel.sendResponse(this.handleRequest(request, client).toBytesRestResponse());
+    protected boolean isDecoder() {
+        // Behaves as decoders im terms of how metadata is handled
+        return true;
+    }
+
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        // Validate space is either draft or standard.
+        String spaceName = root.path(Constants.KEY_SPACE).asText(null);
+
+        if (!isValidSpace(spaceName)) {
+            return createInvalidSpaceResponse();
+        }
+        setSpaceName(spaceName);
+        return null;
     }
 
     /**
-     * Sets the policy hash service.
+     * Checks if the provided space value is valid.
      *
-     * @param policyHashService The service responsible for calculating policy hashes.
+     * @param spaceValue the space value to validate
+     * @return true if the space value is valid, false otherwise
      */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
-    }
-
-    /**
-     * Handles the filter update request.
-     *
-     * <p>This method validates the request payload, ensures the filter ID matches, validates the
-     * filter with the Wazuh engine, and stores the updated filter in the index.
-     *
-     * @param request the incoming REST request containing the filter data to update
-     * @param client the OpenSearch client for index operations
-     * @return a RestResponse indicating success or failure of the update
-     */
-    public RestResponse handleRequest(RestRequest request, Client client) {
-        // Validate prerequisites
-        RestResponse validationError = DocumentValidations.validatePrerequisites(this.engine, request);
-        if (validationError != null) {
-            return validationError;
+    private boolean isValidSpace(String spaceValue) {
+        if (spaceValue == null) {
+            return false;
         }
 
         try {
-            String filterId = request.param(Constants.KEY_ID);
-            if (filterId == null || filterId.isBlank()) {
-                return new RestResponse("Filter ID is required.", RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            JsonNode payload = this.mapper.readTree(request.content().streamInput());
-
-            // Validate payload structure
-            validationError = DocumentValidations.validateResourcePayload(payload, filterId, false);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            ObjectNode resourceNode = (ObjectNode) payload.get(Constants.KEY_RESOURCE);
-            resourceNode.put(Constants.KEY_ID, filterId);
-
-            // Validate forbidden metadata fields
-            validationError = ContentUtils.validateMetadataFields(resourceNode, false);
-            if (validationError != null) {
-                return validationError;
-            }
-
-            // Validate filter is in draft or standard spaces
-            List<Space> spaces = List.of(Space.DRAFT, Space.STANDARD);
-            String spaceValidationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_FILTERS, filterId, Constants.KEY_FILTER, spaces);
-            if (spaceValidationError != null) {
-                return new RestResponse(spaceValidationError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // Fetch existing filter to preserve creation date
-            ContentIndex filterIndex = new ContentIndex(client, Constants.INDEX_FILTERS, null);
-            JsonNode existingDoc = filterIndex.getDocument(filterId);
-            if (existingDoc == null) {
-                return new RestResponse(
-                        "Filter [" + filterId + "] not found.", RestStatus.NOT_FOUND.getStatus());
-            }
-
-            String existingDate = null;
-            if (existingDoc.has(Constants.KEY_DOCUMENT)) {
-                JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-                if (doc.has(Constants.KEY_METADATA)) {
-                    JsonNode meta = doc.get(Constants.KEY_METADATA);
-                    if (meta.has(Constants.KEY_AUTHOR)) {
-                        JsonNode auth = meta.get(Constants.KEY_AUTHOR);
-                        if (auth.has(Constants.KEY_DATE)) {
-                            existingDate = auth.get(Constants.KEY_DATE).asText();
-                        }
-                    }
-                }
-            }
-
-            // Update timestamp
-            ContentUtils.updateTimestampMetadata(resourceNode, false, false);
-            ((ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR))
-                    .put(Constants.KEY_DATE, existingDate);
-
-            // Validate filter with Wazuh Engine
-            RestResponse engineValidation =
-                    this.engine.validateResource(Constants.KEY_FILTER, resourceNode);
-            if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-                return new RestResponse(engineValidation.getMessage(), engineValidation.getStatus());
-            }
-
-            // Update filter
-            JsonNode jsonNode = existingDoc.get(Constants.KEY_SPACE);
-            String spaceName = jsonNode.get("name").asText();
-            filterIndex.create(filterId, ContentUtils.buildCtiWrapper(resourceNode, spaceName));
-
-            // Regenerate space hash because filter content changed
-            this.policyHashService.calculateAndUpdate(List.of(spaceName));
-
-            return new RestResponse(
-                    "Filter updated successfully with ID: " + filterId, RestStatus.OK.getStatus());
-
-        } catch (IOException e) {
-            return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+            return validSpaces.contains(Space.fromValue(spaceValue));
         } catch (Exception e) {
-            log.error("Error updating filter: {}", e.getMessage(), e);
-            return new RestResponse(
-                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return false;
         }
+    }
+
+    /**
+     * Creates an error response for invalid space values.
+     *
+     * @return RestResponse with error message and bad request status
+     */
+    private RestResponse createInvalidSpaceResponse() {
+        return new RestResponse(
+                "Invalid space value. Must be one of: " + validSpaces, RestStatus.BAD_REQUEST.getStatus());
+    }
+
+    @Override
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
+        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
+            return new RestResponse(
+                    "Engine Validation Failed: " + engineValidation.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
     }
 }

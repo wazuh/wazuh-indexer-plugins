@@ -14,29 +14,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.services;
+package com.wazuh.contentmanager.rest.service;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.DocumentValidations;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -56,13 +43,14 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
  */
-public class RestDeleteFilterAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestDeleteFilterAction.class);
+public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_delete";
 
-    private PolicyHashService policyHashService;
+    public RestDeleteFilterAction(EngineService engine) {
+        super(engine);
+    }
 
     @Override
     public String getName() {
@@ -84,90 +72,23 @@ public class RestDeleteFilterAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepares the REST request for processing.
-     *
-     * @param request the incoming REST request containing the filter ID
-     * @param client the node client for executing operations
-     * @return a consumer that executes the delete operation and sends the response
-     * @throws IOException if an I/O error occurs during request preparation
-     */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        // Consume path params early to avoid unrecognized parameter errors.
-        request.param(Constants.KEY_ID);
-        this.policyHashService = new PolicyHashService(client);
-        return channel -> channel.sendResponse(this.handleRequest(request, client));
+    protected String getIndexName() {
+        return Constants.INDEX_FILTERS;
     }
 
-    /**
-     * Handles the filter deletion request.
-     *
-     * <p>This method validates the request, deletes the filter from the index, and removes references
-     * to the filter from any integrations that include it.
-     *
-     * @param request the incoming REST request containing the filter ID to delete
-     * @param client the OpenSearch client for index operations
-     * @return a BytesRestResponse indicating success or failure of the deletion
-     */
-    public BytesRestResponse handleRequest(RestRequest request, Client client) {
-        try {
-            String filterId = request.param(Constants.KEY_ID);
-            if (filterId == null || filterId.isBlank()) {
-                return new RestResponse("Filter ID is required.", RestStatus.BAD_REQUEST.getStatus())
-                        .toBytesRestResponse();
-            }
-
-            // Ensure Index Exists
-            if (!IndexHelper.indexExists(client, Constants.INDEX_FILTERS)) {
-                return new RestResponse("Filter index not found.", RestStatus.NOT_FOUND.getStatus())
-                        .toBytesRestResponse();
-            }
-
-            // Validate filter is in draft space
-            String validationError =
-                    DocumentValidations.validateDocumentInSpace(
-                            client, Constants.INDEX_FILTERS, filterId, Constants.KEY_FILTERS);
-            if (validationError != null) {
-                return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus())
-                        .toBytesRestResponse();
-            }
-
-            ContentIndex filterIndex = new ContentIndex(client, Constants.INDEX_FILTERS, null);
-
-            // Check if filter exists before deleting
-            if (!filterIndex.exists(filterId)) {
-                return new RestResponse(
-                                "Filter [" + filterId + "] not found.", RestStatus.NOT_FOUND.getStatus())
-                        .toBytesRestResponse();
-            }
-
-            // Delete
-            filterIndex.delete(filterId);
-
-            // Regenerate space hash because filter was removed from space
-            this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            return new RestResponse("Filter deleted successfully.", RestStatus.OK.getStatus())
-                    .toBytesRestResponse();
-        } catch (Exception e) {
-            log.error("Error deleting filter: {}", e.getMessage(), e);
-            return new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                    .toBytesRestResponse();
-        }
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_FILTER;
     }
 
-    /**
-     * Sets the policy hash service for testing purposes.
-     *
-     * @param policyHashService the PolicyHashService instance to use
-     */
-    public void setPolicyHashService(PolicyHashService policyHashService) {
-        this.policyHashService = policyHashService;
+    @Override
+    protected void deleteExternalServices(String id) {
+        // Not applicable for this implementation.
+    }
+
+    @Override
+    protected void unlinkFromParent(Client client, String id) throws Exception {
+        // Not applicable for this implementation.
     }
 }

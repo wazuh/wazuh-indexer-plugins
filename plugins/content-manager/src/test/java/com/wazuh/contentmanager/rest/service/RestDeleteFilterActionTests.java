@@ -14,35 +14,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.services;
+package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import org.apache.lucene.search.TotalHits;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.Answers;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -56,16 +53,18 @@ import static org.mockito.Mockito.*;
  * response codes for successful Filter delete errors.
  */
 public class RestDeleteFilterActionTests extends OpenSearchTestCase {
+
     private RestDeleteFilterAction action;
+    private Client client;
+    private SpaceService policyHashService;
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
     public static void setUpClass() {
-        // Initialize PluginSettings singleton - it will persist across all tests
         try {
             PluginSettings.getInstance(Settings.EMPTY);
         } catch (IllegalStateException e) {
-            // Already initialized, ignore
+            // Already initialized
         }
     }
 
@@ -78,116 +77,124 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.action = new RestDeleteFilterAction();
+        EngineService engine = mock(EngineService.class);
+        this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
+        this.policyHashService = mock(SpaceService.class);
+
+        this.action = spy(new RestDeleteFilterAction(engine));
+        this.action.setPolicyHashService(this.policyHashService);
     }
 
-    /**
-     * Test the {@link RestDeleteFilterAction#handleRequest(RestRequest)} method when the request is
-     * complete. The expected response is: {200, RestResponse}
-     */
-    public void testDeleteFilter200() {
-        // Mock
-        RestRequest request = this.buildRequest("d_82e215c4-988a-4f64-8d15-b98b2fc03a4f");
-        Client client = this.buildClientForDelete();
+    /** Helper to mock filter existence and space verification for deletion. */
+    private void mockFilterInSpace(String id, String space, boolean exists) {
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, client);
-
-        // Assert
-        RestResponse expectedResponse =
-                new RestResponse("Filter deleted successfully.", RestStatus.OK.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
-        assertEquals(RestStatus.OK, bytesRestResponse.status());
-    }
-
-    /**
-     * Test the {@link RestDeleteFilterAction#handleRequest(RestRequest)} method when the filter has
-     * not been deleted (mock). The expected response is: {400, RestResponse}
-     */
-    public void testDeleteFilter400() {
-        // Mock
-        RestRequest request = this.buildRequest(null);
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(request, null);
-
-        // Assert
-        RestResponse expectedResponse =
-                new RestResponse("Filter ID is required.", RestStatus.BAD_REQUEST.getStatus());
-        RestResponse actualResponse = this.parseResponse(bytesRestResponse);
-        assertEquals(expectedResponse, actualResponse);
-        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
-    }
-
-    /**
-     * Test the {@link RestDeleteFilterAction#handleRequest(RestRequest)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
-     */
-    public void testDeleteFilter500() {
-        // Mock
-        this.action = new RestDeleteFilterAction();
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(null, null);
-
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
-    }
-
-    private RestRequest buildRequest(String filterId) {
-        FakeRestRequest.Builder builder = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY);
-        if (filterId != null) {
-            builder.withParams(Map.of("id", filterId, "filter_id", filterId));
+        GetResponse response = mock(GetResponse.class);
+        when(response.isExists()).thenReturn(exists);
+        if (exists) {
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, space));
+            source.put(Constants.KEY_DOCUMENT, Map.of(Constants.KEY_ID, id));
+            when(response.getSourceAsMap()).thenReturn(source);
+            when(response.getSourceAsString())
+                    .thenReturn(
+                            "{\"document\":{\"id\":\"" + id + "\"},\"space\":{\"name\":\"" + space + "\"}}");
         }
-        return builder.build();
+
+        GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
+        when(this.client.prepareGet(anyString(), eq(id))).thenReturn(getBuilder);
+        when(getBuilder.get()).thenReturn(response);
     }
 
-    private RestResponse parseResponse(BytesRestResponse response) {
-        JsonNode node = FixtureFactory.from(response.content().utf8ToString());
-        return new RestResponse(node.get("message").asText(), node.get("status").asInt());
+    /**
+     * Test the {@link RestDeleteFilterAction#executeRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {200, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteFilter200() throws IOException {
+        String filterId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", filterId))
+                        .build();
+
+        this.mockFilterInSpace(filterId, "draft", true);
+
+        RestResponse response = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals(filterId, response.getMessage());
+        verify(this.client).delete(any(DeleteRequest.class), any());
     }
 
-    private Client buildClientForDelete() {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
+    /**
+     * Test the {@link RestDeleteFilterAction#executeRequest(RestRequest, Client)} method when the
+     * filter ID is missing. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteFilter400_MissingId() throws IOException {
+        RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+    }
 
-        // Mock ContentIndex.exists() - filter exists
-        GetResponse existsResponse = mock(GetResponse.class);
-        when(existsResponse.isExists()).thenReturn(true);
-        when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-                .thenReturn(existsResponse);
+    /**
+     * Test the {@link RestDeleteFilterAction#executeRequest(RestRequest, Client)} method when the
+     * filter ID is not a valid UUID. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteFilter400_InvalidUUID() throws IOException {
+        // "not@valid#uuid" violates the alphanumeric/hyphen regex in DocumentValidations
+        String invalidId = "not@valid#uuid";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", invalidId))
+                        .build();
 
-        // Mock validateFilterSpace - filter exists and is in draft space
-        GetResponse spaceResponse = mock(GetResponse.class);
-        when(spaceResponse.isExists()).thenReturn(true);
-        when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+    }
 
-        doAnswer(invocation -> null).when(client).delete(any(DeleteRequest.class), any());
+    /**
+     * Test the {@link RestDeleteFilterAction#executeRequest(RestRequest, Client)} method when the
+     * filter is not found. The expected response is: {404, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteFilter404_NotFound() throws IOException {
+        String filterId = "missing-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", filterId))
+                        .build();
 
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        this.mockFilterInSpace(filterId, "draft", false);
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), response.getStatus());
+    }
 
-        SearchResponse searchResponse = mock(SearchResponse.class);
+    /**
+     * Test the {@link RestDeleteFilterAction#executeRequest(RestRequest, Client)} method when an
+     * unexpected error occurs. The expected response is: {500, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteFilter500_UnexpectedError() throws IOException {
+        String filterId = "error-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", filterId))
+                        .build();
 
-        org.opensearch.search.SearchHit hit = new org.opensearch.search.SearchHit(0);
-        hit.sourceRef(
-                new BytesArray(
-                        "{\"document\":{\"filters\":[\"d_82e215c4-988a-4f64-8d15-b98b2fc03a4f\"]}}"));
-        org.opensearch.search.SearchHits hits =
-                new org.opensearch.search.SearchHits(
-                        new org.opensearch.search.SearchHit[] {hit},
-                        new TotalHits(1, TotalHits.Relation.EQUAL_TO),
-                        1.0f);
-        when(searchResponse.getHits()).thenReturn(hits);
-        when(client.search(any(SearchRequest.class)).actionGet()).thenReturn(searchResponse);
+        // Simulate failure on the admin/indices chain
+        when(this.client.admin().indices().prepareExists(anyString()))
+                .thenThrow(new RuntimeException("Simulated failure"));
 
-        return client;
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }

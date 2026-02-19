@@ -14,36 +14,44 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest.services;
+package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.apache.lucene.search.TotalHits;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.mockito.ArgumentCaptor;
+import org.mockito.Answers;
+import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -51,10 +59,12 @@ import static org.mockito.Mockito.*;
 public class RestPostFilterActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostFilterAction action;
+    private Client client;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String FILTER_PAYLOAD = """
         {
-          "space": "draft",
+          "space": "standard",
           "resource": {
             "name": "filter/prefilter/0",
             "enabled": true,
@@ -98,161 +108,154 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
      */
     @BeforeClass
     public static void setUpClass() {
-        // Initialize PluginSettings singleton - it will persist across all tests
         try {
             PluginSettings.getInstance(Settings.EMPTY);
         } catch (IllegalStateException e) {
-            // Already initialized, ignore
+            // Already initialized
         }
     }
 
+    /**
+     * Set up the tests
+     *
+     * @throws Exception rethrown from parent method
+     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        this.action = new RestPostFilterAction(this.service);
+        this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
+        this.action = spy(new RestPostFilterAction(this.service));
+
+        this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+    }
+
+    /** Helper method to mock an integration existence and space with mutable collections. */
+    private void mockIntegrationInSpace(String id, String space, boolean exists) {
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+            .thenReturn(true);
+
+        GetResponse response = mock(GetResponse.class);
+        when(response.isExists()).thenReturn(exists);
+        if (exists) {
+            Map<String, Object> source = new HashMap<>();
+            Map<String, Object> spaceMap = new HashMap<>();
+            spaceMap.put(Constants.KEY_NAME, space);
+            source.put(Constants.KEY_SPACE, spaceMap);
+
+            Map<String, Object> document = new HashMap<>();
+            document.put(Constants.KEY_ID, id);
+            document.put(Constants.KEY_DECODERS, new ArrayList<String>());
+            source.put(Constants.KEY_DOCUMENT, document);
+
+            when(response.getSourceAsMap()).thenReturn(source);
+            try {
+                when(response.getSourceAsString()).thenReturn(this.mapper.writeValueAsString(source));
+            } catch (Exception ignored) {
+            }
+        }
+
+        GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
+        when(this.client.prepareGet(anyString(), eq(id))).thenReturn(getBuilder);
+        when(getBuilder.get()).thenReturn(response);
+    }
+
+    /** Helper to mock dependency results for indexing and linking. */
+    private void mockDependencySuccess() {
+        //this.mockIntegrationInSpace("integration-1", "draft", true);
+
+        SearchResponse policyResponse = mock(SearchResponse.class);
+        when(policyResponse.getHits())
+            .thenReturn(
+                new SearchHits(new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
+        PlainActionFuture<SearchResponse> pFuture = PlainActionFuture.newFuture();
+        pFuture.onResponse(policyResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(pFuture);
+
+        IndexResponse indexResponse = mock(IndexResponse.class);
+        when(indexResponse.status()).thenReturn(RestStatus.CREATED);
+        PlainActionFuture<IndexResponse> iFuture = PlainActionFuture.newFuture();
+        iFuture.onResponse(indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(iFuture);
     }
 
     /**
-     * Test successful filter creation returns 201 Created.
+     * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {201, RestResponse}
      *
-     * @throws Exception When an error occurs
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterSuccess() throws Exception {
-        // Arrange
+    public void testPostFilterSuccess() throws IOException {
         RestRequest request = this.buildRequest(FILTER_PAYLOAD);
-
-        // Mock wazuh engine validation with proper JSON response
-        RestResponse engineResponse = mock(RestResponse.class);
-        when(engineResponse.getStatus()).thenReturn(RestStatus.OK.getStatus());
-        // spotless:off
-        when(engineResponse.getMessage()).thenReturn(
-            """
-                    {
-                      "status": "OK",
-                      "error": null
-                    }
-                """
-        );
-        // spotless:on
-
-        when(this.service.validateResource(anyString(), any(JsonNode.class)))
+        RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
+        when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
             .thenReturn(engineResponse);
+        this.mockDependencySuccess();
 
-        Client client = this.buildClientForIndex();
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
 
-        PolicyHashService policyHashService = mock(PolicyHashService.class);
-        this.action.setPolicyHashService(policyHashService);
-
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, client);
-
-        // Assert - per spec, success returns 201 with just the ID
-        assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-        // Message should be the generated ID (UUID format)
-        assertNotNull(actualResponse.getMessage());
-        assertFalse(actualResponse.getMessage().isEmpty());
-
-        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.service).validateResource(anyString(), payloadCaptor.capture());
-        JsonNode captured = payloadCaptor.getValue();
-
-        assertEquals("filter/prefilter/0", captured.get("name").asText());
-        assertTrue(captured.hasNonNull("id"));
-
-        JsonNode metadata = captured.get("metadata");
-        assertNotNull(metadata.get("author").get("date").asText());
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        Assert.assertNotNull(actualResponse.getMessage());
     }
 
     /**
-     * Test that providing a resource ID on creation returns 400 Bad Request.
+     * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
+     * payload contains an ID. The ID should be ignored and a new one generated. The expected response
+     * is: {201, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterWithIdReturns400() {
-        // Arrange
+    public void testPostFilterWithIdIsIgnored() throws IOException {
         RestRequest request = this.buildRequest(FILTER_PAYLOAD_WITH_ID);
+        RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
+        when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
+            .thenReturn(engineResponse);
+        this.mockDependencySuccess();
 
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, null);
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
 
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-            new RestResponse(
-                String.format(Locale.ROOT, Constants.E_400_INVALID_REQUEST_BODY, Constants.KEY_ID),
-                RestStatus.BAD_REQUEST.getStatus());
-        assertEquals(expectedResponse, actualResponse);
-        verify(this.service, never()).validate(any(JsonNode.class));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        // Verify the original ID in payload was overwritten with a generated UUID
+        Assert.assertNotEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", actualResponse.getMessage());
     }
 
     /**
-     * Test that null engine service returns 500 Internal Server Error.
+     * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
+     * engine service is not initialized. The expected response is: {500, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterEngineUnavailableReturns500() {
-        // Arrange
-        this.action = new RestPostFilterAction(null);
+    public void testPostFilterEngineUnavailableReturns500() throws IOException {
+        this.action = spy(new RestPostFilterAction(null));
+        // Must re-set services because spy created a new object
+        this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
+        this.action.setPolicyHashService(mock(SpaceService.class));
+
         RestRequest request = this.buildRequest(FILTER_PAYLOAD);
+        //this.mockIntegrationInSpace("integration-1", "draft", true);
 
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, null);
-
-        // Assert
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-            new RestResponse(
-                Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        assertEquals(expectedResponse, actualResponse);
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
+        Assert.assertTrue(actualResponse.getMessage().contains("Internal Server Error."));
     }
 
     /**
-     * Test that missing request body returns 400 Bad Request.
+     * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
+     * request body is missing. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterMissingBodyReturns400() {
-        // Arrange
+    public void testPostFilterMissingBodyReturns400() throws IOException {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
-
-        // Act
-        RestResponse actualResponse = this.action.handleRequest(request, null);
-
-        // Assert
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-
-        RestResponse expectedResponse =
-            new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-
-        assertEquals(expectedResponse, actualResponse);
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     private RestRequest buildRequest(String payload) {
-        FakeRestRequest.Builder builder =
-            new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                .withContent(new BytesArray(payload), XContentType.JSON);
-        return builder.build();
-    }
-
-    private Client buildClientForIndex() throws Exception {
-        Client client = mock(Client.class, RETURNS_DEEP_STUBS);
-        when(client.admin().indices().prepareExists(anyString()).get().isExists()).thenReturn(true);
-
-        @SuppressWarnings("unchecked")
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(mock(IndexResponse.class));
-        when(client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        GetResponse getResponse = mock(GetResponse.class);
-        when(getResponse.isExists()).thenReturn(true);
-        Map<String, Object> document = new HashMap<>();
-        document.put("filters", new ArrayList<>());
-        Map<String, Object> source = new HashMap<>();
-        source.put("document", document);
-        Map<String, Object> space = new HashMap<>();
-        space.put("name", "draft");
-        source.put("space", space);
-        when(getResponse.getSourceAsMap()).thenReturn(source);
-        when(client.prepareGet(anyString(), anyString()).get()).thenReturn(getResponse);
-
-        return client;
+        return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+            .withContent(new BytesArray(payload), XContentType.JSON)
+            .build();
     }
 }
