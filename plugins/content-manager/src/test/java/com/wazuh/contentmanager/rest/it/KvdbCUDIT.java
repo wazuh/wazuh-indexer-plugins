@@ -525,13 +525,13 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete a KVDB without providing an ID.
      *
-     * <p>Verifies: Response status code is 400.
+     * <p>Verifies: Response status code is 405.
      */
     public void testDeleteKvdb_missingId() throws IOException {
         ResponseException e =
                 expectThrows(
                         ResponseException.class, () -> makeRequest("DELETE", PluginSettings.KVDBS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 for missing ID", statusCode == 400);
+        assertTrue("Expected 405 for missing ID", statusCode == 405);
     }
 }

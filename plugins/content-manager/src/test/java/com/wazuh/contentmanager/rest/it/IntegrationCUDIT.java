@@ -578,7 +578,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete an integration without providing an ID.
      *
-     * <p>Verifies: Response status code is 400.
+     * <p>Verifies: Response status code is 405.
      */
     public void testDeleteIntegration_missingId() throws IOException {
         ResponseException e =
@@ -586,6 +586,6 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         ResponseException.class,
                         () -> makeRequest("DELETE", PluginSettings.INTEGRATIONS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertEquals("Expected 400 for missing ID", 400, statusCode);
+        assertEquals("Expected 405 for missing ID", 405, statusCode);
     }
 }

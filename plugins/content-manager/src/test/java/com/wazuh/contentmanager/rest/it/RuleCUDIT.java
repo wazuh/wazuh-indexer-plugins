@@ -542,13 +542,13 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete a rule without providing an ID.
      *
-     * <p>Verifies: Response status code is 400.
+     * <p>Verifies: Response status code is 405.
      */
     public void testDeleteRule_missingId() throws IOException {
         ResponseException e =
                 expectThrows(
                         ResponseException.class, () -> makeRequest("DELETE", PluginSettings.RULES_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 or 405 for missing ID", statusCode == 400);
+        assertTrue("Expected 405 for missing ID", statusCode == 405);
     }
 }

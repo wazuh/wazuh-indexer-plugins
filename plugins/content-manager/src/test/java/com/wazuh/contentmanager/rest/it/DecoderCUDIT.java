@@ -447,7 +447,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete a decoder without providing an ID.
      *
-     * <p>Verifies: Response status code is 400.
+     * <p>Verifies: Response status code is 405.
      */
     public void testDeleteDecoder_missingId() throws IOException {
         ResponseException e =
@@ -455,6 +455,6 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                         ResponseException.class,
                         () -> makeRequest("DELETE", PluginSettings.DECODERS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertEquals("Expected 400 for missing ID", 400, statusCode);
+        assertEquals("Expected 405 for missing ID", 405, statusCode);
     }
 }
