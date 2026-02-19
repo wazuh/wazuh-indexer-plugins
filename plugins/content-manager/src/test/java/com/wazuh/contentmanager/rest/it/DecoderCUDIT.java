@@ -133,13 +133,10 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         String body = String.format(Locale.ROOT, payload, integrationId);
         // spotless:on
 
-        // The system silently ignores the explicit ID and auto-generates one (201),
-        // but a future version may reject it (400).
+        // The system silently ignores the explicit ID and auto-generates one (201)
         Response response = makeRequest("POST", PluginSettings.DECODERS_URI, body);
         int statusCode = getStatusCode(response);
-        assertTrue(
-                "Status should be 201 (id ignored) or 400 (id rejected)",
-                statusCode == 201 || statusCode == 400);
+        assertTrue("Status should be 201 (id ignored)", statusCode == 201);
     }
 
     /**
@@ -176,7 +173,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                         ResponseException.class,
                         () -> makeRequest("POST", PluginSettings.DECODERS_URI, payload));
         int status = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 or 404 for non-existent integration", status == 400 || status == 404);
+        assertTrue("Expected 400 for non-existent integration", status == 400);
     }
 
     /**
@@ -450,7 +447,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete a decoder without providing an ID.
      *
-     * <p>Verifies: Response status code is 400 or 405.
+     * <p>Verifies: Response status code is 400.
      */
     public void testDeleteDecoder_missingId() throws IOException {
         ResponseException e =
@@ -458,6 +455,6 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                         ResponseException.class,
                         () -> makeRequest("DELETE", PluginSettings.DECODERS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 or 405 for missing ID", statusCode == 400 || statusCode == 405);
+        assertEquals("Expected 400 for missing ID", 400, statusCode);
     }
 }

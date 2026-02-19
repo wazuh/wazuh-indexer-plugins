@@ -220,9 +220,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         Response response = makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
         // The system may accept (ignore the ID) or reject it. Check behavior.
         int statusCode = getStatusCode(response);
-        assertTrue(
-                "Status should be 201 (id ignored) or 400 (id rejected)",
-                statusCode == 201 || statusCode == 400);
+        assertEquals("Status should be 201 (id ignored)", 201, statusCode);
     }
 
     /**
@@ -580,7 +578,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete an integration without providing an ID.
      *
-     * <p>Verifies: Response status code is 400 or 405 (method not allowed on base endpoint).
+     * <p>Verifies: Response status code is 400.
      */
     public void testDeleteIntegration_missingId() throws IOException {
         ResponseException e =
@@ -588,6 +586,6 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         ResponseException.class,
                         () -> makeRequest("DELETE", PluginSettings.INTEGRATIONS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 or 405 for missing ID", statusCode == 400 || statusCode == 405);
+        assertEquals("Expected 400 for missing ID", 400, statusCode);
     }
 }

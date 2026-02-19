@@ -199,19 +199,16 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
         String body = String.format(Locale.ROOT, payload, integrationId, integrationTitle, integrationTitle, integrationTitle);
         // spotless:on
 
-        // The system silently ignores the explicit ID and auto-generates one (201),
-        // but a future version may reject it (400).
+        // The system silently ignores the explicit ID and auto-generates one (201)
         Response response = makeRequest("POST", PluginSettings.RULES_URI, body);
         int statusCode = getStatusCode(response);
-        assertTrue(
-                "Status should be 201 (id ignored) or 400 (id rejected)",
-                statusCode == 201 || statusCode == 400);
+        assertTrue("Status should be 201 (id ignored)", statusCode == 201);
     }
 
     /**
      * Create a rule with a non-existent integration.
      *
-     * <p>Verifies: Response status code is 400 or 404.
+     * <p>Verifies: Response status code is 400.
      */
     public void testPostRule_nonDraftIntegration() throws IOException {
         // spotless:off
@@ -241,7 +238,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class, () -> makeRequest("POST", PluginSettings.RULES_URI, payload));
         int status = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 or 404 for non-existent integration", status == 400 || status == 404);
+        assertTrue("Expected 400 for non-existent integration", status == 400);
     }
 
     /**
@@ -545,13 +542,13 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
     /**
      * Delete a rule without providing an ID.
      *
-     * <p>Verifies: Response status code is 400 or 405.
+     * <p>Verifies: Response status code is 400.
      */
     public void testDeleteRule_missingId() throws IOException {
         ResponseException e =
                 expectThrows(
                         ResponseException.class, () -> makeRequest("DELETE", PluginSettings.RULES_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
-        assertTrue("Expected 400 or 405 for missing ID", statusCode == 400 || statusCode == 405);
+        assertTrue("Expected 400 or 405 for missing ID", statusCode == 400);
     }
 }
