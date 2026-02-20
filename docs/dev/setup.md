@@ -41,7 +41,7 @@ cd ..
 
 ## 3. Vagrant
 
-Install Vagrant with the Libvirt provider following the [official guide](https://developer.hashicorp.com/vagrant/docs/providers/libvirt).
+Install Vagrant with the Libvirt provider following the [guide](https://gist.github.com/AlexRuiz7/2cceb0823bded5d4cb057dc1ccc69a91).
 
 Then install the Vagrant SCP plugin:
 
