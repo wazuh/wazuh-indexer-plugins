@@ -42,10 +42,10 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.helpers.MockSecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 /**
  * Base abstract class for Content Manager REST actions.

@@ -54,12 +54,12 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
-import com.wazuh.contentmanager.helpers.MockEngineService;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.MockEngineService;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
