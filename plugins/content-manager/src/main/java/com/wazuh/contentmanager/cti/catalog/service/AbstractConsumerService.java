@@ -112,7 +112,7 @@ public abstract class AbstractConsumerService {
      * @param isUpdated True if any updates were applied during synchronization, false if already up
      *     to date.
      */
-    protected abstract void onSyncComplete(boolean isUpdated);
+    public abstract void onSyncComplete(boolean isUpdated);
 
     /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the

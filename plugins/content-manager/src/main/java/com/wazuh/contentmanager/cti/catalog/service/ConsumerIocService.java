@@ -74,7 +74,7 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     @Override
-    protected void onSyncComplete(boolean isUpdated) {
+    public void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
         }

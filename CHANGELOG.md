@@ -133,6 +133,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Set `GSON` object-to-number policy to `LONG_OR_DOUBLE` in `Resources` model [#721](https://github.com/wazuh/wazuh-indexer-plugins/pull/721)
 - Fix deserialization bug [(#737)](https://github.com/wazuh/wazuh-indexer-plugins/pull/737)
 - Fix offset value used when updating consumer state [(#802)](https://github.com/wazuh/wazuh-indexer-plugins/pull/802)
+- Fix duplicated policies on multi-node environment [(#847)](https://github.com/wazuh/wazuh-indexer-plugins/pull/847)
 - Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
 
 ### Security
