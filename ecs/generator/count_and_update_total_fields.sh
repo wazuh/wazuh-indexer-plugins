@@ -205,7 +205,7 @@ if $PROCESS_ALL; then
     exit 1
   fi
 
-  mapfile -t MODULES < <(echo "$modules_block" | grep -oP '\[\K[^\]]+(?=\])' || true)
+mapfile -t MODULES < <(echo "$modules_block" | grep -oP '\[\K[^\]]+(?=\])' || true)
   # Keep only stateless/ and cti/ modules
   filtered=()
   for m in "${MODULES[@]:-}"; do
