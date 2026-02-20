@@ -104,6 +104,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
                 "templates/streams/" + category
             ));
         }
+        // Raw events data stream (stores original unprocessed events)
+        this.indices.add(new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.junit.Assert;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -92,11 +93,11 @@ public class AuthServiceTests extends OpenSearchTestCase {
         Token token = this.authService.getToken(subscription);
 
         // Token must not be null
-        assertNotNull(token);
+        Assert.assertNotNull(token);
 
         // access_token must be a valid string (not null, not empty)
-        assertNotNull(token.getAccessToken());
-        assertFalse(token.getAccessToken().isEmpty());
+        Assert.assertNotNull(token.getAccessToken());
+        Assert.assertFalse(token.getAccessToken().isEmpty());
     }
 
     /**
@@ -120,12 +121,12 @@ public class AuthServiceTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
         token = this.authService.getToken(subscription);
-        assertNull(token);
+        Assert.assertNull(token);
 
         // When CTI does not reply, token must be null and exceptions are raised.
         when(this.mockClient.getToken(anyString(), anyString())).thenThrow(ExecutionException.class);
         token = this.authService.getToken(subscription);
-        assertNull(token);
+        Assert.assertNull(token);
     }
 
     /**
@@ -149,11 +150,11 @@ public class AuthServiceTests extends OpenSearchTestCase {
         Token token = this.authService.getResourceToken(new Token("anyToken", "Bearer"), "anyResource");
 
         // Token must not be null
-        assertNotNull(token);
+        Assert.assertNotNull(token);
 
         // access_token must be a valid string (not null, not empty)
-        assertNotNull(token.getAccessToken());
-        assertFalse(token.getAccessToken().isEmpty());
+        Assert.assertNotNull(token.getAccessToken());
+        Assert.assertFalse(token.getAccessToken().isEmpty());
     }
 
     /**
@@ -176,12 +177,12 @@ public class AuthServiceTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
         token = this.authService.getResourceToken(new Token("anyToken", "Bearer"), "anyResource");
-        assertNull(token);
+        Assert.assertNull(token);
 
         // When CTI does not reply, token must be null and exceptions are raised.
         when(this.mockClient.getResourceToken(any(Token.class), anyString()))
                 .thenThrow(ExecutionException.class);
         token = this.authService.getResourceToken(new Token("anyToken", "Bearer"), "anyResource");
-        assertNull(token);
+        Assert.assertNull(token);
     }
 }
