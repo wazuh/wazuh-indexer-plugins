@@ -30,6 +30,7 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.search.SearchHit;
@@ -368,61 +369,63 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     /**
      * Creates a single space policy document if it does not already exist.
      *
+     * <p>Uses a deterministic, space-specific OpenSearch document ID so that {@link
+     * DocWriteRequest.OpType#CREATE} acts as an atomic guard: if two nodes race on startup, the
+     * second write raises a {@link VersionConflictEngineException} which is silently ignored.
+     *
      * @param spaceName The space name.
+     * @param documentId Shared policy ID stored inside the document to link all default spaces.
      */
     private void initializeSpace(String spaceName, String documentId) {
+        // Deterministic, space-specific OpenSearch _id.
+        // Combined with OpType.CREATE this guarantees exactly-once creation per space,
+        // even when multiple nodes call this method concurrently.
+        String spaceDocId =
+                UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
+                        .toString();
         try {
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-            searchSourceBuilder.size(0);
+            String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
+            String title = "Custom policy";
 
-            searchRequest.source(searchSourceBuilder);
+            Policy policy = new Policy();
+            policy.setId(documentId);
+            policy.setTitle(title);
+            policy.setDescription(title);
+            policy.setAuthor("Wazuh Inc.");
+            policy.setRootDecoder("");
+            policy.setDocumentation("");
+            policy.setIntegrations(Collections.emptyList());
+            policy.setFilters(Collections.emptyList());
+            policy.setEnrichments(Collections.emptyList());
+            policy.setReferences(List.of("https://wazuh.com"));
+            policy.setDate(date);
+            policy.setModified(date);
+            Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
 
-            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+            String docJson = this.mapper.writeValueAsString(docMap);
+            String docHash = Resource.computeSha256(docJson);
 
-            // Proceed only if no document with this space name exists
-            if (Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() == 0) {
+            Map<String, Object> space = new HashMap<>();
+            space.put(Constants.KEY_NAME, spaceName);
+            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
 
-                String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-                String title = "Custom policy";
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_DOCUMENT, docMap);
+            source.put(Constants.KEY_SPACE, space);
+            // TODO: change to usage of method to calculate space hash
+            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
 
-                Policy policy = new Policy();
-                policy.setId(documentId);
-                policy.setTitle(title);
-                policy.setDescription(title);
-                policy.setAuthor("Wazuh Inc.");
-                policy.setRootDecoder("");
-                policy.setDocumentation("");
-                policy.setIntegrations(Collections.emptyList());
-                policy.setFilters(Collections.emptyList());
-                policy.setEnrichments(Collections.emptyList());
-                policy.setReferences(List.of("https://wazuh.com"));
-                policy.setDate(date);
-                policy.setModified(date);
-                Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
+            IndexRequest request =
+                    new IndexRequest(Constants.INDEX_POLICIES)
+                            .id(spaceDocId)
+                            .source(this.mapper.writeValueAsString(source), XContentType.JSON)
+                            .opType(DocWriteRequest.OpType.CREATE)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
-                String docJson = this.mapper.writeValueAsString(docMap);
-                String docHash = Resource.computeSha256(docJson);
-
-                Map<String, Object> space = new HashMap<>();
-                space.put(Constants.KEY_NAME, spaceName);
-                space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
-
-                Map<String, Object> source = new HashMap<>();
-                source.put(Constants.KEY_DOCUMENT, docMap);
-                source.put(Constants.KEY_SPACE, space);
-                // TODO: change to usage of method to calculate space hash
-                source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
-
-                IndexRequest request =
-                        new IndexRequest(Constants.INDEX_POLICIES)
-                                .source(this.mapper.writeValueAsString(source), XContentType.JSON)
-                                .opType(DocWriteRequest.OpType.CREATE)
-                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-                this.client.index(request).actionGet();
-            }
+            this.client.index(request).actionGet();
+            log.info("Initialized space [{}]", spaceName);
+        } catch (VersionConflictEngineException e) {
+            log.debug("Space [{}] already initialized, skipping.", spaceName);
         } catch (Exception e) {
             log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
         }
