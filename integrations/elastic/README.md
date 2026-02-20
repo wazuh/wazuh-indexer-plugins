@@ -17,7 +17,7 @@ This document describes how to prepare a Docker Compose environment to test the 
 The Docker Compose project will bring up the following services:
 
 - 1x Events Generator (learn more in [wazuh-indexer/integrations/tools/events-generator](../tools/events-generator/README.md)).
-- 1x Wazuh Indexer (OpenSearch).
+- 1x Wazuh Indexer.
 - 1x Logstash
 - 1x Elastic
 - 1x Kibana
