@@ -20,9 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
@@ -38,9 +35,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -63,8 +63,6 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
     private static final Logger log = LogManager.getLogger(AbstractUpdateActionSpaces.class);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected final PayloadValidations documentValidations = new PayloadValidations();
-
-    private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
     public AbstractUpdateActionSpaces(EngineService engine) {
         super(engine);
@@ -150,14 +148,16 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
                 return validationError;
             }
 
+            String spaceName = rootNode.path(Constants.KEY_SPACE).asText();
+
             String spaceError =
                     this.validateDocumentInSpace(
                             client,
                             this.getIndexName(),
                             id,
                             this.getResourceType(),
-                            validSpaces,
-                            this.getSpaceName());
+                            this.getAllowedSpaces(),
+                            spaceName);
             if (spaceError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID, "Update", this.getResourceType(), id, spaceError);
@@ -195,11 +195,11 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
             }
 
             // 8. Indexing
-            JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, this.getSpaceName());
-            index.create(id, ctiWrapper, this.isDecoder());
+            JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, spaceName);
+            index.create(id, ctiWrapper, false);
 
             // 9. Update Hash
-            this.spaceService.calculateAndUpdate(List.of(this.getSpaceName()));
+            this.spaceService.calculateAndUpdate(List.of(spaceName));
 
             log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());
@@ -261,7 +261,7 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
 
     protected abstract String getResourceType();
 
-    protected abstract String getSpaceName();
+    protected abstract Set<Space> getAllowedSpaces();
 
     /**
      * Performs resource-specific validation on the payload.
@@ -314,11 +314,9 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
         Object spaceName = spaceMap.get(Constants.KEY_NAME);
 
-        boolean match =
-                validSpaces.stream()
-                        .anyMatch(space -> space.name().equalsIgnoreCase(String.valueOf(spaceName)));
-
-        if (!match) {
+        if (getAllowedSpaces() != null
+                && spaceNameFromRequest != null
+                && !getAllowedSpaces().contains(Space.fromValue(spaceNameFromRequest))) {
             return String.format(Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, validSpaces);
         }
 

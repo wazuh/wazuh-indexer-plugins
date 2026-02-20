@@ -20,7 +20,9 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
+import java.util.Set;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -47,6 +49,8 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_delete";
+
+    private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
     public RestDeleteFilterAction(EngineService engine) {
         super(engine);
@@ -80,6 +84,11 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
     @Override
     protected String getResourceType() {
         return Constants.KEY_FILTER;
+    }
+
+    @Override
+    protected Set<Space> getAllowedSpaces() {
+        return validSpaces;
     }
 
     @Override

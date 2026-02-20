@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchStatusException;
@@ -35,6 +34,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -56,9 +56,7 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractDeleteActionSpaces.class);
     protected final PayloadValidations documentValidations = new PayloadValidations();
-
-    private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
-    private String spaceName = "";
+    private String spaceName = null;
 
     public AbstractDeleteActionSpaces(EngineService engine) {
         super(engine);
@@ -161,7 +159,7 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
             index.delete(id);
 
             // 6. Hash Update
-            this.spaceService.calculateAndUpdate(List.of(this.getSpaceName()));
+            this.spaceService.calculateAndUpdate(List.of(this.spaceName));
 
             log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());
@@ -177,13 +175,7 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
 
     protected abstract String getResourceType();
 
-    public void setSpaceName(String spaceName) {
-        this.spaceName = spaceName;
-    }
-
-    public String getSpaceName() {
-        return spaceName;
-    }
+    protected abstract Set<Space> getAllowedSpaces();
 
     /**
      * Validates if the requested delete can be performed or not
@@ -260,13 +252,12 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
         Object spaceName = spaceMap.get(Constants.KEY_NAME);
+        this.spaceName = String.valueOf(spaceName);
 
-        // validate that the space is one of the valid spaces for deletion (draft or standard)
-        boolean match =
-                AbstractDeleteActionSpaces.validSpaces.stream()
-                        .anyMatch(space -> space.name().equalsIgnoreCase(String.valueOf(spaceName)));
-        if (!match) {
-            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, validSpaces);
+        // validate that the space is one of the valid spaces for deletion
+        if (!getAllowedSpaces().contains(Space.fromValue(this.spaceName))) {
+            return String.format(
+                    Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, this.getAllowedSpaces());
         }
 
         return null;

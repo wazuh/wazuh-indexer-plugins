@@ -102,12 +102,6 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
     }
 
     @Override
-    protected boolean isDecoder() {
-        // Behaves as decoders im terms of how metadata is handled
-        return true;
-    }
-
-    @Override
     protected String getSpaceName() {
         return this.spaceName;
     }

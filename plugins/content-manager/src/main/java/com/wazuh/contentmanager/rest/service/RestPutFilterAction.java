@@ -56,7 +56,6 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_update";
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
-    private String spaceName = "";
 
     public RestPutFilterAction(EngineService engine) {
         super(engine);
@@ -73,17 +72,13 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
     }
 
     @Override
-    protected String getSpaceName() {
-        return this.spaceName;
-    }
-
-    private void setSpaceName(String spaceName) {
-        this.spaceName = spaceName;
+    public String getName() {
+        return ENDPOINT_NAME;
     }
 
     @Override
-    public String getName() {
-        return ENDPOINT_NAME;
+    public Set<Space> getAllowedSpaces() {
+        return validSpaces;
     }
 
     /**
@@ -102,12 +97,6 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
     }
 
     @Override
-    protected boolean isDecoder() {
-        // Behaves as decoders im terms of how metadata is handled
-        return true;
-    }
-
-    @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         // Validate space is either draft or standard.
         String spaceName = root.path(Constants.KEY_SPACE).asText(null);
@@ -115,7 +104,7 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
         if (!isValidSpace(spaceName)) {
             return createInvalidSpaceResponse();
         }
-        setSpaceName(spaceName);
+
         return null;
     }
 

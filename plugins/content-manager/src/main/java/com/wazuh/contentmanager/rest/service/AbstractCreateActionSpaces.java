@@ -20,9 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
@@ -34,8 +31,11 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -149,7 +149,7 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
             JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, this.getSpaceName());
 
-            index.create(id, ctiWrapper, this.isDecoder());
+            index.create(id, ctiWrapper, false);
 
             // 8. Link to Parent
             try {
