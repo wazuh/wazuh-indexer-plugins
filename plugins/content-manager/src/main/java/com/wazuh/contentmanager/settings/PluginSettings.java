@@ -56,6 +56,7 @@ public class PluginSettings {
     // Default values for Context and Consumer
     private static final String DEFAULT_IOC_CONTEXT = "ioc_provider";
     private static final String DEFAULT_IOC_CONSUMER = "iocp_v1";
+    private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -172,6 +173,14 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Setting to enable mock engine service for testing environments. */
+    public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.engine.mock_enabled",
+                    DEFAULT_ENGINE_MOCK_ENABLED,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final int maximumConcurrentBulks;
@@ -183,6 +192,7 @@ public class PluginSettings {
     private final String contentConsumer;
     private final String iocContext;
     private final String iocConsumer;
+    private final boolean engineMockEnabled;
     private final boolean createDetectors;
 
     /**
@@ -202,6 +212,7 @@ public class PluginSettings {
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
         this.iocContext = IOC_CONTEXT.get(settings);
         this.iocConsumer = IOC_CONSUMER.get(settings);
+        this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -339,6 +350,15 @@ public class PluginSettings {
      */
     public String getIocConsumer() {
         return this.iocConsumer;
+    }
+
+    /**
+     * Retrieves the value for the engine mock enabled setting.
+     *
+     * @return a Boolean indicating if the mock engine service is enabled.
+     */
+    public Boolean isEngineMockEnabled() {
+        return this.engineMockEnabled;
     }
 
     @Override

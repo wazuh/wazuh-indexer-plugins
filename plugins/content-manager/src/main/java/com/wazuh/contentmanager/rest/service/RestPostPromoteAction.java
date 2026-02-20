@@ -162,8 +162,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.consolidateChanges(context);
 
             // After successful promotion, recalculate policy hashes for the promoted space
-            this.spaceService.calculateAndUpdate(
-                    List.of(spaceDiff.getSpace().promote().asSecurityAnalyticsSource()));
+            this.spaceService.calculateAndUpdate(List.of(spaceDiff.getSpace().promote().toString()));
 
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
@@ -255,13 +254,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
         Map<String, Map<String, Object>> kvdbsToApply = new HashMap<>();
         Map<String, Map<String, Object>> decodersToApply = new HashMap<>();
         Map<String, Map<String, Object>> filtersToApply = new HashMap<>();
-        // TODO promotion of rules
+        Map<String, Map<String, Object>> rulesToApply = new HashMap<>();
 
         // Sets to track resources to delete
         Set<String> integrationsToDelete = new HashSet<>();
         Set<String> kvdbsToDelete = new HashSet<>();
         Set<String> decodersToDelete = new HashSet<>();
         Set<String> filtersToDelete = new HashSet<>();
+        Set<String> rulesToDelete = new HashSet<>();
 
         // Process each resource type
         this.processResourceChanges(
@@ -304,6 +304,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 sourceSpace.toString(),
                 targetSpace.toString());
 
+        this.processResourceChanges(
+                changes.getRules(),
+                Constants.KEY_RULES,
+                rulesToApply,
+                rulesToDelete,
+                sourceSpace.toString(),
+                targetSpace.toString());
+
         // Build engine payload with all target space resources + modifications
         JsonNode enginePayload =
                 this.spaceService.buildEnginePayload(
@@ -325,10 +333,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 kvdbsToApply,
                 decodersToApply,
                 filtersToApply,
+                rulesToApply,
                 integrationsToDelete,
                 kvdbsToDelete,
                 decodersToDelete,
                 filtersToDelete,
+                rulesToDelete,
                 targetSpace.toString());
     }
 
@@ -523,6 +533,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     context.targetSpace);
         }
 
+        if (!context.rulesToApply.isEmpty()) {
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
+                    context.rulesToApply,
+                    context.targetSpace);
+        }
+
         // Process DELETE operations for each resource type
         if (!context.integrationsToDelete.isEmpty()) {
             this.spaceService.deleteResources(
@@ -551,6 +568,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     context.filtersToDelete,
                     context.targetSpace);
         }
+
+        if (!context.rulesToDelete.isEmpty()) {
+            this.spaceService.deleteResources(
+                    this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
+                    context.rulesToDelete,
+                    context.targetSpace);
+        }
     }
 
     /** Internal context class to hold promotion data. */
@@ -561,10 +585,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
         final Map<String, Map<String, Object>> kvdbsToApply;
         final Map<String, Map<String, Object>> decodersToApply;
         final Map<String, Map<String, Object>> filtersToApply;
+        final Map<String, Map<String, Object>> rulesToApply;
         final Set<String> integrationsToDelete;
         final Set<String> kvdbsToDelete;
         final Set<String> decodersToDelete;
         final Set<String> filtersToDelete;
+        final Set<String> rulesToDelete;
         final String targetSpace;
 
         PromotionContext(
@@ -574,10 +600,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 Map<String, Map<String, Object>> kvdbsToApply,
                 Map<String, Map<String, Object>> decodersToApply,
                 Map<String, Map<String, Object>> filtersToApply,
+                Map<String, Map<String, Object>> rulesToApply,
                 Set<String> integrationsToDelete,
                 Set<String> kvdbsToDelete,
                 Set<String> decodersToDelete,
                 Set<String> filtersToDelete,
+                Set<String> rulesToDelete,
                 String targetSpace) {
             this.enginePayload = enginePayload;
             this.policyToApply = policyToApply;
@@ -585,10 +613,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.kvdbsToApply = kvdbsToApply;
             this.decodersToApply = decodersToApply;
             this.filtersToApply = filtersToApply;
+            this.rulesToApply = rulesToApply;
             this.integrationsToDelete = integrationsToDelete;
             this.kvdbsToDelete = kvdbsToDelete;
             this.decodersToDelete = decodersToDelete;
             this.filtersToDelete = filtersToDelete;
+            this.rulesToDelete = rulesToDelete;
             this.targetSpace = targetSpace;
         }
     }
