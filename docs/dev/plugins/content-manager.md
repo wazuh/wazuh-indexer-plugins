@@ -268,7 +268,7 @@ Every resource document follows this envelope structure:
 sequenceDiagram
     participant Scheduler as JobScheduler/RestAction
     participant SyncJob as CatalogSyncJob
-    participant Synchronizer as UnifiedConsumerSynchronizer
+    participant Synchronizer as ConsumerRulesetService
     participant ConsumerSvc as ConsumerService
     participant CTI as External CTI API
     participant Snapshot as SnapshotService

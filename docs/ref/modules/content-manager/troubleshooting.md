@@ -9,23 +9,12 @@ Common issues and diagnostic procedures for the Content Manager plugin.
 The Wazuh Engine is not running or the Unix socket is not accessible.
 
 **Resolution:**
-
-1. Verify the Engine is running:
-   ```bash
-   systemctl status wazuh-engine
-   ```
-
-2. Check the socket file exists:
+1. Check the socket file exists:
    ```bash
    ls -la /usr/share/wazuh-indexer/engine/sockets/engine-api.sock
    ```
-
-3. If the socket file is missing, restart the Engine:
-   ```bash
-   systemctl restart wazuh-engine
-   ```
-
-4. Ensure the Wazuh Indexer process has permission to access the socket file.
+   
+2. Ensure the Wazuh Indexer process has permission to access the socket file.
 
 ### "Token not found"
 
