@@ -22,7 +22,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -38,6 +37,7 @@ import java.util.Objects;
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.synchronizer.RulesetConsumerSynchronizer;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
  * Integration test that verifies space initialization does not create duplicate policy documents
@@ -90,12 +90,14 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         // Create all content indices required by onSyncComplete
         createContentIndices();
 
-        // Instantiate the synchronizer with the test cluster's dependencies
+        // Initialize PluginSettings in the test JVM (the plugin runs in the external cluster JVM)
+        PluginSettings.getInstance(
+                Settings.builder().put("plugins.content_manager.catalog.create_detectors", false).build());
+
+        // Instantiate the synchronizer with the test cluster's client.
+        // Environment and ConsumersIndex are only used by syncConsumerServices(), not onSyncComplete().
         RulesetConsumerSynchronizer synchronizer =
-                new RulesetConsumerSynchronizer(
-                        client(),
-                        new ConsumersIndex(client()),
-                        internalCluster().getInstance(Environment.class));
+                new RulesetConsumerSynchronizer(client(), new ConsumersIndex(client()), null);
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);
