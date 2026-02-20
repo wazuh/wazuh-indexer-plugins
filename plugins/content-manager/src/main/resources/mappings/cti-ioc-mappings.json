@@ -1,112 +1,41 @@
 {
   "date_detection": false,
-  "dynamic": "false",
+  "dynamic": "strict",
   "properties": {
-    "message": {
-      "ignore_above": 1024,
-      "type": "keyword"
-    },
-    "threat": {
+    "document": {
       "properties": {
+        "confidence": {
+          "type": "long"
+        },
         "feed": {
           "properties": {
             "name": {
               "ignore_above": 1024,
               "type": "keyword"
-            },
-            "reference": {
-              "ignore_above": 1024,
-              "type": "keyword"
             }
           }
         },
-        "indicator": {
-          "properties": {
-            "confidence": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "description": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "file": {
-              "properties": {
-                "hash": {
-                  "properties": {
-                    "cdhash": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "md5": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "sha1": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "sha256": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "sha384": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "sha512": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "ssdeep": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "tlsh": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                }
-              }
-            },
-            "first_seen": {
-              "type": "date"
-            },
-            "ip": {
-              "type": "ip"
-            },
-            "last_seen": {
-              "type": "date"
-            },
-            "name": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "port": {
-              "type": "long"
-            },
-            "provider": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "reference": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "type": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "url": {
-              "properties": {
-                "domain": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            }
-          }
+        "first_seen": {
+          "type": "date"
+        },
+        "id": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "last_seen": {
+          "type": "date"
+        },
+        "name": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "provider": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "reference": {
+          "ignore_above": 1024,
+          "type": "keyword"
         },
         "software": {
           "properties": {
@@ -117,8 +46,28 @@
             "name": {
               "ignore_above": 1024,
               "type": "keyword"
+            },
+            "type": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
+        },
+        "tags": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "type": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        }
+      }
+    },
+    "hash": {
+      "properties": {
+        "sha256": {
+          "ignore_above": 1024,
+          "type": "keyword"
         }
       }
     }

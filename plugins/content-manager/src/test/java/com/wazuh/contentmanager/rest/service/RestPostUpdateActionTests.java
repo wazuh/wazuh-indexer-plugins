@@ -16,10 +16,10 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.junit.Assert;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;

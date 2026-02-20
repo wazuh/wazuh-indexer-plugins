@@ -17,11 +17,11 @@
 package com.wazuh.contentmanager.cti.catalog.utils;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.junit.Assert;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.*;

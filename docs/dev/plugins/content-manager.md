@@ -1,206 +1,280 @@
 # Wazuh Indexer Content Manager Plugin — Development Guide
 
-This document describes how to extend and configure the Wazuh Indexer Content Manager plugin, which is responsible for managing and synchronizing security content from the Wazuh CTI API.
+This document describes the architecture, components, and extension points of the Content Manager plugin, which manages security content synchronization from the Wazuh CTI API and provides REST endpoints for user-generated content management.
 
 ---
 
-## 📋 Overview
+## Overview
 
 The Content Manager plugin handles:
-- **Authentication:** Manages subscriptions and tokens with the CTI Console.
-- **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
-- **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog.
-- **Security Analytics Integration:** Pushes ingestion rules and detectors to the Security Analytics engine for immediate activation.
-- **Snapshot Initialization:** Downloads and indexes full content via zip snapshots.
-- **Incremental Updates:** Applies JSON Patch operations based on offsets.
-- **Context management:** Maintains synchronization state.
 
-The plugin manages several indices:
-- `.cti-consumers`: Stores consumer information and synchronization state.
-- `.wazuh-content-manager-jobs`: Stores job scheduler metadata.
-- Content Indices: Indices for specific content types (e.g., `.cti-rules`, `.cti-decoders`).
+- **CTI Subscription:** Manages subscriptions and tokens with the CTI Console.
+- **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
+- **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
+- **Security Analytics Integration:** Pushes rules, integrations, and detectors to the Security Analytics Plugin (SAP).
+- **User-Generated Content:** Full CUD for rules, decoders, integrations, KVDBs, and policies in the Draft space.
+- **Engine Communication:** Validates and promotes content via Unix Domain Socket to the Wazuh Engine.
+- **Space Management:** Manages content lifecycle through Draft → Test → Custom promotion.
 
 ---
 
-## 🔧 Plugin Architecture
+## System Indices
 
-### Main Components
+The plugin manages the following indices:
 
-```mermaid
-classDiagram
-    class ContentManagerPlugin {
-        +createComponents()
-        +getRestHandlers()
-        +onNodeStarted()
-    }
+| Index | Purpose |
+|---|---|
+| `.cti-consumers` | Sync state (offsets, snapshot links) |
+| `.cti-policies` | Policy documents |
+| `.cti-integrations` | Integration definitions |
+| `.cti-rules` | Detection rules |
+| `.cti-decoders` | Decoder definitions |
+| `.cti-kvdbs` | Key-value databases |
+| `.cti-iocs` | Indicators of Compromise |
+| `.engine-filters` | Engine filter rules |
+| `.wazuh-content-manager-jobs` | Job scheduler metadata |
 
-    class RestLayer {
-        +RestGetSubscriptionAction
-        +RestPostSubscriptionAction
-        +RestDeleteSubscriptionAction
-        +RestPostUpdateAction
-    }
+---
 
-    class CtiConsole {
-        +manageAuthentication()
-    }
+## Plugin Architecture
 
-    class ContentJobRunner {
-        +registerExecutor()
-    }
+### Entry Point
 
-    class CatalogSyncJob {
-        +execute()
-        +performSynchronization()
-    }
+**`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `ActionPlugin`. On startup it:
 
-    class UnifiedConsumerSynchronizer {
-        +synchronize()
-        -onSyncComplete()
-    }
+1. Initializes `PluginSettings`, `ConsumersIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
+2. Registers all REST handlers via `getRestHandlers()`.
+3. Creates the `.cti-consumers` index on cluster manager nodes.
+4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
+5. Optionally triggers an immediate sync on start.
 
-    class ConsumerService {
-        <<interface>>
-        +getLocalConsumer()
-        +getRemoteConsumer()
-    }
+### REST Handlers
 
-    class SnapshotServiceImpl {
-        +initialize(remoteConsumer)
-    }
+The plugin registers 22 REST handlers, grouped by domain:
 
-    class UpdateServiceImpl {
-        +update(currentOffset, remoteOffset)
-    }
+| Domain | Handler | Method | URI |
+|---|---|---|---|
+| **Subscription** | `RestGetSubscriptionAction` | GET | `/_plugins/_content_manager/subscription` |
+| | `RestPostSubscriptionAction` | POST | `/_plugins/_content_manager/subscription` |
+| | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription` |
+| **Update** | `RestPostUpdateAction` | POST | `/_plugins/_content_manager/update` |
+| **Logtest** | `RestPostLogtestAction` | POST | `/_plugins/_content_manager/logtest` |
+| **Policy** | `RestPutPolicyAction` | PUT | `/_plugins/_content_manager/policy` |
+| **Rules** | `RestPostRuleAction` | POST | `/_plugins/_content_manager/rules` |
+| | `RestPutRuleAction` | PUT | `/_plugins/_content_manager/rules/{id}` |
+| | `RestDeleteRuleAction` | DELETE | `/_plugins/_content_manager/rules/{id}` |
+| **Decoders** | `RestPostDecoderAction` | POST | `/_plugins/_content_manager/decoders` |
+| | `RestPutDecoderAction` | PUT | `/_plugins/_content_manager/decoders/{id}` |
+| | `RestDeleteDecoderAction` | DELETE | `/_plugins/_content_manager/decoders/{id}` |
+| **Integrations** | `RestPostIntegrationAction` | POST | `/_plugins/_content_manager/integrations` |
+| | `RestPutIntegrationAction` | PUT | `/_plugins/_content_manager/integrations/{id}` |
+| | `RestDeleteIntegrationAction` | DELETE | `/_plugins/_content_manager/integrations/{id}` |
+| **KVDBs** | `RestPostKvdbAction` | POST | `/_plugins/_content_manager/kvdbs` |
+| | `RestPutKvdbAction` | PUT | `/_plugins/_content_manager/kvdbs/{id}` |
+| | `RestDeleteKvdbAction` | DELETE | `/_plugins/_content_manager/kvdbs/{id}` |
+| **Promote** | `RestPostPromoteAction` | POST | `/_plugins/_content_manager/promote` |
+| | `RestGetPromoteAction` | GET | `/_plugins/_content_manager/promote` |
 
-    class SecurityAnalyticsService {
-        <<interface>>
-        +upsertRule(doc)
-        +upsertIntegration(doc)
-        +upsertDetector(doc)
-    }
+---
 
+## Class Hierarchy
 
-    %% Plugin Initialization
-    ContentManagerPlugin --> CtiConsole : Initializes
-    ContentManagerPlugin --> RestLayer : Registers
-    ContentManagerPlugin --> CatalogSyncJob : Schedules
-    ContentManagerPlugin --> ContentJobRunner : Registers Jobs
+The REST handlers follow a **Template Method** pattern through a three-level abstract class hierarchy:
 
-
-    %% REST Interactions
-    RestLayer --> CtiConsole : Uses
-    RestLayer --> CatalogSyncJob : Triggers manually
-
-    %% Job Dependencies
-    CatalogSyncJob --> UnifiedConsumerSynchronizer : Delegates
-    UnifiedConsumerSynchronizer --> ConsumerService : Checks State
-    UnifiedConsumerSynchronizer ..> SnapshotServiceImpl : (if offset == 0)
-    UnifiedConsumerSynchronizer ..> UpdateServiceImpl : (if offset < remote)
-
-    %% SAP Interactions
-    SnapshotServiceImpl --> SecurityAnalyticsService : Upserts Content
-    UpdateServiceImpl --> SecurityAnalyticsService : Upserts Content
-    UnifiedConsumerSynchronizer --> SecurityAnalyticsService : Upserts Detectors
+```
+BaseRestHandler
+├── AbstractContentAction
+│   ├── AbstractCreateAction
+│   │   ├── RestPostRuleAction
+│   │   ├── RestPostDecoderAction
+│   │   ├── RestPostIntegrationAction
+│   │   └── RestPostKvdbAction
+│   ├── AbstractUpdateAction
+│   │   ├── RestPutRuleAction
+│   │   ├── RestPutDecoderAction
+│   │   ├── RestPutIntegrationAction
+│   │   └── RestPutKvdbAction
+│   └── AbstractDeleteAction
+│       ├── RestDeleteRuleAction
+│       ├── RestDeleteDecoderAction
+│       ├── RestDeleteIntegrationAction
+│       └── RestDeleteKvdbAction
+├── RestPutPolicyAction
+├── RestGetSubscriptionAction
+├── RestPostSubscriptionAction
+├── RestDeleteSubscriptionAction
+├── RestPostUpdateAction
+├── RestPostLogtestAction
+├── RestPostPromoteAction
+└── RestGetPromoteAction
 ```
 
-#### 1. **ContentManagerPlugin**
-Main class located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/ContentManagerPlugin.java`
+### AbstractContentAction
 
-This is the entry point of the plugin:
-- Registers REST handlers for subscription and update management.
-- Initializes the `CatalogSyncJob` and schedules it via the OpenSearch Job Scheduler.
-- Initializes the `CtiConsole` for authentication management.
+Base class for all content CUD actions. It:
 
-#### 2. **CatalogSyncJob**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/jobscheduler/jobs/CatalogSyncJob.java`
+- Overrides `prepareRequest()` from `BaseRestHandler`.
+- Initializes shared services: `SpaceService`, `SecurityAnalyticsService`, `IntegrationService`.
+- Validates that a Draft policy exists before executing any content action.
+- Delegates to the abstract `executeRequest()` method for concrete logic.
 
-This class acts as the orchestrator (`JobExecutor`). It is responsible for:
-- Executing the content synchronization logic via the `UnifiedConsumerSynchronizer`.
-- Managing concurrency using semaphores to prevent overlapping jobs.
+### AbstractCreateAction
 
-#### 3. **Services**
-The logic is split into specialized services:
+Handles **POST** requests to create new resources. The `executeRequest()` workflow:
 
-##### 3.1 **ConsumerService**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/ConsumerServiceImpl.java`
+1. **Validate request body** — ensures the request has content and valid JSON.
+2. **Validate payload structure** — checks for required `resource` key and optional `integration` key.
+3. **Resource-specific validation** — delegates to `validatePayload()` (abstract). Concrete handlers check required fields, duplicate titles, and parent integration existence.
+4. **Generate ID and metadata** — creates a UUID, sets `date` and `modified` timestamps, defaults `enabled` to `true`.
+5. **External sync** — delegates to `syncExternalServices()` (abstract). Typically upserts the resource in SAP or validates via the Engine.
+6. **Index** — wraps the resource in the CTI document structure and indexes it in the Draft space.
+7. **Link to parent** — delegates to `linkToParent()` (abstract). Usually adds the new resource ID to a parent integration's resource list.
+8. **Update hash** — recalculates the Draft space policy hash via `SpaceService`.
 
-Retrieves `LocalConsumer` state from `.cti-consumers` and `RemoteConsumer` state from the CTI API.
+Returns `201 Created` with the new resource UUID on success.
 
-##### 3.2 **SnapshotService**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/SnapshotServiceImpl.java`
+### AbstractUpdateAction
 
-Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content.
-It supports multiple content types (rules, decoders, etc.) and indexes them into their respective indices.
+Handles **PUT** requests to update existing resources. The `executeRequest()` workflow:
 
-##### 3.3 **UpdateService**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/UpdateServiceImpl.java`
+1. **Validate ID** — checks the path parameter is present and correctly formatted.
+2. **Check existence and space** — verifies the resource exists and belongs to the Draft space.
+3. **Parse and validate payload** — same structural checks as create.
+4. **Resource-specific validation** — delegates to `validatePayload()` (abstract).
+5. **Update timestamps** — sets `modified` timestamp. Preserves immutable fields (creation date, author) from the existing document.
+6. **External sync** — delegates to `syncExternalServices()` (abstract).
+7. **Re-index** — overwrites the document in the index.
+8. **Update hash** — recalculates the Draft space hash.
 
-Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class).
-It ensures that any modified content is immediately propagated to the Security Analytics plugin.
+Returns `200 OK` with the resource UUID on success.
 
-##### 3.4 **SecurityAnalyticsService**
-Interface defining the bridge to the Security Analytics Plugin (SAP).
+### AbstractDeleteAction
 
-Responsible for:
-- `upsertRule(doc)`: Registering detection rules.
-- `upsertIntegration(doc)`: Registering integration definitions.
-- `upsertDetector(doc)`: Activating detectors based on integration rules.
-- `deleteRule(id)`: Deletes a rule using the id of the rule.
-- `deleteIntegration(id)`: Deletes a integration using the id.
-- `deleteDetector(id)`: Deletes a detector using the id.
+Handles **DELETE** requests. The `executeRequest()` workflow:
 
-##### 3.5 **AuthService**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/console/service/AuthServiceImpl.java`
+1. **Validate ID** — checks format and presence.
+2. **Check existence and space** — resource must exist in Draft space.
+3. **Pre-delete validation** — delegates to `validateDelete()` (optional override). Can prevent deletion if dependent resources exist.
+4. **External sync** — delegates to `deleteExternalServices()` (abstract). Removes from SAP. Handles 404 gracefully.
+5. **Unlink from parent** — delegates to `unlinkFromParent()` (abstract). Removes the resource ID from the parent integration's list.
+6. **Delete from index** — removes the document.
+7. **Update hash** — recalculates the Draft space hash.
 
-Manages the exchange of device codes for permanent access tokens.
-
-#### 4. **Indices Management**
-
-##### 4.1 **ConsumersIndex**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/index/ConsumersIndex.java`
-
-Wraps operations for the `.cti-consumers` index.
-
-##### 4.2 **ContentIndex**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/index/ContentIndex.java`
-
-Manages operations for content indices.
+Returns `200 OK` with the resource UUID on success.
 
 ---
 
-## ⚙️ Configuration Settings
+## Engine Communication
 
-The plugin is configured through the `PluginSettings` class. Settings can be defined in `opensearch.yml`:
+The plugin communicates with the Wazuh Engine via a **Unix Domain Socket** for validation and promotion of content.
 
-| Setting                                              | Default                            | Description                                                                  |
-| ---------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
-| `plugins.content_manager.cti.api`                    | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
-| `plugins.content_manager.catalog.sync_interval`      | `60`                               | Interval (in minutes) for the periodic synchronization job.                  |
-| `plugins.content_manager.max_items_per_bulk`         | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
-| `plugins.content_manager.max_concurrent_bulks`       | `5`                                | Maximum number of concurrent bulk requests.                                  |
-| `plugins.content_manager.client.timeout`             | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
-| `plugins.content_manager.catalog.update_on_start`    | `true`                             | Triggers a content update when the plugin starts.                            |
-| `plugins.content_manager.catalog.update_on_schedule` | `true`                             | Enables or disables the periodic content update job.                         |
-| `plugins.content_manager.catalog.content.context`    | `development_0.0.3`                | Unified Context identifier for the CTI content.                              |
-| `plugins.content_manager.catalog.content.consumer`   | `development_0.0.3_test`           | Unified Consumer identifier for the CTI content.                             |
+### EngineSocketClient
+
+Located at: `engine/client/EngineSocketClient.java`
+
+- Connects to the socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`.
+- Sends **HTTP-over-UDS** requests: builds a standard HTTP/1.1 request string (method, headers, JSON body) and writes it to the socket channel.
+- Each request opens a new `SocketChannel` (using `StandardProtocolFamily.UNIX`) that is closed after the response is read.
+- Parses the HTTP response, extracting the status code and JSON body.
+
+### EngineService Interface
+
+Defines the Engine operations:
+
+| Method | Description |
+|---|---|
+| `logtest(JsonNode log)` | Forwards a log test payload to the Engine |
+| `validate(JsonNode resource)` | Validates a resource payload |
+| `promote(JsonNode policy)` | Validates a full policy for promotion |
+| `validateResource(String type, JsonNode resource)` | Wraps a resource with its type and delegates to `validate()` |
+
+### EngineServiceImpl
+
+Implementation using `EngineSocketClient`. Maps methods to Engine API endpoints:
+
+| Method | Engine Endpoint | HTTP Method |
+|---|---|---|
+| `logtest()` | `/logtest` | POST |
+| `validate()` | `/content/validate/resource` | POST |
+| `promote()` | `/content/validate/policy` | POST |
 
 ---
 
-## 🔄 How Content Synchronization Works
+## Space Model
+
+Resources live in **spaces** that represent their lifecycle stage. The `Space` enum defines four spaces:
+
+| Space | Description |
+|---|---|
+| `STANDARD` | Production-ready CTI resources from the upstream catalog |
+| `CUSTOM` | User-created resources that have been promoted to production |
+| `DRAFT` | Resources under development — all user edits happen here |
+| `TEST` | Intermediate space for validation before production |
+
+### Promotion Flow
+
+Spaces promote in a fixed chain:
+
+```
+DRAFT → TEST → CUSTOM
+```
+
+The `Space.promote()` method returns the next space in the chain. `STANDARD` and `CUSTOM` spaces cannot be promoted further.
+
+### SpaceService
+
+Located at: `cti/catalog/service/SpaceService.java`
+
+Manages space-related operations:
+
+- **`getSpaceResources(spaceName)`** — Fetches all resources (document IDs and hashes) from all managed indices for a given space.
+- **`promoteSpace(indexName, resources, targetSpace)`** — Copies documents from one space to another via bulk indexing, updating the `space.name` field.
+- **`calculateAndUpdate(targetSpaces)`** — Recalculates the aggregate SHA-256 hash for each policy in the given spaces. The hash is computed by concatenating hashes of the policy and all its linked resources (integrations, decoders, KVDBs, rules).
+- **`buildEnginePayload(...)`** — Assembles the full policy payload (policy + all resources from target space with modifications applied) for Engine validation during promotion.
+- **`deleteResources(indexName, ids, targetSpace)`** — Bulk-deletes resources from a target space.
+
+### Document Structure
+
+Every resource document follows this envelope structure:
+
+```json
+{
+  "document": {
+    "id": "<uuid>",
+    "title": "...",
+    "date": "2026-01-01T00:00:00Z",
+    "modified": "2026-01-15T00:00:00Z",
+    "enabled": true
+  },
+  "hash": {
+    "sha256": "abc123..."
+  },
+  "space": {
+    "name": "draft",
+    "hash": {
+      "sha256": "xyz789..."
+    }
+  }
+}
+```
+
+---
+
+## Content Synchronization Pipeline
+
+### Overview
 
 ```mermaid
 sequenceDiagram
     participant Scheduler as JobScheduler/RestAction
     participant SyncJob as CatalogSyncJob
-    participant Synchronizer as UnifiedConsumerSynchronizer
+    participant Synchronizer as ConsumerRulesetService
     participant ConsumerSvc as ConsumerService
     participant CTI as External CTI API
     participant Snapshot as SnapshotService
     participant Update as UpdateService
     participant Indices as Content Indices
-    participant Processors as Processors (Rule/Integration/Detector)
-    participant SAP as SecurityAnalyticsPlugin
+    participant SAP as SecurityAnalyticsServiceImpl
 
     Scheduler->>SyncJob: Trigger Execution
     activate SyncJob
@@ -226,24 +300,19 @@ sequenceDiagram
     opt Changes Applied (onSyncComplete)
         Synchronizer->>Indices: Refresh Indices
 
-        Note right of Synchronizer: Sync Local Indices to SAP
-
-        Synchronizer->>Processors: IntegrationProcessor.process()
-        Processors->>Indices: Search Integrations
+        Synchronizer->>SAP: upsertIntegration(doc)
         loop For each Integration
-            Processors->>SAP: WIndexIntegrationAction
+            SAP->>SAP: WIndexIntegrationAction
         end
 
-        Synchronizer->>Processors: RuleProcessor.process()
-        Processors->>Indices: Search Rules
+        Synchronizer->>SAP: upsertRule(doc)
         loop For each Rule
-            Processors->>SAP: WIndexRuleAction
+            SAP->>SAP: WIndexRuleAction
         end
 
-        Synchronizer->>Processors: DetectorProcessor.process()
-        Processors->>Indices: Search Integrations (for Detectors)
+        Synchronizer->>SAP: upsertDetector(doc)
         loop For each Integration
-            Processors->>SAP: WIndexDetectorAction
+            SAP->>SAP: WIndexDetectorAction
         end
 
         Synchronizer->>Synchronizer: calculatePolicyHash()
@@ -252,62 +321,88 @@ sequenceDiagram
     deactivate SyncJob
 ```
 
-### 1. **Initialization Phase**
+### Initialization Phase
 
-When the plugin starts on a cluster manager node:
+When `local_offset = 0`:
 
-1. Creates the `.cti-consumers` index if it doesn't exist
-2. Checks the consumer's local_offset:
-   - **If local_offset = 0**: Downloads and indexes a snapshot
-   - **If local_offset > 0**: Proceeds with incremental updates
-3.  **SAP Registration:** Iterates through each indexed item and invokes the `SecurityAnalyticsService` to perform an `upsertRule` or `upsertIntegration`, ensuring all content is registered for active detection.
+1. Downloads a ZIP snapshot from the CTI API.
+2. Extracts and parses JSON files for each content type.
+3. Bulk-indexes content into respective indices.
+4. Registers all content with the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 
-### 2. **Update Phase**
+### Update Phase
 
 When `local_offset > 0` and `local_offset < remote_offset`:
 
-1.  **Fetch Changes:** Fetches changes in batches.
-2.  **Apply Patch:** Applies JSON Patch operations (add, update, delete).
-3.  **SAP Sync:** Pushes the specific changes to `SecurityAnalyticsService` to update the SAP.
-4.  **Offset Update:** Updates the local_offset after successful application.
+1. Fetches changes in batches from the CTI API.
+2. Applies JSON Patch operations (add, update, delete).
+3. Pushes changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+4. Updates the local offset.
 
-### 3. **Post-Synchronization Phase**
+### Post-Synchronization Phase
 
-After changes are applied, the synchronizer performs maintenance:
+1. Refreshes all content indices.
+2. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+3. Recalculates SHA-256 hashes for policy integrity verification.
 
-1.  **Refresh:** Refreshes indices to ensure data is searchable.
-2.  **Update Detectors:**
-    * Searches for Integration Rules in the local index.
-    * Iterates through them and calls `upsertDetector` on the SAP.
-3.  **Integrity Check (`hashPolicy`):**
-    * Calculates SHA-256 hashes for Rules, Decoders, and Policies to ensure local data integrity matches the source.
+### Error Handling
 
-### 4. **Error Handling**
-
-If a critical error occurs or data corruption is detected, the system resets `local_offset` to 0, triggering a snapshot re-initialization on the next run.
+If a critical error or data corruption is detected, the system resets `local_offset` to 0, triggering a full snapshot re-initialization on the next run.
 
 ---
 
-## 📡 REST API
+## Configuration Settings
 
-This API is formally defined in OpenAPI specification ([openapi.yml](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/content-manager/openapi.yml)).
+Settings are defined in `PluginSettings` and configured in `opensearch.yml`:
 
-### User Generate Content Management Endpoints
+| Setting | Default | Description |
+|---|---|---|
+| `plugins.content_manager.cti.api` | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API |
+| `plugins.content_manager.catalog.sync_interval` | `60` | Sync interval in minutes (1–1440) |
+| `plugins.content_manager.max_items_per_bulk` | `25` | Max documents per bulk request (10–25) |
+| `plugins.content_manager.max_concurrent_bulks` | `5` | Max concurrent bulk requests (1–5) |
+| `plugins.content_manager.client.timeout` | `10` | Timeout in seconds for HTTP/indexing (10–50) |
+| `plugins.content_manager.catalog.update_on_start` | `true` | Trigger sync on plugin start |
+| `plugins.content_manager.catalog.update_on_schedule` | `true` | Enable periodic sync job |
+| `plugins.content_manager.catalog.content.context` | `development_0.0.3` | CTI content context identifier |
+| `plugins.content_manager.catalog.content.consumer` | `development_0.0.3_test` | CTI content consumer identifier |
+| `plugins.content_manager.catalog.create_detectors` | `true` | Enable automatic detector creation |
 
-#### Logtest
+### REST API URIs
 
-The Indexer acts as a middleman between the UI and the Engine. The Indexer's `POST /logtest` endpoints accepts the payload and sends it to the engine exactly as provided. No validation is performed. If the engine responds, the Indexer returns it as the response for its endpoint call. If the engine does not respond, a 500 error is returned.
+All endpoints are under `/_plugins/_content_manager`. The URI constants are defined in `PluginSettings`:
+
+| Constant | Value |
+|---|---|
+| `PLUGINS_BASE_URI` | `/_plugins/_content_manager` |
+| `SUBSCRIPTION_URI` | `/_plugins/_content_manager/subscription` |
+| `UPDATE_URI` | `/_plugins/_content_manager/update` |
+| `LOGTEST_URI` | `/_plugins/_content_manager/logtest` |
+| `RULES_URI` | `/_plugins/_content_manager/rules` |
+| `DECODERS_URI` | `/_plugins/_content_manager/decoders` |
+| `INTEGRATIONS_URI` | `/_plugins/_content_manager/integrations` |
+| `KVDBS_URI` | `/_plugins/_content_manager/kvdbs` |
+| `PROMOTE_URI` | `/_plugins/_content_manager/promote` |
+| `POLICY_URI` | `/_plugins/_content_manager/policy` |
+
+---
+
+## REST API Reference
+
+The full API is defined in [openapi.yml](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/content-manager/openapi.yml).
+
+### Logtest
+
+The Indexer acts as a proxy between the UI and the Engine. `POST /logtest` accepts the payload and forwards it to the Engine via UDS. No validation is performed. If the Engine responds, its response is returned directly. If the Engine is unreachable, a 500 error is returned.
 
 <div class="warning">
 
-A testing policy needs to be loaded in the Engine for the logtest to be executed successfully. Load a policy via the policy promotion endpoint.
+A testing policy must be loaded in the Engine for logtest to work. Load a policy via the policy promotion endpoint.
 </div>
-
-**Diagrams**
 
 ```mermaid
 ---
-title: Logtest execution - Sequence diagram
+title: Logtest execution
 ---
 sequenceDiagram
     actor User
@@ -316,248 +411,353 @@ sequenceDiagram
     participant Engine
 
     User->>UI: run logtest
-
     UI->>Indexer: POST /logtest
-    Indexer->>Engine: POST /logtest
+    Indexer->>Engine: POST /logtest (via UDS)
     Engine-->>Indexer: response
     Indexer-->>UI: response
 ```
 
+### Content RUD (Rules, Decoders, Integrations, KVDBs)
+
+All four resource types follow the same patterns via the abstract class hierarchy:
+
+**Create (POST):**
 ```mermaid
----
-title: Logtest execution - Flowchart
----
-flowchart LR
-    UI-- request -->Indexer
-    subgraph indexer_node [Indexer node]
-    Indexer-->Engine
-
-    Engine -.-> Indexer
-    end
-    Indexer -. response .-> UI
-```
-
-#### Decoders
-
-The Content Manager provides REST API endpoints for managing decoders in the draft space. Decoders are validated against the Wazuh engine before being stored.
-
-<div class="warning">
-
-A testing policy needs to be loaded in the Engine for the decoders to be executed successfully. Load a policy via the policy promotion endpoint.
-</div>
-
-**Diagrams**
-
-```mermaid
----
-title: Decoder creation - Sequence diagram
----
 sequenceDiagram
     actor User
-    participant UI
     participant Indexer
-    participant Engine
-    participant DecoderIndex as .cti-decoders
-    participant IntegrationIndex as .cti-integrations
+    participant Engine/SAP as Engine or SAP
+    participant ContentIndex
+    participant IntegrationIndex
 
-    User->>UI: create decoder
-    UI->>Indexer: POST /_plugins/_content_manager/decoders
-    Indexer->>Indexer: Generate UUID, prefix with d_
-    Indexer->>Engine: POST /content/validate/resource
-    Engine-->>Indexer: validation response
-    Indexer->>DecoderIndex: Index decoder (draft space)
-    Indexer->>IntegrationIndex: Update integration (add decoder reference)
-    Indexer-->>UI: response
-    UI-->>User: decoder created
+    User->>Indexer: POST /_plugins/_content_manager/{resource_type}
+    Indexer->>Indexer: Validate payload, generate UUID, timestamps
+    Indexer->>Engine/SAP: Sync (validate/upsert)
+    Engine/SAP-->>Indexer: OK
+    Indexer->>ContentIndex: Index in Draft space
+    Indexer->>IntegrationIndex: Link to parent integration
+    Indexer-->>User: 201 Created + UUID
 ```
 
+**Update (PUT):**
 ```mermaid
----
-title: Decoder update - Sequence diagram
----
 sequenceDiagram
     actor User
-    participant UI
     participant Indexer
-    participant Engine
-    participant DecoderIndex as .cti-decoders
+    participant ContentIndex
+    participant Engine/SAP as Engine or SAP
 
-    User->>UI: update decoder
-    UI->>Indexer: PUT /_plugins/_content_manager/decoders/{decoder_id}
-    Indexer->>DecoderIndex: Check if decoder exists
-    DecoderIndex-->>Indexer: exists
-    Indexer->>Engine: POST /content/validate/resource
-    Engine-->>Indexer: validation response
-    Indexer->>DecoderIndex: Update decoder
-    Indexer-->>UI: response
-    UI-->>User: decoder updated
+    User->>Indexer: PUT /_plugins/_content_manager/{resource_type}/{id}
+    Indexer->>ContentIndex: Check exists + is in Draft space
+    Indexer->>Indexer: Validate, preserve metadata, update timestamps
+    Indexer->>Engine/SAP: Sync (validate/upsert)
+    Indexer->>ContentIndex: Re-index document
+    Indexer-->>User: 200 OK + UUID
 ```
 
+**Delete (DELETE):**
 ```mermaid
----
-title: Decoder deletion - Sequence diagram
----
 sequenceDiagram
     actor User
-    participant UI
     participant Indexer
-    participant DecoderIndex as .cti-decoders
-    participant IntegrationIndex as .cti-integrations
+    participant ContentIndex
+    participant Engine/SAP as Engine or SAP
+    participant IntegrationIndex
 
-    User->>UI: delete decoder
-    UI->>Indexer: DELETE /_plugins/_content_manager/decoders/{decoder_id}
-    Indexer->>DecoderIndex: Check if decoder exists
-    DecoderIndex-->>Indexer: exists
-    Indexer->>IntegrationIndex: Update integrations (remove decoder reference)
-    Indexer->>DecoderIndex: Delete decoder
-    Indexer-->>UI: response
-    UI-->>User: decoder deleted
+    User->>Indexer: DELETE /_plugins/_content_manager/{resource_type}/{id}
+    Indexer->>ContentIndex: Check exists + is in Draft space
+    Indexer->>Engine/SAP: Delete from external service
+    Indexer->>IntegrationIndex: Unlink from parent
+    Indexer->>ContentIndex: Delete document
+    Indexer-->>User: 200 OK + UUID
 ```
 
-#### Draft Policy Management
-
-The indexer's draft policy management endpoint allows the user to update the Draft-Space policy stored in the Wazuh Indexer.
-
-
-**Diagrams**
+### Draft Policy Update
 
 ```mermaid
----
-title: Draft Policy Update - Flowchart
----
 flowchart TD
-    UI[UI] -->|PUT /policy<br/>JSON payload| Indexer
-
-    subgraph indexer_node [Indexer node]
-        Indexer -->|Route request| RestPutPolicyAction
-
-        RestPutPolicyAction -->|1. Validate request| V1{Has content?<br/>Engine available?}
-        V1 -->|No| Error1[Return 400/500 error]
-        V1 -->|Yes| Parse[2. Parse JSON to Policy object]
-
-        Parse -->|Success| V2{3. Validate Policy<br/>fields}
-        Parse -->|Fail| Error2[Return 400 error:<br/>Invalid JSON]
-
-        V2 -->|Field is null| Error3[Return 400 error:<br/>Field cannot be null]
-        V2 -->|All fields valid| Store[4. Store Policy]
-
-        Store -->|Find/generate ID| ContentIndex[ContentIndex.create]
-        ContentIndex -->|Index to| DraftIndex[(.cti-policies.draft)]
-        DraftIndex -->|Success| Success[Return 200 OK<br/>with Policy object]
-
-        Error1 --> Response
-        Error2 --> Response
-        Error3 --> Response
-        Success --> Response
-    end
-
-    Response[Response] -.->|HTTP response| UI
+    UI[UI] -->|PUT /policy| Indexer
+    Indexer -->|Validate| Check{Valid content?}
+    Check -->|No| Error[400 Error]
+    Check -->|Yes| Parse[Parse & validate fields]
+    Parse --> Store[Index to .cti-policies in Draft space]
+    Store --> OK[200 OK]
 ```
 
-#### Policy Schema
+### Policy Schema
 
-The `.cti-policies` index stores policy configurations that define how the Wazuh Engine processes events. Each indexed document has the following structure:
+The `.cti-policies` index stores policy configurations. See the [Policy document structure](#document-structure) above for the envelope format.
 
-**Top-level fields:**
+**Policy document fields:**
 
-| Field      | Type   | Description                                     |
-| ---------- | ------ | ----------------------------------------------- |
-| `document` | object | Contains the policy configuration fields        |
-| `hash`     | object | Contains the policy content hash (`sha256`)     |
-| `space`    | object | Contains the space information (`name`, `hash`) |
+| Field | Type | Description |
+|---|---|---|
+| `id` | keyword | Unique identifier |
+| `title` | keyword | Human-readable name |
+| `date` | date | Creation timestamp |
+| `modified` | date | Last modification timestamp |
+| `root_decoder` | keyword | Root decoder for event processing |
+| `integrations` | keyword[] | Active integration IDs |
+| `filters` | keyword[] | Filter UUIDs |
+| `enrichments` | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) |
+| `author` | keyword | Policy author |
+| `description` | text | Brief description |
+| `documentation` | keyword | Documentation link |
+| `references` | keyword[] | External reference URLs |
 
-**Fields within `document` object:**
+---
 
-| Field           | Type    | Description                                                                           |
-| --------------- | ------- | ------------------------------------------------------------------------------------- |
-| `id`            | keyword | Unique identifier for the policy document                                             |
-| `title`         | keyword | Human-readable name for the policy                                                    |
-| `date`          | date    | Creation timestamp                                                                    |
-| `modified`      | date    | Last modification timestamp                                                           |
-| `root_decoder`  | keyword | Identifier of the root decoder to use for event processing                            |
-| `integrations`  | keyword | Array of integration IDs that define which content modules are active                 |
-| `filters`       | keyword | Array of filter UUIDs for user-generated filtering rules                              |
-| `enrichments`   | keyword | Array of enrichment types (e.g., `"file"`, `"domain-name"`, `"ip"`, `"url"`, `"geo"`) |
-| `author`        | keyword | Policy author identifier                                                              |
-| `description`   | text    | Brief description of the policy purpose                                               |
-| `documentation` | keyword | Link or reference to detailed documentation                                           |
-| `references`    | keyword | Array of external reference URLs                                                      |
-
-**Example Policy Document:**
-
-```json
-{
-  "document": {
-    "id": "policy-123",
-    "title": "Production Policy",
-    "root_decoder": "decoder/core/0",
-    "integrations": [
-      "integration/wazuh-core/0",
-      "integration/wazuh-fim/0"
-    ],
-    "filters": [
-      "5c1df6b6-1458-4b2e-9001-96f67a8b12c8",
-      "f61133f5-90b9-49ed-b1d5-0b88cb04355e"
-    ],
-    "enrichments": ["file", "domain-name", "ip", "url", "geo"],
-    "author": "security-team",
-    "description": "Production environment policy with file and network enrichments",
-    "documentation": "https://docs.wazuh.com/policies/production",
-    "references": ["https://example.com/security-policy"]
-  },
-  "hash": {
-    "sha256": "abc123..."
-  },
-  "space": {
-    "name": "draft",
-    "hash": {
-      "sha256": "xyz789..."
-    }
-  }
-}
-```
-
-## 🔍 Debugging
+## Debugging
 
 ### Check Consumer Status
 
 ```bash
 GET /.cti-consumers/_search
 {
-  "query": {
-    "match_all": {}
-  }
+  "query": { "match_all": {} }
 }
 ```
 
-### Check Content Index
+### Check Content by Space
 
 ```bash
 GET /.cti-rules/_search
 {
+  "query": { "term": { "space.name": "draft" } },
   "size": 10
 }
 ```
 
 ### Monitor Plugin Logs
 
-Look for entries from `ContentManagerPlugin`, `CatalogSyncJob`, `SnapshotServiceImpl`  and `UpdateServiceImpl` in the OpenSearch logs.
-
 ```bash
-tail -f logs/opensearch.log | grep -E "ContentManager|CatalogSyncJob|SnapshotServiceImpl|UpdateServiceImpl"
+tail -f var/log/wazuh-indexer/wazuh-cluster.log | grep -E "ContentManager|CatalogSyncJob|SnapshotServiceImpl|UpdateServiceImpl|AbstractContentAction"
 ```
 
 ---
 
-## 📌 Important Notes
+## Important Notes
 
-- The plugin only runs on **cluster manager nodes**
-- CTI API must be accessible for content synchronization
-- Offset-based synchronization ensures no content is missed
+- The plugin only runs on **cluster manager nodes**.
+- CTI API must be accessible for content synchronization.
+- All user content CUD operations require a Draft policy to exist.
+- The Engine socket must be available at the configured path for logtest, validation, and promotion.
+- Offset-based synchronization ensures no content is missed.
+
+---
+## 🧪 Testing
+
+The plugin includes integration tests defined in the `tests/content-manager` directory. These tests cover various scenarios for managing integrations, decoders, rules, and KVDBs through the REST API.
+
+#### 01 - Integrations: Create Integration (9 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create an integration |
+| 2 | Create an integration with the same title as an existing integration |
+| 3 | Create an integration with missing title |
+| 4 | Create an integration with missing author |
+| 5 | Create an integration with missing category |
+| 6 | Create an integration with an explicit id in the resource |
+| 7 | Create an integration with missing resource object |
+| 8 | Create an integration with empty body |
+| 9 | Create an integration without authentication |
+
+#### 01 - Integrations: Update Integration (8 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update an integration |
+| 2 | Update an integration changing its title to a title that already exists in draft space |
+| 3 | Update an integration with missing required fields |
+| 4 | Update an integration that does not exist |
+| 5 | Update an integration with an invalid UUID |
+| 6 | Update an integration with an id in the request body |
+| 7 | Update an integration attempting to add/remove dependency lists |
+| 8 | Update an integration without authentication |
+
+#### 01 - Integrations: Delete Integration (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete an integration with no attached resources |
+| 2 | Delete an integration that has attached resources |
+| 3 | Delete an integration that does not exist |
+| 4 | Delete an integration with an invalid UUID |
+| 5 | Delete an integration without providing an ID |
+| 6 | Delete an integration not in draft space |
+| 7 | Delete an integration without authentication |
+
+#### 02 - Decoders: Create Decoder (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create a decoder |
+| 2 | Create a decoder without an integration reference |
+| 3 | Create a decoder with an explicit id in the resource |
+| 4 | Create a decoder with an integration not in draft space |
+| 5 | Create a decoder with missing resource object |
+| 6 | Create a decoder with empty body |
+| 7 | Create a decoder without authentication |
+
+#### 02 - Decoders: Update Decoder (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update a decoder |
+| 2 | Update a decoder that does not exist |
+| 3 | Update a decoder with an invalid UUID |
+| 4 | Update a decoder not in draft space |
+| 5 | Update a decoder with missing resource object |
+| 6 | Update a decoder with empty body |
+| 7 | Update a decoder without authentication |
+
+#### 02 - Decoders: Delete Decoder (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete a decoder |
+| 2 | Delete a decoder that does not exist |
+| 3 | Delete a decoder with an invalid UUID |
+| 4 | Delete a decoder not in draft space |
+| 5 | Delete a decoder without providing an ID |
+| 6 | Delete a decoder without authentication |
+| 7 | Verify decoder is removed from index after deletion |
+
+#### 03 - Rules: Create Rule (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create a rule |
+| 2 | Create a rule with missing title |
+| 3 | Create a rule without an integration reference |
+| 4 | Create a rule with an explicit id in the resource |
+| 5 | Create a rule with an integration not in draft space |
+| 6 | Create a rule with empty body |
+| 7 | Create a rule without authentication |
+
+#### 03 - Rules: Update Rule (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update a rule |
+| 2 | Update a rule with missing title |
+| 3 | Update a rule that does not exist |
+| 4 | Update a rule with an invalid UUID |
+| 5 | Update a rule not in draft space |
+| 6 | Update a rule with empty body |
+| 7 | Update a rule without authentication |
+
+#### 03 - Rules: Delete Rule (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete a rule |
+| 2 | Delete a rule that does not exist |
+| 3 | Delete a rule with an invalid UUID |
+| 4 | Delete a rule not in draft space |
+| 5 | Delete a rule without providing an ID |
+| 6 | Delete a rule without authentication |
+| 7 | Verify rule is removed from index after deletion |
+
+#### 04 - KVDBs: Create KVDB (9 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully create a KVDB |
+| 2 | Create a KVDB with missing title |
+| 3 | Create a KVDB with missing author |
+| 4 | Create a KVDB with missing content |
+| 5 | Create a KVDB without an integration reference |
+| 6 | Create a KVDB with an explicit id in the resource |
+| 7 | Create a KVDB with an integration not in draft space |
+| 8 | Create a KVDB with empty body |
+| 9 | Create a KVDB without authentication |
+
+#### 04 - KVDBs: Update KVDB (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update a KVDB |
+| 2 | Update a KVDB with missing required fields |
+| 3 | Update a KVDB that does not exist |
+| 4 | Update a KVDB with an invalid UUID |
+| 5 | Update a KVDB not in draft space |
+| 6 | Update a KVDB with empty body |
+| 7 | Update a KVDB without authentication |
+
+#### 04 - KVDBs: Delete KVDB (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully delete a KVDB |
+| 2 | Delete a KVDB that does not exist |
+| 3 | Delete a KVDB with an invalid UUID |
+| 4 | Delete a KVDB not in draft space |
+| 5 | Delete a KVDB without providing an ID |
+| 6 | Delete a KVDB without authentication |
+| 7 | Verify KVDB is removed from index after deletion |
+
+#### 05 - Policy: Policy Initialization (6 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | The ".cti-policies" index exists |
+| 2 | Exactly four policy documents exist (one per space) |
+| 3 | Standard policy has a different document ID than draft/test/custom |
+| 4 | Draft, test, and custom policies start with empty integrations and root_decoder |
+| 5 | Each policy document contains the expected structure |
+| 6 | Each policy has a valid SHA-256 hash |
+
+#### 05 - Policy: Update Draft Policy (12 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully update the draft policy |
+| 2 | Update policy with missing type field |
+| 3 | Update policy with wrong type value |
+| 4 | Update policy with missing resource object |
+| 5 | Update policy with missing required fields in resource |
+| 6 | Update policy attempting to add an integration to the list |
+| 7 | Update policy attempting to remove an integration from the list |
+| 8 | Update policy with reordered integrations list (allowed) |
+| 9 | Update policy with empty body |
+| 10 | Update policy without authentication |
+| 11 | Verify policy changes are NOT reflected in test space until promotion |
+| 12 | Verify policy changes are reflected in test space after promotion |
+
+#### 06 - Log Test (4 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully test a log event |
+| 2 | Send log test with empty body |
+| 3 | Send log test with invalid JSON |
+| 4 | Send log test without authentication |
+
+#### 07 - Promote: Preview Promotion (7 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Preview promotion from draft to test |
+| 2 | Preview promotion from test to custom |
+| 3 | Preview promotion with missing space parameter |
+| 4 | Preview promotion with empty space parameter |
+| 5 | Preview promotion with invalid space value |
+| 6 | Preview promotion from custom (not allowed) |
+| 7 | Preview promotion without authentication |
+
+#### 07 - Promote: Execute Promotion (18 scenarios)
+| # | Scenario |
+|---|----------|
+| 1 | Successfully promote from draft to test |
+| 2 | Verify resources exist in test space after draft to test promotion |
+| 3 | Verify promoted resources exist in both draft and test spaces |
+| 4 | Verify test space hash is regenerated after draft to test promotion |
+| 5 | Verify promoted resource hashes match between draft and test spaces |
+| 6 | Verify deleting a decoder in draft does not affect promoted test space |
+| 7 | Successfully promote from test to custom |
+| 8 | Verify resources exist in custom space after test to custom promotion |
+| 9 | Verify promoted resources exist in both test and custom spaces |
+| 10 | Verify custom space hash is regenerated after test to custom promotion |
+| 11 | Verify promoted resource hashes match between test and custom spaces |
+| 12 | Promote from custom (not allowed) |
+| 13 | Promote with invalid space |
+| 14 | Promote with missing changes object |
+| 15 | Promote with incomplete changes (missing required resource arrays) |
+| 16 | Promote with non-update operation on policy |
+| 17 | Promote with empty body |
+| 18 | Promote without authentication |
+
 
 ---
 
-## 🔗 Related Documentation
+## Related Documentation
 
+- [Content Manager Tutorial: Adding a REST Endpoint](./content-manager-tutorial.md)
 - [Setup Plugin Guide](./setup.md)
 - [OpenSearch Plugin Development](https://docs.opensearch.org/3.3/install-and-configure/plugins/)
