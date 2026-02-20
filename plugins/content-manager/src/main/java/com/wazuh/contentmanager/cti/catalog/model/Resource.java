@@ -110,7 +110,7 @@ public class Resource {
      */
     public static Resource fromPayload(JsonNode payload) {
         Resource resource = new Resource();
-        Resource.populateResource(resource, payload);
+        resource.populateResource(resource, payload);
         return resource;
     }
 
@@ -120,7 +120,7 @@ public class Resource {
      * @param resource The resource instance to populate.
      * @param payload The source JSON payload.
      */
-    protected static void populateResource(Resource resource, JsonNode payload) {
+    protected void populateResource(Resource resource, JsonNode payload) {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
             ObjectNode rawDoc = payload.get(JSON_DOCUMENT_KEY).deepCopy();
@@ -136,8 +136,11 @@ public class Resource {
                 resource.setHash(hashMap);
             }
         }
-
         // 3. Set Space if not present in resource payload
+        this.populateSpaceObject(resource, payload);
+    }
+
+    private void populateSpaceObject(Resource resource, JsonNode payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
         if (payload.has("space") && payload.get("space").isObject()) {

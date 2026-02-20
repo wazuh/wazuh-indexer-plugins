@@ -69,7 +69,8 @@ public class Decoder extends Resource {
     public static Decoder fromPayload(JsonNode payload) {
         Decoder decoder = new Decoder();
         // 1. Basic logic for every resource
-        Resource.populateResource(decoder, payload);
+        Resource resource = new Resource();
+        resource.populateResource(decoder, payload);
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has("document")) {

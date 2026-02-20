@@ -1,4 +1,4 @@
 {
-  "dynamic": "false",
+  "dynamic": "strict",
   "date_detection": false
 }
