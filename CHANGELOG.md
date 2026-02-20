@@ -67,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add script for Content Manager API integration testing [(#821)](https://github.com/wazuh/wazuh-indexer-plugins/pull/821)
 - Add raw events data stream with aggressive ISM purge policy [(#839)](https://github.com/wazuh/wazuh-indexer-plugins/pull/839)
 - Add Unix domain socket permission for Engine communication [(#823)](https://github.com/wazuh/wazuh-indexer-plugins/pull/823)
+- Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
