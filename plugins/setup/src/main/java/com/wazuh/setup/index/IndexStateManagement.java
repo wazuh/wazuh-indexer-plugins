@@ -48,6 +48,7 @@ public class IndexStateManagement extends Index {
     // ISM policies names (filename without extension)
     static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
     static final String RAW_EVENTS_PURGE_POLICY = "raw-events-purge-policy";
+    static final String UNCLASSIFIED_EVENTS_POLICY = "unclassified-events-policy";
 
     /** Base path for ISM policy files */
     static final String POLICIES_PATH = "policies/";
@@ -67,6 +68,7 @@ public class IndexStateManagement extends Index {
         // Add ISM policies to be created
         this.policies.add(STREAM_ROLLOVER_POLICY);
         this.policies.add(RAW_EVENTS_PURGE_POLICY);
+        this.policies.add(UNCLASSIFIED_EVENTS_POLICY);
     }
 
     /**
