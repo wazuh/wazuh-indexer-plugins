@@ -162,8 +162,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.consolidateChanges(context);
 
             // After successful promotion, recalculate policy hashes for the promoted space
-            this.spaceService.calculateAndUpdate(
-                    List.of(spaceDiff.getSpace().promote().asSecurityAnalyticsSource()));
+            this.spaceService.calculateAndUpdate(List.of(spaceDiff.getSpace().promote().toString()));
 
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
