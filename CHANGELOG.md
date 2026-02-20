@@ -65,6 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Extend policy update endpoint with enrichments [(#808)](https://github.com/wazuh/wazuh-indexer-plugins/pull/808)
 - Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
 - Add script for Content Manager API integration testing [(#821)](https://github.com/wazuh/wazuh-indexer-plugins/pull/821)
+- Add Integration Tests for Content Manager API [(#813)](https://github.com/wazuh/wazuh-indexer-plugins/pull/813)
 - Add raw events data stream with aggressive ISM purge policy [(#839)](https://github.com/wazuh/wazuh-indexer-plugins/pull/839)
 - Add Unix domain socket permission for Engine communication [(#823)](https://github.com/wazuh/wazuh-indexer-plugins/pull/823)
 
@@ -133,6 +134,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix deserialization bug [(#737)](https://github.com/wazuh/wazuh-indexer-plugins/pull/737)
 - Fix offset value used when updating consumer state [(#802)](https://github.com/wazuh/wazuh-indexer-plugins/pull/802)
 - Fix duplicated policies on multi-node environment [(#847)](https://github.com/wazuh/wazuh-indexer-plugins/pull/847)
+- Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
