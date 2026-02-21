@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 // spotless:off
+
 /**
  * Central and unified storage for constants used by the plugin. Follow these guidelines:
  *
@@ -43,6 +44,9 @@ public class Constants {
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
     public static final String E_400_RESOURCE_NOT_FOUND = "%s [%s] not found.";
     public static final String E_400_RESOURCE_NOT_IN_DRAFT = "%s with ID '%s' is not in draft space.";
+    public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
+    public static final String E_400_RESOURCE_SPACE_MISMATCH =
+            "Invalid space value. Must be one of: %s.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
@@ -121,6 +125,7 @@ public class Constants {
     public static final String KEY_LOGSOURCE = "logsource";
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
+    public static final String KEY_FILTER = "filter";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
