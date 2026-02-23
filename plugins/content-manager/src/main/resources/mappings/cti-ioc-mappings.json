@@ -63,39 +63,7 @@
         }
       }
     },
-    "hash": {
-      "properties": {
-        "sha256": {
-          "ignore_above": 1024,
-          "type": "keyword"
-        }
-      }
-    },
-    "ip": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
     "domain-name": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "url": {
       "properties": {
         "hash": {
           "properties": {
@@ -120,6 +88,38 @@
       }
     },
     "geo": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "hash": {
+      "properties": {
+        "sha256": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        }
+      }
+    },
+    "ip": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "url": {
       "properties": {
         "hash": {
           "properties": {

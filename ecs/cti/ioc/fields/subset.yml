@@ -7,6 +7,31 @@ fields:
       hash:
         fields:
           sha256: {}
+      ip:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      domain-name:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      url:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      file:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      geo:
+        fields:
+          hash:
+            fields:
+              sha256: {}
   document:
     fields:
       confidence: {}

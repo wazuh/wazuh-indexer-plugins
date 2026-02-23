@@ -14,3 +14,28 @@
       type: keyword
       example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       description: "The SHA-256 hash of the IoC document."
+    - name: ip.hash.sha256
+      level: custom
+      type: keyword
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      description: "The SHA-256 hash of all ip IoC documents."
+    - name: domain-name.hash.sha256
+      level: custom
+      type: keyword
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      description: "The SHA-256 hash of all domain-name IoC documents."
+    - name: url.hash.sha256
+      level: custom
+      type: keyword
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      description: "The SHA-256 hash of all url IoC documents."
+    - name: file.hash.sha256
+      level: custom
+      type: keyword
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      description: "The SHA-256 hash of all file IoC documents."
+    - name: geo.hash.sha256
+      level: custom
+      type: keyword
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      description: "The SHA-256 hash of all geo IoC documents."
