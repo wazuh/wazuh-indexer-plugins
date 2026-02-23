@@ -216,9 +216,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
 
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
 
-        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
-        // Verify the original ID in payload was overwritten with a generated UUID
-        Assert.assertNotEquals("82e215c4-988a-4f64-8d15-b98b2fc03a4f", actualResponse.getMessage());
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
     /**

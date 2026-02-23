@@ -48,7 +48,7 @@ import com.wazuh.contentmanager.utils.Constants;
  *   <li>Validates resource-specific constraints.
  *   <li>Generates ID and metadata (timestamps).
  *   <li>Synchronizes with external services (Engine/SAP).
- *   <li>Indexes the document in a space.
+ *   <li>Indexes the document in a valid space.
  *   <li>Links the resource to its parent (e.g., Integration).
  *   <li>Updates the policy hash.
  * </ol>
@@ -124,6 +124,10 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
             if (this.isDecoder()) {
                 Decoder.setCreationTime(resourceNode, currentTimestamp);
                 Decoder.setLastModificationTime(resourceNode, currentTimestamp);
+            } else if (this.isFilter()) {
+                ObjectNode authorNode = this.getOrCreateAuthorNode(resourceNode);
+                authorNode.put(Constants.KEY_DATE, currentTimestamp);
+                authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
             } else {
                 Resource.setCreationTime(resourceNode, currentTimestamp);
                 Resource.setLastModificationTime(resourceNode, currentTimestamp);
@@ -197,6 +201,11 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
         return false;
     }
 
+    /** Indicates if the resource is a Filter (requires special metadata handling). */
+    protected boolean isFilter() {
+        return false;
+    }
+
     protected abstract String getIndexName();
 
     protected abstract String getResourceType();
@@ -224,4 +233,33 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
      * Links the newly created resource to its parent container (e.g., adding Rule ID to Integration).
      */
     protected abstract void linkToParent(Client client, String id, JsonNode root) throws IOException;
+
+    /**
+     * Retrieves the author object node from the given resource node's metadata. If the "metadata"
+     * node or its child "author" node do not exist, they are created and appropriately attached to
+     * the resource node hierarchy.
+     *
+     * @param resourceNode The resource JSON node to extract or attach the author node to.
+     * @return The existing or newly created author {@link ObjectNode}.
+     */
+    private ObjectNode getOrCreateAuthorNode(ObjectNode resourceNode) {
+        ObjectNode metadataNode;
+        if (resourceNode.has(Constants.KEY_METADATA)
+                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+        } else {
+            metadataNode = MAPPER.createObjectNode();
+            resourceNode.set(Constants.KEY_METADATA, metadataNode);
+        }
+
+        ObjectNode authorNode;
+        if (metadataNode.has(Constants.KEY_AUTHOR)
+                && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
+        } else {
+            authorNode = MAPPER.createObjectNode();
+            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
+        }
+        return authorNode;
+    }
 }

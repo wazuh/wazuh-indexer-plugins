@@ -44,7 +44,7 @@ import com.wazuh.contentmanager.utils.Constants;
  *
  * <ol>
  *   <li>Validates ID presence and format.
- *   <li>Ensures the resource exists and is in the Draft space.
+ *   <li>Ensures the resource exists and is in valid space.
  *   <li>Performs pre-delete validation (e.g., checking for dependent resources).
  *   <li>Removes the resource from external services (Engine/SAP).
  *   <li>Unlinks the resource from its parent (Integration/Policy).

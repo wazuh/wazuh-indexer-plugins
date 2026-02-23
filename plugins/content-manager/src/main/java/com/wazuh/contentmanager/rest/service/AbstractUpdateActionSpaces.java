@@ -50,7 +50,7 @@ import com.wazuh.contentmanager.utils.Constants;
  *
  * <ol>
  *   <li>Validates ID presence and format.
- *   <li>Ensures the resource exists and is in the Draft space.
+ *   <li>Ensures the resource exists and is in a valid space.
  *   <li>Validates payload structure and fields.
  *   <li>Updates timestamps (modified date).
  *   <li>Preserves immutable metadata (creation date, author details).
@@ -168,6 +168,9 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
             String currentTimestamp = this.getCurrentDate();
             if (this.isDecoder()) {
                 Decoder.setLastModificationTime(resourceNode, currentTimestamp);
+            } else if (this.isFilter()) {
+                ObjectNode authorNode = this.getOrCreateAuthorNode(resourceNode);
+                authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
             } else {
                 Resource.setLastModificationTime(resourceNode, currentTimestamp);
             }
@@ -216,6 +219,11 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
         return false;
     }
 
+    /** Indicates if the resource is a Filter (requires special metadata handling). */
+    protected boolean isFilter() {
+        return false;
+    }
+
     /** Preserves creation date and other immutable fields from the existing document. */
     protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         JsonNode existingDoc = index.getDocument(id);
@@ -224,7 +232,7 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
         JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
 
         String date = null;
-        if (this.isDecoder()) {
+        if (this.isDecoder() || this.isFilter()) {
             if (doc.has(Constants.KEY_METADATA)
                     && doc.get(Constants.KEY_METADATA).has(Constants.KEY_AUTHOR)) {
                 JsonNode auth = doc.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR);
@@ -235,7 +243,7 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
         }
 
         if (date != null) {
-            if (this.isDecoder()) {
+            if (this.isDecoder() || this.isFilter()) {
                 if (resourceNode.has(Constants.KEY_METADATA)
                         && resourceNode.get(Constants.KEY_METADATA).has(Constants.KEY_AUTHOR)) {
                     ObjectNode author =
@@ -325,5 +333,34 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
         }
 
         return null;
+    }
+
+    /**
+     * Retrieves the author object node from the given resource node's metadata. If the "metadata"
+     * node or its child "author" node do not exist, they are created and appropriately attached to
+     * the resource node hierarchy.
+     *
+     * @param resourceNode The resource JSON node to extract or attach the author node to.
+     * @return The existing or newly created author {@link ObjectNode}.
+     */
+    private ObjectNode getOrCreateAuthorNode(ObjectNode resourceNode) {
+        ObjectNode metadataNode;
+        if (resourceNode.has(Constants.KEY_METADATA)
+                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+        } else {
+            metadataNode = MAPPER.createObjectNode();
+            resourceNode.set(Constants.KEY_METADATA, metadataNode);
+        }
+
+        ObjectNode authorNode;
+        if (metadataNode.has(Constants.KEY_AUTHOR)
+                && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
+            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
+        } else {
+            authorNode = MAPPER.createObjectNode();
+            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
+        }
+        return authorNode;
     }
 }
