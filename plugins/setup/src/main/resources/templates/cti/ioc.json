@@ -141,7 +141,7 @@
             }
           }
         },
-        "ip": {
+        "ipv4-addr": {
           "properties": {
             "hash": {
               "properties": {
