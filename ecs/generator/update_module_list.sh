@@ -108,6 +108,24 @@ function map_stateless_modules() {
 }
 
 # ====
+# Map engine modules
+# ====
+function map_engine_modules() {
+  for dir in ecs/engine/*/; do
+    if [[ -d "$dir" ]]; then
+      local module_name
+      module_name=$(basename "$dir")
+
+      # Skip special directories
+      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
+        continue
+      fi
+      all_modules["engine/$module_name"]="templates/engine/${module_name}.json"
+    fi
+  done
+}
+
+# ====
 # Map CTI IoC modules
 # ====
 function map_cti_modules() {
@@ -146,6 +164,13 @@ function sort_and_output_modules() {
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
 
+  echo "  # Engine modules" >>"$output_file"
+
+  # Output engine modules (sorted)
+  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^engine/" | sort); do
+    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+  done
+
   echo "  # CTI stateless modules" >>"$output_file"
 
   # Output CTI IoC modules (sorted, excluding main)
@@ -178,6 +203,8 @@ function main() {
   map_stateful_modules
 
   map_stateless_modules
+
+  map_engine_modules
 
   map_cti_modules
 

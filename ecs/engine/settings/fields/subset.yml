@@ -1,0 +1,5 @@
+---
+name: wazuh-settings
+fields:
+  base:
+    fields: "*"
