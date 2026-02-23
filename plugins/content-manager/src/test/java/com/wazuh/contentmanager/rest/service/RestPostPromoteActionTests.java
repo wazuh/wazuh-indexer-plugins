@@ -19,10 +19,10 @@ package com.wazuh.contentmanager.rest.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.junit.Assert;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;

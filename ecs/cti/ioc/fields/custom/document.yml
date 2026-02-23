@@ -1,0 +1,84 @@
+---
+- name: document
+  title: Document
+  description: >
+    IoC Document custom fields
+  fields:
+    - name: confidence
+      type: long
+      level: custom
+      description: >
+        Confidence level or score for the IoC, typically representing the reliability of the indicator.
+      example: 85
+    - name: feed.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the threat intelligence feed that provided this IoC.
+      example: "AlienVault OTX"
+    - name: first_seen
+      type: date
+      level: custom
+      description: >
+        The date and time when the IoC was first observed or reported.
+      example: "2024-01-15T08:30:00.000Z"
+    - name: id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier for the IoC document.
+      example: "ioc-12345-abcde"
+    - name: last_seen
+      type: date
+      level: custom
+      description: >
+        The date and time when the IoC was most recently observed or reported.
+      example: "2024-02-20T14:45:00.000Z"
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        Name or label assigned to the IoC, typically describing the threat or indicator.
+      example: "Malicious IP - Botnet C2"
+    - name: provider
+      type: keyword
+      level: custom
+      description: >
+        Provider or organization that published the threat intelligence data.
+      example: "Wazuh Threat Intelligence"
+    - name: reference
+      type: keyword
+      level: custom
+      description: >
+        Reference URL or identifier for additional information about the IoC.
+      example: "https://otx.alienvault.com/indicator/12345"
+    - name: type
+      type: keyword
+      level: custom
+      description: >
+        Type or category of the IoC, such as IP address, domain, file hash, or URL.
+      example: "domain-name"
+    - name: software.alias
+      type: keyword
+      level: custom
+      description: >
+        Alias or alternative names for the software associated with the IoC.
+      example: "Trojan.GenericKD"
+    - name: software.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the software or malware associated with the IoC.
+      example: "Emotet"
+    - name: software.type
+      type: keyword
+      level: custom
+      description: >
+        Type or classification of the software, such as malware, trojan, or ransomware.
+      example: "Trojan"
+    - name: tags
+      type: keyword
+      level: custom
+      description: >
+        Tags or labels associated with the IoC for categorization and filtering.
+      example: "malware, c2, botnet"

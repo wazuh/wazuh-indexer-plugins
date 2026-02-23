@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.junit.Assert;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
@@ -25,6 +24,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;

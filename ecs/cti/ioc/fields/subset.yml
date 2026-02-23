@@ -4,32 +4,25 @@ fields:
   base:
     fields:
       message: {}
-  threat:
+      hash:
+        fields:
+          sha256: {}
+  document:
     fields:
+      confidence: {}
       feed:
         fields:
           name: {}
-          reference: {}
-      indicator:
-        fields:
-          confidence: {}
-          description: {}
-          file:
-            fields:
-              hash:
-                fields: "*"
-          first_seen: {}
-          ip: {}
-          last_seen: {}
-          name: {}
-          port: {}
-          provider: {}
-          reference: {}
-          type: {}
-          url:
-            fields:
-              domain: {}
+      first_seen: {}
+      id: {}
+      last_seen: {}
+      name: {}
+      provider: {}
+      reference: {}
+      type: {}
       software:
         fields:
-          name: {}
           alias: {}
+          name: {}
+          type: {}
+      tags: {}

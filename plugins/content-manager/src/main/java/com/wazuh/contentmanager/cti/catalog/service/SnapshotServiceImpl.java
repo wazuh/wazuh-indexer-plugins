@@ -206,14 +206,12 @@ public class SnapshotServiceImpl implements SnapshotService {
                     JsonNode payload = rootJson.get(JSON_PAYLOAD_KEY);
 
                     // 2. Determine Index.
-                    // - If payload has the "enrichments" key, then it is an IOC.
-                    // - If payload has the "type" key, obtain the "type" from the "type" key.
-                    // - Otherwise, skip.
                     String type;
-                    if (payload.has(Constants.KEY_ENRICHMENTS)) {
-                        type = Constants.KEY_IOCS;
-                    } else if (payload.has(Constants.KEY_TYPE)) {
+                    if (payload.has(Constants.KEY_TYPE)) {
                         type = payload.get(Constants.KEY_TYPE).asText();
+                        if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
+                            type = Constants.KEY_IOCS;
+                        }
                     } else {
                         log.warn("Could not identify resource type. Skipping.");
                         continue;

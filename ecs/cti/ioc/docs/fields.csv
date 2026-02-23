@@ -1,25 +1,16 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
-9.1.0,true,threat,threat.feed.name,keyword,extended,,AlienVault OTX,Name of the threat feed.
-9.1.0,true,threat,threat.feed.reference,keyword,extended,,https://otx.alienvault.com,Reference for the threat feed.
-9.1.0,true,threat,threat.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
-9.1.0,true,threat,threat.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
-9.1.0,true,threat,threat.indicator.file.hash.cdhash,keyword,extended,,3783b4052fd474dbe30676b45c329e7a6d44acd9,The Code Directory (CD) hash of an executable.
-9.1.0,true,threat,threat.indicator.file.hash.md5,keyword,extended,,,MD5 hash.
-9.1.0,true,threat,threat.indicator.file.hash.sha1,keyword,extended,,,SHA1 hash.
-9.1.0,true,threat,threat.indicator.file.hash.sha256,keyword,extended,,,SHA256 hash.
-9.1.0,true,threat,threat.indicator.file.hash.sha384,keyword,extended,,,SHA384 hash.
-9.1.0,true,threat,threat.indicator.file.hash.sha512,keyword,extended,,,SHA512 hash.
-9.1.0,true,threat,threat.indicator.file.hash.ssdeep,keyword,extended,,,SSDEEP hash.
-9.1.0,true,threat,threat.indicator.file.hash.tlsh,keyword,extended,,,TLSH hash.
-9.1.0,true,threat,threat.indicator.first_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was first reported.
-9.1.0,true,threat,threat.indicator.ip,ip,extended,,1.2.3.4,Indicator IP address
-9.1.0,true,threat,threat.indicator.last_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was last reported.
-9.1.0,true,threat,threat.indicator.name,keyword,extended,,5.2.75.227,Indicator display name
-9.1.0,true,threat,threat.indicator.port,long,extended,,443,Indicator port
-9.1.0,true,threat,threat.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
-9.1.0,true,threat,threat.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
-9.1.0,true,threat,threat.indicator.type,keyword,extended,,ipv4-addr,Type of indicator
-9.1.0,true,threat,threat.indicator.url.domain,keyword,extended,,www.elastic.co,Domain of the url.
-9.1.0,true,threat,threat.software.alias,keyword,extended,array,"[ ""X-Agent"" ]",Alias of the software
-9.1.0,true,threat,threat.software.name,keyword,extended,,AdFind,Name of the software.
+9.1.0,true,document,document.confidence,long,custom,,85,"Confidence level or score for the IoC, typically representing the reliability of the indicator."
+9.1.0,true,document,document.feed.name,keyword,custom,,AlienVault OTX,Name of the threat intelligence feed that provided this IoC.
+9.1.0,true,document,document.first_seen,date,custom,,2024-01-15T08:30:00.000Z,The date and time when the IoC was first observed or reported.
+9.1.0,true,document,document.id,keyword,custom,,ioc-12345-abcde,Unique identifier for the IoC document.
+9.1.0,true,document,document.last_seen,date,custom,,2024-02-20T14:45:00.000Z,The date and time when the IoC was most recently observed or reported.
+9.1.0,true,document,document.name,keyword,custom,,Malicious IP - Botnet C2,"Name or label assigned to the IoC, typically describing the threat or indicator."
+9.1.0,true,document,document.provider,keyword,custom,,Wazuh Threat Intelligence,Provider or organization that published the threat intelligence data.
+9.1.0,true,document,document.reference,keyword,custom,,https://otx.alienvault.com/indicator/12345,Reference URL or identifier for additional information about the IoC.
+9.1.0,true,document,document.software.alias,keyword,custom,,Trojan.GenericKD,Alias or alternative names for the software associated with the IoC.
+9.1.0,true,document,document.software.name,keyword,custom,,Emotet,Name of the software or malware associated with the IoC.
+9.1.0,true,document,document.software.type,keyword,custom,,Trojan,"Type or classification of the software, such as malware, trojan, or ransomware."
+9.1.0,true,document,document.tags,keyword,custom,,"malware, c2, botnet",Tags or labels associated with the IoC for categorization and filtering.
+9.1.0,true,document,document.type,keyword,custom,,domain-name,"Type or category of the IoC, such as IP address, domain, file hash, or URL."
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the IoC document.

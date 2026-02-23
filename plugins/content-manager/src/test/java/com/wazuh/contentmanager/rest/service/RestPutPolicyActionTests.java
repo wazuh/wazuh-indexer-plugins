@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.service;
 
 import org.apache.lucene.search.TotalHits;
-import org.junit.Assert;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -34,6 +33,7 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;

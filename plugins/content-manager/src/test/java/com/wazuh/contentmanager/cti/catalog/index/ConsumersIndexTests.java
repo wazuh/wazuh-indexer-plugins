@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
-import org.junit.Assert;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -32,6 +31,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;

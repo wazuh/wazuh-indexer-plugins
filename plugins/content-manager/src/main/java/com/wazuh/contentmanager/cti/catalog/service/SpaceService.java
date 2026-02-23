@@ -31,6 +31,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.IndexNotFoundException;
@@ -45,6 +46,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -65,6 +68,31 @@ public class SpaceService {
         this.client = client;
         this.objectMapper = new ObjectMapper();
         this.pluginSettings = PluginSettings.getInstance();
+    }
+
+    /**
+     * Executes a blocking task on the generic thread pool so that it does not block a transport
+     * thread. This avoids {@code AssertionError: Expected current thread to not be a transport
+     * thread} errors when {@code actionGet()} is called from a REST handler context.
+     *
+     * @param <T> the return type
+     * @param task the callable to execute
+     * @return the result of the callable
+     * @throws IOException if execution fails
+     */
+    private <T> T offloadBlocking(Callable<T> task) throws IOException {
+        try {
+            return this.client.threadPool().generic().submit(task).get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            throw new IOException("Blocking execution failed", cause);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for search result", e);
+        }
     }
 
     /**
@@ -95,7 +123,8 @@ public class SpaceService {
                     sourceBuilder.size(10000);
 
                     searchRequest.source(sourceBuilder);
-                    SearchResponse response = this.client.search(searchRequest).actionGet();
+                    SearchResponse response =
+                            offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                     for (SearchHit hit : response.getHits().getHits()) {
                         String hash = Resource.extractHash(hit.getSourceAsMap());
@@ -162,6 +191,7 @@ public class SpaceService {
             }
 
             if (bulkRequest.numberOfActions() > 0) {
+                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                 BulkResponse response =
                         this.client
                                 .bulk(bulkRequest)
@@ -196,7 +226,8 @@ public class SpaceService {
                 sourceBuilder.size(10000);
                 searchRequest.source(sourceBuilder);
 
-                SearchResponse response = this.client.search(searchRequest).actionGet();
+                SearchResponse response =
+                        offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                 for (SearchHit hit : response.getHits().getHits()) {
                     String docId = this.getDocumentId(hit.getSourceAsMap());
@@ -407,7 +438,8 @@ public class SpaceService {
             sourceBuilder.size(1);
             searchRequest.source(sourceBuilder);
 
-            SearchResponse response = this.client.search(searchRequest).actionGet();
+            SearchResponse response =
+                    offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
             if (response.getHits().getTotalHits().value() > 0) {
                 SearchHit hit = response.getHits().getAt(0);
@@ -450,6 +482,7 @@ public class SpaceService {
             }
 
             if (bulkRequest.numberOfActions() > 0) {
+                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                 BulkResponse response =
                         this.client
                                 .bulk(bulkRequest)
@@ -499,7 +532,8 @@ public class SpaceService {
             sourceBuilder.fetchSource(false); // We only need the _id
             searchRequest.source(sourceBuilder);
 
-            SearchResponse response = this.client.search(searchRequest).actionGet();
+            SearchResponse response =
+                    offloadBlocking(() -> this.client.search(searchRequest).actionGet());
             if (response.getHits().getTotalHits().value() > 0) {
                 return response.getHits().getAt(0).getId();
             }

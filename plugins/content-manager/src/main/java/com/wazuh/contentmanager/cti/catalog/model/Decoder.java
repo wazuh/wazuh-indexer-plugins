@@ -69,7 +69,8 @@ public class Decoder extends Resource {
     public static Decoder fromPayload(JsonNode payload) {
         Decoder decoder = new Decoder();
         // 1. Basic logic for every resource
-        Resource.populateResource(decoder, payload);
+        Resource resource = new Resource();
+        resource.populateResource(decoder, payload);
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has("document")) {
@@ -140,9 +141,9 @@ public class Decoder extends Resource {
     }
 
     /**
-     * Retrieves the author object node from the given resource node's metadata.
-     * If the "metadata" node or its child "author" node do not exist, they are
-     * created and appropriately attached to the resource node hierarchy.
+     * Retrieves the author object node from the given resource node's metadata. If the "metadata"
+     * node or its child "author" node do not exist, they are created and appropriately attached to
+     * the resource node hierarchy.
      *
      * @param resourceNode The resource JSON node to extract or attach the author node to.
      * @return The existing or newly created author {@link ObjectNode}.

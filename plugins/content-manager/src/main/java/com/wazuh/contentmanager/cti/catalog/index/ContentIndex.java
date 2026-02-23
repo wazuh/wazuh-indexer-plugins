@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -42,10 +41,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.reindex.BulkByScrollResponse;
-import org.opensearch.index.reindex.DeleteByQueryAction;
-import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
@@ -396,16 +391,21 @@ public class ContentIndex {
         this.semaphore.release(permits);
     }
 
-    /** Deletes all documents in the index using a "match_all" query. */
+    /** Deletes all documents in the index by deleting and recreating it. */
     public void clear() {
+        if (this.mappingsPath == null) {
+            log.error("Cannot clear index [{}]: mappings path not set.", this.indexName);
+            return;
+        }
         try {
-            DeleteByQueryRequestBuilder deleteByQuery =
-                    new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
-            deleteByQuery.source(this.indexName).filter(QueryBuilders.matchAllQuery());
-            BulkByScrollResponse response = deleteByQuery.get();
-            log.debug("[{}] wiped. {} documents removed", this.indexName, response.getDeleted());
-        } catch (OpenSearchTimeoutException e) {
-            log.error("[{}] delete query timed out: {}", this.indexName, e.getMessage());
+            boolean exists = this.client.admin().indices().prepareExists(this.indexName).get().isExists();
+            if (exists) {
+                this.client.admin().indices().prepareDelete(this.indexName).get();
+            }
+            this.createIndex();
+            log.debug("[{}] wiped and recreated", this.indexName);
+        } catch (Exception e) {
+            log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
         }
     }
 
@@ -432,12 +432,15 @@ public class ContentIndex {
             String type =
                     payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
 
-            Resource resource;
             // 1. Delegate parsing logic to the appropriate Model
+            if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
+                Ioc ioc = Ioc.fromPayload(payload);
+                return this.mapper.valueToTree(ioc);
+            }
+
+            Resource resource;
             if (isDecoder || Constants.KEY_DECODER.equalsIgnoreCase(type)) {
                 resource = Decoder.fromPayload(payload);
-            } else if (payload.has(Constants.KEY_ENRICHMENTS)) {
-                resource = Ioc.fromPayload(payload);
             } else {
                 resource = Resource.fromPayload(payload);
             }
