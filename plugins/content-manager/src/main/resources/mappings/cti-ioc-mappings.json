@@ -87,18 +87,6 @@
         }
       }
     },
-    "geo": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
     "hash": {
       "properties": {
         "sha256": {

@@ -27,11 +27,6 @@ fields:
           hash:
             fields:
               sha256: {}
-      geo:
-        fields:
-          hash:
-            fields:
-              sha256: {}
   document:
     fields:
       confidence: {}
