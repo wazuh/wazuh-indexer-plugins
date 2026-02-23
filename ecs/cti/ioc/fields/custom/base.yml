@@ -14,7 +14,7 @@
       type: keyword
       example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       description: "The SHA-256 hash of the IoC document."
-    - name: ip.hash.sha256
+    - name: ipv4-addr.hash.sha256
       level: custom
       type: keyword
       example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"

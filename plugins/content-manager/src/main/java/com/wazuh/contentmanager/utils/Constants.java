@@ -157,7 +157,7 @@ public class Constants {
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
-    public static final List<String> IOC_TYPES = List.of("ip", "domain-name", "url", "file", "geo");
+    public static final List<String> IOC_TYPES = List.of("ipv4-addr", "domain-name", "url", "file", "geo");
 
     // Queries
     public static final String Q_DOCUMENT_TYPE = "document.type";
