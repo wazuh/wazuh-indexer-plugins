@@ -1,5 +1,5 @@
 ---
 name: wazuh-settings
 fields:
-  base:
+  engine:
     fields: "*"

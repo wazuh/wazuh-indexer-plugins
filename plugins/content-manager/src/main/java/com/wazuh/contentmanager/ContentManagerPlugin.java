@@ -50,6 +50,7 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -59,6 +60,7 @@ import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 
 /** Main class of the Content Manager Plugin */
@@ -75,6 +77,7 @@ public class ContentManagerPlugin extends Plugin
     private CatalogSyncJob catalogSyncJob;
     private EngineService engine;
     private SpaceService spaceService;
+    private ContentIndex wazuhSettingsIndex;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -132,6 +135,9 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize Space Service
         this.spaceService = new SpaceService(this.client);
+
+        // Initialize Wazuh Settings Index client
+        this.wazuhSettingsIndex = new ContentIndex(client, Constants.INDEX_SETTINGS);
 
         return Collections.emptyList();
     }
@@ -209,7 +215,10 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
                 new RestPostPromoteAction(this.engine, this.spaceService),
-                new RestGetPromoteAction(this.spaceService));
+                new RestGetPromoteAction(this.spaceService),
+                // Engine settings endpoints
+                new RestGetEngineSettings(this.wazuhSettingsIndex),
+                new RestPutEngineSettings(this.wazuhSettingsIndex));
     }
 
     /** Performs initialization tasks for the plugin. */

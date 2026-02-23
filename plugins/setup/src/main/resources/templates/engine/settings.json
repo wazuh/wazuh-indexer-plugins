@@ -29,6 +29,13 @@
         "tags": {
           "ignore_above": 1024,
           "type": "keyword"
+        },
+        "engine": {
+          "properties": {
+            "index_raw_events": {
+              "type": "boolean"
+            }
+          }
         }
       }
     }
