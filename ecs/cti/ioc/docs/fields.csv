@@ -15,7 +15,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,document,document.type,keyword,custom,,domain-name,"Type or category of the IoC, such as IP address, domain, file hash, or URL."
 9.1.0,true,domain-name,domain-name.hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of all domain-name IoC documents.
 9.1.0,true,file,file.hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of all file IoC documents.
-9.1.0,true,geo,geo.hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of all geo IoC documents.
 9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the IoC document.
 9.1.0,true,ipv4-addr,ipv4-addr.hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of all ip IoC documents.
 9.1.0,true,url,url.hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of all url IoC documents.
