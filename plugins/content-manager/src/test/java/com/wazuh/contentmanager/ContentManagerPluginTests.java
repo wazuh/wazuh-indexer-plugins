@@ -84,6 +84,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
         PluginSettings.getInstance(settings);
 
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
+
         // Act
         this.plugin.onNodeStarted(this.discoveryNode);
 
@@ -97,6 +99,23 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", false).build();
         PluginSettings.getInstance(settings);
+
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
+
+        // Act
+        this.plugin.onNodeStarted(this.discoveryNode);
+
+        // Assert
+        verify(this.catalogSyncJob, never()).trigger();
+    }
+
+    /** Tests that catalogSyncJob.trigger() is NOT called on a non-cluster-manager node. */
+    public void testOnNodeStartedNonClusterManager() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
+        PluginSettings.getInstance(settings);
+
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(false);
 
         // Act
         this.plugin.onNodeStarted(this.discoveryNode);
