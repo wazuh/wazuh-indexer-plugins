@@ -75,7 +75,7 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
      * Indexes an IOC document with the given type.
      *
      * @param docId the document ID
-     * @param type the IOC type (ip, domain-name, url, file, geo)
+     * @param type the IOC type (ipv4-addr, domain-name, url, file)
      */
     private void indexIocDocument(String docId, String type) throws IOException {
         // spotless:off
@@ -102,18 +102,17 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
     /**
      * Indexes a hash summary document with per-type SHA-256 hashes.
      *
-     * @param hashes the hash values per type in order: ip, domain-name, url, file, geo
+     * @param hashes the hash values per type in order: ipv4-addr, domain-name, url, file
      */
     private void indexHashSummaryDocument(String... hashes) throws IOException {
-        assertEquals("Must provide exactly 5 hashes", Constants.IOC_TYPES.size(), hashes.length);
+        assertEquals("Must provide exactly 4 hashes", Constants.IOC_TYPES.size(), hashes.length);
         // spotless:off
         String doc = String.format(Locale.ROOT, """
                 {
-                    "ip": {"hash": {"sha256": "%s"}},
+                    "ipv4-addr": {"hash": {"sha256": "%s"}},
                     "domain-name": {"hash": {"sha256": "%s"}},
                     "url": {"hash": {"sha256": "%s"}},
-                    "file": {"hash": {"sha256": "%s"}},
-                    "geo": {"hash": {"sha256": "%s"}}
+                    "file": {"hash": {"sha256": "%s"}}
                 }
                 """, (Object[]) hashes);
         // spotless:on
@@ -125,7 +124,7 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         String hash = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
-        this.indexHashSummaryDocument(hash, hash, hash, hash, hash);
+        this.indexHashSummaryDocument(hash, hash, hash, hash);
 
         // Retrieve the document and verify structure
         JsonNode result =
@@ -144,18 +143,18 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Index IOC documents of different types
-        this.indexIocDocument("ioc-ip-1", "ip");
+        this.indexIocDocument("ioc-ip-1", "ipv4-addr");
         this.indexIocDocument("ioc-domain-1", "domain-name");
         this.indexIocDocument("ioc-url-1", "url");
 
         // Index the hash summary document
         String hash = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-        this.indexHashSummaryDocument(hash, hash, hash, hash, hash);
+        this.indexHashSummaryDocument(hash, hash, hash, hash);
 
         // Verify IOC documents exist
         // spotless:off
         String query = """
-                {"query": {"term": {"document.type": "ip"}}}
+                {"query": {"term": {"document.type": "ipv4-addr"}}}
                 """;
         // spotless:on
         JsonNode searchResult = this.searchIndex(IOC_INDEX, query);
@@ -200,10 +199,10 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         String hash2 = "2222222222222222222222222222222222222222222222222222222222222222";
 
         // Index initial hash summary
-        this.indexHashSummaryDocument(hash1, hash1, hash1, hash1, hash1);
+        this.indexHashSummaryDocument(hash1, hash1, hash1, hash1);
 
         // Overwrite with new hashes
-        this.indexHashSummaryDocument(hash2, hash2, hash2, hash2, hash2);
+        this.indexHashSummaryDocument(hash2, hash2, hash2, hash2);
 
         // Verify the document was updated
         JsonNode result =
@@ -221,9 +220,9 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Index an IOC document and the hash summary
-        this.indexIocDocument("ioc-ip-1", "ip");
+        this.indexIocDocument("ioc-ip-1", "ipv4-addr");
         String hash = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-        this.indexHashSummaryDocument(hash, hash, hash, hash, hash);
+        this.indexHashSummaryDocument(hash, hash, hash, hash);
 
         // Query by document.type — hash summary has no document.type, so it should be excluded
         // spotless:off
