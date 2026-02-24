@@ -60,8 +60,6 @@ public class RestPutEngineSettings extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutEngineSettings.class);
     private static final String ENDPOINT_NAME = "content_manager_engine_settings";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/engine_settings";
-    static final String SETTINGS_ID = "1";
-
     private final ContentIndex settingsIndex;
     private final PayloadValidations payloadValidations = new PayloadValidations();
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -107,7 +105,7 @@ public class RestPutEngineSettings extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         return channel -> {
-            RestResponse response = handleRequest(request);
+            RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());
         };
     }
@@ -151,7 +149,7 @@ public class RestPutEngineSettings extends BaseRestHandler {
         try {
             ObjectNode cleanPayload = mapper.createObjectNode();
             cleanPayload.set(Constants.KEY_ENGINE, engineNode);
-            this.settingsIndex.indexDocument(SETTINGS_ID, cleanPayload);
+            this.settingsIndex.indexDocument(PluginSettings.ENGINE_SETTINGS_ID, cleanPayload);
             log.info("Engine settings updated: {}", cleanPayload);
             return new RestResponse(Constants.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus());
         } catch (Exception e) {

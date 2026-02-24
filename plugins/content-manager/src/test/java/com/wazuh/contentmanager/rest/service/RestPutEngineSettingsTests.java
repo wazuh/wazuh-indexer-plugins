@@ -93,12 +93,16 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         return builder.build();
     }
 
-    /** Valid payload with index_raw_events=true -> 200. */
+    /**
+     * Valid payload with index_raw_events=true -> 200.
+     *
+     * @throws Exception On indexing failure
+     */
     public void testPut_validPayloadTrue_200() throws Exception {
         when(this.settingsIndex.indexDocument(anyString(), any(JsonNode.class)))
                 .thenReturn(this.indexResponse);
 
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
+        RestRequest request = this.buildRequest("{\"engine\":{\"index_raw_events\":true}}");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
@@ -106,21 +110,29 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         verify(this.settingsIndex, times(1)).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** Valid payload with index_raw_events=false -> 200. */
+    /**
+     * Valid payload with index_raw_events=false -> 200.
+     *
+     * @throws Exception On indexing failure
+     */
     public void testPut_validPayloadFalse_200() throws Exception {
         when(this.settingsIndex.indexDocument(anyString(), any(JsonNode.class)))
                 .thenReturn(this.indexResponse);
 
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":false}}");
+        RestRequest request = this.buildRequest("{\"engine\":{\"index_raw_events\":false}}");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         verify(this.settingsIndex, times(1)).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** Request with no body -> 400. */
+    /**
+     * Request with no body -> 400.
+     *
+     * @throws Exception On unexpected failure
+     */
     public void testPut_noContent_400() throws Exception {
-        RestRequest request = buildRequest(null);
+        RestRequest request = this.buildRequest(null);
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -128,9 +140,13 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         verify(this.settingsIndex, never()).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** Malformed JSON body -> 400. */
+    /**
+     * Malformed JSON body -> 400.
+     *
+     * @throws Exception On unexpected failure
+     */
     public void testPut_invalidJson_400() throws Exception {
-        RestRequest request = buildRequest("{not valid json");
+        RestRequest request = this.buildRequest("{not valid json");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -138,9 +154,13 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         verify(this.settingsIndex, never()).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** Payload missing 'engine' object -> 400. */
+    /**
+     * Payload missing 'engine' object -> 400.
+     *
+     * @throws Exception On unexpected failure
+     */
     public void testPut_missingEngineField_400() throws Exception {
-        RestRequest request = buildRequest("{}");
+        RestRequest request = this.buildRequest("{}");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -148,9 +168,13 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         verify(this.settingsIndex, never()).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** 'engine' present but missing 'index_raw_events' -> 400. */
+    /**
+     * 'engine' present but missing 'index_raw_events' -> 400.
+     *
+     * @throws Exception On unexpected failure
+     */
     public void testPut_missingIndexRawEventsField_400() throws Exception {
-        RestRequest request = buildRequest("{\"engine\":{}}");
+        RestRequest request = this.buildRequest("{\"engine\":{}}");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -158,9 +182,13 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         verify(this.settingsIndex, never()).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** 'index_raw_events' is a string, not a boolean -> 400. */
+    /**
+     * 'index_raw_events' is a string, not a boolean -> 400.
+     *
+     * @throws Exception On unexpected failure
+     */
     public void testPut_nonBooleanValue_400() throws Exception {
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":\"yes\"}}");
+        RestRequest request = this.buildRequest("{\"engine\":{\"index_raw_events\":\"yes\"}}");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -168,12 +196,16 @@ public class RestPutEngineSettingsTests extends OpenSearchTestCase {
         verify(this.settingsIndex, never()).indexDocument(anyString(), any(JsonNode.class));
     }
 
-    /** Index operation throws an exception -> 500. */
+    /**
+     * Index operation throws an exception -> 500.
+     *
+     * @throws Exception On indexing failure
+     */
     public void testPut_indexingFails_500() throws Exception {
         when(this.settingsIndex.indexDocument(anyString(), any(JsonNode.class)))
                 .thenThrow(new IOException("Index unavailable"));
 
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
+        RestRequest request = this.buildRequest("{\"engine\":{\"index_raw_events\":true}}");
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());

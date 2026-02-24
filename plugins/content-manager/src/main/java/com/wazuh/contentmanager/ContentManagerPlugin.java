@@ -46,7 +46,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -55,10 +58,31 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
+import com.wazuh.contentmanager.engine.settings.EngineSettings;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.service.*;
+import com.wazuh.contentmanager.rest.service.RestDeleteDecoderAction;
+import com.wazuh.contentmanager.rest.service.RestDeleteIntegrationAction;
+import com.wazuh.contentmanager.rest.service.RestDeleteKvdbAction;
+import com.wazuh.contentmanager.rest.service.RestDeleteRuleAction;
+import com.wazuh.contentmanager.rest.service.RestDeleteSubscriptionAction;
+import com.wazuh.contentmanager.rest.service.RestGetPromoteAction;
+import com.wazuh.contentmanager.rest.service.RestGetSubscriptionAction;
+import com.wazuh.contentmanager.rest.service.RestPostDecoderAction;
+import com.wazuh.contentmanager.rest.service.RestPostIntegrationAction;
+import com.wazuh.contentmanager.rest.service.RestPostKvdbAction;
+import com.wazuh.contentmanager.rest.service.RestPostLogtestAction;
+import com.wazuh.contentmanager.rest.service.RestPostPromoteAction;
+import com.wazuh.contentmanager.rest.service.RestPostRuleAction;
+import com.wazuh.contentmanager.rest.service.RestPostSubscriptionAction;
+import com.wazuh.contentmanager.rest.service.RestPostUpdateAction;
+import com.wazuh.contentmanager.rest.service.RestPutDecoderAction;
+import com.wazuh.contentmanager.rest.service.RestPutEngineSettings;
+import com.wazuh.contentmanager.rest.service.RestPutIntegrationAction;
+import com.wazuh.contentmanager.rest.service.RestPutKvdbAction;
+import com.wazuh.contentmanager.rest.service.RestPutPolicyAction;
+import com.wazuh.contentmanager.rest.service.RestPutRuleAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -78,6 +102,7 @@ public class ContentManagerPlugin extends Plugin
     private EngineService engine;
     private SpaceService spaceService;
     private ContentIndex wazuhSettingsIndex;
+    private EngineSettings engineSettings;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -138,6 +163,7 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize Wazuh Settings Index client
         this.wazuhSettingsIndex = new ContentIndex(client, Constants.INDEX_SETTINGS);
+        this.engineSettings = new EngineSettings(this.wazuhSettingsIndex);
 
         return Collections.emptyList();
     }
@@ -153,6 +179,7 @@ public class ContentManagerPlugin extends Plugin
         // Only cluster managers are responsible for the initialization.
         if (localNode.isClusterManagerNode()) {
             this.start();
+            this.threadPool.generic().execute(this.engineSettings::initialize);
         }
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
@@ -217,7 +244,6 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostPromoteAction(this.engine, this.spaceService),
                 new RestGetPromoteAction(this.spaceService),
                 // Engine settings endpoints
-                new RestGetEngineSettings(this.wazuhSettingsIndex),
                 new RestPutEngineSettings(this.wazuhSettingsIndex));
     }
 
