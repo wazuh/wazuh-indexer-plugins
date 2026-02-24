@@ -200,7 +200,10 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
                 .thenReturn(pitFuture);
 
         // Build a search response with one hit for "ip" type, empty for the rest
-        String ipDocSource = "{\"document\":{\"type\":\"ip\",\"name\":\"test-ioc\"}}";
+        String ipDocHash = "abc123def456";
+        String ipDocSource =
+                "{\"document\":{\"type\":\"ipv4-addr\",\"name\":\"test-ioc\"},"
+                        + "\"hash\":{\"sha256\":\"" + ipDocHash + "\"}}";
         SearchHit ipHit = new SearchHit(1, "doc-1", Collections.emptyMap(), Collections.emptyMap());
         ipHit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(ipDocSource));
         ipHit.sortValues(
@@ -249,7 +252,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         verify(this.client).index(indexCaptor.capture());
         String source = indexCaptor.getValue().source().utf8ToString();
 
-        String expectedIpHash = Resource.computeSha256(ipDocSource);
+        String expectedIpHash = Resource.computeSha256(ipDocHash);
         String emptyHash = Resource.computeSha256("");
         assertNotEquals("ip hash should differ from empty hash", expectedIpHash, emptyHash);
         assertTrue(
