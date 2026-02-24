@@ -33,11 +33,26 @@ import java.util.Map;
  * Model representing a Policy resource within the Engine context.
  *
  * <p>A Policy defines the configuration and metadata for content processing, including the root
- * decoder and associated integrations. Policies exist within different spaces (draft, test, custom,
- * standard) and their resources can be promoted between spaces.
+ * decoder, associated integrations, linked filters, and active enrichment categories. Policies
+ * exist within different spaces (draft, test, custom, standard) and their resources can be promoted
+ * between spaces.
  *
  * <p>The policy acts as a container that references integrations by their IDs and specifies the
- * root decoder to be used for content processing.
+ * root decoder to be used for content processing. It also controls Engine synchronization behavior
+ * through the {@code enabled}, {@code index_unclassified_events}, and {@code
+ * index_discarded_events} flags.
+ *
+ * <p>Field modification rules enforced by the PUT endpoint:
+ *
+ * <ul>
+ *   <li>{@code id} and {@code date} are immutable after creation.
+ *   <li>{@code integrations} and {@code filters} may be reordered but not added to or removed from
+ *       via this endpoint.
+ *   <li>{@code enrichments} may be freely added, removed, or reordered within the set of allowed
+ *       values.
+ *   <li>{@code enabled}, {@code index_unclassified_events}, and {@code index_discarded_events} are
+ *       optional boolean flags; omitting them from the request preserves backward compatibility.
+ * </ul>
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Policy {
@@ -56,9 +71,9 @@ public class Policy {
     private static final String DOCUMENTATION_KEY = "documentation";
     private static final String REFERENCES_KEY = "references";
     private static final String ID_KEY = "id";
-    private static final String KEY_ENABLED = "enabled";
-    private static final String KEY_INDEX_UNCLASSIFIED_EVENTS = "index_unclassified_events";
-    private static final String KEY_INDEX_DISCARDED_EVENTS = "index_discarded_events";
+    private static final String ENABLED_KEY = "enabled";
+    private static final String INDEX_UNCLASSIFIED_EVENTS_KEY = "index_unclassified_events";
+    private static final String INDEX_DISCARDED_EVENTS_KEY = "index_discarded_events";
 
     @JsonProperty(TITLE_KEY)
     private String title;
@@ -96,13 +111,13 @@ public class Policy {
     @JsonProperty(ID_KEY)
     private String id;
 
-    @JsonProperty(KEY_ENABLED)
+    @JsonProperty(ENABLED_KEY)
     private Boolean enabled;
 
-    @JsonProperty(KEY_INDEX_UNCLASSIFIED_EVENTS)
+    @JsonProperty(INDEX_UNCLASSIFIED_EVENTS_KEY)
     private Boolean indexUnclassifiedEvents;
 
-    @JsonProperty(KEY_INDEX_DISCARDED_EVENTS)
+    @JsonProperty(INDEX_DISCARDED_EVENTS_KEY)
     private Boolean indexDiscardedEvents;
 
     /** Default constructor. */
@@ -118,14 +133,23 @@ public class Policy {
     /**
      * Constructs a new Policy with the specified parameters.
      *
+     * @param id Unique identifier of the policy document.
+     * @param title Human-readable title of the policy.
+     * @param date Creation timestamp (ISO-8601).
+     * @param modified Last-modification timestamp (ISO-8601).
      * @param rootDecoder The root decoder identifier.
-     * @param integrations List of integration IDs.
-     * @param filters List of filter IDs.
-     * @param enrichments List of enrichment types.
+     * @param integrations List of integration IDs referenced by this policy.
+     * @param filters List of filter UUIDs linked to this policy.
+     * @param enrichments List of active enrichment category names.
      * @param author The author of the policy.
      * @param description A brief description of the policy.
      * @param documentation Detailed documentation for the policy.
      * @param references External references or links related to the policy.
+     * @param enabled Whether the policy is active and synchronized by the Engine; {@code null} if not
+     *     set.
+     * @param indexUnclassifiedEvents Whether uncategorized events are indexed into {@code
+     *     wazuh-events-v5-unclassified}; {@code null} if not set.
+     * @param indexDiscardedEvents Whether discarded events are indexed; {@code null} if not set.
      */
     @JsonCreator
     public Policy(
@@ -141,9 +165,9 @@ public class Policy {
             @JsonProperty(DESCRIPTION_KEY) String description,
             @JsonProperty(DOCUMENTATION_KEY) String documentation,
             @JsonProperty(REFERENCES_KEY) List<String> references,
-            @JsonProperty(KEY_ENABLED) Boolean enabled,
-            @JsonProperty(KEY_INDEX_UNCLASSIFIED_EVENTS) Boolean indexUnclassifiedEvents,
-            @JsonProperty(KEY_INDEX_DISCARDED_EVENTS) Boolean indexDiscardedEvents) {
+            @JsonProperty(ENABLED_KEY) Boolean enabled,
+            @JsonProperty(INDEX_UNCLASSIFIED_EVENTS_KEY) Boolean indexUnclassifiedEvents,
+            @JsonProperty(INDEX_DISCARDED_EVENTS_KEY) Boolean indexDiscardedEvents) {
         this.id = id;
         this.title = title;
         this.date = date;
@@ -245,18 +269,18 @@ public class Policy {
             policy.setReferences(referencesList);
         }
 
-        if (payload.has(KEY_ENABLED) && !payload.get(KEY_ENABLED).isNull()) {
-            policy.setEnabled(payload.get(KEY_ENABLED).asBoolean());
+        if (payload.has(ENABLED_KEY) && !payload.get(ENABLED_KEY).isNull()) {
+            policy.setEnabled(payload.get(ENABLED_KEY).asBoolean());
         }
 
-        if (payload.has(KEY_INDEX_UNCLASSIFIED_EVENTS)
-                && !payload.get(KEY_INDEX_UNCLASSIFIED_EVENTS).isNull()) {
-            policy.setIndexUnclassifiedEvents(payload.get(KEY_INDEX_UNCLASSIFIED_EVENTS).asBoolean());
+        if (payload.has(INDEX_UNCLASSIFIED_EVENTS_KEY)
+                && !payload.get(INDEX_UNCLASSIFIED_EVENTS_KEY).isNull()) {
+            policy.setIndexUnclassifiedEvents(payload.get(INDEX_UNCLASSIFIED_EVENTS_KEY).asBoolean());
         }
 
-        if (payload.has(KEY_INDEX_DISCARDED_EVENTS)
-                && !payload.get(KEY_INDEX_DISCARDED_EVENTS).isNull()) {
-            policy.setIndexDiscardedEvents(payload.get(KEY_INDEX_DISCARDED_EVENTS).asBoolean());
+        if (payload.has(INDEX_DISCARDED_EVENTS_KEY)
+                && !payload.get(INDEX_DISCARDED_EVENTS_KEY).isNull()) {
+            policy.setIndexDiscardedEvents(payload.get(INDEX_DISCARDED_EVENTS_KEY).asBoolean());
         }
 
         return policy;

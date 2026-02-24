@@ -121,8 +121,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return a consumer that executes the policy update operation
      */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         this.client = client;
         this.spaceService = new SpaceService(client);
         RestResponse response = this.handleRequest(request);

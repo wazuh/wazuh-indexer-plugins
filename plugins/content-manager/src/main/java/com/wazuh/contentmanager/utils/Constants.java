@@ -30,7 +30,7 @@ import java.util.Set;
  *   <li>Index names are prefixed with <i>INDEX</i>.</li>
  *   <li>Map keys are prefixed with <i>KEY</i>.</li>
  *   <li>Response strings for the HTTP API are prefixed with the type of message and status code.</li>
- *   <li>When referencing from another class, used static qualifiers: <code>Constants.KEY_HASH</code>.</li>
+ *   <li>When referencing from another class, used static qualifiers: {@code Constants.KEY_HASH}.</li>
  *   <li>Use common sense. Keep this file clean and organized.</li>
  * </ul>
  */
@@ -101,8 +101,6 @@ public class Constants {
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
-    public static final String KEY_INDEX_UNCLASSIFIED_EVENTS = "index_unclassified_events";
-    public static final String KEY_INDEX_DISCARDED_EVENTS = "index_discarded_events";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
 

@@ -720,7 +720,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("filters"));
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
     }
 
     /**
@@ -773,7 +773,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("filters"));
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
     }
 
     /**
