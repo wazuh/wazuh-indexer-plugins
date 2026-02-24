@@ -153,8 +153,8 @@ public class ConsumerIocService extends AbstractConsumerService {
      * @param pitId The PIT identifier for consistent reads.
      * @param keepalive The PIT keepalive duration.
      * @param type The IOC type to filter by (e.g., "ip", "domain-name").
-     * @return The SHA-256 hash of the concatenated source documents, or hash of empty string if none
-     *     found.
+     * @return The SHA-256 hash of the concatenated per-document SHA-256 values, or hash of empty
+     *     string if none found.
      */
     private String computeHashForType(String pitId, TimeValue keepalive, String type) {
         StringBuilder concatenated = new StringBuilder();
@@ -180,7 +180,16 @@ public class ConsumerIocService extends AbstractConsumerService {
             }
 
             for (SearchHit hit : hits) {
-                concatenated.append(hit.getSourceAsString());
+                Map<String, Object> sourceMap = hit.getSourceAsMap();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> hashMap =
+                        (Map<String, Object>) sourceMap.get(Constants.KEY_HASH);
+                if (hashMap != null) {
+                    Object sha256 = hashMap.get(Constants.KEY_SHA256);
+                    if (sha256 != null) {
+                        concatenated.append(sha256);
+                    }
+                }
             }
             searchAfter = hits[hits.length - 1].getSortValues();
         }
