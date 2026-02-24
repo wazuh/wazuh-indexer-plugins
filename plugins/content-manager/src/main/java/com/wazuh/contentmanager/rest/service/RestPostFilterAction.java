@@ -18,7 +18,12 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
@@ -175,6 +180,30 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
 
     @Override
     protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
-        // Not applicable for this implementation.
+        ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
+        TermQueryBuilder queryBuilder =
+            new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
+        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
+
+        if (searchResult == null
+            || !searchResult.has(Constants.Q_HITS)
+            || searchResult.get(Constants.Q_HITS).isEmpty()) {
+            throw new IllegalStateException("Draft policy not found");
+        }
+
+        ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+        JsonNode draftPolicyHit = hitsArray.get(0);
+        String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+        JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
+
+        ArrayNode filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
+        if (filters == null) filters = MAPPER.createArrayNode();
+
+        filters.add(id);
+
+        String hash = Resource.computeSha256(document.toString());
+        ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+
+        policiesIndex.create(draftPolicyId, draftPolicyHit, false);
     }
 }
