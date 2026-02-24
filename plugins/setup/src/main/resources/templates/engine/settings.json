@@ -16,20 +16,6 @@
       "date_detection": false,
       "dynamic": "strict",
       "properties": {
-        "@timestamp": {
-          "type": "date"
-        },
-        "labels": {
-          "type": "object"
-        },
-        "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
-        },
-        "tags": {
-          "ignore_above": 1024,
-          "type": "keyword"
-        },
         "engine": {
           "properties": {
             "index_raw_events": {
