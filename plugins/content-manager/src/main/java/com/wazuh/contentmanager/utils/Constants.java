@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.utils;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -154,7 +155,12 @@ public class Constants {
                     KEY_FILTERS,
                     INDEX_FILTERS);
 
+    // IOC type hashes
+    public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
+    public static final List<String> IOC_TYPES = List.of("ipv4-addr", "domain-name", "url", "file");
+
     // Queries
+    public static final String Q_DOCUMENT_TYPE = "document.type";
     public static final String Q_SPACE_NAME = "space.name";
     public static final String Q_DOCUMENT_ID = "document.id";
     public static final String Q_DOCUMENT_TITLE = "document.title";

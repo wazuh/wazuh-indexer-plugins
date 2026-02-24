@@ -63,11 +63,59 @@
         }
       }
     },
+    "domain-name": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "file": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
     "hash": {
       "properties": {
         "sha256": {
           "ignore_above": 1024,
           "type": "keyword"
+        }
+      }
+    },
+    "ipv4-addr": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "url": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
         }
       }
     }
