@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -29,8 +28,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.mockito.Answers;
-import org.opensearch.action.get.GetRequestBuilder;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -48,10 +45,7 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -60,7 +54,6 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostFilterAction action;
     private Client client;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String FILTER_PAYLOAD = """
         {
@@ -132,62 +125,45 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
         this.action.setPolicyHashService(mock(SpaceService.class));
     }
 
-    /** Helper method to mock an integration existence and space with mutable collections. */
-    private void mockIntegrationInSpace(String id, String space, boolean exists) {
-        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
-            .thenReturn(true);
-
-        GetResponse response = mock(GetResponse.class);
-        when(response.isExists()).thenReturn(exists);
-        if (exists) {
-            Map<String, Object> source = new HashMap<>();
-            Map<String, Object> spaceMap = new HashMap<>();
-            spaceMap.put(Constants.KEY_NAME, space);
-            source.put(Constants.KEY_SPACE, spaceMap);
-
-            Map<String, Object> document = new HashMap<>();
-            document.put(Constants.KEY_ID, id);
-            document.put(Constants.KEY_DECODERS, new ArrayList<String>());
-            source.put(Constants.KEY_DOCUMENT, document);
-
-            when(response.getSourceAsMap()).thenReturn(source);
-            try {
-                when(response.getSourceAsString()).thenReturn(this.mapper.writeValueAsString(source));
-            } catch (Exception ignored) {
-            }
-        }
-
-        GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
-        when(this.client.prepareGet(anyString(), eq(id))).thenReturn(getBuilder);
-        when(getBuilder.get()).thenReturn(response);
-    }
-
     /** Helper to mock dependency results for indexing and linking. */
     private void mockDependencySuccess() {
-        //this.mockIntegrationInSpace("integration-1", "draft", true);
-
+        // Mock search response for policy queries
         SearchResponse policyResponse = mock(SearchResponse.class);
+
+        // Create a proper source JSON string that ContentIndex.searchByQuery expects
+        // This structure matches what REST API returns for a policy document
+        String policyJson = "{\"space\":{\"name\":\"draft\"},\"id\":\"policy-1\",\"document\":{\"id\":\"policy-1\",\"filters\":[]},\"hash\":{\"sha256\":\"initial-hash\"}}";
+
+        // Create SearchHit array with proper configuration
+        SearchHit hit = new SearchHit(0, "policy-1", Collections.emptyMap(), Collections.emptyMap());
+        hit.sourceRef(new BytesArray(policyJson));
+
+        SearchHit[] searchHits = new SearchHit[]{hit};
         when(policyResponse.getHits())
             .thenReturn(
-                new SearchHits(new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
+                new SearchHits(searchHits, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
+
         PlainActionFuture<SearchResponse> pFuture = PlainActionFuture.newFuture();
         pFuture.onResponse(policyResponse);
         when(this.client.search(any(SearchRequest.class))).thenReturn(pFuture);
 
+        // Mock index response for document creation
         IndexResponse indexResponse = mock(IndexResponse.class);
         when(indexResponse.status()).thenReturn(RestStatus.CREATED);
         PlainActionFuture<IndexResponse> iFuture = PlainActionFuture.newFuture();
         iFuture.onResponse(indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(iFuture);
+
+        // Mock SpaceService calculateAndUpdate to prevent NPE
+        SpaceService spaceService = this.action.getPolicyHashService();
+        doNothing().when(spaceService).calculateAndUpdate(any());
     }
 
     /**
      * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
      * request is complete. The expected response is: {201, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterSuccess() throws IOException {
+    public void testPostFilterSuccess() {
         RestRequest request = this.buildRequest(FILTER_PAYLOAD);
         RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
         when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
@@ -203,11 +179,9 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
      * payload contains an ID. The ID should be ignored and a new one generated. The expected response
-     * is: {201, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
+     * is: {400, RestResponse}
      */
-    public void testPostFilterWithIdIsIgnored() throws IOException {
+    public void testPostFilterWithIdIsIgnored() {
         RestRequest request = this.buildRequest(FILTER_PAYLOAD_WITH_ID);
         RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
         when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
@@ -222,17 +196,14 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
      * engine service is not initialized. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterEngineUnavailableReturns500() throws IOException {
+    public void testPostFilterEngineUnavailableReturns500() {
         this.action = spy(new RestPostFilterAction(null));
         // Must re-set services because spy created a new object
         this.action.setSecurityAnalyticsService(mock(SecurityAnalyticsServiceImpl.class));
         this.action.setPolicyHashService(mock(SpaceService.class));
 
         RestRequest request = this.buildRequest(FILTER_PAYLOAD);
-        //this.mockIntegrationInSpace("integration-1", "draft", true);
 
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
@@ -242,10 +213,8 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
      * request body is missing. The expected response is: {400, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostFilterMissingBodyReturns400() throws IOException {
+    public void testPostFilterMissingBodyReturns400() {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
