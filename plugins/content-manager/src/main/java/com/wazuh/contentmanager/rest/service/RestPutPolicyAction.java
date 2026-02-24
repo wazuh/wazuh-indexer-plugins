@@ -188,6 +188,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
             if (policy.getReferences() == null) {
                 missingFields.add("references");
             }
+            if (policy.getEnabled() == null) {
+                missingFields.add("enabled");
+            }
+            if (policy.getIndexUnclassifiedEvents() == null) {
+                missingFields.add("index_unclassified_events");
+            }
+            if (policy.getIndexDiscardedEvents() == null) {
+                missingFields.add("index_discarded_events");
+            }
 
             if (!missingFields.isEmpty()) {
                 return new RestResponse(

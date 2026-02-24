@@ -202,7 +202,7 @@ Feature: Update Draft Policy
     And the draft policy "document.index_unclassified_events" field in ".cti-policies" should be true
     And the draft policy "document.index_discarded_events" field in ".cti-policies" should be false
 
-  Scenario: Update policy without boolean fields preserves backward compatibility
+  Scenario: Update policy with missing required boolean fields
     Given an integration exists in draft space and its ID is stored as "integration_id"
     And a decoder exists in draft space linked to "{integration_id}" and its ID is stored as "decoder_id"
     When I send a PUT request to "/_plugins/_content_manager/policy" with body:
@@ -222,8 +222,7 @@ Feature: Update Draft Policy
         }
       }
       """
-    Then the response status code should be 200
-    And the draft policy in ".cti-policies" should not contain "document.enabled"
+    Then the response status code should be 400
 
   Scenario: Update policy attempting to add a filter to the list
     Given the current draft policy filters list is known
