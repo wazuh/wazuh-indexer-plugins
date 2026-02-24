@@ -264,6 +264,19 @@ public class RestPutPolicyAction extends BaseRestHandler {
             throw new IllegalArgumentException(validationError.getMessage());
         }
 
+        // Validation for filters array: allow reordering but prevent addition/removal
+        List<String> currentFilters =
+                (List<String>)
+                        currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
+        List<String> newFilters = policy.getFilters();
+
+        RestResponse filtersValidationError =
+                this.payloadValidations.validateListEquality(
+                        currentFilters, newFilters, Constants.KEY_FILTERS);
+        if (filtersValidationError != null) {
+            throw new IllegalArgumentException(filtersValidationError.getMessage());
+        }
+
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
         String docCreationDate = currentPolicyDoc.getOrDefault(Constants.KEY_DATE, "").toString();
         String docModificationDate = Instant.now().toString();

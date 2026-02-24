@@ -101,6 +101,8 @@ public class Constants {
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_INDEX_UNCLASSIFIED_EVENTS = "index_unclassified_events";
+    public static final String KEY_INDEX_DISCARDED_EVENTS = "index_discarded_events";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
 

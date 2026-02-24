@@ -56,6 +56,9 @@ public class Policy {
     private static final String DOCUMENTATION_KEY = "documentation";
     private static final String REFERENCES_KEY = "references";
     private static final String ID_KEY = "id";
+    private static final String KEY_ENABLED = "enabled";
+    private static final String KEY_INDEX_UNCLASSIFIED_EVENTS = "index_unclassified_events";
+    private static final String KEY_INDEX_DISCARDED_EVENTS = "index_discarded_events";
 
     @JsonProperty(TITLE_KEY)
     private String title;
@@ -93,6 +96,15 @@ public class Policy {
     @JsonProperty(ID_KEY)
     private String id;
 
+    @JsonProperty(KEY_ENABLED)
+    private Boolean enabled;
+
+    @JsonProperty(KEY_INDEX_UNCLASSIFIED_EVENTS)
+    private Boolean indexUnclassifiedEvents;
+
+    @JsonProperty(KEY_INDEX_DISCARDED_EVENTS)
+    private Boolean indexDiscardedEvents;
+
     /** Default constructor. */
     public Policy() {
         this.integrations = new ArrayList<>();
@@ -128,7 +140,10 @@ public class Policy {
             @JsonProperty(AUTHOR_KEY) String author,
             @JsonProperty(DESCRIPTION_KEY) String description,
             @JsonProperty(DOCUMENTATION_KEY) String documentation,
-            @JsonProperty(REFERENCES_KEY) List<String> references) {
+            @JsonProperty(REFERENCES_KEY) List<String> references,
+            @JsonProperty(KEY_ENABLED) Boolean enabled,
+            @JsonProperty(KEY_INDEX_UNCLASSIFIED_EVENTS) Boolean indexUnclassifiedEvents,
+            @JsonProperty(KEY_INDEX_DISCARDED_EVENTS) Boolean indexDiscardedEvents) {
         this.id = id;
         this.title = title;
         this.date = date;
@@ -141,6 +156,9 @@ public class Policy {
         this.description = description;
         this.documentation = documentation;
         this.references = references != null ? references : new ArrayList<>();
+        this.enabled = enabled;
+        this.indexUnclassifiedEvents = indexUnclassifiedEvents;
+        this.indexDiscardedEvents = indexDiscardedEvents;
     }
 
     /**
@@ -225,6 +243,20 @@ public class Policy {
                                 if (!n.isNull()) referencesList.add(n.asText());
                             });
             policy.setReferences(referencesList);
+        }
+
+        if (payload.has(KEY_ENABLED) && !payload.get(KEY_ENABLED).isNull()) {
+            policy.setEnabled(payload.get(KEY_ENABLED).asBoolean());
+        }
+
+        if (payload.has(KEY_INDEX_UNCLASSIFIED_EVENTS)
+                && !payload.get(KEY_INDEX_UNCLASSIFIED_EVENTS).isNull()) {
+            policy.setIndexUnclassifiedEvents(payload.get(KEY_INDEX_UNCLASSIFIED_EVENTS).asBoolean());
+        }
+
+        if (payload.has(KEY_INDEX_DISCARDED_EVENTS)
+                && !payload.get(KEY_INDEX_DISCARDED_EVENTS).isNull()) {
+            policy.setIndexDiscardedEvents(payload.get(KEY_INDEX_DISCARDED_EVENTS).asBoolean());
         }
 
         return policy;
@@ -490,6 +522,60 @@ public class Policy {
         this.id = id;
     }
 
+    /**
+     * Gets whether this policy is active and synchronized by the Engine.
+     *
+     * @return The enabled flag, or null if not set.
+     */
+    public Boolean getEnabled() {
+        return this.enabled;
+    }
+
+    /**
+     * Sets whether this policy is active and synchronized by the Engine.
+     *
+     * @param enabled The enabled flag to set.
+     */
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
+     * Gets whether uncategorized events are indexed into wazuh-events-v5-unclassified.
+     *
+     * @return The index_unclassified_events flag, or null if not set.
+     */
+    public Boolean getIndexUnclassifiedEvents() {
+        return this.indexUnclassifiedEvents;
+    }
+
+    /**
+     * Sets whether uncategorized events are indexed into wazuh-events-v5-unclassified.
+     *
+     * @param indexUnclassifiedEvents The flag to set.
+     */
+    public void setIndexUnclassifiedEvents(Boolean indexUnclassifiedEvents) {
+        this.indexUnclassifiedEvents = indexUnclassifiedEvents;
+    }
+
+    /**
+     * Gets whether discarded events are indexed.
+     *
+     * @return The index_discarded_events flag, or null if not set.
+     */
+    public Boolean getIndexDiscardedEvents() {
+        return this.indexDiscardedEvents;
+    }
+
+    /**
+     * Sets whether discarded events are indexed.
+     *
+     * @param indexDiscardedEvents The flag to set.
+     */
+    public void setIndexDiscardedEvents(Boolean indexDiscardedEvents) {
+        this.indexDiscardedEvents = indexDiscardedEvents;
+    }
+
     @Override
     public String toString() {
         return "Policy{"
@@ -525,6 +611,12 @@ public class Policy {
                 + ", id='"
                 + this.id
                 + '\''
+                + ", enabled="
+                + this.enabled
+                + ", indexUnclassifiedEvents="
+                + this.indexUnclassifiedEvents
+                + ", indexDiscardedEvents="
+                + this.indexDiscardedEvents
                 + '}';
     }
 }
