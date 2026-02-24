@@ -6,8 +6,8 @@
   type: group
   group: 2
   fields:
-    - name: engine.index_raw_events
+    - name: index_raw_events
       type: boolean
       level: custom
       description: >
-        Whether to index raw events in the engine.
+        Setting to index raw events in the engine.
