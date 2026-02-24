@@ -1,5 +1,5 @@
 ---
-- name: Engine Settings
+- name: engine
   title: Wazuh Engine Settings
   description: >
     Fields for Wazuh Engine Settings.
