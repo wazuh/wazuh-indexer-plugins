@@ -1,12 +1,12 @@
 ---
-- name: engine
-  title: Wazuh Engine Settings
+- name: base
+  title: Wazuh Base Engine Settings
   description: >
-    Fields for Wazuh Engine Settings.
+    Fields for Wazuh Base Engine Settings.
   type: group
   group: 2
   fields:
-    - name: index_raw_events
+    - name: engine.index_raw_events
       type: boolean
       level: custom
       description: >
