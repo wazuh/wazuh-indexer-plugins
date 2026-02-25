@@ -156,6 +156,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"integrations\": [\"integration/wazuh-core/0\"],"
                         + "\"filters\": [],"
                         + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -212,6 +215,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"filters\": [],"
                         + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -272,6 +278,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
@@ -436,6 +445,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"filters\": [],"
                         + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Test Author\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"\","
@@ -493,6 +505,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"enrichments\": [\"file\", \"ip\", \"url\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -543,6 +558,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"enrichments\": [\"file\", \"invalid-type\", \"ip\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -584,6 +602,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"enrichments\": [\"file\", \"ip\", \"file\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -634,6 +655,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"enrichments\": [\"file\", \"domain-name\", \"ip\", \"url\", \"geo\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","
@@ -672,6 +696,483 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
     /**
      * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * attempts to add a filter to the existing filters list. The expected response is: {400,
+     * RestResponse}
+     */
+    public void testPutPolicy_AddFilter_400() throws Exception {
+        // Override mock to return a policy with an existing filter
+        Map<String, Object> policy = new HashMap<>();
+        Map<String, Object> document = new HashMap<>();
+        Map<String, Object> hash = new HashMap<>();
+        Map<String, Object> space = new HashMap<>();
+        document.put(Constants.KEY_ID, "12345");
+        document.put(Constants.KEY_INTEGRATIONS, List.of("integration-1"));
+        document.put("filters", List.of("uuid-1"));
+        document.put("enrichments", Collections.emptyList());
+        hash.put("sha256", "12345");
+        space.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        policy.put(Constants.KEY_DOCUMENT, document);
+        policy.put(Constants.KEY_HASH, hash);
+        policy.put(Constants.KEY_SPACE, space);
+        when(this.service.getPolicy(anyString())).thenReturn(policy);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [\"uuid-1\", \"uuid-2\"],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * attempts to remove a filter from the existing filters list. The expected response is: {400,
+     * RestResponse}
+     */
+    public void testPutPolicy_RemoveFilter_400() throws Exception {
+        // Override mock to return a policy with two existing filters
+        Map<String, Object> policy = new HashMap<>();
+        Map<String, Object> document = new HashMap<>();
+        Map<String, Object> hash = new HashMap<>();
+        Map<String, Object> space = new HashMap<>();
+        document.put(Constants.KEY_ID, "12345");
+        document.put(Constants.KEY_INTEGRATIONS, List.of("integration-1"));
+        document.put("filters", List.of("uuid-1", "uuid-2"));
+        document.put("enrichments", Collections.emptyList());
+        hash.put("sha256", "12345");
+        space.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        policy.put(Constants.KEY_DOCUMENT, document);
+        policy.put(Constants.KEY_HASH, hash);
+        policy.put(Constants.KEY_SPACE, space);
+        when(this.service.getPolicy(anyString())).thenReturn(policy);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [\"uuid-1\"],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * reorders filters (allowed). The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_ReorderFilters_200() throws Exception {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        // Override mock to return a policy with two existing filters
+        Map<String, Object> policy = new HashMap<>();
+        Map<String, Object> document = new HashMap<>();
+        Map<String, Object> hash = new HashMap<>();
+        Map<String, Object> space = new HashMap<>();
+        document.put(Constants.KEY_ID, "12345");
+        document.put(Constants.KEY_INTEGRATIONS, List.of("integration-1"));
+        document.put("filters", List.of("uuid-1", "uuid-2"));
+        document.put("enrichments", Collections.emptyList());
+        hash.put("sha256", "12345");
+        space.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        policy.put(Constants.KEY_DOCUMENT, document);
+        policy.put(Constants.KEY_HASH, hash);
+        policy.put(Constants.KEY_SPACE, space);
+        when(this.service.getPolicy(anyString())).thenReturn(policy);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [\"uuid-2\", \"uuid-1\"],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains enabled=true. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_WithEnabledTrue_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains enabled=false. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_WithEnabledFalse_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": false,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains index_unclassified_events=true. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_WithIndexUnclassifiedEvents_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": true,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains index_discarded_events=false. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_WithIndexDiscardedEvents_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
+     * contains all three boolean fields. The expected response is: {200, RestResponse}
+     */
+    public void testPutPolicy_AllBooleanFields_200() {
+        // Mock root_decoder existence
+        var getRequest =
+                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
+        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
+        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
+        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
+        when(getRequest.get()).thenReturn(getResponse);
+        when(getResponse.isExists()).thenReturn(true);
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": true,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals("test-policy-id", response.getMessage());
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request omits
+     * all boolean fields. The expected response is: {400, RestResponse}
+     */
+    public void testPutPolicy_NoBooleanFields_400() {
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
+    }
+
+    /**
+     * Test the {@link RestPutPolicyAction#handleRequest(RestRequest)} method when the request
      * contains an empty enrichments array. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_EmptyEnrichments_200() {
@@ -693,6 +1194,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
                         + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
                         + "\"author\": \"Wazuh Inc.\","
                         + "\"description\": \"Test policy\","
                         + "\"documentation\": \"Test documentation\","

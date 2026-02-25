@@ -126,3 +126,111 @@ Feature: Update Draft Policy
     And I promote content from draft to test
     When I query the test policy in ".cti-policies"
     Then the test policy should reflect the draft changes
+
+  Scenario: Update policy with enabled set to true
+    Given an integration exists in draft space and its ID is stored as "integration_id"
+    And a decoder exists in draft space linked to "{integration_id}" and its ID is stored as "decoder_id"
+    When I send a PUT request to "/_plugins/_content_manager/policy" with body:
+      """
+      {
+        "type": "policy",
+        "resource": {
+          "title": "Updated policy",
+          "root_decoder": "{decoder_id}",
+          "integrations": ["{integration_id}"],
+          "filters": [],
+          "enrichments": [],
+          "enabled": true,
+          "author": "Test",
+          "description": "Updated policy description",
+          "documentation": "",
+          "references": []
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response body should contain the policy ID
+    And the draft policy "document.enabled" field in ".cti-policies" should be true
+
+  Scenario: Update policy with enabled set to false
+    Given an integration exists in draft space and its ID is stored as "integration_id"
+    And a decoder exists in draft space linked to "{integration_id}" and its ID is stored as "decoder_id"
+    When I send a PUT request to "/_plugins/_content_manager/policy" with body:
+      """
+      {
+        "type": "policy",
+        "resource": {
+          "title": "Updated policy",
+          "root_decoder": "{decoder_id}",
+          "integrations": ["{integration_id}"],
+          "filters": [],
+          "enrichments": [],
+          "enabled": false,
+          "author": "Test",
+          "description": "Updated policy description",
+          "documentation": "",
+          "references": []
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the draft policy "document.enabled" field in ".cti-policies" should be false
+
+  Scenario: Update policy with index event boolean flags
+    Given an integration exists in draft space and its ID is stored as "integration_id"
+    And a decoder exists in draft space linked to "{integration_id}" and its ID is stored as "decoder_id"
+    When I send a PUT request to "/_plugins/_content_manager/policy" with body:
+      """
+      {
+        "type": "policy",
+        "resource": {
+          "title": "Updated policy",
+          "root_decoder": "{decoder_id}",
+          "integrations": ["{integration_id}"],
+          "filters": [],
+          "enrichments": [],
+          "index_unclassified_events": true,
+          "index_discarded_events": false,
+          "author": "Test",
+          "description": "Updated policy description",
+          "documentation": "",
+          "references": []
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the draft policy "document.index_unclassified_events" field in ".cti-policies" should be true
+    And the draft policy "document.index_discarded_events" field in ".cti-policies" should be false
+
+  Scenario: Update policy with missing required boolean fields
+    Given an integration exists in draft space and its ID is stored as "integration_id"
+    And a decoder exists in draft space linked to "{integration_id}" and its ID is stored as "decoder_id"
+    When I send a PUT request to "/_plugins/_content_manager/policy" with body:
+      """
+      {
+        "type": "policy",
+        "resource": {
+          "title": "Updated policy",
+          "root_decoder": "{decoder_id}",
+          "integrations": ["{integration_id}"],
+          "filters": [],
+          "enrichments": [],
+          "author": "Test",
+          "description": "Updated policy description",
+          "documentation": "",
+          "references": []
+        }
+      }
+      """
+    Then the response status code should be 400
+
+  Scenario: Update policy attempting to add a filter to the list
+    Given the current draft policy filters list is known
+    When I send a PUT request to "/_plugins/_content_manager/policy" with an additional filter ID appended to the current list
+    Then the response status code should be 400
+    And the response body should indicate filters list cannot be modified
+
+  Scenario: Update policy with reordered filters list (allowed)
+    Given the current draft policy has at least two filters
+    When I send a PUT request to "/_plugins/_content_manager/policy" with the same filters in a different order
+    Then the response status code should be 200
