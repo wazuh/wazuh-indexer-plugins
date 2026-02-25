@@ -29,6 +29,7 @@ import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
@@ -39,12 +40,19 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.transport.client.Client;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -63,15 +71,24 @@ public class ConsumerIocService extends AbstractConsumerService {
     /** The unified consumer name identifier. */
     private final String CONSUMER = PluginSettings.getInstance().getIocConsumer();
 
+    /** The engine service for notifying the Engine about IOC updates. */
+    private final EngineService engineService;
+
     /**
      * Constructs a new ConsumerIocService.
      *
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
+     * @param engineService The engine service for IOC load notifications.
      */
-    public ConsumerIocService(Client client, ConsumersIndex consumersIndex, Environment environment) {
+    public ConsumerIocService(
+            Client client,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            EngineService engineService) {
         super(client, consumersIndex, environment);
+        this.engineService = engineService;
     }
 
     @Override
@@ -102,6 +119,7 @@ public class ConsumerIocService extends AbstractConsumerService {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
             this.computeAndStoreTypeHashes();
+            this.exportAndNotifyEngine();
         }
     }
 
@@ -182,8 +200,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             for (SearchHit hit : hits) {
                 Map<String, Object> sourceMap = hit.getSourceAsMap();
                 @SuppressWarnings("unchecked")
-                Map<String, Object> hashMap =
-                        (Map<String, Object>) sourceMap.get(Constants.KEY_HASH);
+                Map<String, Object> hashMap = (Map<String, Object>) sourceMap.get(Constants.KEY_HASH);
                 if (hashMap != null) {
                     Object sha256 = hashMap.get(Constants.KEY_SHA256);
                     if (sha256 != null) {
@@ -195,5 +212,96 @@ public class ConsumerIocService extends AbstractConsumerService {
         }
 
         return Resource.computeSha256(concatenated.toString());
+    }
+
+    /**
+     * Orchestrates the IOC export to NDJSON and Engine notification. Exceptions are caught so that
+     * failures do not break the sync process.
+     */
+    private void exportAndNotifyEngine() {
+        try {
+            Path exportPath = this.exportIocsToNdjson();
+            this.notifyEngine(exportPath.toString());
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_IOC_EXPORT_FAILED, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Exports all IOC documents (excluding the type-hashes summary document) to an NDJSON file. Uses
+     * PIT with search_after pagination to iterate over all documents. Each line contains the JSON
+     * serialization of the {@code document} field only.
+     *
+     * @return The path to the written NDJSON file.
+     * @throws IOException If an I/O error occurs while writing the file.
+     */
+    @SuppressForbidden(reason = "File I/O required for IOC NDJSON export to local filesystem")
+    private Path exportIocsToNdjson() throws IOException {
+        Path outputPath = this.environment.tmpDir().resolve(Constants.IOC_EXPORT_FILENAME);
+        long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
+        TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
+
+        CreatePitRequest createPitRequest =
+                new CreatePitRequest(keepalive, false, Constants.INDEX_IOCS);
+        CreatePitResponse pitResponse =
+                this.client.execute(CreatePitAction.INSTANCE, createPitRequest).actionGet();
+        String pitId = pitResponse.getId();
+
+        try (BufferedWriter writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
+            Object[] searchAfter = null;
+
+            while (true) {
+                SearchSourceBuilder source =
+                        new SearchSourceBuilder()
+                                .query(
+                                        QueryBuilders.boolQuery()
+                                                .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
+                                .sort("_id", SortOrder.ASC)
+                                .size(SEARCH_PAGE_SIZE)
+                                .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
+                                .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
+                if (searchAfter != null) {
+                    source.searchAfter(searchAfter);
+                }
+
+                SearchRequest searchRequest = new SearchRequest();
+                searchRequest.source(source);
+                SearchResponse response = this.client.search(searchRequest).actionGet();
+                SearchHit[] hits = response.getHits().getHits();
+                if (hits.length == 0) {
+                    break;
+                }
+
+                for (SearchHit hit : hits) {
+                    Map<String, Object> sourceMap = hit.getSourceAsMap();
+                    Object document = sourceMap.get(Constants.KEY_DOCUMENT);
+                    if (document != null) {
+                        writer.write(MAPPER.writeValueAsString(document));
+                        writer.newLine();
+                    }
+                }
+                searchAfter = hits[hits.length - 1].getSortValues();
+            }
+        } finally {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
+        }
+
+        log.info(Constants.I_LOG_IOC_EXPORT_COMPLETE, outputPath);
+        return outputPath;
+    }
+
+    /**
+     * Notifies the Engine to load IOC data from the given file path.
+     *
+     * @param filePath The absolute path to the NDJSON file.
+     */
+    private void notifyEngine(String filePath) {
+        RestResponse response = this.engineService.loadIocs(filePath);
+        if (response.getStatus() >= 200 && response.getStatus() < 300) {
+            log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, filePath);
+        } else {
+            log.error(Constants.E_LOG_IOC_ENGINE_NOTIFY_FAILED, response.getMessage());
+        }
     }
 }

@@ -30,6 +30,7 @@ public class EngineServiceImpl implements EngineService {
     public static final String LOGTEST = "logtest";
     static final String VALIDATE = "/content/validate/resource";
     static final String PROMOTE = "/content/validate/policy";
+    static final String LOAD_IOCS = "/content/ioc/update";
 
     private final EngineSocketClient socket;
     private final ObjectMapper mapper;
@@ -71,5 +72,12 @@ public class EngineServiceImpl implements EngineService {
         payload.put(Constants.KEY_TYPE, type);
         payload.set(Constants.KEY_RESOURCE, resource);
         return this.validate(payload);
+    }
+
+    @Override
+    public RestResponse loadIocs(String filePath) {
+        ObjectNode payload = this.mapper.createObjectNode();
+        payload.put("path", filePath);
+        return this.socket.sendRequest(LOAD_IOCS, POST.name(), payload);
     }
 }

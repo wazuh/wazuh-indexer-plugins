@@ -42,6 +42,8 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
@@ -50,6 +52,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -71,6 +74,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
+    @Mock private EngineService engineService;
 
     @Before
     @Override
@@ -78,7 +82,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
-        this.service = new ConsumerIocService(this.client, this.consumersIndex, this.environment);
+        when(this.environment.tmpDir()).thenReturn(createTempDir());
+        when(this.engineService.loadIocs(anyString())).thenReturn(new RestResponse("OK", 200));
+        this.service =
+                new ConsumerIocService(
+                        this.client, this.consumersIndex, this.environment, this.engineService);
     }
 
     @After
@@ -127,9 +135,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        // Verify PIT was created and deleted
-        verify(this.client).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
-        verify(this.client).execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+        // Verify PITs were created and deleted (hash computation + export)
+        verify(this.client, times(2))
+                .execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+        verify(this.client, times(2))
+                .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
 
         // Verify hash document was indexed with the correct ID
         ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -203,7 +213,9 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         String ipDocHash = "abc123def456";
         String ipDocSource =
                 "{\"document\":{\"type\":\"ipv4-addr\",\"name\":\"test-ioc\"},"
-                        + "\"hash\":{\"sha256\":\"" + ipDocHash + "\"}}";
+                        + "\"hash\":{\"sha256\":\""
+                        + ipDocHash
+                        + "\"}}";
         SearchHit ipHit = new SearchHit(1, "doc-1", Collections.emptyMap(), Collections.emptyMap());
         ipHit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(ipDocSource));
         ipHit.sortValues(
@@ -282,8 +294,9 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         // Should not throw — exception is caught internally
         this.service.onSyncComplete(true);
 
-        // PIT should still be deleted despite the exception
-        verify(this.client).execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+        // PITs should still be deleted despite the exception (hash + export both attempt PIT)
+        verify(this.client, times(2))
+                .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
 
         // Index should NOT have been called since the exception happened before indexing
         verify(this.client, never()).index(any(IndexRequest.class));
@@ -316,6 +329,84 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertTrue(aliases.isEmpty());
     }
 
+    /** Tests that onSyncComplete(true) calls engineService.loadIocs after export. */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncCompleteNotifiesEngine() {
+        // Mock PIT creation
+        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
+        when(pitResponse.getId()).thenReturn("test-pit-id");
+        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
+        when(pitFuture.actionGet()).thenReturn(pitResponse);
+        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+                .thenReturn(pitFuture);
+
+        // Mock search returning empty results
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        // Mock PIT deletion
+        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
+        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+                .thenReturn((ActionFuture) deletePitFuture);
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).loadIocs(anyString());
+    }
+
+    /** Tests that onSyncComplete(false) does not call engineService.loadIocs. */
+    public void testOnSyncCompleteDoesNotNotifyEngineWhenNotUpdated() {
+        this.service.onSyncComplete(false);
+
+        verify(this.engineService, never()).loadIocs(anyString());
+    }
+
+    /** Tests that engine notification failure does not propagate as an exception. */
+    @SuppressWarnings("unchecked")
+    public void testEngineNotificationFailureDoesNotPropagate() {
+        // Override the engineService mock to return an error
+        when(this.engineService.loadIocs(anyString()))
+                .thenReturn(new RestResponse("Engine error", 500));
+
+        // Mock PIT creation
+        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
+        when(pitResponse.getId()).thenReturn("test-pit-id");
+        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
+        when(pitFuture.actionGet()).thenReturn(pitResponse);
+        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+                .thenReturn(pitFuture);
+
+        // Mock search returning empty results
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        // Mock PIT deletion
+        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
+        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+                .thenReturn((ActionFuture) deletePitFuture);
+
+        // Should not throw — engine error is handled internally
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).loadIocs(anyString());
+    }
+
     /** Tests that search is paginated — one search per type (all empty) plus no extra. */
     @SuppressWarnings("unchecked")
     public void testSearchPerformedForEachType() {
@@ -346,7 +437,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        // Exactly one search per IOC type (all return empty on first page)
-        verify(this.client, times(Constants.IOC_TYPES.size())).search(any(SearchRequest.class));
+        // One search per IOC type for hash computation + one search for NDJSON export (empty = done)
+        verify(this.client, times(Constants.IOC_TYPES.size() + 1)).search(any(SearchRequest.class));
     }
 }

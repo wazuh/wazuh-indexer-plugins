@@ -29,4 +29,12 @@ public interface EngineService {
     RestResponse promote(JsonNode policy);
 
     RestResponse validateResource(String type, JsonNode resource);
+
+    /**
+     * Notifies the Engine to load IOC content from the given file path.
+     *
+     * @param filePath The absolute path to the NDJSON file containing IOC data.
+     * @return A {@link RestResponse} with the Engine's response.
+     */
+    RestResponse loadIocs(String filePath);
 }

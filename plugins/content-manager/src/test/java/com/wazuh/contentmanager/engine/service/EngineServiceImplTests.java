@@ -20,7 +20,10 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -68,4 +71,24 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
 
     /** Tests the promote operation for an internal server error (500) response. */
     public void testPromote500() {}
+
+    /** Tests that loadIocs sends the file path to the correct endpoint. */
+    public void testLoadIocsSendsToCorrectEndpoint() {
+        String filePath = "/tmp/iocs.ndjson";
+        RestResponse expected = new RestResponse("OK", 200);
+        when(this.socket.sendRequest(
+                        eq(EngineServiceImpl.LOAD_IOCS),
+                        eq("POST"),
+                        argThat(json -> json.has("path") && json.get("path").asText().equals(filePath))))
+                .thenReturn(expected);
+
+        RestResponse result = this.engine.loadIocs(filePath);
+
+        assertEquals(expected, result);
+        verify(this.socket)
+                .sendRequest(
+                        eq(EngineServiceImpl.LOAD_IOCS),
+                        eq("POST"),
+                        argThat(json -> json.has("path") && json.get("path").asText().equals(filePath)));
+    }
 }
