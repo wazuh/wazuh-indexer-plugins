@@ -628,6 +628,20 @@ public class SpaceService {
                     }
                 }
 
+                // Adding filter hashes that are referenced in the policy
+                if (document != null && document.containsKey(Constants.KEY_FILTERS)) {
+                    @SuppressWarnings("unchecked")
+                    List<String> filterIds = (List<String>) document.get(Constants.KEY_FILTERS);
+
+                    for (String filterId : filterIds) {
+                        Map<String, Object> filterSource =
+                                this.getDocumentSource(Constants.INDEX_FILTERS, filterId);
+                        if (filterSource != null) {
+                            spaceHashes.add(Resource.extractHash(filterSource));
+                        }
+                    }
+                }
+
                 String spaceHash = Resource.computeSha256(String.join("", spaceHashes));
 
                 Map<String, Object> updateMap = new HashMap<>();

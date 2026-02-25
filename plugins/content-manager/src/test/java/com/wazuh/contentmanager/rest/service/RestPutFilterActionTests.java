@@ -17,15 +17,7 @@
 package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.mockito.ArgumentCaptor;
+
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
@@ -39,10 +31,20 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -57,6 +59,8 @@ import static org.mockito.Mockito.*;
 public class RestPutFilterActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPutFilterAction action;
+
+    // spotless:off
     private static final String FILTER_PAYLOAD = """
         {
           "space": "draft",
@@ -97,9 +101,10 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
           }
         }
         """;
+    // spotless:on
 
     private static final String FILTER_PAYLOAD_MISSING_RESOURCE =
-        "{" + "\"type\": \"pre-filter\"" + "}";
+            "{" + "\"type\": \"pre-filter\"" + "}";
 
     /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
@@ -137,7 +142,7 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
 
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
-            .thenReturn(engineResponse);
+                .thenReturn(engineResponse);
 
         Client client = this.buildClientForIndex();
 
@@ -164,7 +169,7 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         RestResponse engineResponse = new RestResponse("Validation passed", RestStatus.OK.getStatus());
 
         when(this.service.validateResource(anyString(), any(JsonNode.class)))
-            .thenReturn(engineResponse);
+                .thenReturn(engineResponse);
 
         Client client = this.buildClientForIndex();
 
@@ -180,8 +185,8 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutFilterAction#executeRequest(RestRequest, Client)} method when the
-     * filter ID is missing. The expected response is: {400, RestResponse}
+     * Test the {@link RestPutFilterAction#executeRequest(RestRequest, Client)} method when the filter
+     * ID is missing. The expected response is: {400, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
@@ -202,9 +207,9 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
     public void testPutFilterMissingBodyReturns400() throws IOException {
         String filterId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request =
-            new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                .withParams(Map.of("id", filterId))
-                .build();
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", filterId))
+                        .build();
 
         RestResponse actualResponse = this.action.executeRequest(request, null);
 
@@ -230,8 +235,8 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPutFilterAction#executeRequest(RestRequest, Client)} method when the
-     * filter is not found. The expected response is: {404, RestResponse}
+     * Test the {@link RestPutFilterAction#executeRequest(RestRequest, Client)} method when the filter
+     * is not found. The expected response is: {404, RestResponse}
      *
      * @throws Exception if an error occurs during the test
      */
@@ -268,8 +273,8 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
 
     private RestRequest buildRequest(String payload, String filterId) {
         FakeRestRequest.Builder builder =
-            new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                .withContent(new BytesArray(payload), XContentType.JSON);
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(payload), XContentType.JSON);
         if (filterId != null) {
             builder.withParams(Map.of("id", filterId, "filter_id", filterId));
         }
@@ -288,14 +293,14 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-            .thenReturn(existsResponse);
+                .thenReturn(existsResponse);
 
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(true);
         when(spaceResponse.getSourceAsMap()).thenReturn(Map.of("space", Map.of("name", "draft")));
         when(spaceResponse.getSourceAsString())
-            .thenReturn(
-                "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
+                .thenReturn(
+                        "{\"space\": {\"name\": \"draft\"}, \"document\": {\"metadata\": {\"author\": {\"date\": \"2023-01-01\"}}}}");
 
         when(client.prepareGet(anyString(), anyString()).get()).thenReturn(spaceResponse);
 
@@ -309,7 +314,7 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
         GetResponse existsResponse = mock(GetResponse.class);
         when(existsResponse.isExists()).thenReturn(false);
         when(client.prepareGet(anyString(), anyString()).setFetchSource(false).get())
-            .thenReturn(existsResponse);
+                .thenReturn(existsResponse);
 
         GetResponse spaceResponse = mock(GetResponse.class);
         when(spaceResponse.isExists()).thenReturn(false);

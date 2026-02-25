@@ -196,8 +196,13 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
         String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
         JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
 
-        ArrayNode filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
-        if (filters == null) filters = MAPPER.createArrayNode();
+        ArrayNode filters;
+        if (document.has(Constants.KEY_FILTERS)) {
+            filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
+        } else {
+            filters = MAPPER.createArrayNode();
+            ((ObjectNode) document).set(Constants.KEY_FILTERS, filters);
+        }
 
         filters.add(id);
 

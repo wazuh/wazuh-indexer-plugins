@@ -17,17 +17,8 @@
 package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
+
 import org.apache.lucene.search.TotalHits;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.mockito.Answers;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -44,8 +35,19 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
 import org.opensearch.transport.client.Client;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.util.Collections;
+
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.Answers;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -55,6 +57,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
     private RestPostFilterAction action;
     private Client client;
 
+    // spotless:off
     private static final String FILTER_PAYLOAD = """
         {
           "space": "standard",
@@ -74,6 +77,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
           }
         }
         """;
+
 
     private static final String FILTER_PAYLOAD_WITH_ID = """
         {
@@ -95,10 +99,9 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
           }
         }
         """;
+    // spotless:on
 
-    /**
-     * Initialize PluginSettings singleton once for all tests.
-     */
+    /** Initialize PluginSettings singleton once for all tests. */
     @BeforeClass
     public static void setUpClass() {
         try {
@@ -132,16 +135,17 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
 
         // Create a proper source JSON string that ContentIndex.searchByQuery expects
         // This structure matches what REST API returns for a policy document
-        String policyJson = "{\"space\":{\"name\":\"draft\"},\"id\":\"policy-1\",\"document\":{\"id\":\"policy-1\",\"filters\":[]},\"hash\":{\"sha256\":\"initial-hash\"}}";
+        String policyJson =
+                "{\"space\":{\"name\":\"draft\"},\"id\":\"policy-1\",\"document\":{\"id\":\"policy-1\",\"filters\":[]},\"hash\":{\"sha256\":\"initial-hash\"}}";
 
         // Create SearchHit array with proper configuration
         SearchHit hit = new SearchHit(0, "policy-1", Collections.emptyMap(), Collections.emptyMap());
         hit.sourceRef(new BytesArray(policyJson));
 
-        SearchHit[] searchHits = new SearchHit[]{hit};
+        SearchHit[] searchHits = new SearchHit[] {hit};
         when(policyResponse.getHits())
-            .thenReturn(
-                new SearchHits(searchHits, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
+                .thenReturn(
+                        new SearchHits(searchHits, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f));
 
         PlainActionFuture<SearchResponse> pFuture = PlainActionFuture.newFuture();
         pFuture.onResponse(policyResponse);
@@ -167,7 +171,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
         RestRequest request = this.buildRequest(FILTER_PAYLOAD);
         RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
         when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
-            .thenReturn(engineResponse);
+                .thenReturn(engineResponse);
         this.mockDependencySuccess();
 
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
@@ -185,7 +189,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
         RestRequest request = this.buildRequest(FILTER_PAYLOAD_WITH_ID);
         RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
         when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
-            .thenReturn(engineResponse);
+                .thenReturn(engineResponse);
         this.mockDependencySuccess();
 
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
@@ -222,7 +226,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
 
     private RestRequest buildRequest(String payload) {
         return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-            .withContent(new BytesArray(payload), XContentType.JSON)
-            .build();
+                .withContent(new BytesArray(payload), XContentType.JSON)
+                .build();
     }
 }
