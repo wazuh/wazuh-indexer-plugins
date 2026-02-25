@@ -243,6 +243,9 @@ public class PolicyIT extends ContentManagerRestTestCase {
                         "integrations": %s,
                         "filters": [],
                         "enrichments": [],
+                        "enabled": true,
+                        "index_unclassified_events": false,
+                        "index_discarded_events": false,
                         "author": "Test",
                         "description": "Updated policy description",
                         "documentation": "",
@@ -257,11 +260,9 @@ public class PolicyIT extends ContentManagerRestTestCase {
     /**
      * Update policy with missing type field.
      *
-     * <p>Verifies: Response status code is 200 OK. The plugin does not validate the type field, so
-     * the request is accepted.
-     * @throws IOException On parsing or request error.
+     * <p>Verifies: Response status code is 400. The plugin validates the type field is present.
      */
-    public void testPutPolicy_missingType() throws IOException {
+    public void testPutPolicy_missingType() {
         // spotless:off
         String payload = """
                 {
@@ -276,18 +277,20 @@ public class PolicyIT extends ContentManagerRestTestCase {
                 """;
         // spotless:on
 
-        Response response = this.makeRequest("PUT", PluginSettings.POLICY_URI, payload);
-        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, payload));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
     /**
      * Update policy with wrong type value.
      *
-     * <p>Verifies: Response status code is 200 OK. The plugin does not validate the type field value,
-     * so the request is accepted even with a non-policy type.
-     * @throws IOException On parsing or request error.
+     * <p>Verifies: Response status code is 400. The plugin validates the type field value must be
+     * "policy".
      */
-    public void testPutPolicy_wrongType() throws IOException {
+    public void testPutPolicy_wrongType() {
         // spotless:off
         String payload = """
                 {
@@ -303,8 +306,11 @@ public class PolicyIT extends ContentManagerRestTestCase {
                 """;
         // spotless:on
 
-        Response response = this.makeRequest("PUT", PluginSettings.POLICY_URI, payload);
-        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, payload));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
     /**

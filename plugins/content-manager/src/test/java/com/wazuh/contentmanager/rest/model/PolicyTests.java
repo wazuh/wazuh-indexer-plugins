@@ -70,6 +70,9 @@ public class PolicyTests extends OpenSearchTestCase {
         Assert.assertNull(defaultPolicy.getDocumentation());
         Assert.assertNotNull(defaultPolicy.getReferences());
         Assert.assertTrue(defaultPolicy.getReferences().isEmpty());
+        Assert.assertNull(defaultPolicy.getEnabled());
+        Assert.assertNull(defaultPolicy.getIndexUnclassifiedEvents());
+        Assert.assertNull(defaultPolicy.getIndexDiscardedEvents());
     }
 
     /** Test parameterized constructor with all fields. */
@@ -94,7 +97,10 @@ public class PolicyTests extends OpenSearchTestCase {
                         "Wazuh Inc.",
                         "Test policy description",
                         "Documentation content",
-                        references);
+                        references,
+                        true, // enabled
+                        false, // indexUnclassifiedEvents
+                        true); // indexDiscardedEvents
 
         // Assert
         Assert.assertEquals("decoder/root/0", testPolicy.getRootDecoder());
@@ -106,13 +112,18 @@ public class PolicyTests extends OpenSearchTestCase {
         Assert.assertEquals("Documentation content", testPolicy.getDocumentation());
         Assert.assertEquals(1, testPolicy.getReferences().size());
         Assert.assertEquals("https://example.com/refs", testPolicy.getReferences().get(0));
+        Assert.assertEquals(Boolean.TRUE, testPolicy.getEnabled());
+        Assert.assertEquals(Boolean.FALSE, testPolicy.getIndexUnclassifiedEvents());
+        Assert.assertEquals(Boolean.TRUE, testPolicy.getIndexDiscardedEvents());
     }
 
     /** Test parameterized constructor with null values. */
     public void testParameterizedConstructor_NullValues() {
         // Act
         Policy testPolicy =
-                new Policy(null, null, null, null, null, null, null, null, null, null, null, null);
+                new Policy(
+                        null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                        null);
 
         // Assert
         Assert.assertNotNull(testPolicy.getIntegrations()); // Defaults to empty list
@@ -402,6 +413,7 @@ public class PolicyTests extends OpenSearchTestCase {
         this.policy.setIntegrations(integrations);
         this.policy.setAuthor("Wazuh Inc.");
         this.policy.setDescription("Test description");
+        this.policy.setEnabled(true);
 
         // Act
         ObjectNode json = this.policy.toJson();
@@ -413,5 +425,72 @@ public class PolicyTests extends OpenSearchTestCase {
                 this.policy.getIntegrations().size(), reconstructed.getIntegrations().size());
         Assert.assertEquals(this.policy.getAuthor(), reconstructed.getAuthor());
         Assert.assertEquals(this.policy.getDescription(), reconstructed.getDescription());
+        Assert.assertEquals(this.policy.getEnabled(), reconstructed.getEnabled());
+    }
+
+    /** Test fromPayload with all three boolean fields present. */
+    public void testFromPayload_WithBooleanFields() {
+        // Arrange
+        ObjectNode payload = this.getPayload();
+        payload.put("enabled", true);
+        payload.put("index_unclassified_events", false);
+        payload.put("index_discarded_events", true);
+
+        // Act
+        Policy testPolicy = Policy.fromPayload(payload);
+
+        // Assert
+        Assert.assertEquals(Boolean.TRUE, testPolicy.getEnabled());
+        Assert.assertEquals(Boolean.FALSE, testPolicy.getIndexUnclassifiedEvents());
+        Assert.assertEquals(Boolean.TRUE, testPolicy.getIndexDiscardedEvents());
+    }
+
+    /** Test fromPayload when boolean fields are absent — they must all be null. */
+    public void testFromPayload_BooleanFieldsAbsent() {
+        // Arrange - payload has no boolean keys
+        ObjectNode payload = this.getPayload();
+
+        // Act
+        Policy testPolicy = Policy.fromPayload(payload);
+
+        // Assert
+        Assert.assertNull(testPolicy.getEnabled());
+        Assert.assertNull(testPolicy.getIndexUnclassifiedEvents());
+        Assert.assertNull(testPolicy.getIndexDiscardedEvents());
+    }
+
+    /** Test that non-null boolean fields are serialized by toJson. */
+    public void testToJson_BooleanFieldsIncluded() {
+        // Arrange
+        this.policy.setEnabled(true);
+        this.policy.setIndexUnclassifiedEvents(false);
+        this.policy.setIndexDiscardedEvents(true);
+
+        // Act
+        ObjectNode json = this.policy.toJson();
+
+        // Assert
+        Assert.assertTrue(json.has("enabled"));
+        Assert.assertTrue(json.get("enabled").asBoolean());
+        Assert.assertTrue(json.has("index_unclassified_events"));
+        Assert.assertFalse(json.get("index_unclassified_events").asBoolean());
+        Assert.assertTrue(json.has("index_discarded_events"));
+        Assert.assertTrue(json.get("index_discarded_events").asBoolean());
+    }
+
+    /**
+     * Test that null boolean fields are omitted from toJson output (verified by
+     * {@code @JsonInclude(NON_EMPTY)}).
+     */
+    public void testToJson_BooleanFieldsNull_NotSerialized() {
+        // Arrange — boolean fields are null by default
+
+        // Act
+        ObjectNode json = this.policy.toJson();
+
+        // Assert
+        Assert.assertFalse(json.has("enabled"));
+        Assert.assertFalse(json.has("index_unclassified_events"));
+        Assert.assertFalse(json.has("index_discarded_events"));
     }
 }
