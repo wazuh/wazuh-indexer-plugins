@@ -57,6 +57,7 @@ public class PluginSettings {
     // Default values for Context and Consumer
     private static final String DEFAULT_IOC_CONTEXT = "ioc_provider";
     private static final String DEFAULT_IOC_CONSUMER = "iocp_v1";
+    private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 
     /** Singleton instance. */
@@ -174,6 +175,16 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** PIT (Point-in-Time) keepalive duration in seconds for paginated searches. */
+    public static final Setting<Long> PIT_KEEPALIVE =
+            Setting.longSetting(
+                    "plugins.content_manager.pit_keepalive",
+                    DEFAULT_PIT_KEEPALIVE,
+                    60,
+                    600,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
@@ -193,6 +204,7 @@ public class PluginSettings {
     private final String contentConsumer;
     private final String iocContext;
     private final String iocConsumer;
+    private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
 
@@ -213,6 +225,7 @@ public class PluginSettings {
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
         this.iocContext = IOC_CONTEXT.get(settings);
         this.iocConsumer = IOC_CONSUMER.get(settings);
+        this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
@@ -351,6 +364,15 @@ public class PluginSettings {
      */
     public String getIocConsumer() {
         return this.iocConsumer;
+    }
+
+    /**
+     * Retrieves the PIT (Point-in-Time) keepalive duration in seconds.
+     *
+     * @return the keepalive duration in seconds.
+     */
+    public Long getPitKeepalive() {
+        return this.pitKeepalive;
     }
 
     /**
