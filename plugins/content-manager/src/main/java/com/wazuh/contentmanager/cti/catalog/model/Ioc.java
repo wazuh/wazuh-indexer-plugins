@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.wazuh.contentmanager.utils.Constants;
 import java.util.List;
 
 /**
@@ -34,13 +35,10 @@ public class Ioc {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static final String DOCUMENT_KEY = "document";
-    private static final String HASH_KEY = "hash";
-
-    @JsonProperty(DOCUMENT_KEY)
+    @JsonProperty(Constants.KEY_DOCUMENT)
     private IocDocument document;
 
-    @JsonProperty(HASH_KEY)
+    @JsonProperty(Constants.KEY_HASH)
     private IocHash hash;
 
     /** Default constructor. */
@@ -53,9 +51,9 @@ public class Ioc {
      * @return A fully populated Ioc instance.
      */
     public static Ioc fromPayload(JsonNode payload) {
-        Ioc ioc = MAPPER.convertValue(payload, Ioc.class);
-        if (payload.has(DOCUMENT_KEY)) {
-            String sha256 = Resource.computeSha256(payload.get(DOCUMENT_KEY).toString());
+        Ioc ioc = Ioc.MAPPER.convertValue(payload, Ioc.class);
+        if (payload.has(Constants.KEY_DOCUMENT)) {
+            String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());
             ioc.setHash(new IocHash(sha256));
         }
         return ioc;
@@ -119,43 +117,43 @@ public class Ioc {
         private static final String SOFTWARE_TYPE_KEY = "software.type";
         private static final String TAGS_KEY = "tags";
 
-        @JsonProperty(CONFIDENCE_KEY)
+        @JsonProperty(IocDocument.CONFIDENCE_KEY)
         private Long confidence;
 
-        @JsonProperty(FEED_NAME_KEY)
+        @JsonProperty(IocDocument.FEED_NAME_KEY)
         private String feedName;
 
-        @JsonProperty(FIRST_SEEN_KEY)
+        @JsonProperty(IocDocument.FIRST_SEEN_KEY)
         private String firstSeen;
 
-        @JsonProperty(ID_KEY)
+        @JsonProperty(IocDocument.ID_KEY)
         private String id;
 
-        @JsonProperty(LAST_SEEN_KEY)
+        @JsonProperty(IocDocument.LAST_SEEN_KEY)
         private String lastSeen;
 
-        @JsonProperty(NAME_KEY)
+        @JsonProperty(IocDocument.NAME_KEY)
         private String name;
 
-        @JsonProperty(PROVIDER_KEY)
+        @JsonProperty(IocDocument.PROVIDER_KEY)
         private String provider;
 
-        @JsonProperty(REFERENCE_KEY)
+        @JsonProperty(IocDocument.REFERENCE_KEY)
         private String reference;
 
-        @JsonProperty(TYPE_KEY)
+        @JsonProperty(IocDocument.TYPE_KEY)
         private String type;
 
-        @JsonProperty(SOFTWARE_ALIAS_KEY)
+        @JsonProperty(IocDocument.SOFTWARE_ALIAS_KEY)
         private List<String> softwareAlias;
 
-        @JsonProperty(SOFTWARE_NAME_KEY)
+        @JsonProperty(IocDocument.SOFTWARE_NAME_KEY)
         private String softwareName;
 
-        @JsonProperty(SOFTWARE_TYPE_KEY)
+        @JsonProperty(IocDocument.SOFTWARE_TYPE_KEY)
         private String softwareType;
 
-        @JsonProperty(TAGS_KEY)
+        @JsonProperty(IocDocument.TAGS_KEY)
         private List<String> tags;
 
         /** Default constructor. */

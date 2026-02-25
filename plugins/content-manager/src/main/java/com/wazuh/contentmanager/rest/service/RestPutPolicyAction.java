@@ -121,8 +121,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return a consumer that executes the policy update operation
      */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         this.client = client;
         this.spaceService = new SpaceService(client);
         RestResponse response = this.handleRequest(request);
@@ -188,6 +187,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
             }
             if (policy.getReferences() == null) {
                 missingFields.add("references");
+            }
+            if (policy.getEnabled() == null) {
+                missingFields.add("enabled");
+            }
+            if (policy.getIndexUnclassifiedEvents() == null) {
+                missingFields.add("index_unclassified_events");
+            }
+            if (policy.getIndexDiscardedEvents() == null) {
+                missingFields.add("index_discarded_events");
             }
 
             if (!missingFields.isEmpty()) {
@@ -262,6 +270,19 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         currentIntegrations, newIntegrations, Constants.KEY_INTEGRATIONS);
         if (validationError != null) {
             throw new IllegalArgumentException(validationError.getMessage());
+        }
+
+        // Validation for filters array: allow reordering but prevent addition/removal
+        List<String> currentFilters =
+                (List<String>)
+                        currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
+        List<String> newFilters = policy.getFilters();
+
+        RestResponse filtersValidationError =
+                this.payloadValidations.validateListEquality(
+                        currentFilters, newFilters, Constants.KEY_FILTERS);
+        if (filtersValidationError != null) {
+            throw new IllegalArgumentException(filtersValidationError.getMessage());
         }
 
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();

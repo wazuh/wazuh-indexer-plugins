@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.utils;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,7 +31,7 @@ import java.util.Set;
  *   <li>Index names are prefixed with <i>INDEX</i>.</li>
  *   <li>Map keys are prefixed with <i>KEY</i>.</li>
  *   <li>Response strings for the HTTP API are prefixed with the type of message and status code.</li>
- *   <li>When referencing from another class, used static qualifiers: <code>Constants.KEY_HASH</code>.</li>
+ *   <li>When referencing from another class, used static qualifiers: {@code Constants.KEY_HASH}.</li>
  *   <li>Use common sense. Keep this file clean and organized.</li>
  * </ul>
  */
@@ -154,7 +155,12 @@ public class Constants {
                     KEY_FILTERS,
                     INDEX_FILTERS);
 
+    // IOC type hashes
+    public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
+    public static final List<String> IOC_TYPES = List.of("ipv4-addr", "domain-name", "url", "file");
+
     // Queries
+    public static final String Q_DOCUMENT_TYPE = "document.type";
     public static final String Q_SPACE_NAME = "space.name";
     public static final String Q_DOCUMENT_ID = "document.id";
     public static final String Q_DOCUMENT_TITLE = "document.title";
