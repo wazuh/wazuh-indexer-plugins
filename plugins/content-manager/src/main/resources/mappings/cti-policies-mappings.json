@@ -36,6 +36,15 @@
         "enrichments": {
           "type": "keyword"
         },
+        "enabled": {
+          "type": "boolean"
+        },
+        "index_unclassified_events": {
+          "type": "boolean"
+        },
+        "index_discarded_events": {
+          "type": "boolean"
+        },
         "title": {
           "type": "keyword"
         }
