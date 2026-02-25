@@ -59,10 +59,37 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected final PayloadValidations documentValidations = new PayloadValidations();
 
+    /**
+     * Constructs an instance of AbstractCreateActionSpaces with the specified Engine service.
+     *
+     * @param engine The {@link EngineService} used to interact with the Engine for resource
+     *     validation and synchronization.
+     */
     public AbstractCreateActionSpaces(EngineService engine) {
         super(engine);
     }
 
+    /**
+     * Executes the creation workflow for a new content resource.
+     *
+     * <p>This method implements the complete creation pipeline:
+     *
+     * <ol>
+     *   <li>Validates that the request contains a non-empty body
+     *   <li>Parses and validates the JSON payload structure
+     *   <li>Performs resource-specific validation
+     *   <li>Generates a unique ID and metadata (timestamps, enabled flag)
+     *   <li>Synchronizes the resource with external services (Engine/SAP)
+     *   <li>Indexes the resource in the configured space
+     *   <li>Links the resource to its parent container
+     *   <li>Updates the policy hash for the affected space
+     * </ol>
+     *
+     * @param request The REST request containing the resource creation payload in JSON format.
+     * @param client The OpenSearch client used for indexing and linking operations.
+     * @return A {@link RestResponse} containing the newly created resource ID with HTTP 201 status on
+     *     success, or an appropriate error response with error details on failure.
+     */
     @Override
     protected RestResponse executeRequest(RestRequest request, Client client) {
         // 1. Validate Request Content
@@ -196,41 +223,107 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
         return true;
     }
 
-    /** Indicates if the resource is a Decoder (requires special metadata handling). */
+    /**
+     * Indicates if the resource is a Decoder (requires special metadata handling).
+     *
+     * @return false by default. Subclasses representing Decoder resources should override to return
+     *     true.
+     */
     protected boolean isDecoder() {
         return false;
     }
 
-    /** Indicates if the resource is a Filter (requires special metadata handling). */
+    /**
+     * Indicates if the resource is a Filter (requires special metadata handling).
+     *
+     * @return false by default. Subclasses representing Filter resources should override to return
+     *     true.
+     */
     protected boolean isFilter() {
         return false;
     }
 
+    /**
+     * Returns the index name where the resource should be indexed.
+     *
+     * <p>This index is used for storing the resource documents in OpenSearch. Implementations must
+     * return a valid and consistent index name for the resource type.
+     *
+     * @return The name of the OpenSearch index for this resource type.
+     */
     protected abstract String getIndexName();
 
+    /**
+     * Returns the resource type identifier.
+     *
+     * <p>This is used for logging, error messages, and identification purposes throughout the
+     * creation workflow.
+     *
+     * @return A human-readable string describing the resource type (e.g., "Rule", "Decoder",
+     *     "Integration").
+     */
     protected abstract String getResourceType();
 
+    /**
+     * Returns the space name where the resource should be organized.
+     *
+     * <p>A space represents a logical grouping of resources. This space name is used for indexing,
+     * linking, and policy hash calculations.
+     *
+     * @return The name of the space to contain this resource.
+     */
     protected abstract String getSpaceName();
 
     /**
      * Performs resource-specific validation on the payload.
      *
-     * @return null if valid, RestResponse with error otherwise.
+     * <p>This method allows subclasses to implement custom validation logic specific to their
+     * resource type. It is called after structural validation but before ID generation and
+     * persistence operations.
+     *
+     * @param client The OpenSearch client for accessing data if validation requires lookups.
+     * @param root The root JSON node containing both resource and metadata.
+     * @param resource The resource JSON node to validate.
+     * @return null if the payload is valid, or a {@link RestResponse} with error details otherwise.
      */
     protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     /**
      * Synchronizes the new resource with external services (Engine validation or SAP upsert).
      *
-     * @return null if successful, RestResponse with error otherwise.
+     * <p>This method allows subclasses to integrate with external systems. It is called after
+     * validation and ID generation but before indexing. If this method returns an error, the entire
+     * creation workflow is rolled back.
+     *
+     * @param id The unique identifier generated for the new resource.
+     * @param resource The resource JSON node to synchronize.
+     * @return null if synchronization is successful, or a {@link RestResponse} with error details
+     *     otherwise.
      */
     protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
 
-    /** Reverts external service changes if subsequent steps fail. */
+    /**
+     * Reverts external service changes if subsequent steps fail.
+     *
+     * <p>This method is called during rollback scenarios when indexing or parent linking fails.
+     * Implementations should clean up any changes made by {@link #syncExternalServices(String,
+     * JsonNode)}.
+     *
+     * @param id The unique identifier of the resource to rollback.
+     */
     protected void rollbackExternalServices(String id) {}
 
     /**
      * Links the newly created resource to its parent container (e.g., adding Rule ID to Integration).
+     *
+     * <p>This method establishes relationships between the newly created resource and its parent or
+     * related resources. If this method throws an exception, the resource is automatically deleted
+     * and external services are rolled back.
+     *
+     * @param client The OpenSearch client for updating parent resources.
+     * @param id The unique identifier of the newly created resource.
+     * @param root The root JSON node containing both resource and metadata.
+     * @throws IOException If an I/O error occurs during parent linking operations.
      */
     protected abstract void linkToParent(Client client, String id, JsonNode root) throws IOException;
 

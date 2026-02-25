@@ -111,9 +111,9 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
      * Test the {@link RestDeleteFilterAction#executeRequest(RestRequest, Client)} method when the
      * request is complete. The expected response is: {200, RestResponse}
      *
-     * @throws IOException if an I/O error occurs during the test
+     * @throws Exception if an exception occurs during mocking
      */
-    public void testDeleteFilter200() throws IOException {
+    public void testDeleteFilter200() throws Exception {
         String filterId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -121,6 +121,9 @@ public class RestDeleteFilterActionTests extends OpenSearchTestCase {
                         .build();
 
         this.mockFilterInSpace(filterId, "draft", true);
+
+        // Mock the unlinkFromParent method to avoid the Draft policy search
+        doNothing().when(this.action).unlinkFromParent(any(Client.class), anyString(), anyString());
 
         RestResponse response = this.action.executeRequest(request, this.client);
 

@@ -17,11 +17,9 @@
 package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.NamedRoute;
@@ -31,6 +29,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -182,12 +182,12 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
     protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder =
-            new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
+                new TermQueryBuilder(Constants.Q_SPACE_NAME, this.getSpaceName());
         ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
 
         if (searchResult == null
-            || !searchResult.has(Constants.Q_HITS)
-            || searchResult.get(Constants.Q_HITS).isEmpty()) {
+                || !searchResult.has(Constants.Q_HITS)
+                || searchResult.get(Constants.Q_HITS).isEmpty()) {
             throw new IllegalStateException("Draft policy not found");
         }
 

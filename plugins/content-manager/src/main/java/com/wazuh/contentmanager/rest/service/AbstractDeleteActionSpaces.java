@@ -58,10 +58,44 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
     protected final PayloadValidations documentValidations = new PayloadValidations();
     private String spaceName = null;
 
+    /**
+     * Constructs an instance of AbstractDeleteActionSpaces with the specified Engine service.
+     *
+     * @param engine The {@link EngineService} used to interact with the Engine for resource deletion
+     *     and synchronization operations.
+     */
     public AbstractDeleteActionSpaces(EngineService engine) {
         super(engine);
     }
 
+    /**
+     * Executes the deletion workflow for a content resource.
+     *
+     * <p>This method implements the complete deletion pipeline:
+     *
+     * <ol>
+     *   <li>Validates that the resource ID is provided and in valid format
+     *   <li>Confirms the index exists and the resource exists within it
+     *   <li>Verifies the resource is in a valid space for deletion
+     *   <li>Performs resource-specific pre-deletion validation
+     *   <li>Removes the resource from external services (Engine/SAP)
+     *   <li>Unlinks the resource from its parent container
+     *   <li>Deletes the document from the OpenSearch index
+     *   <li>Updates the policy hash for the affected space
+     * </ol>
+     *
+     * @param request The REST request containing the resource ID as a path parameter.
+     * @param client The OpenSearch client used for index operations and validation.
+     * @return A {@link RestResponse} containing the deleted resource ID with HTTP 200 status on
+     *     success, or an appropriate error response with error details on failure. Possible HTTP
+     *     status codes:
+     *     <ul>
+     *       <li>200 OK: Resource deleted successfully.
+     *       <li>400 Bad Request: ID is missing, invalid, or resource is in an invalid space.
+     *       <li>404 Not Found: Index or resource ID not found.
+     *       <li>500 Internal Server Error: Unexpected error during processing.
+     *     </ul>
+     */
     @Override
     protected RestResponse executeRequest(RestRequest request, Client client) {
         String id = request.param(Constants.KEY_ID);
@@ -142,7 +176,7 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
 
             // 4. Unlink Parent
             try {
-                this.unlinkFromParent(client, id);
+                this.unlinkFromParent(client, id, this.spaceName);
             } catch (Exception e) {
                 log.error(
                         Constants.E_LOG_FAILED_TO,
@@ -171,42 +205,90 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
         }
     }
 
+    /**
+     * Returns the index name where the resource is stored.
+     *
+     * <p>This index is used for retrieving and deleting the resource documents in OpenSearch.
+     * Implementations must return a valid and consistent index name for the resource type.
+     *
+     * @return The name of the OpenSearch index for this resource type.
+     */
     protected abstract String getIndexName();
 
+    /**
+     * Returns the resource type identifier.
+     *
+     * <p>This is used for logging, error messages, and identification purposes throughout the
+     * deletion workflow.
+     *
+     * @return A human-readable string describing the resource type (e.g., "Rule", "Decoder",
+     *     "Filter").
+     */
     protected abstract String getResourceType();
 
+    /**
+     * Returns the set of valid spaces where resources can be deleted.
+     *
+     * <p>This defines which spaces allow deletion operations. Resources in other spaces cannot be
+     * deleted and will result in a validation error.
+     *
+     * @return A set of {@link Space} values representing the allowed spaces for deletion.
+     */
     protected abstract Set<Space> getAllowedSpaces();
 
     /**
-     * Validates if the requested delete can be performed or not
+     * Validates if the requested deletion can be performed.
      *
-     * @param client Client used to search in the indices
-     * @param id UUID of the resource to check
-     * @return null if the resource can be deleted otherwise a RestResponse with the reason why it
-     *     cannot
+     * <p>This method allows subclasses to implement resource-specific pre-deletion validation logic.
+     * It is called after structural validation but before external service deletion. Common
+     * validations might include checking for dependent resources or policy constraints.
+     *
+     * @param client The OpenSearch client for searching or accessing data if validation requires
+     *     lookups.
+     * @param id The unique identifier of the resource to validate for deletion.
+     * @return null if the resource can be safely deleted, or a {@link RestResponse} with error
+     *     details explaining why the deletion cannot proceed.
      */
     protected RestResponse validateDelete(Client client, String id) {
         return null;
     }
 
     /**
-     * Synchronizes the deletion of the resource with external services (SAP).
+     * Removes the resource from external services (Engine/SAP).
      *
-     * @param id Resource UUID
+     * <p>This method is called during the deletion workflow to synchronize the resource removal with
+     * external systems. If this method throws a NotFoundException, it will be logged as a warning but
+     * will not fail the deletion. Other exceptions will cause the entire deletion to be rolled back.
+     *
+     * @param id The unique identifier of the resource to delete from external services.
      */
     protected abstract void deleteExternalServices(String id);
 
     /**
-     * Unlinks the just deleted resource to its parent container (e.g., deleting Rule ID to
-     * Integration).
+     * Unlinks the resource from its parent container.
+     *
+     * <p>This method is called during the deletion workflow to remove any parent-child relationships.
+     * For example, when deleting a Rule, this method would remove the Rule ID from its parent
+     * Integration. If this method throws an exception, the entire deletion is rolled back.
+     *
+     * @param client The OpenSearch client for updating parent resources.
+     * @param id The unique identifier of the resource being unlinked from its parent.
+     * @param spaceName The name of the space the resource belongs to, used for policy hash updates.
+     * @throws Exception If an error occurs while unlinking from parent resources.
      */
-    protected abstract void unlinkFromParent(Client client, String id) throws Exception;
+    protected abstract void unlinkFromParent(Client client, String id, String spaceName)
+            throws Exception;
 
     /**
-     * Checks if the exception corresponds to a Not Found (404) error.
+     * Checks if the exception represents a Not Found (404) error.
+     *
+     * <p>This method traverses the exception cause chain to identify if the root cause is an
+     * OpenSearchStatusException with a NOT_FOUND status. This is useful for distinguishing between
+     * resource-not-found errors and other types of failures during external service deletion.
      *
      * @param e The exception to check.
-     * @return true if it is a Not Found error, false otherwise.
+     * @return true if the exception or any of its causes is an OpenSearchStatusException with
+     *     NOT_FOUND status, false otherwise.
      */
     private boolean isNotFoundException(Exception e) {
         Throwable cause = e;
@@ -222,13 +304,24 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
     }
 
     /**
-     * Validates that a document exists and is in a valid space.
+     * Validates that a document exists and is in a valid deletion space.
      *
-     * @param client the OpenSearch client
-     * @param index the index to search in
-     * @param docId document ID to validate
-     * @param docType the document type name for error messages (e.g., "Decoder", "Integration")
-     * @return an error message if validation fails, null otherwise
+     * <p>This method retrieves the document from the index and verifies:
+     *
+     * <ul>
+     *   <li>The document exists in the index
+     *   <li>The document has a valid space definition
+     *   <li>The space is one of the allowed spaces for deletion
+     * </ul>
+     *
+     * <p>If validation passes, the spaceName field is updated with the document's space name for use
+     * in subsequent operations like policy hash updates.
+     *
+     * @param client The OpenSearch client for performing the document retrieval.
+     * @param index The index name to search in.
+     * @param docId The document ID to validate.
+     * @param docType The document type name for error messages (e.g., "Decoder", "Integration").
+     * @return An error message string if validation fails, null if validation succeeds.
      */
     private String validateDocumentInSpace(
             Client client, String index, String docId, String docType) {
