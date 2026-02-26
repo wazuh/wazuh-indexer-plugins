@@ -167,7 +167,7 @@ The **wazuh-events-v5-unclassified** data stream is a specialized stream designe
 - **Location**: `plugins/setup/src/main/resources/templates/streams/unclassified.json`
 - **Index Pattern**: `wazuh-events-v5-unclassified*`
 - **Rollover Alias**: `wazuh-events-v5-unclassified`
-- **Priority**: 2 (higher priority than standard event streams for proper template selection)
+- **Priority**: 1 (higher priority than standard event streams for proper template selection)
 
 #### Fields Included
 - **@timestamp**: Event timestamp
@@ -188,8 +188,8 @@ The **wazuh-events-v5-unclassified** data stream is a specialized stream designe
 ### ISM Policy
 
 #### Policy Details
-- **Policy Name**: `unclassified-events-policy`
-- **Location**: `plugins/setup/src/main/resources/policies/unclassified-events-policy.json`
+- **Policy Name**: `stream-unclassified-events-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/stream-unclassified-events-policy.json`
 - **Retention Period**: 7 days
 - **Priority**: 100
 
@@ -226,7 +226,7 @@ The **wazuh-events-v5-unclassified** data stream is a specialized stream designe
 The data stream is created automatically during plugin initialization. Ensure:
 
 1. The template file `unclassified.json` exists in `templates/streams/`
-2. The ISM policy file `unclassified-events-policy.json` exists in `policies/`
+2. The ISM policy file `stream-unclassified-events-policy.json` exists in `policies/`
 3. Both are registered in `SetupPlugin.java` and `IndexStateManagement.java`
 
 ### Indexing Unclassified Events
