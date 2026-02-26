@@ -7,6 +7,6 @@ fields:
   event:
     fields:
       original: {}
-  # Wazuh specific fields.
+  # Wazuh specific fields
   wazuh:
     fields: "*"
