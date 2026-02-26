@@ -400,6 +400,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             policy.setReferences(List.of("https://wazuh.com"));
             policy.setDate(date);
             policy.setModified(date);
+            policy.setEnabled(false);
+            policy.setIndexUnclassifiedEvents(false);
+            policy.setIndexDiscardedEvents(false);
             Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
 
             String docJson = this.mapper.writeValueAsString(docMap);

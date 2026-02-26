@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-raw
+name: wazuh-events-unclassified
 fields:
   base:
     fields:
@@ -7,6 +7,5 @@ fields:
   event:
     fields:
       original: {}
-  # Wazuh specific fields
   wazuh:
     fields: "*"
