@@ -86,15 +86,15 @@ dependencies {
   compileOnly "org.slf4j:slf4j-api:2.0.17"
 
   // Http Client
-  compileOnly "org.apache.httpcomponents.client5:httpclient5:5.4.4"
-  compileOnly "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
-  compileOnly "org.apache.httpcomponents.core5:httpcore5:5.3.4"
+  compileOnly "org.apache.httpcomponents.client5:httpclient5:5.6"
+  compileOnly "org.apache.httpcomponents.core5:httpcore5-h2:5.4"
+  compileOnly "org.apache.httpcomponents.core5:httpcore5:5.4"
 
-  // Use Jackson provided by OpenSearch (2.18.2) - only for compile time
-  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
-  compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
+  // Use Jackson provided by OpenSearch (2.20.1) - only for compile time
+  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.20.1'
+  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.20'
+  compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.20.1'
 
   compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
   // ZipArchive dependencies used for integration tests
