@@ -602,7 +602,7 @@ fields:
     fields: "*"
   x509:
     fields: "*"
-  # Wazuh specific fields
+  # Wazuh specific fields..
   wazuh:
     fields: "*"
   check:
