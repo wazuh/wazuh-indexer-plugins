@@ -53,12 +53,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
-import com.wazuh.contentmanager.engine.settings.EngineSettings;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
@@ -78,13 +76,11 @@ import com.wazuh.contentmanager.rest.service.RestPostRuleAction;
 import com.wazuh.contentmanager.rest.service.RestPostSubscriptionAction;
 import com.wazuh.contentmanager.rest.service.RestPostUpdateAction;
 import com.wazuh.contentmanager.rest.service.RestPutDecoderAction;
-import com.wazuh.contentmanager.rest.service.RestPutEngineSettings;
 import com.wazuh.contentmanager.rest.service.RestPutIntegrationAction;
 import com.wazuh.contentmanager.rest.service.RestPutKvdbAction;
 import com.wazuh.contentmanager.rest.service.RestPutPolicyAction;
 import com.wazuh.contentmanager.rest.service.RestPutRuleAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 
 /** Main class of the Content Manager Plugin */
@@ -101,8 +97,6 @@ public class ContentManagerPlugin extends Plugin
     private CatalogSyncJob catalogSyncJob;
     private EngineService engine;
     private SpaceService spaceService;
-    private ContentIndex wazuhSettingsIndex;
-    private EngineSettings engineSettings;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -161,10 +155,6 @@ public class ContentManagerPlugin extends Plugin
         // Initialize Space Service
         this.spaceService = new SpaceService(this.client);
 
-        // Initialize Wazuh Settings Index client
-        this.wazuhSettingsIndex = new ContentIndex(client, Constants.INDEX_SETTINGS);
-        this.engineSettings = new EngineSettings(this.wazuhSettingsIndex);
-
         return Collections.emptyList();
     }
 
@@ -182,7 +172,6 @@ public class ContentManagerPlugin extends Plugin
         // Only cluster managers are responsible for initialization and the startup sync trigger.
         if (localNode.isClusterManagerNode()) {
             this.start();
-            this.threadPool.generic().execute(this.engineSettings::initialize);
 
             // Trigger update on start if enabled
             if (PluginSettings.getInstance().isUpdateOnStart()) {
@@ -245,9 +234,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
                 new RestPostPromoteAction(this.engine, this.spaceService),
-                new RestGetPromoteAction(this.spaceService),
-                // Engine settings endpoints
-                new RestPutEngineSettings(this.wazuhSettingsIndex));
+                new RestGetPromoteAction(this.spaceService));
     }
 
     /** Performs initialization tasks for the plugin. */

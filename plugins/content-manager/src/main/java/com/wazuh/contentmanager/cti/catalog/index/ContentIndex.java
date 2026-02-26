@@ -203,30 +203,6 @@ public class ContentIndex {
     }
 
     /**
-     * Indexes a document without domain-model processing. Suitable for simple JSON documents such as
-     * engine settings that do not need enrichment or sanitization via {@link #processPayload}.
-     *
-     * @param id The unique identifier for the document.
-     * @param payload The JSON payload to index.
-     * @return The IndexResponse object with the result of the indexing operation.
-     * @throws IOException If the indexing operation fails.
-     */
-    public IndexResponse indexDocument(String id, JsonNode payload) throws IOException {
-        IndexRequest request =
-                new IndexRequest(this.indexName)
-                        .id(id)
-                        .source(this.mapper.writeValueAsString(payload), XContentType.JSON);
-        try {
-            return this.client
-                    .index(request)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to index document [{}]: {}", id, e.getMessage());
-            throw new IOException(e);
-        }
-    }
-
-    /**
      * Indexes a new document or overwrites an existing one.
      *
      * @param id The unique identifier for the document.

@@ -28,7 +28,6 @@ import org.junit.Before;
 import java.lang.reflect.Field;
 import java.util.concurrent.ExecutorService;
 
-import com.wazuh.contentmanager.engine.settings.EngineSettings;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
@@ -49,7 +48,6 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private ThreadPool threadPool;
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
-    @Mock private EngineSettings engineSettings;
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -64,7 +62,6 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
-        this.injectField(this.plugin, "engineSettings", this.engineSettings);
 
         ContentManagerPluginTests.clearInstance();
     }

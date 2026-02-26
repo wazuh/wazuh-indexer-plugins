@@ -53,9 +53,6 @@ public class Constants {
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
-    public static final String S_200_SETTINGS_UPDATED = "Settings updated successfully.";
-    public static final String E_400_MISSING_ENGINE_SETTINGS =
-            "Missing or invalid 'engine.index_raw_events' boolean field.";
     public static final String E_400_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
 
@@ -83,8 +80,6 @@ public class Constants {
     public static final String INDEX_DECODERS = ".cti-decoders";
     public static final String INDEX_IOCS = ".cti-iocs";
     public static final String INDEX_FILTERS = ".engine-filters";
-    public static final String INDEX_SETTINGS = ".wazuh-settings";
-
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -126,10 +121,6 @@ public class Constants {
     public static final String KEY_LOGSOURCE = "logsource";
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
-
-    // Engine Settings Keys
-    public static final String KEY_ENGINE = "engine";
-    public static final String KEY_INDEX_RAW_EVENTS = "index_raw_events";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
