@@ -50,6 +50,12 @@
       description: >
         Wazuh space name.
       example: "default"
+    - name: space.event_discarded
+      type: boolean
+      level: custom
+      description: >
+        Indicates if the event have been discarded.
+      example: false
     - name: protocol.location
       type: keyword
       level: custom
@@ -68,9 +74,3 @@
       description: >
         Wazuh schema version.
       example: "1.7.0"
-    - name: space.event_discarded
-      type: boolean
-      level: custom
-      description: >
-        Indicates if the event have been discarded.
-      example: false
