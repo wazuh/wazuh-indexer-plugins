@@ -1,10 +1,9 @@
 {
   "policy": {
-    "policy_id": "raw-events-purge-policy",
+    "policy_id": "stream-raw-events-policy",
     "description": "Aggressive purge policy for raw events datastream. Deletes data after 1 day retention to optimize storage.",
-    "last_updated_time": 1739836800000,
-    "schema_version": 21,
-    "error_notification": null,
+    "last_updated_time": 1772122150,
+    "schema_version": 1,
     "default_state": "hot",
     "states": [
       {
@@ -39,22 +38,9 @@
         "index_patterns": [
           "wazuh-events-raw-v5*"
         ],
-        "priority": 100,
-        "last_updated_time": 1739836800000
+        "priority": 100
       }
-    ],
-    "user": {
-      "name": "admin",
-      "backend_roles": [
-        "admin"
-      ],
-      "roles": [
-        "own_index",
-        "all_access"
-      ],
-      "custom_attribute_names": [],
-      "user_requested_tenant": null
-    }
+    ]
   }
 }
 

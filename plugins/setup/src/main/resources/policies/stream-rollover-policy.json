@@ -1,10 +1,9 @@
 {
   "policy": {
     "policy_id": "stream-rollover-policy",
-    "description": "Wazuh rollover policy.",
-    "last_updated_time": 1577990934044,
-    "schema_version": 21,
-    "error_notification": null,
+    "description": "Standard Wazuh rollover policy.",
+    "last_updated_time": 1772122150,
+    "schema_version": 1,
     "default_state": "rollover",
     "states": [
       {
@@ -29,23 +28,10 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-events-*"
+          "wazuh-events-v5*"
         ],
-        "priority": 50,
-        "last_updated_time": 1577990934044
+        "priority": 50
       }
-    ],
-    "user": {
-      "name": "admin",
-      "backend_roles": [
-        "admin"
-      ],
-      "roles": [
-        "own_index",
-        "all_access"
-      ],
-      "custom_attribute_names": [],
-      "user_requested_tenant": null
-    }
+    ]
   }
 }

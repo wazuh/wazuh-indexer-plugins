@@ -1,0 +1,45 @@
+{
+  "policy": {
+    "policy_id": "stream-unclassified-events-policy",
+    "description": "ISM policy for unclassified events datastream. Provides extended 7-day retention period to facilitate investigation and troubleshooting of uncategorized events.",
+    "last_updated_time": 1772122150,
+    "schema_version": 1,
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "7d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": [
+          "wazuh-events-v5-unclassified*"
+        ],
+        "priority": 100
+      }
+    ]
+  }
+}

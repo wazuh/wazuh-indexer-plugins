@@ -125,6 +125,7 @@ Integrations are organized by log category:
 - **Security**: Security events, threat detection, vulnerability management
 - **System Activity**: System monitoring logs
 - **Other**: Logs not covered in other categories
+- **Unclassified**: Events that cannot be categorized and require investigation
 
 ## Generated Files Details
 
@@ -196,7 +197,7 @@ The generator uses a class-based architecture:
 
 - `WCSIntegrationsGenerator`: Main class handling the generation process
 - `read_csv_data()`: Parses CSV input and groups by integration
-- `create_folder_structure()`: Creates directory structure  
+- `create_folder_structure()`: Creates directory structure
 - `generate_*()`: Methods for generating specific file types
 - `write_files_for_integration()`: Orchestrates file creation per integration
 

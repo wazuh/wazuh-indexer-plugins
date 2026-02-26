@@ -32,4 +32,5 @@ module_to_file=(
   [stateless/raw]=templates/streams/raw.json
   [stateless/security]=templates/streams/security.json
   [stateless/system-activity]=templates/streams/system-activity.json
+  [stateless/unclassified]=templates/streams/unclassified.json
 )
