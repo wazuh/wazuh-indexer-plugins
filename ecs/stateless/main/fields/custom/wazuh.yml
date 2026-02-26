@@ -68,3 +68,9 @@
       description: >
         Wazuh schema version.
       example: "1.7.0"
+    - name: space.event_discarded
+      type: boolean
+      level: custom
+      description: >
+        Indicates if the event have been discarded.
+      example: false
