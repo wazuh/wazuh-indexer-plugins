@@ -971,6 +971,16 @@ wazuh.schema.version:
   normalize: []
   short: Wazuh schema version.
   type: keyword
+wazuh.space.event_discarded:
+  dashed_name: wazuh-space-event-discarded
+  description: Indicates if the event have been discarded.
+  example: false
+  flat_name: wazuh.space.event_discarded
+  level: custom
+  name: space.event_discarded
+  normalize: []
+  short: Indicates if the event have been discarded.
+  type: boolean
 wazuh.space.name:
   dashed_name: wazuh-space-name
   description: Wazuh space name.
