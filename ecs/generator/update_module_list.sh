@@ -108,10 +108,10 @@ function map_stateless_modules() {
 }
 
 # ====
-# Map engine modules
+# Map settings module
 # ====
-function map_engine_modules() {
-  for dir in ecs/engine/*/; do
+function map_settings_modules() {
+  for dir in ecs/settings/*/; do
     if [[ -d "$dir" ]]; then
       local module_name
       module_name=$(basename "$dir")
@@ -120,7 +120,7 @@ function map_engine_modules() {
       if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
         continue
       fi
-      all_modules["engine/$module_name"]="templates/engine/${module_name}.json"
+      all_modules["settings/$module_name"]="templates/settings/${module_name}.json"
     fi
   done
 }
@@ -129,7 +129,7 @@ function map_engine_modules() {
 # Map CTI IoC modules
 # ====
 function map_cti_modules() {
-  # Map first-level directories in stateless (excluding special directories)
+  # Map first-level directories in cti (excluding special directories)
   for dir in ecs/cti/*; do
     if [[ -d "$dir" ]]; then
       local module_name
@@ -164,10 +164,10 @@ function sort_and_output_modules() {
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
 
-  echo "  # Engine modules" >>"$output_file"
+  echo "  # Settings modules" >>"$output_file"
 
-  # Output engine modules (sorted)
-  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^engine/" | sort); do
+  # Output settings modules (sorted)
+  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^settings/" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
 
@@ -204,7 +204,7 @@ function main() {
 
   map_stateless_modules
 
-  map_engine_modules
+  map_settings_modules
 
   map_cti_modules
 

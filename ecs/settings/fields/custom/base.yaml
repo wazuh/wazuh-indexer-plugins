@@ -10,4 +10,4 @@
       type: boolean
       level: custom
       description: >
-        Setting to index raw events in the engine.
+        When set to `true`, the engine will index raw events.
