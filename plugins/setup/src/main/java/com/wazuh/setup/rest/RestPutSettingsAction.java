@@ -31,7 +31,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.setup.settings.WazuhSettings;
+import com.wazuh.setup.index.SettingsIndex;
 
 /**
  * PUT /_plugins/_wazuh/settings
@@ -50,15 +50,15 @@ public class RestPutSettingsAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:wazuh/settings";
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private final WazuhSettings wazuhSettings;
+    private final SettingsIndex settingsIndex;
 
     /**
      * Construct the REST handler.
      *
-     * @param wazuhSettings the settings service managing the {@code .wazuh-settings} index
+     * @param settingsIndex the settings service managing the {@code .wazuh-settings} index
      */
-    public RestPutSettingsAction(WazuhSettings wazuhSettings) {
-        this.wazuhSettings = wazuhSettings;
+    public RestPutSettingsAction(SettingsIndex settingsIndex) {
+        this.settingsIndex = settingsIndex;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
                 new NamedRoute.Builder()
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .method(RestRequest.Method.PUT)
-                        .path(WazuhSettings.SETTINGS_URI)
+                        .path(SettingsIndex.SETTINGS_URI)
                         .build());
     }
 
@@ -95,7 +95,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
         // 1. Validate content presence
         if (!request.hasContent()) {
             return new RestResponse(
-                    WazuhSettings.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                    SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 2. Parse and validate JSON structure
@@ -105,32 +105,32 @@ public class RestPutSettingsAction extends BaseRestHandler {
             root = mapper.readTree(payload);
         } catch (Exception e) {
             return new RestResponse(
-                    WazuhSettings.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                    SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        JsonNode engineNode = root.get(WazuhSettings.KEY_ENGINE);
+        JsonNode engineNode = root.get(SettingsIndex.KEY_ENGINE);
         if (engineNode == null || !engineNode.isObject()) {
             return new RestResponse(
-                    WazuhSettings.E_400_MISSING_SETTINGS, RestStatus.BAD_REQUEST.getStatus());
+                    SettingsIndex.E_400_MISSING_SETTINGS, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        JsonNode indexRawEventsNode = engineNode.get(WazuhSettings.KEY_INDEX_RAW_EVENTS);
+        JsonNode indexRawEventsNode = engineNode.get(SettingsIndex.KEY_INDEX_RAW_EVENTS);
         if (indexRawEventsNode == null || !indexRawEventsNode.isBoolean()) {
             return new RestResponse(
-                    WazuhSettings.E_400_MISSING_SETTINGS, RestStatus.BAD_REQUEST.getStatus());
+                    SettingsIndex.E_400_MISSING_SETTINGS, RestStatus.BAD_REQUEST.getStatus());
         }
 
         // 3. Build sanitized payload and persist to .wazuh-settings
         try {
             ObjectNode cleanPayload = mapper.createObjectNode();
-            cleanPayload.set(WazuhSettings.KEY_ENGINE, engineNode);
-            this.wazuhSettings.indexDocument(mapper.writeValueAsString(cleanPayload));
+            cleanPayload.set(SettingsIndex.KEY_ENGINE, engineNode);
+            this.settingsIndex.indexDocument(mapper.writeValueAsString(cleanPayload));
             log.info("Wazuh settings updated: {}", cleanPayload);
-            return new RestResponse(WazuhSettings.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus());
+            return new RestResponse(SettingsIndex.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus());
         } catch (Exception e) {
             log.error("Failed to persist settings: {}", e.getMessage(), e);
             return new RestResponse(
-                    WazuhSettings.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    SettingsIndex.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

@@ -26,6 +26,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import com.wazuh.setup.index.SettingsIndex;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -36,12 +37,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link WazuhSettings}. Validates initialization behavior: writes default settings
- * when no document exists, skips when already initialized, and swallows exceptions.
+ * Unit tests for {@link SettingsIndex}. Validates indexDefaultValues behavior: writes default
+ * settings when no document exists, skips when already initialized, and swallows exceptions.
  */
-public class WazuhSettingsTests extends OpenSearchTestCase {
+public class SettingsIndexTests extends OpenSearchTestCase {
 
-    private WazuhSettings wazuhSettings;
+    private SettingsIndex settingsIndex;
     private AutoCloseable mocks;
 
     @Mock private Client client;
@@ -54,9 +55,11 @@ public class WazuhSettingsTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.mocks = MockitoAnnotations.openMocks(this);
-        this.wazuhSettings = new WazuhSettings(this.client);
 
-        when(this.client.prepareGet(WazuhSettings.INDEX_NAME, WazuhSettings.SETTINGS_ID))
+        this.settingsIndex = new SettingsIndex(SettingsIndex.INDEX_NAME, "templates/settings");
+        this.settingsIndex.setClient(this.client);
+
+        when(this.client.prepareGet(SettingsIndex.INDEX_NAME, SettingsIndex.SETTINGS_ID))
                 .thenReturn(this.getRequestBuilder);
         when(this.getRequestBuilder.get()).thenReturn(this.getResponse);
     }
@@ -71,37 +74,37 @@ public class WazuhSettingsTests extends OpenSearchTestCase {
     }
 
     /** No existing document -> default settings with index_raw_events=false are persisted. */
-    public void testInitialize_noDocument_writesDefaultFalse() {
+    public void testIndexDefaultValues_noDocument_writesDefaultFalse() {
         when(this.getResponse.isExists()).thenReturn(false);
         when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
 
-        this.wazuhSettings.initialize();
+        this.settingsIndex.indexDefaultValues();
 
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
 
         IndexRequest captured = captor.getValue();
-        assertEquals(WazuhSettings.INDEX_NAME, captured.index());
-        assertEquals(WazuhSettings.SETTINGS_ID, captured.id());
+        assertEquals(SettingsIndex.INDEX_NAME, captured.index());
+        assertEquals(SettingsIndex.SETTINGS_ID, captured.id());
         assertTrue(
                 "Payload must contain engine.index_raw_events=false",
                 captured.source().utf8ToString().contains("\"index_raw_events\":false"));
     }
 
-    /** Document already exists -> initialize() is a no-op; index() is never called. */
-    public void testInitialize_documentExists_isNoOp() {
+    /** Document already exists -> indexDefaultValues() is a no-op; index() is never called. */
+    public void testIndexDefaultValues_documentExists_isNoOp() {
         when(this.getResponse.isExists()).thenReturn(true);
 
-        this.wazuhSettings.initialize();
+        this.settingsIndex.indexDefaultValues();
 
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
     /** prepareGet throws -> exception is swallowed; index() is never called. */
-    public void testInitialize_exception_swallowed() {
+    public void testIndexDefaultValues_exception_swallowed() {
         when(this.getRequestBuilder.get()).thenThrow(new RuntimeException("Index unavailable"));
 
-        this.wazuhSettings.initialize();
+        this.settingsIndex.indexDefaultValues();
 
         verify(this.client, never()).index(any(IndexRequest.class));
     }

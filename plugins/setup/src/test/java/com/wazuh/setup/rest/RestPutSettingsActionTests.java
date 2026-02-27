@@ -27,7 +27,7 @@ import org.junit.Before;
 
 import java.util.HashMap;
 
-import com.wazuh.setup.settings.WazuhSettings;
+import com.wazuh.setup.index.SettingsIndex;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -46,14 +46,14 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
     private RestPutSettingsAction action;
     private AutoCloseable mocks;
 
-    @Mock private WazuhSettings wazuhSettings;
+    @Mock private SettingsIndex settingsIndex;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.mocks = MockitoAnnotations.openMocks(this);
-        this.action = new RestPutSettingsAction(this.wazuhSettings);
+        this.action = new RestPutSettingsAction(this.settingsIndex);
     }
 
     @After
@@ -70,7 +70,7 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         FakeRestRequest.Builder builder =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
-                        .withPath(WazuhSettings.SETTINGS_URI)
+                        .withPath(SettingsIndex.SETTINGS_URI)
                         .withParams(new HashMap<>());
         if (body != null) {
             builder.withContent(new BytesArray(body), XContentType.JSON);
@@ -84,8 +84,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.S_200_SETTINGS_UPDATED, response.getMessage());
-        verify(this.wazuhSettings, times(1)).indexDocument(anyString());
+        assertEquals(SettingsIndex.S_200_SETTINGS_UPDATED, response.getMessage());
+        verify(this.settingsIndex, times(1)).indexDocument(anyString());
     }
 
     /** Valid payload with index_raw_events=false -> 200. */
@@ -94,7 +94,7 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.wazuhSettings, times(1)).indexDocument(anyString());
+        verify(this.settingsIndex, times(1)).indexDocument(anyString());
     }
 
     /** Request with no body -> 400. */
@@ -103,8 +103,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.E_400_INVALID_REQUEST_BODY, response.getMessage());
-        verify(this.wazuhSettings, never()).indexDocument(anyString());
+        assertEquals(SettingsIndex.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        verify(this.settingsIndex, never()).indexDocument(anyString());
     }
 
     /** Malformed JSON body -> 400. */
@@ -113,8 +113,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.E_400_INVALID_REQUEST_BODY, response.getMessage());
-        verify(this.wazuhSettings, never()).indexDocument(anyString());
+        assertEquals(SettingsIndex.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        verify(this.settingsIndex, never()).indexDocument(anyString());
     }
 
     /** Payload missing 'engine' object -> 400. */
@@ -123,8 +123,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.E_400_MISSING_SETTINGS, response.getMessage());
-        verify(this.wazuhSettings, never()).indexDocument(anyString());
+        assertEquals(SettingsIndex.E_400_MISSING_SETTINGS, response.getMessage());
+        verify(this.settingsIndex, never()).indexDocument(anyString());
     }
 
     /** 'engine' present but missing 'index_raw_events' -> 400. */
@@ -133,8 +133,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.E_400_MISSING_SETTINGS, response.getMessage());
-        verify(this.wazuhSettings, never()).indexDocument(anyString());
+        assertEquals(SettingsIndex.E_400_MISSING_SETTINGS, response.getMessage());
+        verify(this.settingsIndex, never()).indexDocument(anyString());
     }
 
     /** 'index_raw_events' is a string, not a boolean -> 400. */
@@ -143,20 +143,20 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.E_400_MISSING_SETTINGS, response.getMessage());
-        verify(this.wazuhSettings, never()).indexDocument(anyString());
+        assertEquals(SettingsIndex.E_400_MISSING_SETTINGS, response.getMessage());
+        verify(this.settingsIndex, never()).indexDocument(anyString());
     }
 
     /** Index operation throws an exception -> 500. */
     public void testPut_indexingFails_500() {
         doThrow(new RuntimeException("Index unavailable"))
-                .when(this.wazuhSettings)
+                .when(this.settingsIndex)
                 .indexDocument(anyString());
 
         RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertEquals(WazuhSettings.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
+        assertEquals(SettingsIndex.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
     }
 }

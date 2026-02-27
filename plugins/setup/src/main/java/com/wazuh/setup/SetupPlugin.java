@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -32,6 +32,7 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
@@ -46,11 +47,11 @@ import java.util.function.Supplier;
 
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
+import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.rest.RestPutSettingsAction;
 import com.wazuh.setup.settings.PluginSettings;
-import com.wazuh.setup.settings.WazuhSettings;
 import com.wazuh.setup.utils.JsonUtils;
 
 /**
@@ -66,7 +67,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private Client client;
     private ClusterService clusterService;
     private ThreadPool threadPool;
-    private WazuhSettings wazuhSettings;
+    private SettingsIndex settingsIndex;
     // spotless:off
     private final String[] categories = {
         "access-management", // No integration in this category yet
@@ -101,7 +102,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.client = client;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.wazuhSettings = new WazuhSettings(client);
         // spotless:off
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
@@ -139,7 +139,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
         this.indices.add(new StateIndex("wazuh-statistics", "templates/statistics"));
-        this.indices.add(new StateIndex(".wazuh-settings", "templates/settings"));
+
+        // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
+        this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
+        this.indices.add(this.settingsIndex);
 
         // spotless:on
 
@@ -184,20 +187,19 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             }
 
             this.indices.forEach(Index::initialize);
-            this.threadPool.generic().execute(this.wazuhSettings::initialize);
         }
     }
 
     @Override
     public List<RestHandler> getRestHandlers(
             Settings settings,
-            org.opensearch.rest.RestController restController,
-            org.opensearch.common.settings.ClusterSettings clusterSettings,
-            org.opensearch.common.settings.IndexScopedSettings indexScopedSettings,
-            org.opensearch.common.settings.SettingsFilter settingsFilter,
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
-        return List.of(new RestPutSettingsAction(this.wazuhSettings));
+            Supplier<DiscoveryNodes> nodesInCluster) {
+        return List.of(new RestPutSettingsAction(this.settingsIndex));
     }
 
     @Override

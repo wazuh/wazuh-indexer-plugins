@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.setup.settings;
+package com.wazuh.setup.index;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -24,15 +24,14 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.transport.client.Client;
 
 /**
  * Manages the {@code .wazuh-settings} index document lifecycle. Responsible for writing the default
  * settings document at cluster startup (if absent) and providing document write operations for the
  * REST handler.
  */
-public class WazuhSettings {
-    private static final Logger log = LogManager.getLogger(WazuhSettings.class);
+public class SettingsIndex extends WazuhIndex {
+    private static final Logger log = LogManager.getLogger(SettingsIndex.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
     /** Index name for Wazuh settings. */
@@ -42,7 +41,7 @@ public class WazuhSettings {
     public static final String SETTINGS_ID = "1";
 
     /** REST endpoint URI. */
-    public static final String SETTINGS_URI = "/_plugins/_wazuh/settings";
+    public static final String SETTINGS_URI = "/_plugins/setup/settings";
 
     // JSON field keys
     public static final String KEY_ENGINE = "engine";
@@ -55,15 +54,21 @@ public class WazuhSettings {
             "Missing or invalid 'engine.index_raw_events' boolean field.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
 
-    private final Client client;
-
     /**
-     * Construct the Wazuh settings manager.
+     * Constructor.
      *
-     * @param client the OpenSearch client
+     * @param index index name.
+     * @param template index template name.
      */
-    public WazuhSettings(Client client) {
-        this.client = client;
+    public SettingsIndex(String index, String template) {
+        super(index, template);
+    }
+
+    @Override
+    public void initialize() {
+        this.createTemplate(this.template);
+        this.createIndex(this.index);
+        this.indexDefaultValues();
     }
 
     /**
@@ -71,7 +76,7 @@ public class WazuhSettings {
      * default document with {@code engine.index_raw_events = false} is persisted. If the document
      * already exists, this method is a no-op.
      */
-    public void initialize() {
+    public void indexDefaultValues() {
         try {
             GetResponse response = this.client.prepareGet(INDEX_NAME, SETTINGS_ID).get();
             if (response.isExists()) {
