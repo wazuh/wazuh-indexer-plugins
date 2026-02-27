@@ -27,6 +27,7 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -188,13 +189,14 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
         if (searchResult == null
                 || !searchResult.has(Constants.Q_HITS)
                 || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException("Draft policy not found");
+            throw new IllegalStateException(
+                    String.format(Locale.ROOT, "%s policy not found", this.getSpaceName()));
         }
 
         ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-        JsonNode draftPolicyHit = hitsArray.get(0);
-        String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
-        JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
+        JsonNode policyHit = hitsArray.get(0);
+        String policyId = policyHit.get(Constants.KEY_ID).asText();
+        JsonNode document = policyHit.get(Constants.KEY_DOCUMENT);
 
         ArrayNode filters;
         if (document.has(Constants.KEY_FILTERS)) {
@@ -207,8 +209,8 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
         filters.add(id);
 
         String hash = Resource.computeSha256(document.toString());
-        ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+        ((ObjectNode) policyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
-        policiesIndex.create(draftPolicyId, draftPolicyHit, false);
+        policiesIndex.create(policyId, policyHit, false);
     }
 }

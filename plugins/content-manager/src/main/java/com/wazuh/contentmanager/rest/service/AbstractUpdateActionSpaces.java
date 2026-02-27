@@ -201,7 +201,7 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
             JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, spaceName);
             index.create(id, ctiWrapper, false);
 
-            // 9. Update Hash
+            // 9. Update Space Hash
             this.spaceService.calculateAndUpdate(List.of(spaceName));
 
             log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
