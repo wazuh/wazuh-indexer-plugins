@@ -67,12 +67,45 @@ public class RestResponse implements ToXContent {
     }
 
     /**
+     * Sets or updates the message.
+     *
+     * @param message the new message
+     */
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    /**
      * Returns the HTTP status code.
      *
      * @return the HTTP status code
      */
     public int getStatus() {
         return this.status;
+    }
+
+    /**
+     * Sets the HTTP status code for this response.
+     *
+     * @param status the HTTP status code to set
+     */
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    @Override
+    public String toString() {
+        return "{" + "message='" + this.message + '\'' + ", status=" + this.status + '}';
+    }
+
+    /**
+     * Serializes this RestResponse into an {@link XContentBuilder} using JSON format.
+     *
+     * @return an {@link XContentBuilder} containing the JSON representation of this RestResponse
+     * @throws IOException if an I/O error occurs while building the content
+     */
+    public XContentBuilder toXContent() throws IOException {
+        return this.toXContent(XContentFactory.jsonBuilder(), null);
     }
 
     @Override

@@ -28,10 +28,11 @@ import org.junit.Before;
 import java.util.HashMap;
 
 import com.wazuh.setup.index.SettingsIndex;
+import com.wazuh.setup.model.WazuhSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -85,7 +86,7 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
 
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         assertEquals(SettingsIndex.S_200_SETTINGS_UPDATED, response.getMessage());
-        verify(this.settingsIndex, times(1)).indexDocument(anyString());
+        verify(this.settingsIndex, times(1)).indexDocument(any(WazuhSettings.class));
     }
 
     /** Valid payload with index_raw_events=false -> 200. */
@@ -94,7 +95,7 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.settingsIndex, times(1)).indexDocument(anyString());
+        verify(this.settingsIndex, times(1)).indexDocument(any(WazuhSettings.class));
     }
 
     /** Request with no body -> 400. */
@@ -104,7 +105,7 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(SettingsIndex.E_400_INVALID_REQUEST_BODY, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(anyString());
+        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
     }
 
     /** Malformed JSON body -> 400. */
@@ -114,7 +115,7 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(SettingsIndex.E_400_INVALID_REQUEST_BODY, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(anyString());
+        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
     }
 
     /** Payload missing 'engine' object -> 400. */
@@ -123,8 +124,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.E_400_MISSING_SETTINGS, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(anyString());
+        assertTrue(response.getMessage().contains("engine"));
+        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
     }
 
     /** 'engine' present but missing 'index_raw_events' -> 400. */
@@ -133,25 +134,25 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.E_400_MISSING_SETTINGS, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(anyString());
+        assertTrue(response.getMessage().contains("engine.index_raw_events"));
+        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
     }
 
-    /** 'index_raw_events' is a string, not a boolean -> 400. */
+    /** 'index_raw_events' is a string, not a boolean -> 400 (type validation fails). */
     public void testPut_nonBooleanValue_400() {
         RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":\"yes\"}}");
         RestResponse response = this.action.handleRequest(request);
 
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.E_400_MISSING_SETTINGS, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(anyString());
+        assertTrue(response.getMessage().contains("boolean"));
+        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
     }
 
     /** Index operation throws an exception -> 500. */
     public void testPut_indexingFails_500() {
         doThrow(new RuntimeException("Index unavailable"))
                 .when(this.settingsIndex)
-                .indexDocument(anyString());
+                .indexDocument(any(WazuhSettings.class));
 
         RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
         RestResponse response = this.action.handleRequest(request);

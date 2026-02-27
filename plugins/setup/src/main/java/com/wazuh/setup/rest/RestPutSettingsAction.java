@@ -18,7 +18,6 @@ package com.wazuh.setup.rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.setup.index.SettingsIndex;
+import com.wazuh.setup.model.WazuhSettings;
 
 /**
  * PUT /_plugins/_wazuh/settings
@@ -48,7 +48,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutSettingsAction.class);
     private static final String ENDPOINT_NAME = "wazuh_settings";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:wazuh/settings";
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final SettingsIndex settingsIndex;
 
@@ -98,34 +98,27 @@ public class RestPutSettingsAction extends BaseRestHandler {
                     SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 2. Parse and validate JSON structure
+        // 2. Parse JSON
         String payload = request.content().utf8ToString();
         JsonNode root;
         try {
-            root = mapper.readTree(payload);
+            root = MAPPER.readTree(payload);
         } catch (Exception e) {
             return new RestResponse(
                     SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        JsonNode engineNode = root.get(SettingsIndex.KEY_ENGINE);
-        if (engineNode == null || !engineNode.isObject()) {
-            return new RestResponse(
-                    SettingsIndex.E_400_MISSING_SETTINGS, RestStatus.BAD_REQUEST.getStatus());
+        // 3. Validate structure using model method
+        String validationError = WazuhSettings.validate(root);
+        if (validationError != null) {
+            return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        JsonNode indexRawEventsNode = engineNode.get(SettingsIndex.KEY_INDEX_RAW_EVENTS);
-        if (indexRawEventsNode == null || !indexRawEventsNode.isBoolean()) {
-            return new RestResponse(
-                    SettingsIndex.E_400_MISSING_SETTINGS, RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // 3. Build sanitized payload and persist to .wazuh-settings
+        // 4. Parse into model and persist
+        WazuhSettings settings = WazuhSettings.fromPayload(root);
         try {
-            ObjectNode cleanPayload = mapper.createObjectNode();
-            cleanPayload.set(SettingsIndex.KEY_ENGINE, engineNode);
-            this.settingsIndex.indexDocument(mapper.writeValueAsString(cleanPayload));
-            log.info("Wazuh settings updated: {}", cleanPayload);
+            this.settingsIndex.indexDocument(settings);
+            log.info("Wazuh settings updated: {}", settings);
             return new RestResponse(SettingsIndex.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus());
         } catch (Exception e) {
             log.error("Failed to persist settings: {}", e.getMessage(), e);

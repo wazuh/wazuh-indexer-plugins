@@ -16,14 +16,13 @@
  */
 package com.wazuh.setup.index;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
+
+import com.wazuh.setup.model.WazuhSettings;
 
 /**
  * Manages the {@code .wazuh-settings} index document lifecycle. Responsible for writing the default
@@ -32,7 +31,6 @@ import org.opensearch.common.xcontent.XContentType;
  */
 public class SettingsIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(SettingsIndex.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     /** Index name for Wazuh settings. */
     public static final String INDEX_NAME = ".wazuh-settings";
@@ -43,15 +41,11 @@ public class SettingsIndex extends WazuhIndex {
     /** REST endpoint URI. */
     public static final String SETTINGS_URI = "/_plugins/_setup/settings";
 
-    // JSON field keys
-    public static final String KEY_ENGINE = "engine";
-    public static final String KEY_INDEX_RAW_EVENTS = "index_raw_events";
-
     // Response messages
     public static final String S_200_SETTINGS_UPDATED = "Settings updated successfully.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
-    public static final String E_400_MISSING_SETTINGS =
-            "Missing or invalid 'engine.index_raw_events' boolean field.";
+    public static final String E_400_MISSING_FIELD = "Missing required field: '%s'.";
+    public static final String E_400_INVALID_TYPE = "Field '%s' must be of type %s.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
 
     /**
@@ -84,15 +78,9 @@ public class SettingsIndex extends WazuhIndex {
                 return;
             }
 
-            ObjectNode defaults = mapper.createObjectNode();
-            ObjectNode engine = mapper.createObjectNode();
-            engine.put(KEY_INDEX_RAW_EVENTS, false);
-            defaults.set(KEY_ENGINE, engine);
-
+            WazuhSettings defaults = WazuhSettings.createDefault();
             IndexRequest request =
-                    new IndexRequest(INDEX_NAME)
-                            .id(SETTINGS_ID)
-                            .source(mapper.writeValueAsString(defaults), XContentType.JSON);
+                    new IndexRequest(INDEX_NAME).id(SETTINGS_ID).source(defaults.toJson(), XContentType.JSON);
             this.client.index(request).actionGet();
             log.info("Default Wazuh settings initialized.");
         } catch (Exception e) {
@@ -101,13 +89,13 @@ public class SettingsIndex extends WazuhIndex {
     }
 
     /**
-     * Indexes a settings document with the given JSON payload.
+     * Indexes a WazuhSettings document.
      *
-     * @param payload the JSON string to persist
+     * @param settings the WazuhSettings to persist
      */
-    public void indexDocument(String payload) {
+    public void indexDocument(WazuhSettings settings) {
         IndexRequest request =
-                new IndexRequest(INDEX_NAME).id(SETTINGS_ID).source(payload, XContentType.JSON);
+                new IndexRequest(INDEX_NAME).id(SETTINGS_ID).source(settings.toJson(), XContentType.JSON);
         this.client.index(request).actionGet();
     }
 }
