@@ -63,7 +63,19 @@
         }
       }
     },
-    "connection": {
+    "domain-name": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "file": {
       "properties": {
         "hash": {
           "properties": {
@@ -83,7 +95,7 @@
         }
       }
     },
-    "hash_md5": {
+    "ipv4-addr": {
       "properties": {
         "hash": {
           "properties": {
@@ -95,55 +107,7 @@
         }
       }
     },
-    "hash_sha1": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "hash_sha256": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "hash_sha3_384": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "url-domain": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "url-full": {
+    "url": {
       "properties": {
         "hash": {
           "properties": {
