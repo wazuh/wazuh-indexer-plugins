@@ -7,22 +7,37 @@ fields:
       hash:
         fields:
           sha256: {}
-      ipv4-addr:
+      connection:
         fields:
           hash:
             fields:
               sha256: {}
-      domain-name:
+      url-full:
         fields:
           hash:
             fields:
               sha256: {}
-      url:
+      url-domain:
         fields:
           hash:
             fields:
               sha256: {}
-      file:
+      hash_md5:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      hash_sha1:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      hash_sha256:
+        fields:
+          hash:
+            fields:
+              sha256: {}
+      hash_sha3_384:
         fields:
           hash:
             fields:

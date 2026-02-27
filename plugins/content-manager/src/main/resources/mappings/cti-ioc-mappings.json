@@ -2,6 +2,18 @@
   "date_detection": false,
   "dynamic": "strict",
   "properties": {
+    "connection": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
     "document": {
       "properties": {
         "confidence": {
@@ -63,30 +75,6 @@
         }
       }
     },
-    "domain-name": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "file": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
     "hash": {
       "properties": {
         "sha256": {
@@ -95,7 +83,7 @@
         }
       }
     },
-    "ipv4-addr": {
+    "hash_md5": {
       "properties": {
         "hash": {
           "properties": {
@@ -107,7 +95,55 @@
         }
       }
     },
-    "url": {
+    "hash_sha1": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "hash_sha256": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "hash_sha3_384": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "url-domain": {
+      "properties": {
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    },
+    "url-full": {
       "properties": {
         "hash": {
           "properties": {
