@@ -77,7 +77,7 @@ public class IocHashLifecycleIT extends ContentManagerRestTestCase {
      * Indexes an IOC document with the given type and content.
      *
      * @param docId the document ID
-     * @param type the IOC type (ipv4-addr, domain-name, url, file, geo)
+     * @param type the IOC type (connection, url-full, url-domain, hash_md5, etc.)
      * @param name the IOC name field
      */
     private void indexIocDocument(String docId, String type, String name) throws IOException {
@@ -188,25 +188,25 @@ public class IocHashLifecycleIT extends ContentManagerRestTestCase {
                     emptyHashes.get(type));
         }
 
-        // Index one IOC document of type "ipv4-addr"
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "malicious-ip-1");
+        // Index one IOC document of type "connection"
+        this.indexIocDocument("ioc-conn-1", "connection", "malicious-conn-1");
 
         // Recompute hashes
         Map<String, String> afterCreateHashes = this.computeTypeHashes();
 
-        // ipv4-addr hash should have changed
+        // connection hash should have changed
         assertNotEquals(
-                "ipv4-addr hash should change after creating an ipv4-addr IOC",
-                emptyHashes.get("ipv4-addr"),
-                afterCreateHashes.get("ipv4-addr"));
+                "connection hash should change after creating a connection IOC",
+                emptyHashes.get("connection"),
+                afterCreateHashes.get("connection"));
 
         // All other types should remain unchanged
         for (String type : Constants.IOC_TYPES) {
-            if (!"ipv4-addr".equals(type)) {
+            if (!"connection".equals(type)) {
                 assertEquals(
                         "Hash for type '"
                                 + type
-                                + "' should remain unchanged when only ipv4-addr IOCs are added",
+                                + "' should remain unchanged when only connection IOCs are added",
                         emptyHashes.get(type),
                         afterCreateHashes.get(type));
             }
@@ -218,35 +218,35 @@ public class IocHashLifecycleIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Seed documents for two types
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "malicious-ip-1");
-        this.indexIocDocument("ioc-domain-1", "domain-name", "evil-domain-1");
+        this.indexIocDocument("ioc-conn-1", "connection", "malicious-conn-1");
+        this.indexIocDocument("ioc-domain-1", "url-domain", "evil-domain-1");
 
         Map<String, String> beforeUpdateHashes = this.computeTypeHashes();
 
-        // Update the ipv4-addr document (re-index with different content)
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "updated-malicious-ip-1");
+        // Update the connection document (re-index with different content)
+        this.indexIocDocument("ioc-conn-1", "connection", "updated-malicious-conn-1");
 
         Map<String, String> afterUpdateHashes = this.computeTypeHashes();
 
-        // ip hash should have changed
+        // connection hash should have changed
         assertNotEquals(
-                "ipv4-addr hash should change after updating an ipv4-addr IOC",
-                beforeUpdateHashes.get("ipv4-addr"),
-                afterUpdateHashes.get("ipv4-addr"));
+                "connection hash should change after updating a connection IOC",
+                beforeUpdateHashes.get("connection"),
+                afterUpdateHashes.get("connection"));
 
-        // domain-name hash should remain the same
+        // url-domain hash should remain the same
         assertEquals(
-                "domain-name hash should remain unchanged when only ipv4-addr IOCs are updated",
-                beforeUpdateHashes.get("domain-name"),
-                afterUpdateHashes.get("domain-name"));
+                "url-domain hash should remain unchanged when only connection IOCs are updated",
+                beforeUpdateHashes.get("url-domain"),
+                afterUpdateHashes.get("url-domain"));
 
         // Other empty types should also remain unchanged
         for (String type : Constants.IOC_TYPES) {
-            if (!"ipv4-addr".equals(type)) {
+            if (!"connection".equals(type)) {
                 assertEquals(
                         "Hash for type '"
                                 + type
-                                + "' should remain unchanged when only ipv4-addr IOCs are updated",
+                                + "' should remain unchanged when only connection IOCs are updated",
                         beforeUpdateHashes.get(type),
                         afterUpdateHashes.get(type));
             }
@@ -258,32 +258,32 @@ public class IocHashLifecycleIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Seed documents for two types
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "malicious-ip-1");
-        this.indexIocDocument("ioc-domain-1", "domain-name", "evil-domain-1");
+        this.indexIocDocument("ioc-conn-1", "connection", "malicious-conn-1");
+        this.indexIocDocument("ioc-domain-1", "url-domain", "evil-domain-1");
 
         Map<String, String> beforeDeleteHashes = this.computeTypeHashes();
 
-        // Delete the ipv4-addr document
-        this.deleteIocDocument("ioc-ip-1");
+        // Delete the connection document
+        this.deleteIocDocument("ioc-conn-1");
 
         Map<String, String> afterDeleteHashes = this.computeTypeHashes();
 
-        // ipv4-addr hash should revert to the empty hash
+        // connection hash should revert to the empty hash
         String emptyHash = computeSha256("");
         assertEquals(
-                "ipv4-addr hash should revert to empty hash after deleting all ip IOCs",
+                "connection hash should revert to empty hash after deleting all connection IOCs",
                 emptyHash,
-                afterDeleteHashes.get("ipv4-addr"));
+                afterDeleteHashes.get("connection"));
         assertNotEquals(
-                "ipv4-addr hash should differ from the pre-delete value",
-                beforeDeleteHashes.get("ipv4-addr"),
-                afterDeleteHashes.get("ipv4-addr"));
+                "connection hash should differ from the pre-delete value",
+                beforeDeleteHashes.get("connection"),
+                afterDeleteHashes.get("connection"));
 
-        // domain-name hash should remain unchanged
+        // url-domain hash should remain unchanged
         assertEquals(
-                "domain-name hash should remain unchanged when only ipv4-addr IOCs are deleted",
-                beforeDeleteHashes.get("domain-name"),
-                afterDeleteHashes.get("domain-name"));
+                "url-domain hash should remain unchanged when only connection IOCs are deleted",
+                beforeDeleteHashes.get("url-domain"),
+                afterDeleteHashes.get("url-domain"));
     }
 
     /** Tests that hashes are deterministic across multiple computations. */
@@ -291,9 +291,9 @@ public class IocHashLifecycleIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Index several documents
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "malicious-ip-1");
-        this.indexIocDocument("ioc-ip-2", "ipv4-addr", "malicious-ip-2");
-        this.indexIocDocument("ioc-domain-1", "domain-name", "evil-domain-1");
+        this.indexIocDocument("ioc-conn-1", "connection", "malicious-conn-1");
+        this.indexIocDocument("ioc-conn-2", "connection", "malicious-conn-2");
+        this.indexIocDocument("ioc-domain-1", "url-domain", "evil-domain-1");
 
         // Compute hashes twice
         Map<String, String> hashes1 = this.computeTypeHashes();
@@ -317,41 +317,42 @@ public class IocHashLifecycleIT extends ContentManagerRestTestCase {
         String emptyHash = computeSha256("");
 
         // Phase 2: Create IOCs for multiple types
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "malicious-ip-1");
-        this.indexIocDocument("ioc-ip-2", "ipv4-addr", "malicious-ip-2");
-        this.indexIocDocument("ioc-url-1", "url", "phishing-url-1");
+        this.indexIocDocument("ioc-conn-1", "connection", "malicious-conn-1");
+        this.indexIocDocument("ioc-conn-2", "connection", "malicious-conn-2");
+        this.indexIocDocument("ioc-url-1", "url-full", "phishing-url-1");
 
         Map<String, String> afterCreateHashes = this.computeTypeHashes();
-        assertNotEquals("ip hash should change", emptyHash, afterCreateHashes.get("ipv4-addr"));
-        assertNotEquals("url hash should change", emptyHash, afterCreateHashes.get("url"));
+        assertNotEquals(
+                "connection hash should change", emptyHash, afterCreateHashes.get("connection"));
+        assertNotEquals("url-full hash should change", emptyHash, afterCreateHashes.get("url-full"));
         assertEquals(
-                "domain-name hash should remain empty", emptyHash, afterCreateHashes.get("domain-name"));
+                "url-domain hash should remain empty", emptyHash, afterCreateHashes.get("url-domain"));
 
-        // Phase 3: Update one ipv4-addr IOC
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr", "updated-malicious-ip-1");
+        // Phase 3: Update one connection IOC
+        this.indexIocDocument("ioc-conn-1", "connection", "updated-malicious-conn-1");
 
         Map<String, String> afterUpdateHashes = this.computeTypeHashes();
         assertNotEquals(
-                "ip hash should change on update",
-                afterCreateHashes.get("ipv4-addr"),
-                afterUpdateHashes.get("ipv4-addr"));
+                "connection hash should change on update",
+                afterCreateHashes.get("connection"),
+                afterUpdateHashes.get("connection"));
         assertEquals(
-                "url hash should remain unchanged",
-                afterCreateHashes.get("url"),
-                afterUpdateHashes.get("url"));
+                "url-full hash should remain unchanged",
+                afterCreateHashes.get("url-full"),
+                afterUpdateHashes.get("url-full"));
 
-        // Phase 4: Delete all ip IOCs
-        this.deleteIocDocument("ioc-ip-1");
-        this.deleteIocDocument("ioc-ip-2");
+        // Phase 4: Delete all connection IOCs
+        this.deleteIocDocument("ioc-conn-1");
+        this.deleteIocDocument("ioc-conn-2");
 
         Map<String, String> afterDeleteHashes = this.computeTypeHashes();
         assertEquals(
-                "ipv4-addr hash should revert to empty after deleting all ipv4-addr IOCs",
+                "connection hash should revert to empty after deleting all connection IOCs",
                 emptyHash,
-                afterDeleteHashes.get("ipv4-addr"));
+                afterDeleteHashes.get("connection"));
         assertEquals(
-                "url hash should remain unchanged through ipv4-addr deletions",
-                afterCreateHashes.get("url"),
-                afterDeleteHashes.get("url"));
+                "url-full hash should remain unchanged through connection deletions",
+                afterCreateHashes.get("url-full"),
+                afterDeleteHashes.get("url-full"));
     }
 }

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.StringJoiner;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.utils.Constants;
@@ -75,7 +76,7 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
      * Indexes an IOC document with the given type.
      *
      * @param docId the document ID
-     * @param type the IOC type (ipv4-addr, domain-name, url, file)
+     * @param type the IOC type (connection, url-full, url-domain, hash_md5, etc.)
      */
     private void indexIocDocument(String docId, String type) throws IOException {
         // spotless:off
@@ -102,21 +103,32 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
     /**
      * Indexes a hash summary document with per-type SHA-256 hashes.
      *
-     * @param hashes the hash values per type in order: ipv4-addr, domain-name, url, file
+     * @param hashes the hash values per type, one per IOC type in iteration order
      */
     private void indexHashSummaryDocument(String... hashes) throws IOException {
-        assertEquals("Must provide exactly 4 hashes", Constants.IOC_TYPES.size(), hashes.length);
-        // spotless:off
-        String doc = String.format(Locale.ROOT, """
-                {
-                    "ipv4-addr": {"hash": {"sha256": "%s"}},
-                    "domain-name": {"hash": {"sha256": "%s"}},
-                    "url": {"hash": {"sha256": "%s"}},
-                    "file": {"hash": {"sha256": "%s"}}
-                }
-                """, (Object[]) hashes);
-        // spotless:on
+        assertEquals(
+                "Must provide exactly one hash per IOC type", Constants.IOC_TYPES.size(), hashes.length);
+        StringJoiner entries = new StringJoiner(",\n    ");
+        int i = 0;
+        for (String type : Constants.IOC_TYPES) {
+            entries.add(
+                    String.format(
+                            Locale.ROOT, "\"%s\": {\"hash\": {\"sha256\": \"%s\"}}", type, hashes[i++]));
+        }
+        String doc = String.format(Locale.ROOT, "{\n    %s\n}", entries);
         this.makeRequest("PUT", IOC_INDEX + "/_doc/" + HASH_DOC_ID + "?refresh=true", doc);
+    }
+
+    /**
+     * Creates an array of the given hash value repeated once per IOC type.
+     *
+     * @param hash the hash value to repeat
+     * @return an array with one entry per IOC type
+     */
+    private static String[] hashesForAllTypes(String hash) {
+        String[] hashes = new String[Constants.IOC_TYPES.size()];
+        java.util.Arrays.fill(hashes, hash);
+        return hashes;
     }
 
     /** Tests that the strict mapping accepts the hash summary document. */
@@ -124,7 +136,7 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         String hash = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
-        this.indexHashSummaryDocument(hash, hash, hash, hash);
+        this.indexHashSummaryDocument(hashesForAllTypes(hash));
 
         // Retrieve the document and verify structure
         JsonNode result =
@@ -143,23 +155,23 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Index IOC documents of different types
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr");
-        this.indexIocDocument("ioc-domain-1", "domain-name");
-        this.indexIocDocument("ioc-url-1", "url");
+        this.indexIocDocument("ioc-conn-1", "connection");
+        this.indexIocDocument("ioc-domain-1", "url-domain");
+        this.indexIocDocument("ioc-url-1", "url-full");
 
         // Index the hash summary document
         String hash = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-        this.indexHashSummaryDocument(hash, hash, hash, hash);
+        this.indexHashSummaryDocument(hashesForAllTypes(hash));
 
         // Verify IOC documents exist
         // spotless:off
         String query = """
-                {"query": {"term": {"document.type": "ipv4-addr"}}}
+                {"query": {"term": {"document.type": "connection"}}}
                 """;
         // spotless:on
         JsonNode searchResult = this.searchIndex(IOC_INDEX, query);
         long totalHits = searchResult.path("hits").path("total").path("value").asLong(0);
-        assertTrue("Should find the ip IOC document", totalHits > 0);
+        assertTrue("Should find the connection IOC document", totalHits > 0);
 
         // Verify hash summary document exists and is distinct from IOC documents
         JsonNode hashDoc =
@@ -199,10 +211,10 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         String hash2 = "2222222222222222222222222222222222222222222222222222222222222222";
 
         // Index initial hash summary
-        this.indexHashSummaryDocument(hash1, hash1, hash1, hash1);
+        this.indexHashSummaryDocument(hashesForAllTypes(hash1));
 
         // Overwrite with new hashes
-        this.indexHashSummaryDocument(hash2, hash2, hash2, hash2);
+        this.indexHashSummaryDocument(hashesForAllTypes(hash2));
 
         // Verify the document was updated
         JsonNode result =
@@ -220,9 +232,9 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.recreateIocIndexWithStrictMapping();
 
         // Index an IOC document and the hash summary
-        this.indexIocDocument("ioc-ip-1", "ipv4-addr");
+        this.indexIocDocument("ioc-conn-1", "connection");
         String hash = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-        this.indexHashSummaryDocument(hash, hash, hash, hash);
+        this.indexHashSummaryDocument(hashesForAllTypes(hash));
 
         // Query by document.type — hash summary has no document.type, so it should be excluded
         // spotless:off

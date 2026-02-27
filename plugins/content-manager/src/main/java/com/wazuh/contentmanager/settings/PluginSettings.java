@@ -54,8 +54,8 @@ public class PluginSettings {
     private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3_test";
 
     // Default values for Context and Consumer
-    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider";
-    private static final String DEFAULT_IOC_CONSUMER = "iocp_v1";
+    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider_v2";
+    private static final String DEFAULT_IOC_CONSUMER = "iocs_v2";
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 

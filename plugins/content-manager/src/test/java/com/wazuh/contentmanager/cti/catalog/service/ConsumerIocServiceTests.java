@@ -48,6 +48,7 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.stubbing.OngoingStubbing;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -199,41 +200,44 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
                 .thenReturn(pitFuture);
 
-        // Build a search response with one hit for "ip" type, empty for the rest
-        String ipDocHash = "abc123def456";
-        String ipDocSource =
-                "{\"document\":{\"type\":\"ipv4-addr\",\"name\":\"test-ioc\"},"
-                        + "\"hash\":{\"sha256\":\"" + ipDocHash + "\"}}";
-        SearchHit ipHit = new SearchHit(1, "doc-1", Collections.emptyMap(), Collections.emptyMap());
-        ipHit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(ipDocSource));
-        ipHit.sortValues(
+        // Build a search response with one hit for the first IOC type, empty for the rest
+        String connDocHash = "abc123def456";
+        String connDocSource =
+                "{\"document\":{\"type\":\"connection\",\"name\":\"test-ioc\"},"
+                        + "\"hash\":{\"sha256\":\""
+                        + connDocHash
+                        + "\"}}";
+        SearchHit connHit = new SearchHit(1, "doc-1", Collections.emptyMap(), Collections.emptyMap());
+        connHit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(connDocSource));
+        connHit.sortValues(
                 new Object[] {"doc-1"}, new org.opensearch.search.DocValueFormat[] {DocValueFormat.RAW});
-        SearchHits ipHits =
+        SearchHits connHits =
                 new SearchHits(
-                        new SearchHit[] {ipHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
+                        new SearchHit[] {connHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
 
-        // First call for "ip" type returns the hit, second call returns empty (pagination end)
+        // First call for first type returns the hit, second call returns empty (pagination end)
         // All other types return empty immediately
-        SearchResponse ipSearchResponse = mock(SearchResponse.class);
-        when(ipSearchResponse.getHits()).thenReturn(ipHits);
+        SearchResponse connSearchResponse = mock(SearchResponse.class);
+        when(connSearchResponse.getHits()).thenReturn(connHits);
 
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
 
-        ActionFuture<SearchResponse> ipSearchFuture = mock(ActionFuture.class);
-        when(ipSearchFuture.actionGet()).thenReturn(ipSearchResponse);
+        ActionFuture<SearchResponse> connSearchFuture = mock(ActionFuture.class);
+        when(connSearchFuture.actionGet()).thenReturn(connSearchResponse);
 
         ActionFuture<SearchResponse> emptySearchFuture = mock(ActionFuture.class);
         when(emptySearchFuture.actionGet()).thenReturn(emptySearchResponse);
 
-        // ip: first call returns hit, second returns empty. All others return empty.
-        when(this.client.search(any(SearchRequest.class)))
-                .thenReturn(ipSearchFuture) // ip page 1
-                .thenReturn(emptySearchFuture) // ip page 2 (empty = done)
-                .thenReturn(emptySearchFuture) // domain-name
-                .thenReturn(emptySearchFuture) // url
-                .thenReturn(emptySearchFuture) // file
-                .thenReturn(emptySearchFuture); // geo
+        // First type: first call returns hit, second returns empty. All others return empty.
+        OngoingStubbing<ActionFuture<SearchResponse>> stubbing =
+                when(this.client.search(any(SearchRequest.class)))
+                        .thenReturn(connSearchFuture) // first type page 1
+                        .thenReturn(emptySearchFuture); // first type page 2 (empty = done)
+        // Remaining types all return empty
+        for (int i = 1; i < Constants.IOC_TYPES.size(); i++) {
+            stubbing = stubbing.thenReturn(emptySearchFuture);
+        }
 
         // Mock index response
         ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
@@ -247,16 +251,17 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        // Verify the hash for "ip" type differs from the empty hash
+        // Verify the hash for the first type differs from the empty hash
         ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(indexCaptor.capture());
         String source = indexCaptor.getValue().source().utf8ToString();
 
-        String expectedIpHash = Resource.computeSha256(ipDocHash);
+        String expectedConnHash = Resource.computeSha256(connDocHash);
         String emptyHash = Resource.computeSha256("");
-        assertNotEquals("ip hash should differ from empty hash", expectedIpHash, emptyHash);
+        assertNotEquals("connection hash should differ from empty hash", expectedConnHash, emptyHash);
         assertTrue(
-                "Hash document should contain the computed ip hash", source.contains(expectedIpHash));
+                "Hash document should contain the computed connection hash",
+                source.contains(expectedConnHash));
     }
 
     /** Tests that the PIT is deleted even when an exception occurs during hash computation. */
