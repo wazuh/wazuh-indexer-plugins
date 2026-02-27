@@ -120,7 +120,7 @@ function map_settings_modules() {
       if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
         continue
       fi
-      all_modules["settings/$module_name"]="templates/settings/${module_name}.json"
+      all_modules["settings/$module_name"]="templates/${module_name}.json"
     fi
   done
 }
