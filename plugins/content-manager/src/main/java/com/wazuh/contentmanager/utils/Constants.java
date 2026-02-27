@@ -141,6 +141,8 @@ public class Constants {
     public static final String TYPE_DECODER = "decoder";
     public static final String TYPE_IOC = "ioc";
     public static final String TYPE_FILTER = "filter";
+    public static final String TYPE_PREFILTER = "pre-filter";
+    public static final String TYPE_POSTFILTER = "post-filter";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
