@@ -111,7 +111,7 @@ function map_stateless_modules() {
 # Map settings module
 # ====
 function map_settings_modules() {
-  for dir in ecs/settings/*/; do
+  for dir in ecs/settings/; do
     if [[ -d "$dir" ]]; then
       local module_name
       module_name=$(basename "$dir")
