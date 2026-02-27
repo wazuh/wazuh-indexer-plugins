@@ -41,7 +41,7 @@ public class SettingsIndex extends WazuhIndex {
     public static final String SETTINGS_ID = "1";
 
     /** REST endpoint URI. */
-    public static final String SETTINGS_URI = "/_plugins/setup/settings";
+    public static final String SETTINGS_URI = "/_plugins/_setup/settings";
 
     // JSON field keys
     public static final String KEY_ENGINE = "engine";
