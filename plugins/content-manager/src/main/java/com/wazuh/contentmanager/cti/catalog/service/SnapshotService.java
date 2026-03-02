@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,6 +28,7 @@ public interface SnapshotService {
      * Initializes a consumer by processing its associated remote snapshot.
      *
      * @param consumer The remote consumer containing the snapshot link and offset information.
+     * @return true if the snapshot was downloaded and initialized successfully; false otherwise.
      */
-    void initialize(RemoteConsumer consumer);
+    boolean initialize(RemoteConsumer consumer);
 }

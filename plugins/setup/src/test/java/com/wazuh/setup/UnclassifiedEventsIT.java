@@ -22,6 +22,7 @@ import org.opensearch.action.admin.indices.datastream.GetDataStreamAction;
 import org.opensearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.After;
 
 import java.util.Collection;
 import java.util.List;
@@ -98,5 +99,10 @@ public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
             // as the plugin may still be initializing
             assertTrue("Test completed without fatal error", true);
         }
+    }
+
+    @After
+    public void clearFieldData() {
+        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
     }
 }

@@ -40,7 +40,7 @@ public class PluginSettings {
     public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
 
     /** Settings default values */
-    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
+    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
@@ -82,7 +82,7 @@ public class PluginSettings {
                     "plugins.content_manager.max_items_per_bulk",
                     DEFAULT_MAX_ITEMS_PER_BULK,
                     10,
-                    25,
+                    999,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
