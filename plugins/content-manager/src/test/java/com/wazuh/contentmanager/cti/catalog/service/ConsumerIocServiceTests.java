@@ -35,15 +35,12 @@ import org.opensearch.env.Environment;
 import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.aggregations.Aggregations;
-import org.opensearch.search.aggregations.bucket.terms.Terms;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -98,30 +95,17 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * Creates a mock SearchResponse that returns the given types in a terms aggregation and empty
-     * hits.
+     * Creates a SearchHit with the given id, type, and SHA-256 hash. Sort values are set to [type,
+     * id] for the single-pass sorted iteration.
      */
-    @SuppressWarnings("unchecked")
-    private SearchResponse mockAggregationResponse(List<String> types) {
-        Terms termsAgg = mock(Terms.class);
-        when(termsAgg.getName()).thenReturn("ioc_types");
-        List<Terms.Bucket> buckets =
-                types.stream()
-                        .map(
-                                type -> {
-                                    Terms.Bucket bucket = mock(Terms.Bucket.class);
-                                    when(bucket.getKeyAsString()).thenReturn(type);
-                                    return bucket;
-                                })
-                        .collect(java.util.stream.Collectors.toList());
-        when(termsAgg.getBuckets()).thenReturn((List) buckets);
-
-        Aggregations aggregations = new Aggregations(List.of(termsAgg));
-
-        SearchResponse response = mock(SearchResponse.class);
-        when(response.getHits()).thenReturn(SearchHits.empty());
-        when(response.getAggregations()).thenReturn(aggregations);
-        return response;
+    private SearchHit createIocHit(int docId, String id, String type, String sha256) {
+        String source =
+                "{\"document\":{\"type\":\"" + type + "\"},\"hash\":{\"sha256\":\"" + sha256 + "\"}}";
+        SearchHit hit = new SearchHit(docId, id, Collections.emptyMap(), Collections.emptyMap());
+        hit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(source));
+        hit.sortValues(
+                new Object[] {type, id}, new DocValueFormat[] {DocValueFormat.RAW, DocValueFormat.RAW});
+        return hit;
     }
 
     /** Mocks PIT creation and deletion for the test client. */
@@ -159,18 +143,12 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     public void testOnSyncCompleteComputesHashesWhenUpdated() {
         this.mockPitLifecycle();
 
-        // First search returns aggregation with two types; subsequent searches return empty hits
-        SearchResponse aggResponse = this.mockAggregationResponse(List.of("connection", "url-full"));
+        // Single-pass search returns empty hits (no documents)
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
-        when(aggFuture.actionGet()).thenReturn(aggResponse);
         ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
         when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
-        when(this.client.search(any(SearchRequest.class)))
-                .thenReturn(aggFuture) // aggregation query
-                .thenReturn(emptyFuture) // connection hash (empty)
-                .thenReturn(emptyFuture); // url-full hash (empty)
+        when(this.client.search(any(SearchRequest.class))).thenReturn(emptyFuture);
 
         this.mockIndexResponse();
 
@@ -193,19 +171,30 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     public void testHashDocumentContainsDiscoveredTypes() throws Exception {
         this.mockPitLifecycle();
 
-        List<String> discoveredTypes = List.of("connection", "url-full", "hash_md5");
+        String[] types = {"connection", "hash_md5", "url-full"};
 
-        SearchResponse aggResponse = this.mockAggregationResponse(discoveredTypes);
+        // Build hits for three types, sorted by type ASC then _id ASC
+        SearchHit hit1 = this.createIocHit(1, "doc-1", "connection", "aaa111");
+        SearchHit hit2 = this.createIocHit(2, "doc-2", "hash_md5", "bbb222");
+        SearchHit hit3 = this.createIocHit(3, "doc-3", "url-full", "ccc333");
+
+        SearchHits pageHits =
+                new SearchHits(
+                        new SearchHit[] {hit1, hit2, hit3},
+                        new TotalHits(3, TotalHits.Relation.EQUAL_TO),
+                        1.0f);
+        SearchResponse pageResponse = mock(SearchResponse.class);
+        when(pageResponse.getHits()).thenReturn(pageHits);
+
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
-        when(aggFuture.actionGet()).thenReturn(aggResponse);
+
+        ActionFuture<SearchResponse> pageFuture = mock(ActionFuture.class);
+        when(pageFuture.actionGet()).thenReturn(pageResponse);
         ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
         when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
         when(this.client.search(any(SearchRequest.class)))
-                .thenReturn(aggFuture)
-                .thenReturn(emptyFuture)
-                .thenReturn(emptyFuture)
+                .thenReturn(pageFuture)
                 .thenReturn(emptyFuture);
 
         this.mockIndexResponse();
@@ -220,20 +209,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertTrue("Document should have type_hashes wrapper", root.has(Constants.KEY_TYPE_HASHES));
         JsonNode typeHashes = root.get(Constants.KEY_TYPE_HASHES);
 
-        for (String type : discoveredTypes) {
+        for (String type : types) {
             assertTrue("type_hashes should contain type '" + type + "'", typeHashes.has(type));
             assertTrue(
                     "Type '" + type + "' should have hash.sha256",
                     typeHashes.path(type).path(Constants.KEY_HASH).has(Constants.KEY_SHA256));
-        }
-
-        // All types should have the SHA-256 of empty string (no documents matched)
-        String emptyHash = Resource.computeSha256("");
-        for (String type : discoveredTypes) {
-            assertEquals(
-                    "Hash for type '" + type + "' should be SHA-256 of empty string",
-                    emptyHash,
-                    typeHashes.path(type).path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText());
         }
     }
 
@@ -244,37 +224,24 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         // Build a search response with one hit for the "connection" type
         String connDocHash = "abc123def456";
-        String connDocSource =
-                "{\"document\":{\"type\":\"connection\",\"name\":\"test-ioc\"},"
-                        + "\"hash\":{\"sha256\":\""
-                        + connDocHash
-                        + "\"}}";
-        SearchHit connHit = new SearchHit(1, "doc-1", Collections.emptyMap(), Collections.emptyMap());
-        connHit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(connDocSource));
-        connHit.sortValues(
-                new Object[] {"doc-1"}, new org.opensearch.search.DocValueFormat[] {DocValueFormat.RAW});
+        SearchHit connHit = this.createIocHit(1, "doc-1", "connection", connDocHash);
         SearchHits connHits =
                 new SearchHits(
                         new SearchHit[] {connHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
 
-        // Aggregation discovers only "connection"
-        SearchResponse aggResponse = this.mockAggregationResponse(List.of("connection"));
         SearchResponse connSearchResponse = mock(SearchResponse.class);
         when(connSearchResponse.getHits()).thenReturn(connHits);
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
 
-        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
-        when(aggFuture.actionGet()).thenReturn(aggResponse);
         ActionFuture<SearchResponse> connSearchFuture = mock(ActionFuture.class);
         when(connSearchFuture.actionGet()).thenReturn(connSearchResponse);
         ActionFuture<SearchResponse> emptySearchFuture = mock(ActionFuture.class);
         when(emptySearchFuture.actionGet()).thenReturn(emptySearchResponse);
 
         when(this.client.search(any(SearchRequest.class)))
-                .thenReturn(aggFuture) // aggregation
-                .thenReturn(connSearchFuture) // connection page 1
-                .thenReturn(emptySearchFuture); // connection page 2 (empty = done)
+                .thenReturn(connSearchFuture) // page 1 with document
+                .thenReturn(emptySearchFuture); // page 2 (empty = done)
 
         this.mockIndexResponse();
 
@@ -339,16 +306,17 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertTrue(aliases.isEmpty());
     }
 
-    /** Tests that when no types are discovered, an empty type_hashes document is stored. */
+    /** Tests that when no documents exist, an empty type_hashes document is stored. */
     @SuppressWarnings("unchecked")
     public void testEmptyIndexProducesEmptyTypeHashes() throws Exception {
         this.mockPitLifecycle();
 
-        // Aggregation discovers no types
-        SearchResponse aggResponse = this.mockAggregationResponse(List.of());
-        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
-        when(aggFuture.actionGet()).thenReturn(aggResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(aggFuture);
+        // Search returns no hits
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
+        when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(emptyFuture);
 
         this.mockIndexResponse();
 
@@ -361,7 +329,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         JsonNode root = MAPPER.readTree(source);
         assertTrue("Document should have type_hashes wrapper", root.has(Constants.KEY_TYPE_HASHES));
         assertEquals(
-                "type_hashes should be empty when no types are discovered",
+                "type_hashes should be empty when no documents exist",
                 0,
                 root.get(Constants.KEY_TYPE_HASHES).size());
     }
