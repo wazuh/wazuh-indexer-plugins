@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.integration;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import org.opensearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -26,6 +27,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.After;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -141,6 +143,19 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                     1L,
                     spaceHits);
         }
+    }
+
+    /**
+     * Clears the fielddata cache after each test so that {@code ensureEstimatedStats()} does not fail
+     * due to residual fielddata loaded by the plugin or ISM background operations.
+     */
+    @After
+    public void clearFieldDataCache() {
+        client()
+                .admin()
+                .indices()
+                .clearCache(new ClearIndicesCacheRequest().fieldDataCache(true))
+                .actionGet();
     }
 
     /** Creates all content indices required by the post-sync workflow with their proper mappings. */
