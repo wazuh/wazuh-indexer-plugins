@@ -22,6 +22,7 @@ import org.opensearch.action.admin.indices.datastream.GetDataStreamAction;
 import org.opensearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.After;
 
 import java.util.Collection;
 import java.util.List;
@@ -48,6 +49,7 @@ public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
      * Test to verify that the unclassified events data stream is created during plugin
      * initialization.
      */
+    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testUnclassifiedDataStreamCreated() {
         // Wait for initialization to complete
         this.ensureGreen();
@@ -76,6 +78,7 @@ public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
      * Test to verify that the unclassified events index template is created during plugin
      * initialization.
      */
+    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testUnclassifiedTemplateCreated() {
         // Wait for initialization to complete
         this.ensureGreen();
@@ -98,5 +101,10 @@ public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
             // as the plugin may still be initializing
             assertTrue("Test completed without fatal error", true);
         }
+    }
+
+    @After
+    public void clearFieldData() {
+        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
     }
 }

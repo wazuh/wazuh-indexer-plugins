@@ -23,6 +23,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
+import org.junit.After;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -74,5 +75,12 @@ public class SetupPluginIT extends OpenSearchRestTestCase {
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
         assertThat(body, containsString("opensearch-index-management"));
+    }
+
+    @After
+    public void clearFieldData() throws IOException {
+        Request request = new Request("POST", "/_cache/clear");
+        request.addParameter("fielddata", "true");
+        client().performRequest(request);
     }
 }
