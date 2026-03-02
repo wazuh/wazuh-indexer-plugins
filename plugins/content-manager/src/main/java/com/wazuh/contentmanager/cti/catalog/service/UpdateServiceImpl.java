@@ -32,6 +32,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Service responsible for keeping the catalog content up-to-date. */
@@ -88,21 +89,33 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 fromOffset,
                 toOffset);
         try {
-            SimpleHttpResponse response =
-                    this.client.getChanges(this.context, this.consumer, fromOffset, toOffset);
-            if (response.getCode() != 200) {
-                log.error("Failed to fetch changes: {} {}", response.getCode(), response.getBodyText());
-                return;
-            }
-
-            Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
+            long currentFromOffset = fromOffset;
             long lastAppliedOffset = fromOffset;
 
-            for (Offset offset : changes.get()) {
-                this.applyOffset(offset);
-                lastAppliedOffset = offset.getOffset();
-            }
+            while (currentFromOffset < toOffset) {
+                long currentToOffset =
+                        Math.min(
+                                currentFromOffset + PluginSettings.getInstance().getMaxItemsPerBulk(), toOffset);
 
+                SimpleHttpResponse response =
+                        this.client.getChanges(this.context, this.consumer, currentFromOffset, currentToOffset);
+                if (response.getCode() != 200) {
+                    log.error("Failed to fetch changes: {} {}", response.getCode(), response.getBodyText());
+                    if (lastAppliedOffset == fromOffset) {
+                        return;
+                    }
+                    break;
+                }
+
+                Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
+
+                for (Offset offset : changes.get()) {
+                    this.applyOffset(offset);
+                }
+
+                lastAppliedOffset = currentToOffset;
+                currentFromOffset = currentToOffset;
+            }
             // Update consumer state
             LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
 
@@ -141,6 +154,10 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
                     if (payload.has(Constants.KEY_TYPE)) {
                         String type = payload.get(Constants.KEY_TYPE).asText();
+
+                        if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
+                            type = Constants.KEY_IOCS;
+                        }
 
                         index = this.indices.get(type);
                         if (index != null) {
