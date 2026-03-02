@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -53,7 +53,7 @@ public class SnapshotClient {
      * Downloads the CTI snapshot.
      *
      * @param snapshotURI URI to the file to download.
-     * @return The downloaded file's name
+     * @return The downloaded file's name, or null if the download failed
      * @throws IOException If an I/O error occurs during download.
      * @throws URISyntaxException If the provided URI is invalid.
      */
@@ -68,6 +68,12 @@ public class SnapshotClient {
             // Download
             log.info("Starting snapshot download from [{}]", uri);
             try (CloseableHttpResponse response = client.execute(request)) {
+                if (response.getCode() < 200 || response.getCode() >= 300) {
+                    log.error(
+                            "Failed to download snapshot, received HTTP status code: {}", response.getCode());
+                    return null;
+                }
+
                 if (response.getEntity() != null) {
                     // Write to disk
                     InputStream input = response.getEntity().getContent();
@@ -85,6 +91,9 @@ public class SnapshotClient {
                             out.write(buffer, 0, bytesRead);
                         }
                     }
+                } else {
+                    log.error("Failed to download snapshot, empty response entity.");
+                    return null;
                 }
             }
             log.info("Snapshot downloaded to [{}]", path);
