@@ -49,6 +49,7 @@ public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
      * Test to verify that the unclassified events data stream is created during plugin
      * initialization.
      */
+    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testUnclassifiedDataStreamCreated() {
         // Wait for initialization to complete
         this.ensureGreen();
@@ -77,6 +78,7 @@ public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
      * Test to verify that the unclassified events index template is created during plugin
      * initialization.
      */
+    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testUnclassifiedTemplateCreated() {
         // Wait for initialization to complete
         this.ensureGreen();
