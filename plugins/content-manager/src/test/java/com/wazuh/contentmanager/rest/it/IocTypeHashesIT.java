@@ -23,6 +23,7 @@ import org.opensearch.client.ResponseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
 
@@ -30,8 +31,9 @@ import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Integration tests for per-type IOC hash summary documents. Verifies that the strict IOC index
- * mapping accepts both regular IOC documents and the hash summary document structure.
+ * Integration tests for per-type IOC hash summary documents. Verifies that the IOC index mapping
+ * accepts both regular IOC documents and the hash summary document with a dynamic {@code
+ * type_hashes} field.
  */
 public class IocTypeHashesIT extends ContentManagerRestTestCase {
 
@@ -76,7 +78,7 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
      * Indexes an IOC document with the given type.
      *
      * @param docId the document ID
-     * @param type the IOC type (connection, url-full, url-domain, hash_md5, etc.)
+     * @param type the IOC type (e.g., "connection", "url-full")
      */
     private void indexIocDocument(String docId, String type) throws IOException {
         // spotless:off
@@ -101,57 +103,52 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
     }
 
     /**
-     * Indexes a hash summary document with per-type SHA-256 hashes.
+     * Indexes a hash summary document with per-type SHA-256 hashes under the {@code type_hashes}
+     * wrapper.
      *
-     * @param hashes the hash values per type, one per IOC type in iteration order
+     * @param types the IOC type names
+     * @param hash the hash value to use for all types
      */
-    private void indexHashSummaryDocument(String... hashes) throws IOException {
-        assertEquals(
-                "Must provide exactly one hash per IOC type", Constants.IOC_TYPES.size(), hashes.length);
-        StringJoiner entries = new StringJoiner(",\n    ");
-        int i = 0;
-        for (String type : Constants.IOC_TYPES) {
+    private void indexHashSummaryDocument(List<String> types, String hash) throws IOException {
+        StringJoiner entries = new StringJoiner(",\n        ");
+        for (String type : types) {
             entries.add(
-                    String.format(
-                            Locale.ROOT, "\"%s\": {\"hash\": {\"sha256\": \"%s\"}}", type, hashes[i++]));
+                    String.format(Locale.ROOT, "\"%s\": {\"hash\": {\"sha256\": \"%s\"}}", type, hash));
         }
-        String doc = String.format(Locale.ROOT, "{\n    %s\n}", entries);
+        // spotless:off
+        String doc = String.format(Locale.ROOT, """
+                {
+                    "type_hashes": {
+                        %s
+                    }
+                }
+                """, entries);
+        // spotless:on
         this.makeRequest("PUT", IOC_INDEX + "/_doc/" + HASH_DOC_ID + "?refresh=true", doc);
     }
 
-    /**
-     * Creates an array of the given hash value repeated once per IOC type.
-     *
-     * @param hash the hash value to repeat
-     * @return an array with one entry per IOC type
-     */
-    private static String[] hashesForAllTypes(String hash) {
-        String[] hashes = new String[Constants.IOC_TYPES.size()];
-        java.util.Arrays.fill(hashes, hash);
-        return hashes;
-    }
-
-    /** Tests that the strict mapping accepts the hash summary document. */
-    public void testStrictMappingAcceptsHashSummaryDocument() throws IOException {
+    /** Tests that the mapping accepts the hash summary document with type_hashes wrapper. */
+    public void testMappingAcceptsHashSummaryDocument() throws IOException {
         this.recreateIocIndexWithStrictMapping();
 
+        List<String> types = List.of("connection", "url-full", "url-domain");
         String hash = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
-        this.indexHashSummaryDocument(hashesForAllTypes(hash));
+        this.indexHashSummaryDocument(types, hash);
 
         // Retrieve the document and verify structure
         JsonNode result =
                 this.responseAsJson(this.makeRequest("GET", IOC_INDEX + "/_doc/" + HASH_DOC_ID));
         assertTrue("Document should be found", result.path("found").asBoolean());
 
-        JsonNode source = result.path("_source");
-        for (String type : Constants.IOC_TYPES) {
-            String actual = source.path(type).path("hash").path("sha256").asText("");
+        JsonNode typeHashes = result.path("_source").path(Constants.KEY_TYPE_HASHES);
+        for (String type : types) {
+            String actual = typeHashes.path(type).path("hash").path("sha256").asText("");
             assertEquals("Hash for type '" + type + "' should match", hash, actual);
         }
     }
 
-    /** Tests that the strict mapping accepts both IOC documents and the hash summary document. */
-    public void testStrictMappingAcceptsBothDocumentTypes() throws IOException {
+    /** Tests that the mapping accepts both IOC documents and the hash summary document. */
+    public void testMappingAcceptsBothDocumentTypes() throws IOException {
         this.recreateIocIndexWithStrictMapping();
 
         // Index IOC documents of different types
@@ -159,9 +156,10 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         this.indexIocDocument("ioc-domain-1", "url-domain");
         this.indexIocDocument("ioc-url-1", "url-full");
 
-        // Index the hash summary document
+        // Index the hash summary document with dynamic types
+        List<String> types = List.of("connection", "url-domain", "url-full");
         String hash = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-        this.indexHashSummaryDocument(hashesForAllTypes(hash));
+        this.indexHashSummaryDocument(types, hash);
 
         // Verify IOC documents exist
         // spotless:off
@@ -180,6 +178,28 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
         assertFalse(
                 "Hash summary document should not have a 'document' field",
                 hashDoc.path("_source").has("document"));
+    }
+
+    /**
+     * Tests that the mapping accepts hash summary documents with arbitrary (previously unknown) type
+     * names, thanks to the dynamic type_hashes field.
+     */
+    public void testMappingAcceptsArbitraryTypeNames() throws IOException {
+        this.recreateIocIndexWithStrictMapping();
+
+        List<String> types = List.of("custom-type-1", "my-new-ioc-type", "another_type");
+        String hash = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
+        this.indexHashSummaryDocument(types, hash);
+
+        JsonNode result =
+                this.responseAsJson(this.makeRequest("GET", IOC_INDEX + "/_doc/" + HASH_DOC_ID));
+        assertTrue("Document should be found", result.path("found").asBoolean());
+
+        JsonNode typeHashes = result.path("_source").path(Constants.KEY_TYPE_HASHES);
+        for (String type : types) {
+            String actual = typeHashes.path(type).path("hash").path("sha256").asText("");
+            assertEquals("Hash for type '" + type + "' should match", hash, actual);
+        }
     }
 
     /** Tests that a document with an unmapped field is rejected by the strict mapping. */
@@ -207,22 +227,23 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
     public void testHashSummaryDocumentCanBeUpdated() throws IOException {
         this.recreateIocIndexWithStrictMapping();
 
+        List<String> types = List.of("connection", "url-full");
         String hash1 = "1111111111111111111111111111111111111111111111111111111111111111";
         String hash2 = "2222222222222222222222222222222222222222222222222222222222222222";
 
         // Index initial hash summary
-        this.indexHashSummaryDocument(hashesForAllTypes(hash1));
+        this.indexHashSummaryDocument(types, hash1);
 
         // Overwrite with new hashes
-        this.indexHashSummaryDocument(hashesForAllTypes(hash2));
+        this.indexHashSummaryDocument(types, hash2);
 
         // Verify the document was updated
         JsonNode result =
                 this.responseAsJson(this.makeRequest("GET", IOC_INDEX + "/_doc/" + HASH_DOC_ID));
-        JsonNode source = result.path("_source");
+        JsonNode typeHashes = result.path("_source").path(Constants.KEY_TYPE_HASHES);
 
-        for (String type : Constants.IOC_TYPES) {
-            String actual = source.path(type).path("hash").path("sha256").asText("");
+        for (String type : types) {
+            String actual = typeHashes.path(type).path("hash").path("sha256").asText("");
             assertEquals("Hash for type '" + type + "' should be the updated value", hash2, actual);
         }
     }
@@ -233,8 +254,8 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
 
         // Index an IOC document and the hash summary
         this.indexIocDocument("ioc-conn-1", "connection");
-        String hash = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
-        this.indexHashSummaryDocument(hashesForAllTypes(hash));
+        this.indexHashSummaryDocument(
+                List.of("connection"), "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
 
         // Query by document.type — hash summary has no document.type, so it should be excluded
         // spotless:off

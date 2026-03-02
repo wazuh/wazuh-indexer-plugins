@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
@@ -32,12 +35,15 @@ import org.opensearch.env.Environment;
 import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.terms.Terms;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -48,13 +54,11 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.stubbing.OngoingStubbing;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +67,8 @@ import static org.mockito.Mockito.when;
  * mocked PIT and search operations.
  */
 public class ConsumerIocServiceTests extends OpenSearchTestCase {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private ConsumerIocService service;
     private AutoCloseable closeable;
@@ -91,6 +97,56 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /**
+     * Creates a mock SearchResponse that returns the given types in a terms aggregation and empty
+     * hits.
+     */
+    @SuppressWarnings("unchecked")
+    private SearchResponse mockAggregationResponse(List<String> types) {
+        Terms termsAgg = mock(Terms.class);
+        when(termsAgg.getName()).thenReturn("ioc_types");
+        List<Terms.Bucket> buckets =
+                types.stream()
+                        .map(
+                                type -> {
+                                    Terms.Bucket bucket = mock(Terms.Bucket.class);
+                                    when(bucket.getKeyAsString()).thenReturn(type);
+                                    return bucket;
+                                })
+                        .collect(java.util.stream.Collectors.toList());
+        when(termsAgg.getBuckets()).thenReturn((List) buckets);
+
+        Aggregations aggregations = new Aggregations(List.of(termsAgg));
+
+        SearchResponse response = mock(SearchResponse.class);
+        when(response.getHits()).thenReturn(SearchHits.empty());
+        when(response.getAggregations()).thenReturn(aggregations);
+        return response;
+    }
+
+    /** Mocks PIT creation and deletion for the test client. */
+    @SuppressWarnings("unchecked")
+    private void mockPitLifecycle() {
+        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
+        when(pitResponse.getId()).thenReturn("test-pit-id");
+        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
+        when(pitFuture.actionGet()).thenReturn(pitResponse);
+        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+                .thenReturn(pitFuture);
+
+        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
+        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+                .thenReturn((ActionFuture) deletePitFuture);
+    }
+
+    /** Mocks the index response for storing the hash document. */
+    @SuppressWarnings("unchecked")
+    private void mockIndexResponse() {
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+    }
+
     /** Tests that onSyncComplete does nothing when isUpdated is false. */
     public void testOnSyncCompleteSkipsWhenNotUpdated() {
         this.service.onSyncComplete(false);
@@ -101,30 +157,22 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     /** Tests that onSyncComplete computes and stores hashes when isUpdated is true. */
     @SuppressWarnings("unchecked")
     public void testOnSyncCompleteComputesHashesWhenUpdated() {
-        // Mock PIT creation
-        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
-        when(pitResponse.getId()).thenReturn("test-pit-id");
-        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
-        when(pitFuture.actionGet()).thenReturn(pitResponse);
-        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
-                .thenReturn(pitFuture);
+        this.mockPitLifecycle();
 
-        // Mock search returning empty results for all types (no IOC documents)
+        // First search returns aggregation with two types; subsequent searches return empty hits
+        SearchResponse aggResponse = this.mockAggregationResponse(List.of("connection", "url-full"));
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
-        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
+        when(aggFuture.actionGet()).thenReturn(aggResponse);
+        ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
+        when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class)))
+                .thenReturn(aggFuture) // aggregation query
+                .thenReturn(emptyFuture) // connection hash (empty)
+                .thenReturn(emptyFuture); // url-full hash (empty)
 
-        // Mock index response
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock PIT deletion
-        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
-        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
-                .thenReturn((ActionFuture) deletePitFuture);
+        this.mockIndexResponse();
 
         this.service.onSyncComplete(true);
 
@@ -140,67 +188,61 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertEquals(Constants.IOC_TYPE_HASHES_ID, capturedRequest.id());
     }
 
-    /** Tests that the hash document contains all expected IOC types. */
+    /** Tests that the hash document contains discovered types under type_hashes wrapper. */
     @SuppressWarnings("unchecked")
-    public void testHashDocumentContainsAllIocTypes() {
-        // Mock PIT creation
-        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
-        when(pitResponse.getId()).thenReturn("test-pit-id");
-        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
-        when(pitFuture.actionGet()).thenReturn(pitResponse);
-        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
-                .thenReturn(pitFuture);
+    public void testHashDocumentContainsDiscoveredTypes() throws Exception {
+        this.mockPitLifecycle();
 
-        // Mock search returning empty results
+        List<String> discoveredTypes = List.of("connection", "url-full", "hash_md5");
+
+        SearchResponse aggResponse = this.mockAggregationResponse(discoveredTypes);
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
-        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
+        when(aggFuture.actionGet()).thenReturn(aggResponse);
+        ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
+        when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class)))
+                .thenReturn(aggFuture)
+                .thenReturn(emptyFuture)
+                .thenReturn(emptyFuture)
+                .thenReturn(emptyFuture);
 
-        // Mock index response
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock PIT deletion
-        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
-        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
-                .thenReturn((ActionFuture) deletePitFuture);
+        this.mockIndexResponse();
 
         this.service.onSyncComplete(true);
 
-        // Capture the indexed document and verify all IOC types are present
         ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(indexCaptor.capture());
         String source = indexCaptor.getValue().source().utf8ToString();
 
-        for (String type : Constants.IOC_TYPES) {
+        JsonNode root = MAPPER.readTree(source);
+        assertTrue("Document should have type_hashes wrapper", root.has(Constants.KEY_TYPE_HASHES));
+        JsonNode typeHashes = root.get(Constants.KEY_TYPE_HASHES);
+
+        for (String type : discoveredTypes) {
+            assertTrue("type_hashes should contain type '" + type + "'", typeHashes.has(type));
             assertTrue(
-                    "Hash document should contain type '" + type + "'", source.contains("\"" + type + "\""));
+                    "Type '" + type + "' should have hash.sha256",
+                    typeHashes.path(type).path(Constants.KEY_HASH).has(Constants.KEY_SHA256));
         }
 
         // All types should have the SHA-256 of empty string (no documents matched)
         String emptyHash = Resource.computeSha256("");
-        for (String type : Constants.IOC_TYPES) {
-            assertTrue(
+        for (String type : discoveredTypes) {
+            assertEquals(
                     "Hash for type '" + type + "' should be SHA-256 of empty string",
-                    source.contains(emptyHash));
+                    emptyHash,
+                    typeHashes.path(type).path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText());
         }
     }
 
     /** Tests hash computation with actual IOC documents. */
     @SuppressWarnings("unchecked")
     public void testHashComputationWithDocuments() {
-        // Mock PIT creation
-        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
-        when(pitResponse.getId()).thenReturn("test-pit-id");
-        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
-        when(pitFuture.actionGet()).thenReturn(pitResponse);
-        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
-                .thenReturn(pitFuture);
+        this.mockPitLifecycle();
 
-        // Build a search response with one hit for the first IOC type, empty for the rest
+        // Build a search response with one hit for the "connection" type
         String connDocHash = "abc123def456";
         String connDocSource =
                 "{\"document\":{\"type\":\"connection\",\"name\":\"test-ioc\"},"
@@ -215,43 +257,30 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
                 new SearchHits(
                         new SearchHit[] {connHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
 
-        // First call for first type returns the hit, second call returns empty (pagination end)
-        // All other types return empty immediately
+        // Aggregation discovers only "connection"
+        SearchResponse aggResponse = this.mockAggregationResponse(List.of("connection"));
         SearchResponse connSearchResponse = mock(SearchResponse.class);
         when(connSearchResponse.getHits()).thenReturn(connHits);
-
         SearchResponse emptySearchResponse = mock(SearchResponse.class);
         when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
 
+        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
+        when(aggFuture.actionGet()).thenReturn(aggResponse);
         ActionFuture<SearchResponse> connSearchFuture = mock(ActionFuture.class);
         when(connSearchFuture.actionGet()).thenReturn(connSearchResponse);
-
         ActionFuture<SearchResponse> emptySearchFuture = mock(ActionFuture.class);
         when(emptySearchFuture.actionGet()).thenReturn(emptySearchResponse);
 
-        // First type: first call returns hit, second returns empty. All others return empty.
-        OngoingStubbing<ActionFuture<SearchResponse>> stubbing =
-                when(this.client.search(any(SearchRequest.class)))
-                        .thenReturn(connSearchFuture) // first type page 1
-                        .thenReturn(emptySearchFuture); // first type page 2 (empty = done)
-        // Remaining types all return empty
-        for (int i = 1; i < Constants.IOC_TYPES.size(); i++) {
-            stubbing = stubbing.thenReturn(emptySearchFuture);
-        }
+        when(this.client.search(any(SearchRequest.class)))
+                .thenReturn(aggFuture) // aggregation
+                .thenReturn(connSearchFuture) // connection page 1
+                .thenReturn(emptySearchFuture); // connection page 2 (empty = done)
 
-        // Mock index response
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock PIT deletion
-        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
-        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
-                .thenReturn((ActionFuture) deletePitFuture);
+        this.mockIndexResponse();
 
         this.service.onSyncComplete(true);
 
-        // Verify the hash for the first type differs from the empty hash
+        // Verify the hash for connection differs from the empty hash
         ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(indexCaptor.capture());
         String source = indexCaptor.getValue().source().utf8ToString();
@@ -267,22 +296,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     /** Tests that the PIT is deleted even when an exception occurs during hash computation. */
     @SuppressWarnings("unchecked")
     public void testPitDeletedOnException() {
-        // Mock PIT creation
-        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
-        when(pitResponse.getId()).thenReturn("test-pit-id");
-        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
-        when(pitFuture.actionGet()).thenReturn(pitResponse);
-        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
-                .thenReturn(pitFuture);
+        this.mockPitLifecycle();
 
         // Mock search to throw an exception
         when(this.client.search(any(SearchRequest.class)))
                 .thenThrow(new RuntimeException("Search failed"));
-
-        // Mock PIT deletion
-        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
-        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
-                .thenReturn((ActionFuture) deletePitFuture);
 
         // Should not throw — exception is caught internally
         this.service.onSyncComplete(true);
@@ -321,37 +339,30 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertTrue(aliases.isEmpty());
     }
 
-    /** Tests that search is paginated — one search per type (all empty) plus no extra. */
+    /** Tests that when no types are discovered, an empty type_hashes document is stored. */
     @SuppressWarnings("unchecked")
-    public void testSearchPerformedForEachType() {
-        // Mock PIT creation
-        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
-        when(pitResponse.getId()).thenReturn("test-pit-id");
-        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
-        when(pitFuture.actionGet()).thenReturn(pitResponse);
-        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
-                .thenReturn(pitFuture);
+    public void testEmptyIndexProducesEmptyTypeHashes() throws Exception {
+        this.mockPitLifecycle();
 
-        // Mock search returning empty results for all types
-        SearchResponse emptySearchResponse = mock(SearchResponse.class);
-        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
-        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+        // Aggregation discovers no types
+        SearchResponse aggResponse = this.mockAggregationResponse(List.of());
+        ActionFuture<SearchResponse> aggFuture = mock(ActionFuture.class);
+        when(aggFuture.actionGet()).thenReturn(aggResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(aggFuture);
 
-        // Mock index response
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
-
-        // Mock PIT deletion
-        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
-        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
-                .thenReturn((ActionFuture) deletePitFuture);
+        this.mockIndexResponse();
 
         this.service.onSyncComplete(true);
 
-        // Exactly one search per IOC type (all return empty on first page)
-        verify(this.client, times(Constants.IOC_TYPES.size())).search(any(SearchRequest.class));
+        ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(indexCaptor.capture());
+        String source = indexCaptor.getValue().source().utf8ToString();
+
+        JsonNode root = MAPPER.readTree(source);
+        assertTrue("Document should have type_hashes wrapper", root.has(Constants.KEY_TYPE_HASHES));
+        assertEquals(
+                "type_hashes should be empty when no types are discovered",
+                0,
+                root.get(Constants.KEY_TYPE_HASHES).size());
     }
 }

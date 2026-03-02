@@ -34,13 +34,17 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.bucket.terms.Terms;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.transport.client.Client;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -56,6 +60,7 @@ public class ConsumerIocService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerIocService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int SEARCH_PAGE_SIZE = 10_000;
+    private static final String AGG_IOC_TYPES = "ioc_types";
 
     /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getIocContext();
@@ -106,9 +111,43 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     /**
+     * Discovers all distinct IOC types present in the index using a terms aggregation. Excludes the
+     * hash summary document from the aggregation.
+     *
+     * @param pitId The PIT identifier for consistent reads.
+     * @param keepalive The PIT keepalive duration.
+     * @return A list of distinct IOC type names.
+     */
+    private List<String> discoverIocTypes(String pitId, TimeValue keepalive) {
+        SearchSourceBuilder source =
+                new SearchSourceBuilder()
+                        .query(
+                                QueryBuilders.boolQuery()
+                                        .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
+                        .size(0)
+                        .aggregation(
+                                AggregationBuilders.terms(AGG_IOC_TYPES)
+                                        .field(Constants.Q_DOCUMENT_TYPE)
+                                        .size(1000))
+                        .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.source(source);
+        SearchResponse response = this.client.search(searchRequest).actionGet();
+
+        Terms termsAgg = response.getAggregations().get(AGG_IOC_TYPES);
+        List<String> types = new ArrayList<>();
+        for (Terms.Bucket bucket : termsAgg.getBuckets()) {
+            types.add(bucket.getKeyAsString());
+        }
+        return types;
+    }
+
+    /**
      * Computes per-type SHA-256 checksums for all IOC documents and stores them as a summary
      * document. Uses PIT (Point-in-Time) with search_after for deterministic, paginated iteration
-     * over potentially millions of documents.
+     * over potentially millions of documents. Types are discovered dynamically via a terms
+     * aggregation on the {@code document.type} field.
      */
     private void computeAndStoreTypeHashes() {
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
@@ -121,16 +160,20 @@ public class ConsumerIocService extends AbstractConsumerService {
         String pitId = pitResponse.getId();
 
         try {
-            ObjectNode hashDocument = MAPPER.createObjectNode();
+            List<String> types = this.discoverIocTypes(pitId, keepalive);
 
-            for (String type : Constants.IOC_TYPES) {
+            ObjectNode typeHashesNode = MAPPER.createObjectNode();
+            for (String type : types) {
                 String hash = this.computeHashForType(pitId, keepalive, type);
                 ObjectNode typeNode = MAPPER.createObjectNode();
                 ObjectNode typeHashNode = MAPPER.createObjectNode();
                 typeHashNode.put(Constants.KEY_SHA256, hash);
                 typeNode.set(Constants.KEY_HASH, typeHashNode);
-                hashDocument.set(type, typeNode);
+                typeHashesNode.set(type, typeNode);
             }
+
+            ObjectNode hashDocument = MAPPER.createObjectNode();
+            hashDocument.set(Constants.KEY_TYPE_HASHES, typeHashesNode);
 
             IndexRequest indexRequest =
                     new IndexRequest(Constants.INDEX_IOCS)
@@ -182,8 +225,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             for (SearchHit hit : hits) {
                 Map<String, Object> sourceMap = hit.getSourceAsMap();
                 @SuppressWarnings("unchecked")
-                Map<String, Object> hashMap =
-                        (Map<String, Object>) sourceMap.get(Constants.KEY_HASH);
+                Map<String, Object> hashMap = (Map<String, Object>) sourceMap.get(Constants.KEY_HASH);
                 if (hashMap != null) {
                     Object sha256 = hashMap.get(Constants.KEY_SHA256);
                     if (sha256 != null) {
