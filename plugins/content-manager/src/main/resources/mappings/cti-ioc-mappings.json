@@ -81,6 +81,14 @@
           "type": "keyword"
         }
       }
+    },
+    "message": {
+      "ignore_above": 1024,
+      "type": "keyword"
+    },
+    "type_hashes": {
+      "type": "object",
+      "dynamic": "true"
     }
   }
 }

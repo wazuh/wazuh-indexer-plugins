@@ -16,5 +16,5 @@
       description: "The SHA-256 hash of the IoC document."
     - name: type_hashes
       level: custom
-      type: keyword
+      type: object
       description: "A dynamic object containing the hash values for each IoC type."
