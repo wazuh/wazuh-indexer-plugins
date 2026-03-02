@@ -4,7 +4,7 @@ info:
   description: |
     API for content management and subscription handling for the Wazuh Indexer Content Manager.
     This API enables Cyber Threat Intelligence (CTI) subscription registration, credential management,
-    and on-demand content updates for threat intelligence feeds.
+    and on-demand content updates for threat intelligence feeds. CHECKING
   version: 1.0.0
   license:
     name: Apache 2.0
