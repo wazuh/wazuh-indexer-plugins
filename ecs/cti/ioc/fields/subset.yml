@@ -7,6 +7,7 @@ fields:
       hash:
         fields:
           sha256: {}
+      type_hashes: {}
   document:
     fields:
       confidence: {}
