@@ -78,7 +78,9 @@ public class SetupPluginIT extends OpenSearchRestTestCase {
     }
 
     @After
-    public void clearFieldData() {
-        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
+    public void clearFieldData() throws IOException {
+        Request request = new Request("POST", "/_cache/clear");
+        request.addParameter("fielddata", "true");
+        client().performRequest(request);
     }
 }
