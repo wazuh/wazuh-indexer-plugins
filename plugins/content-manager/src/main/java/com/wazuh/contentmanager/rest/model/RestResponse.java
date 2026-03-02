@@ -164,3 +164,5 @@ public class RestResponse implements ToXContent {
         return Objects.hash(this.message, this.status);
     }
 }
+
+// Test: verifying documentation enforcement
