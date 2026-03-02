@@ -1,4 +1,15 @@
 {
-  "dynamic": "strict",
-  "date_detection": false
+  "dynamic": "strict_allow_templates",
+  "date_detection": false,
+  "dynamic_templates": [
+    {
+      "strings": {
+        "match_mapping_type": "string",
+        "path_match": "type_hashes.*",
+        "mapping": {
+          "type": "keyword"
+        }
+      }
+    }
+  ]
 }
