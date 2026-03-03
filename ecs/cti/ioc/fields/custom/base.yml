@@ -14,38 +14,7 @@
       type: keyword
       example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       description: "The SHA-256 hash of the IoC document."
-    - name: connection.hash.sha256
+    - name: type_hashes
       level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all connection IoC documents."
-    - name: url-full.hash.sha256
-      level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all url-full IoC documents."
-    - name: url-domain.hash.sha256
-      level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all url-domain IoC documents."
-    - name: hash_md5.hash.sha256
-      level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all hash_md5 IoC documents."
-    - name: hash_sha1.hash.sha256
-      level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all hash_sha1 IoC documents."
-    - name: hash_sha256.hash.sha256
-      level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all hash_sha256 IoC documents."
-    - name: hash_sha3_384.hash.sha256
-      level: custom
-      type: keyword
-      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-      description: "The SHA-256 hash of all hash_sha3_384 IoC documents."
+      type: object
+      description: "A dynamic object containing the hash values for each IoC type."

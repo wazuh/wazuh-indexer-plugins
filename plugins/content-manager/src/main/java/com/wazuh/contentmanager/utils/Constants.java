@@ -156,15 +156,7 @@ public class Constants {
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
-    public static final Set<String> IOC_TYPES =
-            Set.of(
-                    "connection",
-                    "url-full",
-                    "url-domain",
-                    "hash_md5",
-                    "hash_sha1",
-                    "hash_sha256",
-                    "hash_sha3_384");
+    public static final String KEY_TYPE_HASHES = "type_hashes";
 
     // Queries
     public static final String Q_DOCUMENT_TYPE = "document.type";

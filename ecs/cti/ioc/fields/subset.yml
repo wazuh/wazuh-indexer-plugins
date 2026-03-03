@@ -7,41 +7,7 @@ fields:
       hash:
         fields:
           sha256: {}
-      connection:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      url-full:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      url-domain:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      hash_md5:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      hash_sha1:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      hash_sha256:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      hash_sha3_384:
-        fields:
-          hash:
-            fields:
-              sha256: {}
+      type_hashes: {}
   document:
     fields:
       confidence: {}

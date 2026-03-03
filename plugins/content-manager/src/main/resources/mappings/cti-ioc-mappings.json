@@ -1,19 +1,18 @@
 {
   "date_detection": false,
-  "dynamic": "strict",
-  "properties": {
-    "connection": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
+  "dynamic": "strict_allow_templates",
+  "dynamic_templates": [
+    {
+      "strings": {
+        "mapping": {
+          "type": "keyword"
+        },
+        "match_mapping_type": "string",
+        "path_match": "type_hashes.*"
       }
-    },
+    }
+  ],
+  "properties": {
     "document": {
       "properties": {
         "confidence": {
@@ -83,77 +82,13 @@
         }
       }
     },
-    "hash_md5": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
+    "message": {
+      "ignore_above": 1024,
+      "type": "keyword"
     },
-    "hash_sha1": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "hash_sha256": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "hash_sha3_384": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "url-domain": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "url-full": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
+    "type_hashes": {
+      "type": "object",
+      "dynamic": "true"
     }
   }
 }
