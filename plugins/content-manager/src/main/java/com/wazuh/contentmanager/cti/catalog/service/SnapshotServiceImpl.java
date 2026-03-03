@@ -104,14 +104,15 @@ public class SnapshotServiceImpl implements SnapshotService {
      *
      * @param consumer information from the remote consumer. Contains the snapshot link from which the
      *     initialization takes place.
+     * @return true if initialization was fully successful, false on failures.
      */
     @Override
-    public void initialize(RemoteConsumer consumer) {
+    public boolean initialize(RemoteConsumer consumer) {
         String snapshotUrl = consumer.getSnapshotLink();
 
         if (snapshotUrl == null || snapshotUrl.isEmpty()) {
             log.warn("Snapshot URL is empty. Skipping initialization.");
-            return;
+            return false;
         }
 
         log.info(
@@ -126,7 +127,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             snapshotZip = this.snapshotClient.downloadFile(snapshotUrl);
             if (snapshotZip == null) {
                 log.error("Failed to download snapshot from {}", snapshotUrl);
-                return;
+                return false;
             }
 
             // 2. Prepare output directory
@@ -154,6 +155,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         } catch (Exception e) {
             log.error("Error processing snapshot: {}", e.getMessage());
+            return false;
         } finally {
             // Cleanup temporary files
             this.cleanup(snapshotZip, outputDir);
@@ -169,9 +171,11 @@ public class SnapshotServiceImpl implements SnapshotService {
                             consumer.getOffset(),
                             snapshotUrl);
             this.consumersIndex.setConsumer(updatedConsumer);
+            return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
+            return false;
         }
     }
 
