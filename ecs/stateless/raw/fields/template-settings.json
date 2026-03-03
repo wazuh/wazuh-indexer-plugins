@@ -20,7 +20,7 @@
           "wazuh.cluster.name",
           "wazuh.space.name"
         ],
-        "max_docvalue_fields_search": 50
+        "max_docvalue_fields_search": 100
       }
     }
   }

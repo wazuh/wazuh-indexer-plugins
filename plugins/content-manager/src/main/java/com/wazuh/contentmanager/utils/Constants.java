@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.utils;
 
 import java.util.Map;
-import java.util.Set;
 
 // spotless:off
 /**
@@ -88,6 +87,7 @@ public class Constants {
     public static final String KEY_DECODERS = "decoders";
     public static final String KEY_IOCS = "iocs";
     public static final String KEY_FILTERS = "filters";
+    public static final String KEY_ENRICHMENTS = "enrichments";
 
     // Resource Metadata Keys
     public static final String KEY_DOCUMENT = "document";
@@ -105,10 +105,8 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
 
     // Enrichment types allowed in policy
-    public static final Set<String> ALLOWED_ENRICHMENT_TYPES =
-            Set.of("file", "domain-name", "ip", "url", "geo");
     public static final String E_400_INVALID_ENRICHMENT =
-            "Invalid enrichment type '%s'. Allowed values are: file, domain-name, ip, url, geo.";
+            "Invalid enrichment type '%s'. Allowed values are: %s";
     public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
 
     // API request content fields
