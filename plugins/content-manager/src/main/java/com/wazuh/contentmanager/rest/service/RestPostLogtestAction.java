@@ -43,9 +43,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * <p>Triggers a log test execution in the local engine. Possible HTTP responses:
  *
  * <pre>
- *  - 200 Accepted: Wazuh Engine replied with a successful response.
- *  - 400 Bad Request: Wazuh Engine replied with an error response.
- *  - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
+ * - 200 Accepted: Wazuh Engine replied with a successful response.
+ * - 400 Bad Request: Wazuh Engine replied with an error response.
+ * - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
  * </pre>
  */
 public class RestPostLogtestAction extends BaseRestHandler {
@@ -129,7 +129,8 @@ public class RestPostLogtestAction extends BaseRestHandler {
 
         // 4. Logtest accepted
         try {
-            return this.engine.logtest(jsonNode);
+            // Append .parseMessageAsJson() to serialize output beautifully
+            return this.engine.logtest(jsonNode).parseMessageAsJson();
         } catch (Exception e) {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
