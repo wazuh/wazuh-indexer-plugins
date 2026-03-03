@@ -203,6 +203,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     log.error(mapper.writeValueAsString(context.enginePayload));
                     return engineResponse;
                 }
+            } else {
+                log.info("Engine validation has been skipped since the policy was reset to default");
             }
 
             // 4. Consolidation Phase - Apply changes to target space
