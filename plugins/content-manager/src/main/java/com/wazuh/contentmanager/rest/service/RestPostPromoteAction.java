@@ -147,8 +147,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 2. Gathering Phase - Build the engine payload
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
-            boolean skipEngineValidation = false;
-
             // Check for reset conditions before validating engine payload
             if (Space.TEST.toString().equals(context.targetSpace)) {
                 Map<String, Object> sourcePolicy =
@@ -181,7 +179,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
                         if (resetResponse.getStatus() >= 200 && resetResponse.getStatus() < 300) {
                             log.info("Successfully reset Engine test state");
-                            skipEngineValidation = true;
                         } else {
                             log.error("Failed to reset Engine test state: {}", resetResponse.getMessage());
                             return new RestResponse(
@@ -193,18 +190,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
             }
 
             // 3. Validation Phase - Invoke engine validation
-            if (!skipEngineValidation) {
-                RestResponse engineResponse = this.engine.promote(context.enginePayload);
+            RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
-                // Check if engine validation was successful
-                if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                        && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                    log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
-                    log.error(mapper.writeValueAsString(context.enginePayload));
-                    return engineResponse;
-                }
-            } else {
-                log.info("Engine validation has been skipped since the policy was reset to default");
+            // Check if engine validation was successful
+            if (engineResponse.getStatus() != RestStatus.OK.getStatus()
+                    && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+                log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
+                log.error(mapper.writeValueAsString(context.enginePayload));
+                return engineResponse;
             }
 
             // 4. Consolidation Phase - Apply changes to target space
