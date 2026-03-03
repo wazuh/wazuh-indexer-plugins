@@ -63,7 +63,7 @@ public class PluginSettings {
     private static PluginSettings INSTANCE;
 
     /** Base Wazuh CTI URL */
-    public static final String CTI_URL = "https://cti-pre.wazuh.com";
+    public static final String CTI_URL = "https://cti.pre.cloud.wazuh.com";
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
