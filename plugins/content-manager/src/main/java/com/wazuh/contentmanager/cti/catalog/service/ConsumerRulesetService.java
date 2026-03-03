@@ -22,15 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.DocWriteRequest;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.support.WriteRequest;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
-import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.search.SearchHit;
@@ -38,15 +33,12 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -144,6 +136,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     @Override
     public void onSyncComplete(boolean isUpdated) {
+        this.initializeSpaces();
+
         if (isUpdated) {
             this.refreshIndices(
                     Constants.INDEX_RULES,
@@ -152,9 +146,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_INTEGRATIONS,
                     Constants.INDEX_FILTERS,
                     Constants.INDEX_POLICIES);
-
-            // Initialize default spaces if they don't exist
-            this.initializeSpaces();
 
             // Sync Integrations
             this.syncIntegrations();
@@ -361,77 +352,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         // Using a name-based UUID (v3) ensures all nodes produce the same ID for the same seed.
         String sharedDocumentId =
                 UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
-        this.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
-        this.initializeSpace(Space.TEST.toString(), sharedDocumentId);
-        this.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
-    }
-
-    /**
-     * Creates a single space policy document if it does not already exist.
-     *
-     * <p>Uses a deterministic, space-specific OpenSearch document ID so that {@link
-     * DocWriteRequest.OpType#CREATE} acts as an atomic guard: if two nodes race on startup, the
-     * second write raises a {@link VersionConflictEngineException} which is silently ignored.
-     *
-     * @param spaceName The space name.
-     * @param documentId Shared policy ID stored inside the document to link all default spaces.
-     */
-    private void initializeSpace(String spaceName, String documentId) {
-        // Deterministic, space-specific OpenSearch _id.
-        // Combined with OpType.CREATE this guarantees exactly-once creation per space,
-        // even when multiple nodes call this method concurrently.
-        String spaceDocId =
-                UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
-                        .toString();
-        try {
-            String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-            String title = "Custom policy";
-
-            Policy policy = new Policy();
-            policy.setId(documentId);
-            policy.setTitle(title);
-            policy.setDescription(title);
-            policy.setAuthor("Wazuh Inc.");
-            policy.setRootDecoder("");
-            policy.setDocumentation("");
-            policy.setIntegrations(Collections.emptyList());
-            policy.setFilters(Collections.emptyList());
-            policy.setEnrichments(Collections.emptyList());
-            policy.setReferences(List.of("https://wazuh.com"));
-            policy.setDate(date);
-            policy.setModified(date);
-            policy.setEnabled(false);
-            policy.setIndexUnclassifiedEvents(false);
-            policy.setIndexDiscardedEvents(false);
-            Map<String, Object> docMap = this.mapper.convertValue(policy, Map.class);
-
-            String docJson = this.mapper.writeValueAsString(docMap);
-            String docHash = Resource.computeSha256(docJson);
-
-            Map<String, Object> space = new HashMap<>();
-            space.put(Constants.KEY_NAME, spaceName);
-            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
-
-            Map<String, Object> source = new HashMap<>();
-            source.put(Constants.KEY_DOCUMENT, docMap);
-            source.put(Constants.KEY_SPACE, space);
-            // TODO: change to usage of method to calculate space hash
-            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
-
-            IndexRequest request =
-                    new IndexRequest(Constants.INDEX_POLICIES)
-                            .id(spaceDocId)
-                            .source(this.mapper.writeValueAsString(source), XContentType.JSON)
-                            .opType(DocWriteRequest.OpType.CREATE)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-            this.client.index(request).actionGet();
-            log.info("Initialized space [{}]", spaceName);
-        } catch (VersionConflictEngineException e) {
-            log.debug("Space [{}] already initialized, skipping.", spaceName);
-        } catch (Exception e) {
-            log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
-        }
+        this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
+        this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId);
+        this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
     }
 
     /**

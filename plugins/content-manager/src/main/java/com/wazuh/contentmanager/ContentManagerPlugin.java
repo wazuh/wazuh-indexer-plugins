@@ -212,7 +212,9 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
                 new RestPostPromoteAction(this.engine, this.spaceService),
-                new RestGetPromoteAction(this.spaceService));
+                new RestGetPromoteAction(this.spaceService),
+                // Space deletion endpoint
+                new RestDeleteSpaceAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */

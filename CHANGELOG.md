@@ -72,6 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
 - Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
 - Add new reset test sesion step to POST Promote endpoint [(#880)](https://github.com/wazuh/wazuh-indexer-plugins/pull/880)
+- Add new space reset endpoint [(#885)](https://github.com/wazuh/wazuh-indexer-plugins/pull/885)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)

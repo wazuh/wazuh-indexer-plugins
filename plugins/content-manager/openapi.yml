@@ -40,6 +40,8 @@ tags:
     description: Execute logtest against sample events
   - name: Promotion
     description: Preview and promote content across spaces
+  - name: Spaces
+    description: Manage user spaces and environments
 
 security:
   - bearerAuth: []
@@ -712,6 +714,36 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Policy"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}:
+    delete:
+      tags: [ Spaces ]
+      summary: Reset a user space
+      description: |
+        Resets a user space (draft, test, custom) to its initial state.
+
+        This operation will:
+        - Remove all documents (integrations, rules, decoders, kvdbs) belonging to the given space.
+        - Re-generate the default policy for the given space.
+        - If the space is `test`, it will also reset the local engine test session.
+
+        **Note:** The `standard` space cannot be reset.
+      operationId: deleteSpace
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to reset.
+          schema:
+            type: string
+            enum: [ draft, test, custom ]
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
