@@ -63,8 +63,6 @@ publishing {
 allprojects {
   group = "${projectPath}"
   version = "${wazuh_version}" + ".${revision}"
-  targetCompatibility = JavaVersion.VERSION_21
-  sourceCompatibility = JavaVersion.VERSION_21
 }
 
 opensearchplugin {
