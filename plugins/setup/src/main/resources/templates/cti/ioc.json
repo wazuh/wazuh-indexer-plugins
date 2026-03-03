@@ -37,12 +37,21 @@
       "dynamic": "strict_allow_templates",
       "dynamic_templates": [
         {
-          "strings": {
+          "hash_type_objects": {
+            "mapping": {
+              "type": "object"
+            },
+            "match_mapping_type": "object",
+            "path_match": "type_hashes.*"
+          }
+        },
+        {
+          "hash256": {
             "mapping": {
               "type": "keyword"
             },
             "match_mapping_type": "string",
-            "path_match": "type_hashes.*"
+            "path_match": "type_hashes.*.hash.sha256"
           }
         }
       ],
@@ -116,13 +125,8 @@
             }
           }
         },
-        "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
-        },
         "type_hashes": {
-          "type": "object",
-          "dynamic": "true"
+          "type": "object"
         }
       }
     }
