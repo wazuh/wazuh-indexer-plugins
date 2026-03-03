@@ -1,0 +1,45 @@
+{
+  "policy": {
+    "policy_id": "stream-active-responses-policy",
+    "description": "ISM policy for active responses data stream. Automatically deletes documents after 3 days to manage storage and maintain audit trail for recent active response executions.",
+    "last_updated_time": 1772122150,
+    "schema_version": 1,
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "3d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": [
+          "active-responses*"
+        ],
+        "priority": 100
+      }
+    ]
+  }
+}
