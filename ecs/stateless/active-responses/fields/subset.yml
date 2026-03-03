@@ -1,0 +1,16 @@
+---
+name: active-responses
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  event:
+    fields:
+      original: {}
+  wazuh:
+    fields: "*"
+    # Explicit inclusion for Active Response 5.0 fields (ensure they appear in CSV, flat, and template)
+    active_response:
+      fields: "*"
+    event_reference:
+      fields: "*"
