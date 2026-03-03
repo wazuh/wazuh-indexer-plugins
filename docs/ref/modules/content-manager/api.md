@@ -1299,6 +1299,58 @@ curl -sk -u admin:admin -X POST \
 | 400 | Invalid request body or missing `space` field |
 | 500 | Engine communication error or validation failure |
 
+---
+
+## Spaces
+
+### Reset Space
+
+Resets a user space (`draft`, `test`, `custom`) to its initial state.
+
+When resetting the `draft` or `custom` spaces, this operation will:
+- Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
+- Re-generate the default policy for the given space.
+
+When resetting the `test` space, this operation will:
+- Remove all documents that belong to the given space.
+- Re-generate the default policy for the given space.
+- Reset the active test session in the local Wazuh Engine.
+
+> **Note**: The `standard` space cannot be reset.
+
+**Request**
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/space/{space}`
+
+**Parameters**
+
+| Name | In | Type | Required | Description |
+|---|---|---|---|---|
+| `space` | Path | String | Yes | The name of the user space to reset (`draft`, `test`, `custom`) |
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X DELETE \
+  "https://192.168.56.6:9200/_plugins/_content_manager/space/draft"
+```
+
+**Example Response**
+
+```json
+{
+  "message": "Space reset successfully",
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description |
+|---|---|
+| 200 | Space reset successfully |
+| 400 | Invalid space identifier, or attempted to reset the `standard` space |
+| 500 | Internal error (e.g., Engine unavailable or deletion failure) |
 
 ## Documentation Maintenance
 
