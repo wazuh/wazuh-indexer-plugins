@@ -1296,3 +1296,10 @@ curl -sk -u admin:admin -X POST \
 | 200 | Promotion successful |
 | 400 | Invalid request body or missing `space` field |
 | 500 | Engine communication error or validation failure |
+
+
+## Documentation Maintenance
+
+To maintain technical consistency, any modification, addition or removal \
+of endpoints in the REST API source code must be reflected in the `openapi.yml` \
+specification and this `api.md` reference guide.

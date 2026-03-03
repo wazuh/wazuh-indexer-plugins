@@ -26,6 +26,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.After;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -141,6 +142,11 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                     1L,
                     spaceHits);
         }
+    }
+
+    @After
+    public void clearFieldData() {
+        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
     }
 
     /** Creates all content indices required by the post-sync workflow with their proper mappings. */

@@ -210,9 +210,13 @@ public abstract class AbstractConsumerService {
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(
                             context, consumer, indicesMap, this.consumersIndex, this.environment);
-            snapshotService.initialize(remoteConsumer);
 
-            currentOffset = remoteConsumer.getSnapshotOffset();
+            boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
+            if (snapshotSuccess) {
+                currentOffset = remoteConsumer.getSnapshotOffset();
+            } else {
+                log.warn("Snapshot initialization failed. Falling back to offset update from 0.");
+            }
             updated = true;
         }
 
