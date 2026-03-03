@@ -1981,4 +1981,5 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.location,keyword,custom,,/var/log/auth.log,Source of the log as retrieved by the Wazuh Agent.
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
+9.1.0,true,wazuh,wazuh.space.event_discarded,boolean,custom,,False,"When `true`, the event would have been discarded."
 9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.

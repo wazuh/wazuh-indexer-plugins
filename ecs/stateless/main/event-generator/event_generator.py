@@ -97,6 +97,7 @@ def generate_random_wazuh():
             "node": f"wazuh-cluster-node-{random.randint(0, 10)}",
         },
         "schema": {"version": "1.7.0"},
+        "space": {"event_discarded": random.choice([True, False])},
     }
 
 def inject_events(data, ip, port, username, password, index, protocol):
