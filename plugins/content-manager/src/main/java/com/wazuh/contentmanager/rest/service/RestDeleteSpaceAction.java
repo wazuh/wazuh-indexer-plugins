@@ -106,6 +106,20 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Handles the space reset logic: 1. Validates the space parameter and ensures it's not
+     * 'standard'. 2. Fetches current resources for the space to perform necessary external deletions
+     * in SAP. 3. Deletes all documents associated with the space across all resource indices. 4.
+     * Re-generates the default policy for the space. 5. If the space is 'test', resets the local
+     * engine test session. 6. Returns appropriate HTTP responses based on the outcome of each
+     * operation. Note: External deletions in SAP are attempted but do not block the reset process if
+     * they fail, as the primary goal is to ensure the space is reset in the content manager. Failures
+     * in external deletions are logged for monitoring and troubleshooting purposes.
+     *
+     * @param request The incoming REST request containing the space parameter.
+     * @return A RestResponse indicating the success or failure of the space reset operation, with
+     *     appropriate status codes and messages.
+     */
     public RestResponse handleRequest(RestRequest request) {
         String spaceParam = request.param(Constants.KEY_SPACE);
 
@@ -190,10 +204,20 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
         }
     }
 
+    /**
+     * Setter for spaceService to allow injection in tests.
+     *
+     * @param spaceService
+     */
     void setSpaceService(SpaceService spaceService) {
         this.spaceService = spaceService;
     }
 
+    /**
+     * Setter for securityAnalyticsService to allow injection in tests.
+     *
+     * @param securityAnalyticsService
+     */
     void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
         this.securityAnalyticsService = securityAnalyticsService;
     }
