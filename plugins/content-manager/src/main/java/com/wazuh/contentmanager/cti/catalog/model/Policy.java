@@ -54,7 +54,7 @@ import java.util.Map;
  *       optional boolean flags; omitting them from the request preserves backward compatibility.
  * </ul>
  */
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Policy {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

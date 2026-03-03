@@ -16,22 +16,31 @@
  */
 package com.wazuh.contentmanager.engine.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link EngineServiceImpl}.
  *
  * <p>This class contains test cases for the EngineServiceImpl class, covering logtest, validate,
- * and promote operations for different response scenarios (201, 400, 500).
+ * promote, and deleteLogtest operations for different response scenarios (200, 201, 204, 400, 500).
  */
 public class EngineServiceImplTests extends OpenSearchTestCase {
     private EngineSocketClient socket;
     private EngineServiceImpl engine;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -43,29 +52,140 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
     }
 
     /** Tests the logtest operation for a successful (200) response. */
-    public void testLogtest200() {}
+    public void testLogtest200() {
+        RestResponse expected = new RestResponse("OK", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.logtest(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the logtest operation for a bad request (400) response. */
-    public void testLogtest400() {}
+    public void testLogtest400() {
+        RestResponse expected = new RestResponse("Bad Request", 400);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.logtest(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the logtest operation for an internal server error (500) response. */
-    public void testLogtest500() {}
+    public void testLogtest500() {
+        RestResponse expected = new RestResponse("Internal Error", 500);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.logtest(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the validate operation for a successful (200) response. */
-    public void testValidate200() {}
+    public void testValidate200() {
+        RestResponse expected = new RestResponse("Valid", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.VALIDATE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.validate(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the validate operation for a bad request (400) response. */
-    public void testValidate400() {}
+    public void testValidate400() {
+        RestResponse expected = new RestResponse("Invalid resource", 400);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.VALIDATE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.validate(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the validate operation for an internal server error (500) response. */
-    public void testValidate500() {}
+    public void testValidate500() {
+        RestResponse expected = new RestResponse("Engine down", 500);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.VALIDATE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.validate(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the promote operation for a successful (200) response. */
-    public void testPromote200() {}
+    public void testPromote200() {
+        RestResponse expected = new RestResponse("Promoted", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.PROMOTE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.promote(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the promote operation for a bad request (400) response. */
-    public void testPromote400() {}
+    public void testPromote400() {
+        RestResponse expected = new RestResponse("Validation failed during promotion", 400);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.PROMOTE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.promote(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
 
     /** Tests the promote operation for an internal server error (500) response. */
-    public void testPromote500() {}
+    public void testPromote500() {
+        RestResponse expected = new RestResponse("Crash", 500);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.PROMOTE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.promote(this.mapper.createObjectNode());
+        assertEquals(expected, actual);
+    }
+
+    /** Tests the validateResource operation wrapping. */
+    public void testValidateResource() {
+        RestResponse expected = new RestResponse("Valid Resource Type", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.VALIDATE), eq("POST"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        ObjectNode resource = this.mapper.createObjectNode();
+        resource.put("title", "Test Rule");
+
+        RestResponse actual = this.engine.validateResource(Constants.KEY_RULE, resource);
+        assertEquals(expected, actual);
+
+        // Verify the exact structure wrapped for the socket client
+        verify(this.socket)
+                .sendRequest(
+                        eq(EngineServiceImpl.VALIDATE),
+                        eq("POST"),
+                        argThat(
+                                node ->
+                                        node.has(Constants.KEY_TYPE)
+                                                && node.get(Constants.KEY_TYPE).asText().equals(Constants.KEY_RULE)
+                                                && node.has(Constants.KEY_RESOURCE)
+                                                && node.get(Constants.KEY_RESOURCE)
+                                                        .get("title")
+                                                        .asText()
+                                                        .equals("Test Rule")));
+    }
+
+    /** Tests the deleteLogtest operation for a successful (200) response. */
+    public void testDeleteLogtest200() {
+        RestResponse expected = new RestResponse("OK", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("DELETE"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.deleteLogtest();
+        assertEquals(expected, actual);
+    }
+
+    /** Tests the deleteLogtest operation for an internal server error (500) response. */
+    public void testDeleteLogtest500() {
+        RestResponse expected = new RestResponse("Engine Socket Error", 500);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("DELETE"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.deleteLogtest();
+        assertEquals(expected, actual);
+    }
 }
