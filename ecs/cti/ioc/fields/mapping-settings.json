@@ -3,9 +3,18 @@
   "date_detection": false,
   "dynamic_templates": [
     {
-      "strings": {
-        "match_mapping_type": "string",
+      "hash_type_objects": {
+        "match_mapping_type": "object",
         "path_match": "type_hashes.*",
+        "mapping": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "hash256": {
+        "match_mapping_type": "string",
+        "path_match": "type_hashes.*.hash.sha256",
         "mapping": {
           "type": "keyword"
         }

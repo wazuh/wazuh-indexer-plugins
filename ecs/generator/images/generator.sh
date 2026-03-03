@@ -87,13 +87,6 @@ generate_mappings() {
     }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
   fi
 
-  # Set dynamic: true on the type_hashes object for the cti/ioc module
-  if [[ "$ecs_module" == "cti/ioc" ]]; then
-    local out_file="$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
-    jq '.template.mappings.properties.type_hashes.dynamic = "true"' \
-      "$out_file" > "${out_file}.tmp" && mv "${out_file}.tmp" "$out_file"
-  fi
-
   echo "Mappings saved to $out_dir"
 }
 
