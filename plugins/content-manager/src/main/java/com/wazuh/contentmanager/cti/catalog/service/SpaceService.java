@@ -243,7 +243,7 @@ public class SpaceService {
 
                     searchRequest.source(sourceBuilder);
                     SearchResponse response =
-                            offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                            this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                     for (SearchHit hit : response.getHits().getHits()) {
                         String hash = Resource.extractHash(hit.getSourceAsMap());
@@ -346,7 +346,7 @@ public class SpaceService {
                 searchRequest.source(sourceBuilder);
 
                 SearchResponse response =
-                        offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                        this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                 for (SearchHit hit : response.getHits().getHits()) {
                     String docId = this.getDocumentId(hit.getSourceAsMap());
@@ -558,7 +558,7 @@ public class SpaceService {
             searchRequest.source(sourceBuilder);
 
             SearchResponse response =
-                    offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                    this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
             if (response.getHits().getTotalHits().value() > 0) {
                 SearchHit hit = response.getHits().getAt(0);
@@ -652,7 +652,7 @@ public class SpaceService {
             searchRequest.source(sourceBuilder);
 
             SearchResponse response =
-                    offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                    this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
             if (response.getHits().getTotalHits().value() > 0) {
                 return response.getHits().getAt(0).getId();
             }

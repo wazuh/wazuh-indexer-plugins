@@ -116,6 +116,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Relocate agent fields under wazuh object for stateless and stateful indices [(#778)](https://github.com/wazuh/wazuh-indexer-plugins/pull/778)
 - Index Ioc per-type hashes [(#855)](https://github.com/wazuh/wazuh-indexer-plugins/pull/855)
 - Update draft Policy management [(#856)](https://github.com/wazuh/wazuh-indexer-plugins/pull/856) [(#861)](https://github.com/wazuh/wazuh-indexer-plugins/pull/861)
+- Use the new consumer and Ioc types [(#863)](https://github.com/wazuh/wazuh-indexer-plugins/pull/863)
 
 ### Deprecated
 -

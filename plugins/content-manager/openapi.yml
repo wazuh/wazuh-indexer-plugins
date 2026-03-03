@@ -1414,11 +1414,11 @@ components:
           type: array
           items:
             type: string
-            enum: [file, domain-name, ip, url, geo]
+            enum: [connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full]
           description: >
-            Enrichment types to apply. Allowed values: file, domain-name, ip, url, geo.
-            No duplicates allowed.
-          example: ["file", "ip", "geo"]
+            Enrichment types to apply. Known values: connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full.
+            No duplicates allowed. May vary based on engine capabilities.
+          example: ["connection", "hash_md5", "url-full"]
 
         author:
           type: string
