@@ -1,0 +1,35 @@
+name: "(5.x) Check Content Manager API Docs"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  verify-api-docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Changes and Enforce Docs
+        shell: bash
+        run: |
+          # Fetch base branch for comparison
+          git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          # Check if REST API code was modified
+          API_CODE_CHANGED=$(echo "$CHANGED_FILES" | grep "plugins/content-manager/src/main/java/com/wazuh/contentmanager/rest/" || true)
+          # Check if documentation was modified
+          DOCS_CHANGED=$(echo "$CHANGED_FILES" | grep -E "plugins/content-manager/openapi.yml|docs/ref/modules/content-manager/api.md" || true)
+          # Validation
+          if [ -n "$API_CODE_CHANGED" ] && [ -z "$DOCS_CHANGED" ]; then
+            echo "::error title=Missing API Documentation::You have modified the API source files in 'plugins/content-manager/.../rest/' but have NOT updated the documentation."
+            echo "The following documentation files must be reviewed and updated:"
+            echo "  - plugins/content-manager/openapi.yml"
+            echo "  - docs/ref/modules/content-manager/api.md"
+            exit 1
+          fi
+          echo "Verification completed: API and Documentation are in sync."
