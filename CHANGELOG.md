@@ -71,9 +71,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add Unix domain socket permission for Engine communication [(#823)](https://github.com/wazuh/wazuh-indexer-plugins/pull/823)
 - Add WCS field for discarded events [(#860)](https://github.com/wazuh/wazuh-indexer-plugins/pull/860)
 - Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
+- Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
+- Update to JDK 25 [(#822)](https://github.com/wazuh/wazuh-indexer-plugins/pull/882)
 
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
