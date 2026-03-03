@@ -128,6 +128,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         document.put("enabled", enabled);
         document.put("filters", Collections.emptyList());
         document.put("enrichments", Collections.emptyList());
+        document.put("root_decoder", "json");
         hash.put("sha256", "12345");
         space.put(Constants.KEY_NAME, Space.DRAFT.toString());
         policy.put(Constants.KEY_DOCUMENT, document);
@@ -561,12 +562,15 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse resetResponse = new RestResponse("OK", 204);
         when(this.engine.deleteLogtest()).thenReturn(resetResponse);
 
+        RestResponse engineResponse = new RestResponse("OK", 200);
+        when(this.engine.promote(any())).thenReturn(engineResponse);
+
         RestRequest request = this.mockValidRequest();
         RestResponse actualResponse = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
         verify(this.engine, times(1)).deleteLogtest();
-        verify(this.engine, never()).promote(any());
+        verify(this.engine, times(1)).promote(any());
     }
 
     /**
@@ -579,12 +583,15 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse resetResponse = new RestResponse("OK", 204);
         when(this.engine.deleteLogtest()).thenReturn(resetResponse);
 
+        RestResponse engineResponse = new RestResponse("Bad Request", 400);
+        when(this.engine.promote(any())).thenReturn(engineResponse);
+
         RestRequest request = this.mockValidRequest();
         RestResponse actualResponse = this.action.handleRequest(request);
 
-        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
         verify(this.engine, times(1)).deleteLogtest();
-        verify(this.engine, never()).promote(any());
+        verify(this.engine, times(1)).promote(any());
     }
 
     /**
