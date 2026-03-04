@@ -21,13 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.setup.index.SettingsIndex;
@@ -77,25 +80,24 @@ public class RestPutSettingsAction extends BaseRestHandler {
     }
 
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        return channel -> {
-            RestResponse response = this.handleRequest(request);
-            channel.sendResponse(response.toBytesRestResponse());
-        };
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        return channel -> this.handleRequest(request, channel);
     }
 
     /**
-     * Execute the put-settings operation.
+     * Execute the put-settings operation asynchronously.
      *
      * @param request the incoming REST request
-     * @return a RestResponse with the result
+     * @param channel the REST channel for sending the response
      */
-    public RestResponse handleRequest(RestRequest request) {
+    public void handleRequest(RestRequest request, RestChannel channel) {
         // 1. Validate content presence
         if (!request.hasContent()) {
-            return new RestResponse(
-                    SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            sendResponse(
+                    channel,
+                    new RestResponse(
+                            SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
 
         // 2. Parse JSON
@@ -104,26 +106,57 @@ public class RestPutSettingsAction extends BaseRestHandler {
         try {
             root = MAPPER.readTree(payload);
         } catch (Exception e) {
-            return new RestResponse(
-                    SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            sendResponse(
+                    channel,
+                    new RestResponse(
+                            SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
 
         // 3. Validate structure using model method
         String validationError = WazuhSettings.validate(root);
         if (validationError != null) {
-            return new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus());
+            sendResponse(channel, new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
 
-        // 4. Parse into model and persist
+        // 4. Parse into model and persist asynchronously
         WazuhSettings settings = WazuhSettings.fromPayload(root);
+        this.settingsIndex.indexDocument(
+                settings,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info("Wazuh settings updated: {}", settings);
+                        sendResponse(
+                                channel,
+                                new RestResponse(SettingsIndex.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus()));
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to persist settings: {}", e.getMessage(), e);
+                        sendResponse(
+                                channel,
+                                new RestResponse(
+                                        SettingsIndex.E_500_INTERNAL_SERVER_ERROR,
+                                        RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                    }
+                });
+    }
+
+    /**
+     * Sends a RestResponse through the channel.
+     *
+     * @param channel the REST channel
+     * @param response the response to send
+     */
+    private static void sendResponse(RestChannel channel, RestResponse response) {
         try {
-            this.settingsIndex.indexDocument(settings);
-            log.info("Wazuh settings updated: {}", settings);
-            return new RestResponse(SettingsIndex.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus());
+            channel.sendResponse(response.toBytesRestResponse());
         } catch (Exception e) {
-            log.error("Failed to persist settings: {}", e.getMessage(), e);
-            return new RestResponse(
-                    SettingsIndex.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            log.error("Failed to send response: {}", e.getMessage(), e);
+            channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
         }
     }
 }

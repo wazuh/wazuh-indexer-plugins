@@ -20,7 +20,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 
 import com.wazuh.setup.model.WazuhSettings;
 
@@ -89,13 +91,14 @@ public class SettingsIndex extends WazuhIndex {
     }
 
     /**
-     * Indexes a WazuhSettings document.
+     * Indexes a WazuhSettings document asynchronously.
      *
      * @param settings the WazuhSettings to persist
+     * @param listener callback to handle success or failure
      */
-    public void indexDocument(WazuhSettings settings) {
+    public void indexDocument(WazuhSettings settings, ActionListener<IndexResponse> listener) {
         IndexRequest request =
                 new IndexRequest(INDEX_NAME).id(SETTINGS_ID).source(settings.toJson(), XContentType.JSON);
-        this.client.index(request).actionGet();
+        this.client.index(request, listener);
     }
 }

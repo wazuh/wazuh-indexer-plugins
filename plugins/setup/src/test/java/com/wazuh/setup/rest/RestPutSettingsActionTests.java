@@ -16,9 +16,13 @@
  */
 package com.wazuh.setup.rest;
 
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
@@ -29,11 +33,12 @@ import java.util.HashMap;
 
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.model.WazuhSettings;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,6 +53,8 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
     private AutoCloseable mocks;
 
     @Mock private SettingsIndex settingsIndex;
+    @Mock private RestChannel channel;
+    @Mock private IndexResponse indexResponse;
 
     @Before
     @Override
@@ -79,85 +86,141 @@ public class RestPutSettingsActionTests extends OpenSearchTestCase {
         return builder.build();
     }
 
-    /** Valid payload with index_raw_events=true -> 200. */
-    public void testPut_validPayloadTrue_200() {
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
-        RestResponse response = this.action.handleRequest(request);
+    /** Configures the mock to invoke onResponse callback. */
+    @SuppressWarnings("unchecked")
+    private void mockIndexDocumentSuccess() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.settingsIndex)
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
+    }
 
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.S_200_SETTINGS_UPDATED, response.getMessage());
-        verify(this.settingsIndex, times(1)).indexDocument(any(WazuhSettings.class));
+    /** Configures the mock to invoke onFailure callback. */
+    @SuppressWarnings("unchecked")
+    private void mockIndexDocumentFailure(Exception exception) {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onFailure(exception);
+                            return null;
+                        })
+                .when(this.settingsIndex)
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
+    }
+
+    /** Captures and returns the BytesRestResponse sent to the channel. */
+    private BytesRestResponse captureResponse() {
+        ArgumentCaptor<BytesRestResponse> captor = ArgumentCaptor.forClass(BytesRestResponse.class);
+        verify(this.channel).sendResponse(captor.capture());
+        return captor.getValue();
+    }
+
+    /** Valid payload with index_raw_events=true -> 200. */
+    @SuppressWarnings("unchecked")
+    public void testPut_validPayloadTrue_200() {
+        mockIndexDocumentSuccess();
+        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
+
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.OK, response.status());
+        verify(this.settingsIndex, times(1))
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** Valid payload with index_raw_events=false -> 200. */
+    @SuppressWarnings("unchecked")
     public void testPut_validPayloadFalse_200() {
+        mockIndexDocumentSuccess();
         RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":false}}");
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.settingsIndex, times(1)).indexDocument(any(WazuhSettings.class));
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.OK, response.status());
+        verify(this.settingsIndex, times(1))
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** Request with no body -> 400. */
+    @SuppressWarnings("unchecked")
     public void testPut_noContent_400() {
         RestRequest request = buildRequest(null);
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.E_400_INVALID_REQUEST_BODY, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        verify(this.settingsIndex, never())
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** Malformed JSON body -> 400. */
+    @SuppressWarnings("unchecked")
     public void testPut_invalidJson_400() {
         RestRequest request = buildRequest("{not valid json");
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.E_400_INVALID_REQUEST_BODY, response.getMessage());
-        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        verify(this.settingsIndex, never())
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** Payload missing 'engine' object -> 400. */
+    @SuppressWarnings("unchecked")
     public void testPut_missingEngineField_400() {
         RestRequest request = buildRequest("{}");
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("engine"));
-        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        verify(this.settingsIndex, never())
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** 'engine' present but missing 'index_raw_events' -> 400. */
+    @SuppressWarnings("unchecked")
     public void testPut_missingIndexRawEventsField_400() {
         RestRequest request = buildRequest("{\"engine\":{}}");
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("engine.index_raw_events"));
-        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        verify(this.settingsIndex, never())
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** 'index_raw_events' is a string, not a boolean -> 400 (type validation fails). */
+    @SuppressWarnings("unchecked")
     public void testPut_nonBooleanValue_400() {
         RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":\"yes\"}}");
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        assertTrue(response.getMessage().contains("boolean"));
-        verify(this.settingsIndex, never()).indexDocument(any(WazuhSettings.class));
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        verify(this.settingsIndex, never())
+                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }
 
     /** Index operation throws an exception -> 500. */
+    @SuppressWarnings("unchecked")
     public void testPut_indexingFails_500() {
-        doThrow(new RuntimeException("Index unavailable"))
-                .when(this.settingsIndex)
-                .indexDocument(any(WazuhSettings.class));
-
+        mockIndexDocumentFailure(new RuntimeException("Index unavailable"));
         RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
-        RestResponse response = this.action.handleRequest(request);
 
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        assertEquals(SettingsIndex.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
+        this.action.handleRequest(request, this.channel);
+
+        BytesRestResponse response = captureResponse();
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
     }
 }

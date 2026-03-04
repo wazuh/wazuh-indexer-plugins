@@ -21,17 +21,20 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
 import com.wazuh.setup.index.SettingsIndex;
+import com.wazuh.setup.model.WazuhSettings;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +52,7 @@ public class SettingsIndexTests extends OpenSearchTestCase {
     @Mock private GetRequestBuilder getRequestBuilder;
     @Mock private GetResponse getResponse;
     @Mock private ActionFuture<IndexResponse> indexFuture;
+    @Mock private IndexResponse indexResponse;
 
     @Before
     @Override
@@ -107,5 +111,44 @@ public class SettingsIndexTests extends OpenSearchTestCase {
         this.settingsIndex.indexDefaultValues();
 
         verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** indexDocument calls the async index method with correct request and listener. */
+    @SuppressWarnings("unchecked")
+    public void testIndexDocument_callsAsyncIndex() {
+        WazuhSettings settings = WazuhSettings.createDefault();
+        ActionListener<IndexResponse> listener =
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse response) {
+                        // Success callback
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        fail("Should not fail");
+                    }
+                };
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> callbackListener = invocation.getArgument(1);
+                            callbackListener.onResponse(indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+
+        this.settingsIndex.indexDocument(settings, listener);
+
+        ArgumentCaptor<IndexRequest> requestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(requestCaptor.capture(), any(ActionListener.class));
+
+        IndexRequest captured = requestCaptor.getValue();
+        assertEquals(SettingsIndex.INDEX_NAME, captured.index());
+        assertEquals(SettingsIndex.SETTINGS_ID, captured.id());
+        assertTrue(
+                "Payload must contain engine.index_raw_events",
+                captured.source().utf8ToString().contains("index_raw_events"));
     }
 }
