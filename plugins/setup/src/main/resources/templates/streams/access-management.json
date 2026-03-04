@@ -1074,8 +1074,8 @@
             "path_match": "*.public_key_exponent",
             "mapping": {
               "type": "long",
-              "index": false,
-              "doc_values": false
+              "doc_values": false,
+              "index": false
             }
           }
         },
@@ -1574,26 +1574,8 @@
           }
         },
         {
-          "wcs_keyword_reference": {
-            "path_match": "*.reference",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_locality": {
-            "path_match": "*.locality",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_import_hash": {
-            "path_match": "*.import_hash",
+          "wcs_keyword_common_name": {
+            "path_match": "*.common_name",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1603,6 +1585,42 @@
         {
           "wcs_keyword_state_or_province": {
             "path_match": "*.state_or_province",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_reference": {
+            "path_match": "*.reference",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_go_import_hash": {
+            "path_match": "*.go_import_hash",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_architecture": {
+            "path_match": "*.architecture",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_import_hash": {
+            "path_match": "*.import_hash",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1637,26 +1655,8 @@
           }
         },
         {
-          "wcs_keyword_architecture": {
-            "path_match": "*.architecture",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_common_name": {
-            "path_match": "*.common_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_go_import_hash": {
-            "path_match": "*.go_import_hash",
+          "wcs_keyword_locality": {
+            "path_match": "*.locality",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1673,15 +1673,6 @@
           }
         },
         {
-          "wcs_keyword_flags": {
-            "path_match": "*.flags",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
           "wcs_keyword_roles": {
             "path_match": "*.roles",
             "mapping": {
@@ -1691,8 +1682,8 @@
           }
         },
         {
-          "wcs_keyword_serial_number": {
-            "path_match": "*.serial_number",
+          "wcs_keyword_flags": {
+            "path_match": "*.flags",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1718,8 +1709,8 @@
           }
         },
         {
-          "wcs_keyword_region_iso_code": {
-            "path_match": "*.region_iso_code",
+          "wcs_keyword_serial_number": {
+            "path_match": "*.serial_number",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1727,26 +1718,8 @@
           }
         },
         {
-          "wcs_keyword_continent_name": {
-            "path_match": "*.continent_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_city_name": {
-            "path_match": "*.city_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_country_name": {
-            "path_match": "*.country_name",
+          "wcs_keyword_region_name": {
+            "path_match": "*.region_name",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1763,8 +1736,17 @@
           }
         },
         {
-          "wcs_keyword_sha256": {
-            "path_match": "*.sha256",
+          "wcs_keyword_country_name": {
+            "path_match": "*.country_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_continent_name": {
+            "path_match": "*.continent_name",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1774,6 +1756,42 @@
         {
           "wcs_keyword_md5": {
             "path_match": "*.md5",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_sha256": {
+            "path_match": "*.sha256",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_city_name": {
+            "path_match": "*.city_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_country_iso_code": {
+            "path_match": "*.country_iso_code",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_region_iso_code": {
+            "path_match": "*.region_iso_code",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1799,35 +1817,8 @@
           }
         },
         {
-          "wcs_keyword_country_iso_code": {
-            "path_match": "*.country_iso_code",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_region_name": {
-            "path_match": "*.region_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
           "wcs_keyword_top_level_domain": {
             "path_match": "*.top_level_domain",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_registered_domain": {
-            "path_match": "*.registered_domain",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1853,107 +1844,8 @@
           }
         },
         {
-          "wcs_keyword_version_number": {
-            "path_match": "*.version_number",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_provider": {
-            "path_match": "*.provider",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_state": {
-            "path_match": "*.state",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_class": {
-            "path_match": "*.class",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_tlsh": {
-            "path_match": "*.tlsh",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_original": {
-            "path_match": "*.original",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_signature_algorithm": {
-            "path_match": "*.signature_algorithm",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_mac": {
-            "path_match": "*.mac",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_extension": {
-            "path_match": "*.extension",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_ssdeep": {
-            "path_match": "*.ssdeep",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_alternative_names": {
-            "path_match": "*.alternative_names",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_product": {
-            "path_match": "*.product",
+          "wcs_keyword_registered_domain": {
+            "path_match": "*.registered_domain",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1970,6 +1862,33 @@
           }
         },
         {
+          "wcs_keyword_full": {
+            "path_match": "*.full",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_mac": {
+            "path_match": "*.mac",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_version_number": {
+            "path_match": "*.version_number",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
           "wcs_keyword_sha512": {
             "path_match": "*.sha512",
             "mapping": {
@@ -1979,8 +1898,26 @@
           }
         },
         {
-          "wcs_keyword_public_key_curve": {
-            "path_match": "*.public_key_curve",
+          "wcs_keyword_tlsh": {
+            "path_match": "*.tlsh",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_alternative_names": {
+            "path_match": "*.alternative_names",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_signature_algorithm": {
+            "path_match": "*.signature_algorithm",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -1997,53 +1934,80 @@
           }
         },
         {
+          "wcs_keyword_state": {
+            "path_match": "*.state",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_provider": {
+            "path_match": "*.provider",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_original": {
+            "path_match": "*.original",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_ssdeep": {
+            "path_match": "*.ssdeep",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_extension": {
+            "path_match": "*.extension",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_class": {
+            "path_match": "*.class",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_product": {
+            "path_match": "*.product",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_public_key_curve": {
+            "path_match": "*.public_key_curve",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
           "wcs_keyword_sha384": {
             "path_match": "*.sha384",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_full": {
-            "path_match": "*.full",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_original_file_name": {
-            "path_match": "*.original_file_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_digest_algorithm": {
-            "path_match": "*.digest_algorithm",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_signing_id": {
-            "path_match": "*.signing_id",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_executable": {
-            "path_match": "*.executable",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2060,8 +2024,8 @@
           }
         },
         {
-          "wcs_keyword_file_version": {
-            "path_match": "*.file_version",
+          "wcs_keyword_signing_id": {
+            "path_match": "*.signing_id",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2069,8 +2033,44 @@
           }
         },
         {
-          "wcs_keyword_company": {
-            "path_match": "*.company",
+          "wcs_keyword_digest_algorithm": {
+            "path_match": "*.digest_algorithm",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_executable": {
+            "path_match": "*.executable",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_mime_type": {
+            "path_match": "*.mime_type",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_subject_name": {
+            "path_match": "*.subject_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_alias": {
+            "path_match": "*.alias",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2096,8 +2096,8 @@
           }
         },
         {
-          "wcs_keyword_pehash": {
-            "path_match": "*.pehash",
+          "wcs_keyword_team_id": {
+            "path_match": "*.team_id",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2105,8 +2105,8 @@
           }
         },
         {
-          "wcs_keyword_mime_type": {
-            "path_match": "*.mime_type",
+          "wcs_keyword_file_version": {
+            "path_match": "*.file_version",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2123,8 +2123,8 @@
           }
         },
         {
-          "wcs_keyword_alias": {
-            "path_match": "*.alias",
+          "wcs_keyword_company": {
+            "path_match": "*.company",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2132,8 +2132,8 @@
           }
         },
         {
-          "wcs_keyword_subject_name": {
-            "path_match": "*.subject_name",
+          "wcs_keyword_pehash": {
+            "path_match": "*.pehash",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2141,8 +2141,8 @@
           }
         },
         {
-          "wcs_keyword_team_id": {
-            "path_match": "*.team_id",
+          "wcs_keyword_original_file_name": {
+            "path_match": "*.original_file_name",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2150,8 +2150,17 @@
           }
         },
         {
-          "wcs_keyword_working_directory": {
-            "path_match": "*.working_directory",
+          "wcs_keyword_byte_order": {
+            "path_match": "*.byte_order",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_command_line": {
+            "path_match": "*.command_line",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2168,8 +2177,53 @@
           }
         },
         {
+          "wcs_keyword_cpu_type": {
+            "path_match": "*.cpu_type",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_abi_version": {
+            "path_match": "*.abi_version",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_object_version": {
+            "path_match": "*.object_version",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
           "wcs_keyword_os_abi": {
             "path_match": "*.os_abi",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_ephemeral_id": {
+            "path_match": "*.ephemeral_id",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_working_directory": {
+            "path_match": "*.working_directory",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2195,53 +2249,8 @@
           }
         },
         {
-          "wcs_keyword_abi_version": {
-            "path_match": "*.abi_version",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_ephemeral_id": {
-            "path_match": "*.ephemeral_id",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_cpu_type": {
-            "path_match": "*.cpu_type",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_command_line": {
-            "path_match": "*.command_line",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_object_version": {
-            "path_match": "*.object_version",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_byte_order": {
-            "path_match": "*.byte_order",
+          "wcs_keyword_hostname": {
+            "path_match": "*.hostname",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2258,26 +2267,8 @@
           }
         },
         {
-          "wcs_keyword_hostname": {
-            "path_match": "*.hostname",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
           "wcs_keyword_platform": {
             "path_match": "*.platform",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_kernel": {
-            "path_match": "*.kernel",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2303,179 +2294,8 @@
           }
         },
         {
-          "wcs_keyword_static_level": {
-            "path_match": "*.static_level",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_bytes": {
-            "path_match": "*.bytes",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_drive_letter": {
-            "path_match": "*.drive_letter",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_symhash": {
-            "path_match": "*.symhash",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_strings": {
-            "path_match": "*.strings",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_username": {
-            "path_match": "*.username",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_hive": {
-            "path_match": "*.hive",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_confidence": {
-            "path_match": "*.confidence",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_owner": {
-            "path_match": "*.owner",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_role": {
-            "path_match": "*.role",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_availability_zone": {
-            "path_match": "*.availability_zone",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_uid": {
-            "path_match": "*.uid",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_gid": {
-            "path_match": "*.gid",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_scheme": {
-            "path_match": "*.scheme",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_target_path": {
-            "path_match": "*.target_path",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_mode": {
-            "path_match": "*.mode",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_attributes": {
-            "path_match": "*.attributes",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_password": {
-            "path_match": "*.password",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_region": {
-            "path_match": "*.region",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_key": {
-            "path_match": "*.key",
+          "wcs_keyword_kernel": {
+            "path_match": "*.kernel",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2492,8 +2312,8 @@
           }
         },
         {
-          "wcs_keyword_query": {
-            "path_match": "*.query",
+          "wcs_keyword_attributes": {
+            "path_match": "*.attributes",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2501,8 +2321,8 @@
           }
         },
         {
-          "wcs_keyword_fragment": {
-            "path_match": "*.fragment",
+          "wcs_keyword_availability_zone": {
+            "path_match": "*.availability_zone",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2510,17 +2330,8 @@
           }
         },
         {
-          "wcs_keyword_fork_name": {
-            "path_match": "*.fork_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_keyword_environment": {
-            "path_match": "*.environment",
+          "wcs_keyword_gid": {
+            "path_match": "*.gid",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2537,8 +2348,71 @@
           }
         },
         {
-          "wcs_keyword_calculated_level": {
-            "path_match": "*.calculated_level",
+          "wcs_keyword_bytes": {
+            "path_match": "*.bytes",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_mode": {
+            "path_match": "*.mode",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_drive_letter": {
+            "path_match": "*.drive_letter",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_owner": {
+            "path_match": "*.owner",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_hive": {
+            "path_match": "*.hive",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_query": {
+            "path_match": "*.query",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_uid": {
+            "path_match": "*.uid",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_username": {
+            "path_match": "*.username",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -2548,6 +2422,132 @@
         {
           "wcs_keyword_inode": {
             "path_match": "*.inode",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_scheme": {
+            "path_match": "*.scheme",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_fragment": {
+            "path_match": "*.fragment",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_environment": {
+            "path_match": "*.environment",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_static_level": {
+            "path_match": "*.static_level",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_confidence": {
+            "path_match": "*.confidence",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_target_path": {
+            "path_match": "*.target_path",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_password": {
+            "path_match": "*.password",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_key": {
+            "path_match": "*.key",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_fork_name": {
+            "path_match": "*.fork_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_role": {
+            "path_match": "*.role",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_strings": {
+            "path_match": "*.strings",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_symhash": {
+            "path_match": "*.symhash",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_calculated_level": {
+            "path_match": "*.calculated_level",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_region": {
+            "path_match": "*.region",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024

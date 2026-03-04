@@ -380,8 +380,8 @@
           }
         },
         {
-          "wcs_keyword_version": {
-            "path_match": "*.version",
+          "wcs_keyword_type": {
+            "path_match": "*.type",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
@@ -389,8 +389,8 @@
           }
         },
         {
-          "wcs_keyword_type": {
-            "path_match": "*.type",
+          "wcs_keyword_version": {
+            "path_match": "*.version",
             "mapping": {
               "type": "keyword",
               "ignore_above": 1024
