@@ -22,17 +22,17 @@ The Content Manager plugin handles:
 
 The plugin manages the following indices:
 
-| Index | Purpose |
-|---|---|
-| `.cti-consumers` | Sync state (offsets, snapshot links) |
-| `.cti-policies` | Policy documents |
-| `.cti-integrations` | Integration definitions |
-| `.cti-rules` | Detection rules |
-| `.cti-decoders` | Decoder definitions |
-| `.cti-kvdbs` | Key-value databases |
-| `.cti-iocs` | Indicators of Compromise |
-| `.engine-filters` | Engine filter rules |
-| `.wazuh-content-manager-jobs` | Job scheduler metadata |
+| Index                         | Purpose                              |
+| ----------------------------- | ------------------------------------ |
+| `.cti-consumers`              | Sync state (offsets, snapshot links) |
+| `.cti-policies`               | Policy documents                     |
+| `.cti-integrations`           | Integration definitions              |
+| `.cti-rules`                  | Detection rules                      |
+| `.cti-decoders`               | Decoder definitions                  |
+| `.cti-kvdbs`                  | Key-value databases                  |
+| `.cti-iocs`                   | Indicators of Compromise             |
+| `.engine-filters`             | Engine filter rules                  |
+| `.wazuh-content-manager-jobs` | Job scheduler metadata               |
 
 ---
 
@@ -52,28 +52,28 @@ The plugin manages the following indices:
 
 The plugin registers 22 REST handlers, grouped by domain:
 
-| Domain | Handler | Method | URI |
-|---|---|---|---|
-| **Subscription** | `RestGetSubscriptionAction` | GET | `/_plugins/_content_manager/subscription` |
-| | `RestPostSubscriptionAction` | POST | `/_plugins/_content_manager/subscription` |
-| | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription` |
-| **Update** | `RestPostUpdateAction` | POST | `/_plugins/_content_manager/update` |
-| **Logtest** | `RestPostLogtestAction` | POST | `/_plugins/_content_manager/logtest` |
-| **Policy** | `RestPutPolicyAction` | PUT | `/_plugins/_content_manager/policy` |
-| **Rules** | `RestPostRuleAction` | POST | `/_plugins/_content_manager/rules` |
-| | `RestPutRuleAction` | PUT | `/_plugins/_content_manager/rules/{id}` |
-| | `RestDeleteRuleAction` | DELETE | `/_plugins/_content_manager/rules/{id}` |
-| **Decoders** | `RestPostDecoderAction` | POST | `/_plugins/_content_manager/decoders` |
-| | `RestPutDecoderAction` | PUT | `/_plugins/_content_manager/decoders/{id}` |
-| | `RestDeleteDecoderAction` | DELETE | `/_plugins/_content_manager/decoders/{id}` |
-| **Integrations** | `RestPostIntegrationAction` | POST | `/_plugins/_content_manager/integrations` |
-| | `RestPutIntegrationAction` | PUT | `/_plugins/_content_manager/integrations/{id}` |
-| | `RestDeleteIntegrationAction` | DELETE | `/_plugins/_content_manager/integrations/{id}` |
-| **KVDBs** | `RestPostKvdbAction` | POST | `/_plugins/_content_manager/kvdbs` |
-| | `RestPutKvdbAction` | PUT | `/_plugins/_content_manager/kvdbs/{id}` |
-| | `RestDeleteKvdbAction` | DELETE | `/_plugins/_content_manager/kvdbs/{id}` |
-| **Promote** | `RestPostPromoteAction` | POST | `/_plugins/_content_manager/promote` |
-| | `RestGetPromoteAction` | GET | `/_plugins/_content_manager/promote` |
+| Domain           | Handler                        | Method | URI                                            |
+| ---------------- | ------------------------------ | ------ | ---------------------------------------------- |
+| **Subscription** | `RestGetSubscriptionAction`    | GET    | `/_plugins/_content_manager/subscription`      |
+|                  | `RestPostSubscriptionAction`   | POST   | `/_plugins/_content_manager/subscription`      |
+|                  | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription`      |
+| **Update**       | `RestPostUpdateAction`         | POST   | `/_plugins/_content_manager/update`            |
+| **Logtest**      | `RestPostLogtestAction`        | POST   | `/_plugins/_content_manager/logtest`           |
+| **Policy**       | `RestPutPolicyAction`          | PUT    | `/_plugins/_content_manager/policy`            |
+| **Rules**        | `RestPostRuleAction`           | POST   | `/_plugins/_content_manager/rules`             |
+|                  | `RestPutRuleAction`            | PUT    | `/_plugins/_content_manager/rules/{id}`        |
+|                  | `RestDeleteRuleAction`         | DELETE | `/_plugins/_content_manager/rules/{id}`        |
+| **Decoders**     | `RestPostDecoderAction`        | POST   | `/_plugins/_content_manager/decoders`          |
+|                  | `RestPutDecoderAction`         | PUT    | `/_plugins/_content_manager/decoders/{id}`     |
+|                  | `RestDeleteDecoderAction`      | DELETE | `/_plugins/_content_manager/decoders/{id}`     |
+| **Integrations** | `RestPostIntegrationAction`    | POST   | `/_plugins/_content_manager/integrations`      |
+|                  | `RestPutIntegrationAction`     | PUT    | `/_plugins/_content_manager/integrations/{id}` |
+|                  | `RestDeleteIntegrationAction`  | DELETE | `/_plugins/_content_manager/integrations/{id}` |
+| **KVDBs**        | `RestPostKvdbAction`           | POST   | `/_plugins/_content_manager/kvdbs`             |
+|                  | `RestPutKvdbAction`            | PUT    | `/_plugins/_content_manager/kvdbs/{id}`        |
+|                  | `RestDeleteKvdbAction`         | DELETE | `/_plugins/_content_manager/kvdbs/{id}`        |
+| **Promote**      | `RestPostPromoteAction`        | POST   | `/_plugins/_content_manager/promote`           |
+|                  | `RestGetPromoteAction`         | GET    | `/_plugins/_content_manager/promote`           |
 
 ---
 
@@ -181,22 +181,22 @@ Located at: `engine/client/EngineSocketClient.java`
 
 Defines the Engine operations:
 
-| Method | Description |
-|---|---|
-| `logtest(JsonNode log)` | Forwards a log test payload to the Engine |
-| `validate(JsonNode resource)` | Validates a resource payload |
-| `promote(JsonNode policy)` | Validates a full policy for promotion |
+| Method                                             | Description                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| `logtest(JsonNode log)`                            | Forwards a log test payload to the Engine                    |
+| `validate(JsonNode resource)`                      | Validates a resource payload                                 |
+| `promote(JsonNode policy)`                         | Validates a full policy for promotion                        |
 | `validateResource(String type, JsonNode resource)` | Wraps a resource with its type and delegates to `validate()` |
 
 ### EngineServiceImpl
 
 Implementation using `EngineSocketClient`. Maps methods to Engine API endpoints:
 
-| Method | Engine Endpoint | HTTP Method |
-|---|---|---|
-| `logtest()` | `/logtest` | POST |
-| `validate()` | `/content/validate/resource` | POST |
-| `promote()` | `/content/validate/policy` | POST |
+| Method       | Engine Endpoint              | HTTP Method |
+| ------------ | ---------------------------- | ----------- |
+| `logtest()`  | `/logtest`                   | POST        |
+| `validate()` | `/content/validate/resource` | POST        |
+| `promote()`  | `/content/validate/policy`   | POST        |
 
 ---
 
@@ -204,12 +204,12 @@ Implementation using `EngineSocketClient`. Maps methods to Engine API endpoints:
 
 Resources live in **spaces** that represent their lifecycle stage. The `Space` enum defines four spaces:
 
-| Space | Description |
-|---|---|
-| `STANDARD` | Production-ready CTI resources from the upstream catalog |
-| `CUSTOM` | User-created resources that have been promoted to production |
-| `DRAFT` | Resources under development — all user edits happen here |
-| `TEST` | Intermediate space for validation before production |
+| Space      | Description                                                  |
+| ---------- | ------------------------------------------------------------ |
+| `STANDARD` | Production-ready CTI resources from the upstream catalog     |
+| `CUSTOM`   | User-created resources that have been promoted to production |
+| `DRAFT`    | Resources under development — all user edits happen here     |
+| `TEST`     | Intermediate space for validation before production          |
 
 ### Promotion Flow
 
@@ -355,35 +355,37 @@ If a critical error or data corruption is detected, the system resets `local_off
 
 Settings are defined in `PluginSettings` and configured in `opensearch.yml`:
 
-| Setting | Default | Description |
-|---|---|---|
-| `plugins.content_manager.cti.api` | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API |
-| `plugins.content_manager.catalog.sync_interval` | `60` | Sync interval in minutes (1–1440) |
-| `plugins.content_manager.max_items_per_bulk` | `25` | Max documents per bulk request (10–25) |
-| `plugins.content_manager.max_concurrent_bulks` | `5` | Max concurrent bulk requests (1–5) |
-| `plugins.content_manager.client.timeout` | `10` | Timeout in seconds for HTTP/indexing (10–50) |
-| `plugins.content_manager.catalog.update_on_start` | `true` | Trigger sync on plugin start |
-| `plugins.content_manager.catalog.update_on_schedule` | `true` | Enable periodic sync job |
-| `plugins.content_manager.catalog.content.context` | `development_0.0.3` | CTI content context identifier |
-| `plugins.content_manager.catalog.content.consumer` | `development_0.0.3_test` | CTI content consumer identifier |
-| `plugins.content_manager.catalog.create_detectors` | `true` | Enable automatic detector creation |
+| Setting                                              | Type    | Default                                  | Description                                                             |
+| ---------------------------------------------------- | ------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `plugins.content_manager.cti.api`                    | String  | `https://cti.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                          |
+| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                           |
+| `plugins.content_manager.max_items_per_bulk`         | Integer | `25`                                     | Maximum documents per bulk indexing request. Valid range: 10–25         |
+| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                    |
+| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50 |
+| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                             |
+| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                            |
+| `plugins.content_manager.catalog.content.context`    | String  | `development_0.0.3`                      | CTI catalog content context identifier                                  |
+| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3_test`                 | CTI catalog content consumer identifier                                 |
+| `plugins.content_manager.ioc.content.context`        | String  | `ioc_provider_v3`                        | IoC content context identifier                                          |
+| `plugins.content_manager.ioc.content.consumer`       | String  | `iocp_v3`                                | IoC content consumer identifier                                         |
+| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content      |
 
 ### REST API URIs
 
 All endpoints are under `/_plugins/_content_manager`. The URI constants are defined in `PluginSettings`:
 
-| Constant | Value |
-|---|---|
-| `PLUGINS_BASE_URI` | `/_plugins/_content_manager` |
+| Constant           | Value                                     |
+| ------------------ | ----------------------------------------- |
+| `PLUGINS_BASE_URI` | `/_plugins/_content_manager`              |
 | `SUBSCRIPTION_URI` | `/_plugins/_content_manager/subscription` |
-| `UPDATE_URI` | `/_plugins/_content_manager/update` |
-| `LOGTEST_URI` | `/_plugins/_content_manager/logtest` |
-| `RULES_URI` | `/_plugins/_content_manager/rules` |
-| `DECODERS_URI` | `/_plugins/_content_manager/decoders` |
+| `UPDATE_URI`       | `/_plugins/_content_manager/update`       |
+| `LOGTEST_URI`      | `/_plugins/_content_manager/logtest`      |
+| `RULES_URI`        | `/_plugins/_content_manager/rules`        |
+| `DECODERS_URI`     | `/_plugins/_content_manager/decoders`     |
 | `INTEGRATIONS_URI` | `/_plugins/_content_manager/integrations` |
-| `KVDBS_URI` | `/_plugins/_content_manager/kvdbs` |
-| `PROMOTE_URI` | `/_plugins/_content_manager/promote` |
-| `POLICY_URI` | `/_plugins/_content_manager/policy` |
+| `KVDBS_URI`        | `/_plugins/_content_manager/kvdbs`        |
+| `PROMOTE_URI`      | `/_plugins/_content_manager/promote`      |
+| `POLICY_URI`       | `/_plugins/_content_manager/policy`       |
 
 ---
 
@@ -490,20 +492,20 @@ The `.cti-policies` index stores policy configurations. See the [Policy document
 
 **Policy document fields:**
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | keyword | Unique identifier |
-| `title` | keyword | Human-readable name |
-| `date` | date | Creation timestamp |
-| `modified` | date | Last modification timestamp |
-| `root_decoder` | keyword | Root decoder for event processing |
-| `integrations` | keyword[] | Active integration IDs |
-| `filters` | keyword[] | Filter UUIDs |
-| `enrichments` | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) |
-| `author` | keyword | Policy author |
-| `description` | text | Brief description |
-| `documentation` | keyword | Documentation link |
-| `references` | keyword[] | External reference URLs |
+| Field           | Type      | Description                                                  |
+| --------------- | --------- | ------------------------------------------------------------ |
+| `id`            | keyword   | Unique identifier                                            |
+| `title`         | keyword   | Human-readable name                                          |
+| `date`          | date      | Creation timestamp                                           |
+| `modified`      | date      | Last modification timestamp                                  |
+| `root_decoder`  | keyword   | Root decoder for event processing                            |
+| `integrations`  | keyword[] | Active integration IDs                                       |
+| `filters`       | keyword[] | Filter UUIDs                                                 |
+| `enrichments`   | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) |
+| `author`        | keyword   | Policy author                                                |
+| `description`   | text      | Brief description                                            |
+| `documentation` | keyword   | Documentation link                                           |
+| `references`    | keyword[] | External reference URLs                                      |
 
 ---
 
@@ -550,208 +552,208 @@ tail -f var/log/wazuh-indexer/wazuh-cluster.log | grep -E "ContentManager|Catalo
 The plugin includes integration tests defined in the `tests/content-manager` directory. These tests cover various scenarios for managing integrations, decoders, rules, and KVDBs through the REST API.
 
 #### 01 - Integrations: Create Integration (9 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully create an integration |
-| 2 | Create an integration with the same title as an existing integration |
-| 3 | Create an integration with missing title |
-| 4 | Create an integration with missing author |
-| 5 | Create an integration with missing category |
-| 6 | Create an integration with an explicit id in the resource |
-| 7 | Create an integration with missing resource object |
-| 8 | Create an integration with empty body |
-| 9 | Create an integration without authentication |
+| #   | Scenario                                                             |
+| --- | -------------------------------------------------------------------- |
+| 1   | Successfully create an integration                                   |
+| 2   | Create an integration with the same title as an existing integration |
+| 3   | Create an integration with missing title                             |
+| 4   | Create an integration with missing author                            |
+| 5   | Create an integration with missing category                          |
+| 6   | Create an integration with an explicit id in the resource            |
+| 7   | Create an integration with missing resource object                   |
+| 8   | Create an integration with empty body                                |
+| 9   | Create an integration without authentication                         |
 
 #### 01 - Integrations: Update Integration (8 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully update an integration |
-| 2 | Update an integration changing its title to a title that already exists in draft space |
-| 3 | Update an integration with missing required fields |
-| 4 | Update an integration that does not exist |
-| 5 | Update an integration with an invalid UUID |
-| 6 | Update an integration with an id in the request body |
-| 7 | Update an integration attempting to add/remove dependency lists |
-| 8 | Update an integration without authentication |
+| #   | Scenario                                                                               |
+| --- | -------------------------------------------------------------------------------------- |
+| 1   | Successfully update an integration                                                     |
+| 2   | Update an integration changing its title to a title that already exists in draft space |
+| 3   | Update an integration with missing required fields                                     |
+| 4   | Update an integration that does not exist                                              |
+| 5   | Update an integration with an invalid UUID                                             |
+| 6   | Update an integration with an id in the request body                                   |
+| 7   | Update an integration attempting to add/remove dependency lists                        |
+| 8   | Update an integration without authentication                                           |
 
 #### 01 - Integrations: Delete Integration (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully delete an integration with no attached resources |
-| 2 | Delete an integration that has attached resources |
-| 3 | Delete an integration that does not exist |
-| 4 | Delete an integration with an invalid UUID |
-| 5 | Delete an integration without providing an ID |
-| 6 | Delete an integration not in draft space |
-| 7 | Delete an integration without authentication |
+| #   | Scenario                                                      |
+| --- | ------------------------------------------------------------- |
+| 1   | Successfully delete an integration with no attached resources |
+| 2   | Delete an integration that has attached resources             |
+| 3   | Delete an integration that does not exist                     |
+| 4   | Delete an integration with an invalid UUID                    |
+| 5   | Delete an integration without providing an ID                 |
+| 6   | Delete an integration not in draft space                      |
+| 7   | Delete an integration without authentication                  |
 
 #### 02 - Decoders: Create Decoder (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully create a decoder |
-| 2 | Create a decoder without an integration reference |
-| 3 | Create a decoder with an explicit id in the resource |
-| 4 | Create a decoder with an integration not in draft space |
-| 5 | Create a decoder with missing resource object |
-| 6 | Create a decoder with empty body |
-| 7 | Create a decoder without authentication |
+| #   | Scenario                                                |
+| --- | ------------------------------------------------------- |
+| 1   | Successfully create a decoder                           |
+| 2   | Create a decoder without an integration reference       |
+| 3   | Create a decoder with an explicit id in the resource    |
+| 4   | Create a decoder with an integration not in draft space |
+| 5   | Create a decoder with missing resource object           |
+| 6   | Create a decoder with empty body                        |
+| 7   | Create a decoder without authentication                 |
 
 #### 02 - Decoders: Update Decoder (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully update a decoder |
-| 2 | Update a decoder that does not exist |
-| 3 | Update a decoder with an invalid UUID |
-| 4 | Update a decoder not in draft space |
-| 5 | Update a decoder with missing resource object |
-| 6 | Update a decoder with empty body |
-| 7 | Update a decoder without authentication |
+| #   | Scenario                                      |
+| --- | --------------------------------------------- |
+| 1   | Successfully update a decoder                 |
+| 2   | Update a decoder that does not exist          |
+| 3   | Update a decoder with an invalid UUID         |
+| 4   | Update a decoder not in draft space           |
+| 5   | Update a decoder with missing resource object |
+| 6   | Update a decoder with empty body              |
+| 7   | Update a decoder without authentication       |
 
 #### 02 - Decoders: Delete Decoder (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully delete a decoder |
-| 2 | Delete a decoder that does not exist |
-| 3 | Delete a decoder with an invalid UUID |
-| 4 | Delete a decoder not in draft space |
-| 5 | Delete a decoder without providing an ID |
-| 6 | Delete a decoder without authentication |
-| 7 | Verify decoder is removed from index after deletion |
+| #   | Scenario                                            |
+| --- | --------------------------------------------------- |
+| 1   | Successfully delete a decoder                       |
+| 2   | Delete a decoder that does not exist                |
+| 3   | Delete a decoder with an invalid UUID               |
+| 4   | Delete a decoder not in draft space                 |
+| 5   | Delete a decoder without providing an ID            |
+| 6   | Delete a decoder without authentication             |
+| 7   | Verify decoder is removed from index after deletion |
 
 #### 03 - Rules: Create Rule (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully create a rule |
-| 2 | Create a rule with missing title |
-| 3 | Create a rule without an integration reference |
-| 4 | Create a rule with an explicit id in the resource |
-| 5 | Create a rule with an integration not in draft space |
-| 6 | Create a rule with empty body |
-| 7 | Create a rule without authentication |
+| #   | Scenario                                             |
+| --- | ---------------------------------------------------- |
+| 1   | Successfully create a rule                           |
+| 2   | Create a rule with missing title                     |
+| 3   | Create a rule without an integration reference       |
+| 4   | Create a rule with an explicit id in the resource    |
+| 5   | Create a rule with an integration not in draft space |
+| 6   | Create a rule with empty body                        |
+| 7   | Create a rule without authentication                 |
 
 #### 03 - Rules: Update Rule (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully update a rule |
-| 2 | Update a rule with missing title |
-| 3 | Update a rule that does not exist |
-| 4 | Update a rule with an invalid UUID |
-| 5 | Update a rule not in draft space |
-| 6 | Update a rule with empty body |
-| 7 | Update a rule without authentication |
+| #   | Scenario                             |
+| --- | ------------------------------------ |
+| 1   | Successfully update a rule           |
+| 2   | Update a rule with missing title     |
+| 3   | Update a rule that does not exist    |
+| 4   | Update a rule with an invalid UUID   |
+| 5   | Update a rule not in draft space     |
+| 6   | Update a rule with empty body        |
+| 7   | Update a rule without authentication |
 
 #### 03 - Rules: Delete Rule (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully delete a rule |
-| 2 | Delete a rule that does not exist |
-| 3 | Delete a rule with an invalid UUID |
-| 4 | Delete a rule not in draft space |
-| 5 | Delete a rule without providing an ID |
-| 6 | Delete a rule without authentication |
-| 7 | Verify rule is removed from index after deletion |
+| #   | Scenario                                         |
+| --- | ------------------------------------------------ |
+| 1   | Successfully delete a rule                       |
+| 2   | Delete a rule that does not exist                |
+| 3   | Delete a rule with an invalid UUID               |
+| 4   | Delete a rule not in draft space                 |
+| 5   | Delete a rule without providing an ID            |
+| 6   | Delete a rule without authentication             |
+| 7   | Verify rule is removed from index after deletion |
 
 #### 04 - KVDBs: Create KVDB (9 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully create a KVDB |
-| 2 | Create a KVDB with missing title |
-| 3 | Create a KVDB with missing author |
-| 4 | Create a KVDB with missing content |
-| 5 | Create a KVDB without an integration reference |
-| 6 | Create a KVDB with an explicit id in the resource |
-| 7 | Create a KVDB with an integration not in draft space |
-| 8 | Create a KVDB with empty body |
-| 9 | Create a KVDB without authentication |
+| #   | Scenario                                             |
+| --- | ---------------------------------------------------- |
+| 1   | Successfully create a KVDB                           |
+| 2   | Create a KVDB with missing title                     |
+| 3   | Create a KVDB with missing author                    |
+| 4   | Create a KVDB with missing content                   |
+| 5   | Create a KVDB without an integration reference       |
+| 6   | Create a KVDB with an explicit id in the resource    |
+| 7   | Create a KVDB with an integration not in draft space |
+| 8   | Create a KVDB with empty body                        |
+| 9   | Create a KVDB without authentication                 |
 
 #### 04 - KVDBs: Update KVDB (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully update a KVDB |
-| 2 | Update a KVDB with missing required fields |
-| 3 | Update a KVDB that does not exist |
-| 4 | Update a KVDB with an invalid UUID |
-| 5 | Update a KVDB not in draft space |
-| 6 | Update a KVDB with empty body |
-| 7 | Update a KVDB without authentication |
+| #   | Scenario                                   |
+| --- | ------------------------------------------ |
+| 1   | Successfully update a KVDB                 |
+| 2   | Update a KVDB with missing required fields |
+| 3   | Update a KVDB that does not exist          |
+| 4   | Update a KVDB with an invalid UUID         |
+| 5   | Update a KVDB not in draft space           |
+| 6   | Update a KVDB with empty body              |
+| 7   | Update a KVDB without authentication       |
 
 #### 04 - KVDBs: Delete KVDB (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully delete a KVDB |
-| 2 | Delete a KVDB that does not exist |
-| 3 | Delete a KVDB with an invalid UUID |
-| 4 | Delete a KVDB not in draft space |
-| 5 | Delete a KVDB without providing an ID |
-| 6 | Delete a KVDB without authentication |
-| 7 | Verify KVDB is removed from index after deletion |
+| #   | Scenario                                         |
+| --- | ------------------------------------------------ |
+| 1   | Successfully delete a KVDB                       |
+| 2   | Delete a KVDB that does not exist                |
+| 3   | Delete a KVDB with an invalid UUID               |
+| 4   | Delete a KVDB not in draft space                 |
+| 5   | Delete a KVDB without providing an ID            |
+| 6   | Delete a KVDB without authentication             |
+| 7   | Verify KVDB is removed from index after deletion |
 
 #### 05 - Policy: Policy Initialization (6 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | The ".cti-policies" index exists |
-| 2 | Exactly four policy documents exist (one per space) |
-| 3 | Standard policy has a different document ID than draft/test/custom |
-| 4 | Draft, test, and custom policies start with empty integrations and root_decoder |
-| 5 | Each policy document contains the expected structure |
-| 6 | Each policy has a valid SHA-256 hash |
+| #   | Scenario                                                                        |
+| --- | ------------------------------------------------------------------------------- |
+| 1   | The ".cti-policies" index exists                                                |
+| 2   | Exactly four policy documents exist (one per space)                             |
+| 3   | Standard policy has a different document ID than draft/test/custom              |
+| 4   | Draft, test, and custom policies start with empty integrations and root_decoder |
+| 5   | Each policy document contains the expected structure                            |
+| 6   | Each policy has a valid SHA-256 hash                                            |
 
 #### 05 - Policy: Update Draft Policy (12 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully update the draft policy |
-| 2 | Update policy with missing type field |
-| 3 | Update policy with wrong type value |
-| 4 | Update policy with missing resource object |
-| 5 | Update policy with missing required fields in resource |
-| 6 | Update policy attempting to add an integration to the list |
-| 7 | Update policy attempting to remove an integration from the list |
-| 8 | Update policy with reordered integrations list (allowed) |
-| 9 | Update policy with empty body |
-| 10 | Update policy without authentication |
-| 11 | Verify policy changes are NOT reflected in test space until promotion |
-| 12 | Verify policy changes are reflected in test space after promotion |
+| #   | Scenario                                                              |
+| --- | --------------------------------------------------------------------- |
+| 1   | Successfully update the draft policy                                  |
+| 2   | Update policy with missing type field                                 |
+| 3   | Update policy with wrong type value                                   |
+| 4   | Update policy with missing resource object                            |
+| 5   | Update policy with missing required fields in resource                |
+| 6   | Update policy attempting to add an integration to the list            |
+| 7   | Update policy attempting to remove an integration from the list       |
+| 8   | Update policy with reordered integrations list (allowed)              |
+| 9   | Update policy with empty body                                         |
+| 10  | Update policy without authentication                                  |
+| 11  | Verify policy changes are NOT reflected in test space until promotion |
+| 12  | Verify policy changes are reflected in test space after promotion     |
 
 #### 06 - Log Test (4 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully test a log event |
-| 2 | Send log test with empty body |
-| 3 | Send log test with invalid JSON |
-| 4 | Send log test without authentication |
+| #   | Scenario                             |
+| --- | ------------------------------------ |
+| 1   | Successfully test a log event        |
+| 2   | Send log test with empty body        |
+| 3   | Send log test with invalid JSON      |
+| 4   | Send log test without authentication |
 
 #### 07 - Promote: Preview Promotion (7 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Preview promotion from draft to test |
-| 2 | Preview promotion from test to custom |
-| 3 | Preview promotion with missing space parameter |
-| 4 | Preview promotion with empty space parameter |
-| 5 | Preview promotion with invalid space value |
-| 6 | Preview promotion from custom (not allowed) |
-| 7 | Preview promotion without authentication |
+| #   | Scenario                                       |
+| --- | ---------------------------------------------- |
+| 1   | Preview promotion from draft to test           |
+| 2   | Preview promotion from test to custom          |
+| 3   | Preview promotion with missing space parameter |
+| 4   | Preview promotion with empty space parameter   |
+| 5   | Preview promotion with invalid space value     |
+| 6   | Preview promotion from custom (not allowed)    |
+| 7   | Preview promotion without authentication       |
 
 #### 07 - Promote: Execute Promotion (18 scenarios)
-| # | Scenario |
-|---|----------|
-| 1 | Successfully promote from draft to test |
-| 2 | Verify resources exist in test space after draft to test promotion |
-| 3 | Verify promoted resources exist in both draft and test spaces |
-| 4 | Verify test space hash is regenerated after draft to test promotion |
-| 5 | Verify promoted resource hashes match between draft and test spaces |
-| 6 | Verify deleting a decoder in draft does not affect promoted test space |
-| 7 | Successfully promote from test to custom |
-| 8 | Verify resources exist in custom space after test to custom promotion |
-| 9 | Verify promoted resources exist in both test and custom spaces |
-| 10 | Verify custom space hash is regenerated after test to custom promotion |
-| 11 | Verify promoted resource hashes match between test and custom spaces |
-| 12 | Promote from custom (not allowed) |
-| 13 | Promote with invalid space |
-| 14 | Promote with missing changes object |
-| 15 | Promote with incomplete changes (missing required resource arrays) |
-| 16 | Promote with non-update operation on policy |
-| 17 | Promote with empty body |
-| 18 | Promote without authentication |
+| #   | Scenario                                                               |
+| --- | ---------------------------------------------------------------------- |
+| 1   | Successfully promote from draft to test                                |
+| 2   | Verify resources exist in test space after draft to test promotion     |
+| 3   | Verify promoted resources exist in both draft and test spaces          |
+| 4   | Verify test space hash is regenerated after draft to test promotion    |
+| 5   | Verify promoted resource hashes match between draft and test spaces    |
+| 6   | Verify deleting a decoder in draft does not affect promoted test space |
+| 7   | Successfully promote from test to custom                               |
+| 8   | Verify resources exist in custom space after test to custom promotion  |
+| 9   | Verify promoted resources exist in both test and custom spaces         |
+| 10  | Verify custom space hash is regenerated after test to custom promotion |
+| 11  | Verify promoted resource hashes match between test and custom spaces   |
+| 12  | Promote from custom (not allowed)                                      |
+| 13  | Promote with invalid space                                             |
+| 14  | Promote with missing changes object                                    |
+| 15  | Promote with incomplete changes (missing required resource arrays)     |
+| 16  | Promote with non-update operation on policy                            |
+| 17  | Promote with empty body                                                |
+| 18  | Promote without authentication                                         |
 
 
 ---
