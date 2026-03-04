@@ -1736,38 +1736,6 @@
         },
         "enrichments": {
           "properties": {
-            "custom": {
-              "properties": {
-                "anonymous": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "malware": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "malware_alias": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "malware_printable": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "tags": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "threat_type": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            },
             "indicator": {
               "properties": {
                 "confidence": {
