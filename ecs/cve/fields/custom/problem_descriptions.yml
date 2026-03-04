@@ -1,0 +1,46 @@
+- name: problem_descriptions
+  title: Problem Type Descriptions
+  description: Problem types descriptions associated with a CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: problemTypes, as: descriptions }
+
+  fields:
+    - name: lang
+      type: keyword
+      level: custom
+      description: BCP 47 language code, language-region.
+      example: en-US
+    - name: description
+      type: keyword
+      level: custom
+      description: Text description of problemType, or title from CWE or OWASP.
+      example: This is a description of the problem type.
+    - name: cweId
+      type: keyword
+      level: custom
+      description: CWE ID of the CWE that best describes this problemType entry.
+      example: CWE-123
+    - name: type
+      type: keyword
+      level: custom
+      description: Problemtype source, text, OWASP, CWE, etc.,
+      example: CWE
+    - name: references.url
+      type: keyword
+      level: custom
+      description: The uniform resource locator (URL), according to RFC 3986.
+      example: https://example.com
+    - name: references.name
+      type: keyword
+      level: custom
+      description: User created name for the reference, often the title of the page.
+      example: Example Reference
+    - name: references.tags
+      type: keyword
+      level: custom
+      description: An array of one or more tags that describe the resource referenced by 'url'.
+      example: '[ "cve", "advisory", "bug" ]'
+      normalize:
+        - array

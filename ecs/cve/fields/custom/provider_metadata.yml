@@ -1,0 +1,29 @@
+- name: provider_metadata
+  title: Provider Metadata
+  description: Details related to the information container provider (CNA or ADP).
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: providerMetadata }
+      - { at: payload.containers.adp, as: providerMetadata }
+
+  fields:
+    - name: dateUpdated
+      type: date
+      level: custom
+      description: Timestamp to be set by the system of record at time of submission. 
+      example: 2023-10-01T12:00:00Z
+    - name: orgId
+      type: keyword
+      level: custom
+      description: The container provider's organizational UUID.
+      example: 12345678-1234-5678-1234-567812345678
+    - name: shortName
+      type: keyword
+      level: custom
+      description: The container provider's organizational short name.
+      example: "CVE-2023-12345"
+    - name: x_subShortName
+      type: keyword
+      level: custom
+      description: The sub short name of the CVE provider.
