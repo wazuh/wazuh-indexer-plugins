@@ -108,15 +108,14 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // Decoder indices
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
-                "wazuh-events-v5-" + category,
-                "templates/streams/" + category
+                "wazuh-events-v5-" + category
             ));
         }
         // Raw events data stream (stores original unprocessed events)
-        this.indices.add(new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw"));
+        this.indices.add(new StreamIndex("wazuh-events-raw-v5"));
 
         // Unclassified events data stream (stores uncategorized events for investigation)
-        this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
+        this.indices.add(new StreamIndex("wazuh-events-v5-unclassified"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
