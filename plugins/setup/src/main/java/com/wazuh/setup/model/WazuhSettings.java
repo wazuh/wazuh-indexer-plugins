@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.Locale;
+
 import com.wazuh.setup.index.SettingsIndex;
 
 /**
@@ -132,23 +134,26 @@ public class WazuhSettings {
      */
     public static String validate(JsonNode root) {
         if (root == null || !root.isObject()) {
-            return String.format(SettingsIndex.E_400_MISSING_FIELD, KEY_ENGINE);
+            return String.format(Locale.ROOT, SettingsIndex.E_400_MISSING_FIELD, KEY_ENGINE);
         }
 
         // Validate: engine object must exist
         if (!root.has(KEY_ENGINE) || !root.get(KEY_ENGINE).isObject()) {
-            return String.format(SettingsIndex.E_400_MISSING_FIELD, KEY_ENGINE);
+            return String.format(Locale.ROOT, SettingsIndex.E_400_MISSING_FIELD, KEY_ENGINE);
         }
 
         // Validate: engine.index_raw_events must be boolean
         JsonNode engineNode = root.get(KEY_ENGINE);
         if (!engineNode.has(KEY_INDEX_RAW_EVENTS)) {
             return String.format(
-                    SettingsIndex.E_400_MISSING_FIELD, KEY_ENGINE + "." + KEY_INDEX_RAW_EVENTS);
+                    Locale.ROOT, SettingsIndex.E_400_MISSING_FIELD, KEY_ENGINE + "." + KEY_INDEX_RAW_EVENTS);
         }
         if (!engineNode.get(KEY_INDEX_RAW_EVENTS).isBoolean()) {
             return String.format(
-                    SettingsIndex.E_400_INVALID_TYPE, KEY_ENGINE + "." + KEY_INDEX_RAW_EVENTS, "boolean");
+                    Locale.ROOT,
+                    SettingsIndex.E_400_INVALID_TYPE,
+                    KEY_ENGINE + "." + KEY_INDEX_RAW_EVENTS,
+                    "boolean");
         }
 
         return null;
