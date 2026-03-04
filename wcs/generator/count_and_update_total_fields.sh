@@ -21,7 +21,7 @@ if [[ ${2:-} == "--apply" ]] || [[ ${3:-} == "--apply" ]]; then
   APPLY=true
 fi
 
-# If ARG1 is 'all' we will read module names from ecs/module_list.txt
+# If ARG1 is 'all' we will read module names from wcs/module_list.txt
 PROCESS_ALL=false
 if [[ "$ARG1" == "all" ]]; then
   PROCESS_ALL=true
@@ -52,7 +52,7 @@ REPO_ROOT="$(pwd)"
 process_module() {
   local MODULE="$1"
 
-  MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
+  MODULE_LIST_FILE="$REPO_ROOT/wcs/module_list.txt"
   if [[ -f "$MODULE_LIST_FILE" ]]; then
     match=$(grep -E "\[${MODULE//./\.}\]=" "$MODULE_LIST_FILE" || true)
     if [[ -n "$match" ]]; then
@@ -65,8 +65,8 @@ process_module() {
   fi
 
   INDEX_TEMPLATE_PATH="plugins/setup/src/main/resources/$INDEX_TEMPLATE_BASENAME"
-  TEMPLATE_SETTINGS="ecs/${MODULE}/fields/template-settings.json"
-  TEMPLATE_SETTINGS_LEGACY="ecs/${MODULE}/fields/template-settings-legacy.json"
+  TEMPLATE_SETTINGS="wcs/${MODULE}/fields/template-settings.json"
+  TEMPLATE_SETTINGS_LEGACY="wcs/${MODULE}/fields/template-settings-legacy.json"
 
   if ! command -v jq &>/dev/null; then
     echo "Error: 'jq' is required but not installed." >&2
@@ -193,7 +193,7 @@ EOF
 
 # If PROCESS_ALL, read module_list and process only stateless/ and cti/ modules
 if $PROCESS_ALL; then
-  MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
+  MODULE_LIST_FILE="$REPO_ROOT/wcs/module_list.txt"
   if [[ ! -f "$MODULE_LIST_FILE" ]]; then
     echo "Error: $MODULE_LIST_FILE not found" >&2
     exit 1

@@ -30,8 +30,8 @@ function navigate_to_project_root() {
 # ====
 function map_stateful_modules() {
   # Map inventory modules
-  if [[ -d "ecs/stateful/inventory" ]]; then
-    for dir in ecs/stateful/inventory/*/; do
+  if [[ -d "wcs/stateful/inventory" ]]; then
+    for dir in wcs/stateful/inventory/*/; do
       if [[ -d "$dir" ]]; then
         local module_name
         module_name=$(basename "$dir")
@@ -41,8 +41,8 @@ function map_stateful_modules() {
   fi
 
   # Map FIM modules
-  if [[ -d "ecs/stateful/fim" ]]; then
-    for dir in ecs/stateful/fim/*/; do
+  if [[ -d "wcs/stateful/fim" ]]; then
+    for dir in wcs/stateful/fim/*/; do
       if [[ -d "$dir" ]]; then
         local module_name
         module_name=$(basename "$dir")
@@ -59,7 +59,7 @@ function map_stateful_modules() {
   fi
 
   # Map other stateful modules (sca, vulnerabilities)
-  for dir in ecs/stateful/*/; do
+  for dir in wcs/stateful/*/; do
     if [[ -d "$dir" ]]; then
       local module_name
       module_name=$(basename "$dir")
@@ -75,7 +75,7 @@ function map_stateful_modules() {
 # Map third-party stateless modules (only main module)
 # ====
 function map_stateless_modules() {
-  if [[ -d "ecs/stateless/main" ]]; then
+  if [[ -d "wcs/stateless/main" ]]; then
     all_modules["stateless/main"]="templates/streams/main.json"
   fi
 }
@@ -102,8 +102,8 @@ function map_settings_modules() {
 # Map CTI IoC modules
 # ====
 function map_cti_modules() {
-  # Map first-level directories in cti (excluding special directories)
-  for dir in ecs/cti/*; do
+  # Map first-level directories in stateless (excluding special directories)
+  for dir in wcs/cti/*; do
     if [[ -d "$dir" ]]; then
       local module_name
       module_name=$(basename "$dir")
@@ -154,7 +154,7 @@ function sort_and_output_modules() {
 # ====
 function main() {
   navigate_to_project_root
-  output_file="ecs/module_list.txt"
+  output_file="wcs/module_list.txt"
 
   # Clear the associative array
   unset all_modules
