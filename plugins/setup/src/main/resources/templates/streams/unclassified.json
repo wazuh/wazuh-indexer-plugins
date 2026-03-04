@@ -25,372 +25,741 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "strict",
-      "properties": {
-        "@timestamp": {
-          "type": "date"
-        },
-        "event": {
-          "properties": {
-            "original": {
-              "doc_values": false,
-              "index": false,
-              "type": "keyword"
+      "dynamic": "false_allow_templates",
+      "dynamic_templates": [
+        {
+          "wcs_enrichment_indicator_id": {
+            "path_match": "enrichment.indicator.id",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
             }
           }
+        },
+        {
+          "wcs_enrichment_indicator_name": {
+            "path_match": "enrichment.indicator.name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_type": {
+            "path_match": "enrichment.indicator.type",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_confidence": {
+            "path_match": "enrichment.indicator.confidence",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_first_seen": {
+            "path_match": "enrichment.indicator.first_seen",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_last_seen": {
+            "path_match": "enrichment.indicator.last_seen",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_reference": {
+            "path_match": "enrichment.indicator.reference",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_tags": {
+            "path_match": "enrichment.indicator.tags",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_provider": {
+            "path_match": "enrichment.indicator.provider",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_software_type": {
+            "path_match": "enrichment.indicator.software.type",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_software_name": {
+            "path_match": "enrichment.indicator.software.name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_software_alias": {
+            "path_match": "enrichment.indicator.software.alias",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_indicator_feed_name": {
+            "path_match": "enrichment.indicator.feed.name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_enrichment_type": {
+            "path_match": "enrichment.type",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_policy_all": {
+            "path_match": "policy.*",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_check_all": {
+            "path_match": "check.*",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_compliance_all": {
+            "path_match": "compliance.*.*",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_long_bytes": {
+            "path_match": "*.bytes",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_calculated_score": {
+            "path_match": "wazuh.agent.host.risk.calculated_score",
+            "mapping": {
+              "type": "float"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_calculated_score_norm": {
+            "path_match": "wazuh.agent.host.risk.calculated_score_norm",
+            "mapping": {
+              "type": "float"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_cpu_cores": {
+            "path_match": "wazuh.agent.host.cpu.cores",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_drops": {
+            "path_match": "wazuh.agent.host.network.egress.drops",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_drops": {
+            "path_match": "wazuh.agent.host.network.ingress.drops",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_errors": {
+            "path_match": "wazuh.agent.host.network.egress.errors",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_errors": {
+            "path_match": "wazuh.agent.host.network.ingress.errors",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_space_event_discarded": {
+            "path_match": "wazuh.space.event_discarded",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_memory_free": {
+            "path_match": "wazuh.agent.host.memory.free",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_ip": {
+            "path_match": "wazuh.agent.host.ip",
+            "mapping": {
+              "type": "ip"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_location": {
+            "path_match": "wazuh.agent.host.geo.location",
+            "mapping": {
+              "type": "geo_point"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_packets": {
+            "path_match": "wazuh.agent.host.network.egress.packets",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_packets": {
+            "path_match": "wazuh.agent.host.network.ingress.packets",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_memory_used_percentage": {
+            "path_match": "wazuh.agent.host.memory.used.percentage",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_queue": {
+            "path_match": "wazuh.agent.host.network.egress.queue",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_queue": {
+            "path_match": "wazuh.agent.host.network.ingress.queue",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_protocol_queue": {
+            "path_match": "wazuh.protocol.queue",
+            "mapping": {
+              "type": "byte"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_cpu_speed": {
+            "path_match": "wazuh.agent.host.cpu.speed",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_static_score": {
+            "path_match": "wazuh.agent.host.risk.static_score",
+            "mapping": {
+              "type": "float"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_static_score_norm": {
+            "path_match": "wazuh.agent.host.risk.static_score_norm",
+            "mapping": {
+              "type": "float"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_memory_total": {
+            "path_match": "wazuh.agent.host.memory.total",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_uptime": {
+            "path_match": "wazuh.agent.host.uptime",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_cpu_usage": {
+            "path_match": "wazuh.agent.host.cpu.usage",
+            "mapping": {
+              "scaling_factor": 1000,
+              "type": "scaled_float"
+            }
+          }
+        },
+        {
+          "wcs_keyword_name": {
+            "path_match": "*.name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_version": {
+            "path_match": "*.version",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_type": {
+            "path_match": "*.type",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_keyword_id": {
+            "path_match": "*.id",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_event_original": {
+            "path_match": "event.original",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_build_original": {
+            "path_match": "wazuh.agent.build.original",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_ephemeral_id": {
+            "path_match": "wazuh.agent.ephemeral_id",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_groups": {
+            "path_match": "wazuh.agent.groups",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_architecture": {
+            "path_match": "wazuh.agent.host.architecture",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_domain": {
+            "path_match": "wazuh.agent.host.domain",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_city_name": {
+            "path_match": "wazuh.agent.host.geo.city_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_continent_code": {
+            "path_match": "wazuh.agent.host.geo.continent_code",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_continent_name": {
+            "path_match": "wazuh.agent.host.geo.continent_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_country_iso_code": {
+            "path_match": "wazuh.agent.host.geo.country_iso_code",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_country_name": {
+            "path_match": "wazuh.agent.host.geo.country_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_postal_code": {
+            "path_match": "wazuh.agent.host.geo.postal_code",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_region_iso_code": {
+            "path_match": "wazuh.agent.host.geo.region_iso_code",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_region_name": {
+            "path_match": "wazuh.agent.host.geo.region_name",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_timezone": {
+            "path_match": "wazuh.agent.host.geo.timezone",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_hostname": {
+            "path_match": "wazuh.agent.host.hostname",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_mac": {
+            "path_match": "wazuh.agent.host.mac",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_family": {
+            "path_match": "wazuh.agent.host.os.family",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_full": {
+            "path_match": "wazuh.agent.host.os.full",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_kernel": {
+            "path_match": "wazuh.agent.host.os.kernel",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_platform": {
+            "path_match": "wazuh.agent.host.os.platform",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_pid_ns_ino": {
+            "path_match": "wazuh.agent.host.pid_ns_ino",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_calculated_level": {
+            "path_match": "wazuh.agent.host.risk.calculated_level",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_static_level": {
+            "path_match": "wazuh.agent.host.risk.static_level",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_cluster_node": {
+            "path_match": "wazuh.cluster.node",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_category": {
+            "path_match": "wazuh.integration.category",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_decoders": {
+            "path_match": "wazuh.integration.decoders",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_rules": {
+            "path_match": "wazuh.integration.rules",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        {
+          "wcs_wazuh_protocol_location": {
+            "path_match": "wazuh.protocol.location",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        }
+      ],
+      "properties": {
+        "event": {
+          "properties": {}
         },
         "wazuh": {
           "properties": {
             "agent": {
               "properties": {
                 "build": {
-                  "properties": {
-                    "original": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                },
-                "ephemeral_id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "groups": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "properties": {}
                 },
                 "host": {
                   "properties": {
-                    "architecture": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
                     "boot": {
-                      "properties": {
-                        "id": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        }
-                      }
+                      "properties": {}
                     },
                     "cpu": {
-                      "properties": {
-                        "cores": {
-                          "type": "long"
-                        },
-                        "name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "speed": {
-                          "type": "long"
-                        },
-                        "usage": {
-                          "scaling_factor": 1000,
-                          "type": "scaled_float"
-                        }
-                      },
-                      "type": "object"
+                      "properties": {}
                     },
                     "disk": {
                       "properties": {
                         "read": {
-                          "properties": {
-                            "bytes": {
-                              "type": "long"
-                            }
-                          }
+                          "properties": {}
                         },
                         "write": {
-                          "properties": {
-                            "bytes": {
-                              "type": "long"
-                            }
-                          }
+                          "properties": {}
                         }
                       }
-                    },
-                    "domain": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
                     },
                     "geo": {
-                      "properties": {
-                        "city_name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "continent_code": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "continent_name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "country_iso_code": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "country_name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "location": {
-                          "type": "geo_point"
-                        },
-                        "name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "postal_code": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "region_iso_code": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "region_name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "timezone": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        }
-                      }
-                    },
-                    "hostname": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "id": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "ip": {
-                      "type": "ip"
-                    },
-                    "mac": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      "properties": {}
                     },
                     "memory": {
                       "properties": {
-                        "free": {
-                          "type": "long"
-                        },
-                        "total": {
-                          "type": "long"
-                        },
                         "used": {
-                          "properties": {
-                            "percentage": {
-                              "type": "long"
-                            }
-                          },
-                          "type": "object"
+                          "properties": {}
                         }
-                      },
-                      "type": "object"
-                    },
-                    "name": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      }
                     },
                     "network": {
                       "properties": {
                         "egress": {
-                          "properties": {
-                            "bytes": {
-                              "type": "long"
-                            },
-                            "drops": {
-                              "type": "long"
-                            },
-                            "errors": {
-                              "type": "long"
-                            },
-                            "packets": {
-                              "type": "long"
-                            },
-                            "queue": {
-                              "type": "long"
-                            }
-                          }
+                          "properties": {}
                         },
                         "ingress": {
-                          "properties": {
-                            "bytes": {
-                              "type": "long"
-                            },
-                            "drops": {
-                              "type": "long"
-                            },
-                            "errors": {
-                              "type": "long"
-                            },
-                            "packets": {
-                              "type": "long"
-                            },
-                            "queue": {
-                              "type": "long"
-                            }
-                          }
+                          "properties": {}
                         }
                       }
                     },
                     "os": {
-                      "properties": {
-                        "family": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "full": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "kernel": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "name": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "platform": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "type": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "version": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        }
-                      }
-                    },
-                    "pid_ns_ino": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      "properties": {}
                     },
                     "risk": {
-                      "properties": {
-                        "calculated_level": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "calculated_score": {
-                          "type": "float"
-                        },
-                        "calculated_score_norm": {
-                          "type": "float"
-                        },
-                        "static_level": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
-                        "static_score": {
-                          "type": "float"
-                        },
-                        "static_score_norm": {
-                          "type": "float"
-                        }
-                      }
-                    },
-                    "type": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "uptime": {
-                      "type": "long"
+                      "properties": {}
                     }
                   }
-                },
-                "id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "type": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "version": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
                 }
               }
             },
             "cluster": {
-              "properties": {
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "node": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "integration": {
-              "properties": {
-                "category": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "decoders": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "rules": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "protocol": {
-              "properties": {
-                "location": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "queue": {
-                  "type": "byte"
-                }
-              }
+              "properties": {}
             },
             "schema": {
-              "properties": {
-                "version": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "space": {
+              "properties": {}
+            }
+          }
+        },
+        "enrichment": {
+          "properties": {
+            "indicator": {
               "properties": {
-                "event_discarded": {
-                  "type": "boolean"
+                "software": {
+                  "properties": {}
                 },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                "feed": {
+                  "properties": {}
                 }
               }
             }
           }
+        },
+        "@timestamp": {
+          "type": "date"
         }
       }
     }
