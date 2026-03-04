@@ -4,7 +4,7 @@ set -euo pipefail
 shopt -s nullglob
 
 # === Default Config ===
-BASE_DIR="ecs"
+BASE_DIR="wcs"
 GENERATED_DATA_FILE="generatedData.json"
 SLEEP_TIME="${SLEEP_TIME:-6}"
 USERNAME="${USERNAME:-admin}"
@@ -158,13 +158,17 @@ main() {
     navigate_to_project_root
     check_dependencies
 
-    local state_dirs=("$BASE_DIR"/states-*)
-    if [[ ${#state_dirs[@]} -eq 0 ]]; then
-        error "No matching directories found in '$BASE_DIR' (e.g., states-*)."
+    local module_dirs=()
+    while IFS= read -r -d '' eg_dir; do
+        module_dirs+=("$(dirname "$eg_dir")")
+    done < <(find "$BASE_DIR" -type d -name "event-generator" -print0 | sort -z)
+
+    if [[ ${#module_dirs[@]} -eq 0 ]]; then
+        error "No modules with event-generator found under '$BASE_DIR'."
         exit 1
     fi
 
-    for dir in "${state_dirs[@]}"; do
+    for dir in "${module_dirs[@]}"; do
         [[ -d "$dir" ]] || continue
         local index_name
         index_name="wazuh-$(basename "$dir")"

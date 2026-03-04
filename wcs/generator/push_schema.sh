@@ -62,8 +62,8 @@ function push_changes() {
   echo
   echo "---> Pushing changes to the repository..."
   git add plugins/setup/src/main/resources/*.json
-  git add ecs/**/docs/*
-  git add ecs/module_list.txt
+  git add wcs/**/docs/*
+  git add wcs/module_list.txt
   if [[ $(git status --porcelain --untracked-files=no | wc -l) -gt 0 ]]; then
     git status --short --untracked-files=no
     git commit -m "Update the Wazuh Common Schema"

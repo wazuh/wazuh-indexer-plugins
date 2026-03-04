@@ -40,7 +40,7 @@ function usage() {
 }
 
 function main() {
-    local compose_filename="ecs/generator/compose.yml"
+    local compose_filename="wcs/generator/compose.yml"
     local compose_command
     local module
     local repo_path
