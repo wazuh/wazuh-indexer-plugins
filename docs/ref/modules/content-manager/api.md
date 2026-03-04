@@ -746,6 +746,192 @@ curl -sk -u admin:admin -X DELETE \
 
 ---
 
+## Filters
+
+### Create Filter
+
+Creates a new filter in the draft or standard space. The filter is validated against the Wazuh Engine before being stored and automatically linked to the specified space's policy.
+
+**Request**
+- Method: `POST`
+- Path: `/_plugins/_content_manager/filters`
+
+**Request Body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `space` | String | Yes | Target space: `draft` or `standard` |
+| `resource` | Object | Yes | The filter definition |
+
+Fields within `resource`:
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | String | Filter name identifier (e.g., `filter/prefilter/0`) |
+| `enabled` | Boolean | Whether the filter is enabled |
+| `check` | String | Filter check expression |
+| `type` | String | Filter type (e.g., `pre-filter`) |
+| `metadata` | Object | Filter metadata (see below) |
+
+Fields within `metadata`:
+
+| Field | Type | Description |
+|---|---|---|
+| `description` | String | Filter description |
+| `author` | Object | Author info (`name`, `email`, `url`) |
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/filters" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "draft",
+    "resource": {
+      "name": "filter/prefilter/0",
+      "enabled": true,
+      "metadata": {
+        "description": "Default filter to allow all events (for default ruleset)",
+        "author": {
+          "email": "info@wazuh.com",
+          "name": "Wazuh, Inc.",
+          "url": "https://wazuh.com"
+        }
+      },
+      "check": "$host.os.platform == '\''ubuntu'\''",
+      "type": "pre-filter"
+    }
+  }'
+```
+
+**Example Response**
+
+```json
+{
+  "message": "f_a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6",
+  "status": 201
+}
+```
+
+The `message` field contains the UUID of the created filter (prefixed with `f_`).
+
+**Status Codes**
+
+| Code | Description |
+|---|---|
+| 201 | Filter created |
+| 400 | Missing `space` field, invalid space, or Engine validation failure |
+| 500 | Engine unavailable or internal error |
+
+---
+
+### Update Filter
+
+Updates an existing filter in the draft or standard space. The filter is re-validated against the Wazuh Engine.
+
+**Request**
+- Method: `PUT`
+- Path: `/_plugins/_content_manager/filters/{id}`
+
+**Parameters**
+
+| Name | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | Path | String | Yes | Filter document ID |
+
+**Request Body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `space` | String | Yes | Target space: `draft` or `standard` |
+| `resource` | Object | Yes | Updated filter definition (same fields as create) |
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X PUT \
+  "https://192.168.56.6:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "draft",
+    "resource": {
+      "name": "filter/prefilter/0",
+      "enabled": true,
+      "metadata": {
+        "description": "Updated filter description",
+        "author": {
+          "email": "info@wazuh.com",
+          "name": "Wazuh, Inc.",
+          "url": "https://wazuh.com"
+        }
+      },
+      "check": "$host.os.platform == '\''ubuntu'\''",
+      "type": "pre-filter"
+    }
+  }'
+```
+
+**Example Response**
+
+```json
+{
+  "message": "a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6",
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description |
+|---|---|
+| 200 | Filter updated |
+| 400 | Invalid request, invalid space, or Engine validation failure |
+| 404 | Filter not found |
+| 500 | Internal error |
+
+---
+
+### Delete Filter
+
+Deletes a filter from the draft or standard space. The filter is also removed from the associated policy.
+
+**Request**
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/filters/{id}`
+
+**Parameters**
+
+| Name | In | Type | Required | Description |
+|---|---|---|---|---|
+| `id` | Path | String | Yes | Filter document ID |
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X DELETE \
+  "https://192.168.56.6:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6"
+```
+
+**Example Response**
+
+```json
+{
+  "message": "a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6",
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description |
+|---|---|
+| 200 | Filter deleted |
+| 404 | Filter not found |
+| 500 | Internal error |
+
+---
+
 ## Integrations
 
 ### Create Integration
