@@ -142,6 +142,7 @@ public abstract class AbstractConsumerService {
             case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
             case Constants.KEY_FILTERS -> Constants.INDEX_FILTERS;
             case Constants.KEY_IOCS -> Constants.INDEX_IOCS;
+            case Constants.KEY_CVES -> Constants.INDEX_CVES;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
     }

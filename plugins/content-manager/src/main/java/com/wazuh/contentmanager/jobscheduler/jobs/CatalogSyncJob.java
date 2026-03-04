@@ -28,6 +28,7 @@ import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerCveService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
@@ -67,7 +68,8 @@ public class CatalogSyncJob implements JobExecutor {
         this.synchronizers =
                 List.of(
                         new ConsumerRulesetService(client, consumersIndex, environment),
-                        new ConsumerIocService(client, consumersIndex, environment));
+                        new ConsumerIocService(client, consumersIndex, environment),
+                        new ConsumerCveService(client, consumersIndex, environment));
     }
 
     /**

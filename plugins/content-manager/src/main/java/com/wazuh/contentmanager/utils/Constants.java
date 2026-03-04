@@ -77,6 +77,7 @@ public class Constants {
     public static final String INDEX_KVDBS = ".cti-kvdbs";
     public static final String INDEX_DECODERS = ".cti-decoders";
     public static final String INDEX_IOCS = ".cti-iocs";
+    public static final String INDEX_CVES = ".cti-cves";
     public static final String INDEX_FILTERS = ".engine-filters";
 
     // Resource Types Keys
@@ -86,6 +87,7 @@ public class Constants {
     public static final String KEY_RULES = "rules";
     public static final String KEY_DECODERS = "decoders";
     public static final String KEY_IOCS = "iocs";
+    public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
 
@@ -149,12 +151,17 @@ public class Constants {
                     INDEX_DECODERS,
                     KEY_IOCS,
                     INDEX_IOCS,
+                    KEY_CVES,
+                    INDEX_CVES,
                     KEY_FILTERS,
                     INDEX_FILTERS);
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
     public static final String KEY_TYPE_HASHES = "type_hashes";
+
+    // CVE hash
+    public static final String CVE_HASH_ID = "__cve_hash__";
 
     // Queries
     public static final String Q_DOCUMENT_TYPE = "document.type";
