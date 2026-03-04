@@ -255,7 +255,7 @@ public class PolicyTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertFalse(map.containsKey("root_decoder"));
-        Assert.assertTrue(map.containsKey("integrations")); // Empty list are included
+        Assert.assertFalse(map.containsKey("integrations")); // Empty list not included
         Assert.assertFalse(map.containsKey("author"));
     }
 
@@ -279,6 +279,19 @@ public class PolicyTests extends OpenSearchTestCase {
         Assert.assertEquals("int2", json.get("integrations").get(1).asText());
         Assert.assertEquals("Wazuh Inc.", json.get("author").asText());
         Assert.assertEquals("Test description", json.get("description").asText());
+    }
+
+    /** Test toJson conversion with empty integrations after setting to null. */
+    public void testToJson_NullIntegrations() {
+        // Arrange
+        this.policy.setIntegrations(null); // Will be converted to empty list
+
+        // Act
+        ObjectNode json = this.policy.toJson();
+
+        // Assert
+        // Empty list creates an empty array in JSON
+        Assert.assertFalse(json.has("integrations"));
     }
 
     /** Test addIntegration with valid integration ID. */

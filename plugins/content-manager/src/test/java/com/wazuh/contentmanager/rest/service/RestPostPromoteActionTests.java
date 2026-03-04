@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.core.common.bytes.BytesArray;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
@@ -28,9 +27,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -43,9 +40,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -94,15 +88,11 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock getDocument to return valid documents with proper space fields
         Map<String, Object> mockDocument = new HashMap<>();
         Map<String, String> mockSpace = new HashMap<>();
-        mockSpace.put(Constants.KEY_NAME, Space.DRAFT.toString());
+        mockSpace.put("name", Space.DRAFT.toString());
         mockDocument.put(Constants.KEY_SPACE, mockSpace);
         mockDocument.put(Constants.KEY_DOCUMENT, new HashMap<>());
         when(this.spaceService.getDocument(anyString(), anyString(), anyString()))
                 .thenReturn(mockDocument);
-
-        // Mock getPolicy to return a valid policy document for target space (enabled to avoid reset
-        // condition by default)
-        this.mockPolicyForReset(true, List.of("integration-1"));
 
         // Mock getResourcesBySpace to return empty maps (target space is empty)
         when(this.spaceService.getResourcesBySpace(anyString(), anyString()))
@@ -115,29 +105,6 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                 .thenReturn(mapper.createObjectNode());
 
         this.action = new RestPostPromoteAction(this.engine, this.spaceService);
-    }
-
-    /** Helper to easily mock the policy state to trigger or bypass reset conditions. */
-    private void mockPolicyForReset(boolean enabled, List<String> integrations) throws IOException {
-        Map<String, Object> policy = new HashMap<>();
-        Map<String, Object> document = new HashMap<>();
-        Map<String, Object> hash = new HashMap<>();
-        Map<String, Object> space = new HashMap<>();
-        document.put(Constants.KEY_ID, "12345");
-        document.put(Constants.KEY_INTEGRATIONS, integrations);
-        document.put("enabled", enabled);
-        document.put("filters", Collections.emptyList());
-        document.put("enrichments", Collections.emptyList());
-        document.put("root_decoder", "json");
-        hash.put("sha256", "12345");
-        space.put(Constants.KEY_NAME, Space.DRAFT.toString());
-        policy.put(Constants.KEY_DOCUMENT, document);
-        policy.put(Constants.KEY_HASH, hash);
-        policy.put(Constants.KEY_SPACE, space);
-
-        when(this.spaceService.getPolicy(anyString())).thenReturn(policy);
-        when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), anyString(), anyString()))
-                .thenReturn(policy);
     }
 
     /**
@@ -486,8 +453,6 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         mockPolicy.put(Constants.KEY_SPACE, mockSpaceDraft);
         Map<String, Object> mockPolicyDoc = new HashMap<>();
         mockPolicyDoc.put("id", "policy");
-        mockPolicyDoc.put("enabled", true);
-        mockPolicyDoc.put("integrations", List.of("integration-1"));
         mockPolicy.put(Constants.KEY_DOCUMENT, mockPolicyDoc);
         when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), eq("draft"), eq("policy")))
                 .thenReturn(mockPolicy);
@@ -547,87 +512,5 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Verify
         Assert.assertEquals(200, actualResponse.getStatus());
         Assert.assertEquals(Constants.S_200_PROMOTION_COMPLETED, actualResponse.getMessage());
-
-        verify(this.engine, never()).deleteLogtest();
-        verify(this.engine, times(1)).promote(any(JsonNode.class));
-    }
-
-    /**
-     * Test space reset condition: policy is explicitly disabled (enabled = false). It should skip
-     * promote validation and trigger a reset (DELETE /logtest).
-     */
-    public void testPostPromote_TestSpaceReset_Success_EnabledFalse() throws Exception {
-        this.mockPolicyForReset(false, List.of("integration-1"));
-
-        RestResponse resetResponse = new RestResponse("OK", 204);
-        when(this.engine.deleteLogtest()).thenReturn(resetResponse);
-
-        RestResponse engineResponse = new RestResponse("OK", 200);
-        when(this.engine.promote(any())).thenReturn(engineResponse);
-
-        RestRequest request = this.mockValidRequest();
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
-        verify(this.engine, times(1)).deleteLogtest();
-        verify(this.engine, times(1)).promote(any());
-    }
-
-    /**
-     * Test space reset condition: policy integrations list is empty. It should skip promote
-     * validation and trigger a reset (DELETE /logtest).
-     */
-    public void testPostPromote_TestSpaceReset_Success_EmptyIntegrations() throws Exception {
-        this.mockPolicyForReset(true, Collections.emptyList());
-
-        RestResponse resetResponse = new RestResponse("OK", 204);
-        when(this.engine.deleteLogtest()).thenReturn(resetResponse);
-
-        RestResponse engineResponse = new RestResponse("Bad Request", 400);
-        when(this.engine.promote(any())).thenReturn(engineResponse);
-
-        RestRequest request = this.mockValidRequest();
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        verify(this.engine, times(1)).deleteLogtest();
-        verify(this.engine, times(1)).promote(any());
-    }
-
-    /**
-     * Test space reset condition: Engine fails to process the reset. The promotion should be aborted
-     * and return an Internal Server Error.
-     */
-    public void testPostPromote_TestSpaceReset_Failure() throws Exception {
-        this.mockPolicyForReset(false, Collections.emptyList());
-
-        RestResponse resetResponse = new RestResponse("Engine unreachable", 500);
-        when(this.engine.deleteLogtest()).thenReturn(resetResponse);
-
-        RestRequest request = this.mockValidRequest();
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
-        Assert.assertTrue(actualResponse.getMessage().contains("Failed to reset Engine test state"));
-        verify(this.engine, times(1)).deleteLogtest();
-        verify(this.engine, never()).promote(any());
-    }
-
-    /**
-     * Test regular promotion flow (enabled = true, non-empty integrations). Should validate via
-     * promote() and NOT trigger the test environment reset.
-     */
-    public void testPostPromote_TestSpaceNoReset_Success() throws Exception {
-        this.mockPolicyForReset(true, List.of("integration-1"));
-
-        RestResponse engineResponse = new RestResponse("OK", 200);
-        when(this.engine.promote(any())).thenReturn(engineResponse);
-
-        RestRequest request = this.mockValidRequest();
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
-        verify(this.engine, never()).deleteLogtest();
-        verify(this.engine, times(1)).promote(any());
     }
 }

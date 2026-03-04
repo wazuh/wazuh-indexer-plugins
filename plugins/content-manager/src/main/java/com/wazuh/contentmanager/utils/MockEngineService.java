@@ -62,10 +62,4 @@ public class MockEngineService implements EngineService {
         log.debug("MockEngineService.validateResource called for type: {}", type);
         return new RestResponse("OK", RestStatus.OK.getStatus());
     }
-
-    @Override
-    public RestResponse deleteLogtest() {
-        log.debug("MockEngineService.deleteLogtest called");
-        return new RestResponse("OK", RestStatus.NO_CONTENT.getStatus());
-    }
 }

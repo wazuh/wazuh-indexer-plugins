@@ -1233,8 +1233,6 @@ The response lists changes grouped by content type. Each change includes:
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
 
-> **Note on Test Space Promotions**: When promoting a policy to the `test` space, the Indexer evaluates the policy for specific reset conditions. If the policy being promoted is disabled (`enabled: false`) or has no integrations attached (`integrations: []`), the Indexer will automatically invoke the Engine's `DELETE /logtest` endpoint to clear the active test session. This reset occurs as an atomic pre-commit step; if the Engine fails to reset the session, the promotion operation is aborted and an error is returned.
-
 **Request**
 - Method: `POST`
 - Path: `/_plugins/_content_manager/promote`
