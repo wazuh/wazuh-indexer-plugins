@@ -72,39 +72,12 @@ function map_stateful_modules() {
 }
 
 # ====
-# Map third-party stateless modules (only main module directories, not subdirectories)
+# Map third-party stateless modules (only main module)
 # ====
 function map_stateless_modules() {
-  # Map first-level directories in stateless (excluding special directories)
-  for dir in ecs/stateless/*/; do
-    if [[ -d "$dir" ]]; then
-      local module_name
-      module_name=$(basename "$dir")
-
-      # Skip special directories
-      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
-        continue
-      fi
-
-      # Handle cloud-services specially - map its subdirectories
-      if [[ "$module_name" == "cloud-services" ]]; then
-        for cloud_dir in ecs/stateless/cloud-services/*/; do
-          if [[ -d "$cloud_dir" ]]; then
-            local service_name
-            service_name=$(basename "$cloud_dir")
-            if [[ "$service_name" == "main" ]]; then
-              all_modules["stateless/cloud-services/main"]="templates/streams/cloud-services.json"
-            else
-              all_modules["stateless/cloud-services/$service_name"]="templates/streams/cloud-services-${service_name}.json"
-            fi
-          fi
-        done
-      else
-        # Regular stateless module
-        all_modules["stateless/$module_name"]="templates/streams/${module_name}.json"
-      fi
-    fi
-  done
+  if [[ -d "ecs/stateless/main" ]]; then
+    all_modules["stateless/main"]="templates/streams/main.json"
+  fi
 }
 
 # ====
@@ -141,11 +114,6 @@ function sort_and_output_modules() {
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
 
-  # Output stateless main module
-  if [[ -n "${all_modules[stateless/main]}" ]]; then
-    echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
-  fi
-
   echo "  # CTI stateless modules" >>"$output_file"
 
   # Output CTI IoC modules (sorted, excluding main)
@@ -155,10 +123,10 @@ function sort_and_output_modules() {
 
   echo "  # Third-party stateless modules" >>"$output_file"
 
-  # Output other stateless modules (sorted, excluding main)
-  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/main$" | sort); do
-    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
-  done
+  # Output only the main stateless module
+  if [[ -n "${all_modules["stateless/main"]}" ]]; then
+    echo "  [stateless/main]=${all_modules["stateless/main"]}" >>"$output_file"
+  fi
 
   echo ")" >>"$output_file"
 }
