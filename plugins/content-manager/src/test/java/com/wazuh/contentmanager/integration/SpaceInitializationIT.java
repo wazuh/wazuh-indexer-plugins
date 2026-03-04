@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.integration;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import org.opensearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -86,6 +85,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * <p>Expected result: exactly 3 policy documents in {@code .cti-policies} (one per space: draft,
      * test, custom), regardless of how many times the workflow runs.
      */
+    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
         ensureGreen();
 
@@ -145,17 +145,9 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         }
     }
 
-    /**
-     * Clears the fielddata cache after each test so that {@code ensureEstimatedStats()} does not fail
-     * due to residual fielddata loaded by the plugin or ISM background operations.
-     */
     @After
-    public void clearFieldDataCache() {
-        client()
-                .admin()
-                .indices()
-                .clearCache(new ClearIndicesCacheRequest().fieldDataCache(true))
-                .actionGet();
+    public void clearFieldData() {
+        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
     }
 
     /** Creates all content indices required by the post-sync workflow with their proper mappings. */

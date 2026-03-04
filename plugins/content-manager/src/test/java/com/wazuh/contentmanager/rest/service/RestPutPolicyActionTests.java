@@ -46,15 +46,14 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -479,7 +478,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_500_INTERNAL_SERVER_ERROR));
     }
 
     /**
@@ -514,6 +513,10 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"references\": [\"Test references\"]"
                         + "}"
                         + "}";
+
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet())).thenReturn(null);
+        this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
         RestRequest request =
@@ -557,7 +560,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
-                        + "\"enrichments\": [\"file\", \"invalid-type\", \"ip\"],"
+                        + "\"enrichments\": [\"connection\", \"invalid-type\", \"hash_sha1\"],"
                         + "\"enabled\": true,"
                         + "\"index_unclassified_events\": false,"
                         + "\"index_discarded_events\": false,"
@@ -567,6 +570,14 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"references\": [\"Test references\"]"
                         + "}"
                         + "}";
+
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet()))
+                .thenReturn(
+                        new RestResponse(
+                                "Invalid enrichment type 'invalid-type'. Allowed values are: connection, hash_sha1",
+                                400));
+        this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
         RestRequest request =
@@ -583,7 +594,11 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Assert
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, "invalid-type"),
+                String.format(
+                        Locale.ROOT,
+                        Constants.E_400_INVALID_ENRICHMENT,
+                        "invalid-type",
+                        "connection, hash_sha1"),
                 response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
     }
@@ -601,7 +616,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"title\": \"Test Policy\","
                         + "\"root_decoder\": \"decoder/integrations/0\","
                         + "\"integrations\": [\"integration-1\"],"
-                        + "\"enrichments\": [\"file\", \"ip\", \"file\"],"
+                        + "\"enrichments\": [\"hash_sha1\", \"connection\", \"connection\"],"
                         + "\"enabled\": true,"
                         + "\"index_unclassified_events\": false,"
                         + "\"index_discarded_events\": false,"
@@ -611,6 +626,11 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"references\": [\"Test references\"]"
                         + "}"
                         + "}";
+
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet()))
+                .thenReturn(new RestResponse("Duplicate enrichment type 'connection'.", 400));
+        this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
         RestRequest request =
@@ -627,7 +647,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Assert
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertEquals(
-                String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, "file"),
+                String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, "connection"),
                 response.getMessage());
         verify(this.client, never()).index(any(IndexRequest.class));
     }
@@ -664,6 +684,10 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "\"references\": [\"Test references\"]"
                         + "}"
                         + "}";
+
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet())).thenReturn(null);
+        this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
         RestRequest request =

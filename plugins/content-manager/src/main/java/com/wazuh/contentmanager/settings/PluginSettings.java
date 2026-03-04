@@ -38,9 +38,10 @@ public class PluginSettings {
     public static final String INTEGRATIONS_URI = PLUGINS_BASE_URI + "/integrations";
     public static final String PROMOTE_URI = PLUGINS_BASE_URI + "/promote";
     public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
+    public static final String SPACE_URI = PLUGINS_BASE_URI + "/space";
 
     /** Settings default values */
-    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
+    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
@@ -54,8 +55,8 @@ public class PluginSettings {
     private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3_test";
 
     // Default values for Context and Consumer
-    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider";
-    private static final String DEFAULT_IOC_CONSUMER = "iocp_v1";
+    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider_v2";
+    private static final String DEFAULT_IOC_CONSUMER = "iocs_v2";
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 
@@ -63,7 +64,7 @@ public class PluginSettings {
     private static PluginSettings INSTANCE;
 
     /** Base Wazuh CTI URL */
-    public static final String CTI_URL = "https://cti-pre.wazuh.com";
+    public static final String CTI_URL = "https://cti.pre.cloud.wazuh.com";
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
@@ -82,7 +83,7 @@ public class PluginSettings {
                     "plugins.content_manager.max_items_per_bulk",
                     DEFAULT_MAX_ITEMS_PER_BULK,
                     10,
-                    25,
+                    999,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 

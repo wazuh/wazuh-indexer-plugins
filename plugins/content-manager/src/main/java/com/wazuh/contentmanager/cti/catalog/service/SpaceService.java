@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -35,22 +36,29 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -96,6 +104,117 @@ public class SpaceService {
     }
 
     /**
+     * Deletes all documents related to a specific space across all resource indices.
+     *
+     * @param spaceName The name of the space to wipe.
+     * @throws IOException If the deletion process fails.
+     */
+    public void deleteSpaceResources(String spaceName) throws IOException {
+        try {
+            BulkRequest bulkRequest = new BulkRequest();
+
+            for (String indexName : Constants.RESOURCE_INDICES.values()) {
+                boolean exists =
+                        offloadBlocking(
+                                () -> this.client.admin().indices().prepareExists(indexName).get().isExists());
+                if (exists) {
+                    SearchRequest searchRequest = new SearchRequest(indexName);
+                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+                    sourceBuilder.size(10000);
+                    sourceBuilder.fetchSource(false); // We only need the _id
+                    searchRequest.source(sourceBuilder);
+
+                    SearchResponse response =
+                            offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+
+                    for (SearchHit hit : response.getHits().getHits()) {
+                        bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
+                    }
+                }
+            }
+
+            if (bulkRequest.numberOfActions() > 0) {
+                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                BulkResponse response = offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
+                if (response.hasFailures()) {
+                    throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to delete space resources for [{}]: {}", spaceName, e.getMessage());
+            throw new IOException("Failed to delete space resources: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates a single space policy document if it does not already exist.
+     *
+     * <p>Uses a deterministic, space-specific OpenSearch document ID so that {@link
+     * DocWriteRequest.OpType#CREATE} acts as an atomic guard: if two nodes race on startup, the
+     * second write raises a {@link VersionConflictEngineException} which is silently ignored.
+     *
+     * @param spaceName The space name.
+     * @param documentId Shared policy ID stored inside the document to link all default spaces.
+     */
+    public void initializeSpace(String spaceName, String documentId) {
+        // Deterministic, space-specific OpenSearch _id.
+        // Combined with OpType.CREATE this guarantees exactly-once creation per space,
+        // even when multiple nodes call this method concurrently.
+        String spaceDocId =
+                UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
+                        .toString();
+        try {
+            String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
+            String title = "Custom policy";
+
+            Policy policy = new Policy();
+            policy.setId(documentId);
+            policy.setTitle(title);
+            policy.setDescription(title);
+            policy.setAuthor("Wazuh Inc.");
+            policy.setRootDecoder("");
+            policy.setDocumentation("");
+            policy.setIntegrations(Collections.emptyList());
+            policy.setFilters(Collections.emptyList());
+            policy.setEnrichments(Collections.emptyList());
+            policy.setReferences(List.of("https://wazuh.com"));
+            policy.setDate(date);
+            policy.setModified(date);
+            policy.setEnabled(false);
+            policy.setIndexUnclassifiedEvents(false);
+            policy.setIndexDiscardedEvents(false);
+            Map<String, Object> docMap = this.objectMapper.convertValue(policy, Map.class);
+
+            String docJson = this.objectMapper.writeValueAsString(docMap);
+            String docHash = Resource.computeSha256(docJson);
+
+            Map<String, Object> space = new HashMap<>();
+            space.put(Constants.KEY_NAME, spaceName);
+            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_DOCUMENT, docMap);
+            source.put(Constants.KEY_SPACE, space);
+            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+
+            IndexRequest request =
+                    new IndexRequest(Constants.INDEX_POLICIES)
+                            .id(spaceDocId)
+                            .source(this.objectMapper.writeValueAsString(source), XContentType.JSON)
+                            .opType(DocWriteRequest.OpType.CREATE)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+            this.client.index(request).actionGet();
+            log.info("Initialized space [{}]", spaceName);
+        } catch (VersionConflictEngineException e) {
+            log.debug("Space [{}] already initialized, skipping.", spaceName);
+        } catch (Exception e) {
+            log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
+        }
+    }
+
+    /**
      * Fetches all resources (document.id and Hash) for a given space. Iterates over all managed
      * resource types and their corresponding indices.
      *
@@ -124,7 +243,7 @@ public class SpaceService {
 
                     searchRequest.source(sourceBuilder);
                     SearchResponse response =
-                            offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                            this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                     for (SearchHit hit : response.getHits().getHits()) {
                         String hash = Resource.extractHash(hit.getSourceAsMap());
@@ -227,7 +346,7 @@ public class SpaceService {
                 searchRequest.source(sourceBuilder);
 
                 SearchResponse response =
-                        offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                        this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                 for (SearchHit hit : response.getHits().getHits()) {
                     String docId = this.getDocumentId(hit.getSourceAsMap());
@@ -439,7 +558,7 @@ public class SpaceService {
             searchRequest.source(sourceBuilder);
 
             SearchResponse response =
-                    offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                    this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
             if (response.getHits().getTotalHits().value() > 0) {
                 SearchHit hit = response.getHits().getAt(0);
@@ -533,7 +652,7 @@ public class SpaceService {
             searchRequest.source(sourceBuilder);
 
             SearchResponse response =
-                    offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                    this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
             if (response.getHits().getTotalHits().value() > 0) {
                 return response.getHits().getAt(0).getId();
             }
