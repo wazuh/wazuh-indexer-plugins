@@ -84,13 +84,8 @@ function detect_modified_modules() {
   echo "---> Modified modules"
   modules_to_update=()
 
-  local is_main_module_modified=false
-
   for ecs_module in "${modified_modules[@]}"; do
     echo "  - $ecs_module"
-    if [[ "$ecs_module" == "stateless/main" ]]; then
-      is_main_module_modified=true
-    fi
     if [[ ! -v module_to_file[$ecs_module] ]]; then
       echo "Warning: Module '$ecs_module' not found in module list. Probably removed. Skipping."
       continue
@@ -99,23 +94,6 @@ function detect_modified_modules() {
       modules_to_update+=("$ecs_module")
     fi
   done
-  if [[ "$is_main_module_modified" == true ]]; then
-    # Add all module keys starting with 'stateless/' to modules_to_update (avoid duplicates)
-    for key in "${!module_to_file[@]}"; do
-      if [[ "$key" == stateless/* ]]; then
-        skip=false
-        for exist in "${modules_to_update[@]}"; do
-          if [[ "$exist" == "$key" ]]; then
-            skip=true
-            break
-          fi
-        done
-        if [[ "$skip" == false ]]; then
-          modules_to_update+=("$key")
-        fi
-      fi
-    done
-  fi
 }
 
 # ====
@@ -157,7 +135,7 @@ function copy_files() {
   local resources_path="plugins/setup/src/main/resources"
   local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/opensearch-template.json"
   for ecs_module in "${modules_to_update[@]}"; do
-    # Skip modules without a template mapping (e.g., stateless/main)
+    # Skip modules without a template mapping
     destination_file=${module_to_file[$ecs_module]}
     if [[ -z "$destination_file" ]]; then
       echo "  - '$ecs_module' skipped (no index template)"
