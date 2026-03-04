@@ -1,0 +1,14 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,document,document.check,keyword,custom,,event.action:login AND event.outcome:failure,Check expression or identifier used by the filter.
+9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the filter is enabled.
+9.1.0,true,document,document.id,keyword,custom,,filter-12345,Unique identifier of the filter document.
+9.1.0,true,document,document.metadata.author.date,date,custom,,2024-01-15T08:30:00.000Z,Creation date of the filter metadata.
+9.1.0,true,document,document.metadata.author.email,keyword,custom,,security@example.com,Email of the filter author.
+9.1.0,true,document,document.metadata.author.modified,date,custom,,2024-02-20T14:45:00.000Z,Last modification date of the filter metadata.
+9.1.0,true,document,document.metadata.author.name,keyword,custom,,SecOps Team,Name of the filter author.
+9.1.0,true,document,document.metadata.author.url,keyword,custom,,https://example.com/filters,URL associated with the filter author or documentation.
+9.1.0,true,document,document.metadata.description,text,custom,,Detects failed logins from new locations.,Description of the filter purpose or behavior.
+9.1.0,true,document,document.name,keyword,custom,,Block suspicious login,Human-readable name of the filter.
+9.1.0,true,document,document.type,keyword,custom,,event,Filter type or category.
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the filter document.
+9.1.0,true,space,space.name,keyword,custom,,draft,The name of the space where the filter is defined.
