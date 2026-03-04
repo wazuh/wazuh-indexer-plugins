@@ -1,0 +1,72 @@
+---
+- name: document
+  title: Document
+  description: >
+    Engine filters document custom fields
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        Human-readable name of the filter.
+      example: "Block suspicious login"
+    - name: enabled
+      type: boolean
+      level: custom
+      description: >
+        Whether the filter is enabled.
+      example: true
+    - name: metadata.description
+      type: text
+      level: custom
+      description: >
+        Description of the filter purpose or behavior.
+      example: "Detects failed logins from new locations."
+    - name: metadata.author.email
+      type: keyword
+      level: custom
+      description: >
+        Email of the filter author.
+      example: "security@example.com"
+    - name: metadata.author.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the filter author.
+      example: "SecOps Team"
+    - name: metadata.author.url
+      type: keyword
+      level: custom
+      description: >
+        URL associated with the filter author or documentation.
+      example: "https://example.com/filters"
+    - name: metadata.author.date
+      type: date
+      level: custom
+      description: >
+        Creation date of the filter metadata.
+      example: "2024-01-15T08:30:00.000Z"
+    - name: metadata.author.modified
+      type: date
+      level: custom
+      description: >
+        Last modification date of the filter metadata.
+      example: "2024-02-20T14:45:00.000Z"
+    - name: check
+      type: keyword
+      level: custom
+      description: >
+        Check expression or identifier used by the filter.
+      example: "event.action:login AND event.outcome:failure"
+    - name: type
+      type: keyword
+      level: custom
+      description: >
+        Filter type or category.
+      example: "event"
+    - name: id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier of the filter document.
+      example: "filter-12345"

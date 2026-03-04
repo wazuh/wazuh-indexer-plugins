@@ -1,65 +1,72 @@
 {
+  "date_detection": false,
   "dynamic": "strict",
   "properties": {
     "document": {
       "properties": {
-        "name": {
+        "check": {
+          "ignore_above": 1024,
           "type": "keyword"
         },
         "enabled": {
           "type": "boolean"
         },
+        "id": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
         "metadata": {
           "properties": {
-            "description": {
-              "type": "text"
-            },
             "author": {
               "properties": {
+                "date": {
+                  "type": "date"
+                },
                 "email": {
+                  "ignore_above": 1024,
                   "type": "keyword"
                 },
+                "modified": {
+                  "type": "date"
+                },
                 "name": {
+                  "ignore_above": 1024,
                   "type": "keyword"
                 },
                 "url": {
+                  "ignore_above": 1024,
                   "type": "keyword"
-                },
-                "date": {
-                  "type": "date",
-                  "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
-                },
-                "modified": {
-                  "type": "date",
-                  "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
                 }
               }
+            },
+            "description": {
+              "norms": false,
+              "type": "text"
             }
           }
         },
-        "check": {
-          "type": "text"
-        },
-        "type": {
+        "name": {
+          "ignore_above": 1024,
           "type": "keyword"
         },
-        "id": {
+        "type": {
+          "ignore_above": 1024,
           "type": "keyword"
         }
       }
     },
     "hash": {
-      "type": "object",
       "properties": {
         "sha256": {
+          "ignore_above": 1024,
           "type": "keyword"
         }
       }
     },
     "space": {
-      "type": "object",
       "properties": {
         "name": {
+          "ignore_above": 1024,
           "type": "keyword"
         }
       }

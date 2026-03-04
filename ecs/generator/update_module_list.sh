@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 declare -A all_modules
 
@@ -128,6 +128,15 @@ function map_cti_modules() {
 }
 
 # ====
+# Map Engine Filter modules
+# ====
+function map_engine-filter_modules() {
+  # Map first-level directories in stateless (excluding special directories)
+  module_name="filters"
+  all_modules["$module_name"]="templates/filters/${module_name}.json"
+}
+
+# ====
 # Sort modules by type and name
 # ====
 function sort_and_output_modules() {
@@ -138,6 +147,13 @@ function sort_and_output_modules() {
 
   # Output stateful modules first (sorted)
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateful/" | sort); do
+    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+  done
+
+  echo "  # Engine filter modules" >>"$output_file"
+
+  # Output Engine Filter modules (sorted, excluding main)
+  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^filters" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
 
@@ -180,6 +196,8 @@ function main() {
   map_stateless_modules
 
   map_cti_modules
+
+  map_engine-filter_modules
 
   # Sort and output
   sort_and_output_modules "$output_file"

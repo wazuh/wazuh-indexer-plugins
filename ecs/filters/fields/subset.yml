@@ -1,0 +1,28 @@
+---
+name: engine-filters
+fields:
+  document:
+    fields:
+      name: {}
+      enabled: {}
+      metadata:
+        fields:
+          description: {}
+          author:
+            fields:
+              email: {}
+              name: {}
+              url: {}
+              date: {}
+              modified: {}
+      check: {}
+      type: {}
+      id: {}
+  base :
+    fields:
+      hash:
+        fields:
+          sha256: {}
+      space:
+        fields:
+          name: {}
