@@ -217,6 +217,8 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostFilterAction(this.engine),
                 new RestPutFilterAction(this.engine),
                 new RestDeleteFilterAction(this.engine));
+                // Space deletion endpoint
+                new RestDeleteSpaceAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */
