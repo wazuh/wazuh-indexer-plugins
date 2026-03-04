@@ -44,16 +44,14 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 /**
  * DELETE /_plugins/_content_manager/space/{space}
  *
- * <p>Resets a user space (draft, test, custom) to its initial state by deleting all associated
- * documents and re-generating the default policy. For the 'test' space, the engine logtest session
- * is also reset.
+ * <p>Resets the draft user space to its initial state by deleting all associated
+ * documents and re-generating the default policy.
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
  *   <li>200 OK: Space reset successfully.
- *   <li>400 Bad Request: Missing space parameter, invalid space string, or attempting to reset
- *       standard space.
+ *   <li>400 Bad Request: Missing space parameter, invalid space string, or attempting to reset a space different from draft.
  *   <li>500 Internal Server Error: Engine unavailable, bulk deletion failure, or unexpected error.
  * </ul>
  */
@@ -107,12 +105,11 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
     }
 
     /**
-     * Handles the space reset logic: 1. Validates the space parameter and ensures it's not
-     * 'standard'. 2. Fetches current resources for the space to perform necessary external deletions
+     * Handles the space reset logic: 1. Validates the space parameter and ensures it is draft.
+     * 2. Fetches current resources for the space to perform necessary external deletions
      * in SAP. 3. Deletes all documents associated with the space across all resource indices. 4.
-     * Re-generates the default policy for the space. 5. If the space is 'test', resets the local
-     * engine test session. 6. Returns appropriate HTTP responses based on the outcome of each
-     * operation. Note: External deletions in SAP are attempted but do not block the reset process if
+     * Re-generates the default policy for the space. 5. Returns appropriate HTTP responses based on the outcome
+     * of each operation. Note: External deletions in SAP are attempted but do not block the reset process if
      * they fail, as the primary goal is to ensure the space is reset in the content manager. Failures
      * in external deletions are logged for monitoring and troubleshooting purposes.
      *
@@ -131,9 +128,9 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
                     "Invalid space: [" + spaceParam + "].", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        if (space == Space.STANDARD) {
+        if (space != Space.DRAFT) {
             return new RestResponse(
-                    "Cannot reset the 'standard' space.", RestStatus.BAD_REQUEST.getStatus());
+                    "Cannot reset the " + space + " space.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
@@ -180,19 +177,6 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
                     UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
                             .toString();
             this.spaceService.initializeSpace(space.toString(), sharedDocumentId);
-
-            // 5. Reset local engine test session if space is test
-            if (space == Space.TEST && this.engineService != null) {
-                RestResponse engineResponse = this.engineService.deleteLogtest();
-                if (engineResponse.getStatus() >= 200 && engineResponse.getStatus() < 300) {
-                    log.info("Successfully reset Engine test state.");
-                } else {
-                    log.error("Failed to reset Engine test state: {}", engineResponse.getMessage());
-                    return new RestResponse(
-                            "Failed to reset Engine test state: " + engineResponse.getMessage(),
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                }
-            }
 
             log.info("Successfully reset space [{}]", space);
 
