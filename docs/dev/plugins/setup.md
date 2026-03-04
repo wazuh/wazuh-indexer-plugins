@@ -333,14 +333,15 @@ The **active-responses** data stream stores Active Response execution requests g
 #### Fields Included (WCS-compatible)
 
 - **@timestamp**: When the active response was triggered
-- **wazuh.event_reference.document_id**: Document ID of the matched alert
-- **wazuh.event_reference.source_index**: Source index of the matched alert
-- **wazuh.active_response.name**: Name of the active response
-- **wazuh.active_response.executable_name**: Name of the executable/script to run
-- **wazuh.active_response.extra_arguments**: List of extra arguments for the executable
-- **wazuh.active_response.location**: Execution location (agent/server)
-- **wazuh.active_response.agent_id**: Target agent ID
-- **wazuh.active_response.timeout**: Maximum execution time in seconds
+- **wazuh.event_reference.document_id**: ID of the document that matched the monitor (alerting)
+- **wazuh.event_reference.source_index**: Index of the document that matched the monitor (alerting)
+- **wazuh.active_response.name**: Name of the active response configured in the channel
+- **wazuh.active_response.executable**: Executable configured in the active response channel
+- **wazuh.active_response.extra_arguments**: Arguments configured in the channel
+- **wazuh.active_response.location**: Where to execute (local, defined-agent, all)
+- **wazuh.active_response.agent_id**: Agent configured in the channel
+- **wazuh.active_response.type**: Response type (stateless, stateful)
+- **wazuh.active_response.stateful_timeout**: Seconds configured in the channel (for stateful)
 - **wazuh.agent.***: Agent metadata
 - **wazuh.cluster.***: Cluster information
 - **wazuh.space.name**: Wazuh space/tenant information

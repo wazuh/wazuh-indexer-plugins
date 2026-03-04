@@ -18,7 +18,7 @@
           "wazuh.agent.id",
           "wazuh.agent.name",
           "wazuh.active_response.name",
-          "wazuh.active_response.executable_name",
+          "wazuh.active_response.executable",
           "wazuh.event_reference.document_id",
           "wazuh.event_reference.source_index"
         ],

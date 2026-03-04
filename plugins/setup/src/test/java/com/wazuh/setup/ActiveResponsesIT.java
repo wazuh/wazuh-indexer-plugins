@@ -47,8 +47,7 @@ public class ActiveResponsesIT extends OpenSearchIntegTestCase {
     }
 
     /**
-     * Test to verify that the active responses data stream is created during plugin
-     * initialization.
+     * Test to verify that the active responses data stream is created during plugin initialization.
      */
     public void testActiveResponsesDataStreamCreated() {
         // Wait for initialization to complete

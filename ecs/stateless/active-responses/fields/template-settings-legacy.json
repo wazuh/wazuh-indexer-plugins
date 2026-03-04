@@ -12,14 +12,14 @@
       "number_of_replicas": "0",
       "auto_expand_replicas": "0-1",
       "refresh_interval": "5s",
-      "query.default_field": [
-        "wazuh.agent.id",
-        "wazuh.agent.name",
-        "wazuh.active_response.name",
-        "wazuh.active_response.executable_name",
-        "wazuh.event_reference.document_id",
-        "wazuh.event_reference.source_index"
-      ],
+        "query.default_field": [
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.active_response.name",
+          "wazuh.active_response.executable",
+          "wazuh.event_reference.document_id",
+          "wazuh.event_reference.source_index"
+        ],
       "max_docvalue_fields_search": 50
     }
   }

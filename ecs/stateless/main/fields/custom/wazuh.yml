@@ -80,6 +80,51 @@
       type: keyword
       level: custom
       description: >
+        Name of the active response configured in the channel.
+      example: "firewall-drop"
+    - name: active_response.executable
+      type: keyword
+      level: custom
+      description: >
+        Executable configured in the active response channel.
+      example: "firewall-drop"
+    - name: active_response.extra_arguments
+      type: keyword
+      level: custom
+      description: >
+        Arguments configured in the active response channel.
+      normalize:
+        - array
+      example: '["192.168.1.100", "600"]'
+    - name: active_response.location
+      type: keyword
+      level: custom
+      description: >
+        Where to execute. One of: local, defined-agent, all.
+      example: "defined-agent"
+    - name: active_response.agent_id
+      type: keyword
+      level: custom
+      description: >
+        Agent configured in the active response channel.
+      example: "001"
+    - name: active_response.type
+      type: keyword
+      level: custom
+      description: >
+        Response type. One of: stateless, stateful.
+      example: "stateless"
+    - name: active_response.stateful_timeout
+      type: integer
+      level: custom
+      description: >
+        Seconds configured in the channel (for stateful type).
+      example: 300
+    # Active Response 5.0 (active-responses index)
+    - name: active_response.name
+      type: keyword
+      level: custom
+      description: >
         Name of the active response.
       example: "firewall-drop"
     - name: active_response.executable_name
