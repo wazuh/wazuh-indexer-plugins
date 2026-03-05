@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-
 - Create index and index templates for 5.0.0 [(#452)](https://github.com/wazuh/wazuh-indexer-plugins/pull/452)
 - Add ISM rollover policy for stateless indices [(#471)](https://github.com/wazuh/wazuh-indexer-plugins/pull/471)
 - Add scripts to extract the product versions [(#483)](https://github.com/wazuh/wazuh-indexer-plugins/pull/483)
@@ -45,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initialize content on plugin startup [(#696)](https://github.com/wazuh/wazuh-indexer-plugins/pull/696)
 - Implement threat detectors creation [(#703)](https://github.com/wazuh/wazuh-indexer-plugins/pull/703)
 - Implement complete initialization of content [(#704)](https://github.com/wazuh/wazuh-indexer-plugins/pull/704)
-- Complete content SAP resources management [(#713)](https://github.com/wazuh/wazuh-indexer-plugins/pull/713)
+- Complete content SAP resources management  [(#713)](https://github.com/wazuh/wazuh-indexer-plugins/pull/713)
 - Add new content manager settings [(#717)](https://github.com/wazuh/wazuh-indexer-plugins/pull/717)
 - Apply default replicas setting from configuration on startup [(#733)](https://github.com/wazuh/wazuh-indexer-plugins/pull/733)
 - Extend OpenAPI document with user-generated content management endpoints [(#736)](https://github.com/wazuh/wazuh-indexer-plugins/pull/736)
@@ -75,15 +74,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
 - Add new reset test sesion step to POST Promote endpoint [(#880)](https://github.com/wazuh/wazuh-indexer-plugins/pull/880)
 - Add new space reset endpoint [(#885)](https://github.com/wazuh/wazuh-indexer-plugins/pull/885)
-- Add active response index With ISM Polic [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
+- Add active response index with ISM policy [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
 
 ### Dependencies
-
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
 - Update to JDK 25 [(#822)](https://github.com/wazuh/wazuh-indexer-plugins/pull/882)
 
 ### Changed
-
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
 - Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701) [(#742)](https://github.com/wazuh/wazuh-indexer-plugins/pull/742)
@@ -93,10 +90,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - FIM indices rework [(#509)](https://github.com/wazuh/wazuh-indexer-plugins/pull/509)
 - Update GitHub Actions versions in main branch [(#572)](https://github.com/wazuh/wazuh-indexer-plugins/pull/572)
 - Update index templates with agent fields [(#578)](https://github.com/wazuh/wazuh-indexer-plugins/pull/578)
-- Rename indices from _-5.x-_ to _-v5-_ [(#597)](https://github.com/wazuh/wazuh-indexer-plugins/pull/597)
+- Rename indices from *-5.x-* to *-v5-* [(#597)](https://github.com/wazuh/wazuh-indexer-plugins/pull/597)
 - Use stricter field limits for the WCS indices [(#589)](https://github.com/wazuh/wazuh-indexer-plugins/pull/589)
 - Bump WCS to ECS v9.1.0 [(#600)](https://github.com/wazuh/wazuh-indexer-plugins/pull/600) [(#631)](https://github.com/wazuh/wazuh-indexer-plugins/pull/631)
-- Replace genai.\* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
+- Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
 - Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
 - Automatically regenerate dependant stateless modules on base module change [(#618)](https://github.com/wazuh/wazuh-indexer-plugins/pull/618)
 - Restructure WCS files[(#629)](https://github.com/wazuh/wazuh-indexer-plugins/pull/629)
@@ -126,11 +123,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update templates to use minimal WCS [(#887)](https://github.com/wazuh/wazuh-indexer-plugins/pull/887)
 
 ### Deprecated
-
 -
 
 ### Removed
-
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
 - Remove extra fields from CSV documentation [(#479)](https://github.com/wazuh/wazuh-indexer-plugins/pull/479)
 - Remove outdated documentation [(#532)](https://github.com/wazuh/wazuh-indexer-plugins/pull/532)
@@ -138,7 +133,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Remove alerts and archives index creation [(#693)](https://github.com/wazuh/wazuh-indexer-plugins/pull/693)
 
 ### Fixed
-
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
 - Fix permissions for job 'call-build-workflow' [(#492)](https://github.com/wazuh/wazuh-indexer-plugins/pull/492)
 - Update event generators [(#505)](https://github.com/wazuh/wazuh-indexer-plugins/pull/505)
@@ -158,7 +152,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
 
 ### Security
-
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
 - Bump requests in /integrations/amazon-security-lake/tests [(#491)](https://github.com/wazuh/wazuh-indexer-plugins/pull/491)
 

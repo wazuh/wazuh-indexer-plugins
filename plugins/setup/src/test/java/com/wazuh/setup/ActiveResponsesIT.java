@@ -18,87 +18,69 @@ package com.wazuh.setup;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import org.opensearch.action.admin.indices.datastream.GetDataStreamAction;
-import org.opensearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.test.OpenSearchIntegTestCase;
+import org.apache.hc.core5.http.ParseException;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
+import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.junit.After;
 
-import java.util.Collection;
-import java.util.List;
+import java.io.IOException;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
- * Integration tests for the active responses data stream. Verifies the creation and configuration
- * of the active-responses data stream used for Active Response execution requests from monitor
- * triggers.
+ * Integration tests for the active responses index template. Verifies that the setup plugin creates
+ * the streams-active-responses template, which backs the active-responses data stream used for
+ * Active Response execution requests from monitor triggers.
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
-@OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class ActiveResponsesIT extends OpenSearchIntegTestCase {
+public class ActiveResponsesIT extends OpenSearchRestTestCase {
 
-    private static final String ACTIVE_RESPONSES_DATASTREAM = "wazuh-active-responses";
     private static final String ACTIVE_RESPONSES_INDEX_TEMPLATE = "streams-active-responses";
-
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return List.of(SetupPlugin.class);
-    }
-
-    /**
-     * Test to verify that the active responses data stream is created during plugin initialization.
-     */
-    public void testActiveResponsesDataStreamCreated() {
-        // Wait for initialization to complete
-        this.ensureGreen();
-
-        try {
-            // Get data streams and verify the active responses data stream exists
-            GetDataStreamAction.Request request =
-                    new GetDataStreamAction.Request(new String[] {ACTIVE_RESPONSES_DATASTREAM});
-            GetDataStreamAction.Response response =
-                    client().admin().indices().getDataStreams(request).actionGet();
-
-            logger.info("Data stream response: {}", response);
-            assertThat(
-                    "Data stream should be created during plugin initialization",
-                    response.getDataStreams().size(),
-                    greaterThanOrEqualTo(1));
-        } catch (Exception e) {
-            logger.info("Data stream not found or query failed: {}", e.getMessage());
-            assertTrue("Test completed without fatal error", true);
-        }
-    }
 
     /**
      * Test to verify that the active responses index template is created during plugin
      * initialization.
      */
-    public void testActiveResponsesTemplateCreated() {
-        // Wait for initialization to complete
-        this.ensureGreen();
-
-        try {
-            // Get index templates and verify the active responses template exists
-            GetComposableIndexTemplateAction.Request request =
-                    new GetComposableIndexTemplateAction.Request(ACTIVE_RESPONSES_INDEX_TEMPLATE);
-            GetComposableIndexTemplateAction.Response response =
-                    client().execute(GetComposableIndexTemplateAction.INSTANCE, request).actionGet();
-
-            logger.info("Template response: {}", response);
-            assertThat(
-                    "Template should be created during plugin initialization",
-                    response.indexTemplates().size(),
-                    greaterThanOrEqualTo(1));
-        } catch (Exception e) {
-            logger.info("Template not found or query failed: {}", e.getMessage());
-            assertTrue("Test completed without fatal error", true);
+    public void testActiveResponsesTemplateCreated()
+            throws IOException, ParseException, InterruptedException {
+        // Wait for setup plugin initialization to complete (template creation is async)
+        int maxAttempts = 30;
+        for (int i = 0; i < maxAttempts; i++) {
+            try {
+                Response response =
+                        client()
+                                .performRequest(
+                                        new Request(
+                                                "GET",
+                                                "/_index_template/" + ACTIVE_RESPONSES_INDEX_TEMPLATE));
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    return;
+                }
+            } catch (ResponseException e) {
+                if (e.getResponse().getStatusLine().getStatusCode() != 404) {
+                    throw e;
+                }
+            }
+            Thread.sleep(1000);
         }
+        Response response =
+                client()
+                        .performRequest(
+                                new Request(
+                                        "GET",
+                                        "/_index_template/" + ACTIVE_RESPONSES_INDEX_TEMPLATE));
+        assertThat(
+                "Template should be created during plugin initialization",
+                response.getStatusLine().getStatusCode(),
+                equalTo(200));
     }
 
     @After
-    public void clearFieldData() {
-        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
+    public void clearFieldData() throws IOException {
+        Request request = new Request("POST", "/_cache/clear");
+        request.addParameter("fielddata", "true");
+        client().performRequest(request);
     }
 }
