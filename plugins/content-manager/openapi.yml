@@ -40,6 +40,8 @@ tags:
     description: Execute logtest against sample events
   - name: Promotion
     description: Preview and promote content across spaces
+  - name: Spaces
+    description: Manage user spaces and environments
 
 security:
   - bearerAuth: []
@@ -720,6 +722,34 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /space/{space}:
+    delete:
+      tags: [ Spaces ]
+      summary: Reset a user space
+      description: |
+        Resets a user space (draft) to its initial state.
+
+        This operation will:
+        - Remove all documents (integrations, rules, decoders, kvdbs) belonging to the given space.
+        - Re-generate the default policy for the given space.
+
+      operationId: deleteSpace
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to reset.
+          schema:
+            type: string
+            enum: [ draft ]
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   # Shared path parameters for resource identifiers (UUIDs)
   parameters:
@@ -1382,11 +1412,11 @@ components:
           type: array
           items:
             type: string
-            enum: [file, domain-name, ip, url, geo]
+            enum: [connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full]
           description: >
-            Enrichment types to apply. Allowed values: file, domain-name, ip, url, geo.
-            No duplicates allowed.
-          example: ["file", "ip", "geo"]
+            Enrichment types to apply. Known values: connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full.
+            No duplicates allowed. May vary based on engine capabilities.
+          example: ["connection", "hash_md5", "url-full"]
 
         author:
           type: string

@@ -21,16 +21,19 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -44,8 +47,10 @@ import java.util.function.Supplier;
 
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
+import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
+import com.wazuh.setup.rest.RestPutSettingsAction;
 import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.JsonUtils;
 
@@ -53,7 +58,7 @@ import com.wazuh.setup.utils.JsonUtils;
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
  * templates and indices required by Wazuh to work properly.
  */
-public class SetupPlugin extends Plugin implements ClusterPlugin {
+public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
     public static final String CLUSTER_DEFAULT_NUMBER_OF_REPLICAS =
@@ -61,6 +66,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     private final List<Index> indices = new ArrayList<>();
     private Client client;
     private ClusterService clusterService;
+    private ThreadPool threadPool;
+    private SettingsIndex settingsIndex;
     // spotless:off
     private final String[] categories = {
         "access-management", // No integration in this category yet
@@ -94,6 +101,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.client = client;
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
         // spotless:off
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
@@ -131,6 +139,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
         this.indices.add(new StateIndex("wazuh-statistics", "templates/statistics"));
+
+        // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
+        this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
+        this.indices.add(this.settingsIndex);
 
         // spotless:on
 
@@ -176,6 +188,18 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
             this.indices.forEach(Index::initialize);
         }
+    }
+
+    @Override
+    public List<RestHandler> getRestHandlers(
+            Settings settings,
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<DiscoveryNodes> nodesInCluster) {
+        return List.of(new RestPutSettingsAction(this.settingsIndex));
     }
 
     @Override

@@ -58,7 +58,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
     private SpaceService spaceService;
     private NodeClient client;
-    private final PayloadValidations payloadValidations = new PayloadValidations();
+    private PayloadValidations payloadValidations;
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -69,6 +69,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     public RestPutPolicyAction(SpaceService spaceService) {
         this.spaceService = spaceService;
+        this.payloadValidations = new PayloadValidations();
     }
 
     /**
@@ -81,6 +82,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     public RestPutPolicyAction(SpaceService spaceService, NodeClient client) {
         this.spaceService = spaceService;
         this.client = client;
+        this.payloadValidations = new PayloadValidations();
     }
 
     /**
@@ -90,6 +92,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     public void setPolicyHashService(SpaceService spaceService) {
         this.spaceService = spaceService;
+    }
+
+    /**
+     * Setter for the payload validations, used in tests.
+     *
+     * @param payloadValidations the payload validations instance to set
+     */
+    public void setPayloadValidations(PayloadValidations payloadValidations) {
+        this.payloadValidations = payloadValidations;
     }
 
     /** Return a short identifier for this handler. */
@@ -189,7 +200,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 missingFields.add("references");
             }
             if (policy.getEnabled() == null) {
-                missingFields.add("enabled");
+                missingFields.add(Constants.KEY_ENABLED);
             }
             if (policy.getIndexUnclassifiedEvents() == null) {
                 missingFields.add("index_unclassified_events");
@@ -205,9 +216,22 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Get known enrichment types for validation (from the standard policy document)
+            JsonNode standardEnrichmentsNode =
+                    mapper
+                            .valueToTree(this.spaceService.getPolicy(Space.STANDARD.toString()))
+                            .get(Constants.KEY_DOCUMENT)
+                            .get(Constants.KEY_ENRICHMENTS);
+
+            Set<String> knownEnrichmentTypes = new HashSet<>();
+            if (standardEnrichmentsNode != null && standardEnrichmentsNode.isArray()) {
+                standardEnrichmentsNode.forEach(node -> knownEnrichmentTypes.add(node.asText()));
+            }
+
             // Validate enrichments: only allowed values, no duplicates
             RestResponse enrichmentsValidationError =
-                    this.payloadValidations.validateEnrichments(policy.getEnrichments());
+                    this.payloadValidations.validateEnrichments(
+                            policy.getEnrichments(), knownEnrichmentTypes);
             if (enrichmentsValidationError != null) {
                 return enrichmentsValidationError;
             }
@@ -227,7 +251,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
             log.error(
                     Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
@@ -250,12 +275,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
         if (currentPolicyDoc == null) {
             throw new IllegalStateException(
-                    String.format(
-                            Locale.ROOT,
-                            Constants.E_500_INTERNAL_SERVER_ERROR,
-                            Constants.KEY_DOCUMENT,
-                            Space.DRAFT,
-                            Constants.INDEX_POLICIES));
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in draft space.");
         }
 
         // Validate integrations: allow reordering but prevent addition/removal

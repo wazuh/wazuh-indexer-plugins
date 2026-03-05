@@ -37,4 +37,6 @@ public interface EngineService {
      * @return A {@link RestResponse} with the Engine's response.
      */
     RestResponse loadIocs(String filePath);
+
+    RestResponse deleteLogtest();
 }

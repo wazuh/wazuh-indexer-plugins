@@ -64,6 +64,12 @@ public class MockEngineService implements EngineService {
     }
 
     @Override
+    public RestResponse deleteLogtest() {
+        log.debug("MockEngineService.deleteLogtest called");
+        return new RestResponse("OK", RestStatus.NO_CONTENT.getStatus());
+    }
+
+    @Override
     public RestResponse loadIocs(String filePath) {
         log.debug("MockEngineService.loadIocs called with path: {}", filePath);
         return new RestResponse("OK", RestStatus.OK.getStatus());

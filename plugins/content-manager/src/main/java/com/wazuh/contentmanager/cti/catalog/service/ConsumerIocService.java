@@ -47,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -126,7 +127,8 @@ public class ConsumerIocService extends AbstractConsumerService {
     /**
      * Computes per-type SHA-256 checksums for all IOC documents and stores them as a summary
      * document. Uses PIT (Point-in-Time) with search_after for deterministic, paginated iteration
-     * over potentially millions of documents.
+     * over potentially millions of documents. Types are discovered dynamically by scanning all
+     * documents sorted by {@code document.type}.
      */
     private void computeAndStoreTypeHashes() {
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
@@ -139,16 +141,19 @@ public class ConsumerIocService extends AbstractConsumerService {
         String pitId = pitResponse.getId();
 
         try {
-            ObjectNode hashDocument = MAPPER.createObjectNode();
+            Map<String, String> typeHashes = this.computeAllTypeHashes(pitId, keepalive);
 
-            for (String type : Constants.IOC_TYPES) {
-                String hash = this.computeHashForType(pitId, keepalive, type);
+            ObjectNode typeHashesNode = MAPPER.createObjectNode();
+            for (Map.Entry<String, String> entry : typeHashes.entrySet()) {
                 ObjectNode typeNode = MAPPER.createObjectNode();
                 ObjectNode typeHashNode = MAPPER.createObjectNode();
-                typeHashNode.put(Constants.KEY_SHA256, hash);
+                typeHashNode.put(Constants.KEY_SHA256, entry.getValue());
                 typeNode.set(Constants.KEY_HASH, typeHashNode);
-                hashDocument.set(type, typeNode);
+                typeHashesNode.set(entry.getKey(), typeNode);
             }
+
+            ObjectNode hashDocument = MAPPER.createObjectNode();
+            hashDocument.set(Constants.KEY_TYPE_HASHES, typeHashesNode);
 
             IndexRequest indexRequest =
                     new IndexRequest(Constants.INDEX_IOCS)
@@ -166,22 +171,26 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     /**
-     * Computes the SHA-256 hash for all IOC documents of a given type using paginated PIT search.
+     * Computes SHA-256 hashes for all IOC types in a single paginated pass. Iterates over all
+     * documents (excluding the hash summary document) sorted by {@code document.type} and {@code
+     * _id}, concatenating per-document SHA-256 values grouped by type. Each group's concatenation is
+     * then hashed to produce the final per-type SHA-256.
      *
      * @param pitId The PIT identifier for consistent reads.
      * @param keepalive The PIT keepalive duration.
-     * @param type The IOC type to filter by (e.g., "ip", "domain-name").
-     * @return The SHA-256 hash of the concatenated per-document SHA-256 values, or hash of empty
-     *     string if none found.
+     * @return A map of IOC type names to their computed SHA-256 hashes.
      */
-    private String computeHashForType(String pitId, TimeValue keepalive, String type) {
-        StringBuilder concatenated = new StringBuilder();
+    private Map<String, String> computeAllTypeHashes(String pitId, TimeValue keepalive) {
+        Map<String, StringBuilder> hashBuilders = new LinkedHashMap<>();
         Object[] searchAfter = null;
 
         while (true) {
             SearchSourceBuilder source =
                     new SearchSourceBuilder()
-                            .query(QueryBuilders.termQuery(Constants.Q_DOCUMENT_TYPE, type))
+                            .query(
+                                    QueryBuilders.boolQuery()
+                                            .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
+                            .sort(Constants.Q_DOCUMENT_TYPE, SortOrder.ASC)
                             .sort("_id", SortOrder.ASC)
                             .size(SEARCH_PAGE_SIZE)
                             .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
@@ -200,18 +209,29 @@ public class ConsumerIocService extends AbstractConsumerService {
             for (SearchHit hit : hits) {
                 Map<String, Object> sourceMap = hit.getSourceAsMap();
                 @SuppressWarnings("unchecked")
+                Map<String, Object> docMap = (Map<String, Object>) sourceMap.get(Constants.KEY_DOCUMENT);
+                if (docMap == null) {
+                    continue;
+                }
+                String type = (String) docMap.get(Constants.KEY_TYPE);
+
+                @SuppressWarnings("unchecked")
                 Map<String, Object> hashMap = (Map<String, Object>) sourceMap.get(Constants.KEY_HASH);
                 if (hashMap != null) {
                     Object sha256 = hashMap.get(Constants.KEY_SHA256);
                     if (sha256 != null) {
-                        concatenated.append(sha256);
+                        hashBuilders.computeIfAbsent(type, k -> new StringBuilder()).append(sha256);
                     }
                 }
             }
             searchAfter = hits[hits.length - 1].getSortValues();
         }
 
-        return Resource.computeSha256(concatenated.toString());
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, StringBuilder> entry : hashBuilders.entrySet()) {
+            result.put(entry.getKey(), Resource.computeSha256(entry.getValue().toString()));
+        }
+        return result;
     }
 
     /**

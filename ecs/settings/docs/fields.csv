@@ -1,0 +1,2 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,engine,engine.index_raw_events,boolean,custom,,,Setting to index raw events in the engine.

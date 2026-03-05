@@ -24,6 +24,7 @@ import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
+import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 public class EngineServiceImpl implements EngineService {
@@ -72,6 +73,11 @@ public class EngineServiceImpl implements EngineService {
         payload.put(Constants.KEY_TYPE, type);
         payload.set(Constants.KEY_RESOURCE, resource);
         return this.validate(payload);
+    }
+
+    @Override
+    public RestResponse deleteLogtest() {
+        return this.socket.sendRequest(LOGTEST, DELETE.name(), this.mapper.createObjectNode());
     }
 
     @Override
