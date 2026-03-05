@@ -148,7 +148,7 @@ function map_cti_modules() {
 # ====
 # Map Engine Filter modules
 # ====
-function map_engine-filter_modules() {
+function map_engine_filter_module() {
   # Map first-level directories in stateless (excluding special directories)
   module_name="filters"
   all_modules["$module_name"]="templates/filters/${module_name}.json"
@@ -224,7 +224,7 @@ function main() {
 
   map_cti_modules
 
-  map_engine-filter_modules
+  map_engine_filter_module
 
   # Sort and output
   sort_and_output_modules "$output_file"
