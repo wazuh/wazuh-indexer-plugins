@@ -130,7 +130,7 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("Cannot reset the standard space"));
+        Assert.assertTrue(response.getMessage().contains("Cannot reset the 'standard' space"));
     }
 
     /**

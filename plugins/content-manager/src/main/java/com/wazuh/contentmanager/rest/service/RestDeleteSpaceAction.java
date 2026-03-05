@@ -44,14 +44,15 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 /**
  * DELETE /_plugins/_content_manager/space/{space}
  *
- * <p>Resets the draft user space to its initial state by deleting all associated
- * documents and re-generating the default policy.
+ * <p>Resets the draft user space to its initial state by deleting all associated documents and
+ * re-generating the default policy.
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
  *   <li>200 OK: Space reset successfully.
- *   <li>400 Bad Request: Missing space parameter, invalid space string, or attempting to reset a space different from draft.
+ *   <li>400 Bad Request: Missing space parameter, invalid space string, or attempting to reset a
+ *       space different from draft.
  *   <li>500 Internal Server Error: Engine unavailable, bulk deletion failure, or unexpected error.
  * </ul>
  */
@@ -105,13 +106,13 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
     }
 
     /**
-     * Handles the space reset logic: 1. Validates the space parameter and ensures it is draft.
-     * 2. Fetches current resources for the space to perform necessary external deletions
-     * in SAP. 3. Deletes all documents associated with the space across all resource indices. 4.
-     * Re-generates the default policy for the space. 5. Returns appropriate HTTP responses based on the outcome
-     * of each operation. Note: External deletions in SAP are attempted but do not block the reset process if
-     * they fail, as the primary goal is to ensure the space is reset in the content manager. Failures
-     * in external deletions are logged for monitoring and troubleshooting purposes.
+     * Handles the space reset logic: 1. Validates the space parameter and ensures it is draft. 2.
+     * Fetches current resources for the space to perform necessary external deletions in SAP. 3.
+     * Deletes all documents associated with the space across all resource indices. 4. Re-generates
+     * the default policy for the space. 5. Returns appropriate HTTP responses based on the outcome of
+     * each operation. Note: External deletions in SAP are attempted but do not block the reset
+     * process if they fail, as the primary goal is to ensure the space is reset in the content
+     * manager. Failures in external deletions are logged for monitoring and troubleshooting purposes.
      *
      * @param request The incoming REST request containing the space parameter.
      * @return A RestResponse indicating the success or failure of the space reset operation, with
@@ -130,7 +131,7 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
 
         if (space != Space.DRAFT) {
             return new RestResponse(
-                    "Cannot reset the " + space + " space.", RestStatus.BAD_REQUEST.getStatus());
+                    "Cannot reset the '" + space + "' space.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
