@@ -971,6 +971,18 @@ wazuh.schema.version:
   normalize: []
   short: Wazuh schema version.
   type: keyword
+wazuh.space.event_discarded:
+  dashed_name: wazuh-space-event-discarded
+  description: Indicates whether the event would have been discarded by the Wazuh
+    Engine during the filtering phase when the active policy has `index_discarded_events`
+    set to `true`.
+  example: false
+  flat_name: wazuh.space.event_discarded
+  level: custom
+  name: space.event_discarded
+  normalize: []
+  short: When `true`, the event would have been discarded.
+  type: boolean
 wazuh.space.name:
   dashed_name: wazuh-space-name
   description: Wazuh space name.
