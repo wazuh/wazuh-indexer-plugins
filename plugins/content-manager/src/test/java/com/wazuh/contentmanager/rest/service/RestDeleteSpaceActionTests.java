@@ -94,27 +94,6 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test successful reset of the "test" space. Verifies that in addition to space wipe and policy
-     * re-initialization, the engine logtest state is successfully reset.
-     */
-    public void testDeleteSpace_Success_Test() throws Exception {
-        RestRequest request =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withParams(Map.of(Constants.KEY_SPACE, "test"))
-                        .build();
-
-        when(this.spaceService.getSpaceResources("test")).thenReturn(new HashMap<>());
-        when(this.engineService.deleteLogtest()).thenReturn(new RestResponse("OK", 200));
-
-        RestResponse response = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.spaceService).deleteSpaceResources("test");
-        verify(this.spaceService).initializeSpace(eq("test"), anyString());
-        verify(this.engineService, times(1)).deleteLogtest();
-    }
-
-    /**
      * Test that if an exception occurs during individual SAP resource deletions, the reset process
      * catches it and continues to delete the rest of the space successfully.
      */
@@ -167,26 +146,6 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("Invalid space"));
-    }
-
-    /**
-     * Test failure when the space is "test" and the call to reset the local Engine fails. Expected
-     * outcome: 500 Internal Server Error.
-     */
-    public void testDeleteSpace_TestSpace_EngineFails_Returns500() throws Exception {
-        RestRequest request =
-                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
-                        .withParams(Map.of(Constants.KEY_SPACE, "test"))
-                        .build();
-
-        when(this.spaceService.getSpaceResources("test")).thenReturn(new HashMap<>());
-        when(this.engineService.deleteLogtest())
-                .thenReturn(new RestResponse("Error wiping engine", 500));
-
-        RestResponse response = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("Failed to reset Engine test state"));
     }
 
     /**

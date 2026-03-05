@@ -1,0 +1,8 @@
+---
+name: wazuh-settings
+fields:
+  base:
+    fields:
+      engine:
+        fields:
+          index_raw_events: {}

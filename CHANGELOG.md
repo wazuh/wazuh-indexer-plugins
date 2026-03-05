@@ -68,6 +68,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add Integration Tests for Content Manager API [(#813)](https://github.com/wazuh/wazuh-indexer-plugins/pull/813)
 - Add raw events data stream with aggressive ISM purge policy [(#839)](https://github.com/wazuh/wazuh-indexer-plugins/pull/839)
 - Add Unix domain socket permission for Engine communication [(#823)](https://github.com/wazuh/wazuh-indexer-plugins/pull/823)
+- Add support for Engine settings [(#854)](https://github.com/wazuh/wazuh-indexer-plugins/pull/854)
 - Add WCS field for discarded events [(#860)](https://github.com/wazuh/wazuh-indexer-plugins/pull/860)
 - Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
 - Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
@@ -117,6 +118,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Index Ioc per-type hashes [(#855)](https://github.com/wazuh/wazuh-indexer-plugins/pull/855)
 - Update draft Policy management [(#856)](https://github.com/wazuh/wazuh-indexer-plugins/pull/856) [(#861)](https://github.com/wazuh/wazuh-indexer-plugins/pull/861)
 - Use the new consumer and Ioc types [(#863)](https://github.com/wazuh/wazuh-indexer-plugins/pull/863)
+- Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#894)] (https://github.com/wazuh/wazuh-indexer-plugins/pull/894)
 
 ### Deprecated
 -
@@ -144,6 +146,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix offset value used when updating consumer state [(#802)](https://github.com/wazuh/wazuh-indexer-plugins/pull/802)
 - Fix duplicated policies on multi-node environment [(#847)](https://github.com/wazuh/wazuh-indexer-plugins/pull/847)
 - Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
+- Fix flaky tests on Setup plugin [(#888)](https://github.com/wazuh/wazuh-indexer-plugins/pull/888/)
+- Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
