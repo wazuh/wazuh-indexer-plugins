@@ -119,19 +119,19 @@ public class ContentManagerPlugin extends Plugin
         this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
 
-        // Initialize CatalogSyncJob
-        this.catalogSyncJob =
-                new CatalogSyncJob(this.client, this.consumersIndex, environment, this.threadPool, this.engine);
-
-        // Register Executors
-        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
-
         // Initialize Engine service
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.engine = new MockEngineService();
         } else {
             this.engine = new EngineServiceImpl();
         }
+
+        // Initialize CatalogSyncJob
+        this.catalogSyncJob =
+                new CatalogSyncJob(this.client, this.consumersIndex, environment, this.threadPool, this.engine);
+
+        // Register Executors
+        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
 
         // Initialize Space Service
         this.spaceService = new SpaceService(this.client);
