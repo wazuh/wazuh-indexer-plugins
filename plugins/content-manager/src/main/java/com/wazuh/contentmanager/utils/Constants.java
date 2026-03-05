@@ -78,7 +78,6 @@ public class Constants {
     public static final String INDEX_DECODERS = ".cti-decoders";
     public static final String INDEX_IOCS = ".cti-iocs";
     public static final String INDEX_FILTERS = ".engine-filters";
-
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
