@@ -29,7 +29,7 @@ import java.util.List;
  * Model representing an IoC (Indicator of Compromise) resource. Structured to match the {@code
  * subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic maps.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.ALWAYS)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Ioc {
 
@@ -99,7 +99,7 @@ public class Ioc {
      * Represents the {@code document} object within an IoC. Uses proper nested classes to handle
      * structures like "feed" and "software".
      */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class IocDocument {
 
@@ -350,7 +350,7 @@ public class Ioc {
         }
 
         /** Represents the {@code feed} object within an IoC document. */
-        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonInclude(JsonInclude.Include.ALWAYS)
         @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Feed {
             @JsonProperty("name")
@@ -378,7 +378,7 @@ public class Ioc {
         }
 
         /** Represents the {@code software} object within an IoC document. */
-        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonInclude(JsonInclude.Include.ALWAYS)
         @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Software {
             @JsonProperty("alias")
@@ -449,7 +449,7 @@ public class Ioc {
     }
 
     /** Represents the {@code hash} object within an IoC, containing a SHA-256 checksum. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     public static class IocHash {
 
         private static final String SHA256_KEY = "sha256";

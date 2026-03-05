@@ -110,9 +110,11 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertEquals("elfdigest", doc.get("feed").get("name").asText());
         Assert.assertEquals("2025-09-17 16:40:05 UTC", doc.get("first_seen").asText());
 
-        // Assert null fields are omitted (NON_NULL)
-        Assert.assertFalse(doc.has("last_seen"));
-        Assert.assertFalse(doc.has("reference"));
+        // Assert null fields are included (ALWAYS)
+        Assert.assertTrue(doc.has("last_seen"));
+        Assert.assertTrue(doc.get("last_seen").isNull());
+        Assert.assertTrue(doc.has("reference"));
+        Assert.assertTrue(doc.get("reference").isNull());
     }
 
     /** Test fromPayload with null values for optional fields. */
