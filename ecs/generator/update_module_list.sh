@@ -108,10 +108,28 @@ function map_stateless_modules() {
 }
 
 # ====
+# Map settings module
+# ====
+function map_settings_modules() {
+  for dir in ecs/settings/; do
+    if [[ -d "$dir" ]]; then
+      local module_name
+      module_name=$(basename "$dir")
+
+      # Skip special directories
+      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
+        continue
+      fi
+      all_modules["settings/$module_name"]="templates/${module_name}.json"
+    fi
+  done
+}
+
+# ====
 # Map CTI IoC modules
 # ====
 function map_cti_modules() {
-  # Map first-level directories in stateless (excluding special directories)
+  # Map first-level directories in cti (excluding special directories)
   for dir in ecs/cti/*; do
     if [[ -d "$dir" ]]; then
       local module_name
@@ -162,6 +180,13 @@ function sort_and_output_modules() {
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
 
+  echo "  # Settings modules" >>"$output_file"
+
+  # Output settings modules (sorted)
+  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^settings/" | sort); do
+    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+  done
+
   echo "  # CTI stateless modules" >>"$output_file"
 
   # Output CTI IoC modules (sorted, excluding main)
@@ -194,6 +219,8 @@ function main() {
   map_stateful_modules
 
   map_stateless_modules
+
+  map_settings_modules
 
   map_cti_modules
 

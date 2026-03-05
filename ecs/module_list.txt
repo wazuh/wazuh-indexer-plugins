@@ -20,6 +20,8 @@ module_to_file=(
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
   # Engine filter modules
   [filters]=templates/filters/filters.json
+  # Settings modules
+  [settings/settings]=templates/settings.json
   # CTI stateless modules
   [cti/ioc]=templates/cti/ioc.json
   # Third-party stateless modules

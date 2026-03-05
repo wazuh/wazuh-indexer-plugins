@@ -1491,18 +1491,13 @@ curl -sk -u admin:admin -X POST \
 
 ### Reset Space
 
-Resets a user space (`draft`, `test`, `custom`) to its initial state.
+Resets a user space (`draft`) to its initial state.
 
-When resetting the `draft` or `custom` spaces, this operation will:
+When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
 
-When resetting the `test` space, this operation will:
-- Remove all documents that belong to the given space.
-- Re-generate the default policy for the given space.
-- Reset the active test session in the local Wazuh Engine.
-
-> **Note**: The `standard` space cannot be reset.
+> **Note**: Only `draft` space can be reset.
 
 **Request**
 - Method: `DELETE`
@@ -1512,7 +1507,7 @@ When resetting the `test` space, this operation will:
 
 | Name | In | Type | Required | Description |
 |---|---|---|---|---|
-| `space` | Path | String | Yes | The name of the user space to reset (`draft`, `test`, `custom`) |
+| `space` | Path | String | Yes | The name of the user space to reset (`draft`) |
 
 **Example Request**
 
@@ -1535,7 +1530,7 @@ curl -sk -u admin:admin -X DELETE \
 | Code | Description |
 |---|---|
 | 200 | Space reset successfully |
-| 400 | Invalid space identifier, or attempted to reset the `standard` space |
+| 400 | Invalid space identifier, or attempted to reset a space different from `draft` |
 | 500 | Internal error (e.g., Engine unavailable or deletion failure) |
 
 ## Documentation Maintenance

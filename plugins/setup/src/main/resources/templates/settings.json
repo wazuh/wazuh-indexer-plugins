@@ -1,0 +1,29 @@
+{
+  "index_patterns": [
+    ".wazuh-settings*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "refresh_interval": "2s",
+        "hidden": true
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "engine": {
+          "properties": {
+            "index_raw_events": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
