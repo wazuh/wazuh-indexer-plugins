@@ -29,4 +29,6 @@ public interface EngineService {
     RestResponse promote(JsonNode policy);
 
     RestResponse validateResource(String type, JsonNode resource);
+
+    RestResponse deleteLogtest();
 }
