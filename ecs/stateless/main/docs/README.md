@@ -32,7 +32,7 @@ A top-level `compliance` field set that mirrors the same framework structure as 
 
 #### `enrichments` — Threat intelligence enrichments
 
-Extends the ECS `threat` model with fields for threat intelligence indicator enrichment. Contains standard indicator fields (`enrichments.indicator.*` — confidence, first/last seen, name, provider, type, reference) and custom fields (`enrichments.custom.*`) for vendor-specific attributes such as malware family, tags, and threat type classification. The `enrichments.source` field identifies the external provider that supplied the indicator.
+Extends the ECS `threat` model with fields for threat intelligence indicator enrichment. Contains standard indicator fields (`enrichments.indicator.*` — confidence, first/last seen, name, provider, type, reference). The `enrichments.source` field identifies the external provider that supplied the indicator.
 
 #### `host` extensions — Hardware and network metrics
 
