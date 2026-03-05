@@ -145,6 +145,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix offset value used when updating consumer state [(#802)](https://github.com/wazuh/wazuh-indexer-plugins/pull/802)
 - Fix duplicated policies on multi-node environment [(#847)](https://github.com/wazuh/wazuh-indexer-plugins/pull/847)
 - Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
+- Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
