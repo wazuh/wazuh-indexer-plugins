@@ -310,11 +310,11 @@ These tests verify:
 
 ---
 
-## 🚀 Active Responses Data Stream (`active-responses`)
+## 🚀 Active Responses Data Stream (`wazuh-active-responses`)
 
 ### Overview
 
-The **active-responses** data stream stores Active Response execution requests generated when monitor triggers match their conditions. This is part of the Active Response 5.0 integration with Wazuh XDR, using the Indexer Alerting and Notifications plugins as the foundation.
+The **wazuh-active-responses** data stream stores Active Response execution requests generated when monitor triggers match their conditions. This is part of the Active Response 5.0 integration with Wazuh XDR, using the Indexer Alerting and Notifications plugins as the foundation.
 
 ### Purpose
 
@@ -326,15 +326,15 @@ The **active-responses** data stream stores Active Response execution requests g
 
 #### Index Template
 - **Location**: `plugins/setup/src/main/resources/templates/streams/active-responses.json`
-- **Index Pattern**: `active-responses*`
-- **Rollover Alias**: `active-responses`
+- **Index Pattern**: `wazuh-active-responses*`
+- **Rollover Alias**: `wazuh-active-responses`
 - **Priority**: 1
 
 #### Fields Included (WCS-compatible)
 
 - **@timestamp**: When the active response was triggered
-- **wazuh.event_reference.document_id**: ID of the document that matched the monitor (alerting)
-- **wazuh.event_reference.source_index**: Index of the document that matched the monitor (alerting)
+- **document.id**: Document ID of the matched alert that triggered the active response
+- **document.index**: Source index of the matched alert
 - **wazuh.active_response.name**: Name of the active response configured in the channel
 - **wazuh.active_response.executable**: Executable configured in the active response channel
 - **wazuh.active_response.extra_arguments**: Arguments configured in the channel

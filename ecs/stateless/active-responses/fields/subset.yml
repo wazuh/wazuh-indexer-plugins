@@ -7,6 +7,10 @@ fields:
   event:
     fields:
       original: {}
+  document:
+    fields:
+      id: {}
+      index: {}
   wazuh:
     fields: "*"
     active_response:

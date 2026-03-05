@@ -1,0 +1,18 @@
+---
+- name: document
+  title: Document
+  description: >
+    Event reference fields for the matched alert that triggered the active response.
+  fields:
+    - name: id
+      type: keyword
+      level: custom
+      description: >
+        Document ID of the matched alert that triggered the active response.
+      example: "abc123"
+    - name: index
+      type: keyword
+      level: custom
+      description: >
+        Source index of the matched alert.
+      example: "wazuh-events-v5-security"

@@ -119,7 +119,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
 
         // Active responses data stream (stores active response execution requests from monitor triggers)
-        this.indices.add(new StreamIndex("active-responses", "templates/streams/active-responses"));
+        this.indices.add(new StreamIndex("wazuh-active-responses", "templates/streams/active-responses"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));

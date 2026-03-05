@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ActiveResponsesIT extends OpenSearchIntegTestCase {
 
-    private static final String ACTIVE_RESPONSES_DATASTREAM = "active-responses";
+    private static final String ACTIVE_RESPONSES_DATASTREAM = "wazuh-active-responses";
     private static final String ACTIVE_RESPONSES_INDEX_TEMPLATE = "streams-active-responses";
 
     @Override
