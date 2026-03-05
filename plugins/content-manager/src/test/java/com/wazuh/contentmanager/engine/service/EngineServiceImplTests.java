@@ -26,10 +26,8 @@ import org.junit.Before;
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -191,7 +189,6 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
         RestResponse actual = this.engine.deleteLogtest();
         assertEquals(expected, actual);
     }
-    public void testPromote500() {}
 
     /** Tests that loadIocs sends the file path to the correct endpoint. */
     public void testLoadIocsSendsToCorrectEndpoint() {

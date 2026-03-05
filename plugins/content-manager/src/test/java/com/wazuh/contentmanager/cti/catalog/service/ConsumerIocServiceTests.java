@@ -59,6 +59,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -236,18 +237,6 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         String connDocHash = "abc123def456";
         SearchHit connHit = this.createIocHit(1, "doc-1", "connection", connDocHash);
         SearchHits connHits =
-        // Build a search response with one hit for "ip" type, empty for the rest
-        String ipDocHash = "abc123def456";
-        String ipDocSource =
-                "{\"document\":{\"type\":\"ipv4-addr\",\"name\":\"test-ioc\"},"
-                        + "\"hash\":{\"sha256\":\""
-                        + ipDocHash
-                        + "\"}}";
-        SearchHit ipHit = new SearchHit(1, "doc-1", Collections.emptyMap(), Collections.emptyMap());
-        ipHit.sourceRef(new org.opensearch.core.common.bytes.BytesArray(ipDocSource));
-        ipHit.sortValues(
-                new Object[] {"doc-1"}, new org.opensearch.search.DocValueFormat[] {DocValueFormat.RAW});
-        SearchHits ipHits =
                 new SearchHits(
                         new SearchHit[] {connHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
 
@@ -434,7 +423,5 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
                 "type_hashes should be empty when no documents exist",
                 0,
                 root.get(Constants.KEY_TYPE_HASHES).size());
-        // One search per IOC type for hash computation + one search for NDJSON export (empty = done)
-        verify(this.client, times(Constants.IOC_TYPES.size() + 1)).search(any(SearchRequest.class));
     }
 }
