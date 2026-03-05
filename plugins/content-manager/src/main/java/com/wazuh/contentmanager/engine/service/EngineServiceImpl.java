@@ -73,9 +73,4 @@ public class EngineServiceImpl implements EngineService {
         payload.set(Constants.KEY_RESOURCE, resource);
         return this.validate(payload);
     }
-
-    @Override
-    public RestResponse deleteLogtest() {
-        return this.socket.sendRequest(LOGTEST, DELETE.name(), this.mapper.createObjectNode());
-    }
 }
