@@ -19,7 +19,7 @@ module_to_file=(
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
   # Settings modules
-  [settings/settings]=templates/settings.json
+  [settings]=templates/settings.json
   # CTI stateless modules
   [cti/ioc]=templates/cti/ioc.json
   # Third-party stateless modules

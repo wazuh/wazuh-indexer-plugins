@@ -84,18 +84,9 @@ function map_stateless_modules() {
 # Map settings module
 # ====
 function map_settings_modules() {
-  for dir in ecs/settings/; do
-    if [[ -d "$dir" ]]; then
-      local module_name
-      module_name=$(basename "$dir")
-
-      # Skip special directories
-      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
-        continue
-      fi
-      all_modules["settings/$module_name"]="templates/${module_name}.json"
-    fi
-  done
+  if [[ -d "wcs/settings/fields" ]]; then
+    all_modules["settings"]="templates/settings.json"
+  fi
 }
 
 # ====
@@ -131,6 +122,13 @@ function sort_and_output_modules() {
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateful/" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
+  
+  # Output settings module
+  echo "  # Settings modules" >>"$output_file"
+
+  if [[ -n "${all_modules["settings"]}" ]]; then
+    echo "  [settings]=${all_modules["settings"]}" >>"$output_file"
+  fi
 
   echo "  # CTI stateless modules" >>"$output_file"
 
