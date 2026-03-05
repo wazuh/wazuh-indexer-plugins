@@ -41,6 +41,12 @@ jobs:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
         run: bash ecs/generator/generate_schema.sh
 
+      - name: Convert static mappings to dynamic_templates
+        run: |
+          echo "Converting generated static mappings to dynamic_templates..."
+          
+          find plugins/setup/src/main/resources/templates/streams -name "*.json" -type f -exec python3 ecs/generator/convert_to_dynamic_templates.py {} {} \;
+
       - name: Push changes
         env:
           GITHUB_TOKEN: ${{ secrets.INDEXER_BOT_TOKEN }}
