@@ -28,160 +28,443 @@
       "dynamic": "false_allow_templates",
       "dynamic_templates": [
         {
-          "wcs_enrichment_indicator_id": {
-            "path_match": "enrichment.indicator.id",
+          "wcs_event_original": {
+            "path_match": "event.original",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "doc_values": false,
+              "index": false,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_enrichment_indicator_name": {
-            "path_match": "enrichment.indicator.name",
+          "wcs_wazuh_agent_build_original": {
+            "path_match": "wazuh.agent.build.original",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_enrichment_indicator_type": {
-            "path_match": "enrichment.indicator.type",
+          "wcs_wazuh_agent_ephemeral_id": {
+            "path_match": "wazuh.agent.ephemeral_id",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_enrichment_indicator_confidence": {
-            "path_match": "enrichment.indicator.confidence",
+          "wcs_wazuh_agent_groups": {
+            "path_match": "wazuh.agent.groups",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_architecture": {
+            "path_match": "wazuh.agent.host.architecture",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_boot_id": {
+            "path_match": "wazuh.agent.host.boot.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_cpu_cores": {
+            "path_match": "wazuh.agent.host.cpu.cores",
             "mapping": {
               "type": "long"
             }
           }
         },
         {
-          "wcs_enrichment_indicator_first_seen": {
-            "path_match": "enrichment.indicator.first_seen",
+          "wcs_wazuh_agent_host_cpu_name": {
+            "path_match": "wazuh.agent.host.cpu.name",
             "mapping": {
-              "type": "date"
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_enrichment_indicator_last_seen": {
-            "path_match": "enrichment.indicator.last_seen",
-            "mapping": {
-              "type": "date"
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_reference": {
-            "path_match": "enrichment.indicator.reference",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_tags": {
-            "path_match": "enrichment.indicator.tags",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_provider": {
-            "path_match": "enrichment.indicator.provider",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_software_type": {
-            "path_match": "enrichment.indicator.software.type",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_software_name": {
-            "path_match": "enrichment.indicator.software.name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_software_alias": {
-            "path_match": "enrichment.indicator.software.alias",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_indicator_feed_name": {
-            "path_match": "enrichment.indicator.feed.name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_enrichment_type": {
-            "path_match": "enrichment.type",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_policy_all": {
-            "path_match": "policy.*",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_check_all": {
-            "path_match": "check.*",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_compliance_all": {
-            "path_match": "compliance.*.*",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_long_bytes": {
-            "path_match": "*.bytes",
+          "wcs_wazuh_agent_host_cpu_speed": {
+            "path_match": "wazuh.agent.host.cpu.speed",
             "mapping": {
               "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_cpu_usage": {
+            "path_match": "wazuh.agent.host.cpu.usage",
+            "mapping": {
+              "scaling_factor": 1000,
+              "type": "scaled_float"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_disk_read_bytes": {
+            "path_match": "wazuh.agent.host.disk.read.bytes",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_disk_write_bytes": {
+            "path_match": "wazuh.agent.host.disk.write.bytes",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_domain": {
+            "path_match": "wazuh.agent.host.domain",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_city_name": {
+            "path_match": "wazuh.agent.host.geo.city_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_continent_code": {
+            "path_match": "wazuh.agent.host.geo.continent_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_continent_name": {
+            "path_match": "wazuh.agent.host.geo.continent_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_country_iso_code": {
+            "path_match": "wazuh.agent.host.geo.country_iso_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_country_name": {
+            "path_match": "wazuh.agent.host.geo.country_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_location": {
+            "path_match": "wazuh.agent.host.geo.location",
+            "mapping": {
+              "type": "geo_point"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_name": {
+            "path_match": "wazuh.agent.host.geo.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_postal_code": {
+            "path_match": "wazuh.agent.host.geo.postal_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_region_iso_code": {
+            "path_match": "wazuh.agent.host.geo.region_iso_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_region_name": {
+            "path_match": "wazuh.agent.host.geo.region_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_geo_timezone": {
+            "path_match": "wazuh.agent.host.geo.timezone",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_hostname": {
+            "path_match": "wazuh.agent.host.hostname",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_id": {
+            "path_match": "wazuh.agent.host.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_ip": {
+            "path_match": "wazuh.agent.host.ip",
+            "mapping": {
+              "type": "ip"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_mac": {
+            "path_match": "wazuh.agent.host.mac",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_memory_free": {
+            "path_match": "wazuh.agent.host.memory.free",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_memory_total": {
+            "path_match": "wazuh.agent.host.memory.total",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_memory_used_percentage": {
+            "path_match": "wazuh.agent.host.memory.used.percentage",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_name": {
+            "path_match": "wazuh.agent.host.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_bytes": {
+            "path_match": "wazuh.agent.host.network.egress.bytes",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_drops": {
+            "path_match": "wazuh.agent.host.network.egress.drops",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_errors": {
+            "path_match": "wazuh.agent.host.network.egress.errors",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_packets": {
+            "path_match": "wazuh.agent.host.network.egress.packets",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_egress_queue": {
+            "path_match": "wazuh.agent.host.network.egress.queue",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_bytes": {
+            "path_match": "wazuh.agent.host.network.ingress.bytes",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_drops": {
+            "path_match": "wazuh.agent.host.network.ingress.drops",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_errors": {
+            "path_match": "wazuh.agent.host.network.ingress.errors",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_packets": {
+            "path_match": "wazuh.agent.host.network.ingress.packets",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_network_ingress_queue": {
+            "path_match": "wazuh.agent.host.network.ingress.queue",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_family": {
+            "path_match": "wazuh.agent.host.os.family",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_full": {
+            "path_match": "wazuh.agent.host.os.full",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_kernel": {
+            "path_match": "wazuh.agent.host.os.kernel",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_name": {
+            "path_match": "wazuh.agent.host.os.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_platform": {
+            "path_match": "wazuh.agent.host.os.platform",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_type": {
+            "path_match": "wazuh.agent.host.os.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_os_version": {
+            "path_match": "wazuh.agent.host.os.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_pid_ns_ino": {
+            "path_match": "wazuh.agent.host.pid_ns_ino",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_agent_host_risk_calculated_level": {
+            "path_match": "wazuh.agent.host.risk.calculated_level",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -202,130 +485,11 @@
           }
         },
         {
-          "wcs_wazuh_agent_host_cpu_cores": {
-            "path_match": "wazuh.agent.host.cpu.cores",
+          "wcs_wazuh_agent_host_risk_static_level": {
+            "path_match": "wazuh.agent.host.risk.static_level",
             "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_egress_drops": {
-            "path_match": "wazuh.agent.host.network.egress.drops",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_ingress_drops": {
-            "path_match": "wazuh.agent.host.network.ingress.drops",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_egress_errors": {
-            "path_match": "wazuh.agent.host.network.egress.errors",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_ingress_errors": {
-            "path_match": "wazuh.agent.host.network.ingress.errors",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_space_event_discarded": {
-            "path_match": "wazuh.space.event_discarded",
-            "mapping": {
-              "type": "boolean"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_memory_free": {
-            "path_match": "wazuh.agent.host.memory.free",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_ip": {
-            "path_match": "wazuh.agent.host.ip",
-            "mapping": {
-              "type": "ip"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_location": {
-            "path_match": "wazuh.agent.host.geo.location",
-            "mapping": {
-              "type": "geo_point"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_egress_packets": {
-            "path_match": "wazuh.agent.host.network.egress.packets",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_ingress_packets": {
-            "path_match": "wazuh.agent.host.network.ingress.packets",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_memory_used_percentage": {
-            "path_match": "wazuh.agent.host.memory.used.percentage",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_egress_queue": {
-            "path_match": "wazuh.agent.host.network.egress.queue",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_network_ingress_queue": {
-            "path_match": "wazuh.agent.host.network.ingress.queue",
-            "mapping": {
-              "type": "long"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_protocol_queue": {
-            "path_match": "wazuh.protocol.queue",
-            "mapping": {
-              "type": "byte"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_cpu_speed": {
-            "path_match": "wazuh.agent.host.cpu.speed",
-            "mapping": {
-              "type": "long"
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -346,10 +510,11 @@
           }
         },
         {
-          "wcs_wazuh_agent_host_memory_total": {
-            "path_match": "wazuh.agent.host.memory.total",
+          "wcs_wazuh_agent_host_type": {
+            "path_match": "wazuh.agent.host.type",
             "mapping": {
-              "type": "long"
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -362,263 +527,47 @@
           }
         },
         {
-          "wcs_wazuh_agent_host_cpu_usage": {
-            "path_match": "wazuh.agent.host.cpu.usage",
+          "wcs_wazuh_agent_id": {
+            "path_match": "wazuh.agent.id",
             "mapping": {
-              "scaling_factor": 1000,
-              "type": "scaled_float"
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_keyword_name": {
-            "path_match": "*.name",
+          "wcs_wazuh_agent_name": {
+            "path_match": "wazuh.agent.name",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_keyword_type": {
-            "path_match": "*.type",
+          "wcs_wazuh_agent_type": {
+            "path_match": "wazuh.agent.type",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_keyword_version": {
-            "path_match": "*.version",
+          "wcs_wazuh_agent_version": {
+            "path_match": "wazuh.agent.version",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
         {
-          "wcs_keyword_id": {
-            "path_match": "*.id",
+          "wcs_wazuh_cluster_name": {
+            "path_match": "wazuh.cluster.name",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_event_original": {
-            "path_match": "event.original",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_build_original": {
-            "path_match": "wazuh.agent.build.original",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_ephemeral_id": {
-            "path_match": "wazuh.agent.ephemeral_id",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_groups": {
-            "path_match": "wazuh.agent.groups",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_architecture": {
-            "path_match": "wazuh.agent.host.architecture",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_domain": {
-            "path_match": "wazuh.agent.host.domain",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_city_name": {
-            "path_match": "wazuh.agent.host.geo.city_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_continent_code": {
-            "path_match": "wazuh.agent.host.geo.continent_code",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_continent_name": {
-            "path_match": "wazuh.agent.host.geo.continent_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_country_iso_code": {
-            "path_match": "wazuh.agent.host.geo.country_iso_code",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_country_name": {
-            "path_match": "wazuh.agent.host.geo.country_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_postal_code": {
-            "path_match": "wazuh.agent.host.geo.postal_code",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_region_iso_code": {
-            "path_match": "wazuh.agent.host.geo.region_iso_code",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_region_name": {
-            "path_match": "wazuh.agent.host.geo.region_name",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_geo_timezone": {
-            "path_match": "wazuh.agent.host.geo.timezone",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_hostname": {
-            "path_match": "wazuh.agent.host.hostname",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_mac": {
-            "path_match": "wazuh.agent.host.mac",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_os_family": {
-            "path_match": "wazuh.agent.host.os.family",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_os_full": {
-            "path_match": "wazuh.agent.host.os.full",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_os_kernel": {
-            "path_match": "wazuh.agent.host.os.kernel",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_os_platform": {
-            "path_match": "wazuh.agent.host.os.platform",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_pid_ns_ino": {
-            "path_match": "wazuh.agent.host.pid_ns_ino",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_risk_calculated_level": {
-            "path_match": "wazuh.agent.host.risk.calculated_level",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
-            }
-          }
-        },
-        {
-          "wcs_wazuh_agent_host_risk_static_level": {
-            "path_match": "wazuh.agent.host.risk.static_level",
-            "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -626,8 +575,8 @@
           "wcs_wazuh_cluster_node": {
             "path_match": "wazuh.cluster.node",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -635,8 +584,8 @@
           "wcs_wazuh_integration_category": {
             "path_match": "wazuh.integration.category",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -644,8 +593,17 @@
           "wcs_wazuh_integration_decoders": {
             "path_match": "wazuh.integration.decoders",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_name": {
+            "path_match": "wazuh.integration.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -653,8 +611,8 @@
           "wcs_wazuh_integration_rules": {
             "path_match": "wazuh.integration.rules",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -662,8 +620,42 @@
           "wcs_wazuh_protocol_location": {
             "path_match": "wazuh.protocol.location",
             "mapping": {
-              "type": "keyword",
-              "ignore_above": 1024
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_protocol_queue": {
+            "path_match": "wazuh.protocol.queue",
+            "mapping": {
+              "type": "byte"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_schema_version": {
+            "path_match": "wazuh.schema.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_space_event_discarded": {
+            "path_match": "wazuh.space.event_discarded",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_space_name": {
+            "path_match": "wazuh.space.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         }
@@ -741,20 +733,6 @@
             },
             "space": {
               "properties": {}
-            }
-          }
-        },
-        "enrichment": {
-          "properties": {
-            "indicator": {
-              "properties": {
-                "software": {
-                  "properties": {}
-                },
-                "feed": {
-                  "properties": {}
-                }
-              }
             }
           }
         },
