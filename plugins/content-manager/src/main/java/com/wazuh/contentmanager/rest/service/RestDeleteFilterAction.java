@@ -144,24 +144,23 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
     /**
      * Unlinks the deleted filter from its parent policy resource.
      *
-     * <p>When a filter is deleted, it must be removed from the Draft policy that references it. This
+     * <p>When a filter is deleted, it must be removed from the space policy that references it. This
      * method:
      *
      * <ol>
-     *   <li>Retrieves the Draft policy document from the policies index
+     *   <li>Retrieves the space policy document from the policies index
      *   <li>Locates the filter ID in the policy's filters array
      *   <li>Removes the filter ID from the array
      *   <li>Recalculates the policy's SHA256 hash
      *   <li>Updates the policy document with the modified filters array and new hash
      * </ol>
      *
-     * <p>If the Draft policy cannot be found, an IllegalStateException is thrown. If the filter is
-     * not found in the policy's filters array, the method returns silently without any modifications.
+     * <p>If the policy cannot be found, an IllegalStateException is thrown. If the filter is not
+     * found in the policy's filters array, the method returns silently without any modifications.
      *
      * @param client The OpenSearch client used for accessing and updating the policies index.
      * @param id The unique identifier of the filter being deleted and removed from the policy.
-     * @throws IllegalStateException If the Draft policy document cannot be found in the policies
-     *     index.
+     * @throws IllegalStateException If the policy document cannot be found in the policies index.
      * @throws Exception If an error occurs during the index search or update operations.
      */
     @Override
@@ -173,7 +172,7 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
         if (searchResult == null
                 || !searchResult.has(Constants.Q_HITS)
                 || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException("Draft policy not found");
+            throw new IllegalStateException("Policy not found");
         }
 
         ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);

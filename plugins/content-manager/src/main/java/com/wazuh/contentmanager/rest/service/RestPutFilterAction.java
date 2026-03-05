@@ -138,7 +138,7 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
      */
     private RestResponse createInvalidSpaceResponse() {
         return new RestResponse(
-                "Invalid space value. Must be one of: " + validSpaces, RestStatus.BAD_REQUEST.getStatus());
+                Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
     }
 
     @Override
@@ -146,7 +146,7 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    "Engine Validation Failed: " + engineValidation.getMessage(),
+                    Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
