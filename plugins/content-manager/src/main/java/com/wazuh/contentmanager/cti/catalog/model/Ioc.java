@@ -30,7 +30,6 @@ import java.util.List;
  * subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic maps.
  */
 @JsonInclude(JsonInclude.Include.ALWAYS)
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Ioc {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -100,8 +99,7 @@ public class Ioc {
      * structures like "feed" and "software".
      */
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class IocDocument {
+        public static class IocDocument {
 
         private static final String CONFIDENCE_KEY = "confidence";
         private static final String FIRST_SEEN_KEY = "first_seen";
@@ -351,8 +349,7 @@ public class Ioc {
 
         /** Represents the {@code feed} object within an IoC document. */
         @JsonInclude(JsonInclude.Include.ALWAYS)
-        @JsonIgnoreProperties(ignoreUnknown = true)
-        public static class Feed {
+                public static class Feed {
             @JsonProperty("name")
             private String name;
 
@@ -379,8 +376,7 @@ public class Ioc {
 
         /** Represents the {@code software} object within an IoC document. */
         @JsonInclude(JsonInclude.Include.ALWAYS)
-        @JsonIgnoreProperties(ignoreUnknown = true)
-        public static class Software {
+                public static class Software {
             @JsonProperty("alias")
             private List<String> alias;
 
