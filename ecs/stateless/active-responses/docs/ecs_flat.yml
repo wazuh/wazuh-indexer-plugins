@@ -33,6 +33,28 @@
   required: true
   short: Date/time when the event originated.
   type: date
+document.id:
+  dashed_name: document-id
+  description: Document ID of the matched alert that triggered the active response.
+  example: abc123
+  flat_name: document.id
+  ignore_above: 1024
+  level: custom
+  name: id
+  normalize: []
+  short: Document ID of the matched alert that triggered the active response.
+  type: keyword
+document.index:
+  dashed_name: document-index
+  description: Source index of the matched alert.
+  example: wazuh-events-v5-security
+  flat_name: document.index
+  ignore_above: 1024
+  level: custom
+  name: index
+  normalize: []
+  short: Source index of the matched alert.
+  type: keyword
 event.original:
   dashed_name: event-original
   description: 'Raw text message of entire event. Used to demonstrate log integrity
@@ -54,14 +76,14 @@ event.original:
   type: keyword
 wazuh.active_response.agent_id:
   dashed_name: wazuh-active-response-agent-id
-  description: Target agent ID for the active response execution.
+  description: Agent configured in the active response channel.
   example: '001'
   flat_name: wazuh.active_response.agent_id
   ignore_above: 1024
   level: custom
   name: active_response.agent_id
   normalize: []
-  short: Target agent ID for the active response execution.
+  short: Agent configured in the active response channel.
   type: keyword
 wazuh.active_response.executable:
   dashed_name: wazuh-active-response-executable
@@ -74,20 +96,9 @@ wazuh.active_response.executable:
   normalize: []
   short: Executable configured in the active response channel.
   type: keyword
-wazuh.active_response.executable_name:
-  dashed_name: wazuh-active-response-executable-name
-  description: Name of the executable or script to run.
-  example: firewall-drop
-  flat_name: wazuh.active_response.executable_name
-  ignore_above: 1024
-  level: custom
-  name: active_response.executable_name
-  normalize: []
-  short: Name of the executable or script to run.
-  type: keyword
 wazuh.active_response.extra_arguments:
   dashed_name: wazuh-active-response-extra-arguments
-  description: List of extra arguments for the executable.
+  description: Arguments configured in the active response channel.
   example: '["192.168.1.100", "600"]'
   flat_name: wazuh.active_response.extra_arguments
   ignore_above: 1024
@@ -95,29 +106,29 @@ wazuh.active_response.extra_arguments:
   name: active_response.extra_arguments
   normalize:
   - array
-  short: List of extra arguments for the executable.
+  short: Arguments configured in the active response channel.
   type: keyword
 wazuh.active_response.location:
   dashed_name: wazuh-active-response-location
-  description: Execution location (agent or server).
-  example: agent
+  description: 'Where to execute. One of: local, defined-agent, all.'
+  example: defined-agent
   flat_name: wazuh.active_response.location
   ignore_above: 1024
   level: custom
   name: active_response.location
   normalize: []
-  short: Execution location (agent or server).
+  short: 'Where to execute. One of: local, defined-agent, all.'
   type: keyword
 wazuh.active_response.name:
   dashed_name: wazuh-active-response-name
-  description: Name of the active response.
+  description: Name of the active response configured in the channel.
   example: firewall-drop
   flat_name: wazuh.active_response.name
   ignore_above: 1024
   level: custom
   name: active_response.name
   normalize: []
-  short: Name of the active response.
+  short: Name of the active response configured in the channel.
   type: keyword
 wazuh.active_response.stateful_timeout:
   dashed_name: wazuh-active-response-stateful-timeout
@@ -128,16 +139,6 @@ wazuh.active_response.stateful_timeout:
   name: active_response.stateful_timeout
   normalize: []
   short: Seconds configured in the channel (for stateful type).
-  type: integer
-wazuh.active_response.timeout:
-  dashed_name: wazuh-active-response-timeout
-  description: Maximum execution time in seconds.
-  example: 300
-  flat_name: wazuh.active_response.timeout
-  level: custom
-  name: active_response.timeout
-  normalize: []
-  short: Maximum execution time in seconds.
   type: integer
 wazuh.active_response.type:
   dashed_name: wazuh-active-response-type
@@ -990,28 +991,6 @@ wazuh.cluster.node:
   name: cluster.node
   normalize: []
   short: Wazuh cluster node name.
-  type: keyword
-wazuh.event_reference.document_id:
-  dashed_name: wazuh-event-reference-document-id
-  description: Document ID of the matched alert that triggered the active response.
-  example: abc123
-  flat_name: wazuh.event_reference.document_id
-  ignore_above: 1024
-  level: custom
-  name: event_reference.document_id
-  normalize: []
-  short: Document ID of the matched alert that triggered the active response.
-  type: keyword
-wazuh.event_reference.source_index:
-  dashed_name: wazuh-event-reference-source-index
-  description: Source index of the matched alert.
-  example: wazuh-events-v5-security
-  flat_name: wazuh.event_reference.source_index
-  ignore_above: 1024
-  level: custom
-  name: event_reference.source_index
-  normalize: []
-  short: Source index of the matched alert.
   type: keyword
 wazuh.integration.category:
   dashed_name: wazuh-integration-category
