@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "active-responses*"
+    "wazuh-active-responses*"
   ],
   "priority": 1,
   "data_stream": {},
@@ -16,19 +16,37 @@
           "wazuh.agent.name",
           "wazuh.active_response.name",
           "wazuh.active_response.executable",
-          "wazuh.event_reference.document_id",
-          "wazuh.event_reference.source_index"
+          "document.id",
+          "document.index"
         ],
         "refresh_interval": "5s"
       },
       "mapping.nested_fields.limit": 10,
       "mapping.total_fields.limit": 500,
-      "plugins.index_state_management.rollover_alias": "active-responses"
+      "plugins.index_state_management.rollover_alias": "wazuh-active-responses"
     },
     "mappings": {
       "date_detection": false,
       "dynamic": "false_allow_templates",
       "dynamic_templates": [
+        {
+          "wcs_document_id": {
+            "path_match": "document.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_document_index": {
+            "path_match": "document.index",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
         {
           "wcs_event_original": {
             "path_match": "event.original",
@@ -51,15 +69,6 @@
         {
           "wcs_wazuh_active_response_executable": {
             "path_match": "wazuh.active_response.executable",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_executable_name": {
-            "path_match": "wazuh.active_response.executable_name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -96,14 +105,6 @@
         {
           "wcs_wazuh_active_response_stateful_timeout": {
             "path_match": "wazuh.active_response.stateful_timeout",
-            "mapping": {
-              "type": "integer"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_timeout": {
-            "path_match": "wazuh.active_response.timeout",
             "mapping": {
               "type": "integer"
             }
@@ -662,24 +663,6 @@
           }
         },
         {
-          "wcs_wazuh_event_reference_document_id": {
-            "path_match": "wazuh.event_reference.document_id",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_event_reference_source_index": {
-            "path_match": "wazuh.event_reference.source_index",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
           "wcs_wazuh_integration_category": {
             "path_match": "wazuh.integration.category",
             "mapping": {
@@ -760,6 +743,9 @@
         }
       ],
       "properties": {
+        "document": {
+          "properties": {}
+        },
         "event": {
           "properties": {}
         },
@@ -822,9 +808,6 @@
               }
             },
             "cluster": {
-              "properties": {}
-            },
-            "event_reference": {
               "properties": {}
             },
             "integration": {
