@@ -136,7 +136,8 @@ public class Constants {
     public static final String TYPE_IOC = "ioc";
     public static final String TYPE_FILTER = "filter";
 
-    // Resources Indices Mapping. Output: Key -> Index Name
+    // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
+    // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
                     KEY_POLICY,
@@ -149,10 +150,6 @@ public class Constants {
                     INDEX_KVDBS,
                     KEY_DECODERS,
                     INDEX_DECODERS,
-                    KEY_IOCS,
-                    INDEX_IOCS,
-                    KEY_CVES,
-                    INDEX_CVES,
                     KEY_FILTERS,
                     INDEX_FILTERS);
 
