@@ -21,8 +21,8 @@ RUN apt-get update && \
     mkdir -p /source/ecs
 
 # Ensure the scripts are in the correct location
-ADD ecs/generator/images/generator.sh /ecs/generator.sh
-ADD ecs/generator/images/schema_sanitizer.py /ecs/schema_sanitizer.py
+ADD wcs/generator/images/generator.sh /ecs/generator.sh
+ADD wcs/generator/images/schema_sanitizer.py /ecs/schema_sanitizer.py
 
 # Define the directory as a volume to allow for external mounting
 VOLUME /source/ecs
