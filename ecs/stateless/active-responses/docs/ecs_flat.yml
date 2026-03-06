@@ -33,27 +33,27 @@
   required: true
   short: Date/time when the event originated.
   type: date
-document.id:
-  dashed_name: document-id
+event.doc_id:
+  dashed_name: event-doc-id
   description: Document ID of the matched alert that triggered the active response.
   example: abc123
-  flat_name: document.id
+  flat_name: event.doc_id
   ignore_above: 1024
   level: custom
-  name: id
+  name: doc_id
   normalize: []
   short: Document ID of the matched alert that triggered the active response.
   type: keyword
-document.index:
-  dashed_name: document-index
-  description: Source index of the matched alert.
+event.index:
+  dashed_name: event-index
+  description: Source index of the matched alert that triggered the active response.
   example: wazuh-events-v5-security
-  flat_name: document.index
+  flat_name: event.index
   ignore_above: 1024
   level: custom
   name: index
   normalize: []
-  short: Source index of the matched alert.
+  short: Source index of the matched alert that triggered the active response.
   type: keyword
 event.original:
   dashed_name: event-original

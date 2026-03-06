@@ -1,7 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-9.1.0,true,document,document.id,keyword,custom,,abc123,Document ID of the matched alert that triggered the active response.
-9.1.0,true,document,document.index,keyword,custom,,wazuh-events-v5-security,Source index of the matched alert.
+9.1.0,true,event,event.doc_id,keyword,custom,,abc123,Document ID of the matched alert that triggered the active response.
+9.1.0,true,event,event.index,keyword,custom,,wazuh-events-v5-security,Source index of the matched alert that triggered the active response.
 9.1.0,false,event,event.original,keyword,core,,Sep 19 08:26:10 host CEF:0&#124;Security&#124; threatmanager&#124;1.0&#124;100&#124; worm successfully stopped&#124;10&#124;src=10.0.0.1 dst=2.1.2.2spt=1232,Raw text message of entire event.
 9.1.0,true,wazuh,wazuh.active_response.agent_id,keyword,custom,,001,Agent configured in the active response channel.
 9.1.0,true,wazuh,wazuh.active_response.executable,keyword,custom,,firewall-drop,Executable configured in the active response channel.
