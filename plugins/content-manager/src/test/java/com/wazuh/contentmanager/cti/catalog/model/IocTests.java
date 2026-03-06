@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.model.Ioc.IocDocument;
+import com.wazuh.contentmanager.cti.catalog.model.Ioc.IocDocument.Feed;
+import com.wazuh.contentmanager.cti.catalog.model.Ioc.IocDocument.Software;
 
 /** Unit tests for the {@link Ioc} class. */
 public class IocTests extends OpenSearchTestCase {
@@ -63,29 +65,34 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertNotNull(doc);
         Assert.assertEquals("1593452", doc.getId());
         Assert.assertEquals("89.213.174.225:3778", doc.getName());
-        Assert.assertEquals("botnet_cc", doc.getSoftwareType());
         Assert.assertEquals("ip:port", doc.getType());
-        Assert.assertEquals("elf.mirai", doc.getSoftwareName());
         Assert.assertEquals(Long.valueOf(100L), doc.getConfidence());
         Assert.assertEquals("2025-09-17 16:40:05 UTC", doc.getFirstSeen());
         Assert.assertNull(doc.getLastSeen());
         Assert.assertNull(doc.getReference());
-        Assert.assertEquals("elfdigest", doc.getFeedName());
         Assert.assertEquals("threat-fox", doc.getProvider());
 
-        // Assert list fields
-        Assert.assertNotNull(doc.getSoftwareAlias());
-        Assert.assertEquals(2, doc.getSoftwareAlias().size());
-        Assert.assertEquals("ClearFake", doc.getSoftwareAlias().get(0));
-        Assert.assertEquals("Katana", doc.getSoftwareAlias().get(1));
+        // Assert nested software fields
+        Assert.assertNotNull(doc.getSoftware());
+        Assert.assertEquals("botnet_cc", doc.getSoftware().getType());
+        Assert.assertEquals("elf.mirai", doc.getSoftware().getName());
+        Assert.assertNotNull(doc.getSoftware().getAlias());
+        Assert.assertEquals(2, doc.getSoftware().getAlias().size());
+        Assert.assertEquals("ClearFake", doc.getSoftware().getAlias().get(0));
+        Assert.assertEquals("Katana", doc.getSoftware().getAlias().get(1));
 
+        // Assert nested feed fields
+        Assert.assertNotNull(doc.getFeed());
+        Assert.assertEquals("elfdigest", doc.getFeed().getName());
+
+        // Assert tags
         Assert.assertNotNull(doc.getTags());
         Assert.assertEquals(1, doc.getTags().size());
         Assert.assertEquals("Mirai", doc.getTags().get(0));
     }
 
-    /** Test that serializing an Ioc back to JSON produces the correct dot-notation keys. */
-    public void testRoundTrip_SerializationPreservesDotNotation() {
+    /** Test that serializing an Ioc back to JSON produces the correct nested structure. */
+    public void testRoundTrip_SerializationPreservesNestedStructure() {
         // Arrange
         ObjectNode payload = this.buildCompletePayload();
 
@@ -93,19 +100,21 @@ public class IocTests extends OpenSearchTestCase {
         Ioc ioc = Ioc.fromPayload(payload);
         JsonNode serialized = this.mapper.valueToTree(ioc);
 
-        // Assert document uses dot-notation keys
+        // Assert document uses nested objects
         JsonNode doc = serialized.get("document");
         Assert.assertNotNull(doc);
         Assert.assertEquals("1593452", doc.get("id").asText());
-        Assert.assertEquals("botnet_cc", doc.get("software.type").asText());
-        Assert.assertEquals("elf.mirai", doc.get("software.name").asText());
-        Assert.assertTrue(doc.get("software.alias").isArray());
-        Assert.assertEquals("elfdigest", doc.get("feed.name").asText());
+        Assert.assertEquals("botnet_cc", doc.get("software").get("type").asText());
+        Assert.assertEquals("elf.mirai", doc.get("software").get("name").asText());
+        Assert.assertTrue(doc.get("software").get("alias").isArray());
+        Assert.assertEquals("elfdigest", doc.get("feed").get("name").asText());
         Assert.assertEquals("2025-09-17 16:40:05 UTC", doc.get("first_seen").asText());
 
-        // Assert null fields are omitted (NON_NULL)
-        Assert.assertFalse(doc.has("last_seen"));
-        Assert.assertFalse(doc.has("reference"));
+        // Assert null fields are included (ALWAYS)
+        Assert.assertTrue(doc.has("last_seen"));
+        Assert.assertTrue(doc.get("last_seen").isNull());
+        Assert.assertTrue(doc.has("reference"));
+        Assert.assertTrue(doc.get("reference").isNull());
     }
 
     /** Test fromPayload with null values for optional fields. */
@@ -117,11 +126,10 @@ public class IocTests extends OpenSearchTestCase {
         document.put("type", "domain");
         document.putNull("last_seen");
         document.putNull("reference");
-        document.putNull("feed.name");
+        document.putNull("feed");
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -132,7 +140,7 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertEquals("12345", doc.getId());
         Assert.assertNull(doc.getLastSeen());
         Assert.assertNull(doc.getReference());
-        Assert.assertNull(doc.getFeedName());
+        Assert.assertNull(doc.getFeed());
     }
 
     /** Test fromPayload with an empty document. */
@@ -140,7 +148,6 @@ public class IocTests extends OpenSearchTestCase {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", this.mapper.createObjectNode());
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -153,34 +160,34 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertNull(ioc.getDocument().getConfidence());
     }
 
-    /** Test that unknown fields in the payload are silently ignored. */
-    public void testFromPayload_UnknownFieldsIgnored() {
+    /**
+     * Test that unknown fields in the payload throw an exception now that strict parsing is enabled.
+     */
+    public void testFromPayload_UnknownFieldsThrowsException() {
         // Arrange
         ObjectNode document = this.mapper.createObjectNode();
         document.put("id", "99999");
         document.put("name", "test-ioc");
-        document.put("unknown_field", "should be ignored");
-        document.put("enrichments", "also ignored");
+        document.put("unknown_field", "should fail"); // Unknown field
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
-        payload.put("extra_root_field", "ignored too");
 
-        // Act
-        Ioc ioc = Ioc.fromPayload(payload);
+        // Act & Assert
+        IllegalArgumentException exception =
+                expectThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            Ioc.fromPayload(payload);
+                        });
 
-        // Assert - should parse without errors and capture known fields
-        Assert.assertNotNull(ioc);
-        Assert.assertEquals("99999", ioc.getDocument().getId());
-        Assert.assertEquals("test-ioc", ioc.getDocument().getName());
+        Assert.assertTrue(exception.getMessage().contains("Unrecognized field"));
     }
 
     /** Test fromPayload with minimal payload (only required structure). */
     public void testFromPayload_MinimalPayload() {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -199,7 +206,6 @@ public class IocTests extends OpenSearchTestCase {
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -234,10 +240,15 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertEquals("2025-06-01", doc.getLastSeen());
         Assert.assertEquals("test-provider", doc.getProvider());
         Assert.assertEquals("https://example.com", doc.getReference());
-        Assert.assertEquals("test-feed", doc.getFeedName());
-        Assert.assertEquals("malware", doc.getSoftwareType());
-        Assert.assertEquals("test-malware", doc.getSoftwareName());
-        Assert.assertEquals(2, doc.getSoftwareAlias().size());
+
+        Assert.assertNotNull(doc.getFeed());
+        Assert.assertEquals("test-feed", doc.getFeed().getName());
+
+        Assert.assertNotNull(doc.getSoftware());
+        Assert.assertEquals("malware", doc.getSoftware().getType());
+        Assert.assertEquals("test-malware", doc.getSoftware().getName());
+        Assert.assertEquals(2, doc.getSoftware().getAlias().size());
+
         Assert.assertEquals(1, doc.getTags().size());
     }
 
@@ -253,16 +264,23 @@ public class IocTests extends OpenSearchTestCase {
         doc.setLastSeen("2025-06-01");
         doc.setProvider("test-provider");
         doc.setReference("https://example.com");
-        doc.setFeedName("test-feed");
-        doc.setSoftwareType("malware");
-        doc.setSoftwareName("test-malware");
-        doc.setSoftwareAlias(Arrays.asList("alias1", "alias2"));
+
+        Feed feed = new Feed();
+        feed.setName("test-feed");
+        doc.setFeed(feed);
+
+        Software software = new Software();
+        software.setType("malware");
+        software.setName("test-malware");
+        software.setAlias(Arrays.asList("alias1", "alias2"));
+        doc.setSoftware(software);
+
         doc.setTags(List.of("tag1"));
         return doc;
     }
 
     /**
-     * Builds the complete IoC payload matching the CTI structure with flat dot-notation keys.
+     * Builds the complete IoC payload matching the CTI structure using nested objects.
      *
      * @return A complete IoC ObjectNode payload.
      */
@@ -270,20 +288,27 @@ public class IocTests extends OpenSearchTestCase {
         ObjectNode document = this.mapper.createObjectNode();
         document.put("id", "1593452");
         document.put("name", "89.213.174.225:3778");
-        document.put("software.type", "botnet_cc");
         document.put("type", "ip:port");
-        document.put("software.name", "elf.mirai");
+
+        ObjectNode software = this.mapper.createObjectNode();
+        software.put("type", "botnet_cc");
+        software.put("name", "elf.mirai");
 
         ArrayNode softwareAlias = this.mapper.createArrayNode();
         softwareAlias.add("ClearFake");
         softwareAlias.add("Katana");
-        document.set("software.alias", softwareAlias);
+        software.set("alias", softwareAlias);
+
+        document.set("software", software);
 
         document.put("confidence", 100);
         document.put("first_seen", "2025-09-17 16:40:05 UTC");
         document.putNull("last_seen");
         document.putNull("reference");
-        document.put("feed.name", "elfdigest");
+
+        ObjectNode feed = this.mapper.createObjectNode();
+        feed.put("name", "elfdigest");
+        document.set("feed", feed);
 
         ArrayNode tags = this.mapper.createArrayNode();
         tags.add("Mirai");
@@ -293,7 +318,6 @@ public class IocTests extends OpenSearchTestCase {
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
 
         return payload;
     }
