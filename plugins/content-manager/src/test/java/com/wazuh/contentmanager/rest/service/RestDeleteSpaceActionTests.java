@@ -67,6 +67,33 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     }
 
     /**
+     * Test successful reset of the "draft" space. Verifies that SAP resources and space documents are
+     * deleted, the default policy is recreated, and the engine logtest session is NOT cleared.
+     */
+    public void testDeleteSpace_Success_Draft() throws Exception {
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of(Constants.KEY_SPACE, "draft"))
+                        .build();
+
+        // Mock resources returned to delete them from SAP
+        Map<String, Map<String, String>> resources = new HashMap<>();
+        resources.put(Constants.KEY_RULES, Map.of("rule1", "hash1"));
+        resources.put(Constants.KEY_INTEGRATIONS, Map.of("int1", "hash2"));
+        when(this.spaceService.getSpaceResources("draft")).thenReturn(resources);
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.securityAnalyticsService).deleteRule("rule1", false);
+        verify(this.securityAnalyticsService).deleteIntegration("int1", false);
+        verify(this.spaceService).deleteSpaceResources("draft");
+        verify(this.spaceService).initializeSpace(eq("draft"), anyString());
+        // Logtest reset should only be triggered for the 'test' space
+        verify(this.engineService, never()).deleteLogtest();
+    }
+
+    /**
      * Test that if an exception occurs during individual SAP resource deletions, the reset process
      * catches it and continues to delete the rest of the space successfully.
      */
