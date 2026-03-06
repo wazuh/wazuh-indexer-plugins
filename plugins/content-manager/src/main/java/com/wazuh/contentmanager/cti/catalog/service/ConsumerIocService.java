@@ -257,7 +257,7 @@ public class ConsumerIocService extends AbstractConsumerService {
      */
     @SuppressForbidden(reason = "File I/O required for IOC NDJSON export to local filesystem")
     private Path exportIocsToNdjson() throws IOException {
-        Path outputPath = Path.of(Constants.IOC_EXPORT_DIR).resolve(Constants.IOC_EXPORT_FILENAME);
+        Path outputPath = this.environment.tmpDir().resolve(Constants.IOC_EXPORT_FILENAME);
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
         TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
 

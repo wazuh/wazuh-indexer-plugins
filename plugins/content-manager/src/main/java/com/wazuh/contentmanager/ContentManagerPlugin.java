@@ -128,8 +128,7 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize CatalogSyncJob
         this.catalogSyncJob =
-                new CatalogSyncJob(
-                        this.client, this.consumersIndex, environment, this.threadPool, this.engine);
+                new CatalogSyncJob(this.client, this.consumersIndex, environment, this.threadPool, this.engine);
 
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
