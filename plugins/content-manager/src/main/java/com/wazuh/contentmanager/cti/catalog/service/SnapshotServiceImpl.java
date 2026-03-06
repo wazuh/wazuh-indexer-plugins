@@ -210,13 +210,21 @@ public class SnapshotServiceImpl implements SnapshotService {
                     JsonNode payload = rootJson.get(JSON_PAYLOAD_KEY);
 
                     // 2. Determine Index.
-                    String type;
+                    String name =
+                            rootJson.has(Constants.KEY_NAME) ? rootJson.get(Constants.KEY_NAME).asText() : null;
+
+                    String type = null;
                     if (payload.has(Constants.KEY_TYPE)) {
                         type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
-                    } else {
+                    } else if (name != null && name.startsWith("CVE-")) {
+                        // CVE documents are identified by their name field (CVE-YYYY-NNNNN)
+                        type = Constants.KEY_CVES;
+                    }
+
+                    if (type == null) {
                         log.warn("Could not identify resource type. Skipping.");
                         continue;
                     }
@@ -235,8 +243,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
                     // Determine ID (root level "name" key)
-                    if (rootJson.has(Constants.KEY_NAME)) {
-                        String name = rootJson.get(Constants.KEY_NAME).asText();
+                    if (name != null) {
                         indexRequest.id(name);
                     } else {
                         throw new IOException(

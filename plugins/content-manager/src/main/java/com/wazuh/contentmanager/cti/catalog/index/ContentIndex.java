@@ -54,6 +54,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Ioc;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
@@ -428,11 +429,16 @@ public class ContentIndex {
      */
     public ObjectNode processPayload(JsonNode payload, boolean isDecoder) {
         try {
-            // Preserve the type field before processing
+            // Detect type from index name or payload
+            if (Constants.INDEX_CVES.equals(this.indexName)) {
+                Cve cve = Cve.fromPayload(payload);
+                return this.mapper.valueToTree(cve);
+            }
+
             String type =
                     payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
 
-            // 1. Delegate parsing logic to the appropriate Model
+            // Delegate parsing logic to the appropriate Model
             if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                 Ioc ioc = Ioc.fromPayload(payload);
                 return this.mapper.valueToTree(ioc);
@@ -445,10 +451,7 @@ public class ContentIndex {
                 resource = Resource.fromPayload(payload);
             }
 
-            // 2. Convert Model
-            ObjectNode result = this.mapper.valueToTree(resource);
-
-            return result;
+            return this.mapper.valueToTree(resource);
         } catch (Exception e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);
             return this.mapper.createObjectNode();

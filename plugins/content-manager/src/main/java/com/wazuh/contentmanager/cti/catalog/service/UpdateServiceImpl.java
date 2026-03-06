@@ -152,13 +152,19 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             case CREATE:
                 if (offset.getPayload() != null) {
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
-                    if (payload.has(Constants.KEY_TYPE)) {
-                        String type = payload.get(Constants.KEY_TYPE).asText();
+                    String type = null;
 
+                    if (payload.has(Constants.KEY_TYPE)) {
+                        type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
+                    } else if (id != null && id.startsWith("CVE-")) {
+                        // CVE documents are identified by their resource ID (CVE-YYYY-NNNNN)
+                        type = Constants.KEY_CVES;
+                    }
 
+                    if (type != null) {
                         index = this.indices.get(type);
                         if (index != null) {
                             index.create(id, payload, false);
