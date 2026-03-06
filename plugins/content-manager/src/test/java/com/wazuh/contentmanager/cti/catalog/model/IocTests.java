@@ -130,7 +130,6 @@ public class IocTests extends OpenSearchTestCase {
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -149,7 +148,6 @@ public class IocTests extends OpenSearchTestCase {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", this.mapper.createObjectNode());
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -162,34 +160,34 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertNull(ioc.getDocument().getConfidence());
     }
 
-    /** Test that unknown fields in the payload are silently ignored. */
-    public void testFromPayload_UnknownFieldsIgnored() {
+    /**
+     * Test that unknown fields in the payload throw an exception now that strict parsing is enabled.
+     */
+    public void testFromPayload_UnknownFieldsThrowsException() {
         // Arrange
         ObjectNode document = this.mapper.createObjectNode();
         document.put("id", "99999");
         document.put("name", "test-ioc");
-        document.put("unknown_field", "should be ignored");
-        document.put("enrichments", "also ignored");
+        document.put("unknown_field", "should fail"); // Unknown field
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
-        payload.put("extra_root_field", "ignored too");
 
-        // Act
-        Ioc ioc = Ioc.fromPayload(payload);
+        // Act & Assert
+        IllegalArgumentException exception =
+                expectThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            Ioc.fromPayload(payload);
+                        });
 
-        // Assert - should parse without errors and capture known fields
-        Assert.assertNotNull(ioc);
-        Assert.assertEquals("99999", ioc.getDocument().getId());
-        Assert.assertEquals("test-ioc", ioc.getDocument().getName());
+        Assert.assertTrue(exception.getMessage().contains("Unrecognized field"));
     }
 
     /** Test fromPayload with minimal payload (only required structure). */
     public void testFromPayload_MinimalPayload() {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -208,7 +206,6 @@ public class IocTests extends OpenSearchTestCase {
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
 
         // Act
         Ioc ioc = Ioc.fromPayload(payload);
@@ -321,7 +318,6 @@ public class IocTests extends OpenSearchTestCase {
 
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", document);
-        payload.put("type", "ioc");
 
         return payload;
     }

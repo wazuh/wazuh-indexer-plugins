@@ -16,14 +16,14 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.wazuh.contentmanager.utils.Constants;
 import java.util.List;
+
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Model representing an IoC (Indicator of Compromise) resource. Structured to match the {@code
@@ -99,7 +99,7 @@ public class Ioc {
      * structures like "feed" and "software".
      */
     @JsonInclude(JsonInclude.Include.ALWAYS)
-        public static class IocDocument {
+    public static class IocDocument {
 
         private static final String CONFIDENCE_KEY = "confidence";
         private static final String FIRST_SEEN_KEY = "first_seen";
@@ -349,7 +349,7 @@ public class Ioc {
 
         /** Represents the {@code feed} object within an IoC document. */
         @JsonInclude(JsonInclude.Include.ALWAYS)
-                public static class Feed {
+        public static class Feed {
             @JsonProperty("name")
             private String name;
 
@@ -376,7 +376,7 @@ public class Ioc {
 
         /** Represents the {@code software} object within an IoC document. */
         @JsonInclude(JsonInclude.Include.ALWAYS)
-                public static class Software {
+        public static class Software {
             @JsonProperty("alias")
             private List<String> alias;
 
