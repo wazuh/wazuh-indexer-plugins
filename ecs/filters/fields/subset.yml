@@ -1,0 +1,8 @@
+---
+name: engine-filters
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  filter:
+    fields: "*"

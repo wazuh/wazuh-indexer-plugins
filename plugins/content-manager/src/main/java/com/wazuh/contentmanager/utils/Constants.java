@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.utils;
 import java.util.Map;
 
 // spotless:off
+
 /**
  * Central and unified storage for constants used by the plugin. Follow these guidelines:
  *
@@ -42,6 +43,9 @@ public class Constants {
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
     public static final String E_400_RESOURCE_NOT_FOUND = "%s [%s] not found.";
     public static final String E_400_RESOURCE_NOT_IN_DRAFT = "%s with ID '%s' is not in draft space.";
+    public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
+    public static final String E_400_RESOURCE_SPACE_MISMATCH =
+            "Invalid space value. Must be one of: %s.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
@@ -55,6 +59,9 @@ public class Constants {
             "A %s with the name '%s' already exists in the %s space.";
     public static final String E_400_RESOURCE_SPACE_MISMATCH =
             "Resource space '%s' does not match target space '%s'.";
+    public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
+            "ID should not be provided in the payload.";
+    public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine Validation Failed: ";
 
     // Log messages
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -120,6 +127,7 @@ public class Constants {
     public static final String KEY_LOGSOURCE = "logsource";
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
+    public static final String KEY_FILTER = "filter";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
@@ -134,6 +142,8 @@ public class Constants {
     public static final String TYPE_DECODER = "decoder";
     public static final String TYPE_IOC = "ioc";
     public static final String TYPE_FILTER = "filter";
+    public static final String TYPE_PREFILTER = "pre-filter";
+    public static final String TYPE_POSTFILTER = "post-filter";
 
     // Resources Indices Mapping. Output: Key -> Index Name
     public static final Map<String, String> RESOURCE_INDICES =
