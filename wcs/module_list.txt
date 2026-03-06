@@ -18,12 +18,12 @@ module_to_file=(
   [stateful/inventory/users]=templates/states/inventory-users.json
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
-  [stateless/main]=templates/streams/main.json
   # Third-party stateless modules
+  [stateless/main]=templates/streams/main.json
   # Settings module
   [settings]=templates/settings.json
   # Engine filter module
-  [filters]=templates/filters.json
+  [content/filters]=templates/content/filters.json
   # IoC module
-  [cti/ioc]=templates/cti/ioc.json
+  [content/ioc]=templates/content/ioc.json
 )

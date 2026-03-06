@@ -52,7 +52,7 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ ($file == wcs/state* || $file == wcs/cti* || $file == wcs/settings* || $file == wcs/filters*) && ($file == *.yml || $file == *.json) ]]; then
+    if [[ ($file == wcs/state* || $file == wcs/content* || $file == wcs/settings*) && ($file == *.yml || $file == *.json) ]]; then
       # Try to match the file to one of the known module keys for exact detection
       for key in "${!module_to_file[@]}"; do
         if [[ $file == wcs/$key/* || $file == wcs/$key ]]; then

@@ -124,7 +124,7 @@ function map_settings_modules() {
 # Map IoC module
 # ====
 function map_ioc_module() {
-  local module_name="cti/ioc"
+  local module_name="content/ioc"
   all_modules["$module_name"]="templates/${module_name}.json"
 }
 
@@ -132,7 +132,7 @@ function map_ioc_module() {
 # Map Engine Filter module
 # ====
 function map_engine_filter_module() {
-  local module_name="filters"
+  local module_name="content/filters"
   all_modules["$module_name"]="templates/${module_name}.json"
 }
 
@@ -149,17 +149,12 @@ function sort_and_output_modules() {
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateful/" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
-
+  
+  echo "  # Third-party stateless modules" >>"$output_file"
   # Output stateless main module
   if [[ -n "${all_modules[stateless/main]}" ]]; then
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
-
-  echo "  # Third-party stateless modules" >>"$output_file"
-  # Output other stateless modules (sorted, excluding main)
-  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/main$" | sort); do
-    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
-  done
 
   # Other modules
   if [[ -n "${all_modules[settings]}" ]]; then
@@ -167,14 +162,14 @@ function sort_and_output_modules() {
     echo "  [settings]=${all_modules[settings]}" >>"$output_file"
   fi
 
-  if [[ -n "${all_modules[filters]}" ]]; then
+  if [[ -n "${all_modules[content/filters]}" ]]; then
     echo "  # Engine filter module" >>"$output_file"
-    echo "  [filters]=${all_modules[filters]}" >>"$output_file"
+    echo "  [content/filters]=${all_modules[content/filters]}" >>"$output_file"
   fi
 
-  if [[ -n "${all_modules[cti/ioc]}" ]]; then
+  if [[ -n "${all_modules[content/ioc]}" ]]; then
     echo "  # IoC module" >>"$output_file"
-    echo "  [cti/ioc]=${all_modules[cti/ioc]}" >>"$output_file"
+    echo "  [content/ioc]=${all_modules[content/ioc]}" >>"$output_file"
   fi
 
   echo ")" >>"$output_file"
