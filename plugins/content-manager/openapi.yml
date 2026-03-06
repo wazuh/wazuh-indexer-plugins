@@ -32,6 +32,8 @@ tags:
     description: Manage key-value databases used by content
   - name: Decoders
     description: Manage decoders for parsing and normalization
+  - name: Filters
+    description: Manage filters for event pre-processing and post-processing
   - name: Rules
     description: Manage detection rules and analytics
   - name: Integrations
@@ -360,6 +362,126 @@ paths:
       description: |
         Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
       operationId: deleteDecoder
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Filter management endpoints
+  /filters:
+    post:
+      tags: [Filters]
+      summary: Create Filter
+      description: |
+        Creates a filter in the draft or standard space. The server generates the UUID.
+        The filter is validated against the Wazuh engine before being stored.
+        The filter is automatically linked to the specified space's policy.
+      operationId: createFilter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                  description: Target space for the filter
+                resource:
+                  $ref: "#/components/schemas/FilterResourceCreate"
+            examples:
+              create_filter:
+                summary: Example filter creation
+                value:
+                  space: "draft"
+                  resource:
+                    name: "filter/prefilter/0"
+                    enabled: true
+                    metadata:
+                      description: "Default filter to allow all events (for default ruleset)"
+                      author:
+                        email: "info@wazuh.com"
+                        name: "Wazuh, Inc."
+                        url: "https://wazuh.com"
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: "pre-filter"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /filters/{id}:
+    put:
+      tags: [Filters]
+      summary: Update Filter
+      description: |
+        Updates an existing filter in the draft or standard space. The filter is validated against the Wazuh engine before being stored.
+        The filter ID in the path must match the resource ID in the payload (if provided).
+      operationId: updateFilter
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                  description: Target space for the filter
+                resource:
+                  $ref: "#/components/schemas/FilterResource"
+            examples:
+              update_filter:
+                summary: Example filter update
+                value:
+                  space: "draft"
+                  resource:
+                    name: "filter/prefilter/0"
+                    enabled: true
+                    metadata:
+                      description: "Updated filter description"
+                      author:
+                        email: "info@wazuh.com"
+                        name: "Wazuh, Inc."
+                        url: "https://wazuh.com"
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: "pre-filter"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Filters]
+      summary: Delete Filter
+      description: |
+        Deletes a filter from the draft or standard space. The filter is also removed from the associated policy.
+      operationId: deleteFilter
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
@@ -1143,6 +1265,86 @@ components:
               items:
                 type: string
               description: Version numbers
+
+    # Filter document schema for creation (id is auto-generated)
+    FilterResourceCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Filter name identifier (e.g., filter/prefilter/0)
+
+        enabled:
+          type: boolean
+          description: Whether the filter is enabled
+
+        check:
+          type: string
+          description: Filter check expression
+
+        type:
+          type: string
+          description: Filter type (e.g., pre-filter)
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            description:
+              type: string
+              description: Filter description
+
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                url:
+                  type: string
+
+    # Filter document schema (for updates)
+    FilterResource:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Filter name identifier (e.g., filter/prefilter/0)
+
+        enabled:
+          type: boolean
+          description: Whether the filter is enabled
+
+        check:
+          type: string
+          description: Filter check expression
+
+        type:
+          type: string
+          description: Filter type (e.g., pre-filter)
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            description:
+              type: string
+              description: Filter description
+
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                url:
+                  type: string
 
     # KVDB document schema (key-value data managed by the engine)
     KvdbResource:

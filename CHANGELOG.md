@@ -61,6 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Download IoC from CTI API [(#779)](https://github.com/wazuh/wazuh-indexer-plugins/pull/779)
 - Create default policies for user content spaces [(#767)](https://github.com/wazuh/wazuh-indexer-plugins/pull/767)
 - Add engine filters index [(#798)](https://github.com/wazuh/wazuh-indexer-plugins/pull/798)
+- Add engine filters API [(#801)](https://github.com/wazuh/wazuh-indexer-plugins/pull/801)
 - Remove non-standard ip and geo fields from f5-bigip mappings [(#809)](https://github.com/wazuh/wazuh-indexer-plugins/pull/809)
 - Extend policy update endpoint with enrichments [(#808)](https://github.com/wazuh/wazuh-indexer-plugins/pull/808)
 - Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
@@ -72,8 +73,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add WCS field for discarded events [(#860)](https://github.com/wazuh/wazuh-indexer-plugins/pull/860)
 - Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
 - Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
-- Add new reset test sesion step to POST Promote endpoint [(#880)](https://github.com/wazuh/wazuh-indexer-plugins/pull/880)
-- Add new space reset endpoint [(#885)](https://github.com/wazuh/wazuh-indexer-plugins/pull/885)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)

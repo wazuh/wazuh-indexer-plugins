@@ -46,6 +46,4 @@ public interface EngineService {
      *     {"hash":"...","updating":false}}).
      */
     RestResponse getIocState();
-
-    RestResponse deleteLogtest();
 }

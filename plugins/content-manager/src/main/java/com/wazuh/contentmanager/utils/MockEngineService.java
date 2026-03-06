@@ -64,12 +64,6 @@ public class MockEngineService implements EngineService {
     }
 
     @Override
-    public RestResponse deleteLogtest() {
-        log.debug("MockEngineService.deleteLogtest called");
-        return new RestResponse("OK", RestStatus.NO_CONTENT.getStatus());
-    }
-
-    @Override
     public RestResponse getIocState() {
         log.debug("MockEngineService.getIocState called");
         return new RestResponse("{\"hash\":\"\",\"updating\":false}", RestStatus.OK.getStatus());

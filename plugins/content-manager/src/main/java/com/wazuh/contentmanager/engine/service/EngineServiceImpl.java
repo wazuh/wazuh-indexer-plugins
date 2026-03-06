@@ -78,11 +78,6 @@ public class EngineServiceImpl implements EngineService {
     }
 
     @Override
-    public RestResponse deleteLogtest() {
-        return this.socket.sendRequest(LOGTEST, DELETE.name(), this.mapper.createObjectNode());
-    }
-
-    @Override
     public RestResponse getIocState() {
         return this.socket.sendRequest(IOC_STATE, GET.name(), this.mapper.createObjectNode());
     }

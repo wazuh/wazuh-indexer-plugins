@@ -125,6 +125,11 @@ public abstract class AbstractContentAction extends BaseRestHandler {
         this.spaceService = spaceService;
     }
 
+    /** Gets the policy hash service (for testing). */
+    public SpaceService getPolicyHashService() {
+        return this.spaceService;
+    }
+
     /** Sets the security analytics service (for testing). */
     public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
         this.securityAnalyticsService = securityAnalyticsService;
