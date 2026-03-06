@@ -24,7 +24,6 @@ import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
-import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 public class EngineServiceImpl implements EngineService {
