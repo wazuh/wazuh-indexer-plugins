@@ -1,4 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,true,document,document.check,keyword,custom,,event.action:login AND event.outcome:failure,Check expression or identifier used by the filter.
 9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the filter is enabled.
 9.1.0,true,document,document.id,keyword,custom,,filter-12345,Unique identifier of the filter document.

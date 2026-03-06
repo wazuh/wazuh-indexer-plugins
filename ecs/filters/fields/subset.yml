@@ -1,28 +1,8 @@
 ---
 name: engine-filters
 fields:
-  document:
+  base:
     fields:
-      name: {}
-      enabled: {}
-      metadata:
-        fields:
-          description: {}
-          author:
-            fields:
-              email: {}
-              name: {}
-              url: {}
-              date: {}
-              modified: {}
-      check: {}
-      type: {}
-      id: {}
-  base :
-    fields:
-      hash:
-        fields:
-          sha256: {}
-      space:
-        fields:
-          name: {}
+      "@timestamp": {}
+  filter:
+    fields: "*"
