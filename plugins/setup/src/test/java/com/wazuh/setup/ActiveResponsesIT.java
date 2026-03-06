@@ -52,9 +52,7 @@ public class ActiveResponsesIT extends OpenSearchRestTestCase {
                 Response response =
                         client()
                                 .performRequest(
-                                        new Request(
-                                                "GET",
-                                                "/_index_template/" + ACTIVE_RESPONSES_INDEX_TEMPLATE));
+                                        new Request("GET", "/_index_template/" + ACTIVE_RESPONSES_INDEX_TEMPLATE));
                 if (response.getStatusLine().getStatusCode() == 200) {
                     return;
                 }
@@ -68,9 +66,7 @@ public class ActiveResponsesIT extends OpenSearchRestTestCase {
         Response response =
                 client()
                         .performRequest(
-                                new Request(
-                                        "GET",
-                                        "/_index_template/" + ACTIVE_RESPONSES_INDEX_TEMPLATE));
+                                new Request("GET", "/_index_template/" + ACTIVE_RESPONSES_INDEX_TEMPLATE));
         assertThat(
                 "Template should be created during plugin initialization",
                 response.getStatusLine().getStatusCode(),
