@@ -150,7 +150,7 @@ function sort_and_output_modules() {
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
   
-  echo "  # Third-party stateless modules" >>"$output_file"
+  echo "  # Stateless module" >>"$output_file"
   # Output stateless main module
   if [[ -n "${all_modules[stateless/main]}" ]]; then
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"

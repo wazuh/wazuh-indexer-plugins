@@ -18,7 +18,7 @@ module_to_file=(
   [stateful/inventory/users]=templates/states/inventory-users.json
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
-  # Third-party stateless modules
+  # Stateless module
   [stateless/main]=templates/streams/main.json
   # Settings module
   [settings]=templates/settings.json
