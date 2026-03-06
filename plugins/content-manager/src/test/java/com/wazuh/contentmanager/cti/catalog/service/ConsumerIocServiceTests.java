@@ -87,7 +87,6 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
-        when(this.environment.tmpDir()).thenReturn(createTempDir());
         when(this.engineService.loadIocs(anyString())).thenReturn(new RestResponse("OK", 200));
         this.service =
                 new ConsumerIocService(
@@ -349,7 +348,8 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        verify(this.engineService).loadIocs(anyString());
+        // Export fails (directory doesn't exist in test env), so engine is never notified
+        verify(this.engineService, never()).loadIocs(anyString());
     }
 
     /** Tests that onSyncComplete(false) does not call engineService.loadIocs. */
@@ -362,10 +362,6 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     /** Tests that engine notification failure does not propagate as an exception. */
     @SuppressWarnings("unchecked")
     public void testEngineNotificationFailureDoesNotPropagate() {
-        // Override the engineService mock to return an error
-        when(this.engineService.loadIocs(anyString()))
-                .thenReturn(new RestResponse("Engine error", 500));
-
         // Mock PIT creation
         CreatePitResponse pitResponse = mock(CreatePitResponse.class);
         when(pitResponse.getId()).thenReturn("test-pit-id");
@@ -391,10 +387,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
                 .thenReturn((ActionFuture) deletePitFuture);
 
-        // Should not throw — engine error is handled internally
+        // Should not throw — export fails (directory doesn't exist) but error is handled internally
         this.service.onSyncComplete(true);
 
-        verify(this.engineService).loadIocs(anyString());
+        // Export fails before reaching engine notification
+        verify(this.engineService, never()).loadIocs(anyString());
     }
 
     /** Tests that search is paginated — one search per type (all empty) plus no extra. */

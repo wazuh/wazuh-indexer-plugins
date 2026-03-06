@@ -164,6 +164,7 @@ public class Constants {
     public static final String Q_HITS = "hits";
 
     // IOC export
+    public static final String IOC_EXPORT_DIR = "/usr/share/wazuh-indexer/engine/data";
     public static final String IOC_EXPORT_FILENAME = "iocs.ndjson";
     public static final String I_LOG_IOC_EXPORT_COMPLETE = "IOC export completed: {}";
     public static final String E_LOG_IOC_EXPORT_FAILED = "Failed to export IOCs to NDJSON: {}";
