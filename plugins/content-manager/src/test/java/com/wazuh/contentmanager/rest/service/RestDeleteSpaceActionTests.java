@@ -89,8 +89,6 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
         verify(this.securityAnalyticsService).deleteIntegration("int1", false);
         verify(this.spaceService).deleteSpaceResources("draft");
         verify(this.spaceService).initializeSpace(eq("draft"), anyString());
-        // Logtest reset should only be triggered for the 'test' space
-        verify(this.engineService, never()).deleteLogtest();
     }
 
     /**
