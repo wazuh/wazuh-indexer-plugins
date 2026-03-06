@@ -57,8 +57,6 @@ public class Constants {
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String E_400_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
-    public static final String E_400_RESOURCE_SPACE_MISMATCH =
-            "Resource space '%s' does not match target space '%s'.";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine Validation Failed: ";

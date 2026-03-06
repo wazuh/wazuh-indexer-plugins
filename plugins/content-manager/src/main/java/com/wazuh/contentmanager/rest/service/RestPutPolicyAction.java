@@ -171,7 +171,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         String.format(
                                 Locale.ROOT,
                                 Constants.E_400_RESOURCE_SPACE_MISMATCH,
-                                spaceName,
                                 Space.DRAFT.toString() + ", " + Space.STANDARD.toString()),
                         RestStatus.BAD_REQUEST.getStatus());
             }
