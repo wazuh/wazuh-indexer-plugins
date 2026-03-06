@@ -119,8 +119,9 @@ public class ConsumerIocService extends AbstractConsumerService {
     public void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
-            this.computeAndStoreTypeHashes();
-            this.exportAndNotifyEngine();
+            Map<String, String> typeHashes = this.computeAndStoreTypeHashes();
+            String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
+            this.exportAndNotifyEngine(combinedHash);
         }
     }
 
@@ -129,8 +130,10 @@ public class ConsumerIocService extends AbstractConsumerService {
      * document. Uses PIT (Point-in-Time) with search_after for deterministic, paginated iteration
      * over potentially millions of documents. Types are discovered dynamically by scanning all
      * documents sorted by {@code document.type}.
+     *
+     * @return A map of IOC type names to their computed SHA-256 hashes, or an empty map on failure.
      */
-    private void computeAndStoreTypeHashes() {
+    private Map<String, String> computeAndStoreTypeHashes() {
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
         TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
 
@@ -140,8 +143,9 @@ public class ConsumerIocService extends AbstractConsumerService {
                 this.client.execute(CreatePitAction.INSTANCE, createPitRequest).actionGet();
         String pitId = pitResponse.getId();
 
+        Map<String, String> typeHashes = Collections.emptyMap();
         try {
-            Map<String, String> typeHashes = this.computeAllTypeHashes(pitId, keepalive);
+            typeHashes = this.computeAllTypeHashes(pitId, keepalive);
 
             ObjectNode typeHashesNode = MAPPER.createObjectNode();
             for (Map.Entry<String, String> entry : typeHashes.entrySet()) {
@@ -168,6 +172,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
         }
+        return typeHashes;
     }
 
     /**
@@ -237,11 +242,13 @@ public class ConsumerIocService extends AbstractConsumerService {
     /**
      * Orchestrates the IOC export to NDJSON and Engine notification. Exceptions are caught so that
      * failures do not break the sync process.
+     *
+     * @param hash The combined SHA-256 hash of all IOC type hashes.
      */
-    private void exportAndNotifyEngine() {
+    private void exportAndNotifyEngine(String hash) {
         try {
             Path exportPath = this.exportIocsToNdjson();
-            this.notifyEngine(exportPath.toString());
+            this.notifyEngine(exportPath.toString(), hash);
         } catch (Exception e) {
             log.error(Constants.E_LOG_IOC_EXPORT_FAILED, e.getMessage(), e);
         }
@@ -257,7 +264,7 @@ public class ConsumerIocService extends AbstractConsumerService {
      */
     @SuppressForbidden(reason = "File I/O required for IOC NDJSON export to local filesystem")
     private Path exportIocsToNdjson() throws IOException {
-        Path outputPath = this.environment.tmpDir().resolve(Constants.IOC_EXPORT_FILENAME);
+        Path outputPath = this.environment.sharedDataDir().resolve(Constants.IOC_EXPORT_FILENAME);
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
         TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
 
@@ -315,9 +322,10 @@ public class ConsumerIocService extends AbstractConsumerService {
      * Notifies the Engine to load IOC data from the given file path.
      *
      * @param filePath The absolute path to the NDJSON file.
+     * @param hash The combined SHA-256 hash of all IOC type hashes.
      */
-    private void notifyEngine(String filePath) {
-        RestResponse response = this.engineService.loadIocs(filePath);
+    private void notifyEngine(String filePath, String hash) {
+        RestResponse response = this.engineService.loadIocs(filePath, hash);
         if (response.getStatus() >= 200 && response.getStatus() < 300) {
             log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, filePath);
         } else {

@@ -81,9 +81,10 @@ public class EngineServiceImpl implements EngineService {
     }
 
     @Override
-    public RestResponse loadIocs(String filePath) {
+    public RestResponse loadIocs(String filePath, String hash) {
         ObjectNode payload = this.mapper.createObjectNode();
         payload.put("path", filePath);
+        payload.put("hash", hash);
         return this.socket.sendRequest(LOAD_IOCS, POST.name(), payload);
     }
 }

@@ -70,8 +70,8 @@ public class MockEngineService implements EngineService {
     }
 
     @Override
-    public RestResponse loadIocs(String filePath) {
-        log.debug("MockEngineService.loadIocs called with path: {}", filePath);
+    public RestResponse loadIocs(String filePath, String hash) {
+        log.debug("MockEngineService.loadIocs called with path: {}, hash: {}", filePath, hash);
         return new RestResponse("OK", RestStatus.OK.getStatus());
     }
 }

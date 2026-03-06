@@ -34,9 +34,10 @@ public interface EngineService {
      * Notifies the Engine to load IOC content from the given file path.
      *
      * @param filePath The absolute path to the NDJSON file containing IOC data.
+     * @param hash The combined SHA-256 hash of all IOC type hashes.
      * @return A {@link RestResponse} with the Engine's response.
      */
-    RestResponse loadIocs(String filePath);
+    RestResponse loadIocs(String filePath, String hash);
 
     RestResponse deleteLogtest();
 }

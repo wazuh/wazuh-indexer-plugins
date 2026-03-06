@@ -190,23 +190,34 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
         assertEquals(expected, actual);
     }
 
-    /** Tests that loadIocs sends the file path to the correct endpoint. */
+    /** Tests that loadIocs sends the file path and hash to the correct endpoint. */
     public void testLoadIocsSendsToCorrectEndpoint() {
         String filePath = "/tmp/iocs.ndjson";
+        String hash = "abc123";
         RestResponse expected = new RestResponse("OK", 200);
         when(this.socket.sendRequest(
                         eq(EngineServiceImpl.LOAD_IOCS),
                         eq("POST"),
-                        argThat(json -> json.has("path") && json.get("path").asText().equals(filePath))))
+                        argThat(
+                                json ->
+                                        json.has("path")
+                                                && json.get("path").asText().equals(filePath)
+                                                && json.has("hash")
+                                                && json.get("hash").asText().equals(hash))))
                 .thenReturn(expected);
 
-        RestResponse result = this.engine.loadIocs(filePath);
+        RestResponse result = this.engine.loadIocs(filePath, hash);
 
         assertEquals(expected, result);
         verify(this.socket)
                 .sendRequest(
                         eq(EngineServiceImpl.LOAD_IOCS),
                         eq("POST"),
-                        argThat(json -> json.has("path") && json.get("path").asText().equals(filePath)));
+                        argThat(
+                                json ->
+                                        json.has("path")
+                                                && json.get("path").asText().equals(filePath)
+                                                && json.has("hash")
+                                                && json.get("hash").asText().equals(hash)));
     }
 }

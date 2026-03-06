@@ -88,7 +88,9 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         when(this.environment.tmpDir()).thenReturn(createTempDir());
-        when(this.engineService.loadIocs(anyString())).thenReturn(new RestResponse("OK", 200));
+        when(this.environment.sharedDataDir()).thenReturn(createTempDir());
+        when(this.engineService.loadIocs(anyString(), anyString()))
+                .thenReturn(new RestResponse("OK", 200));
         this.service =
                 new ConsumerIocService(
                         this.client, this.consumersIndex, this.environment, this.engineService);
@@ -349,21 +351,21 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        verify(this.engineService).loadIocs(anyString());
+        verify(this.engineService).loadIocs(anyString(), anyString());
     }
 
     /** Tests that onSyncComplete(false) does not call engineService.loadIocs. */
     public void testOnSyncCompleteDoesNotNotifyEngineWhenNotUpdated() {
         this.service.onSyncComplete(false);
 
-        verify(this.engineService, never()).loadIocs(anyString());
+        verify(this.engineService, never()).loadIocs(anyString(), anyString());
     }
 
     /** Tests that engine notification failure does not propagate as an exception. */
     @SuppressWarnings("unchecked")
     public void testEngineNotificationFailureDoesNotPropagate() {
         // Override the engineService mock to return an error
-        when(this.engineService.loadIocs(anyString()))
+        when(this.engineService.loadIocs(anyString(), anyString()))
                 .thenReturn(new RestResponse("Engine error", 500));
 
         // Mock PIT creation
@@ -394,7 +396,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         // Should not throw — engine error is handled internally
         this.service.onSyncComplete(true);
 
-        verify(this.engineService).loadIocs(anyString());
+        verify(this.engineService).loadIocs(anyString(), anyString());
     }
 
     /** Tests that search is paginated — one search per type (all empty) plus no extra. */
