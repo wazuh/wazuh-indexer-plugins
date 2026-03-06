@@ -17,8 +17,8 @@
           "wazuh.agent.name",
           "wazuh.active_response.name",
           "wazuh.active_response.executable",
-          "document.id",
-          "document.index"
+          "event.index",
+          "event.doc_id"
         ],
       "max_docvalue_fields_search": 50
     }

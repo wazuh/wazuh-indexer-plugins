@@ -333,8 +333,8 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 #### Fields Included (WCS-compatible)
 
 - **@timestamp**: When the active response was triggered
-- **document.id**: Document ID of the matched alert that triggered the active response
-- **document.index**: Source index of the matched alert
+- **event.doc_id**: Document ID of the matched alert that triggered the active response
+- **event.index**: Source index of the matched alert
 - **wazuh.active_response.name**: Name of the active response configured in the channel
 - **wazuh.active_response.executable**: Executable configured in the active response channel
 - **wazuh.active_response.extra_arguments**: Arguments configured in the channel
