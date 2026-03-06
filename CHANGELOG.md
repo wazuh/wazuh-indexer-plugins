@@ -72,7 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add WCS field for discarded events [(#860)](https://github.com/wazuh/wazuh-indexer-plugins/pull/860)
 - Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
 - Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
-- Add new reset test sesion step to POST Promote endpoint [(#880)](https://github.com/wazuh/wazuh-indexer-plugins/pull/880)
+- Add new reset test session step to POST Promote endpoint [(#880)](https://github.com/wazuh/wazuh-indexer-plugins/pull/880)
 - Add new space reset endpoint [(#885)](https://github.com/wazuh/wazuh-indexer-plugins/pull/885)
 
 ### Dependencies
@@ -118,8 +118,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Index Ioc per-type hashes [(#855)](https://github.com/wazuh/wazuh-indexer-plugins/pull/855)
 - Update draft Policy management [(#856)](https://github.com/wazuh/wazuh-indexer-plugins/pull/856) [(#861)](https://github.com/wazuh/wazuh-indexer-plugins/pull/861)
 - Use the new consumer and Ioc types [(#863)](https://github.com/wazuh/wazuh-indexer-plugins/pull/863)
-- Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#894)] (https://github.com/wazuh/wazuh-indexer-plugins/pull/894)
+- Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#894)](https://github.com/wazuh/wazuh-indexer-plugins/pull/894)
 - Update templates to use minimal WCS [(#887)](https://github.com/wazuh/wazuh-indexer-plugins/pull/887)
+- Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 
 ### Deprecated
 -
