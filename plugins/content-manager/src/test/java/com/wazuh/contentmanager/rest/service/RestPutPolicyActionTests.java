@@ -137,14 +137,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
     /** If the request adds or removes integrations to the policy, then return a 400 error. */
     public void testPutPolicy_UpdateModifiesIntegrations_400() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -166,6 +158,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -196,14 +189,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * complete and a draft policy already exists. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_UpdateExisting_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -225,6 +210,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -249,7 +235,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("policy"));
+        Assert.assertEquals("test-policy-id", response.getMessage());
 
         // Verify PolicyHashService was called to regenerate space hash
         verify(this.service).calculateAndUpdate(anyList());
@@ -261,14 +247,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * policy created.
      */
     public void testPutPolicy_CreateNew_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -288,6 +266,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -322,6 +301,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     public void testPutPolicy_NoContent_400() {
         // Arrange
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -346,6 +326,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Arrange
         String invalidJson = "{invalid json content";
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -371,6 +352,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Arrange
         String policyJson = "{\"type\": \"policy\"}";
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -393,7 +375,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * is missing required fields. The expected response is: {400, RestResponse}
      */
     public void testPutPolicy_MissingRequiredFields_400() {
-        // Arrange - missing author, description, documentation, and references
+        // Arrange - missing enabled, index_unclassified_events, index_discarded_events,
+        // author, description, documentation, and references
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
@@ -404,6 +387,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}"
                         + "}";
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -426,14 +410,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * operation fails. The expected response is: {500, RestResponse}
      */
     public void testPutPolicy_IndexingFails_500() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -455,6 +431,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -486,15 +463,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains valid enrichments. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_ValidEnrichments_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-
         // Arrange - policy with valid enrichments
         String policyJson =
                 "{"
@@ -519,6 +487,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -580,6 +549,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -633,6 +603,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -657,14 +628,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains all valid enrichment types. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_AllValidEnrichmentTypes_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         // Arrange - policy with all valid enrichment types
         String policyJson =
@@ -690,6 +653,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -760,6 +724,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -816,6 +781,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -835,14 +801,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * reorders filters (allowed). The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_ReorderFilters_200() throws Exception {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         // Override mock to return a policy with two existing filters
         Map<String, Object> policy = new HashMap<>();
@@ -880,6 +838,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -903,14 +862,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains enabled=true. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithEnabledTrue_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -932,6 +883,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -955,14 +907,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains enabled=false. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithEnabledFalse_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -984,6 +928,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1007,14 +952,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains index_unclassified_events=true. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithIndexUnclassifiedEvents_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -1036,6 +973,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1059,14 +997,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains index_discarded_events=false. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithIndexDiscardedEvents_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -1088,6 +1018,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1111,15 +1042,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains all three boolean fields. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_AllBooleanFields_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
@@ -1140,6 +1062,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1181,6 +1104,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1200,15 +1124,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains an empty enrichments array. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_EmptyEnrichments_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-
         // Arrange - policy with empty enrichments array
         String policyJson =
                 "{"
@@ -1229,6 +1144,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
