@@ -703,11 +703,31 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /policy:
+  /policy/{space}:
     put:
-      tags: [Draft Policy]
-      summary: Update full draft policy
+      tags: [Policy]
+      summary: Update policy in a given space
+      description: |
+        Updates the routing policy in the specified space (`draft` or `standard`).
+
+        **Draft space**: All policy fields are accepted. The `integrations` and `filters`
+        arrays allow reordering but do not allow adding or removing entries.
+        Fields `author`, `description`, `documentation`, and `references` are required
+        in addition to the boolean fields.
+
+        **Standard space**: Only `enrichments`, `filters`, `enabled`,
+        `index_unclassified_events`, and `index_discarded_events` can be modified.
+        All other fields are preserved from the existing standard policy document.
+        The `filters` array allows reordering but not addition or removal.
       operationId: policy_update
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: Target space for the policy update.
+          schema:
+            type: string
+            enum: [draft, standard]
       requestBody:
         required: true
         content:
@@ -1377,10 +1397,14 @@ components:
       type: object
       additionalProperties: false
       required:
-        - author
-        - description
-        - documentation
-        - references
+        - enabled
+        - index_unclassified_events
+        - index_discarded_events
+      description: |
+        Policy resource definition. The fields `enabled`, `index_unclassified_events`,
+        and `index_discarded_events` are always required. When updating the **draft**
+        space, `author`, `description`, `documentation`, and `references` are also
+        required.
       properties:
         title:
           type: string
@@ -1405,7 +1429,9 @@ components:
           type: array
           items:
             type: string
-          description: List of filter UUIDs
+          description: >
+            List of filter UUIDs. Reordering is allowed, but adding or
+            removing entries is not (managed via filter CUD endpoints).
           example: ["5c1df6b6-1458-4b2e-9001-96f67a8b12c8"]
 
         enrichments:
@@ -1418,26 +1444,41 @@ components:
             No duplicates allowed. May vary based on engine capabilities.
           example: ["connection", "hash_md5", "url-full"]
 
+        enabled:
+          type: boolean
+          description: Whether the policy is active and synchronized by the Engine
+          example: true
+
+        index_unclassified_events:
+          type: boolean
+          description: Whether uncategorized events are indexed
+          example: false
+
+        index_discarded_events:
+          type: boolean
+          description: Whether discarded events are indexed
+          example: false
+
         author:
           type: string
-          description: Author of the policy
+          description: Author of the policy (required for draft space)
           example: "Wazuh Inc."
 
         description:
           type: string
-          description: Brief description of the policy
+          description: Brief description of the policy (required for draft space)
           example: "Policy description"
 
         documentation:
           type: string
-          description: Detailed documentation for the policy
+          description: Detailed documentation for the policy (required for draft space)
           example: "Detailed documentation"
 
         references:
           type: array
           items:
             type: string
-          description: External reference URLs
+          description: External reference URLs (required for draft space)
           example: ["https://wazuh.com"]
 
     RestResponse:
