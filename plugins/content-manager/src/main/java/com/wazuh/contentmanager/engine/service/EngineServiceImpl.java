@@ -25,6 +25,7 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
+import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 public class EngineServiceImpl implements EngineService {
@@ -32,6 +33,7 @@ public class EngineServiceImpl implements EngineService {
     static final String VALIDATE = "/content/validate/resource";
     static final String PROMOTE = "/content/validate/policy";
     static final String LOAD_IOCS = "/content/ioc/update";
+    static final String IOC_STATE = "/content/ioc/state";
 
     private final EngineSocketClient socket;
     private final ObjectMapper mapper;
@@ -78,6 +80,11 @@ public class EngineServiceImpl implements EngineService {
     @Override
     public RestResponse deleteLogtest() {
         return this.socket.sendRequest(LOGTEST, DELETE.name(), this.mapper.createObjectNode());
+    }
+
+    @Override
+    public RestResponse getIocState() {
+        return this.socket.sendRequest(IOC_STATE, GET.name(), this.mapper.createObjectNode());
     }
 
     @Override

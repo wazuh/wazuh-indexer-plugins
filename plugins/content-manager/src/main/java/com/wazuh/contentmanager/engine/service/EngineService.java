@@ -39,5 +39,13 @@ public interface EngineService {
      */
     RestResponse loadIocs(String filePath, String hash);
 
+    /**
+     * Queries the Engine for the current IOC processing state.
+     *
+     * @return A {@link RestResponse} whose message contains the JSON state (e.g., {@code
+     *     {"hash":"...","updating":false}}).
+     */
+    RestResponse getIocState();
+
     RestResponse deleteLogtest();
 }

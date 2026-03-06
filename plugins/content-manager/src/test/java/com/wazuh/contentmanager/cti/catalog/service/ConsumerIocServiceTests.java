@@ -89,6 +89,8 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         PluginSettings.getInstance(Settings.EMPTY);
         when(this.environment.tmpDir()).thenReturn(createTempDir());
         when(this.environment.sharedDataDir()).thenReturn(createTempDir());
+        when(this.engineService.getIocState())
+                .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200));
         when(this.engineService.loadIocs(anyString(), anyString()))
                 .thenReturn(new RestResponse("OK", 200));
         this.service =
@@ -397,6 +399,71 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         this.service.onSyncComplete(true);
 
         verify(this.engineService).loadIocs(anyString(), anyString());
+    }
+
+    /** Tests that loadIocs is NOT called when Engine reports updating=true. */
+    @SuppressWarnings("unchecked")
+    public void testNotifyEngineSkippedWhenEngineIsUpdating() {
+        when(this.engineService.getIocState())
+                .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":true}", 200));
+
+        this.mockPitLifecycle();
+
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).getIocState();
+        verify(this.engineService, never()).loadIocs(anyString(), anyString());
+    }
+
+    /** Tests that loadIocs IS called when Engine reports updating=false. */
+    @SuppressWarnings("unchecked")
+    public void testNotifyEngineCalledWhenEngineIsNotUpdating() {
+        when(this.engineService.getIocState())
+                .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200));
+
+        this.mockPitLifecycle();
+
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).getIocState();
+        verify(this.engineService).loadIocs(anyString(), anyString());
+    }
+
+    /** Tests that loadIocs is NOT called when the state check fails (fail-closed). */
+    @SuppressWarnings("unchecked")
+    public void testNotifyEngineSkippedWhenStateCheckFails() {
+        when(this.engineService.getIocState()).thenReturn(new RestResponse("Engine error", 500));
+
+        this.mockPitLifecycle();
+
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).getIocState();
+        verify(this.engineService, never()).loadIocs(anyString(), anyString());
     }
 
     /** Tests that search is paginated — one search per type (all empty) plus no extra. */

@@ -190,6 +190,18 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
         assertEquals(expected, actual);
     }
 
+    /** Tests that getIocState sends a GET request to the correct endpoint. */
+    public void testGetIocState200() {
+        RestResponse expected = new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.IOC_STATE), eq("GET"), any(JsonNode.class)))
+                .thenReturn(expected);
+
+        RestResponse actual = this.engine.getIocState();
+        assertEquals(expected, actual);
+        verify(this.socket)
+                .sendRequest(eq(EngineServiceImpl.IOC_STATE), eq("GET"), any(JsonNode.class));
+    }
+
     /** Tests that loadIocs sends the file path and hash to the correct endpoint. */
     public void testLoadIocsSendsToCorrectEndpoint() {
         String filePath = "/tmp/iocs.ndjson";

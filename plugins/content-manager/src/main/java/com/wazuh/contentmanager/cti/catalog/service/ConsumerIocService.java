@@ -319,17 +319,50 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     /**
-     * Notifies the Engine to load IOC data from the given file path.
+     * Notifies the Engine to load IOC data from the given file path. Before sending the update, it
+     * checks the Engine's IOC state. If the Engine is already processing a previous update or the
+     * state check fails, the notification is skipped (fail-closed).
      *
      * @param filePath The absolute path to the NDJSON file.
      * @param hash The combined SHA-256 hash of all IOC type hashes.
      */
     private void notifyEngine(String filePath, String hash) {
+        if (this.isEngineUpdating()) {
+            return;
+        }
+
         RestResponse response = this.engineService.loadIocs(filePath, hash);
         if (response.getStatus() >= 200 && response.getStatus() < 300) {
             log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, filePath);
         } else {
             log.error(Constants.E_LOG_IOC_ENGINE_NOTIFY_FAILED, response.getMessage());
+        }
+    }
+
+    /**
+     * Checks whether the Engine is currently processing an IOC update. Returns {@code true} if the
+     * Engine is busy or if the state check fails (fail-closed).
+     *
+     * @return {@code true} if the Engine is updating or the state could not be determined.
+     */
+    private boolean isEngineUpdating() {
+        try {
+            RestResponse stateResponse = this.engineService.getIocState();
+            if (stateResponse.getStatus() < 200 || stateResponse.getStatus() >= 300) {
+                log.warn(Constants.W_LOG_IOC_STATE_CHECK_FAILED, stateResponse.getMessage());
+                return true;
+            }
+
+            com.fasterxml.jackson.databind.JsonNode stateNode =
+                    MAPPER.readTree(stateResponse.getMessage());
+            if (stateNode.path(Constants.KEY_UPDATING).asBoolean(false)) {
+                log.warn(Constants.W_LOG_IOC_ENGINE_BUSY);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_IOC_STATE_CHECK_FAILED, e.getMessage(), e);
+            return true;
         }
     }
 }
