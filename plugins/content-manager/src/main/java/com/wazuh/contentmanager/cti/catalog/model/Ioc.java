@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
@@ -50,9 +51,14 @@ public class Ioc {
      * @return A fully populated Ioc instance.
      */
     public static Ioc fromPayload(JsonNode payload) {
-        Ioc ioc = Ioc.MAPPER.convertValue(payload, Ioc.class);
-        if (payload.has(Constants.KEY_DOCUMENT)) {
-            String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());
+        // Strip the routing 'type' field before deserialization
+        ObjectNode sanitizedPayload = payload.deepCopy();
+        sanitizedPayload.remove(Constants.KEY_TYPE);
+
+        Ioc ioc = Ioc.MAPPER.convertValue(sanitizedPayload, Ioc.class);
+        if (sanitizedPayload.has(Constants.KEY_DOCUMENT)) {
+            String sha256 =
+                    Resource.computeSha256(sanitizedPayload.get(Constants.KEY_DOCUMENT).toString());
             ioc.setHash(new IocHash(sha256));
         }
         return ioc;
