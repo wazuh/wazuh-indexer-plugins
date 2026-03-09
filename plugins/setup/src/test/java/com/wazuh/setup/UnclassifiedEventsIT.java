@@ -42,7 +42,7 @@ import static org.hamcrest.Matchers.containsString;
 public class UnclassifiedEventsIT extends OpenSearchRestTestCase {
 
     private static final String UNCLASSIFIED_DATASTREAM = "wazuh-events-v5-unclassified";
-    private static final String UNCLASSIFIED_INDEX_TEMPLATE = "streams-unclassified";
+    private static final String UNCLASSIFIED_INDEX_TEMPLATE = "wazuh-events-v5-unclassified-template";
     private static final int MAX_WAIT_SECONDS = 60;
     private static final int POLL_INTERVAL_MS = 500;
 
