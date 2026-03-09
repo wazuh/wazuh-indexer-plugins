@@ -237,6 +237,19 @@ public class ContentIndex {
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
     public void update(String id, List<Operation> operations) throws Exception {
+        this.update(id, operations, null);
+    }
+
+    /**
+     * Updates an existing document by applying a list of patch operations and optionally setting the
+     * CTI offset.
+     *
+     * @param id The ID of the document to update.
+     * @param operations The list of operations to apply to the document.
+     * @param offset The CTI offset value to store on the document, or null to leave unchanged.
+     * @throws Exception If the document does not exist, or if patching/indexing fails.
+     */
+    public void update(String id, List<Operation> operations, Long offset) throws Exception {
         // 1. Fetch
         GetResponse response =
                 this.client
@@ -251,6 +264,11 @@ public class ContentIndex {
         for (Operation op : operations) {
             JsonNode opJson = this.mapper.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);
+        }
+
+        // 2.5. Inject offset if provided
+        if (offset != null) {
+            currentDoc.put(Constants.KEY_OFFSET, offset);
         }
 
         // 3. Process

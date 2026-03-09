@@ -97,6 +97,9 @@
         }
       }
     },
+    "offset": {
+      "type": "unsigned_long"
+    },
     "space": {
       "properties": {
         "name": {

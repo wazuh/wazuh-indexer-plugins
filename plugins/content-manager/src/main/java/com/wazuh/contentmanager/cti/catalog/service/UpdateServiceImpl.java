@@ -152,6 +152,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             case CREATE:
                 if (offset.getPayload() != null) {
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
+                    // Inject the CTI offset value into the payload so it is persisted
+                    if (payload.isObject()) {
+                        ((com.fasterxml.jackson.databind.node.ObjectNode) payload)
+                                .put(Constants.KEY_OFFSET, offset.getOffset());
+                    }
                     String type = null;
 
                     if (payload.has(Constants.KEY_TYPE)) {
@@ -176,7 +181,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 index = this.findIndexForId(id);
-                index.update(id, offset.getOperations());
+                index.update(id, offset.getOperations(), offset.getOffset());
                 break;
             case DELETE:
                 index = this.findIndexForId(id);

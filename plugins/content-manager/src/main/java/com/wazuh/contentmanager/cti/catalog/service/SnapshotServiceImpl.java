@@ -235,6 +235,13 @@ public class SnapshotServiceImpl implements SnapshotService {
                         log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
+
+                    // Inject the CTI offset value into the payload so it is persisted
+                    if (rootJson.has(Constants.KEY_OFFSET) && payload.isObject()) {
+                        ((ObjectNode) payload)
+                                .put(Constants.KEY_OFFSET, rootJson.get(Constants.KEY_OFFSET).asLong());
+                    }
+
                     ObjectNode processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 

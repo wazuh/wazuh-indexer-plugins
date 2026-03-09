@@ -101,6 +101,7 @@ public class Constants {
     public static final String KEY_METADATA = "metadata";
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
+    public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";

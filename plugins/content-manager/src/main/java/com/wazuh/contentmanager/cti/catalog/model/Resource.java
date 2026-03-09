@@ -57,6 +57,9 @@ public class Resource {
     @JsonProperty("space")
     private Map<String, Object> space;
 
+    @JsonProperty("offset")
+    private Long offset;
+
     /** Default constructor. */
     public Resource() {}
 
@@ -121,6 +124,14 @@ public class Resource {
      * @param payload The source JSON payload.
      */
     protected void populateResource(Resource resource, JsonNode payload) {
+        // Extract offset from payload root if present
+        if (payload.has(Constants.KEY_OFFSET)) {
+            resource.setOffset(payload.get(Constants.KEY_OFFSET).asLong());
+            if (payload.isObject()) {
+                ((ObjectNode) payload).remove(Constants.KEY_OFFSET);
+            }
+        }
+
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
             ObjectNode rawDoc = payload.get(JSON_DOCUMENT_KEY).deepCopy();
@@ -301,6 +312,24 @@ public class Resource {
         this.space = space;
     }
 
+    /**
+     * Gets the CTI offset.
+     *
+     * @return The CTI offset value, or null if not set.
+     */
+    public Long getOffset() {
+        return this.offset;
+    }
+
+    /**
+     * Sets the CTI offset.
+     *
+     * @param offset The CTI offset value.
+     */
+    public void setOffset(Long offset) {
+        this.offset = offset;
+    }
+
     @Override
     public String toString() {
         return "Resource{"
@@ -310,6 +339,8 @@ public class Resource {
                 + this.hash
                 + ", space="
                 + this.space
+                + ", offset="
+                + this.offset
                 + '}';
     }
 }

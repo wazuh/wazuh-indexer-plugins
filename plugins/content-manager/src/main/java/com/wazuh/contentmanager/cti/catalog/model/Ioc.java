@@ -22,8 +22,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.wazuh.contentmanager.utils.Constants;
 import java.util.List;
+
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Model representing an IoC (Indicator of Compromise) resource. Structured to match the {@code
@@ -41,6 +42,9 @@ public class Ioc {
     @JsonProperty(Constants.KEY_HASH)
     private IocHash hash;
 
+    @JsonProperty(Constants.KEY_OFFSET)
+    private Long offset;
+
     /** Default constructor. */
     public Ioc() {}
 
@@ -51,7 +55,17 @@ public class Ioc {
      * @return A fully populated Ioc instance.
      */
     public static Ioc fromPayload(JsonNode payload) {
+        // Extract offset before conversion so it stays at root level
+        Long offsetValue = null;
+        if (payload.has(Constants.KEY_OFFSET)) {
+            offsetValue = payload.get(Constants.KEY_OFFSET).asLong();
+            if (payload.isObject()) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) payload).remove(Constants.KEY_OFFSET);
+            }
+        }
+
         Ioc ioc = Ioc.MAPPER.convertValue(payload, Ioc.class);
+        ioc.setOffset(offsetValue);
         if (payload.has(Constants.KEY_DOCUMENT)) {
             String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());
             ioc.setHash(new IocHash(sha256));
@@ -93,6 +107,24 @@ public class Ioc {
      */
     public void setHash(IocHash hash) {
         this.hash = hash;
+    }
+
+    /**
+     * Gets the CTI offset.
+     *
+     * @return The CTI offset value, or null if not set.
+     */
+    public Long getOffset() {
+        return this.offset;
+    }
+
+    /**
+     * Sets the CTI offset.
+     *
+     * @param offset The CTI offset value.
+     */
+    public void setOffset(Long offset) {
+        this.offset = offset;
     }
 
     /**

@@ -91,6 +91,9 @@
         }
       }
     },
+    "offset": {
+      "type": "unsigned_long"
+    },
     "type_hashes": {
       "type": "object"
     }

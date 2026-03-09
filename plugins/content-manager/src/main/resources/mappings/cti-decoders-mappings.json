@@ -90,6 +90,9 @@
         }
       }
     },
+    "offset": {
+      "type": "unsigned_long"
+    },
     "space": {
       "type": "object",
       "properties": {
