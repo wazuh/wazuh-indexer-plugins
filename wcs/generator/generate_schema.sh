@@ -166,8 +166,8 @@ function copy_files() {
       # Copying flat WCS template to the wcs/<module>/docs/ folder
       docs_ecs_path="$repo_path/wcs/$ecs_module/docs"
       mkdir -p "$docs_ecs_path"
-      cp "$repo_path/wcs/$ecs_module/$flat_ecs_path" "$docs_ecs_path/wcs_flat.yaml"
-      echo "  - '$ecs_module' wcs_flat.yaml"
+      cp "$repo_path/wcs/$ecs_module/$flat_ecs_path" "$docs_ecs_path/wcs_flat.yml"
+      echo "  - '$ecs_module' wcs_flat.yml"
     fi
   done
 }
