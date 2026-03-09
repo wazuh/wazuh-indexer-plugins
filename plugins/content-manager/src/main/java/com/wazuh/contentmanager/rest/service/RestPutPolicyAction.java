@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -34,7 +32,6 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -171,7 +168,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         String.format(
                                 Locale.ROOT,
                                 Constants.E_400_RESOURCE_SPACE_MISMATCH,
-                                Space.DRAFT.toString() + ", " + Space.STANDARD.toString()),
+                                Space.DRAFT + ", " + Space.STANDARD),
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -235,31 +232,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
-            // Get known enrichment types for validation dynamically from the IoC type hashes document
-            Set<String> knownEnrichmentTypes = new HashSet<>();
-            try {
-                GetRequest getRequest =
-                        new GetRequest().index(Constants.INDEX_IOCS).id(Constants.IOC_TYPE_HASHES_ID);
-                GetResponse response =
-                        this.client
-                                .get(getRequest)
-                                .actionGet(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
-
-                if (response != null && response.isExists()) {
-                    JsonNode jsonNode =
-                            mapper.valueToTree(response.getSourceAsMap().get(Constants.KEY_TYPE_HASHES));
-                    if (jsonNode != null && jsonNode.isObject()) {
-                        Iterator<String> fieldNames = jsonNode.fieldNames();
-                        while (fieldNames.hasNext()) {
-                            knownEnrichmentTypes.add(fieldNames.next());
-                        }
-                    }
-                } else {
-                    log.warn("IOC type hashes document not found. Enrichment validation may fail.");
-                }
-            } catch (Exception e) {
-                log.error("Failed to retrieve valid enrichment types from IOC index: {}", e.getMessage());
-            }
+            Set<String> knownEnrichmentTypes = this.spaceService.getKnownEnrichmentTypes();
 
             // Validate enrichments: only allowed values, no duplicates
             RestResponse enrichmentsValidationError =
@@ -282,9 +255,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             return new RestResponse(policyId, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, Constants.KEY_POLICY, e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY + " " + e.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error(
                     Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);

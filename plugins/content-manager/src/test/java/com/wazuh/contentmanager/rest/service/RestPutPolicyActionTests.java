@@ -181,7 +181,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
     }
 
     /**
@@ -736,7 +736,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
     }
 
     /**
@@ -793,7 +793,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
     }
 
     /**
@@ -1382,7 +1382,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
@@ -1404,7 +1404,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
