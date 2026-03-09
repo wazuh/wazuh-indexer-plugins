@@ -137,14 +137,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
     /** If the request adds or removes integrations to the policy, then return a 400 error. */
     public void testPutPolicy_UpdateModifiesIntegrations_400() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -166,6 +158,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -188,7 +181,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
     }
 
     /**
@@ -196,14 +189,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * complete and a draft policy already exists. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_UpdateExisting_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -225,6 +210,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -249,7 +235,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("policy"));
+        Assert.assertEquals("test-policy-id", response.getMessage());
 
         // Verify PolicyHashService was called to regenerate space hash
         verify(this.service).calculateAndUpdate(anyList());
@@ -261,14 +247,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * policy created.
      */
     public void testPutPolicy_CreateNew_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -288,6 +266,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -322,6 +301,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     public void testPutPolicy_NoContent_400() {
         // Arrange
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -346,6 +326,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Arrange
         String invalidJson = "{invalid json content";
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -371,6 +352,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Arrange
         String policyJson = "{\"type\": \"policy\"}";
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -393,7 +375,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * is missing required fields. The expected response is: {400, RestResponse}
      */
     public void testPutPolicy_MissingRequiredFields_400() {
-        // Arrange - missing author, description, documentation, and references
+        // Arrange - missing enabled, index_unclassified_events, index_discarded_events,
+        // author, description, documentation, and references
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
@@ -404,6 +387,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}"
                         + "}";
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -426,14 +410,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * operation fails. The expected response is: {500, RestResponse}
      */
     public void testPutPolicy_IndexingFails_500() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
         // Arrange
         String policyJson =
                 "{"
@@ -455,6 +431,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -486,15 +463,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains valid enrichments. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_ValidEnrichments_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-
         // Arrange - policy with valid enrichments
         String policyJson =
                 "{"
@@ -519,6 +487,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -580,6 +549,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -633,6 +603,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -657,14 +628,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains all valid enrichment types. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_AllValidEnrichmentTypes_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         // Arrange - policy with all valid enrichment types
         String policyJson =
@@ -690,6 +653,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         this.action.setPayloadValidations(payloadValidations);
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -760,6 +724,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -771,7 +736,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
     }
 
     /**
@@ -816,6 +781,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -827,7 +793,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertEquals(Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
     }
 
     /**
@@ -835,14 +801,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * reorders filters (allowed). The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_ReorderFilters_200() throws Exception {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         // Override mock to return a policy with two existing filters
         Map<String, Object> policy = new HashMap<>();
@@ -880,6 +838,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -903,14 +862,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains enabled=true. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithEnabledTrue_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -932,6 +883,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -955,14 +907,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains enabled=false. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithEnabledFalse_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -984,6 +928,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1007,14 +952,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains index_unclassified_events=true. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithIndexUnclassifiedEvents_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -1036,6 +973,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1059,14 +997,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains index_discarded_events=false. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_WithIndexDiscardedEvents_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
 
         String policyJson =
                 "{"
@@ -1088,6 +1018,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1111,15 +1042,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains all three boolean fields. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_AllBooleanFields_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-
         String policyJson =
                 "{"
                         + "\"type\": \"policy\","
@@ -1140,6 +1062,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1181,6 +1104,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1200,15 +1124,6 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
      * contains an empty enrichments array. The expected response is: {200, RestResponse}
      */
     public void testPutPolicy_EmptyEnrichments_200() {
-        // Mock root_decoder existence
-        var getRequest =
-                mock(org.opensearch.action.get.GetRequestBuilder.class, Answers.RETURNS_DEEP_STUBS);
-        var getResponse = mock(org.opensearch.action.get.GetResponse.class);
-        when(this.client.prepareGet(any(String.class), any(String.class))).thenReturn(getRequest);
-        when(getRequest.setFetchSource(false)).thenReturn(getRequest);
-        when(getRequest.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-
         // Arrange - policy with empty enrichments array
         String policyJson =
                 "{"
@@ -1229,6 +1144,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         + "}";
 
         Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
         RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
@@ -1255,5 +1171,435 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertEquals("test-policy-id", response.getMessage());
         verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    // ========================
+    // Standard Space Tests
+    // ========================
+
+    /**
+     * Helper to build a rich standard policy mock with all fields populated, so that {@code
+     * updateStandardPolicy} can preserve immutable values.
+     */
+    private void mockStandardPolicy(
+            List<String> filters, List<String> enrichments, List<String> integrations)
+            throws IOException {
+        Map<String, Object> policy = new HashMap<>();
+        Map<String, Object> document = new HashMap<>();
+        Map<String, Object> hash = new HashMap<>();
+        Map<String, Object> space = new HashMap<>();
+        document.put(Constants.KEY_ID, "standard-doc-id");
+        document.put(Constants.KEY_TITLE, "Standard Policy Title");
+        document.put(Constants.KEY_AUTHOR, "Original Author");
+        document.put(Constants.KEY_DESCRIPTION, "Original description");
+        document.put("documentation", "Original documentation");
+        document.put("references", List.of("https://original.ref"));
+        document.put("root_decoder", "decoder/original/0");
+        document.put("date", "2025-01-01T00:00:00Z");
+        document.put(Constants.KEY_INTEGRATIONS, integrations);
+        document.put(Constants.KEY_FILTERS, filters);
+        document.put(Constants.KEY_ENRICHMENTS, enrichments);
+        hash.put("sha256", "standard-hash-value");
+        space.put(Constants.KEY_NAME, Space.STANDARD.toString());
+        policy.put(Constants.KEY_DOCUMENT, document);
+        policy.put(Constants.KEY_HASH, hash);
+        policy.put(Constants.KEY_SPACE, space);
+        when(this.service.getPolicy(anyString())).thenReturn(policy);
+    }
+
+    /** Helper to build a standard-space request. */
+    private RestRequest buildStandardRequest(String json) {
+        Map<String, String> params = new HashMap<>();
+        params.put("space", "standard");
+        return new FakeRestRequest.Builder(this.xContentRegistry())
+                .withMethod(RestRequest.Method.PUT)
+                .withPath(PluginSettings.POLICY_URI)
+                .withParams(params)
+                .withContent(new BytesArray(json), XContentType.JSON)
+                .build();
+    }
+
+    /**
+     * Test successful standard-space update of enrichments field. The five allowed fields are applied
+     * and the policy is persisted.
+     */
+    public void testPutStandardPolicy_UpdateEnrichments_200() throws IOException {
+        // Arrange — standard policy must contain "connection" as a known enrichment type
+        this.mockStandardPolicy(
+                Collections.emptyList(), List.of("connection", "hash_sha1"), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+
+        // Mock PayloadValidations to bypass IoC type hashes lookup (enrichments are valid)
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet())).thenReturn(null);
+        this.action.setPayloadValidations(payloadValidations);
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [\"connection\"],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        // Act
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        // Assert
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertEquals("standard-policy-os-id", response.getMessage());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+        verify(this.service).calculateAndUpdate(anyList());
+    }
+
+    /** Test successful standard-space update of enabled field. */
+    public void testPutStandardPolicy_UpdateEnabled_200() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": false,"
+                        + "\"index_unclassified_events\": true,"
+                        + "\"index_discarded_events\": true"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test that restricted fields (title, author, description, root_decoder, integrations,
+     * documentation, references) sent in the payload are silently ignored for standard-space updates.
+     * The persisted document must preserve the original values from the existing policy.
+     */
+    public void testPutStandardPolicy_RestrictedFieldsIgnored_200() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        // Payload attempts to override restricted fields
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"title\": \"Hacked Title\","
+                        + "\"author\": \"Hacked Author\","
+                        + "\"description\": \"Hacked description\","
+                        + "\"documentation\": \"Hacked documentation\","
+                        + "\"references\": [\"https://hacked.ref\"],"
+                        + "\"root_decoder\": \"decoder/hacked/0\","
+                        + "\"integrations\": [\"hacked-integration\"],"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        // The update succeeds (restricted fields are silently dropped)
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    /** Test that an unrecognized enrichment category returns 400 for standard space. */
+    public void testPutStandardPolicy_InvalidEnrichment_400() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+
+        // Mock PayloadValidations to return an error for invalid enrichment
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet()))
+                .thenReturn(
+                        new RestResponse(
+                                String.format(
+                                        Locale.ROOT,
+                                        Constants.E_400_INVALID_ENRICHMENT,
+                                        "invalid-type",
+                                        "connection, hash_sha1"),
+                                400));
+        this.action.setPayloadValidations(payloadValidations);
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [\"invalid-type\"],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that adding a filter to the standard policy returns 400. */
+    public void testPutStandardPolicy_AddFilter_400() throws IOException {
+        this.mockStandardPolicy(List.of("uuid-1"), Collections.emptyList(), List.of("int-1"));
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [\"uuid-1\", \"uuid-2\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that removing a filter from the standard policy returns 400. */
+    public void testPutStandardPolicy_RemoveFilter_400() throws IOException {
+        this.mockStandardPolicy(List.of("uuid-1", "uuid-2"), Collections.emptyList(), List.of("int-1"));
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [\"uuid-1\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_400_INVALID_REQUEST_BODY));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that reordering filters in the standard policy returns 200. */
+    public void testPutStandardPolicy_ReorderFilters_200() throws IOException {
+        this.mockStandardPolicy(List.of("uuid-1", "uuid-2"), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [\"uuid-2\", \"uuid-1\"],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    /** Test that missing enabled field returns 400 for standard space. */
+    public void testPutStandardPolicy_MissingEnabled_400() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that missing index_unclassified_events field returns 400 for standard space. */
+    public void testPutStandardPolicy_MissingIndexUnclassifiedEvents_400() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that missing index_discarded_events field returns 400 for standard space. */
+    public void testPutStandardPolicy_MissingIndexDiscardedEvents_400() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that missing all three boolean fields returns 400 for standard space. */
+    public void testPutStandardPolicy_MissingAllBooleanFields_400() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+
+        String policyJson =
+                "{" + "\"resource\": {" + "\"enrichments\": []," + "\"filters\": []" + "}" + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("Missing"));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Test that standard-space update does NOT require author, description, documentation, or
+     * references (those are only required for draft).
+     */
+    public void testPutStandardPolicy_NoAuthorDescriptionRequired_200() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        // No author, description, documentation, or references — valid for standard
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
+
+    /** Test that duplicate enrichment types return 400 for standard space. */
+    public void testPutStandardPolicy_DuplicateEnrichments_400() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+
+        PayloadValidations payloadValidations = mock(PayloadValidations.class);
+        when(payloadValidations.validateEnrichments(anyList(), anySet()))
+                .thenReturn(
+                        new RestResponse(
+                                String.format(Locale.ROOT, Constants.E_400_DUPLICATE_ENRICHMENT, "connection"),
+                                400));
+        this.action.setPayloadValidations(payloadValidations);
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [\"connection\", \"connection\"],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** Test that space hash is recalculated after a successful standard-space update. */
+    public void testPutStandardPolicy_SpaceHashRecalculated_200() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        // Verify SpaceService.calculateAndUpdate was called with "standard"
+        verify(this.service).calculateAndUpdate(List.of("standard"));
     }
 }

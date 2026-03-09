@@ -167,10 +167,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promotion", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (ValueInstantiationException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promotion", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             // Extract the root cause message for better error reporting
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             return new RestResponse(message, RestStatus.BAD_REQUEST.getStatus());
