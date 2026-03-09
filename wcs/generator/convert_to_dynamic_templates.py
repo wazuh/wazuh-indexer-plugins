@@ -71,9 +71,9 @@ def convert_template(input_data):
     dynamic_templates = []
     
     for path, mapping in flat_mappings.items():
-        # Keep @timestamp as a static property (standard practice)
-        if path == "@timestamp":
-            static_props["@timestamp"] = mapping
+        # Keep certain fields as static properties
+        if path in ("@timestamp", "labels", "message", "tags"):
+            static_props[path] = mapping
             continue
             
         # Create a safe name for the template rule

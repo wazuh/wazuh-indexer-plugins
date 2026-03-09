@@ -8677,6 +8677,29 @@ interface.type:
   normalize: []
   short: Interface type.
   type: keyword
+labels:
+  dashed_name: labels
+  description: 'Custom key/value pairs.
+
+    Can be used to add meta information to events. Should not contain nested objects.
+    All values are stored as keyword.
+
+    Example: `docker` and `k8s` labels.'
+  example: '{"application": "foo-bar", "env": "production"}'
+  flat_name: labels
+  level: core
+  name: labels
+  normalize: []
+  object_type: keyword
+  otel:
+  - attribute: k8s.pod.label
+    relation: related
+    stability: development
+  - attribute: container.label
+    relation: related
+    stability: development
+  short: Custom key/value pairs.
+  type: object
 log.file.path:
   dashed_name: log-file-path
   description: 'Full path to the log file this event came from, including the file
@@ -17098,6 +17121,18 @@ span.id:
     relation: otlp
     stability: stable
   short: Unique identifier of the span within the scope of its trace.
+  type: keyword
+tags:
+  dashed_name: tags
+  description: List of keywords used to tag each event.
+  example: '["production", "env2"]'
+  flat_name: tags
+  ignore_above: 1024
+  level: core
+  name: tags
+  normalize:
+  - array
+  short: List of keywords used to tag each event.
   type: keyword
 threat.enrichments:
   dashed_name: threat-enrichments

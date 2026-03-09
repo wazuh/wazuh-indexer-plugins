@@ -5,6 +5,8 @@ fields:
     fields:
       "@timestamp": {}
       message: {}
+      tags: {}
+      labels: {}
   enrichments:
     fields: "*"
   agent:

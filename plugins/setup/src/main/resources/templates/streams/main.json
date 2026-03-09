@@ -5708,15 +5708,6 @@
           }
         },
         {
-          "wcs_message": {
-            "path_match": "message",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
           "wcs_network_application": {
             "path_match": "network.application",
             "mapping": {
@@ -18282,6 +18273,17 @@
         },
         "@timestamp": {
           "type": "date"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "message": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "tags": {
+          "ignore_above": 1024,
+          "type": "keyword"
         }
       }
     }
