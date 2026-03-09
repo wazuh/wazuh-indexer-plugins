@@ -68,7 +68,7 @@ public class Constants {
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
-    public static final String W_LOG_VALIDATION_ERROR = "Validation error during {}: {}";
+    public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
