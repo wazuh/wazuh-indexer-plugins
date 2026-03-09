@@ -16,12 +16,24 @@
  */
 package com.wazuh.setup.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
+import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
+import org.opensearch.cluster.metadata.ComposableIndexTemplate;
+import org.opensearch.common.compress.CompressedXContent;
+import org.opensearch.common.settings.Settings;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+
+import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
 
 /**
@@ -38,6 +50,65 @@ public class StreamIndex extends WazuhIndex {
      */
     public StreamIndex(String index) {
         super(index, "templates/streams/main");
+    }
+
+    /**
+     * Overrides createTemplate to apply dynamic properties specific to stream indices.
+     *
+     * @param template name of the index template to create.
+     */
+    @Override
+    public void createTemplate(String template) {
+        String templateName = this.index + "-template";
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
+            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+
+            // Dynamically set the index patterns to match this specific index
+            indexTemplate.setIndexPatterns(List.of(this.index + "*"));
+
+            // Dynamically update the rollover alias if it exists in the base template
+            Map<String, Object> settingsMap = indexTemplate.getSettings();
+            if (settingsMap != null
+                    && settingsMap.containsKey("plugins.index_state_management.rollover_alias")) {
+                settingsMap.put("plugins.index_state_management.rollover_alias", this.index);
+            }
+
+            String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
+            CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
+            Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
+            ComposableIndexTemplate composableTemplate =
+                    indexTemplate.getComposableIndexTemplate(settings, compressedMapping);
+
+            PutComposableIndexTemplateAction.Request request =
+                    new PutComposableIndexTemplateAction.Request(templateName)
+                            .indexTemplate(composableTemplate)
+                            .create(false);
+
+            this.client
+                    .execute(PutComposableIndexTemplateAction.INSTANCE, request)
+                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+        } catch (IOException e) {
+            log.error(
+                    "Error reading index template from filesystem [{}]. Caused by: {}",
+                    template,
+                    e.toString());
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index template {} already exists. Skipping.", templateName);
+        } catch (Exception e) {
+            if (!this.retry_template_creation) {
+                log.error(
+                        "Initialization of index template [{}] finally failed. The node will shut down.",
+                        templateName);
+                throw e;
+            }
+            log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
+            this.retry_template_creation = false;
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.createTemplate(template);
+        }
     }
 
     /**

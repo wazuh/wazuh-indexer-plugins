@@ -73,9 +73,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         "access-management", // No integration in this category yet
         "applications",
         "cloud-services",
-        "cloud-services-aws",
-        "cloud-services-azure",
-        "cloud-services-gcp",
         "network-activity",
         "security",
         "system-activity",
@@ -112,7 +109,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             ));
         }
         // Raw events data stream (stores original unprocessed events)
-        this.indices.add(new StreamIndex("wazuh-events-raw-v5"));
+        this.indices.add(new StreamIndex("wazuh-events-v5-raw"));
 
         // Unclassified events data stream (stores uncategorized events for investigation)
         this.indices.add(new StreamIndex("wazuh-events-v5-unclassified"));
