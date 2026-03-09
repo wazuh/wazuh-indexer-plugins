@@ -25,6 +25,7 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
@@ -204,6 +205,23 @@ public class IndexStateManagement extends Index {
         }
     }
 
+    /**
+     * Refreshes the ISM index to make indexed policies immediately visible for search. This is
+     * necessary because ISM's ManagedIndexCoordinator queries the index shortly after startup.
+     */
+    private void refreshIndex() {
+        try {
+            this.client
+                    .admin()
+                    .indices()
+                    .refresh(new RefreshRequest(this.index))
+                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+            log.info("ISM index [{}] refreshed", this.index);
+        } catch (Exception e) {
+            log.warn("Failed to refresh ISM index: {}", e.getMessage());
+        }
+    }
+
     /** Overrides the parent method to also create the ISM policies after the index creation. */
     @Override
     public void initialize() {
@@ -211,5 +229,6 @@ public class IndexStateManagement extends Index {
         this.waitForIndexReady();
         this.retry_index_creation = true; // Re-used variable to retry initialization of ISM policies.
         this.createPolicies();
+        this.refreshIndex();
     }
 }
