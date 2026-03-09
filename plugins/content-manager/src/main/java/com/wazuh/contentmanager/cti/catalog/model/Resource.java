@@ -174,8 +174,11 @@ public class Resource {
      * @param document The JSON object representing the document content.
      */
     protected static void preprocessDocument(ObjectNode document) {
-        // Remove type field if present
-        if (document.has(Constants.KEY_TYPE)) {
+        // Remove type field if present for non-filter resources
+        if (document.has(Constants.KEY_TYPE)
+                && !(Constants.TYPE_PREFILTER.equals(document.get(Constants.KEY_TYPE).asText())
+                        || Constants.TYPE_POSTFILTER.equals(document.get(Constants.KEY_TYPE).asText()))) {
+
             document.remove(Constants.KEY_TYPE);
         }
 
