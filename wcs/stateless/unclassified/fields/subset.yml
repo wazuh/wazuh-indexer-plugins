@@ -1,0 +1,11 @@
+---
+name: wazuh-events-unclassified
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  event:
+    fields:
+      original: {}
+  wazuh:
+    fields: "*"

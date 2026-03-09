@@ -44,12 +44,22 @@ public class StreamIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(StreamIndex.class);
 
     /**
-     * Constructor.
+     * Constructor. Uses the default "main" stream template.
      *
      * @param index index name (e.g., "wazuh-events-v5-access-management").
      */
     public StreamIndex(String index) {
         super(index, "templates/streams/main");
+    }
+
+    /**
+     * Constructor with a custom template path.
+     *
+     * @param index index name (e.g., "wazuh-events-v5-raw").
+     * @param template path to the index template resource (without .json extension).
+     */
+    public StreamIndex(String index, String template) {
+        super(index, template);
     }
 
     /**

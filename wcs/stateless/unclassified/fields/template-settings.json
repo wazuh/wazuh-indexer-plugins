@@ -1,0 +1,27 @@
+{
+  "index_patterns": [
+    "wazuh-events-v5-unclassified*"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "plugins.index_state_management.rollover_alias": "wazuh-events-v5-unclassified",
+      "mapping.total_fields.limit": 500,
+      "mapping.nested_fields.limit": 10,
+      "index": {
+        "number_of_shards": "3",
+        "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
+        "refresh_interval": "5s",
+        "query.default_field": [
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.cluster.name",
+          "wazuh.space.name"
+        ],
+        "max_docvalue_fields_search": 50
+      }
+    }
+  }
+}

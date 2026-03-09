@@ -18,8 +18,10 @@ module_to_file=(
   [stateful/inventory/users]=templates/states/inventory-users.json
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
-  # Stateless module
+  # Stateless modules
   [stateless/main]=templates/streams/main.json
+  [stateless/raw]=templates/streams/raw.json
+  [stateless/unclassified]=templates/streams/unclassified.json
   # Settings module
   [settings]=templates/settings.json
   # Engine filter module
