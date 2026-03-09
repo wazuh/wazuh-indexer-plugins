@@ -21,9 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 
 import java.io.IOException;
@@ -31,6 +34,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
@@ -172,10 +176,39 @@ public class IndexStateManagement extends Index {
         }
     }
 
+    /**
+     * Waits for the ISM index to be ready (yellow or green health status). This ensures shards are
+     * allocated before indexing policies.
+     */
+    private void waitForIndexReady() {
+        try {
+            ClusterHealthRequest request =
+                    new ClusterHealthRequest(this.index)
+                            .waitForYellowStatus()
+                            .timeout(PluginSettings.getTimeout(this.clusterService.getSettings()) + "ms");
+            ClusterHealthResponse response =
+                    this.client
+                            .admin()
+                            .cluster()
+                            .health(request)
+                            .actionGet(
+                                    PluginSettings.getTimeout(this.clusterService.getSettings()),
+                                    TimeUnit.MILLISECONDS);
+            if (response.getStatus() == ClusterHealthStatus.RED) {
+                log.warn("ISM index [{}] health is RED, policies may fail to index", this.index);
+            } else {
+                log.info("ISM index [{}] is ready with status [{}]", this.index, response.getStatus());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to wait for ISM index health: {}", e.getMessage());
+        }
+    }
+
     /** Overrides the parent method to also create the ISM policies after the index creation. */
     @Override
     public void initialize() {
         this.createIndex(this.index);
+        this.waitForIndexReady();
         this.retry_index_creation = true; // Re-used variable to retry initialization of ISM policies.
         this.createPolicies();
     }
