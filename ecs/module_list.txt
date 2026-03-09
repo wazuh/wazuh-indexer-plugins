@@ -18,10 +18,6 @@ module_to_file=(
   [stateful/inventory/users]=templates/states/inventory-users.json
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
-  # Settings modules
-  [settings/settings]=templates/settings.json
-  # CTI stateless modules
-  [cti/ioc]=templates/cti/ioc.json
   # Third-party stateless modules
   [stateless/access-management]=templates/streams/access-management.json
   [stateless/active-responses]=templates/streams/active-responses.json
@@ -36,4 +32,10 @@ module_to_file=(
   [stateless/security]=templates/streams/security.json
   [stateless/system-activity]=templates/streams/system-activity.json
   [stateless/unclassified]=templates/streams/unclassified.json
+  # Settings module
+  [settings]=templates/settings.json
+  # Engine filter module
+  [filters]=templates/filters.json
+  # IoC module
+  [cti/ioc]=templates/cti/ioc.json
 )

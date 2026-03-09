@@ -216,6 +216,10 @@ public class ContentManagerPlugin extends Plugin
                 // Promote endpoints
                 new RestPostPromoteAction(this.engine, this.spaceService),
                 new RestGetPromoteAction(this.spaceService),
+                // Engine Filters endpoints
+                new RestPostFilterAction(this.engine),
+                new RestPutFilterAction(this.engine),
+                new RestDeleteFilterAction(this.engine),
                 // Space deletion endpoint
                 new RestDeleteSpaceAction(this.engine));
     }
