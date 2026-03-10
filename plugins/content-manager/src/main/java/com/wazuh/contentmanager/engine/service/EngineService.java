@@ -37,7 +37,7 @@ public interface EngineService {
      * @param hash The combined SHA-256 hash of all IOC type hashes.
      * @return A {@link RestResponse} with the Engine's response.
      */
-    RestResponse loadIocs(String filePath, String hash);
+    RestResponse updateIoc(String filePath, String hash);
 
     /**
      * Queries the Engine for the current IOC processing state.

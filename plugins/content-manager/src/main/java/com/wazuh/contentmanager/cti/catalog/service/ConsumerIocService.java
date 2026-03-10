@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -29,7 +30,6 @@ import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
@@ -121,7 +121,14 @@ public class ConsumerIocService extends AbstractConsumerService {
             this.refreshIndices(Constants.INDEX_IOCS);
             Map<String, String> typeHashes = this.computeAndStoreTypeHashes();
             String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
-            this.exportAndNotifyEngine(combinedHash);
+
+            // Export IoCs to NDJSON and load them into the Engine.
+            try {
+                Path exportPath = this.export();
+                this.notifyEngine(exportPath.toString(), combinedHash);
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_IOC_EXPORT_FAILED, e.getMessage(), e);
+            }
         }
     }
 
@@ -240,21 +247,6 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     /**
-     * Orchestrates the IOC export to NDJSON and Engine notification. Exceptions are caught so that
-     * failures do not break the sync process.
-     *
-     * @param hash The combined SHA-256 hash of all IOC type hashes.
-     */
-    private void exportAndNotifyEngine(String hash) {
-        try {
-            Path exportPath = this.exportIocsToNdjson();
-            this.notifyEngine(exportPath.toString(), hash);
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_IOC_EXPORT_FAILED, e.getMessage(), e);
-        }
-    }
-
-    /**
      * Exports all IOC documents (excluding the type-hashes summary document) to an NDJSON file. Uses
      * PIT with search_after pagination to iterate over all documents. Each line contains the JSON
      * serialization of the {@code document} field only.
@@ -262,8 +254,11 @@ public class ConsumerIocService extends AbstractConsumerService {
      * @return The path to the written NDJSON file.
      * @throws IOException If an I/O error occurs while writing the file.
      */
-    @SuppressForbidden(reason = "File I/O required for IOC NDJSON export to local filesystem")
-    private Path exportIocsToNdjson() throws IOException {
+    private Path export() throws IOException {
+        // TODO check if we can write directly to the engine directory, without using the shared data
+        // dir as an intermediate step.
+        // Path outputPath = Path.of(this.environment.settings().get("path.home"),
+        // "/engine/data/iocs.ndjson").toAbsolutePath().normalize();
         Path outputPath = this.environment.sharedDataDir().resolve(Constants.IOC_EXPORT_FILENAME);
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
         TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
@@ -331,7 +326,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             return;
         }
 
-        RestResponse response = this.engineService.loadIocs(filePath, hash);
+        RestResponse response = this.engineService.updateIoc(filePath, hash);
         if (response.getStatus() >= 200 && response.getStatus() < 300) {
             log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, filePath);
         } else {
@@ -353,8 +348,7 @@ public class ConsumerIocService extends AbstractConsumerService {
                 return true;
             }
 
-            com.fasterxml.jackson.databind.JsonNode stateNode =
-                    MAPPER.readTree(stateResponse.getMessage());
+            JsonNode stateNode = MAPPER.readTree(stateResponse.getMessage());
             if (stateNode.path(Constants.KEY_UPDATING).asBoolean(false)) {
                 log.warn(Constants.W_LOG_IOC_ENGINE_BUSY);
                 return true;

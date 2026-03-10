@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.lucene.search.TotalHits;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.CreatePitAction;
@@ -87,11 +88,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
-        when(this.environment.tmpDir()).thenReturn(createTempDir());
-        when(this.environment.sharedDataDir()).thenReturn(createTempDir());
+        when(this.environment.tmpDir()).thenReturn(LuceneTestCase.createTempDir());
+        when(this.environment.sharedDataDir()).thenReturn(LuceneTestCase.createTempDir());
         when(this.engineService.getIocState())
                 .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200));
-        when(this.engineService.loadIocs(anyString(), anyString()))
+        when(this.engineService.updateIoc(anyString(), anyString()))
                 .thenReturn(new RestResponse("OK", 200));
         this.service =
                 new ConsumerIocService(
@@ -353,21 +354,21 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        verify(this.engineService).loadIocs(anyString(), anyString());
+        verify(this.engineService).updateIoc(anyString(), anyString());
     }
 
     /** Tests that onSyncComplete(false) does not call engineService.loadIocs. */
     public void testOnSyncCompleteDoesNotNotifyEngineWhenNotUpdated() {
         this.service.onSyncComplete(false);
 
-        verify(this.engineService, never()).loadIocs(anyString(), anyString());
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
     }
 
     /** Tests that engine notification failure does not propagate as an exception. */
     @SuppressWarnings("unchecked")
     public void testEngineNotificationFailureDoesNotPropagate() {
         // Override the engineService mock to return an error
-        when(this.engineService.loadIocs(anyString(), anyString()))
+        when(this.engineService.updateIoc(anyString(), anyString()))
                 .thenReturn(new RestResponse("Engine error", 500));
 
         // Mock PIT creation
@@ -398,7 +399,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         // Should not throw — engine error is handled internally
         this.service.onSyncComplete(true);
 
-        verify(this.engineService).loadIocs(anyString(), anyString());
+        verify(this.engineService).updateIoc(anyString(), anyString());
     }
 
     /** Tests that loadIocs is NOT called when Engine reports updating=true. */
@@ -420,7 +421,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         this.service.onSyncComplete(true);
 
         verify(this.engineService).getIocState();
-        verify(this.engineService, never()).loadIocs(anyString(), anyString());
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
     }
 
     /** Tests that loadIocs IS called when Engine reports updating=false. */
@@ -442,7 +443,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         this.service.onSyncComplete(true);
 
         verify(this.engineService).getIocState();
-        verify(this.engineService).loadIocs(anyString(), anyString());
+        verify(this.engineService).updateIoc(anyString(), anyString());
     }
 
     /** Tests that loadIocs is NOT called when the state check fails (fail-closed). */
@@ -463,7 +464,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         this.service.onSyncComplete(true);
 
         verify(this.engineService).getIocState();
-        verify(this.engineService, never()).loadIocs(anyString(), anyString());
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
     }
 
     /** Tests that search is paginated — one search per type (all empty) plus no extra. */
