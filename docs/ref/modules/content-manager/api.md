@@ -264,15 +264,26 @@ curl -sk -u admin:admin -X POST \
 
 ## Policy
 
-### Update Draft Policy
+### Update Policy
 
-Updates the routing policy in the draft space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
+Updates the routing policy in the specified space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
 
-> **Note**: The `integrations` array allows reordering but does not allow adding or removing entries — integration membership is managed via the integration CRUD endpoints.
+> **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints.
+
+**Space-specific behavior**
+
+- **Draft space** (`/policy/draft`): All policy fields are accepted. The fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
+- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document.
 
 **Request**
 - Method: `PUT`
-- Path: `/_plugins/_content_manager/policy`
+- Path: `/_plugins/_content_manager/policy/{space}`
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `space` | String | Yes | Target space (`draft` or `standard`) |
 
 **Request Body**
 
@@ -282,23 +293,26 @@ Updates the routing policy in the draft space. The policy defines which integrat
 
 Fields within `resource`:
 
-| Field           | Type   | Required | Description                                                                 |
-| --------------- | ------ | -------- | --------------------------------------------------------------------------- |
-| `title`         | String | No       | Human-readable policy name                                                  |
-| `root_decoder`  | String | No       | Identifier of the root decoder for event processing                         |
-| `integrations`  | Array  | No       | List of integration IDs (reorder only, no add/remove)                       |
-| `filters`       | Array  | No       | List of filter UUIDs                                                        |
-| `enrichments`   | Array  | No       | Enrichment types: `file`, `domain-name`, `ip`, `url`, `geo` (no duplicates) |
-| `author`        | String | Yes      | Author of the policy                                                        |
-| `description`   | String | Yes      | Brief description                                                           |
-| `documentation` | String | Yes      | Documentation text or URL                                                   |
-| `references`    | Array  | Yes      | External reference URLs                                                     |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `title` | String | No | Human-readable policy name |
+| `root_decoder` | String | No | Identifier of the root decoder for event processing |
+| `integrations` | Array | No | List of integration IDs (reorder only, no add/remove) |
+| `filters` | Array | No | List of filter UUIDs (reorder only, no add/remove) |
+| `enrichments` | Array | No | Enrichment types (no duplicates; values depend on engine capabilities) |
+| `enabled` | Boolean | Yes | Whether the policy is active and synchronized by the Engine |
+| `index_unclassified_events` | Boolean | Yes | Whether uncategorized events are indexed |
+| `index_discarded_events` | Boolean | Yes | Whether discarded events are indexed |
+| `author` | String | Yes (draft) | Author of the policy |
+| `description` | String | Yes (draft) | Brief description |
+| `documentation` | String | Yes (draft) | Documentation text or URL |
+| `references` | Array | Yes (draft) | External reference URLs |
 
-**Example Request**
+**Example Request (draft space)**
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/policy" \
+  "https://192.168.56.6:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -309,12 +323,32 @@ curl -sk -u admin:admin -X PUT \
       ],
       "filters": [],
       "enrichments": [],
+      "enabled": true,
+      "index_unclassified_events": false,
+      "index_discarded_events": false,
       "author": "Wazuh Inc.",
       "description": "Custom policy",
       "documentation": "",
       "references": [
         "https://wazuh.com"
       ]
+    }
+  }'
+```
+
+**Example Request (standard space)**
+
+```bash
+curl -sk -u admin:admin -X PUT \
+  "https://192.168.56.6:9200/_plugins/_content_manager/policy/standard" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "resource": {
+      "enrichments": ["connection"],
+      "filters": [],
+      "enabled": true,
+      "index_unclassified_events": false,
+      "index_discarded_events": false
     }
   }'
 ```
@@ -332,11 +366,11 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 **Status Codes**
 
-| Code | Description                                                               |
-| ---- | ------------------------------------------------------------------------- |
-| 200  | Policy updated                                                            |
-| 400  | Missing `resource` field, missing required fields, or invalid enrichments |
-| 500  | Internal error                                                            |
+| Code | Description |
+|---|---|
+| 200 | Policy updated |
+| 400 | Invalid space, missing `resource` field, missing required fields, invalid enrichments, or disallowed modification of `integrations`/`filters` |
+| 500 | Internal error |
 
 ---
 

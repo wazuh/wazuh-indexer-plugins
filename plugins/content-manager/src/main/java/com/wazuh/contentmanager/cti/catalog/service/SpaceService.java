@@ -46,13 +46,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -838,5 +832,45 @@ public class SpaceService {
                     e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Retrieves the set of known enrichment types for validation. This method dynamically fetches the
+     * enrichment types from the IOC type hashes document in the IOC index, allowing for flexible
+     * validation without hardcoding enrichment types. It also includes a special case for 'geo'
+     * enrichment type which is not listed in the IOC type hashes document but should be allowed.
+     *
+     * @return A set of known enrichment types.
+     */
+    public Set<String> getKnownEnrichmentTypes() {
+        // Get known enrichment types for validation dynamically from the IoC type hashes document
+        Set<String> knownEnrichmentTypes = new HashSet<>();
+        // 'geo' is a special case enrichment type that is not listed in the IOC type hashes document,
+        // but should be allowed
+        knownEnrichmentTypes.add("geo");
+        try {
+            GetRequest getRequest =
+                    new GetRequest().index(Constants.INDEX_IOCS).id(Constants.IOC_TYPE_HASHES_ID);
+            GetResponse response =
+                    this.client
+                            .get(getRequest)
+                            .actionGet(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+
+            if (response != null && response.isExists()) {
+                JsonNode jsonNode =
+                        this.objectMapper.valueToTree(response.getSourceAsMap().get(Constants.KEY_TYPE_HASHES));
+                if (jsonNode != null && jsonNode.isObject()) {
+                    Iterator<String> fieldNames = jsonNode.fieldNames();
+                    while (fieldNames.hasNext()) {
+                        knownEnrichmentTypes.add(fieldNames.next());
+                    }
+                }
+            } else {
+                log.warn("IOC type hashes document not found. Enrichment validation may fail.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to retrieve valid enrichment types from IOC index: {}", e.getMessage());
+        }
+        return knownEnrichmentTypes;
     }
 }
