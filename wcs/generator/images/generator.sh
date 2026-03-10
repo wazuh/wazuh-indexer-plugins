@@ -45,10 +45,16 @@ generate_mappings() {
   # Ensure the output directory exists
   mkdir -p "$out_dir"
 
+  # Include the common WCS fields if the module is an integration (e.g., stateless/aws)
+  local include_wcs=""
+  if [[ "$ecs_module" == stateless/* && "$ecs_module" != stateless/main ]]; then
+    include_wcs="$indexer_path/ecs/stateless/main/fields/custom"
+  fi
+
   # Generate mappings
   python scripts/generator.py --strict \
     --semconv-version "$(get_otel_version)" \
-    --include "$in_files_dir/custom/" \
+    --include "$in_files_dir/custom/" ${include_wcs} \
     --subset "$in_files_dir/subset.yml" \
     --template-settings "$in_files_dir/template-settings.json" \
     --template-settings-legacy "$in_files_dir/template-settings-legacy.json" \
