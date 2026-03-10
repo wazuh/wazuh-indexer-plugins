@@ -38,6 +38,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
 
 import java.io.BufferedWriter;
@@ -255,11 +256,12 @@ public class ConsumerIocService extends AbstractConsumerService {
      * @throws IOException If an I/O error occurs while writing the file.
      */
     private Path export() throws IOException {
-        // TODO check if we can write directly to the engine directory, without using the shared data
-        // dir as an intermediate step.
-        // Path outputPath = Path.of(this.environment.settings().get("path.home"),
-        // "/engine/data/iocs.ndjson").toAbsolutePath().normalize();
-        Path outputPath = this.environment.sharedDataDir().resolve(Constants.IOC_EXPORT_FILENAME);
+        String pathHome = this.environment.settings().get("path.home");
+        Path outputPath =
+                Path.of(pathHome, "engine", "data", Constants.IOC_EXPORT_FILENAME)
+                        .toAbsolutePath()
+                        .normalize();
+
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
         TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
 
@@ -269,41 +271,48 @@ public class ConsumerIocService extends AbstractConsumerService {
                 this.client.execute(CreatePitAction.INSTANCE, createPitRequest).actionGet();
         String pitId = pitResponse.getId();
 
-        try (BufferedWriter writer = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
-            Object[] searchAfter = null;
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        try (BufferedWriter writer =
+                                Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
+                            Object[] searchAfter = null;
 
-            while (true) {
-                SearchSourceBuilder source =
-                        new SearchSourceBuilder()
-                                .query(
-                                        QueryBuilders.boolQuery()
-                                                .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
-                                .sort("_id", SortOrder.ASC)
-                                .size(SEARCH_PAGE_SIZE)
-                                .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
-                                .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
-                if (searchAfter != null) {
-                    source.searchAfter(searchAfter);
-                }
+                            while (true) {
+                                SearchSourceBuilder source =
+                                        new SearchSourceBuilder()
+                                                .query(
+                                                        QueryBuilders.boolQuery()
+                                                                .mustNot(
+                                                                        QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
+                                                .sort("_id", SortOrder.ASC)
+                                                .size(SEARCH_PAGE_SIZE)
+                                                .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
+                                                .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
+                                if (searchAfter != null) {
+                                    source.searchAfter(searchAfter);
+                                }
 
-                SearchRequest searchRequest = new SearchRequest();
-                searchRequest.source(source);
-                SearchResponse response = this.client.search(searchRequest).actionGet();
-                SearchHit[] hits = response.getHits().getHits();
-                if (hits.length == 0) {
-                    break;
-                }
+                                SearchRequest searchRequest = new SearchRequest();
+                                searchRequest.source(source);
+                                SearchResponse response = this.client.search(searchRequest).actionGet();
+                                SearchHit[] hits = response.getHits().getHits();
+                                if (hits.length == 0) {
+                                    break;
+                                }
 
-                for (SearchHit hit : hits) {
-                    Map<String, Object> sourceMap = hit.getSourceAsMap();
-                    Object document = sourceMap.get(Constants.KEY_DOCUMENT);
-                    if (document != null) {
-                        writer.write(MAPPER.writeValueAsString(document));
-                        writer.newLine();
-                    }
-                }
-                searchAfter = hits[hits.length - 1].getSortValues();
-            }
+                                for (SearchHit hit : hits) {
+                                    Map<String, Object> sourceMap = hit.getSourceAsMap();
+                                    Object document = sourceMap.get(Constants.KEY_DOCUMENT);
+                                    if (document != null) {
+                                        writer.write(MAPPER.writeValueAsString(document));
+                                        writer.newLine();
+                                    }
+                                }
+                                searchAfter = hits[hits.length - 1].getSortValues();
+                            }
+                        }
+                    });
         } finally {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();

@@ -41,6 +41,8 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
@@ -90,6 +92,12 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         PluginSettings.getInstance(Settings.EMPTY);
         when(this.environment.tmpDir()).thenReturn(LuceneTestCase.createTempDir());
         when(this.environment.sharedDataDir()).thenReturn(LuceneTestCase.createTempDir());
+
+        Path tempHome = LuceneTestCase.createTempDir();
+        Files.createDirectories(tempHome.resolve("engine").resolve("data"));
+        Settings testSettings = Settings.builder().put("path.home", tempHome.toString()).build();
+        when(this.environment.settings()).thenReturn(testSettings);
+
         when(this.engineService.getIocState())
                 .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200));
         when(this.engineService.updateIoc(anyString(), anyString()))

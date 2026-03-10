@@ -2,6 +2,7 @@ grant {
     permission java.net.SocketPermission "*", "connect,resolve";
     permission java.lang.RuntimePermission "accessDeclaredMembers";
     permission java.io.FilePermission "*", "read,write";
+    permission java.io.FilePermission "/usr/share/wazuh-indexer/engine/data/-", "read,write";
 
     // needed to find the classloader to load whitelisted classes.
     permission java.lang.RuntimePermission "createClassLoader";
