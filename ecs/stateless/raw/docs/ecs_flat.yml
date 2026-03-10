@@ -52,6 +52,83 @@ event.original:
   normalize: []
   short: Raw text message of entire event.
   type: keyword
+wazuh.active_response.agent_id:
+  dashed_name: wazuh-active-response-agent-id
+  description: Agent configured in the active response channel.
+  example: '001'
+  flat_name: wazuh.active_response.agent_id
+  ignore_above: 1024
+  level: custom
+  name: active_response.agent_id
+  normalize: []
+  short: Agent configured in the active response channel.
+  type: keyword
+wazuh.active_response.executable:
+  dashed_name: wazuh-active-response-executable
+  description: Executable configured in the active response channel.
+  example: firewall-drop
+  flat_name: wazuh.active_response.executable
+  ignore_above: 1024
+  level: custom
+  name: active_response.executable
+  normalize: []
+  short: Executable configured in the active response channel.
+  type: keyword
+wazuh.active_response.extra_arguments:
+  dashed_name: wazuh-active-response-extra-arguments
+  description: Arguments configured in the active response channel.
+  example: '["192.168.1.100", "600"]'
+  flat_name: wazuh.active_response.extra_arguments
+  ignore_above: 1024
+  level: custom
+  name: active_response.extra_arguments
+  normalize:
+  - array
+  short: Arguments configured in the active response channel.
+  type: keyword
+wazuh.active_response.location:
+  dashed_name: wazuh-active-response-location
+  description: 'Where to execute. One of: local, defined-agent, all.'
+  example: defined-agent
+  flat_name: wazuh.active_response.location
+  ignore_above: 1024
+  level: custom
+  name: active_response.location
+  normalize: []
+  short: 'Where to execute. One of: local, defined-agent, all.'
+  type: keyword
+wazuh.active_response.name:
+  dashed_name: wazuh-active-response-name
+  description: Name of the active response configured in the channel.
+  example: firewall-drop
+  flat_name: wazuh.active_response.name
+  ignore_above: 1024
+  level: custom
+  name: active_response.name
+  normalize: []
+  short: Name of the active response configured in the channel.
+  type: keyword
+wazuh.active_response.stateful_timeout:
+  dashed_name: wazuh-active-response-stateful-timeout
+  description: Seconds configured in the channel (for stateful type).
+  example: 300
+  flat_name: wazuh.active_response.stateful_timeout
+  level: custom
+  name: active_response.stateful_timeout
+  normalize: []
+  short: Seconds configured in the channel (for stateful type).
+  type: integer
+wazuh.active_response.type:
+  dashed_name: wazuh-active-response-type
+  description: 'Response type. One of: stateless, stateful.'
+  example: stateless
+  flat_name: wazuh.active_response.type
+  ignore_above: 1024
+  level: custom
+  name: active_response.type
+  normalize: []
+  short: 'Response type. One of: stateless, stateful.'
+  type: keyword
 wazuh.agent.build.original:
   dashed_name: wazuh-agent-build-original
   description: 'Extended build information for the agent.
