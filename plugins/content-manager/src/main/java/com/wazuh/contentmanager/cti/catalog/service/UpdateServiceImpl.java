@@ -184,6 +184,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 index.update(id, offset.getOperations(), offset.getOffset());
                 break;
             case DELETE:
+                if (this.shouldSkipDelete(id)) {
+                    log.info(
+                            "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).",
+                            id);
+                    break;
+                }
                 index = this.findIndexForId(id);
                 index.delete(id);
                 break;
@@ -191,6 +197,19 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 log.warn("Unsupported JSON patch operation [{}]", offset.getType());
                 break;
         }
+    }
+
+    /**
+     * CVE removals from CTI are intentionally ignored.
+     *
+     * <p>We skip delete operations when processing the CVE consumer or when the resource ID follows
+     * the CVE identifier pattern.
+     */
+    private boolean shouldSkipDelete(String id) {
+        if (id != null && id.startsWith("CVE-")) {
+            return true;
+        }
+        return this.consumer.equals(PluginSettings.getInstance().getCveConsumer());
     }
 
     /**

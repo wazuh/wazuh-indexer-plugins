@@ -26,6 +26,8 @@ import java.util.List;
 
 import com.wazuh.contentmanager.utils.Constants;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 /**
  * Model representing an IoC (Indicator of Compromise) resource. Structured to match the {@code
  * subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic maps.
@@ -41,6 +43,7 @@ public class Ioc {
     @JsonProperty(Constants.KEY_HASH)
     private IocHash hash;
 
+    @JsonInclude(NON_NULL)
     @JsonProperty(Constants.KEY_OFFSET)
     private Long offset;
 
@@ -63,21 +66,18 @@ public class Ioc {
             }
         }
 
-        Ioc ioc = Ioc.MAPPER.convertValue(payload, Ioc.class);
-        ioc.setOffset(offsetValue);
-        if (payload.has(Constants.KEY_DOCUMENT)) {
-            String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());
-      // TODO: check the commented code (current code)
-      //  // Strip the routing 'type' field before deserialization
-      //  ObjectNode sanitizedPayload = payload.deepCopy();
-      //  sanitizedPayload.remove(Constants.KEY_TYPE);
+        // Strip the routing 'type' field before deserialization
+        ObjectNode sanitizedPayload = payload.deepCopy();
+        sanitizedPayload.remove(Constants.KEY_TYPE);
 
-      //  Ioc ioc = Ioc.MAPPER.convertValue(sanitizedPayload, Ioc.class);
-      //  if (sanitizedPayload.has(Constants.KEY_DOCUMENT)) {
-      //      String sha256 =
-      //              Resource.computeSha256(sanitizedPayload.get(Constants.KEY_DOCUMENT).toString());
+        Ioc ioc = Ioc.MAPPER.convertValue(sanitizedPayload, Ioc.class);
+        ioc.setOffset(offsetValue);
+        if (sanitizedPayload.has(Constants.KEY_DOCUMENT)) {
+            String sha256 =
+                    Resource.computeSha256(sanitizedPayload.get(Constants.KEY_DOCUMENT).toString());
             ioc.setHash(new IocHash(sha256));
         }
+
         return ioc;
     }
 

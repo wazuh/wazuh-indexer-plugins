@@ -38,8 +38,9 @@ public class Cve {
     @JsonProperty(KEY_PAYLOAD)
     private JsonNode payload;
 
-    @JsonProperty(Constants.KEY_HASH)
-    private CveHash hash;
+    // TODO - check if we would like to keep it.
+    //    @JsonProperty(Constants.KEY_HASH)
+    //    private CveHash hash;
 
     @JsonProperty(Constants.KEY_OFFSET)
     private Long offset;
@@ -55,7 +56,8 @@ public class Cve {
      * violate the strict index mapping.
      *
      * @param payload The raw JSON object containing the CVE data.
-     * @return A fully populated Cve instance with computed hash.
+     * @return A fully populated Cve instance. //TODO: update return object 'with computed hash' if we
+     *     keep it.
      */
     public static Cve fromPayload(JsonNode payload) {
         Cve cve = new Cve();
@@ -70,7 +72,8 @@ public class Cve {
         }
 
         cve.setPayload(payload);
-        cve.setHash(new CveHash(Resource.computeSha256(payload.toString())));
+        // TODO: check if we want to keep it
+        // cve.setHash(new CveHash(Resource.computeSha256(payload.toString())));
         return cve;
     }
 
@@ -92,23 +95,24 @@ public class Cve {
         this.payload = payload;
     }
 
-    /**
-     * Gets the hash.
-     *
-     * @return The CVE hash.
-     */
-    public CveHash getHash() {
-        return this.hash;
-    }
-
-    /**
-     * Sets the hash.
-     *
-     * @param hash The CVE hash.
-     */
-    public void setHash(CveHash hash) {
-        this.hash = hash;
-    }
+    // TODO: check if we want to keep it
+    //    /**
+    //     * Gets the hash.
+    //     *
+    //     * @return The CVE hash.
+    //     */
+    //    public CveHash getHash() {
+    //        return this.hash;
+    //    }
+    //
+    //    /**
+    //     * Sets the hash.
+    //     *
+    //     * @param hash The CVE hash.
+    //     */
+    //    public void setHash(CveHash hash) {
+    //        this.hash = hash;
+    //    }
 
     /**
      * Gets the CTI offset.
@@ -128,41 +132,42 @@ public class Cve {
         this.offset = offset;
     }
 
-    /** Represents the {@code hash} object within a CVE, containing a SHA-256 checksum. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class CveHash {
-
-        @JsonProperty(Constants.KEY_SHA256)
-        private String sha256;
-
-        /** Default constructor. */
-        public CveHash() {}
-
-        /**
-         * Creates a CveHash with the given SHA-256 value.
-         *
-         * @param sha256 The SHA-256 hash string.
-         */
-        public CveHash(String sha256) {
-            this.sha256 = sha256;
-        }
-
-        /**
-         * Gets the SHA-256 hash.
-         *
-         * @return The SHA-256 hash string.
-         */
-        public String getSha256() {
-            return this.sha256;
-        }
-
-        /**
-         * Sets the SHA-256 hash.
-         *
-         * @param sha256 The SHA-256 hash string.
-         */
-        public void setSha256(String sha256) {
-            this.sha256 = sha256;
-        }
-    }
+    // TODO: check if we want to keep it
+    //    /** Represents the {@code hash} object within a CVE, containing a SHA-256 checksum. */
+    //    @JsonInclude(JsonInclude.Include.NON_NULL)
+    //    public static class CveHash {
+    //
+    //        @JsonProperty(Constants.KEY_SHA256)
+    //        private String sha256;
+    //
+    //        /** Default constructor. */
+    //        public CveHash() {}
+    //
+    //        /**
+    //         * Creates a CveHash with the given SHA-256 value.
+    //         *
+    //         * @param sha256 The SHA-256 hash string.
+    //         */
+    //        public CveHash(String sha256) {
+    //            this.sha256 = sha256;
+    //        }
+    //
+    //        /**
+    //         * Gets the SHA-256 hash.
+    //         *
+    //         * @return The SHA-256 hash string.
+    //         */
+    //        public String getSha256() {
+    //            return this.sha256;
+    //        }
+    //
+    //        /**
+    //         * Sets the SHA-256 hash.
+    //         *
+    //         * @param sha256 The SHA-256 hash string.
+    //         */
+    //        public void setSha256(String sha256) {
+    //            this.sha256 = sha256;
+    //        }
+    //    }
 }
