@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,6 +26,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -47,6 +48,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
     @Mock private ThreadPool threadPool;
+    @Mock private EngineService engineService;
 
     @Before
     @Override
@@ -56,7 +58,12 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         PluginSettings.getInstance(Settings.EMPTY);
 
         this.catalogSyncJob =
-                new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
+                new CatalogSyncJob(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.threadPool,
+                        this.engineService);
     }
 
     @After
