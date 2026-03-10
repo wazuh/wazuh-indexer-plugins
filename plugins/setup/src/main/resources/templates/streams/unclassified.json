@@ -38,68 +38,6 @@
           }
         },
         {
-          "wcs_wazuh_active_response_agent_id": {
-            "path_match": "wazuh.active_response.agent_id",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_executable": {
-            "path_match": "wazuh.active_response.executable",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_extra_arguments": {
-            "path_match": "wazuh.active_response.extra_arguments",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_location": {
-            "path_match": "wazuh.active_response.location",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_name": {
-            "path_match": "wazuh.active_response.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_stateful_timeout": {
-            "path_match": "wazuh.active_response.stateful_timeout",
-            "mapping": {
-              "type": "integer"
-            }
-          }
-        },
-        {
-          "wcs_wazuh_active_response_type": {
-            "path_match": "wazuh.active_response.type",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
           "wcs_wazuh_agent_build_original": {
             "path_match": "wazuh.agent.build.original",
             "mapping": {
@@ -728,9 +666,6 @@
         },
         "wazuh": {
           "properties": {
-            "active_response": {
-              "properties": {}
-            },
             "agent": {
               "properties": {
                 "build": {

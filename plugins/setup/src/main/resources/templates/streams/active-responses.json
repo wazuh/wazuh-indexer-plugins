@@ -26,119 +26,214 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "strict",
-      "properties": {
-        "@timestamp": {
-          "type": "date"
-        },
-        "event": {
-          "properties": {
-            "doc_id": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "index": {
+      "dynamic": "false_allow_templates",
+      "dynamic_templates": [
+        {
+          "wcs_event_doc_id": {
+            "path_match": "event.doc_id",
+            "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
             }
           }
+        },
+        {
+          "wcs_event_index": {
+            "path_match": "event.index",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_agent_id": {
+            "path_match": "wazuh.active_response.agent_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_executable": {
+            "path_match": "wazuh.active_response.executable",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_extra_arguments": {
+            "path_match": "wazuh.active_response.extra_arguments",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_location": {
+            "path_match": "wazuh.active_response.location",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_name": {
+            "path_match": "wazuh.active_response.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_stateful_timeout": {
+            "path_match": "wazuh.active_response.stateful_timeout",
+            "mapping": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_active_response_type": {
+            "path_match": "wazuh.active_response.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_cluster_name": {
+            "path_match": "wazuh.cluster.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_cluster_node": {
+            "path_match": "wazuh.cluster.node",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_category": {
+            "path_match": "wazuh.integration.category",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_decoders": {
+            "path_match": "wazuh.integration.decoders",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_name": {
+            "path_match": "wazuh.integration.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_integration_rules": {
+            "path_match": "wazuh.integration.rules",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_protocol_location": {
+            "path_match": "wazuh.protocol.location",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_protocol_queue": {
+            "path_match": "wazuh.protocol.queue",
+            "mapping": {
+              "type": "byte"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_schema_version": {
+            "path_match": "wazuh.schema.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_space_event_discarded": {
+            "path_match": "wazuh.space.event_discarded",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_space_name": {
+            "path_match": "wazuh.space.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "event": {
+          "properties": {}
         },
         "wazuh": {
           "properties": {
             "active_response": {
-              "properties": {
-                "agent_id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "executable": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "extra_arguments": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "location": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "stateful_timeout": {
-                  "type": "integer"
-                },
-                "type": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "cluster": {
-              "properties": {
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "node": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "integration": {
-              "properties": {
-                "category": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "decoders": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "rules": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "protocol": {
-              "properties": {
-                "location": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "queue": {
-                  "type": "byte"
-                }
-              }
+              "properties": {}
             },
             "schema": {
-              "properties": {
-                "version": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             },
             "space": {
-              "properties": {
-                "event_discarded": {
-                  "type": "boolean"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "properties": {}
             }
           }
+        },
+        "@timestamp": {
+          "type": "date"
         }
       }
     }
