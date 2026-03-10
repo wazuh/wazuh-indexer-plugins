@@ -55,25 +55,6 @@ event.index:
   normalize: []
   short: Source index of the matched alert that triggered the active response.
   type: keyword
-event.original:
-  dashed_name: event-original
-  description: 'Raw text message of entire event. Used to demonstrate log integrity
-    or where the full log message (before splitting it up in multiple parts) may be
-    required, e.g. for reindex.
-
-    This field is not indexed and doc_values are disabled. It cannot be searched,
-    but it can be retrieved from `_source`. If users wish to override this and index
-    this field, please see `Field data types` in the `Elasticsearch Reference`.'
-  doc_values: false
-  example: Sep 19 08:26:10 host CEF:0&#124;Security&#124; threatmanager&#124;1.0&#124;100&#124;
-    worm successfully stopped&#124;10&#124;src=10.0.0.1 dst=2.1.2.2spt=1232
-  flat_name: event.original
-  index: false
-  level: core
-  name: original
-  normalize: []
-  short: Raw text message of entire event.
-  type: keyword
 wazuh.active_response.agent_id:
   dashed_name: wazuh-active-response-agent-id
   description: Agent configured in the active response channel.
@@ -81,8 +62,9 @@ wazuh.active_response.agent_id:
   flat_name: wazuh.active_response.agent_id
   ignore_above: 1024
   level: custom
-  name: active_response.agent_id
+  name: agent_id
   normalize: []
+  original_fieldset: active_response
   short: Agent configured in the active response channel.
   type: keyword
 wazuh.active_response.executable:
@@ -92,8 +74,9 @@ wazuh.active_response.executable:
   flat_name: wazuh.active_response.executable
   ignore_above: 1024
   level: custom
-  name: active_response.executable
+  name: executable
   normalize: []
+  original_fieldset: active_response
   short: Executable configured in the active response channel.
   type: keyword
 wazuh.active_response.extra_arguments:
@@ -103,9 +86,10 @@ wazuh.active_response.extra_arguments:
   flat_name: wazuh.active_response.extra_arguments
   ignore_above: 1024
   level: custom
-  name: active_response.extra_arguments
+  name: extra_arguments
   normalize:
   - array
+  original_fieldset: active_response
   short: Arguments configured in the active response channel.
   type: keyword
 wazuh.active_response.location:
@@ -115,8 +99,9 @@ wazuh.active_response.location:
   flat_name: wazuh.active_response.location
   ignore_above: 1024
   level: custom
-  name: active_response.location
+  name: location
   normalize: []
+  original_fieldset: active_response
   short: 'Where to execute. One of: local, defined-agent, all.'
   type: keyword
 wazuh.active_response.name:
@@ -126,8 +111,9 @@ wazuh.active_response.name:
   flat_name: wazuh.active_response.name
   ignore_above: 1024
   level: custom
-  name: active_response.name
+  name: name
   normalize: []
+  original_fieldset: active_response
   short: Name of the active response configured in the channel.
   type: keyword
 wazuh.active_response.stateful_timeout:
@@ -136,8 +122,9 @@ wazuh.active_response.stateful_timeout:
   example: 300
   flat_name: wazuh.active_response.stateful_timeout
   level: custom
-  name: active_response.stateful_timeout
+  name: stateful_timeout
   normalize: []
+  original_fieldset: active_response
   short: Seconds configured in the channel (for stateful type).
   type: integer
 wazuh.active_response.type:
@@ -147,8 +134,9 @@ wazuh.active_response.type:
   flat_name: wazuh.active_response.type
   ignore_above: 1024
   level: custom
-  name: active_response.type
+  name: type
   normalize: []
+  original_fieldset: active_response
   short: 'Response type. One of: stateless, stateful.'
   type: keyword
 wazuh.agent.build.original:

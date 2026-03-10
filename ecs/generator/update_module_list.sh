@@ -132,14 +132,6 @@ function map_engine_filter_module() {
 }
 
 # ====
-# Map Active Responses module
-# ====
-function map_active_responses_module() {
-  local module_name="active-responses"
-  all_modules["$module_name"]="templates/streams/${module_name}.json"
-}
-
-# ====
 # Sort modules by type and name
 # ====
 function sort_and_output_modules() {
@@ -180,11 +172,6 @@ function sort_and_output_modules() {
     echo "  [cti/ioc]=${all_modules[cti/ioc]}" >>"$output_file"
   fi
 
-  if [[ -n "${all_modules[active-responses]}" ]]; then
-    echo "  # Active Responses module" >>"$output_file"
-    echo "  [active-responses]=${all_modules[active-responses]}" >>"$output_file"
-  fi
-
   echo ")" >>"$output_file"
 }
 
@@ -207,8 +194,6 @@ function main() {
   map_settings_modules
 
   map_ioc_module
-
-  map_active_responses_module
 
   map_engine_filter_module
 

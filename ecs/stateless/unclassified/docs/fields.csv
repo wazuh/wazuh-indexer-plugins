@@ -1,13 +1,6 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,false,event,event.original,keyword,core,,Sep 19 08:26:10 host CEF:0&#124;Security&#124; threatmanager&#124;1.0&#124;100&#124; worm successfully stopped&#124;10&#124;src=10.0.0.1 dst=2.1.2.2spt=1232,Raw text message of entire event.
-9.1.0,true,wazuh,wazuh.active_response.agent_id,keyword,custom,,001,Agent configured in the active response channel.
-9.1.0,true,wazuh,wazuh.active_response.executable,keyword,custom,,firewall-drop,Executable configured in the active response channel.
-9.1.0,true,wazuh,wazuh.active_response.extra_arguments,keyword,custom,array,"[""192.168.1.100"", ""600""]",Arguments configured in the active response channel.
-9.1.0,true,wazuh,wazuh.active_response.location,keyword,custom,,defined-agent,"Where to execute. One of: local, defined-agent, all."
-9.1.0,true,wazuh,wazuh.active_response.name,keyword,custom,,firewall-drop,Name of the active response configured in the channel.
-9.1.0,true,wazuh,wazuh.active_response.stateful_timeout,integer,custom,,300,Seconds configured in the channel (for stateful type).
-9.1.0,true,wazuh,wazuh.active_response.type,keyword,custom,,stateless,"Response type. One of: stateless, stateful."
 9.1.0,true,wazuh,wazuh.agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,wazuh,wazuh.agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
 9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.

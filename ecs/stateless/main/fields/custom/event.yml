@@ -19,3 +19,15 @@
       description: >
         Collector used to retrieve the event.
       example: file
+    - name: doc_id
+      type: keyword
+      level: custom
+      description: >
+        Document ID of the matched alert that triggered the active response.
+      example: "abc123"
+    - name: index
+      type: keyword
+      level: custom
+      description: >
+        Source index of the matched alert that triggered the active response.
+      example: "wazuh-events-v5-security"

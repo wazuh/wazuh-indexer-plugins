@@ -3,6 +3,7 @@
     "wazuh-active-responses*"
   ],
   "order": 1,
+  "data_stream": {},
   "settings": {
     "plugins.index_state_management.rollover_alias": "wazuh-active-responses",
     "mapping.total_fields.limit": 500,
