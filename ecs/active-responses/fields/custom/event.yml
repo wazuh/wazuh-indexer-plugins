@@ -5,17 +5,15 @@
   type: group
   group: 2
   fields:
-    - name: changed_fields
+    - name: doc_id
       type: keyword
       level: custom
       description: >
-        Fields that were updated since last scan.
-      normalize:
-        - array
-      example: '["foo", "bar"]'
-    - name: collector
+        Document ID of the matched alert that triggered the active response.
+      example: "abc123"
+    - name: index
       type: keyword
       level: custom
       description: >
-        Collector used to retrieve the event.
-      example: file
+        Source index of the matched alert that triggered the active response.
+      example: "wazuh-events-v5-security"

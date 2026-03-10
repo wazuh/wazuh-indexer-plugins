@@ -6,10 +6,7 @@ fields:
       "@timestamp": {}
   event:
     fields:
-      original: {}
       index: {}
       doc_id: {}
   wazuh:
     fields: "*"
-    active_response:
-      fields: "*"
