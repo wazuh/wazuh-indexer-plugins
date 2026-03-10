@@ -191,7 +191,7 @@ EOF
   echo "Done. Files updated."
 }
 
-# If PROCESS_ALL, read module_list and process only stateless/ and cti/ modules
+# If PROCESS_ALL, read module_list and process only stateless/ , cti/ and filters/ modules
 if $PROCESS_ALL; then
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
   if [[ ! -f "$MODULE_LIST_FILE" ]]; then
@@ -209,7 +209,7 @@ if $PROCESS_ALL; then
   # Keep only stateless/ and cti/ modules
   filtered=()
   for m in "${MODULES[@]:-}"; do
-    if [[ "$m" == stateless/* || "$m" == cti/* ]]; then
+    if [[ "$m" == stateless/* || "$m" == cti/* || "$m" == filters ]]; then
       filtered+=("$m")
     fi
   done

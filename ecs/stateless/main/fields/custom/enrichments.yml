@@ -41,45 +41,6 @@
       level: custom
       description: >
         Indicator provider.
-    - name: custom.id
-      type: keyword
-      level: custom
-      description: >
-        Unique identifier of the indicator.
-    - name: custom.tags
-      type: keyword
-      level: custom
-      normalize:
-        - array
-      description: >
-        List of tags associated with the indicator used to classify or group related threats or campaigns.
-    - name: custom.anonymous
-      type: keyword
-      level: custom
-      description: >
-        Indicates whether the indicator was reported anonymously by the submitter.
-    - name: custom.threat_type
-      type: keyword
-      level: custom
-      description: >
-        High-level classification of the threat associated with the indicator.
-    - name: custom.malware
-      type: keyword
-      level: custom
-      description: >
-        Malware family or identifier associated with the indicator.
-    - name: custom.malware_alias
-      type: keyword
-      level: custom
-      normalize:
-        - array
-      description: >
-        Alternative or secondary name used to refer to the same malware family.
-    - name: custom.malware_printable
-      type: keyword
-      level: custom
-      description: >
-        Human-readable or normalized malware name intended for display purposes.
     - name: source
       type: keyword
       level: custom

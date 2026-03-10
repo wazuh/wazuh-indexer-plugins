@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
@@ -42,6 +44,8 @@ public class RestResponse implements ToXContent {
 
     @JsonProperty(MESSAGE)
     private String message;
+
+    private Object parsedMessage;
 
     @JsonProperty(STATUS)
     private int status;
@@ -76,6 +80,7 @@ public class RestResponse implements ToXContent {
      */
     public void setMessage(String message) {
         this.message = message;
+        this.parsedMessage = null;
     }
 
     /**
@@ -94,6 +99,30 @@ public class RestResponse implements ToXContent {
      */
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    /**
+     * Attempts to parse the current string message as a JSON object or array. If successful, the
+     * XContentBuilder will serialize it as a structured JSON object rather than a string. If parsing
+     * fails, it silently falls back to the string representation.
+     *
+     * @return This RestResponse instance for chaining.
+     */
+    public RestResponse parseMessageAsJson() {
+        if (this.message != null && !this.message.isBlank()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode node = mapper.readTree(this.message);
+                if (node.isObject()) {
+                    this.parsedMessage = mapper.convertValue(node, java.util.Map.class);
+                } else if (node.isArray()) {
+                    this.parsedMessage = mapper.convertValue(node, java.util.List.class);
+                }
+            } catch (Exception e) {
+                // Ignore parsing exceptions, it will fall back to string automatically
+            }
+        }
+        return this;
     }
 
     @Override
@@ -122,11 +151,16 @@ public class RestResponse implements ToXContent {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder
-                .startObject()
-                .field(MESSAGE, this.getMessage())
-                .field(STATUS, this.getStatus())
-                .endObject();
+        builder.startObject();
+
+        if (this.parsedMessage != null) {
+            builder.field(MESSAGE, this.parsedMessage);
+        } else {
+            builder.field(MESSAGE, this.getMessage());
+        }
+
+        builder.field(STATUS, this.getStatus());
+        builder.endObject();
 
         return builder;
     }

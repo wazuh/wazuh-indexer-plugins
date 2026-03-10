@@ -1,43 +1,73 @@
 {
+  "date_detection": false,
   "dynamic": "strict",
   "properties": {
-    "filter": {
+    "document": {
       "properties": {
-        "name": {
-          "type": "keyword"
-        },
-        "id": {
+        "check": {
+          "ignore_above": 1024,
           "type": "keyword"
         },
         "enabled": {
           "type": "boolean"
         },
-        "type": {
+        "id": {
+          "ignore_above": 1024,
           "type": "keyword"
-        },
-        "check": {
-          "type": "text"
         },
         "metadata": {
           "properties": {
-            "description": {
-              "type": "text"
-            },
             "author": {
               "properties": {
+                "date": {
+                  "type": "date"
+                },
+                "email": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "modified": {
+                  "type": "date"
+                },
                 "name": {
+                  "ignore_above": 1024,
                   "type": "keyword"
                 },
                 "url": {
+                  "ignore_above": 1024,
                   "type": "keyword"
-                },
-                "date": {
-                  "type": "date",
-                  "format": "strict_date_optional_time||epoch_millis||yyyy/MM/dd"
                 }
               }
+            },
+            "description": {
+              "norms": false,
+              "type": "text"
             }
           }
+        },
+        "name": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "type": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        }
+      }
+    },
+    "hash": {
+      "properties": {
+        "sha256": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        }
+      }
+    },
+    "space": {
+      "properties": {
+        "name": {
+          "ignore_above": 1024,
+          "type": "keyword"
         }
       }
     }

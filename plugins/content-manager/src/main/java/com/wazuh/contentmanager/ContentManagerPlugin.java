@@ -46,7 +46,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -212,7 +215,13 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
                 new RestPostPromoteAction(this.engine, this.spaceService),
-                new RestGetPromoteAction(this.spaceService));
+                new RestGetPromoteAction(this.spaceService),
+                // Engine Filters endpoints
+                new RestPostFilterAction(this.engine),
+                new RestPutFilterAction(this.engine),
+                new RestDeleteFilterAction(this.engine),
+                // Space deletion endpoint
+                new RestDeleteSpaceAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */

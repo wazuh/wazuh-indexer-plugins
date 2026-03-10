@@ -129,7 +129,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
 
         // 4. Logtest accepted
         try {
-            return this.engine.logtest(jsonNode);
+            return this.engine.logtest(jsonNode).parseMessageAsJson();
         } catch (Exception e) {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());

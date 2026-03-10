@@ -21,11 +21,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -47,6 +49,8 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class IntegrationService {
     private static final Logger log = LogManager.getLogger(IntegrationService.class);
+    private static final int MAX_RETRIES = 5;
+
     private final Client client;
     private final ObjectMapper mapper;
 
@@ -96,7 +100,8 @@ public class IntegrationService {
     }
 
     /**
-     * Unlinks a resource from all integrations that reference it.
+     * Unlinks a resource from all integrations that reference it, using Optimistic Concurrency
+     * Control (OCC) to protect against concurrent updates.
      *
      * @param resourceId The ID of the resource to unlink.
      * @param listKey The key of the list field in the integration document (e.g., "rules").
@@ -113,21 +118,89 @@ public class IntegrationService {
         try {
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
             for (SearchHit hit : searchResponse.getHits().getHits()) {
-                Map<String, Object> source = hit.getSourceAsMap();
-                @SuppressWarnings("unchecked")
-                Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                String integrationId = hit.getId();
+                boolean success = false;
+                for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    try {
+                        GetRequest getRequest = new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId);
+                        GetResponse getResponse = this.client.get(getRequest).actionGet();
 
-                @SuppressWarnings("unchecked")
-                List<String> list = (List<String>) document.get(listKey);
+                        if (!getResponse.isExists()) {
+                            log.warn(
+                                    "Integration [{}] not found during unlink. It may have been concurrently deleted.",
+                                    integrationId);
+                            break;
+                        }
 
-                if (list != null) {
-                    List<String> updatedList = new ArrayList<>(list);
-                    if (updatedList.remove(resourceId)) {
+                        long seqNo = getResponse.getSeqNo();
+                        long primaryTerm = getResponse.getPrimaryTerm();
+                        Map<String, Object> source = getResponse.getSourceAsMap();
+
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+
+                        if (document == null) {
+                            break;
+                        }
+
+                        @SuppressWarnings("unchecked")
+                        List<String> list = (List<String>) document.get(listKey);
+
+                        if (list == null || !list.contains(resourceId)) {
+                            success = true;
+                            break;
+                        }
+
+                        List<String> updatedList = new ArrayList<>(list);
+                        updatedList.remove(resourceId);
                         document.put(listKey, updatedList);
-                        this.updateIntegrationSource(hit.getId(), document, source);
+
+                        JsonNode documentNode = this.mapper.valueToTree(document);
+                        String newHash = Resource.computeSha256(documentNode.toString());
+
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> hashMap =
+                                (Map<String, Object>) source.getOrDefault(Constants.KEY_HASH, new HashMap<>());
+                        hashMap.put(Constants.KEY_SHA256, newHash);
+                        source.put(Constants.KEY_HASH, hashMap);
+                        source.put(Constants.KEY_DOCUMENT, document);
+
+                        IndexRequest indexRequest =
+                                new IndexRequest(Constants.INDEX_INTEGRATIONS)
+                                        .id(integrationId)
+                                        .source(source)
+                                        .setIfSeqNo(seqNo)
+                                        .setIfPrimaryTerm(primaryTerm)
+                                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+                        this.client.index(indexRequest).actionGet();
+                        success = true;
+                        break;
+
+                    } catch (VersionConflictEngineException e) {
+                        log.debug(
+                                "Version conflict updating integration [{}]. Attempt {} of {}",
+                                integrationId,
+                                attempt,
+                                MAX_RETRIES);
+                        if (attempt == MAX_RETRIES) {
+                            log.error(
+                                    "Failed to unlink resource from integration [{}] after {} concurrent modification retries.",
+                                    integrationId,
+                                    MAX_RETRIES);
+                            throw new IOException(
+                                    "Failed to unlink resource due to high concurrency on integration updates.", e);
+                        }
                     }
                 }
+
+                if (!success) {
+                    throw new IOException(
+                            "Failed to successfully unlink resource from integration [" + integrationId + "].");
+                }
             }
+        } catch (IOException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error unlinking resource [{}] from integrations: {}", resourceId, e.getMessage());
             throw new IOException("Failed to unlink resource from integrations: " + e.getMessage(), e);

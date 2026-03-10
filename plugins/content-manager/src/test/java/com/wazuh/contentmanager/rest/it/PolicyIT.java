@@ -50,6 +50,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * The .cti-policies index exists.
      *
      * <p>Verifies: Response status code is 200 when querying the index.
+     *
      * @throws IOException On parsing or request error.
      */
     public void testPoliciesIndexExists() throws IOException {
@@ -66,6 +67,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      *   <li>Total number of hits is 4.
      *   <li>There is one document for each space: draft, test, custom, standard.
      * </ul>
+     *
      * @throws IOException On parsing or request error.
      */
     public void testPoliciesExactlyFour() throws IOException {
@@ -101,6 +103,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      *
      * <p>Verifies: The document.integrations list is empty and document.root_decoder is empty for
      * draft, test, and custom spaces.
+     *
      * @throws IOException On parsing or request error.
      */
     public void testNonStandardPoliciesStartEmpty() throws IOException {
@@ -121,6 +124,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * <p>Verifies: The draft policy contains all required fields: id, title, date, modified,
      * root_decoder, integrations, filters, enrichments, author, description, documentation,
      * references, space.name, space.hash.sha256, hash.sha256.
+     *
      * @throws IOException On parsing or request error.
      */
     public void testPolicyDocumentStructure() throws IOException {
@@ -160,6 +164,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * Each policy has a valid SHA-256 hash.
      *
      * <p>Verifies: Every policy document has non-empty hash.sha256 and space.hash.sha256 fields.
+     *
      * @throws IOException On parsing or request error.
      */
     public void testPoliciesHaveValidHashes() throws IOException {
@@ -198,6 +203,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      *   <li>The draft policy in .cti-policies is updated.
      *   <li>Its space.hash.sha256 field is updated.
      * </ul>
+     *
      * @throws IOException On parsing or request error.
      */
     public void testPutPolicy_success() throws IOException {
@@ -218,11 +224,9 @@ public class PolicyIT extends ContentManagerRestTestCase {
         }
         intListJson.append("]");
 
-        // spotless:off
-        String payload = getString(decoderId, intListJson);
-        // spotless:on
+        String payload = PolicyIT.getString(decoderId, intListJson);
 
-        Response response = this.makeRequest("PUT", PluginSettings.POLICY_URI, payload);
+        Response response = this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", payload);
         assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
 
         // Verify draft policy space hash updated
@@ -232,6 +236,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
     }
 
     private static String getString(String decoderId, StringBuilder intListJson) {
+        // spotless:off
         String payload = """
                 {
                     "type": "policy",
@@ -253,16 +258,17 @@ public class PolicyIT extends ContentManagerRestTestCase {
                     }
                 }
                 """;
+        // spotless:on
         payload = String.format(Locale.ROOT, payload, decoderId, intListJson);
         return payload;
     }
 
     /**
-     * Update policy with missing type field.
+     * Update policy with missing required boolean fields.
      *
-     * <p>Verifies: Response status code is 400. The plugin validates the type field is present.
+     * <p>Verifies: Response status code is 400. The plugin validates the required fields are present.
      */
-    public void testPutPolicy_missingType() {
+    public void testPutPolicy_missingBooleanFields() {
         // spotless:off
         String payload = """
                 {
@@ -279,28 +285,34 @@ public class PolicyIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
     /**
-     * Update policy with wrong type value.
+     * Update policy with invalid space path parameter.
      *
-     * <p>Verifies: Response status code is 400. The plugin validates the type field value must be
-     * "policy".
+     * <p>Verifies: Response status code is 400. The plugin validates the space must be draft or
+     * standard.
      */
-    public void testPutPolicy_wrongType() {
+    public void testPutPolicy_invalidSpace() {
         // spotless:off
         String payload = """
                 {
-                    "type": "integration",
                     "resource": {
                         "title": "Custom policy",
                         "author": "Test",
                         "description": "Custom policy",
                         "documentation": "",
-                        "references": []
+                        "references": [],
+                        "integrations": [],
+                        "filters": [],
+                        "enrichments": [],
+                        "enabled": true,
+                        "index_unclassified_events": false,
+                        "index_discarded_events": false
                     }
                 }
                 """;
@@ -308,7 +320,8 @@ public class PolicyIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("PUT", PluginSettings.POLICY_URI + "/custom", payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -329,7 +342,8 @@ public class PolicyIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -353,7 +367,8 @@ public class PolicyIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, payload));
+                        ResponseException.class,
+                        () -> this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", payload));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -366,7 +381,8 @@ public class PolicyIT extends ContentManagerRestTestCase {
     public void testPutPolicy_emptyBody() {
         ResponseException e =
                 expectThrows(
-                        ResponseException.class, () -> this.makeRequest("PUT", PluginSettings.POLICY_URI, ""));
+                        ResponseException.class,
+                        () -> this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
@@ -375,6 +391,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * Verify policy changes are NOT reflected in test space until promotion.
      *
      * <p>Verifies: After updating the draft policy, the test policy remains unchanged.
+     *
      * @throws IOException On parsing or request error.
      */
     public void testPolicyChangesNotReflectedInTestBeforePromotion() throws IOException {

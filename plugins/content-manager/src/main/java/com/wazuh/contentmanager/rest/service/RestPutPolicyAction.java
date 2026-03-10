@@ -48,8 +48,8 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 /**
  * REST handler for updating policy resources on the Wazuh Engine.
  *
- * <p>This endpoint handles PUT requests to update policy configurations in the draft space. The
- * policy defines the root decoder and integrations list for content processing.
+ * <p>This endpoint handles PUT requests to update policy configurations in the draft or standard
+ * space. The policy defines the root decoder and integrations list for content processing.
  */
 public class RestPutPolicyAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutPolicyAction.class);
@@ -58,7 +58,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
     private SpaceService spaceService;
     private NodeClient client;
-    private final PayloadValidations payloadValidations = new PayloadValidations();
+    private PayloadValidations payloadValidations;
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -69,6 +69,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     public RestPutPolicyAction(SpaceService spaceService) {
         this.spaceService = spaceService;
+        this.payloadValidations = new PayloadValidations();
     }
 
     /**
@@ -81,6 +82,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     public RestPutPolicyAction(SpaceService spaceService, NodeClient client) {
         this.spaceService = spaceService;
         this.client = client;
+        this.payloadValidations = new PayloadValidations();
     }
 
     /**
@@ -90,6 +92,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     public void setPolicyHashService(SpaceService spaceService) {
         this.spaceService = spaceService;
+    }
+
+    /**
+     * Setter for the payload validations, used in tests.
+     *
+     * @param payloadValidations the payload validations instance to set
+     */
+    public void setPayloadValidations(PayloadValidations payloadValidations) {
+        this.payloadValidations = payloadValidations;
     }
 
     /** Return a short identifier for this handler. */
@@ -107,7 +118,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(PluginSettings.POLICY_URI)
+                        .path(PluginSettings.POLICY_URI + "/{space}")
                         .method(PUT)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
@@ -137,6 +148,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      *   <li>Checks that the engine service is available
      *   <li>Verifies that the request contains a JSON payload
      *   <li>Parses and validates the Policy JSON structure
+     *   <li>Validates the space path parameter
      * </ol>
      *
      * @param request incoming REST request containing the policy data
@@ -149,6 +161,17 @@ public class RestPutPolicyAction extends BaseRestHandler {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
         try {
+            // Extract and validate space parameter
+            String spaceName = request.param(Constants.KEY_SPACE);
+            if (!Space.DRAFT.equals(spaceName) && !Space.STANDARD.equals(spaceName)) {
+                return new RestResponse(
+                        String.format(
+                                Locale.ROOT,
+                                Constants.E_400_RESOURCE_SPACE_MISMATCH,
+                                Space.DRAFT + ", " + Space.STANDARD),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+
             // 2. Validate request content
             JsonNode jsonContent;
             try {
@@ -176,26 +199,30 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             // Validate required Policy fields
             List<String> missingFields = new ArrayList<>();
-            if (policy.getAuthor() == null || policy.getAuthor().isEmpty()) {
-                missingFields.add(Constants.KEY_AUTHOR);
-            }
-            if (policy.getDescription() == null || policy.getDescription().isEmpty()) {
-                missingFields.add(Constants.KEY_DESCRIPTION);
-            }
-            if (policy.getDocumentation() == null) {
-                missingFields.add("documentation");
-            }
-            if (policy.getReferences() == null) {
-                missingFields.add("references");
-            }
             if (policy.getEnabled() == null) {
-                missingFields.add("enabled");
+                missingFields.add(Constants.KEY_ENABLED);
             }
             if (policy.getIndexUnclassifiedEvents() == null) {
                 missingFields.add("index_unclassified_events");
             }
             if (policy.getIndexDiscardedEvents() == null) {
                 missingFields.add("index_discarded_events");
+            }
+
+            // Draft space requires additional fields
+            if (Space.DRAFT.equals(spaceName)) {
+                if (policy.getAuthor() == null || policy.getAuthor().isEmpty()) {
+                    missingFields.add(Constants.KEY_AUTHOR);
+                }
+                if (policy.getDescription() == null || policy.getDescription().isEmpty()) {
+                    missingFields.add(Constants.KEY_DESCRIPTION);
+                }
+                if (policy.getDocumentation() == null) {
+                    missingFields.add("documentation");
+                }
+                if (policy.getReferences() == null) {
+                    missingFields.add("references");
+                }
             }
 
             if (!missingFields.isEmpty()) {
@@ -205,29 +232,128 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         RestStatus.BAD_REQUEST.getStatus());
             }
 
+            Set<String> knownEnrichmentTypes = this.spaceService.getKnownEnrichmentTypes();
+
             // Validate enrichments: only allowed values, no duplicates
             RestResponse enrichmentsValidationError =
-                    this.payloadValidations.validateEnrichments(policy.getEnrichments());
+                    this.payloadValidations.validateEnrichments(
+                            policy.getEnrichments(), knownEnrichmentTypes);
             if (enrichmentsValidationError != null) {
                 return enrichmentsValidationError;
             }
 
-            // 3. Update policy
-            String policyId = this.updatePolicy(policy);
+            // 3. Update policy based on target space
+            String policyId;
+            if (Space.STANDARD.equals(spaceName)) {
+                policyId = this.updateStandardPolicy(policy);
+            } else {
+                policyId = this.updatePolicy(policy);
+            }
 
             // Regenerate space hash because space composition changed
-            this.spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+            this.spaceService.calculateAndUpdate(List.of(spaceName));
 
             return new RestResponse(policyId, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, Constants.KEY_POLICY, e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+                    Constants.E_400_INVALID_REQUEST_BODY + " " + e.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error(
                     Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+    }
+
+    /**
+     * Stores or updates the policy in the standard space.
+     *
+     * <p>Only the following fields from the incoming policy are applied: enrichments, filters,
+     * enabled, index_unclassified_events, and index_discarded_events. All other fields are preserved
+     * from the existing standard policy document.
+     *
+     * @param incomingPolicy the incoming policy containing the fields to update
+     * @return the document ID of the persisted policy
+     * @throws IOException if storage fails
+     * @throws IllegalStateException if the standard policy document is not found
+     */
+    @SuppressWarnings("unchecked")
+    private String updateStandardPolicy(Policy incomingPolicy)
+            throws IOException, IllegalStateException {
+        // Get current standard policy
+        Map<String, Object> currentPolicy = this.spaceService.getPolicy(Space.STANDARD.toString());
+        Map<String, Object> currentPolicyDoc =
+                (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
+        if (currentPolicyDoc == null) {
+            throw new IllegalStateException(
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in standard space.");
+        }
+
+        // Validate filters: allow reordering but prevent addition/removal
+        List<String> currentFilters =
+                (List<String>)
+                        currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
+        List<String> newFilters = incomingPolicy.getFilters();
+
+        RestResponse filtersValidationError =
+                this.payloadValidations.validateListEquality(
+                        currentFilters, newFilters, Constants.KEY_FILTERS);
+        if (filtersValidationError != null) {
+            throw new IllegalArgumentException(filtersValidationError.getMessage());
+        }
+
+        // Safekeep all unmodifiable values from the existing standard policy
+        String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
+        String docCreationDate = currentPolicyDoc.getOrDefault(Constants.KEY_DATE, "").toString();
+
+        // Build a policy preserving existing fields, only overriding the 5 allowed fields
+        Policy mergedPolicy = new Policy();
+        mergedPolicy.setId(docId);
+        mergedPolicy.setDate(docCreationDate);
+        mergedPolicy.setModified(Instant.now().toString());
+        mergedPolicy.setTitle((String) currentPolicyDoc.getOrDefault(Constants.KEY_TITLE, ""));
+        mergedPolicy.setAuthor((String) currentPolicyDoc.getOrDefault(Constants.KEY_AUTHOR, ""));
+        mergedPolicy.setDescription(
+                (String) currentPolicyDoc.getOrDefault(Constants.KEY_DESCRIPTION, ""));
+        mergedPolicy.setDocumentation((String) currentPolicyDoc.getOrDefault("documentation", ""));
+        mergedPolicy.setReferences(
+                (List<String>) currentPolicyDoc.getOrDefault("references", Collections.emptyList()));
+        mergedPolicy.setRootDecoder((String) currentPolicyDoc.getOrDefault("root_decoder", ""));
+        mergedPolicy.setIntegrations(
+                (List<String>)
+                        currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList()));
+
+        // Apply the 5 modifiable fields from the incoming payload
+        mergedPolicy.setEnrichments(incomingPolicy.getEnrichments());
+        mergedPolicy.setFilters(incomingPolicy.getFilters());
+        mergedPolicy.setEnabled(incomingPolicy.getEnabled());
+        mergedPolicy.setIndexUnclassifiedEvents(incomingPolicy.getIndexUnclassifiedEvents());
+        mergedPolicy.setIndexDiscardedEvents(incomingPolicy.getIndexDiscardedEvents());
+
+        // Convert to JsonNode and persist
+        JsonNode policyNode = mapper.valueToTree(mergedPolicy);
+
+        ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
+        try {
+            ObjectNode document = mapper.createObjectNode();
+            document.set(Constants.KEY_DOCUMENT, policyNode);
+            ObjectNode spaceNode = mapper.createObjectNode();
+            spaceNode.put(Constants.KEY_NAME, Space.STANDARD.toString());
+            document.set(Constants.KEY_SPACE, spaceNode);
+            String hash = Resource.computeSha256(policyNode.toString());
+            ObjectNode hashNode = mapper.createObjectNode();
+            hashNode.put(Constants.KEY_SHA256, hash);
+            document.set(Constants.KEY_HASH, hashNode);
+            String standardPolicyId =
+                    this.spaceService.findDocumentId(
+                            Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId);
+            IndexResponse indexResponse = index.create(standardPolicyId, document, false);
+            return indexResponse.getId();
+        } catch (Exception e) {
+            throw new IllegalStateException("Standard policy not found: " + e.getMessage());
         }
     }
 
@@ -250,12 +376,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
         if (currentPolicyDoc == null) {
             throw new IllegalStateException(
-                    String.format(
-                            Locale.ROOT,
-                            Constants.E_500_INTERNAL_SERVER_ERROR,
-                            Constants.KEY_DOCUMENT,
-                            Space.DRAFT,
-                            Constants.INDEX_POLICIES));
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in draft space.");
         }
 
         // Validate integrations: allow reordering but prevent addition/removal

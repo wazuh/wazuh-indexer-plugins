@@ -4,20 +4,20 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 
 ## Settings Reference
 
-| Setting | Type | Default | Description |
-|---|---|---|---|
-| `plugins.content_manager.cti.api` | String | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API |
-| `plugins.content_manager.catalog.sync_interval` | Integer | `60` | Sync interval in minutes. Valid range: 1–1440 |
-| `plugins.content_manager.max_items_per_bulk` | Integer | `25` | Maximum documents per bulk indexing request. Valid range: 10–25 |
-| `plugins.content_manager.max_concurrent_bulks` | Integer | `5` | Maximum concurrent bulk operations. Valid range: 1–5 |
-| `plugins.content_manager.client.timeout` | Long | `10` | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50 |
-| `plugins.content_manager.catalog.update_on_start` | Boolean | `true` | Trigger content sync when the plugin starts |
-| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true` | Enable the periodic sync job |
-| `plugins.content_manager.catalog.content.context` | String | `development_0.0.3` | CTI catalog content context identifier |
-| `plugins.content_manager.catalog.content.consumer` | String | `development_0.0.3_test` | CTI catalog content consumer identifier |
-| `plugins.content_manager.ioc.content.context` | String | `ioc_provider` | IoC content context identifier |
-| `plugins.content_manager.ioc.content.consumer` | String | `iocp_v1` | IoC content consumer identifier |
-| `plugins.content_manager.catalog.create_detectors` | Boolean | `true` | Automatically create Security Analytics detectors from CTI content |
+| Setting                                              | Type    | Default                                  | Description                                                             |
+| ---------------------------------------------------- | ------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `plugins.content_manager.cti.api`                    | String  | `https://cti.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                          |
+| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                           |
+| `plugins.content_manager.max_items_per_bulk`         | Integer | `25`                                     | Maximum documents per bulk indexing request. Valid range: 10–25         |
+| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                    |
+| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50 |
+| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                             |
+| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                            |
+| `plugins.content_manager.catalog.content.context`    | String  | `development_0.0.3`                      | CTI catalog content context identifier                                  |
+| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3_test`                 | CTI catalog content consumer identifier                                 |
+| `plugins.content_manager.ioc.content.context`        | String  | `ioc_provider_v3`                        | IoC content context identifier                                          |
+| `plugins.content_manager.ioc.content.consumer`       | String  | `iocp_v3`                                | IoC content consumer identifier                                         |
+| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content      |
 
 ## Configuration Examples
 

@@ -38,6 +38,40 @@ import static org.hamcrest.Matchers.containsString;
 public class SetupPluginIT extends OpenSearchRestTestCase {
 
     /**
+     * Preserves indices upon test completion. The SetupPlugin creates indices during cluster
+     * initialization, and these need to persist across all tests since the plugin only creates them
+     * once.
+     *
+     * @return true to preserve indices
+     */
+    @Override
+    protected boolean preserveIndicesUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves data streams upon test completion. The SetupPlugin creates data streams during
+     * initialization, and these need to persist across all tests.
+     *
+     * @return true to preserve data streams
+     */
+    @Override
+    protected boolean preserveDataStreamsUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves index templates upon test completion. The SetupPlugin creates index templates for
+     * data streams, and these need to persist across all tests.
+     *
+     * @return true to preserve templates
+     */
+    @Override
+    protected boolean preserveTemplatesUponCompletion() {
+        return true;
+    }
+
+    /**
      * Test to verify that the Wazuh Indexer Setup plugin is installed.
      *
      * @throws IOException Thrown if there is an issue with the HTTP request.
