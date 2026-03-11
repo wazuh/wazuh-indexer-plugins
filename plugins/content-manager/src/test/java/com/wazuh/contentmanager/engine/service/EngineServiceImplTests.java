@@ -28,6 +28,7 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -169,23 +170,46 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
                                                         .equals("Test Rule")));
     }
 
-    /** Tests the deleteLogtest operation for a successful (200) response. */
-    public void testDeleteLogtest200() {
-        RestResponse expected = new RestResponse("OK", 200);
-        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("DELETE"), any(JsonNode.class)))
+    /** Tests that getIocState sends a GET request to the correct endpoint. */
+    public void testGetIocState200() {
+        RestResponse expected = new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200);
+        when(this.socket.sendRequest(eq(EngineServiceImpl.IOC_STATE), eq("GET"), any(JsonNode.class)))
                 .thenReturn(expected);
 
-        RestResponse actual = this.engine.deleteLogtest();
+        RestResponse actual = this.engine.getIocState();
         assertEquals(expected, actual);
+        verify(this.socket)
+                .sendRequest(eq(EngineServiceImpl.IOC_STATE), eq("GET"), any(JsonNode.class));
     }
 
-    /** Tests the deleteLogtest operation for an internal server error (500) response. */
-    public void testDeleteLogtest500() {
-        RestResponse expected = new RestResponse("Engine Socket Error", 500);
-        when(this.socket.sendRequest(eq(EngineServiceImpl.LOGTEST), eq("DELETE"), any(JsonNode.class)))
+    /** Tests that loadIocs sends the file path and hash to the correct endpoint. */
+    public void testUpdateIocSendsToCorrectEndpoint() {
+        String filePath = "/tmp/iocs.ndjson";
+        String hash = "abc123";
+        RestResponse expected = new RestResponse("OK", 200);
+        when(this.socket.sendRequest(
+                        eq(EngineServiceImpl.IOC_UPDATE),
+                        eq("POST"),
+                        argThat(
+                                json ->
+                                        json.has("path")
+                                                && json.get("path").asText().equals(filePath)
+                                                && json.has("hash")
+                                                && json.get("hash").asText().equals(hash))))
                 .thenReturn(expected);
 
-        RestResponse actual = this.engine.deleteLogtest();
-        assertEquals(expected, actual);
+        RestResponse result = this.engine.updateIoc(filePath, hash);
+
+        assertEquals(expected, result);
+        verify(this.socket)
+                .sendRequest(
+                        eq(EngineServiceImpl.IOC_UPDATE),
+                        eq("POST"),
+                        argThat(
+                                json ->
+                                        json.has("path")
+                                                && json.get("path").asText().equals(filePath)
+                                                && json.has("hash")
+                                                && json.get("hash").asText().equals(hash)));
     }
 }

@@ -50,7 +50,7 @@ import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Handles synchronization logic for the CVE consumer. Processes CVEs and handles post-sync
- * operations including a single global SHA-256 hash computation for all CVE documents.
+ * operations.
  */
 public class ConsumerCveService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerCveService.class);
@@ -106,7 +106,6 @@ public class ConsumerCveService extends AbstractConsumerService {
     public void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_CVES);
-            this.computeAndStoreGlobalHash();
         }
     }
 

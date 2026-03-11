@@ -147,48 +147,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 2. Gathering Phase - Build the engine payload
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
-            // Check for reset conditions before validating engine payload
-            if (Space.TEST.toString().equals(context.targetSpace)) {
-                Map<String, Object> sourcePolicy =
-                        this.spaceService.getPolicy(spaceDiff.getSpace().toString());
-                if (sourcePolicy != null && sourcePolicy.containsKey(Constants.KEY_DOCUMENT)) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> doc = (Map<String, Object>) sourcePolicy.get(Constants.KEY_DOCUMENT);
-
-                    boolean isEnabled = false;
-                    if (doc.containsKey(Constants.KEY_ENABLED)) {
-                        Object enabledObj = doc.get(Constants.KEY_ENABLED);
-                        if (enabledObj instanceof Boolean) {
-                            isEnabled = (Boolean) enabledObj;
-                        } else if (enabledObj instanceof String) {
-                            isEnabled = Boolean.parseBoolean((String) enabledObj);
-                        }
-                    }
-
-                    boolean emptyIntegrations = true;
-                    if (doc.containsKey(Constants.KEY_INTEGRATIONS)) {
-                        Object intsObj = doc.get(Constants.KEY_INTEGRATIONS);
-                        if (intsObj instanceof List) {
-                            emptyIntegrations = ((List<?>) intsObj).isEmpty();
-                        }
-                    }
-
-                    if (!isEnabled || emptyIntegrations) {
-                        log.info("Reset condition met for test space promotion. Triggering DELETE /logtest");
-                        RestResponse resetResponse = this.engine.deleteLogtest();
-
-                        if (resetResponse.getStatus() >= 200 && resetResponse.getStatus() < 300) {
-                            log.info("Successfully reset Engine test state");
-                        } else {
-                            log.error("Failed to reset Engine test state: {}", resetResponse.getMessage());
-                            return new RestResponse(
-                                    "Failed to reset Engine test state: " + resetResponse.getMessage(),
-                                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                        }
-                    }
-                }
-            }
-
             // 3. Validation Phase - Invoke engine validation
             RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
@@ -209,10 +167,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promotion", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (ValueInstantiationException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promotion", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             // Extract the root cause message for better error reporting
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             return new RestResponse(message, RestStatus.BAD_REQUEST.getStatus());

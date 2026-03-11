@@ -277,7 +277,7 @@ public class PayloadValidations {
         Set<String> incomingSet =
                 new HashSet<>(incomingList != null ? incomingList : Collections.emptyList());
 
-        if (!existingSet.equals(incomingSet)) {
+        if (existingList.size() != incomingList.size() || !existingSet.equals(incomingSet)) {
             return new RestResponse(
                     "Content of '"
                             + fieldName

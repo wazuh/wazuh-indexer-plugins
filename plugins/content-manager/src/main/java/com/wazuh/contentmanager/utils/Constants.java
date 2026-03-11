@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.utils;
 import java.util.Map;
 
 // spotless:off
+
 /**
  * Central and unified storage for constants used by the plugin. Follow these guidelines:
  *
@@ -42,6 +43,9 @@ public class Constants {
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
     public static final String E_400_RESOURCE_NOT_FOUND = "%s [%s] not found.";
     public static final String E_400_RESOURCE_NOT_IN_DRAFT = "%s with ID '%s' is not in draft space.";
+    public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
+    public static final String E_400_RESOURCE_SPACE_MISMATCH =
+            "Invalid space value. Must be one of: %s.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
@@ -53,6 +57,9 @@ public class Constants {
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String E_400_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
+    public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
+            "ID should not be provided in the payload.";
+    public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine Validation Failed: ";
 
     // Log messages
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -61,7 +68,7 @@ public class Constants {
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
-    public static final String W_LOG_VALIDATION_ERROR = "Validation error during {}: {}";
+    public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
@@ -105,6 +112,7 @@ public class Constants {
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
+    public static final String KEY_UPDATING = "updating";
 
     // Enrichment types allowed in policy
     public static final String E_400_INVALID_ENRICHMENT =
@@ -121,6 +129,7 @@ public class Constants {
     public static final String KEY_LOGSOURCE = "logsource";
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
+    public static final String KEY_FILTER = "filter";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
@@ -135,6 +144,8 @@ public class Constants {
     public static final String TYPE_DECODER = "decoder";
     public static final String TYPE_IOC = "ioc";
     public static final String TYPE_FILTER = "filter";
+    public static final String TYPE_PREFILTER = "pre-filter";
+    public static final String TYPE_POSTFILTER = "post-filter";
 
     // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
     // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.
@@ -174,6 +185,18 @@ public class Constants {
     public static final String Q_DOCUMENT_TITLE = "document.title";
     public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
+
+    // IOC export
+    public static final String IOC_EXPORT_FILENAME = "iocs.ndjson";
+    public static final String I_LOG_IOC_EXPORT_COMPLETE = "IOC export completed: {}";
+    public static final String E_LOG_IOC_EXPORT_FAILED = "Failed to export IOCs to NDJSON: {}";
+    public static final String I_LOG_IOC_ENGINE_NOTIFIED = "Engine notified to load IOCs from: {}";
+    public static final String E_LOG_IOC_ENGINE_NOTIFY_FAILED =
+            "Failed to notify Engine to load IOCs: {}";
+    public static final String W_LOG_IOC_ENGINE_BUSY =
+            "Engine is currently processing a previous IOC update, skipping notification.";
+    public static final String W_LOG_IOC_STATE_CHECK_FAILED =
+            "Failed to check Engine IOC state, skipping notification: {}";
 
     // Operations
     public static final String KEY_OPERATION = "operation";

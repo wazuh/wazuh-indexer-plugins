@@ -16,22 +16,23 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
 import com.wazuh.contentmanager.utils.Constants;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 /**
  * Model representing an IoC (Indicator of Compromise) resource. Structured to match the {@code
  * subset.yml} and {@code ioc.json} template schema, with typed fields instead of generic maps.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class Ioc {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -42,6 +43,7 @@ public class Ioc {
     @JsonProperty(Constants.KEY_HASH)
     private IocHash hash;
 
+    @JsonInclude(NON_NULL)
     @JsonProperty(Constants.KEY_OFFSET)
     private Long offset;
 
@@ -64,12 +66,18 @@ public class Ioc {
             }
         }
 
-        Ioc ioc = Ioc.MAPPER.convertValue(payload, Ioc.class);
+        // Strip the routing 'type' field before deserialization
+        ObjectNode sanitizedPayload = payload.deepCopy();
+        sanitizedPayload.remove(Constants.KEY_TYPE);
+
+        Ioc ioc = Ioc.MAPPER.convertValue(sanitizedPayload, Ioc.class);
         ioc.setOffset(offsetValue);
-        if (payload.has(Constants.KEY_DOCUMENT)) {
-            String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());
+        if (sanitizedPayload.has(Constants.KEY_DOCUMENT)) {
+            String sha256 =
+                    Resource.computeSha256(sanitizedPayload.get(Constants.KEY_DOCUMENT).toString());
             ioc.setHash(new IocHash(sha256));
         }
+
         return ioc;
     }
 
@@ -128,15 +136,13 @@ public class Ioc {
     }
 
     /**
-     * Represents the {@code document} object within an IoC. Uses flat dot-notation keys (e.g. {@code
-     * "feed.name"}, {@code "software.type"}) matching the CTI payload structure.
+     * Represents the {@code document} object within an IoC. Uses proper nested classes to handle
+     * structures like "feed" and "software".
      */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     public static class IocDocument {
 
         private static final String CONFIDENCE_KEY = "confidence";
-        private static final String FEED_NAME_KEY = "feed.name";
         private static final String FIRST_SEEN_KEY = "first_seen";
         private static final String ID_KEY = "id";
         private static final String LAST_SEEN_KEY = "last_seen";
@@ -144,16 +150,12 @@ public class Ioc {
         private static final String PROVIDER_KEY = "provider";
         private static final String REFERENCE_KEY = "reference";
         private static final String TYPE_KEY = "type";
-        private static final String SOFTWARE_ALIAS_KEY = "software.alias";
-        private static final String SOFTWARE_NAME_KEY = "software.name";
-        private static final String SOFTWARE_TYPE_KEY = "software.type";
         private static final String TAGS_KEY = "tags";
+        private static final String FEED_KEY = "feed";
+        private static final String SOFTWARE_KEY = "software";
 
         @JsonProperty(IocDocument.CONFIDENCE_KEY)
         private Long confidence;
-
-        @JsonProperty(IocDocument.FEED_NAME_KEY)
-        private String feedName;
 
         @JsonProperty(IocDocument.FIRST_SEEN_KEY)
         private String firstSeen;
@@ -176,17 +178,14 @@ public class Ioc {
         @JsonProperty(IocDocument.TYPE_KEY)
         private String type;
 
-        @JsonProperty(IocDocument.SOFTWARE_ALIAS_KEY)
-        private List<String> softwareAlias;
-
-        @JsonProperty(IocDocument.SOFTWARE_NAME_KEY)
-        private String softwareName;
-
-        @JsonProperty(IocDocument.SOFTWARE_TYPE_KEY)
-        private String softwareType;
-
         @JsonProperty(IocDocument.TAGS_KEY)
         private List<String> tags;
+
+        @JsonProperty(IocDocument.FEED_KEY)
+        private Feed feed;
+
+        @JsonProperty(IocDocument.SOFTWARE_KEY)
+        private Software software;
 
         /** Default constructor. */
         public IocDocument() {}
@@ -207,24 +206,6 @@ public class Ioc {
          */
         public void setConfidence(Long confidence) {
             this.confidence = confidence;
-        }
-
-        /**
-         * Gets the feed name.
-         *
-         * @return The feed name.
-         */
-        public String getFeedName() {
-            return this.feedName;
-        }
-
-        /**
-         * Sets the feed name.
-         *
-         * @param feedName The feed name.
-         */
-        public void setFeedName(String feedName) {
-            this.feedName = feedName;
         }
 
         /**
@@ -354,60 +335,6 @@ public class Ioc {
         }
 
         /**
-         * Gets the software aliases.
-         *
-         * @return The list of software aliases.
-         */
-        public List<String> getSoftwareAlias() {
-            return this.softwareAlias;
-        }
-
-        /**
-         * Sets the software aliases.
-         *
-         * @param softwareAlias The list of software aliases.
-         */
-        public void setSoftwareAlias(List<String> softwareAlias) {
-            this.softwareAlias = softwareAlias;
-        }
-
-        /**
-         * Gets the software name.
-         *
-         * @return The software name.
-         */
-        public String getSoftwareName() {
-            return this.softwareName;
-        }
-
-        /**
-         * Sets the software name.
-         *
-         * @param softwareName The software name.
-         */
-        public void setSoftwareName(String softwareName) {
-            this.softwareName = softwareName;
-        }
-
-        /**
-         * Gets the software type.
-         *
-         * @return The software type.
-         */
-        public String getSoftwareType() {
-            return this.softwareType;
-        }
-
-        /**
-         * Sets the software type.
-         *
-         * @param softwareType The software type.
-         */
-        public void setSoftwareType(String softwareType) {
-            this.softwareType = softwareType;
-        }
-
-        /**
          * Gets the tags.
          *
          * @return The list of tags.
@@ -424,10 +351,142 @@ public class Ioc {
         public void setTags(List<String> tags) {
             this.tags = tags;
         }
+
+        /**
+         * Gets the feed object.
+         *
+         * @return The feed object.
+         */
+        public Feed getFeed() {
+            return this.feed;
+        }
+
+        /**
+         * Sets the feed object.
+         *
+         * @param feed The feed object.
+         */
+        public void setFeed(Feed feed) {
+            this.feed = feed;
+        }
+
+        /**
+         * Gets the software object.
+         *
+         * @return The software object.
+         */
+        public Software getSoftware() {
+            return this.software;
+        }
+
+        /**
+         * Sets the software object.
+         *
+         * @param software The feed object.
+         */
+        public void setSoftware(Software software) {
+            this.software = software;
+        }
+
+        /** Represents the {@code feed} object within an IoC document. */
+        @JsonInclude(JsonInclude.Include.ALWAYS)
+        public static class Feed {
+            @JsonProperty("name")
+            private String name;
+
+            public Feed() {}
+
+            /**
+             * Gets the feed.name field.
+             *
+             * @return The feed.name object.
+             */
+            public String getName() {
+                return this.name;
+            }
+
+            /**
+             * Sets the feed.name field.
+             *
+             * @param name The feed.name object.
+             */
+            public void setName(String name) {
+                this.name = name;
+            }
+        }
+
+        /** Represents the {@code software} object within an IoC document. */
+        @JsonInclude(JsonInclude.Include.ALWAYS)
+        public static class Software {
+            @JsonProperty("alias")
+            private List<String> alias;
+
+            @JsonProperty("name")
+            private String name;
+
+            @JsonProperty("type")
+            private String type;
+
+            public Software() {}
+
+            /**
+             * Gets the software.alias field.
+             *
+             * @return The software.alias list.
+             */
+            public List<String> getAlias() {
+                return this.alias;
+            }
+
+            /**
+             * Sets the software.alias field.
+             *
+             * @param alias The software.alias list.
+             */
+            public void setAlias(List<String> alias) {
+                this.alias = alias;
+            }
+
+            /**
+             * Gets the software.name field.
+             *
+             * @return The software.name object.
+             */
+            public String getName() {
+                return this.name;
+            }
+
+            /**
+             * Sets the software.name field.
+             *
+             * @param name The software.name list.
+             */
+            public void setName(String name) {
+                this.name = name;
+            }
+
+            /**
+             * Gets the software.type field.
+             *
+             * @return The software.type object.
+             */
+            public String getType() {
+                return this.type;
+            }
+
+            /**
+             * Sets the software.type field.
+             *
+             * @param type The software.type list.
+             */
+            public void setType(String type) {
+                this.type = type;
+            }
+        }
     }
 
     /** Represents the {@code hash} object within an IoC, containing a SHA-256 checksum. */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     public static class IocHash {
 
         private static final String SHA256_KEY = "sha256";

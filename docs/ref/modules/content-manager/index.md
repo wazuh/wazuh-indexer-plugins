@@ -4,10 +4,11 @@ The Content Manager is a Wazuh Indexer plugin responsible for managing detection
 
 ## CTI Synchronization
 
-The Content Manager periodically synchronizes content from the Wazuh CTI API. Two content contexts are managed:
+The Content Manager periodically synchronizes content from the Wazuh CTI API. Three content contexts are managed:
 
 - **Catalog context** (`development_0.0.3`): Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
 - **IoC context** (`ioc_provider`): Contains Indicators of Compromise for threat detection.
+- **CVE context** (`vd_1.0.0`): Contains Common Vulnerabilities and Exposures data, stored in `.cti-cves`. CVE documents do not have a space and are not subject to removals from CTI.
 
 Each context has an associated **consumer** that tracks synchronization state (current offset, snapshot URL) in the `.cti-consumers` index.
 
@@ -115,6 +116,7 @@ The Content Manager uses the following system indices:
 | `.cti-kvdbs` | Key-value databases |
 | `.cti-policies` | Routing policies |
 | `.cti-iocs` | Indicators of Compromise |
+| `.cti-cves` | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
 | `.engine-filters` | Engine filters (routing filters for event classification) |
 | `.wazuh-content-manager-jobs` | Job Scheduler metadata for the periodic sync job |
 

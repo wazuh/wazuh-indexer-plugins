@@ -30,5 +30,20 @@ public interface EngineService {
 
     RestResponse validateResource(String type, JsonNode resource);
 
-    RestResponse deleteLogtest();
+    /**
+     * Notifies the Engine to load IOC content from the given file path.
+     *
+     * @param filePath The absolute path to the NDJSON file containing IOC data.
+     * @param hash The combined SHA-256 hash of all IOC type hashes.
+     * @return A {@link RestResponse} with the Engine's response.
+     */
+    RestResponse updateIoc(String filePath, String hash);
+
+    /**
+     * Queries the Engine for the current IOC processing state.
+     *
+     * @return A {@link RestResponse} whose message contains the JSON state (e.g., {@code
+     *     {"hash":"...","updating":false}}).
+     */
+    RestResponse getIocState();
 }
