@@ -252,7 +252,7 @@ public class PayloadValidations {
                         RestStatus.BAD_REQUEST.getStatus());
             }
             JsonNode node = resource.get(field);
-            if (node.isNull()) {
+            if (node.isNull() || (node.isTextual() && node.asText().isBlank())) {
                 return new RestResponse(
                         String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, field),
                         RestStatus.BAD_REQUEST.getStatus());
