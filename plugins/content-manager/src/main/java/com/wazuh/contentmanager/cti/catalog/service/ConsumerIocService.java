@@ -86,6 +86,11 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     @Override
+    protected String getSnapshotFilename() {
+        return Constants.IOC_SNAPSHOT_FILENAME;
+    }
+
+    @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(Constants.KEY_IOCS, "/mappings/cti-ioc-mappings.json");

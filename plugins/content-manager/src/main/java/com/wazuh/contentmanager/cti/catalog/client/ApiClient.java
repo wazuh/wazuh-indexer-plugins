@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -50,10 +50,19 @@ public class ApiClient {
     private final String baseUri;
     private CloseableHttpAsyncClient client;
 
-    /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
+    /** Constructs an ApiClient instance using the default CTI base URL. */
     public ApiClient() {
-        // Retrieve base URI from PluginSettings
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
+        this.buildClient();
+    }
+
+    /**
+     * Constructs an ApiClient instance with a custom base URL.
+     *
+     * @param baseUrl The base URL for the CTI API.
+     */
+    public ApiClient(String baseUrl) {
+        this.baseUri = baseUrl;
         this.buildClient();
     }
 

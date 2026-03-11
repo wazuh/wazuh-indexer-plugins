@@ -85,6 +85,16 @@ public class ConsumerCveService extends AbstractConsumerService {
     }
 
     @Override
+    protected String getSnapshotFilename() {
+        return Constants.CVE_SNAPSHOT_FILENAME;
+    }
+
+    @Override
+    protected String getBaseUrl() {
+        return PluginSettings.getInstance().getCtiCveBaseUrl();
+    }
+
+    @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(Constants.KEY_CVES, "/mappings/cti-cve-mappings.json");

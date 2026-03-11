@@ -22,6 +22,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -32,6 +34,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -115,6 +118,24 @@ public abstract class AbstractConsumerService {
     public abstract void onSyncComplete(boolean isUpdated);
 
     /**
+     * Returns the local snapshot filename for this consumer. The file is expected to reside in the
+     * {@code cti-snapshots} directory under the plugin installation directory.
+     *
+     * @return The snapshot zip filename (e.g., "content.zip").
+     */
+    protected abstract String getSnapshotFilename();
+
+    /**
+     * Returns the CTI API base URL for this consumer. Override in subclasses that use a different API
+     * endpoint (e.g., CVE consumer).
+     *
+     * @return The base URL string.
+     */
+    protected String getBaseUrl() {
+        return PluginSettings.getInstance().getCtiBaseUrl();
+    }
+
+    /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      */
@@ -173,9 +194,10 @@ public abstract class AbstractConsumerService {
     private boolean syncConsumerServices() {
         String context = this.getContext();
         String consumer = this.getConsumer();
+        String baseUrl = this.getBaseUrl();
 
         ConsumerService consumerService =
-                new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+                new ConsumerServiceImpl(context, consumer, this.consumersIndex, baseUrl);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
@@ -205,7 +227,49 @@ public abstract class AbstractConsumerService {
         boolean updated = false;
         long currentOffset = localConsumer != null ? localConsumer.getLocalOffset() : 0;
 
-        // Snapshot Initialization
+        // Offset mismatch resilience
+        if (localConsumer != null && remoteConsumer != null) {
+            if (currentOffset > remoteConsumer.getOffset()) {
+                log.warn(
+                        "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.",
+                        currentOffset,
+                        remoteConsumer.getOffset(),
+                        consumer);
+                currentOffset = 0;
+            }
+        }
+
+        // Local Snapshot Initialization (takes precedence over remote download)
+        if (currentOffset == 0) {
+            Path localSnapshotPath =
+                    Path.of(
+                            this.environment.settings().get("path.home"),
+                            "plugins",
+                            Constants.PLUGIN_DIR_NAME,
+                            Constants.CTI_SNAPSHOTS_DIR,
+                            this.getSnapshotFilename());
+
+            if (Files.exists(localSnapshotPath)) {
+                log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshotPath, consumer);
+                SnapshotServiceImpl snapshotService =
+                        new SnapshotServiceImpl(
+                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+
+                boolean localSuccess = snapshotService.initializeFromLocal(localSnapshotPath);
+                if (localSuccess) {
+                    currentOffset = snapshotService.getMaxOffsetSeen();
+                    log.info(
+                            "Initialized consumer [{}] from local snapshot, offset [{}]",
+                            consumer,
+                            currentOffset);
+                    updated = true;
+                } else {
+                    log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
+                }
+            }
+        }
+
+        // Remote Snapshot Initialization (fallback when local snapshot is absent or failed)
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
@@ -221,7 +285,7 @@ public abstract class AbstractConsumerService {
             updated = true;
         }
 
-        // Update
+        // Incremental Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
             log.info(
                     "Performing update for consumer [{}] from offset [{}] to [{}]",
@@ -231,7 +295,7 @@ public abstract class AbstractConsumerService {
 
             UpdateServiceImpl updateService =
                     new UpdateServiceImpl(
-                            context, consumer, new ApiClient(), this.consumersIndex, indicesMap);
+                            context, consumer, new ApiClient(baseUrl), this.consumersIndex, indicesMap);
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
             updated = true;

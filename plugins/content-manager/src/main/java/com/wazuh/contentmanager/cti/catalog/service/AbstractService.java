@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -35,6 +35,16 @@ public abstract class AbstractService {
     /** Default constructor. Initializes the API client and ObjectMapper. */
     public AbstractService() {
         this.client = new ApiClient();
+        this.mapper = new ObjectMapper();
+    }
+
+    /**
+     * Constructor with a custom base URL. Initializes the API client with the specified URL.
+     *
+     * @param baseUrl The base URL for the CTI API.
+     */
+    public AbstractService(String baseUrl) {
+        this.client = new ApiClient(baseUrl);
         this.mapper = new ObjectMapper();
     }
 
