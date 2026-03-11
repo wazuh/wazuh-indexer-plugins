@@ -55,7 +55,7 @@ public class StreamIndex extends WazuhIndex {
     /**
      * Constructor with a custom template path.
      *
-     * @param index index name (e.g., "wazuh-events-v5-raw").
+     * @param index index name (e.g., "wazuh-events-raw-v5").
      * @param template path to the index template resource (without .json extension).
      */
     public StreamIndex(String index, String template) {

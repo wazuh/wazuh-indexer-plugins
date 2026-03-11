@@ -109,7 +109,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             ));
         }
         // Raw events data stream (stores original unprocessed events)
-        this.indices.add(new StreamIndex("wazuh-events-v5-raw", "templates/streams/raw"));
+        this.indices.add(new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw"));
 
         // Unclassified events data stream (stores uncategorized events for investigation)
         this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
