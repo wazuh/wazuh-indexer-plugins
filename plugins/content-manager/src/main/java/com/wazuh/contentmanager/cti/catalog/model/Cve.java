@@ -27,8 +27,8 @@ import com.wazuh.contentmanager.utils.Constants;
 /**
  * Model representing a CVE (Common Vulnerabilities and Exposures) resource.
  *
- * <p>CVE content is indexed under the {@code document} field, and may include a top-level
- * {@code offset}. Unlike most content resources, CVEs do not have a space field.
+ * <p>CVE content is indexed under the {@code document} field, and may include a top-level {@code
+ * offset}. Unlike most content resources, CVEs do not have a space field.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -49,8 +49,8 @@ public class Cve {
     /**
      * Factory method to create a Cve instance from a raw JsonNode payload.
      *
-     * <p>If the input contains an {@code offset} field (injected by update/snapshot pipelines), it
-     * is extracted to the top-level {@code offset} property.
+     * <p>If the input contains an {@code offset} field (injected by update/snapshot pipelines), it is
+     * extracted to the top-level {@code offset} property.
      *
      * <p>The input can be either a raw CVE JSON document, a {@code document}-wrapped payload, or a
      * legacy {@code payload}-wrapped payload.
@@ -127,5 +127,4 @@ public class Cve {
     public void setOffset(Long offset) {
         this.offset = offset;
     }
-
 }

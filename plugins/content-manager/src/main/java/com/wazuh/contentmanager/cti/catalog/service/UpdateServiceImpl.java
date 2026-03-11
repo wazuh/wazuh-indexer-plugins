@@ -185,9 +185,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case DELETE:
                 if (this.shouldSkipDelete(id)) {
-                    log.info(
-                            "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).",
-                            id);
+                    log.info("Skipping DELETE for CVE resource [{}] (CVE removals are not applied).", id);
                     break;
                 }
                 index = this.findIndexForId(id);

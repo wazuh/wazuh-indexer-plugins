@@ -47,7 +47,8 @@ public class CveTests extends OpenSearchTestCase {
 
         assertTrue(serialized.has("document"));
         assertFalse(serialized.has("payload"));
-        assertEquals("CVE-2026-0001", serialized.get("document").get("cveMetadata").get("cveId").asText());
+        assertEquals(
+                "CVE-2026-0001", serialized.get("document").get("cveMetadata").get("cveId").asText());
         assertEquals(10L, serialized.get("offset").asLong());
         assertFalse(serialized.get("document").has("offset"));
     }
@@ -81,4 +82,3 @@ public class CveTests extends OpenSearchTestCase {
         assertFalse(serialized.has("payload"));
     }
 }
-
