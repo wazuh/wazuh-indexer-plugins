@@ -277,7 +277,7 @@ public class PayloadValidations {
         Set<String> incomingSet =
                 new HashSet<>(incomingList != null ? incomingList : Collections.emptyList());
 
-        if (!existingSet.equals(incomingSet)) {
+        if (existingList.size() != incomingList.size() || !existingSet.equals(incomingSet)) {
             return new RestResponse(
                     "Content of '"
                             + fieldName
@@ -292,9 +292,11 @@ public class PayloadValidations {
      * only allowed values are accepted and duplicates are not permitted.
      *
      * @param enrichments The list of enrichment types to validate.
+     * @param knownEnrichmentTypes The list of known enrichment types to validate against.
      * @return A RestResponse error if validation fails, or null if valid.
      */
-    public RestResponse validateEnrichments(List<String> enrichments) {
+    public RestResponse validateEnrichments(
+            List<String> enrichments, Set<String> knownEnrichmentTypes) {
         if (enrichments == null || enrichments.isEmpty()) {
             return null;
         }
@@ -309,9 +311,10 @@ public class PayloadValidations {
             }
 
             // Check for invalid values
-            if (!Constants.ALLOWED_ENRICHMENT_TYPES.contains(enrichment)) {
+            if (!knownEnrichmentTypes.contains(enrichment)) {
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, enrichment),
+                        String.format(
+                                Locale.ROOT, Constants.E_400_INVALID_ENRICHMENT, enrichment, knownEnrichmentTypes),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         }

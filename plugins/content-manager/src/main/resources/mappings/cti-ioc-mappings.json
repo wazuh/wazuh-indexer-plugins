@@ -1,6 +1,26 @@
 {
   "date_detection": false,
-  "dynamic": "strict",
+  "dynamic": "strict_allow_templates",
+  "dynamic_templates": [
+    {
+      "hash_type_objects": {
+        "mapping": {
+          "type": "object"
+        },
+        "match_mapping_type": "object",
+        "path_match": "type_hashes.*"
+      }
+    },
+    {
+      "hash256": {
+        "mapping": {
+          "type": "keyword"
+        },
+        "match_mapping_type": "string",
+        "path_match": "type_hashes.*.hash.sha256"
+      }
+    }
+  ],
   "properties": {
     "document": {
       "properties": {
@@ -63,30 +83,6 @@
         }
       }
     },
-    "domain-name": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "file": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
     "hash": {
       "properties": {
         "sha256": {
@@ -95,29 +91,8 @@
         }
       }
     },
-    "ipv4-addr": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
-    },
-    "url": {
-      "properties": {
-        "hash": {
-          "properties": {
-            "sha256": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        }
-      }
+    "type_hashes": {
+      "type": "object"
     }
   }
 }

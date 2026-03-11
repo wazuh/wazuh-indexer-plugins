@@ -74,9 +74,6 @@ public class RestGetPromoteAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        //        if (request.hasParam(Constants.KEY_SPACE)) {
-        //            request.param(Constants.KEY_SPACE);
-        //        }
         RestResponse response = this.handleRequest(request);
         return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
@@ -134,7 +131,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
             // 5. Build Response
             return new PromoteResponse(changes);
         } catch (IllegalArgumentException e) {
-            log.warn(Constants.W_LOG_VALIDATION_ERROR, "promote preview", e.getMessage());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             return new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
             log.error(

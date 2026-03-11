@@ -1,0 +1,85 @@
+---
+- name: filter
+  root: true
+  title: Filter
+  group: 1
+  description: >
+      Engine filters document custom fields
+  type: group
+  fields:
+    - name: hash.sha256
+      level: custom
+      type: keyword
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      description: "The SHA-256 hash of the filter document."
+    - name: space.name
+      level: custom
+      type: keyword
+      example: "draft"
+      description: "The name of the space where the filter is defined."
+    - name: document.name
+      type: keyword
+      level: custom
+      description: >
+          Human-readable name of the filter.
+      example: "Block suspicious login"
+    - name: document.enabled
+      type: boolean
+      level: custom
+      description: >
+          Whether the filter is enabled.
+      example: true
+    - name: document.metadata.description
+      type: text
+      level: custom
+      description: >
+          Description of the filter purpose or behavior.
+      example: "Detects failed logins from new locations."
+    - name: document.metadata.author.email
+      type: keyword
+      level: custom
+      description: >
+          Email of the filter author.
+      example: "security@example.com"
+    - name: document.metadata.author.name
+      type: keyword
+      level: custom
+      description: >
+          Name of the filter author.
+      example: "SecOps Team"
+    - name: document.metadata.author.url
+      type: keyword
+      level: custom
+      description: >
+          URL associated with the filter author or documentation.
+      example: "https://example.com/filters"
+    - name: document.metadata.author.date
+      type: date
+      level: custom
+      description: >
+          Creation date of the filter metadata.
+      example: "2024-01-15T08:30:00.000Z"
+    - name: document.metadata.author.modified
+      type: date
+      level: custom
+      description: >
+          Last modification date of the filter metadata.
+      example: "2024-02-20T14:45:00.000Z"
+    - name: document.check
+      type: keyword
+      level: custom
+      description: >
+          Check expression or identifier used by the filter.
+      example: "event.action:login AND event.outcome:failure"
+    - name: document.type
+      type: keyword
+      level: custom
+      description: >
+          Filter type or category.
+      example: "event"
+    - name: document.id
+      type: keyword
+      level: custom
+      description: >
+          Unique identifier of the filter document.
+      example: "filter-12345"

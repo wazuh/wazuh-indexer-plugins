@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -52,8 +52,8 @@ public abstract class Index implements IndexInitializer {
     JsonUtils jsonUtils;
 
     // Properties.
-    String index;
-    String template;
+    protected String index;
+    protected String template;
 
     boolean retry_index_creation;
     boolean retry_template_creation;

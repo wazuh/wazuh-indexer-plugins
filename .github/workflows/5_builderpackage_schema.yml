@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Set up Docker Compose
         run: sudo apt-get install docker-compose
@@ -40,6 +40,12 @@ jobs:
         env:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
         run: bash ecs/generator/generate_schema.sh
+
+      - name: Convert static mappings to dynamic_templates
+        run: |
+          echo "Converting generated static mappings to dynamic_templates..."
+          
+          find plugins/setup/src/main/resources/templates/streams -name "*.json" -type f -exec python3 ecs/generator/convert_to_dynamic_templates.py {} {} \;
 
       - name: Push changes
         env:

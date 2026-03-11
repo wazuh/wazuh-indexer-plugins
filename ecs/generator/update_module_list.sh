@@ -108,23 +108,27 @@ function map_stateless_modules() {
 }
 
 # ====
-# Map CTI IoC modules
+# Map settings module
 # ====
-function map_cti_modules() {
-  # Map first-level directories in stateless (excluding special directories)
-  for dir in ecs/cti/*; do
-    if [[ -d "$dir" ]]; then
-      local module_name
-      module_name=$(basename "$dir")
+function map_settings_modules() {
+  local module_name="settings"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
 
-      # Skip special directories
-      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
-        continue
-      fi
-      # Regular stateless module
-      all_modules["cti/$module_name"]="templates/cti/${module_name}.json"
-    fi
-  done
+# ====
+# Map IoC module
+# ====
+function map_ioc_module() {
+  local module_name="cti/ioc"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
+# Map Engine Filter module
+# ====
+function map_engine_filter_module() {
+  local module_name="filters"
+  all_modules["$module_name"]="templates/${module_name}.json"
 }
 
 # ====
@@ -146,19 +150,27 @@ function sort_and_output_modules() {
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
 
-  echo "  # CTI stateless modules" >>"$output_file"
-
-  # Output CTI IoC modules (sorted, excluding main)
-  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^cti/" | grep -v "^cti/main$" | sort); do
-    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
-  done
-
   echo "  # Third-party stateless modules" >>"$output_file"
-
   # Output other stateless modules (sorted, excluding main)
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/main$" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
+
+  # Other modules
+  if [[ -n "${all_modules[settings]}" ]]; then
+    echo "  # Settings module" >>"$output_file"
+    echo "  [settings]=${all_modules[settings]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[filters]}" ]]; then
+    echo "  # Engine filter module" >>"$output_file"
+    echo "  [filters]=${all_modules[filters]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[cti/ioc]}" ]]; then
+    echo "  # IoC module" >>"$output_file"
+    echo "  [cti/ioc]=${all_modules[cti/ioc]}" >>"$output_file"
+  fi
 
   echo ")" >>"$output_file"
 }
@@ -179,7 +191,11 @@ function main() {
 
   map_stateless_modules
 
-  map_cti_modules
+  map_settings_modules
+
+  map_ioc_module
+
+  map_engine_filter_module
 
   # Sort and output
   sort_and_output_modules "$output_file"

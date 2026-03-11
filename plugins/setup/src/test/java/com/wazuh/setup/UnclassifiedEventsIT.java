@@ -18,93 +18,148 @@ package com.wazuh.setup;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import org.opensearch.action.admin.indices.datastream.GetDataStreamAction;
-import org.opensearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.test.OpenSearchIntegTestCase;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
+import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.junit.After;
+import org.junit.Before;
 
-import java.util.Collection;
-import java.util.List;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.containsString;
 
 /**
  * Integration tests for the unclassified events data stream. Verifies the creation and
- * configuration of the wazuh-events-v5-unclassified data stream.
+ * configuration of the wazuh-events-v5-unclassified data stream using REST API calls against an
+ * external test cluster.
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
-@OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class UnclassifiedEventsIT extends OpenSearchIntegTestCase {
+public class UnclassifiedEventsIT extends OpenSearchRestTestCase {
 
     private static final String UNCLASSIFIED_DATASTREAM = "wazuh-events-v5-unclassified";
     private static final String UNCLASSIFIED_INDEX_TEMPLATE = "streams-unclassified";
+    private static final int MAX_WAIT_SECONDS = 120;
+    private static final int POLL_INTERVAL_MS = 500;
 
+    /**
+     * Preserves indices upon test completion to prevent the test framework from deleting indices
+     * created by the SetupPlugin between tests.
+     *
+     * @return true to preserve indices
+     */
     @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return List.of(SetupPlugin.class);
+    protected boolean preserveIndicesUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves data streams upon test completion. The SetupPlugin creates data streams during
+     * initialization, and these need to persist across all tests in this class.
+     *
+     * @return true to preserve data streams
+     */
+    @Override
+    protected boolean preserveDataStreamsUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves index templates upon test completion. The SetupPlugin creates index templates for
+     * data streams, and these need to persist across all tests.
+     *
+     * @return true to preserve templates
+     */
+    @Override
+    protected boolean preserveTemplatesUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Waits for the plugin initialization to complete by polling for the unclassified data stream.
+     * The SetupPlugin creates templates first, then data streams. CI runners may be slow due to
+     * resource constraints; timeout is {@value #MAX_WAIT_SECONDS} seconds.
+     *
+     * @throws Exception if the data stream is not created within the timeout
+     */
+    @Before
+    public void waitForPluginInitialization() throws Exception {
+        long startTime = System.currentTimeMillis();
+        long timeout = TimeUnit.SECONDS.toMillis(MAX_WAIT_SECONDS);
+
+        while (System.currentTimeMillis() - startTime < timeout) {
+            try {
+                client().performRequest(new Request("GET", "/_data_stream/" + UNCLASSIFIED_DATASTREAM));
+                logger.info("Unclassified data stream is ready");
+                return;
+            } catch (ResponseException e) {
+                if (e.getResponse().getStatusLine().getStatusCode() == 404) {
+                    logger.debug("Waiting for unclassified data stream to be created...");
+                    Thread.sleep(POLL_INTERVAL_MS);
+                } else {
+                    throw e;
+                }
+            }
+        }
+        fail(
+                "Timed out waiting for unclassified data stream to be created after "
+                        + MAX_WAIT_SECONDS
+                        + " seconds");
     }
 
     /**
      * Test to verify that the unclassified events data stream is created during plugin
      * initialization.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
-    public void testUnclassifiedDataStreamCreated() {
-        // Wait for initialization to complete
-        this.ensureGreen();
+    public void testUnclassifiedDataStreamCreated() throws IOException, ParseException {
+        Response response =
+                client().performRequest(new Request("GET", "/_data_stream/" + UNCLASSIFIED_DATASTREAM));
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        try {
-            // Get data streams and verify the unclassified data stream exists
-            GetDataStreamAction.Request request =
-                    new GetDataStreamAction.Request(new String[] {UNCLASSIFIED_DATASTREAM});
-            GetDataStreamAction.Response response =
-                    client().admin().indices().getDataStreams(request).actionGet();
-
-            logger.info("Data stream response: {}", response);
-            assertThat(
-                    "Data stream should be created during plugin initialization",
-                    response.getDataStreams().size(),
-                    greaterThanOrEqualTo(1));
-        } catch (Exception e) {
-            logger.info("Data stream not found or query failed: {}", e.getMessage());
-            // If data stream wasn't created, that's also acceptable for this test
-            // as the plugin may still be initializing
-            assertTrue("Test completed without fatal error", true);
-        }
+        logger.info("Data stream response: {}", body);
+        assertThat(
+                "Data stream should be created during plugin initialization",
+                body,
+                containsString(UNCLASSIFIED_DATASTREAM));
     }
 
     /**
      * Test to verify that the unclassified events index template is created during plugin
      * initialization.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
-    public void testUnclassifiedTemplateCreated() {
-        // Wait for initialization to complete
-        this.ensureGreen();
+    public void testUnclassifiedTemplateCreated() throws IOException, ParseException {
+        Response response =
+                client()
+                        .performRequest(new Request("GET", "/_index_template/" + UNCLASSIFIED_INDEX_TEMPLATE));
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        try {
-            // Get index templates and verify the unclassified template exists
-            GetComposableIndexTemplateAction.Request request =
-                    new GetComposableIndexTemplateAction.Request(UNCLASSIFIED_INDEX_TEMPLATE);
-            GetComposableIndexTemplateAction.Response response =
-                    client().execute(GetComposableIndexTemplateAction.INSTANCE, request).actionGet();
-
-            logger.info("Template response: {}", response);
-            assertThat(
-                    "Template should be created during plugin initialization",
-                    response.indexTemplates().size(),
-                    greaterThanOrEqualTo(1));
-        } catch (Exception e) {
-            logger.info("Template not found or query failed: {}", e.getMessage());
-            // If template wasn't found, that's also acceptable for this test
-            // as the plugin may still be initializing
-            assertTrue("Test completed without fatal error", true);
-        }
+        logger.info("Template response: {}", body);
+        assertThat(
+                "Template should be created during plugin initialization",
+                body,
+                containsString(UNCLASSIFIED_INDEX_TEMPLATE));
     }
 
+    /**
+     * Clears the fielddata cache after each test to prevent flaky failures from the test framework's
+     * post-test assertions.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
     @After
-    public void clearFieldData() {
-        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
+    public void clearFieldData() throws IOException {
+        Request request = new Request("POST", "/_cache/clear");
+        request.addParameter("fielddata", "true");
+        client().performRequest(request);
     }
 }

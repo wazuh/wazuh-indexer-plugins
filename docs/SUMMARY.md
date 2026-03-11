@@ -17,6 +17,7 @@
   - [Reporting](dev/plugins/reporting.md)
   - [Content Manager](dev/plugins/content-manager.md)
     - [Content Manager Tutorial](dev/plugins/content-manager-tutorial.md)
+  - [Notifications](dev/plugins/notifications.md)
 
 # Reference Manual
 - [Introduction]()
@@ -43,6 +44,11 @@
     - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)
     - [Usage](ref/modules/reporting/usage.md)
+  - [Notifications](ref/modules/notifications/index.md)
+    - [Architecture](ref/modules/notifications/architecture.md)
+    - [Configuration](ref/modules/notifications/configuration.md)
+    - [API Reference](ref/modules/notifications/api.md)
+    - [Troubleshooting](ref/modules/notifications/troubleshooting.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
 - [Back Up and Restore](ref/backup-restore.md)

@@ -1,32 +1,12 @@
 ---
-name: cti-iocs
+name: iocs
 fields:
   base:
     fields:
-      message: {}
       hash:
         fields:
           sha256: {}
-      ipv4-addr:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      domain-name:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      url:
-        fields:
-          hash:
-            fields:
-              sha256: {}
-      file:
-        fields:
-          hash:
-            fields:
-              sha256: {}
+      type_hashes: {}
   document:
     fields:
       confidence: {}

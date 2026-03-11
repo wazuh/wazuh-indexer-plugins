@@ -32,6 +32,8 @@ tags:
     description: Manage key-value databases used by content
   - name: Decoders
     description: Manage decoders for parsing and normalization
+  - name: Filters
+    description: Manage filters for event pre-processing and post-processing
   - name: Rules
     description: Manage detection rules and analytics
   - name: Integrations
@@ -40,6 +42,8 @@ tags:
     description: Execute logtest against sample events
   - name: Promotion
     description: Preview and promote content across spaces
+  - name: Spaces
+    description: Manage user spaces and environments
 
 security:
   - bearerAuth: []
@@ -358,6 +362,126 @@ paths:
       description: |
         Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
       operationId: deleteDecoder
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Filter management endpoints
+  /filters:
+    post:
+      tags: [Filters]
+      summary: Create Filter
+      description: |
+        Creates a filter in the draft or standard space. The server generates the UUID.
+        The filter is validated against the Wazuh engine before being stored.
+        The filter is automatically linked to the specified space's policy.
+      operationId: createFilter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                  description: Target space for the filter
+                resource:
+                  $ref: "#/components/schemas/FilterResourceCreate"
+            examples:
+              create_filter:
+                summary: Example filter creation
+                value:
+                  space: "draft"
+                  resource:
+                    name: "filter/prefilter/0"
+                    enabled: true
+                    metadata:
+                      description: "Default filter to allow all events (for default ruleset)"
+                      author:
+                        email: "info@wazuh.com"
+                        name: "Wazuh, Inc."
+                        url: "https://wazuh.com"
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: "pre-filter"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /filters/{id}:
+    put:
+      tags: [Filters]
+      summary: Update Filter
+      description: |
+        Updates an existing filter in the draft or standard space. The filter is validated against the Wazuh engine before being stored.
+        The filter ID in the path must match the resource ID in the payload (if provided).
+      operationId: updateFilter
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                  description: Target space for the filter
+                resource:
+                  $ref: "#/components/schemas/FilterResource"
+            examples:
+              update_filter:
+                summary: Example filter update
+                value:
+                  space: "draft"
+                  resource:
+                    name: "filter/prefilter/0"
+                    enabled: true
+                    metadata:
+                      description: "Updated filter description"
+                      author:
+                        email: "info@wazuh.com"
+                        name: "Wazuh, Inc."
+                        url: "https://wazuh.com"
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: "pre-filter"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Filters]
+      summary: Delete Filter
+      description: |
+        Deletes a filter from the draft or standard space. The filter is also removed from the associated policy.
+      operationId: deleteFilter
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
@@ -701,17 +825,65 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /policy:
+  /policy/{space}:
     put:
-      tags: [Draft Policy]
-      summary: Update full draft policy
+      tags: [Policy]
+      summary: Update policy in a given space
+      description: |
+        Updates the routing policy in the specified space (`draft` or `standard`).
+
+        **Draft space**: All policy fields are accepted. The `integrations` and `filters`
+        arrays allow reordering but do not allow adding or removing entries.
+        Fields `author`, `description`, `documentation`, and `references` are required
+        in addition to the boolean fields.
+
+        **Standard space**: Only `enrichments`, `filters`, `enabled`,
+        `index_unclassified_events`, and `index_discarded_events` can be modified.
+        All other fields are preserved from the existing standard policy document.
+        The `filters` array allows reordering but not addition or removal.
       operationId: policy_update
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: Target space for the policy update.
+          schema:
+            type: string
+            enum: [draft, standard]
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/Policy"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}:
+    delete:
+      tags: [ Spaces ]
+      summary: Reset a user space
+      description: |
+        Resets a user space (draft) to its initial state.
+
+        This operation will:
+        - Remove all documents (integrations, rules, decoders, kvdbs) belonging to the given space.
+        - Re-generate the default policy for the given space.
+
+      operationId: deleteSpace
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to reset.
+          schema:
+            type: string
+            enum: [ draft ]
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -1114,6 +1286,86 @@ components:
                 type: string
               description: Version numbers
 
+    # Filter document schema for creation (id is auto-generated)
+    FilterResourceCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Filter name identifier (e.g., filter/prefilter/0)
+
+        enabled:
+          type: boolean
+          description: Whether the filter is enabled
+
+        check:
+          type: string
+          description: Filter check expression
+
+        type:
+          type: string
+          description: Filter type (e.g., pre-filter)
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            description:
+              type: string
+              description: Filter description
+
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                url:
+                  type: string
+
+    # Filter document schema (for updates)
+    FilterResource:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Filter name identifier (e.g., filter/prefilter/0)
+
+        enabled:
+          type: boolean
+          description: Whether the filter is enabled
+
+        check:
+          type: string
+          description: Filter check expression
+
+        type:
+          type: string
+          description: Filter type (e.g., pre-filter)
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            description:
+              type: string
+              description: Filter description
+
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                url:
+                  type: string
+
     # KVDB document schema (key-value data managed by the engine)
     KvdbResource:
       type: object
@@ -1347,10 +1599,14 @@ components:
       type: object
       additionalProperties: false
       required:
-        - author
-        - description
-        - documentation
-        - references
+        - enabled
+        - index_unclassified_events
+        - index_discarded_events
+      description: |
+        Policy resource definition. The fields `enabled`, `index_unclassified_events`,
+        and `index_discarded_events` are always required. When updating the **draft**
+        space, `author`, `description`, `documentation`, and `references` are also
+        required.
       properties:
         title:
           type: string
@@ -1375,39 +1631,56 @@ components:
           type: array
           items:
             type: string
-          description: List of filter UUIDs
+          description: >
+            List of filter UUIDs. Reordering is allowed, but adding or
+            removing entries is not (managed via filter CUD endpoints).
           example: ["5c1df6b6-1458-4b2e-9001-96f67a8b12c8"]
 
         enrichments:
           type: array
           items:
             type: string
-            enum: [file, domain-name, ip, url, geo]
+            enum: [connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full]
           description: >
-            Enrichment types to apply. Allowed values: file, domain-name, ip, url, geo.
-            No duplicates allowed.
-          example: ["file", "ip", "geo"]
+            Enrichment types to apply. Known values: connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full.
+            No duplicates allowed. May vary based on engine capabilities.
+          example: ["connection", "hash_md5", "url-full"]
+
+        enabled:
+          type: boolean
+          description: Whether the policy is active and synchronized by the Engine
+          example: true
+
+        index_unclassified_events:
+          type: boolean
+          description: Whether uncategorized events are indexed
+          example: false
+
+        index_discarded_events:
+          type: boolean
+          description: Whether discarded events are indexed
+          example: false
 
         author:
           type: string
-          description: Author of the policy
+          description: Author of the policy (required for draft space)
           example: "Wazuh Inc."
 
         description:
           type: string
-          description: Brief description of the policy
+          description: Brief description of the policy (required for draft space)
           example: "Policy description"
 
         documentation:
           type: string
-          description: Detailed documentation for the policy
+          description: Detailed documentation for the policy (required for draft space)
           example: "Detailed documentation"
 
         references:
           type: array
           items:
             type: string
-          description: External reference URLs
+          description: External reference URLs (required for draft space)
           example: ["https://wazuh.com"]
 
     RestResponse:
