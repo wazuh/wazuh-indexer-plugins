@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -37,8 +38,14 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -46,6 +53,8 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -64,15 +73,24 @@ public class ConsumerIocService extends AbstractConsumerService {
     /** The unified consumer name identifier. */
     private final String CONSUMER = PluginSettings.getInstance().getIocConsumer();
 
+    /** The engine service for notifying the Engine about IOC updates. */
+    private final EngineService engineService;
+
     /**
      * Constructs a new ConsumerIocService.
      *
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
+     * @param engineService The engine service for IOC load notifications.
      */
-    public ConsumerIocService(Client client, ConsumersIndex consumersIndex, Environment environment) {
+    public ConsumerIocService(
+            Client client,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            EngineService engineService) {
         super(client, consumersIndex, environment);
+        this.engineService = engineService;
     }
 
     @Override
@@ -102,7 +120,16 @@ public class ConsumerIocService extends AbstractConsumerService {
     public void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
             this.refreshIndices(Constants.INDEX_IOCS);
-            this.computeAndStoreTypeHashes();
+            Map<String, String> typeHashes = this.computeAndStoreTypeHashes();
+            String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
+
+            // Export IoCs to NDJSON and load them into the Engine.
+            try {
+                Path exportPath = this.export();
+                this.notifyEngine(exportPath.toString(), combinedHash);
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_IOC_EXPORT_FAILED, e.getMessage(), e);
+            }
         }
     }
 
@@ -111,8 +138,10 @@ public class ConsumerIocService extends AbstractConsumerService {
      * document. Uses PIT (Point-in-Time) with search_after for deterministic, paginated iteration
      * over potentially millions of documents. Types are discovered dynamically by scanning all
      * documents sorted by {@code document.type}.
+     *
+     * @return A map of IOC type names to their computed SHA-256 hashes, or an empty map on failure.
      */
-    private void computeAndStoreTypeHashes() {
+    private Map<String, String> computeAndStoreTypeHashes() {
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
         TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
 
@@ -122,8 +151,9 @@ public class ConsumerIocService extends AbstractConsumerService {
                 this.client.execute(CreatePitAction.INSTANCE, createPitRequest).actionGet();
         String pitId = pitResponse.getId();
 
+        Map<String, String> typeHashes = Collections.emptyMap();
         try {
-            Map<String, String> typeHashes = this.computeAllTypeHashes(pitId, keepalive);
+            typeHashes = this.computeAllTypeHashes(pitId, keepalive);
 
             ObjectNode typeHashesNode = MAPPER.createObjectNode();
             for (Map.Entry<String, String> entry : typeHashes.entrySet()) {
@@ -150,6 +180,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
         }
+        return typeHashes;
     }
 
     /**
@@ -214,5 +245,127 @@ public class ConsumerIocService extends AbstractConsumerService {
             result.put(entry.getKey(), Resource.computeSha256(entry.getValue().toString()));
         }
         return result;
+    }
+
+    /**
+     * Exports all IOC documents (excluding the type-hashes summary document) to an NDJSON file. Uses
+     * PIT with search_after pagination to iterate over all documents. Each line contains the JSON
+     * serialization of the {@code document} field only.
+     *
+     * @return The path to the written NDJSON file.
+     * @throws IOException If an I/O error occurs while writing the file.
+     */
+    private Path export() throws IOException {
+        String pathHome = this.environment.settings().get("path.home");
+        Path outputPath =
+                Path.of(pathHome, "engine", "data", Constants.IOC_EXPORT_FILENAME)
+                        .toAbsolutePath()
+                        .normalize();
+
+        long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
+        TimeValue keepalive = TimeValue.timeValueSeconds(keepaliveSeconds);
+
+        CreatePitRequest createPitRequest =
+                new CreatePitRequest(keepalive, false, Constants.INDEX_IOCS);
+        CreatePitResponse pitResponse =
+                this.client.execute(CreatePitAction.INSTANCE, createPitRequest).actionGet();
+        String pitId = pitResponse.getId();
+
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        try (BufferedWriter writer =
+                                Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
+                            Object[] searchAfter = null;
+
+                            while (true) {
+                                SearchSourceBuilder source =
+                                        new SearchSourceBuilder()
+                                                .query(
+                                                        QueryBuilders.boolQuery()
+                                                                .mustNot(
+                                                                        QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
+                                                .sort("_id", SortOrder.ASC)
+                                                .size(SEARCH_PAGE_SIZE)
+                                                .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
+                                                .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
+                                if (searchAfter != null) {
+                                    source.searchAfter(searchAfter);
+                                }
+
+                                SearchRequest searchRequest = new SearchRequest();
+                                searchRequest.source(source);
+                                SearchResponse response = this.client.search(searchRequest).actionGet();
+                                SearchHit[] hits = response.getHits().getHits();
+                                if (hits.length == 0) {
+                                    break;
+                                }
+
+                                for (SearchHit hit : hits) {
+                                    Map<String, Object> sourceMap = hit.getSourceAsMap();
+                                    Object document = sourceMap.get(Constants.KEY_DOCUMENT);
+                                    if (document != null) {
+                                        writer.write(MAPPER.writeValueAsString(document));
+                                        writer.newLine();
+                                    }
+                                }
+                                searchAfter = hits[hits.length - 1].getSortValues();
+                            }
+                        }
+                    });
+        } finally {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
+        }
+
+        log.info(Constants.I_LOG_IOC_EXPORT_COMPLETE, outputPath);
+        return outputPath;
+    }
+
+    /**
+     * Notifies the Engine to load IOC data from the given file path. Before sending the update, it
+     * checks the Engine's IOC state. If the Engine is already processing a previous update or the
+     * state check fails, the notification is skipped (fail-closed).
+     *
+     * @param filePath The absolute path to the NDJSON file.
+     * @param hash The combined SHA-256 hash of all IOC type hashes.
+     */
+    private void notifyEngine(String filePath, String hash) {
+        if (this.isEngineUpdating()) {
+            return;
+        }
+
+        RestResponse response = this.engineService.updateIoc(filePath, hash);
+        if (response.getStatus() >= 200 && response.getStatus() < 300) {
+            log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, filePath);
+        } else {
+            log.error(Constants.E_LOG_IOC_ENGINE_NOTIFY_FAILED, response.getMessage());
+        }
+    }
+
+    /**
+     * Checks whether the Engine is currently processing an IOC update. Returns {@code true} if the
+     * Engine is busy or if the state check fails (fail-closed).
+     *
+     * @return {@code true} if the Engine is updating or the state could not be determined.
+     */
+    private boolean isEngineUpdating() {
+        try {
+            RestResponse stateResponse = this.engineService.getIocState();
+            if (stateResponse.getStatus() < 200 || stateResponse.getStatus() >= 300) {
+                log.warn(Constants.W_LOG_IOC_STATE_CHECK_FAILED, stateResponse.getMessage());
+                return true;
+            }
+
+            JsonNode stateNode = MAPPER.readTree(stateResponse.getMessage());
+            if (stateNode.path(Constants.KEY_UPDATING).asBoolean(false)) {
+                log.warn(Constants.W_LOG_IOC_ENGINE_BUSY);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_IOC_STATE_CHECK_FAILED, e.getMessage(), e);
+            return true;
+        }
     }
 }

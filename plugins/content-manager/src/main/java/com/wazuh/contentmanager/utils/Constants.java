@@ -112,6 +112,7 @@ public class Constants {
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
+    public static final String KEY_UPDATING = "updating";
 
     // Enrichment types allowed in policy
     public static final String E_400_INVALID_ENRICHMENT =
@@ -177,6 +178,18 @@ public class Constants {
     public static final String Q_DOCUMENT_TITLE = "document.title";
     public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
+
+    // IOC export
+    public static final String IOC_EXPORT_FILENAME = "iocs.ndjson";
+    public static final String I_LOG_IOC_EXPORT_COMPLETE = "IOC export completed: {}";
+    public static final String E_LOG_IOC_EXPORT_FAILED = "Failed to export IOCs to NDJSON: {}";
+    public static final String I_LOG_IOC_ENGINE_NOTIFIED = "Engine notified to load IOCs from: {}";
+    public static final String E_LOG_IOC_ENGINE_NOTIFY_FAILED =
+            "Failed to notify Engine to load IOCs: {}";
+    public static final String W_LOG_IOC_ENGINE_BUSY =
+            "Engine is currently processing a previous IOC update, skipping notification.";
+    public static final String W_LOG_IOC_STATE_CHECK_FAILED =
+            "Failed to check Engine IOC state, skipping notification: {}";
 
     // Operations
     public static final String KEY_OPERATION = "operation";

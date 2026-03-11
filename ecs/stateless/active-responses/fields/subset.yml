@@ -1,0 +1,12 @@
+---
+name: active-responses
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  event:
+    fields:
+      index: {}
+      doc_id: {}
+  wazuh:
+    fields: "*"

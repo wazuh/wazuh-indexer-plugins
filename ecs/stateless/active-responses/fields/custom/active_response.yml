@@ -1,0 +1,56 @@
+---
+- name: active_response
+  reusable:
+    top_level: false
+    expected:
+      - { at: wazuh, as: active_response }
+  title: Wazuh Active Response
+  type: group
+  group: 2
+  description: >
+    Fields for Active Response execution requests.
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        Name of the active response configured in the channel.
+      example: "firewall-drop"
+    - name: executable
+      type: keyword
+      level: custom
+      description: >
+        Executable configured in the active response channel.
+      example: "firewall-drop"
+    - name: extra_arguments
+      type: keyword
+      level: custom
+      description: >
+        Arguments configured in the active response channel.
+      normalize:
+        - array
+      example: '["192.168.1.100", "600"]'
+    - name: location
+      type: keyword
+      level: custom
+      description: >
+        Where to execute. One of: local, defined-agent, all.
+      example: "defined-agent"
+    - name: agent_id
+      type: keyword
+      level: custom
+      description: >
+        Agent configured in the active response channel.
+      example: "001"
+    - name: type
+      type: keyword
+      level: custom
+      description: >
+        Response type. One of: stateless, stateful.
+      example: "stateless"
+    - name: stateful_timeout
+      type: integer
+      level: custom
+      description: >
+        Seconds configured in the channel (for stateful type).
+      example: 300

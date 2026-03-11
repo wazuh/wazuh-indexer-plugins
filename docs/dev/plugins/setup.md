@@ -307,3 +307,62 @@ These tests verify:
 - ISM policy creation and application
 - Document indexing capability
 - Correct field mappings
+
+---
+
+## 🚀 Active Responses Data Stream (`wazuh-active-responses`)
+
+### Overview
+
+The **wazuh-active-responses** data stream stores Active Response execution requests generated when monitor triggers match their conditions. This is part of the Active Response 5.0 integration with Wazuh XDR, using the Indexer Alerting and Notifications plugins as the foundation.
+
+### Purpose
+
+- **Active Response Pipeline**: Structured and auditable execution pipeline for Active Response actions
+- **Manager Retrieval**: The Wazuh manager retrieves documents from this index to distribute and execute Active Responses on agents
+- **Event Correlation**: Each document references the source event (document ID and index) that triggered the response
+
+### Data Stream Configuration
+
+#### Index Template
+- **Location**: `plugins/setup/src/main/resources/templates/streams/active-responses.json`
+- **Index Pattern**: `wazuh-active-responses*`
+- **Rollover Alias**: `wazuh-active-responses`
+- **Priority**: 1
+
+#### Fields Included (WCS-compatible)
+
+- **@timestamp**: When the active response was triggered
+- **event.doc_id**: Document ID of the matched alert that triggered the active response
+- **event.index**: Source index of the matched alert
+- **wazuh.active_response.name**: Name of the active response configured in the channel
+- **wazuh.active_response.executable**: Executable configured in the active response channel
+- **wazuh.active_response.extra_arguments**: Arguments configured in the channel
+- **wazuh.active_response.location**: Where to execute (local, defined-agent, all)
+- **wazuh.active_response.agent_id**: Agent configured in the channel
+- **wazuh.active_response.type**: Response type (stateless, stateful)
+- **wazuh.active_response.stateful_timeout**: Seconds configured in the channel (for stateful)
+- **wazuh.agent.***: Agent metadata
+- **wazuh.cluster.***: Cluster information
+- **wazuh.space.name**: Wazuh space/tenant information
+
+### ISM Policy
+
+#### Policy Details
+- **Policy Name**: `stream-active-responses-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
+- **Retention Period**: 3 days
+- **Priority**: 100
+
+### Configuration
+
+The data stream is created automatically during plugin initialization. Ensure:
+
+1. The template file `active-responses.json` exists in `templates/streams/`
+2. The ISM policy file `stream-active-responses-policy.json` exists in `policies/`
+3. Both are registered in `SetupPlugin.java` and `IndexStateManagement.java`
+
+### Testing
+
+Integration tests for the active responses data stream are located at:
+`plugins/setup/src/test/java/com/wazuh/setup/ActiveResponsesIT.java`
