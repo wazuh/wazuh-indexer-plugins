@@ -118,13 +118,13 @@ The `.cti-consumers` index stores one document per context/consumer pair:
 ```json
 {
   "_index": ".cti-consumers",
-  "_id": "development_0.0.3_development_0.0.3_test",
+  "_id": "development_0.0.3_development_0.0.3",
   "_source": {
-    "name": "development_0.0.3_test",
+    "name": "development_0.0.3",
     "context": "development_0.0.3",
     "local_offset": 3932,
     "remote_offset": 3932,
-    "snapshot_link": "https://cti-pre.wazuh.com/store/contexts/development_0.0.3/consumers/development_0.0.3_test/3932_1770988130.zip"
+    "snapshot_link": "https://cti-pre.wazuh.com/store/contexts/development_0.0.3/consumers/development_0.0.3/3932_1770988130.zip"
   }
 }
 ```
