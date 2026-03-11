@@ -3235,15 +3235,6 @@
           }
         },
         {
-          "wcs_event_doc_id": {
-            "path_match": "event.doc_id",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
           "wcs_event_duration": {
             "path_match": "event.duration",
             "mapping": {
@@ -3271,15 +3262,6 @@
         {
           "wcs_event_id": {
             "path_match": "event.id",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_event_index": {
-            "path_match": "event.index",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"

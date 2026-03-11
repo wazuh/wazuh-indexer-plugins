@@ -4809,17 +4809,6 @@ event.dataset:
   normalize: []
   short: Name of the dataset.
   type: keyword
-event.doc_id:
-  dashed_name: event-doc-id
-  description: Document ID of the matched alert that triggered the active response.
-  example: abc123
-  flat_name: event.doc_id
-  ignore_above: 1024
-  level: custom
-  name: doc_id
-  normalize: []
-  short: Document ID of the matched alert that triggered the active response.
-  type: keyword
 event.duration:
   dashed_name: event-duration
   description: 'Duration of the event in nanoseconds.
@@ -4870,17 +4859,6 @@ event.id:
   name: id
   normalize: []
   short: Unique ID to describe the event.
-  type: keyword
-event.index:
-  dashed_name: event-index
-  description: Source index of the matched alert that triggered the active response.
-  example: wazuh-events-v5-security
-  flat_name: event.index
-  ignore_above: 1024
-  level: custom
-  name: index
-  normalize: []
-  short: Source index of the matched alert that triggered the active response.
   type: keyword
 event.ingested:
   dashed_name: event-ingested

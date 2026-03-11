@@ -56,10 +56,15 @@ def convert_template(input_data):
     
     template_block = output.get("template", {})
     mappings = template_block.get("mappings", {})
+        
+    # If the template already has populated dynamic_templates, skip conversion.
+    if mappings.get("dynamic_templates"):
+        return input_data, True
+
     properties = mappings.get("properties", {})
 
     if not properties:
-        return output
+        return output, False
 
     # 1. Get all flat paths and their mappings
     flat_mappings = flatten_properties(properties)
@@ -98,7 +103,7 @@ def convert_template(input_data):
         "properties": static_props
     }
 
-    return output
+    return output, False
 
 def main():
     parser = argparse.ArgumentParser(description="Convert ALL static properties to dynamic_templates.")
@@ -111,8 +116,13 @@ def main():
         input_data = json.load(f)
 
     # Convert
-    result = convert_template(input_data)
+    result, skipped = convert_template(input_data)
 
+    if skipped:
+        print("Notice: The template already contains 'dynamic_templates'. No changes were made.")
+        # If an output file was requested, we can optionally just copy the original file over, 
+        # or exit without writing. Here, we'll write the unchanged file out to be safe.
+        
     # Format JSON
     output_json = json.dumps(result, indent=2)
 
@@ -120,7 +130,8 @@ def main():
     if args.output:
         with open(args.output, "w") as f:
             f.write(output_json + "\n")
-        print(f"Successfully converted {len(result['template']['mappings']['dynamic_templates'])} fields.")
+        if not skipped:
+            print(f"Successfully converted {len(result['template']['mappings']['dynamic_templates'])} fields.")
         print(f"Written to {args.output}")
     else:
         print(output_json)

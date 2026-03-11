@@ -20,6 +20,7 @@ module_to_file=(
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
   # Stateless modules
   [stateless/main]=templates/streams/main.json
+  [stateless/active-responses]=templates/streams/active-responses.json
   [stateless/raw]=templates/streams/raw.json
   [stateless/unclassified]=templates/streams/unclassified.json
   # Settings module
