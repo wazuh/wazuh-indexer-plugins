@@ -74,6 +74,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add unclassified events data stream and index template with 7-day retention policy [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/pull/832)
 - Add API check workflow and update documentation [(#881)](https://github.com/wazuh/wazuh-indexer-plugins/pull/881)
 - Add documentation for notifications plugin [(#908)](https://github.com/wazuh/wazuh-indexer-plugins/pull/908)
+- Add active response index with ISM policy [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
+- Implement Ioc delivery [(#858)](https://github.com/wazuh/wazuh-indexer-plugins/pull/858)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)

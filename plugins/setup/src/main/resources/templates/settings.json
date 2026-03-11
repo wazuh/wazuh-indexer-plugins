@@ -6,10 +6,10 @@
   "template": {
     "settings": {
       "index": {
+        "hidden": true,
         "number_of_replicas": "0",
         "number_of_shards": "1",
-        "refresh_interval": "2s",
-        "hidden": true
+        "refresh_interval": "2s"
       }
     },
     "mappings": {
