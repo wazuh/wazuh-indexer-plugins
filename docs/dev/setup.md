@@ -37,6 +37,12 @@ git clone git@github.com:wazuh/wazuh-indexer-security-analytics.git
 cd wazuh-indexer-security-analytics
 git remote add upstream git@github.com:opensearch-project/security-analytics.git
 cd ..
+
+# Notifications plugin (forked from OpenSearch)
+git clone git@github.com:wazuh/wazuh-indexer-notifications.git
+cd wazuh-indexer-notifications
+git remote add upstream git@github.com:opensearch-project/notifications.git
+cd ..
 ```
 
 ## 3. Vagrant
@@ -121,6 +127,13 @@ After completing the setup, verify everything works:
 ```bash
 cd wazuh-indexer-plugins
 ./gradlew :wazuh-indexer-content-manager:compileJava
+```
+
+For the Notifications plugin (Kotlin-based, separate repository):
+
+```bash
+cd wazuh-indexer-notifications
+./gradlew build
 ```
 
 If compilation succeeds, your environment is ready. See [Build from Sources](build-sources.md) for more build commands.
