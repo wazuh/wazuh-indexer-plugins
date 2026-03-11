@@ -120,6 +120,19 @@ sequenceDiagram
 
 Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/wcs) for complete definitions of the indices. The indices inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
 
+### Event stream templates
+
+All event categories share a single base template: `templates/streams/events.json`. The `StreamIndex` class dynamically generates one index template per category at deployment time by overriding `index_patterns` and `rollover_alias` from the base template. Specialized streams (raw, unclassified, active-responses) use their own dedicated template files.
+
+The WCS field definitions are organized under `wcs/stateless/events/`:
+
+```
+wcs/stateless/events/
+├── main/          # Shared fields for all event categories
+├── raw/           # Fields for raw (unprocessed) events
+└── unclassified/  # Fields for uncategorized events
+```
+
 ## JavaDoc
 
 The plugin is documented using JavaDoc. You can compile the documentation using the Gradle task for that purpose. The generated JavaDoc is in the **build/docs** folder.
