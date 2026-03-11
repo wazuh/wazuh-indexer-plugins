@@ -25,18 +25,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Model representing a CVE (Common Vulnerabilities and Exposures) resource. CVE documents contain a
- * payload with the CVE data and a hash for integrity verification. Unlike other resources, CVEs do
- * not have a space field.
+ * Model representing a CVE (Common Vulnerabilities and Exposures) resource.
+ *
+ * <p>CVE content is indexed under the {@code document} field, and may include a top-level
+ * {@code offset}. Unlike most content resources, CVEs do not have a space field.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Cve {
 
     private static final String KEY_PAYLOAD = "payload";
+    private static final String KEY_DOCUMENT = Constants.KEY_DOCUMENT;
 
-    @JsonProperty(KEY_PAYLOAD)
-    private JsonNode payload;
+    @JsonProperty(KEY_DOCUMENT)
+    private JsonNode document;
 
     @JsonProperty(Constants.KEY_OFFSET)
     private Long offset;
@@ -47,9 +49,11 @@ public class Cve {
     /**
      * Factory method to create a Cve instance from a raw JsonNode payload.
      *
-     * <p>If the payload contains an {@code offset} field (injected by the update pipeline), it is
-     * extracted to the top-level {@code offset} property and removed from the payload so it does not
-     * violate the strict index mapping.
+     * <p>If the input contains an {@code offset} field (injected by update/snapshot pipelines), it
+     * is extracted to the top-level {@code offset} property.
+     *
+     * <p>The input can be either a raw CVE JSON document, a {@code document}-wrapped payload, or a
+     * legacy {@code payload}-wrapped payload.
      *
      * @param payload The raw JSON object containing the CVE data.
      * @return A fully populated Cve instance.
@@ -57,36 +61,53 @@ public class Cve {
     public static Cve fromPayload(JsonNode payload) {
         Cve cve = new Cve();
 
-        // Extract offset from the payload node before storing it, so the field stays at the
-        // document root rather than inside the strict-mapped payload object.
-        if (payload.has(Constants.KEY_OFFSET)) {
-            cve.setOffset(payload.get(Constants.KEY_OFFSET).asLong());
-            ObjectNode stripped = ((ObjectNode) payload).deepCopy();
-            stripped.remove(Constants.KEY_OFFSET);
-            payload = stripped;
+        if (payload == null || payload.isNull()) {
+            return cve;
         }
 
-        cve.setPayload(payload);
+        JsonNode normalized = payload;
 
+        // Extract offset from the incoming node so it is always indexed at document root.
+        if (normalized.isObject() && normalized.has(Constants.KEY_OFFSET)) {
+            cve.setOffset(normalized.get(Constants.KEY_OFFSET).asLong());
+            ObjectNode stripped = (ObjectNode) normalized.deepCopy();
+            stripped.remove(Constants.KEY_OFFSET);
+            normalized = stripped;
+        }
+
+        if (normalized.isObject()) {
+            // Accept both new and legacy wrappers while always serializing to `document`.
+            if (normalized.has(KEY_DOCUMENT)) {
+                cve.setDocument(normalized.get(KEY_DOCUMENT));
+                return cve;
+            }
+            if (normalized.has(KEY_PAYLOAD)) {
+                cve.setDocument(normalized.get(KEY_PAYLOAD));
+                return cve;
+            }
+        }
+
+        // Raw CVE payload (no wrapper).
+        cve.setDocument(normalized);
         return cve;
     }
 
     /**
-     * Gets the payload.
+     * Gets the document.
      *
-     * @return The CVE payload.
+     * @return The CVE document.
      */
-    public JsonNode getPayload() {
-        return this.payload;
+    public JsonNode getDocument() {
+        return this.document;
     }
 
     /**
-     * Sets the payload.
+     * Sets the document.
      *
-     * @param payload The CVE payload.
+     * @param document The CVE document.
      */
-    public void setPayload(JsonNode payload) {
-        this.payload = payload;
+    public void setDocument(JsonNode document) {
+        this.document = document;
     }
 
     /**
