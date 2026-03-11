@@ -34,7 +34,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -126,16 +125,6 @@ public abstract class AbstractConsumerService {
     protected abstract String getSnapshotFilename();
 
     /**
-     * Returns the CTI API base URL for this consumer. Override in subclasses that use a different API
-     * endpoint (e.g., CVE consumer).
-     *
-     * @return The base URL string.
-     */
-    protected String getBaseUrl() {
-        return PluginSettings.getInstance().getCtiBaseUrl();
-    }
-
-    /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      */
@@ -194,10 +183,9 @@ public abstract class AbstractConsumerService {
     private boolean syncConsumerServices() {
         String context = this.getContext();
         String consumer = this.getConsumer();
-        String baseUrl = this.getBaseUrl();
 
         ConsumerService consumerService =
-                new ConsumerServiceImpl(context, consumer, this.consumersIndex, baseUrl);
+                new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
@@ -295,7 +283,7 @@ public abstract class AbstractConsumerService {
 
             UpdateServiceImpl updateService =
                     new UpdateServiceImpl(
-                            context, consumer, new ApiClient(baseUrl), this.consumersIndex, indicesMap);
+                            context, consumer, new ApiClient(), this.consumersIndex, indicesMap);
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
             updated = true;

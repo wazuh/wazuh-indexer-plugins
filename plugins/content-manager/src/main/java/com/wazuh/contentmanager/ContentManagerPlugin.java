@@ -331,7 +331,6 @@ public class ContentManagerPlugin extends Plugin
         return Arrays.asList(
                 PluginSettings.CLIENT_TIMEOUT,
                 PluginSettings.CTI_API_URL,
-                PluginSettings.CTI_CVE_API_URL,
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.CATALOG_SYNC_INTERVAL,

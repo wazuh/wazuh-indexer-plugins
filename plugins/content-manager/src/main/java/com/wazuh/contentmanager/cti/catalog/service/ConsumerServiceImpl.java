@@ -56,22 +56,6 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     }
 
     /**
-     * Constructs a ConsumerServiceImpl with a custom CTI API base URL.
-     *
-     * @param context The context identifier.
-     * @param consumer The consumer identifier.
-     * @param consumerIndex The index service for storing consumer metadata.
-     * @param baseUrl The base URL for the CTI API.
-     */
-    public ConsumerServiceImpl(
-            String context, String consumer, ConsumersIndex consumerIndex, String baseUrl) {
-        super(baseUrl);
-        this.context = context;
-        this.consumer = consumer;
-        this.consumerIndex = consumerIndex;
-    }
-
-    /**
      * Retrieves the local consumer state from the internal index. If the consumer does not exist
      * locally, it attempts to initialize it.
      *

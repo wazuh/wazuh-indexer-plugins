@@ -50,19 +50,9 @@ public class ApiClient {
     private final String baseUri;
     private CloseableHttpAsyncClient client;
 
-    /** Constructs an ApiClient instance using the default CTI base URL. */
+    /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
     public ApiClient() {
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
-        this.buildClient();
-    }
-
-    /**
-     * Constructs an ApiClient instance with a custom base URL.
-     *
-     * @param baseUrl The base URL for the CTI API.
-     */
-    public ApiClient(String baseUrl) {
-        this.baseUri = baseUrl;
         this.buildClient();
     }
 

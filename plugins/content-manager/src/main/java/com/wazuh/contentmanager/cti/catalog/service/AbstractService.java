@@ -39,16 +39,6 @@ public abstract class AbstractService {
     }
 
     /**
-     * Constructor with a custom base URL. Initializes the API client with the specified URL.
-     *
-     * @param baseUrl The base URL for the CTI API.
-     */
-    public AbstractService(String baseUrl) {
-        this.client = new ApiClient(baseUrl);
-        this.mapper = new ObjectMapper();
-    }
-
-    /**
      * Sets the API client. Use for testing only to inject mocked clients.
      *
      * @param c The mocked API client.

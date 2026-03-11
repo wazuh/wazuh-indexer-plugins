@@ -79,14 +79,6 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The CTI API URL for CVE content. Defaults to the main CTI URL. */
-    public static final Setting<String> CTI_CVE_API_URL =
-            Setting.simpleString(
-                    "plugins.content_manager.cve.cti.api",
-                    CTI_URL,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
     /**
      * The maximum number of elements that are included in a bulk request during the initialization
      * from a snapshot.
@@ -223,7 +215,6 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
-    private final String ctiCveBaseUrl;
     private final int maximumItemsPerBulk;
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
@@ -247,7 +238,6 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
-        this.ctiCveBaseUrl = CTI_CVE_API_URL.get(settings);
         this.maximumItemsPerBulk = MAX_ITEMS_PER_BULK.get(settings);
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
@@ -300,15 +290,6 @@ public class PluginSettings {
      */
     public String getCtiBaseUrl() {
         return this.ctiBaseUrl;
-    }
-
-    /**
-     * Getter method for the CVE CTI API URL.
-     *
-     * @return a string with the CVE base URL
-     */
-    public String getCtiCveBaseUrl() {
-        return this.ctiCveBaseUrl;
     }
 
     /**
