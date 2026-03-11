@@ -8,3 +8,106 @@
     top_level: true
     expected:
       - check
+  fields:
+    - name: gdpr
+      type: keyword
+      level: custom
+      description: GDPR requirements.
+      normalize:
+        - array
+      example: '["Art. 32", "Art. 25"]'
+    - name: pci_dss
+      type: keyword
+      level: custom
+      description: PCI DSS requirements.
+      normalize:
+        - array
+      example: '["2.2.1", "6.3.3"]'
+    - name: cmmc
+      type: keyword
+      level: custom
+      description: CMMC requirements.
+      normalize:
+        - array
+      example: '["AC.1.001", "AU.L2-3.3.1"]'
+    - name: nist_800_53
+      type: keyword
+      level: custom
+      description: NIST 800-53 requirements.
+      normalize:
+        - array
+      example: '["AC-3", "AU-2"]'
+    - name: nist_800_171
+      type: keyword
+      level: custom
+      description: NIST 800-171 requirements.
+      normalize:
+        - array
+      example: '["3.1.1", "3.3.1"]'
+    - name: hipaa
+      type: keyword
+      level: custom
+      description: HIPAA requirements.
+      normalize:
+        - array
+      example: '["164.312(a)(1)", "164.308(a)(5)(ii)(C)"]'
+    - name: iso_27001
+      type: keyword
+      level: custom
+      description: ISO 27001 requirements.
+      normalize:
+        - array
+      example: '["A.9.4.1", "A.8.8"]'
+    - name: nis2
+      type: keyword
+      level: custom
+      description: NIS2 requirements.
+      normalize:
+        - array
+      example: '["Art. 21", "Art. 23"]'
+    - name: tsc
+      type: keyword
+      level: custom
+      description: TSC requirements.
+      normalize:
+        - array
+      example: '["CC6.1", "CC7.1"]'
+    - name: fedramp
+      type: keyword
+      level: custom
+      description: FedRAMP requirements.
+      normalize:
+        - array
+      example: '["AC-2", "SC-7"]'
+
+- name: mitre
+  title: MITRE ATT&CK
+  description: >
+    Fields related to the MITRE ATT&CK framework.
+  type: group
+  reusable:
+    top_level: true
+    expected:
+      - check
+  fields:
+    - name: tactic
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK tactics.
+      normalize:
+        - array
+      example: '["TA0002", "TA0005"]'
+    - name: technique
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK techniques.
+      normalize:
+        - array
+      example: '["T1059", "T1562"]'
+    - name: subtechnique
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK subtechniques.
+      normalize:
+        - array
+      example: '["T1059.001", "T1078.001"]'
