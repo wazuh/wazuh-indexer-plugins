@@ -94,8 +94,8 @@
           }
         },
         {
-          "wcs_check_compliance_cmmc_category": {
-            "path_match": "check.compliance.cmmc.category",
+          "wcs_check_compliance_cmmc": {
+            "path_match": "check.compliance.cmmc",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -103,8 +103,8 @@
           }
         },
         {
-          "wcs_check_compliance_cmmc_name": {
-            "path_match": "check.compliance.cmmc.name",
+          "wcs_check_compliance_fedramp": {
+            "path_match": "check.compliance.fedramp",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -112,8 +112,8 @@
           }
         },
         {
-          "wcs_check_compliance_cmmc_publisher": {
-            "path_match": "check.compliance.cmmc.publisher",
+          "wcs_check_compliance_gdpr": {
+            "path_match": "check.compliance.gdpr",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -121,8 +121,8 @@
           }
         },
         {
-          "wcs_check_compliance_cmmc_requirements": {
-            "path_match": "check.compliance.cmmc.requirements",
+          "wcs_check_compliance_hipaa": {
+            "path_match": "check.compliance.hipaa",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -130,8 +130,8 @@
           }
         },
         {
-          "wcs_check_compliance_cmmc_version": {
-            "path_match": "check.compliance.cmmc.version",
+          "wcs_check_compliance_iso_27001": {
+            "path_match": "check.compliance.iso_27001",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -139,8 +139,8 @@
           }
         },
         {
-          "wcs_check_compliance_fedramp_category": {
-            "path_match": "check.compliance.fedramp.category",
+          "wcs_check_compliance_nis2": {
+            "path_match": "check.compliance.nis2",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -148,8 +148,8 @@
           }
         },
         {
-          "wcs_check_compliance_fedramp_name": {
-            "path_match": "check.compliance.fedramp.name",
+          "wcs_check_compliance_nist_800_171": {
+            "path_match": "check.compliance.nist_800_171",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -157,8 +157,8 @@
           }
         },
         {
-          "wcs_check_compliance_fedramp_publisher": {
-            "path_match": "check.compliance.fedramp.publisher",
+          "wcs_check_compliance_nist_800_53": {
+            "path_match": "check.compliance.nist_800_53",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -166,8 +166,8 @@
           }
         },
         {
-          "wcs_check_compliance_fedramp_requirements": {
-            "path_match": "check.compliance.fedramp.requirements",
+          "wcs_check_compliance_pci_dss": {
+            "path_match": "check.compliance.pci_dss",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -175,413 +175,8 @@
           }
         },
         {
-          "wcs_check_compliance_fedramp_version": {
-            "path_match": "check.compliance.fedramp.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_gdpr_category": {
-            "path_match": "check.compliance.gdpr.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_gdpr_name": {
-            "path_match": "check.compliance.gdpr.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_gdpr_publisher": {
-            "path_match": "check.compliance.gdpr.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_gdpr_requirements": {
-            "path_match": "check.compliance.gdpr.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_gdpr_version": {
-            "path_match": "check.compliance.gdpr.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_hipaa_category": {
-            "path_match": "check.compliance.hipaa.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_hipaa_name": {
-            "path_match": "check.compliance.hipaa.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_hipaa_publisher": {
-            "path_match": "check.compliance.hipaa.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_hipaa_requirements": {
-            "path_match": "check.compliance.hipaa.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_hipaa_version": {
-            "path_match": "check.compliance.hipaa.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_iso_27001_category": {
-            "path_match": "check.compliance.iso_27001.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_iso_27001_name": {
-            "path_match": "check.compliance.iso_27001.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_iso_27001_publisher": {
-            "path_match": "check.compliance.iso_27001.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_iso_27001_requirements": {
-            "path_match": "check.compliance.iso_27001.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_iso_27001_version": {
-            "path_match": "check.compliance.iso_27001.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_mitre_attack_category": {
-            "path_match": "check.compliance.mitre_attack.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_mitre_attack_name": {
-            "path_match": "check.compliance.mitre_attack.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_mitre_attack_publisher": {
-            "path_match": "check.compliance.mitre_attack.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_mitre_attack_requirements": {
-            "path_match": "check.compliance.mitre_attack.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_mitre_attack_version": {
-            "path_match": "check.compliance.mitre_attack.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nis2_category": {
-            "path_match": "check.compliance.nis2.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nis2_name": {
-            "path_match": "check.compliance.nis2.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nis2_publisher": {
-            "path_match": "check.compliance.nis2.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nis2_requirements": {
-            "path_match": "check.compliance.nis2.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nis2_version": {
-            "path_match": "check.compliance.nis2.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_171_category": {
-            "path_match": "check.compliance.nist_800_171.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_171_name": {
-            "path_match": "check.compliance.nist_800_171.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_171_publisher": {
-            "path_match": "check.compliance.nist_800_171.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_171_requirements": {
-            "path_match": "check.compliance.nist_800_171.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_171_version": {
-            "path_match": "check.compliance.nist_800_171.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_53_category": {
-            "path_match": "check.compliance.nist_800_53.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_53_name": {
-            "path_match": "check.compliance.nist_800_53.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_53_publisher": {
-            "path_match": "check.compliance.nist_800_53.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_53_requirements": {
-            "path_match": "check.compliance.nist_800_53.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_nist_800_53_version": {
-            "path_match": "check.compliance.nist_800_53.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_pci_dss_category": {
-            "path_match": "check.compliance.pci_dss.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_pci_dss_name": {
-            "path_match": "check.compliance.pci_dss.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_pci_dss_publisher": {
-            "path_match": "check.compliance.pci_dss.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_pci_dss_requirements": {
-            "path_match": "check.compliance.pci_dss.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_pci_dss_version": {
-            "path_match": "check.compliance.pci_dss.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_tsc_category": {
-            "path_match": "check.compliance.tsc.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_tsc_name": {
-            "path_match": "check.compliance.tsc.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_tsc_publisher": {
-            "path_match": "check.compliance.tsc.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_tsc_requirements": {
-            "path_match": "check.compliance.tsc.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_check_compliance_tsc_version": {
-            "path_match": "check.compliance.tsc.version",
+          "wcs_check_compliance_tsc": {
+            "path_match": "check.compliance.tsc",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -609,6 +204,33 @@
         {
           "wcs_check_id": {
             "path_match": "check.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_mitre_subtechnique": {
+            "path_match": "check.mitre.subtechnique",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_mitre_tactic": {
+            "path_match": "check.mitre.tactic",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_mitre_technique": {
+            "path_match": "check.mitre.technique",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1283,8 +905,8 @@
           }
         },
         {
-          "wcs_compliance_cmmc_category": {
-            "path_match": "compliance.cmmc.category",
+          "wcs_compliance_cmmc": {
+            "path_match": "compliance.cmmc",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1292,8 +914,8 @@
           }
         },
         {
-          "wcs_compliance_cmmc_name": {
-            "path_match": "compliance.cmmc.name",
+          "wcs_compliance_fedramp": {
+            "path_match": "compliance.fedramp",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1301,8 +923,8 @@
           }
         },
         {
-          "wcs_compliance_cmmc_publisher": {
-            "path_match": "compliance.cmmc.publisher",
+          "wcs_compliance_gdpr": {
+            "path_match": "compliance.gdpr",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1310,8 +932,8 @@
           }
         },
         {
-          "wcs_compliance_cmmc_requirements": {
-            "path_match": "compliance.cmmc.requirements",
+          "wcs_compliance_hipaa": {
+            "path_match": "compliance.hipaa",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1319,8 +941,8 @@
           }
         },
         {
-          "wcs_compliance_cmmc_version": {
-            "path_match": "compliance.cmmc.version",
+          "wcs_compliance_iso_27001": {
+            "path_match": "compliance.iso_27001",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1328,8 +950,8 @@
           }
         },
         {
-          "wcs_compliance_fedramp_category": {
-            "path_match": "compliance.fedramp.category",
+          "wcs_compliance_nis2": {
+            "path_match": "compliance.nis2",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1337,8 +959,8 @@
           }
         },
         {
-          "wcs_compliance_fedramp_name": {
-            "path_match": "compliance.fedramp.name",
+          "wcs_compliance_nist_800_171": {
+            "path_match": "compliance.nist_800_171",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1346,8 +968,8 @@
           }
         },
         {
-          "wcs_compliance_fedramp_publisher": {
-            "path_match": "compliance.fedramp.publisher",
+          "wcs_compliance_nist_800_53": {
+            "path_match": "compliance.nist_800_53",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1355,8 +977,8 @@
           }
         },
         {
-          "wcs_compliance_fedramp_requirements": {
-            "path_match": "compliance.fedramp.requirements",
+          "wcs_compliance_pci_dss": {
+            "path_match": "compliance.pci_dss",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -1364,413 +986,8 @@
           }
         },
         {
-          "wcs_compliance_fedramp_version": {
-            "path_match": "compliance.fedramp.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_gdpr_category": {
-            "path_match": "compliance.gdpr.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_gdpr_name": {
-            "path_match": "compliance.gdpr.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_gdpr_publisher": {
-            "path_match": "compliance.gdpr.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_gdpr_requirements": {
-            "path_match": "compliance.gdpr.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_gdpr_version": {
-            "path_match": "compliance.gdpr.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_hipaa_category": {
-            "path_match": "compliance.hipaa.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_hipaa_name": {
-            "path_match": "compliance.hipaa.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_hipaa_publisher": {
-            "path_match": "compliance.hipaa.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_hipaa_requirements": {
-            "path_match": "compliance.hipaa.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_hipaa_version": {
-            "path_match": "compliance.hipaa.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_iso_27001_category": {
-            "path_match": "compliance.iso_27001.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_iso_27001_name": {
-            "path_match": "compliance.iso_27001.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_iso_27001_publisher": {
-            "path_match": "compliance.iso_27001.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_iso_27001_requirements": {
-            "path_match": "compliance.iso_27001.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_iso_27001_version": {
-            "path_match": "compliance.iso_27001.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_mitre_attack_category": {
-            "path_match": "compliance.mitre_attack.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_mitre_attack_name": {
-            "path_match": "compliance.mitre_attack.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_mitre_attack_publisher": {
-            "path_match": "compliance.mitre_attack.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_mitre_attack_requirements": {
-            "path_match": "compliance.mitre_attack.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_mitre_attack_version": {
-            "path_match": "compliance.mitre_attack.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nis2_category": {
-            "path_match": "compliance.nis2.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nis2_name": {
-            "path_match": "compliance.nis2.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nis2_publisher": {
-            "path_match": "compliance.nis2.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nis2_requirements": {
-            "path_match": "compliance.nis2.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nis2_version": {
-            "path_match": "compliance.nis2.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_171_category": {
-            "path_match": "compliance.nist_800_171.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_171_name": {
-            "path_match": "compliance.nist_800_171.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_171_publisher": {
-            "path_match": "compliance.nist_800_171.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_171_requirements": {
-            "path_match": "compliance.nist_800_171.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_171_version": {
-            "path_match": "compliance.nist_800_171.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_53_category": {
-            "path_match": "compliance.nist_800_53.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_53_name": {
-            "path_match": "compliance.nist_800_53.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_53_publisher": {
-            "path_match": "compliance.nist_800_53.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_53_requirements": {
-            "path_match": "compliance.nist_800_53.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_nist_800_53_version": {
-            "path_match": "compliance.nist_800_53.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_pci_dss_category": {
-            "path_match": "compliance.pci_dss.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_pci_dss_name": {
-            "path_match": "compliance.pci_dss.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_pci_dss_publisher": {
-            "path_match": "compliance.pci_dss.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_pci_dss_requirements": {
-            "path_match": "compliance.pci_dss.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_pci_dss_version": {
-            "path_match": "compliance.pci_dss.version",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_tsc_category": {
-            "path_match": "compliance.tsc.category",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_tsc_name": {
-            "path_match": "compliance.tsc.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_tsc_publisher": {
-            "path_match": "compliance.tsc.publisher",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_tsc_requirements": {
-            "path_match": "compliance.tsc.requirements",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_compliance_tsc_version": {
-            "path_match": "compliance.tsc.version",
+          "wcs_compliance_tsc": {
+            "path_match": "compliance.tsc",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -5701,6 +4918,33 @@
         {
           "wcs_log_syslog_version": {
             "path_match": "log.syslog.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_mitre_subtechnique": {
+            "path_match": "mitre.subtechnique",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_mitre_tactic": {
+            "path_match": "mitre.tactic",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_mitre_technique": {
+            "path_match": "mitre.technique",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -16977,41 +16221,10 @@
         "check": {
           "properties": {
             "compliance": {
-              "properties": {
-                "cmmc": {
-                  "properties": {}
-                },
-                "fedramp": {
-                  "properties": {}
-                },
-                "gdpr": {
-                  "properties": {}
-                },
-                "hipaa": {
-                  "properties": {}
-                },
-                "iso_27001": {
-                  "properties": {}
-                },
-                "mitre_attack": {
-                  "properties": {}
-                },
-                "nis2": {
-                  "properties": {}
-                },
-                "nist_800_171": {
-                  "properties": {}
-                },
-                "nist_800_53": {
-                  "properties": {}
-                },
-                "pci_dss": {
-                  "properties": {}
-                },
-                "tsc": {
-                  "properties": {}
-                }
-              }
+              "properties": {}
+            },
+            "mitre": {
+              "properties": {}
             }
           }
         },
@@ -17097,41 +16310,7 @@
           }
         },
         "compliance": {
-          "properties": {
-            "cmmc": {
-              "properties": {}
-            },
-            "fedramp": {
-              "properties": {}
-            },
-            "gdpr": {
-              "properties": {}
-            },
-            "hipaa": {
-              "properties": {}
-            },
-            "iso_27001": {
-              "properties": {}
-            },
-            "mitre_attack": {
-              "properties": {}
-            },
-            "nis2": {
-              "properties": {}
-            },
-            "nist_800_171": {
-              "properties": {}
-            },
-            "nist_800_53": {
-              "properties": {}
-            },
-            "pci_dss": {
-              "properties": {}
-            },
-            "tsc": {
-              "properties": {}
-            }
-          }
+          "properties": {}
         },
         "container": {
           "properties": {
@@ -17463,6 +16642,9 @@
               }
             }
           }
+        },
+        "mitre": {
+          "properties": {}
         },
         "network": {
           "properties": {
