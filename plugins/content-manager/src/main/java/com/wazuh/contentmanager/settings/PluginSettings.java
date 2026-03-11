@@ -53,7 +53,7 @@ public class PluginSettings {
 
     // Default values for Context and Consumer
     private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
-    private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3_test";
+    private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3";
 
     // Default values for Context and Consumer
     private static final String DEFAULT_IOC_CONTEXT = "ioc_provider_v3";
