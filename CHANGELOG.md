@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add state.modified_at to stateful indexes [(#561)](https://github.com/wazuh/wazuh-indexer-plugins/pull/561)
 - Add WCS integration fields to stateless indices [(#621)](https://github.com/wazuh/wazuh-indexer-plugins/pull/621)
 - Implement pre-processing ECS sources types sanitization [(#628)](https://github.com/wazuh/wazuh-indexer-plugins/pull/628)
-- Add Security Compliance fields to the WCS [(#643)](https://github.com/wazuh/wazuh-indexer-plugins/pull/643)
+- Add Security Compliance fields to the WCS [(#643)](https://github.com/wazuh/wazuh-indexer-plugins/pull/643) [(#910)](https://github.com/wazuh/wazuh-indexer-plugins/pull/910)
 - Initialize indexer content manager [(#651)](https://github.com/wazuh/wazuh-indexer-plugins/pull/651)
 - Indexer's Content Manager Rest API implementation [(#662)](https://github.com/wazuh/wazuh-indexer-plugins/pull/662)
 - Implement Imposter mock server for CTI API [#661](https://github.com/wazuh/wazuh-indexer-plugins/pull/661)
@@ -123,6 +123,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use the new consumer and Ioc types [(#863)](https://github.com/wazuh/wazuh-indexer-plugins/pull/863)
 - Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#894)](https://github.com/wazuh/wazuh-indexer-plugins/pull/894)
 - Update templates to use minimal WCS [(#887)](https://github.com/wazuh/wazuh-indexer-plugins/pull/887)
+- Restructure ecs folder [(#898)](https://github.com/wazuh/wazuh-indexer-plugins/pull/898)
 - Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 
 ### Deprecated

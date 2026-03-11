@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -60,6 +60,15 @@ public class IndexTemplate {
      */
     public List<String> getIndexPatterns() {
         return this.indexPatterns;
+    }
+
+    /**
+     * Index pattern setter.
+     *
+     * @param indexPatterns the list of index patterns to apply.
+     */
+    public void setIndexPatterns(List<String> indexPatterns) {
+        this.indexPatterns = indexPatterns;
     }
 
     /**
