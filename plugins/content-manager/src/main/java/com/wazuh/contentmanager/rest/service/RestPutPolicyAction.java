@@ -199,18 +199,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
             // Validate required Policy fields
             List<String> missingFields = new ArrayList<>();
-            if (policy.getAuthor() == null || policy.getAuthor().isEmpty()) {
-                missingFields.add(Constants.KEY_AUTHOR);
-            }
-            if (policy.getDescription() == null) {
-                missingFields.add(Constants.KEY_DESCRIPTION);
-            }
-            if (policy.getDocumentation() == null) {
-                missingFields.add("documentation");
-            }
-            if (policy.getReferences() == null) {
-                missingFields.add("references");
-            }
             if (policy.getEnabled() == null) {
                 missingFields.add(Constants.KEY_ENABLED);
             }
