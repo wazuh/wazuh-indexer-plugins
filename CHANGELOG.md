@@ -122,6 +122,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use the new consumer and Ioc types [(#863)](https://github.com/wazuh/wazuh-indexer-plugins/pull/863)
 - Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#894)](https://github.com/wazuh/wazuh-indexer-plugins/pull/894)
 - Update templates to use minimal WCS [(#887)](https://github.com/wazuh/wazuh-indexer-plugins/pull/887)
+- Restructure ecs folder [(#898)](https://github.com/wazuh/wazuh-indexer-plugins/pull/898)
 - Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 
 ### Deprecated

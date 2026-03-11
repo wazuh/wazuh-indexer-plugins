@@ -4,8 +4,8 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
-      - "ecs/**/*.json"
-      - "ecs/**/*.yml"
+      - "wcs/**/*.json"
+      - "wcs/**/*.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,18 +34,18 @@ jobs:
         run: sudo apt-get install docker-compose
 
       - name: Update module list
-        run: bash ecs/generator/update_module_list.sh
+        run: bash wcs/generator/update_module_list.sh
 
       - name: Generate WCS
         env:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
-        run: bash ecs/generator/generate_schema.sh
+        run: bash wcs/generator/generate_schema.sh
 
       - name: Convert static mappings to dynamic_templates
         run: |
           echo "Converting generated static mappings to dynamic_templates..."
           
-          find plugins/setup/src/main/resources/templates/streams -name "*.json" -type f -exec python3 ecs/generator/convert_to_dynamic_templates.py {} {} \;
+          find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
 
       - name: Push changes
         env:
@@ -55,7 +55,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
           SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
-        run: bash ecs/generator/push_schema.sh
+        run: bash wcs/generator/push_schema.sh
 
       - name: Display pull request link
         if: ${{ success() }}
