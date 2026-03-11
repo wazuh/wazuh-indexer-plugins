@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload.containers.cna, as: metrics }
-      - { at: payload.containers.adp, as: metrics }
+      - { at: document.containers.cna, as: metrics }
+      - { at: document.containers.adp, as: metrics }
 
   fields:
     - name: format

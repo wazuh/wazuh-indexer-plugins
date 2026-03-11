@@ -4,7 +4,7 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload, as: cveMetadata }
+      - { at: document, as: cveMetadata }
   fields:
     - name: cveId
       type: keyword

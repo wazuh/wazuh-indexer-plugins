@@ -4,5 +4,5 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload.containers.cna, as: problemTypes }
-      - { at: payload.containers.adp, as: problemTypes }
+      - { at: document.containers.cna, as: problemTypes }
+      - { at: document.containers.adp, as: problemTypes }

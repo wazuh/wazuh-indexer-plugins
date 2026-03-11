@@ -1,5 +1,5 @@
-- name: payload
-  title: Payload
+- name: document 
+  title: Document 
   description: CNA populated data associated with a CVE ID as a CVE Record from Wazuh CTI.
   type: group
   group: 2

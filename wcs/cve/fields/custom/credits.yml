@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload.containers.cna, as: credits }
-      - { at: payload.containers.adp, as: credits }
+      - { at: document.containers.cna, as: credits }
+      - { at: document.containers.adp, as: credits }
   fields:
     - name: lang
       type: keyword

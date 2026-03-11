@@ -4,18 +4,18 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload.containers.cna, as: descriptions }
-      - { at: payload.containers.adp, as: descriptions }
+      - { at: document.containers.cna, as: descriptions }
+      - { at: document.containers.adp, as: descriptions }
       - { at: impacts, as: descriptions }
-      - { at: payload.containers.cna, as: configurations }
-      - { at: payload.containers.cna, as: workarounds }
-      - { at: payload.containers.cna, as: solutions }
-      - { at: payload.containers.cna, as: exploits }
-      - { at: payload.containers.cna, as: rejectedReasons }
-      - { at: payload.containers.adp, as: configurations }
-      - { at: payload.containers.adp, as: workarounds }
-      - { at: payload.containers.adp, as: solutions }
-      - { at: payload.containers.adp, as: exploits }
+      - { at: document.containers.cna, as: configurations }
+      - { at: document.containers.cna, as: workarounds }
+      - { at: document.containers.cna, as: solutions }
+      - { at: document.containers.cna, as: exploits }
+      - { at: document.containers.cna, as: rejectedReasons }
+      - { at: document.containers.adp, as: configurations }
+      - { at: document.containers.adp, as: workarounds }
+      - { at: document.containers.adp, as: solutions }
+      - { at: document.containers.adp, as: exploits }
   fields:
     - name: lang
       type: keyword

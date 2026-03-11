@@ -29,4 +29,6 @@ module_to_file=(
   [content/filters]=templates/content/filters.json
   # IoC module
   [content/ioc]=templates/content/ioc.json
+  # CVE module
+  [cve]=templates/cve.json
 )

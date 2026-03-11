@@ -143,6 +143,14 @@ function map_engine_filter_module() {
 }
 
 # ====
+# Map CVE module
+# ====
+function map_cve_module() {
+  local module_name="cve"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
 # Sort modules by type and name
 # ====
 function sort_and_output_modules() {
@@ -155,7 +163,7 @@ function sort_and_output_modules() {
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateful/" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
-  
+
   echo "  # Stateless modules" >>"$output_file"
   # Output stateless events/main module first
   if [[ -n "${all_modules[stateless/events/main]}" ]]; then
@@ -183,6 +191,11 @@ function sort_and_output_modules() {
     echo "  [content/ioc]=${all_modules[content/ioc]}" >>"$output_file"
   fi
 
+  if [[ -n "${all_modules[cve]}" ]]; then
+    echo "  # CVE module" >>"$output_file"
+    echo "  [cve]=${all_modules[cve]}" >>"$output_file"
+  fi
+
   echo ")" >>"$output_file"
 }
 
@@ -207,6 +220,8 @@ function main() {
   map_ioc_module
 
   map_engine_filter_module
+
+  map_cve_module
 
   # Sort and output
   sort_and_output_modules "$output_file"

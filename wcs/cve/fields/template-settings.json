@@ -1,5 +1,7 @@
 {
-  "index_patterns": ["wazuh-cve*"],
+  "index_patterns": [
+    "wazuh-cve*"
+  ],
   "priority": 1,
   "template": {
     "settings": {
@@ -10,7 +12,8 @@
         "query.default_field": [
           "name"
         ]
-      }
+      },
+      "mapping.total_fields.limit": 500
     }
   }
 }

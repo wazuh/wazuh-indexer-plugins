@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload.containers.cna, as: providerMetadata }
-      - { at: payload.containers.adp, as: providerMetadata }
+      - { at: document.containers.cna, as: providerMetadata }
+      - { at: document.containers.adp, as: providerMetadata }
 
   fields:
     - name: dateUpdated

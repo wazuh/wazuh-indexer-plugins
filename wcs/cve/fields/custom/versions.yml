@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload.containers.cna.affected, as: versions }
-      - { at: payload.containers.adp.affected, as: versions }
+      - { at: document.containers.cna.affected, as: versions }
+      - { at: document.containers.adp.affected, as: versions }
   fields:
     - name: status
       type: keyword

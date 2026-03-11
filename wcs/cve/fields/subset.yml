@@ -10,7 +10,7 @@ fields:
       offset: {}
       version: {}
       inserted_at: {}
-  payload:
+  document:
     fields:
       dataType: {}
       dataVersion: {}
