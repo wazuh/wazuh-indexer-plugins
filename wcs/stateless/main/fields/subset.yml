@@ -96,7 +96,35 @@ fields:
   error:
     fields: "*"
   event:
-    fields: "*"
+    fields:
+      action: {}
+      agent_id_status: {}
+      category: {}
+      changed_fields: {}
+      code: {}
+      collector: {}
+      created: {}
+      dataset: {}
+      duration: {}
+      end: {}
+      hash: {}
+      id: {}
+      ingested: {}
+      kind: {}
+      module: {}
+      original: {}
+      outcome: {}
+      provider: {}
+      reason: {}
+      reference: {}
+      risk_score: {}
+      risk_score_norm: {}
+      sequence: {}
+      severity: {}
+      start: {}
+      timezone: {}
+      type: {}
+      url: {}
   faas:
     fields: "*"
   file:

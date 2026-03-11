@@ -43,7 +43,7 @@ public class UnclassifiedEventsIT extends OpenSearchRestTestCase {
 
     private static final String UNCLASSIFIED_DATASTREAM = "wazuh-events-v5-unclassified";
     private static final String UNCLASSIFIED_INDEX_TEMPLATE = "wazuh-events-v5-unclassified-template";
-    private static final int MAX_WAIT_SECONDS = 60;
+    private static final int MAX_WAIT_SECONDS = 120;
     private static final int POLL_INTERVAL_MS = 500;
 
     /**
@@ -81,8 +81,8 @@ public class UnclassifiedEventsIT extends OpenSearchRestTestCase {
 
     /**
      * Waits for the plugin initialization to complete by polling for the unclassified data stream.
-     * The SetupPlugin creates multiple data streams and templates during initialization, which
-     * happens asynchronously after the cluster starts.
+     * The SetupPlugin creates templates first, then data streams. CI runners may be slow due to
+     * resource constraints; timeout is {@value #MAX_WAIT_SECONDS} seconds.
      *
      * @throws Exception if the data stream is not created within the timeout
      */

@@ -30,6 +30,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 
 /**
@@ -57,17 +58,19 @@ public class CatalogSyncJob implements JobExecutor {
      * @param environment The OpenSearch environment settings, used for path resolution.
      * @param threadPool The thread pool manager, used to offload blocking tasks to the generic
      *     executor.
+     * @param engineService The engine service for notifying the Engine about IOC updates.
      */
     public CatalogSyncJob(
             Client client,
             ConsumersIndex consumersIndex,
             Environment environment,
-            ThreadPool threadPool) {
+            ThreadPool threadPool,
+            EngineService engineService) {
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
                         new ConsumerRulesetService(client, consumersIndex, environment),
-                        new ConsumerIocService(client, consumersIndex, environment));
+                        new ConsumerIocService(client, consumersIndex, environment, engineService));
     }
 
     /**

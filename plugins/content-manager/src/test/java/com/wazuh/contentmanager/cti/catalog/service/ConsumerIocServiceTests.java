@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.lucene.search.TotalHits;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.CreatePitAction;
@@ -40,11 +41,15 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
@@ -53,9 +58,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,6 +82,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
+    @Mock private EngineService engineService;
 
     @Before
     @Override
@@ -82,7 +90,21 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
-        this.service = new ConsumerIocService(this.client, this.consumersIndex, this.environment);
+        when(this.environment.tmpDir()).thenReturn(LuceneTestCase.createTempDir());
+        when(this.environment.sharedDataDir()).thenReturn(LuceneTestCase.createTempDir());
+
+        Path tempHome = LuceneTestCase.createTempDir();
+        Files.createDirectories(tempHome.resolve("engine").resolve("data"));
+        Settings testSettings = Settings.builder().put("path.home", tempHome.toString()).build();
+        when(this.environment.settings()).thenReturn(testSettings);
+
+        when(this.engineService.getIocState())
+                .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200));
+        when(this.engineService.updateIoc(anyString(), anyString()))
+                .thenReturn(new RestResponse("OK", 200));
+        this.service =
+                new ConsumerIocService(
+                        this.client, this.consumersIndex, this.environment, this.engineService);
     }
 
     @After
@@ -154,9 +176,11 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         this.service.onSyncComplete(true);
 
-        // Verify PIT was created and deleted
-        verify(this.client).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
-        verify(this.client).execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+        // Verify PITs were created and deleted (hash computation + export)
+        verify(this.client, times(2))
+                .execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+        verify(this.client, times(2))
+                .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
 
         // Verify hash document was indexed with the correct ID
         ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -272,8 +296,9 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         // Should not throw — exception is caught internally
         this.service.onSyncComplete(true);
 
-        // PIT should still be deleted despite the exception
-        verify(this.client).execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+        // PITs should still be deleted despite the exception (hash + export both attempt PIT)
+        verify(this.client, times(2))
+                .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
 
         // Index should NOT have been called since the exception happened before indexing
         verify(this.client, never()).index(any(IndexRequest.class));
@@ -307,6 +332,150 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
     }
 
     /** Tests that when no documents exist, an empty type_hashes document is stored. */
+    /** Tests that onSyncComplete(true) calls engineService.loadIocs after export. */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncCompleteNotifiesEngine() {
+        // Mock PIT creation
+        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
+        when(pitResponse.getId()).thenReturn("test-pit-id");
+        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
+        when(pitFuture.actionGet()).thenReturn(pitResponse);
+        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+                .thenReturn(pitFuture);
+
+        // Mock search returning empty results
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        // Mock PIT deletion
+        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
+        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+                .thenReturn((ActionFuture) deletePitFuture);
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).updateIoc(anyString(), anyString());
+    }
+
+    /** Tests that onSyncComplete(false) does not call engineService.loadIocs. */
+    public void testOnSyncCompleteDoesNotNotifyEngineWhenNotUpdated() {
+        this.service.onSyncComplete(false);
+
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
+    }
+
+    /** Tests that engine notification failure does not propagate as an exception. */
+    @SuppressWarnings("unchecked")
+    public void testEngineNotificationFailureDoesNotPropagate() {
+        // Override the engineService mock to return an error
+        when(this.engineService.updateIoc(anyString(), anyString()))
+                .thenReturn(new RestResponse("Engine error", 500));
+
+        // Mock PIT creation
+        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
+        when(pitResponse.getId()).thenReturn("test-pit-id");
+        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
+        when(pitFuture.actionGet()).thenReturn(pitResponse);
+        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+                .thenReturn(pitFuture);
+
+        // Mock search returning empty results
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        // Mock index response
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        // Mock PIT deletion
+        ActionFuture<?> deletePitFuture = mock(ActionFuture.class);
+        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+                .thenReturn((ActionFuture) deletePitFuture);
+
+        // Should not throw — engine error is handled internally
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).updateIoc(anyString(), anyString());
+    }
+
+    /** Tests that loadIocs is NOT called when Engine reports updating=true. */
+    @SuppressWarnings("unchecked")
+    public void testNotifyEngineSkippedWhenEngineIsUpdating() {
+        when(this.engineService.getIocState())
+                .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":true}", 200));
+
+        this.mockPitLifecycle();
+
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).getIocState();
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
+    }
+
+    /** Tests that loadIocs IS called when Engine reports updating=false. */
+    @SuppressWarnings("unchecked")
+    public void testNotifyEngineCalledWhenEngineIsNotUpdating() {
+        when(this.engineService.getIocState())
+                .thenReturn(new RestResponse("{\"hash\":\"abc\",\"updating\":false}", 200));
+
+        this.mockPitLifecycle();
+
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).getIocState();
+        verify(this.engineService).updateIoc(anyString(), anyString());
+    }
+
+    /** Tests that loadIocs is NOT called when the state check fails (fail-closed). */
+    @SuppressWarnings("unchecked")
+    public void testNotifyEngineSkippedWhenStateCheckFails() {
+        when(this.engineService.getIocState()).thenReturn(new RestResponse("Engine error", 500));
+
+        this.mockPitLifecycle();
+
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> searchFuture = mock(ActionFuture.class);
+        when(searchFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.engineService).getIocState();
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
+    }
+
+    /** Tests that search is paginated — one search per type (all empty) plus no extra. */
     @SuppressWarnings("unchecked")
     public void testEmptyIndexProducesEmptyTypeHashes() throws Exception {
         this.mockPitLifecycle();
