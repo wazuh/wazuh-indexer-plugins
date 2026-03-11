@@ -212,6 +212,7 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
                     "description": "Desc",
                     "documentation": "Docs",
                     "references": ["https://wazuh.com"],
+                    "enabled": true,
                     "decoders": ["1cb80fdb-7209-4b96-8bd1-ec15864d0f35"],
                     "rules": [],
                     "kvdbs": []
@@ -399,13 +400,15 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Checks that if the mandatory fields are missing then there is an error
+     * Checks that if the mandatory fields are missing then there is an error. Note: "description",
+     * "references", and "documentation" are no longer strictly required.
      *
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPutIntegration_missingMandatoryFields() throws IOException {
         this.setupDefaultMocks("draft", true);
-        String[] fields = {"title", "author", "category", "description", "references", "documentation"};
+        // Using only the strictly required fields based on the updated logic
+        String[] fields = {"title", "author", "category", "enabled"};
         for (String field : fields) {
             ObjectNode payload = (ObjectNode) this.mapper.readTree(this.getValidPayload());
             ((ObjectNode) payload.get("resource")).remove(field);

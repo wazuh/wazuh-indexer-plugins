@@ -136,7 +136,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "author": "Wazuh Inc.",
-                        "category": "cloud-services"
+                        "category": "cloud-services",
+                        "enabled": true
                     }
                 }
                 """;
@@ -161,7 +162,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "title": "test-integration-no-author",
-                        "category": "cloud-services"
+                        "category": "cloud-services",
+                        "enabled": true
                     }
                 }
                 """;
@@ -186,7 +188,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "title": "test-integration-no-cat",
-                        "author": "Wazuh Inc."
+                        "author": "Wazuh Inc.",
+                        "enabled": true
                     }
                 }
                 """;
@@ -218,7 +221,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "category": "cloud-services",
                         "description": "Test.",
                         "documentation": "doc",
-                        "references": ["https://wazuh.com"]
+                        "references": ["https://wazuh.com"],
+                        "enabled": true
                     }
                 }
                 """;
@@ -348,6 +352,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "description": "Try changing to existing title.",
                         "documentation": "doc",
                         "references": ["https://wazuh.com"],
+                        "enabled": true,
                         "rules": [],
                         "decoders": [],
                         "kvdbs": []
@@ -380,6 +385,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "description": "",
                         "documentation": "",
                         "references": [],
+                        "enabled": true,
                         "rules": [],
                         "decoders": [],
                         "kvdbs": []
@@ -415,6 +421,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "description": "",
                         "documentation": "",
                         "references": [],
+                        "enabled": true,
                         "rules": [],
                         "decoders": [],
                         "kvdbs": []
@@ -482,6 +489,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "description": "Same.",
                         "documentation": "doc",
                         "references": ["https://wazuh.com"],
+                        "enabled": true,
                         "rules": [],
                         "decoders": [],
                         "kvdbs": []

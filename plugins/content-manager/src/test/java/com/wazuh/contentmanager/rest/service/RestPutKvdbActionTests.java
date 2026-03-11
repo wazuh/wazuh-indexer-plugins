@@ -79,6 +79,7 @@ public class RestPutKvdbActionTests extends OpenSearchTestCase {
                     + "  \"author\": \"Wazuh\","
                     + "  \"category\": \"cat\","
                     + "  \"description\": \"desc\","
+                    + "  \"enabled\": \"true\","
                     + "  \"content\": {\"key\": \"value\"}"
                     + "}"
                     + "}";

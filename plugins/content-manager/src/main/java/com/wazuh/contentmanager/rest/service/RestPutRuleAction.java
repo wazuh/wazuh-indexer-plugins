@@ -100,7 +100,8 @@ public class RestPutRuleAction extends AbstractUpdateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse requiredFields =
-                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_TITLE));
+                this.documentValidations.validateRequiredFields(
+                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR, Constants.KEY_ENABLED));
         if (requiredFields != null) return requiredFields;
 
         String title = resource.get(Constants.KEY_TITLE).asText();
