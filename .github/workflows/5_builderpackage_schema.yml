@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "Converting generated static mappings to dynamic_templates..."
           
-          find plugins/setup/src/main/resources/templates/streams -name "*.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
+          find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
 
       - name: Push changes
         env:

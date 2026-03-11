@@ -75,9 +75,15 @@ function map_stateful_modules() {
 # Map third-party stateless modules (only main module directories, not subdirectories)
 # ====
 function map_stateless_modules() {
-  # Map main stateless module explicitly
-  if [[ -d "wcs/stateless/main" ]]; then
-    all_modules["stateless/main"]="templates/streams/main.json"
+  # Map events submodules explicitly
+  if [[ -d "wcs/stateless/events/main" ]]; then
+    all_modules["stateless/events/main"]="templates/streams/events.json"
+  fi
+  if [[ -d "wcs/stateless/events/raw" ]]; then
+    all_modules["stateless/events/raw"]="templates/streams/raw.json"
+  fi
+  if [[ -d "wcs/stateless/events/unclassified" ]]; then
+    all_modules["stateless/events/unclassified"]="templates/streams/unclassified.json"
   fi
 
   # Map first-level directories in stateless (excluding special directories)
@@ -86,8 +92,8 @@ function map_stateless_modules() {
       local module_name
       module_name=$(basename "$dir")
 
-      # Skip special directories (main already mapped above)
-      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
+      # Skip special directories (events already mapped above)
+      if [[ "$module_name" == "events" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
         continue
       fi
 
@@ -151,13 +157,13 @@ function sort_and_output_modules() {
   done
   
   echo "  # Stateless modules" >>"$output_file"
-  # Output stateless main module first
-  if [[ -n "${all_modules[stateless/main]}" ]]; then
-    echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
+  # Output stateless events/main module first
+  if [[ -n "${all_modules[stateless/events/main]}" ]]; then
+    echo "  [stateless/events/main]=${all_modules[stateless/events/main]}" >>"$output_file"
   fi
 
-  # Output remaining stateless modules (sorted, excluding main)
-  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/main$" | sort); do
+  # Output remaining stateless modules (sorted, excluding events/main)
+  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/events/main$" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
 

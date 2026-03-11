@@ -49,7 +49,7 @@ public class StreamIndex extends WazuhIndex {
      * @param index index name (e.g., "wazuh-events-v5-access-management").
      */
     public StreamIndex(String index) {
-        super(index, "templates/streams/main");
+        super(index, "templates/streams/events");
     }
 
     /**
