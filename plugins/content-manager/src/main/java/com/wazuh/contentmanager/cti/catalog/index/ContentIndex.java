@@ -211,7 +211,6 @@ public class ContentIndex {
      * @throws IOException If the indexing operation fails.
      */
     public IndexResponse create(String id, JsonNode payload) throws IOException {
-        log.info("JORGEEEEE ¨{}", this.indexName);
         ObjectNode processedPayload = this.processPayload(payload);
         IndexRequest request =
                 new IndexRequest(this.indexName)
