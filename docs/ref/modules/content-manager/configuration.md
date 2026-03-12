@@ -14,7 +14,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                             |
 | `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                            |
 | `plugins.content_manager.catalog.content.context`    | String  | `development_0.0.3`                      | CTI catalog content context identifier                                  |
-| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3_test`                 | CTI catalog content consumer identifier                                 |
+| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3`                 | CTI catalog content consumer identifier                                 |
 | `plugins.content_manager.ioc.content.context`        | String  | `ioc_provider_v3`                        | IoC content context identifier                                          |
 | `plugins.content_manager.ioc.content.consumer`       | String  | `iocp_v3`                                | IoC content consumer identifier                                         |
 | `plugins.content_manager.cve.content.context`        | String  | `vd_1.0.0`                               | CVE content context identifier                                          |

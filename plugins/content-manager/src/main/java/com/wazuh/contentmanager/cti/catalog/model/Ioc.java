@@ -62,7 +62,7 @@ public class Ioc {
         if (payload.has(Constants.KEY_OFFSET)) {
             offsetValue = payload.get(Constants.KEY_OFFSET).asLong();
             if (payload.isObject()) {
-                ((com.fasterxml.jackson.databind.node.ObjectNode) payload).remove(Constants.KEY_OFFSET);
+                ((ObjectNode) payload).remove(Constants.KEY_OFFSET);
             }
         }
 

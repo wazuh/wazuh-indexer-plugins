@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add state.modified_at to stateful indexes [(#561)](https://github.com/wazuh/wazuh-indexer-plugins/pull/561)
 - Add WCS integration fields to stateless indices [(#621)](https://github.com/wazuh/wazuh-indexer-plugins/pull/621)
 - Implement pre-processing ECS sources types sanitization [(#628)](https://github.com/wazuh/wazuh-indexer-plugins/pull/628)
-- Add Security Compliance fields to the WCS [(#643)](https://github.com/wazuh/wazuh-indexer-plugins/pull/643)
+- Add Security Compliance fields to the WCS [(#643)](https://github.com/wazuh/wazuh-indexer-plugins/pull/643) [(#910)](https://github.com/wazuh/wazuh-indexer-plugins/pull/910)
 - Initialize indexer content manager [(#651)](https://github.com/wazuh/wazuh-indexer-plugins/pull/651)
 - Indexer's Content Manager Rest API implementation [(#662)](https://github.com/wazuh/wazuh-indexer-plugins/pull/662)
 - Implement Imposter mock server for CTI API [#661](https://github.com/wazuh/wazuh-indexer-plugins/pull/661)
@@ -64,7 +64,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add engine filters API [(#801)](https://github.com/wazuh/wazuh-indexer-plugins/pull/801)
 - Remove non-standard ip and geo fields from f5-bigip mappings [(#809)](https://github.com/wazuh/wazuh-indexer-plugins/pull/809)
 - Extend policy update endpoint with enrichments [(#808)](https://github.com/wazuh/wazuh-indexer-plugins/pull/808)
-- Update integrations to the latest version [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817)
 - Add script for Content Manager API integration testing [(#821)](https://github.com/wazuh/wazuh-indexer-plugins/pull/821)
 - Add Integration Tests for Content Manager API [(#813)](https://github.com/wazuh/wazuh-indexer-plugins/pull/813)
 - Add raw events data stream with aggressive ISM purge policy [(#839)](https://github.com/wazuh/wazuh-indexer-plugins/pull/839)
@@ -85,7 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
-- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701) [(#742)](https://github.com/wazuh/wazuh-indexer-plugins/pull/742)
+- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701) [(#742)](https://github.com/wazuh/wazuh-indexer-plugins/pull/742) [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817) [(#912)](https://github.com/wazuh/wazuh-indexer-plugins/pull/912)
 - Replace and remove deprecated settings [(#476)](https://github.com/wazuh/wazuh-indexer-plugins/pull/476)
 - Migrate WCS changes from 4.x [(#488)](https://github.com/wazuh/wazuh-indexer-plugins/pull/488) [(#552)](https://github.com/wazuh/wazuh-indexer-plugins/pull/552) [(#568)](https://github.com/wazuh/wazuh-indexer-plugins/pull/568)
 - Implement checksum fields into stateful ECS mappings [(#519)](https://github.com/wazuh/wazuh-indexer-plugins/pull/519) [(#569)](https://github.com/wazuh/wazuh-indexer-plugins/pull/569)
@@ -123,6 +122,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use the new consumer and Ioc types [(#863)](https://github.com/wazuh/wazuh-indexer-plugins/pull/863)
 - Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#894)](https://github.com/wazuh/wazuh-indexer-plugins/pull/894)
 - Update templates to use minimal WCS [(#887)](https://github.com/wazuh/wazuh-indexer-plugins/pull/887)
+- Restructure ecs folder [(#898)](https://github.com/wazuh/wazuh-indexer-plugins/pull/898)
 - Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 
 ### Deprecated

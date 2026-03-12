@@ -311,7 +311,8 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                                 "event.action": ["updated_event"]
                             }
                         },
-                        "level": "medium"
+                        "level": "medium",
+                        "enabled": true
                     }
                 }
                 """;

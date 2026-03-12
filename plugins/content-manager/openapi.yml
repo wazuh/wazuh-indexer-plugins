@@ -682,10 +682,8 @@ paths:
         - `author` - Integration author name
         - `category` - Integration category
         - `decoders` - Array of decoder definitions
-        - `description` - Integration description
-        - `documentation` - Documentation URL or text
+        - `enabled` - Whether the integration is enabled
         - `kvdbs` - Array of KVDB references
-        - `references` - Array of reference URLs
         - `rules` - Array of rule references
         - `title` - Integration title
 
@@ -1089,9 +1087,7 @@ components:
         - title
         - author
         - category
-        - description
-        - documentation
-        - references
+        - enabled
         - rules
         - decoders
         - kvdbs
