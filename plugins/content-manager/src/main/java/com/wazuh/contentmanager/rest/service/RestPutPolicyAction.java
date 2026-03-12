@@ -350,7 +350,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             String standardPolicyId =
                     this.spaceService.findDocumentId(
                             Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId);
-            IndexResponse indexResponse = index.create(standardPolicyId, document, false);
+            IndexResponse indexResponse = index.create(standardPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Standard policy not found: " + e.getMessage());
@@ -432,7 +432,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
             document.set(Constants.KEY_HASH, hashNode);
             String draftPolicyId =
                     this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
-            IndexResponse indexResponse = index.create(draftPolicyId, document, false);
+            IndexResponse indexResponse = index.create(draftPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());

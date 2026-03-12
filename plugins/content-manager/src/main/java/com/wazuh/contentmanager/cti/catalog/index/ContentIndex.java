@@ -207,12 +207,11 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
-     * @param isDecoder Whether the document is a decoder resource.
      * @return The IndexResponse object with the result of the indexing operation.
      * @throws IOException If the indexing operation fails.
      */
-    public IndexResponse create(String id, JsonNode payload, boolean isDecoder) throws IOException {
-        ObjectNode processedPayload = this.processPayload(payload, isDecoder);
+    public IndexResponse create(String id, JsonNode payload) throws IOException {
+        ObjectNode processedPayload = this.processPayload(payload);
         IndexRequest request =
                 new IndexRequest(this.indexName)
                         .id(id)
@@ -416,39 +415,23 @@ public class ContentIndex {
      * @return A new JsonObject containing the processed payload.
      */
     public ObjectNode processPayload(JsonNode payload) {
-        return this.processPayload(payload, false);
-    }
-
-    /**
-     * Orchestrates the enrichment and sanitization of a payload using Domain Models.
-     *
-     * @param payload The JSON payload to process.
-     * @param isDecoder Whether the payload is a decoder (to trigger specific logic).
-     * @return A new JsonObject containing the processed payload.
-     */
-    public ObjectNode processPayload(JsonNode payload, boolean isDecoder) {
         try {
-            // Preserve the type field before processing
-            String type =
-                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
 
-            // 1. Delegate parsing logic to the appropriate Model
-            if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
-                Ioc ioc = Ioc.fromPayload(payload);
-                return this.mapper.valueToTree(ioc);
-            }
-
+            // Delegate parsing logic to the appropriate Model
             Resource resource;
-            if (isDecoder || Constants.KEY_DECODER.equalsIgnoreCase(type)) {
-                resource = Decoder.fromPayload(payload);
-            } else {
-                resource = Resource.fromPayload(payload);
+            switch (this.indexName){
+                case Constants.INDEX_IOCS:
+                    Ioc ioc = Ioc.fromPayload(payload);
+                    return this.mapper.valueToTree(ioc);
+                case Constants.INDEX_DECODERS:
+                    resource = Decoder.fromPayload(payload);
+                    break;
+                default:
+                    resource = Resource.fromPayload(payload);
+                    break;
             }
 
-            // 2. Convert Model
-            ObjectNode result = this.mapper.valueToTree(resource);
-
-            return result;
+            return this.mapper.valueToTree(resource);
         } catch (Exception e) {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);
             return this.mapper.createObjectNode();
