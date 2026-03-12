@@ -188,7 +188,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
 
             // 8. Indexing
             JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
-            index.create(id, ctiWrapper, this.isDecoder());
+            index.create(id, ctiWrapper);
 
             // 9. Update Hash
             this.spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
