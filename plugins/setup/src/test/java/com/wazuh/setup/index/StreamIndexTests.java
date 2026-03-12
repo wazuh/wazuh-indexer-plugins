@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -53,7 +53,7 @@ public class StreamIndexTests extends OpenSearchTestCase {
         Settings settings = Settings.builder().build();
         doReturn(settings).when(clusterService).getSettings();
 
-        this.streamIndex = new StreamIndex(STREAM_INDEX, "stream-template");
+        this.streamIndex = new StreamIndex(STREAM_INDEX);
         this.streamIndex.setClient(client);
         this.streamIndex.setClusterService(clusterService);
         this.streamIndex.setUtils(mock(JsonUtils.class));

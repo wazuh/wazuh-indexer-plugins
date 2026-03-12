@@ -155,9 +155,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
                                 Constants.KEY_TITLE,
                                 Constants.KEY_AUTHOR,
                                 Constants.KEY_CATEGORY,
-                                Constants.KEY_DESCRIPTION,
-                                "documentation",
-                                "references"));
+                                Constants.KEY_ENABLED));
         if (requiredFields != null) return requiredFields;
 
         String title = resource.get(Constants.KEY_TITLE).asText();

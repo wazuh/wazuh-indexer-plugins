@@ -149,6 +149,60 @@ ISM policies and templates must be properly deployed before the indices are crea
 
 ---
 
+## 🚀 Event Stream Templates
+
+### Overview
+
+All event data streams share a single base template: `templates/streams/events.json`. At deployment time, the plugin generates one index template per event category by dynamically setting the `index_patterns` and `rollover_alias` fields from the base template. This means:
+
+- **Source of truth**: Only `events.json` exists in the repository.
+- **At runtime**: One index template is created for each category (e.g., `wazuh-events-v5-cloud-services-template`, `wazuh-events-v5-security-template`, etc.).
+
+The `StreamIndex` class handles this: when constructed with only an index name (no explicit template path), it defaults to `templates/streams/events` and rewrites the `index_patterns` and `rollover_alias` to match the specific index.
+
+#### How it works
+
+```java
+// Single-arg constructor defaults to the shared events template
+new StreamIndex("wazuh-events-v5-cloud-services")
+// Equivalent to:
+new StreamIndex("wazuh-events-v5-cloud-services", "templates/streams/events")
+```
+
+During `createTemplate()`, the plugin:
+1. Reads `events.json` from the classpath
+2. Overrides `index_patterns` to `["wazuh-events-v5-cloud-services*"]`
+3. Overrides `rollover_alias` to `"wazuh-events-v5-cloud-services"`
+4. Creates the composable index template in OpenSearch
+
+#### Verifying deployed templates
+
+To list all event templates in a running cluster:
+
+```bash
+GET /_index_template/wazuh-events-*
+```
+
+### Specialized stream templates
+
+Some data streams use their own dedicated templates instead of the shared `events.json`:
+
+| Data Stream | Template | Notes |
+|---|---|---|
+| `wazuh-events-raw-v5` | `templates/streams/raw.json` | Stores original unprocessed events |
+| `wazuh-events-v5-unclassified` | `templates/streams/unclassified.json` | Stores uncategorized events for investigation |
+| `wazuh-active-responses` | `templates/streams/active-responses.json` | Active Response execution requests |
+
+These are registered with the two-arg constructor:
+
+```java
+new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw")
+new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified")
+new StreamIndex("wazuh-active-responses", "templates/streams/active-responses")
+```
+
+---
+
 ## 🚀 Unclassified Events Data Stream (`wazuh-events-v5-unclassified`)
 
 ### Overview

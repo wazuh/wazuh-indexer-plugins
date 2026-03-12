@@ -6,7 +6,15 @@ The Wazuh Common Schema (WCS) is a standardized structure for organizing and cat
 
 The Wazuh Common Schema categorizes events into several key areas to streamline data management and analysis.
 
+All event categories share a single base index template (`events.json`). At deployment time, the setup plugin dynamically generates one index template per category from this shared base, setting the appropriate `index_patterns` and `rollover_alias` for each. This means only one template file exists in the repository, but each category gets its own index template in the cluster.
+
 The index mappings and settings for subcategories take precedence over those from the main category. In OpenSearch, index templates are applied in order of their "priority" value: templates with a lower priority are applied first, and those with a higher priority are applied afterward, allowing them to override previous settings. This means the index template for the main category is applied first (priority=1), and then the subcategory template (priority=10) is applied on top of it, so subcategory-specific settings override the main category defaults.
+
+To list all deployed event templates:
+
+```
+GET /_index_template/wazuh-events-*
+```
 
 #### Access Management
 
