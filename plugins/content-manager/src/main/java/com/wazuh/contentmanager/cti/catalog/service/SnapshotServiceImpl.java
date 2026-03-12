@@ -26,6 +26,7 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -349,9 +350,15 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 5. Delete source zip file
         try {
-            Files.deleteIfExists(localZip);
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        Files.deleteIfExists(localZip);
+                        return null;
+                    });
             log.info("Deleted local snapshot file [{}]", localZip);
         } catch (IOException e) {
+            log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
+        } catch (Exception e) {
             log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
         }
 

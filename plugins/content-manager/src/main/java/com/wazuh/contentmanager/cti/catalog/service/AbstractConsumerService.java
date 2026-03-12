@@ -22,11 +22,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -121,7 +118,7 @@ public abstract class AbstractConsumerService {
 
     /**
      * Returns the local snapshot filename for this consumer. The file is expected to reside in the
-     * {@code snapshots} directory inside the plugin JAR.
+     * {@code snapshots} directory alongside the plugin installation.
      *
      * @return The snapshot zip filename (e.g., "ruleset.zip").
      */
@@ -232,39 +229,30 @@ public abstract class AbstractConsumerService {
 
         // Local Snapshot Initialization (takes precedence over remote download)
         if (currentOffset == 0) {
-            String resourcePath = "/" + Constants.CTI_SNAPSHOTS_DIR + "/" + this.getSnapshotFilename();
+            Path localSnapshot =
+                    this.environment
+                            .pluginsDir()
+                            .resolve(Constants.PLUGIN_DIR_NAME)
+                            .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                            .resolve(this.getSnapshotFilename());
 
-            try (InputStream resourceStream = getClass().getResourceAsStream(resourcePath)) {
-                if (resourceStream != null) {
-                    // Extract JAR resource to a temporary file
-                    Path tempSnapshot =
-                            this.environment.tmpDir().resolve("local_" + this.getSnapshotFilename());
-                    Files.copy(resourceStream, tempSnapshot, StandardCopyOption.REPLACE_EXISTING);
+            if (Files.exists(localSnapshot)) {
+                log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
+                SnapshotServiceImpl snapshotService =
+                        new SnapshotServiceImpl(
+                                context, consumer, indicesMap, this.consumersIndex, this.environment);
 
+                boolean localSuccess = snapshotService.initializeFromLocal(localSnapshot);
+                if (localSuccess) {
+                    currentOffset = snapshotService.getMaxOffsetSeen();
                     log.info(
-                            "Local snapshot extracted from JAR [{}] for consumer [{}]", resourcePath, consumer);
-                    SnapshotServiceImpl snapshotService =
-                            new SnapshotServiceImpl(
-                                    context, consumer, indicesMap, this.consumersIndex, this.environment);
-
-                    boolean localSuccess = snapshotService.initializeFromLocal(tempSnapshot);
-                    if (localSuccess) {
-                        currentOffset = snapshotService.getMaxOffsetSeen();
-                        log.info(
-                                "Initialized consumer [{}] from local snapshot, offset [{}]",
-                                consumer,
-                                currentOffset);
-                        updated = true;
-                    } else {
-                        log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
-                    }
+                            "Initialized consumer [{}] from local snapshot, offset [{}]",
+                            consumer,
+                            currentOffset);
+                    updated = true;
+                } else {
+                    log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
                 }
-            } catch (IOException e) {
-                log.warn(
-                        "Failed to extract local snapshot [{}] for consumer [{}]: {}",
-                        resourcePath,
-                        consumer,
-                        e.getMessage());
             }
         }
 
