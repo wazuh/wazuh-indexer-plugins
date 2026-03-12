@@ -211,6 +211,6 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
         String hash = Resource.computeSha256(document.toString());
         ((ObjectNode) policyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
-        policiesIndex.create(policyId, policyHit, false);
+        policiesIndex.create(policyId, policyHit);
     }
 }

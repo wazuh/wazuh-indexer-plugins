@@ -197,7 +197,7 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
             ((ObjectNode) document).set(Constants.KEY_FILTERS, updatedFilters);
             String hash = Resource.computeSha256(document.toString());
             ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-            policiesIndex.create(draftPolicyId, draftPolicyHit, false);
+            policiesIndex.create(draftPolicyId, draftPolicyHit);
         }
     }
 }

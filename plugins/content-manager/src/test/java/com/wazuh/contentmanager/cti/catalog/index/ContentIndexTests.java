@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.wazuh.contentmanager.utils.Constants;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -116,7 +117,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
 
         // Act
-        this.contentIndex.create(id, payload, false);
+        this.contentIndex.create(id, payload);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -131,6 +132,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertTrue("Title should exist", doc.has("title"));
     }
 
+    /** Test creating a Decoder. Validates that the YAML enrichment is generated. */
     /** Test creating a Decoder. Validates that the YAML enrichment is generated. */
     public void testCreate_Decoder_YamlEnrichment() throws IOException {
         // Mock
@@ -153,7 +155,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "2ebb3a6b-c4a3-47fb-aae5-a0d9bd8cbfed";
 
         // Act
-        this.contentIndex.create(id, payload, true);
+        ContentIndex contentIndex1 = new ContentIndex(this.client, Constants.INDEX_DECODERS, MAPPINGS_PATH);
+        contentIndex1.create(id, payload);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -165,7 +168,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String yaml = source.get("decoder").asText();
         Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
         Assert.assertTrue(
-                yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
+            yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
     }
 
     /**
@@ -192,7 +195,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R1";
 
         // Act
-        this.contentIndex.create(id, payload, false);
+        this.contentIndex.create(id, payload);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -230,7 +233,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R2";
 
         // Act
-        this.contentIndex.create(id, payload, false);
+        this.contentIndex.create(id, payload);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
@@ -374,7 +377,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "test-resource-id";
 
         // Act
-        this.contentIndex.create(id, payload, false);
+        this.contentIndex.create(id, payload);
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
