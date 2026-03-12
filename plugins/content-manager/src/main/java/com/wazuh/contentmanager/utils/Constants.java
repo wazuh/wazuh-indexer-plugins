@@ -165,9 +165,8 @@ public class Constants {
                     INDEX_FILTERS);
 
     // Snapshot constants
-    public static final String CTI_SNAPSHOTS_DIR = "cti-snapshots";
-    public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";
-    public static final String CONTENT_SNAPSHOT_FILENAME = "content.zip";
+    public static final String CTI_SNAPSHOTS_DIR = "snapshots";
+    public static final String CONTENT_SNAPSHOT_FILENAME = "ruleset.zip";
     public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
     public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
 

@@ -22,8 +22,11 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -118,9 +121,9 @@ public abstract class AbstractConsumerService {
 
     /**
      * Returns the local snapshot filename for this consumer. The file is expected to reside in the
-     * {@code cti-snapshots} directory under the plugin installation directory.
+     * {@code snapshots} directory inside the plugin JAR.
      *
-     * @return The snapshot zip filename (e.g., "content.zip").
+     * @return The snapshot zip filename (e.g., "ruleset.zip").
      */
     protected abstract String getSnapshotFilename();
 
@@ -229,31 +232,39 @@ public abstract class AbstractConsumerService {
 
         // Local Snapshot Initialization (takes precedence over remote download)
         if (currentOffset == 0) {
-            Path localSnapshotPath =
-                    Path.of(
-                            this.environment.settings().get("path.home"),
-                            "plugins",
-                            Constants.PLUGIN_DIR_NAME,
-                            Constants.CTI_SNAPSHOTS_DIR,
-                            this.getSnapshotFilename());
+            String resourcePath = "/" + Constants.CTI_SNAPSHOTS_DIR + "/" + this.getSnapshotFilename();
 
-            if (Files.exists(localSnapshotPath)) {
-                log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshotPath, consumer);
-                SnapshotServiceImpl snapshotService =
-                        new SnapshotServiceImpl(
-                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+            try (InputStream resourceStream = getClass().getResourceAsStream(resourcePath)) {
+                if (resourceStream != null) {
+                    // Extract JAR resource to a temporary file
+                    Path tempSnapshot =
+                            this.environment.tmpDir().resolve("local_" + this.getSnapshotFilename());
+                    Files.copy(resourceStream, tempSnapshot, StandardCopyOption.REPLACE_EXISTING);
 
-                boolean localSuccess = snapshotService.initializeFromLocal(localSnapshotPath);
-                if (localSuccess) {
-                    currentOffset = snapshotService.getMaxOffsetSeen();
                     log.info(
-                            "Initialized consumer [{}] from local snapshot, offset [{}]",
-                            consumer,
-                            currentOffset);
-                    updated = true;
-                } else {
-                    log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
+                            "Local snapshot extracted from JAR [{}] for consumer [{}]", resourcePath, consumer);
+                    SnapshotServiceImpl snapshotService =
+                            new SnapshotServiceImpl(
+                                    context, consumer, indicesMap, this.consumersIndex, this.environment);
+
+                    boolean localSuccess = snapshotService.initializeFromLocal(tempSnapshot);
+                    if (localSuccess) {
+                        currentOffset = snapshotService.getMaxOffsetSeen();
+                        log.info(
+                                "Initialized consumer [{}] from local snapshot, offset [{}]",
+                                consumer,
+                                currentOffset);
+                        updated = true;
+                    } else {
+                        log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
+                    }
                 }
+            } catch (IOException e) {
+                log.warn(
+                        "Failed to extract local snapshot [{}] for consumer [{}]: {}",
+                        resourcePath,
+                        consumer,
+                        e.getMessage());
             }
         }
 
