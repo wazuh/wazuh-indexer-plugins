@@ -168,9 +168,6 @@ public class Constants {
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
     public static final String KEY_TYPE_HASHES = "type_hashes";
 
-    // CVE hash
-    public static final String CVE_HASH_ID = "__cve_hash__";
-
     // Queries
     public static final String Q_DOCUMENT_TYPE = "document.type";
     public static final String Q_SPACE_NAME = "space.name";
