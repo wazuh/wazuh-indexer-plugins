@@ -161,7 +161,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload, false);
+                            index.create(id, payload);
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }
