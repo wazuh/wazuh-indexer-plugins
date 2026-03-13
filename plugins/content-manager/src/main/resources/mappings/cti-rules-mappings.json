@@ -3,14 +3,37 @@
   "properties": {
     "document": {
       "properties": {
-        "author": {
+        "id": {
           "type": "keyword"
         },
-        "date": {
-          "type": "date"
-        },
-        "description": {
-          "type": "text"
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "keyword"
+            },
+            "author": {
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "modified": {
+              "type": "date"
+            },
+            "description": {
+              "type": "text"
+            },
+            "references": {
+              "type": "keyword"
+            },
+            "documentation": {
+              "type": "keyword"
+            },
+            "supports": {
+              "type": "keyword"
+            }
+          }
         },
         "detection": {
           "type": "object",
@@ -23,9 +46,6 @@
           "type": "keyword"
         },
         "fields": {
-          "type": "keyword"
-        },
-        "id": {
           "type": "keyword"
         },
         "level": {
@@ -50,13 +70,7 @@
             }
           }
         },
-        "modified": {
-          "type": "date"
-        },
         "name": {
-          "type": "keyword"
-        },
-        "references": {
           "type": "keyword"
         },
         "related": {
@@ -83,9 +97,6 @@
           "type": "keyword"
         },
         "taxonomy": {
-          "type": "keyword"
-        },
-        "title": {
           "type": "keyword"
         }
       }

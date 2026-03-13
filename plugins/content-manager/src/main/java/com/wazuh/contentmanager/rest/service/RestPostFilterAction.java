@@ -108,11 +108,6 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
     }
 
     @Override
-    protected boolean isFilter() {
-        return true;
-    }
-
-    @Override
     protected String getSpaceName() {
         return this.spaceName;
     }

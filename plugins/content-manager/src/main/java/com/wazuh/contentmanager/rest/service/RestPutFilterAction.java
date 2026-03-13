@@ -81,11 +81,6 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
         return validSpaces;
     }
 
-    @Override
-    protected boolean isFilter() {
-        return true;
-    }
-
     /**
      * Return the route configuration for this handler.
      *

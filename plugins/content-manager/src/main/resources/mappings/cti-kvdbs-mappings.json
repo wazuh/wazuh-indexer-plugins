@@ -3,44 +3,44 @@
   "properties": {
     "document": {
       "properties": {
-        "title": {
-          "type": "keyword"
-        },
         "id": {
           "type": "keyword"
         },
-        "date": {
-          "type": "date"
-        },
-        "author": {
-          "type": "keyword"
-        },
-        "description": {
-          "type": "text"
-        },
-        "documentation": {
-          "type": "keyword"
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "keyword"
+            },
+            "author": {
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "modified": {
+              "type": "date"
+            },
+            "description": {
+              "type": "text"
+            },
+            "references": {
+              "type": "keyword"
+            },
+            "documentation": {
+              "type": "keyword"
+            },
+            "supports": {
+              "type": "keyword"
+            }
+          }
         },
         "enabled": {
           "type": "boolean"
         },
-        "references": {
-          "type": "keyword"
-        },
         "content": {
           "type": "object",
           "enabled": false
-        },
-        "metadata": {
-          "properties": {
-            "author": {
-              "properties": {
-                "modified": {
-                  "type": "date"
-                }
-              }
-            }
-          }
         }
       }
     },

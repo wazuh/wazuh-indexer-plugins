@@ -116,17 +116,19 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
             sourceMap.put("space", Map.of("name", spaceName));
             Map<String, Object> documentMap = new HashMap<>();
             documentMap.put("id", INTEGRATION_ID);
-            documentMap.put("title", "aws-fargate");
-            documentMap.put("author", "Wazuh Inc.");
             documentMap.put("category", "cloud-services");
-            documentMap.put("description", "Desc");
-            documentMap.put("documentation", "Docs");
-            documentMap.put("references", List.of("https://wazuh.com"));
             documentMap.put("enabled", true);
             documentMap.put("decoders", List.of("1cb80fdb-7209-4b96-8bd1-ec15864d0f35"));
             documentMap.put("rules", List.of());
             documentMap.put("kvdbs", List.of());
-            if (date != null) documentMap.put("date", date);
+            Map<String, Object> metadataMap = new HashMap<>();
+            metadataMap.put("title", "aws-fargate");
+            metadataMap.put("author", "Wazuh Inc.");
+            metadataMap.put("description", "Desc");
+            metadataMap.put("documentation", "Docs");
+            metadataMap.put("references", List.of("https://wazuh.com"));
+            if (date != null) metadataMap.put("date", date);
+            documentMap.put("metadata", metadataMap);
 
             sourceMap.put("document", documentMap);
             when(getResponse.getSourceAsMap()).thenReturn(sourceMap);
