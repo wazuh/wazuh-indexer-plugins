@@ -73,7 +73,7 @@ public class Decoder extends Resource {
         resource.populateResource(decoder, payload);
 
         // 2. Decoder-specific logic (YAML generation)
-        if (payload.has("document")) {
+        if (payload.has(Constants.KEY_DOCUMENT)) {
             decoder.setDecoder(Decoder.toYamlString(payload));
         }
 

@@ -150,7 +150,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
             JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
 
-            index.create(id, ctiWrapper, this.isDecoder());
+            index.create(id, ctiWrapper);
 
             // 8. Link to Parent
             try {

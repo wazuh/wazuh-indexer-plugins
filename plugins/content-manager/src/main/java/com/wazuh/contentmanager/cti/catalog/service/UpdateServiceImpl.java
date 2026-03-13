@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -155,7 +156,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
                     // Inject the CTI offset value into the payload, so it is persisted
                     if (payload.isObject()) {
-                        ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset.getOffset());
+                        ((ObjectNode) payload)
+                                .put(Constants.KEY_OFFSET, offset.getOffset());
                     }
                     String type = null;
 
@@ -172,7 +174,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     if (type != null) {
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload, false);
+                            index.create(id, payload);
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }

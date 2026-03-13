@@ -208,12 +208,11 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
-     * @param isDecoder Whether the document is a decoder resource.
      * @return The IndexResponse object with the result of the indexing operation.
      * @throws IOException If the indexing operation fails.
      */
-    public IndexResponse create(String id, JsonNode payload, boolean isDecoder) throws IOException {
-        ObjectNode processedPayload = this.processPayload(payload, isDecoder);
+    public IndexResponse create(String id, JsonNode payload) throws IOException {
+        ObjectNode processedPayload = this.processPayload(payload);
         IndexRequest request =
                 new IndexRequest(this.indexName)
                         .id(id)
@@ -435,17 +434,6 @@ public class ContentIndex {
      * @return A new JsonObject containing the processed payload.
      */
     public ObjectNode processPayload(JsonNode payload) {
-        return this.processPayload(payload, false);
-    }
-
-    /**
-     * Orchestrates the enrichment and sanitization of a payload using Domain Models.
-     *
-     * @param payload The JSON payload to process.
-     * @param isDecoder Whether the payload is a decoder (to trigger specific logic).
-     * @return A new JsonObject containing the processed payload.
-     */
-    public ObjectNode processPayload(JsonNode payload, boolean isDecoder) {
         try {
             // Detect type from index name or payload
             if (Constants.INDEX_CVES.equals(this.indexName)) {
@@ -463,10 +451,19 @@ public class ContentIndex {
             }
 
             Resource resource;
-            if (isDecoder || Constants.KEY_DECODER.equalsIgnoreCase(type)) {
-                resource = Decoder.fromPayload(payload);
-            } else {
-                resource = Resource.fromPayload(payload);
+            switch (this.indexName){
+                case Constants.INDEX_IOCS:
+                    Ioc ioc = Ioc.fromPayload(payload);
+                    return this.mapper.valueToTree(ioc);
+                case Constants.INDEX_DECODERS:
+                    resource = Decoder.fromPayload(payload);
+                    break;
+                case Constants.INDEX_CVES:
+                    Cve cve = Cve.fromPayload(payload);
+                    return this.mapper.valueToTree(cve);
+                default:
+                    resource = Resource.fromPayload(payload);
+                    break;
             }
 
             return this.mapper.valueToTree(resource);
