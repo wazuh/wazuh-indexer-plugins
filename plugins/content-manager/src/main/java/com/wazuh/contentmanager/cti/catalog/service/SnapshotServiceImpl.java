@@ -242,8 +242,9 @@ public class SnapshotServiceImpl implements SnapshotService {
 
                     // Inject the CTI offset value into the payload so it is persisted
                     if (rootJson.has(Constants.KEY_OFFSET) && payload.isObject()) {
-                        ((ObjectNode) payload)
-                                .put(Constants.KEY_OFFSET, rootJson.get(Constants.KEY_OFFSET).asLong());
+                        long offset = rootJson.get(Constants.KEY_OFFSET).asLong();
+                        ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset);
+                        this.maxOffsetSeen = Math.max(this.maxOffsetSeen, offset);
                     }
 
                     ObjectNode processedPayload = indexHandler.processPayload(payload);
