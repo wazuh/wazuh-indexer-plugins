@@ -162,6 +162,15 @@ public class PluginSettings {
                     DEFAULT_IOC_CONSUMER,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+    
+    /** Configuration setting to enable or disable the telemetry ping. Defaults to true. */
+    public static final Setting<Boolean> TELEMETRY_ENABLED = 
+        Setting.boolSetting(
+            "wazuh.telemetry.enabled", // The key in opensearch.yml
+            true,                      // Default value (Enabled by default)
+            Setting.Property.NodeScope, 
+            Setting.Property.Dynamic   // Allows changing it without restarting the node
+        );
 
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;

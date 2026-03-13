@@ -56,6 +56,7 @@ import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.services.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -75,6 +76,7 @@ public class ContentManagerPlugin extends Plugin
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
+    private TelemetryPingJob telemetryPingJob;
     private EngineServiceImpl engine;
     private SpaceService spaceService;
 
@@ -122,8 +124,12 @@ public class ContentManagerPlugin extends Plugin
         this.catalogSyncJob =
                 new CatalogSyncJob(this.client, this.consumersIndex, environment, this.threadPool);
 
+        // Initialize TelemetryPingJob
+        this.telemetryPingJob = new TelemetryPingJob(environment.settings(), clusterService, threadPool);
+    
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
+        runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
 
         // Initialize Engine service
         this.engine = new EngineServiceImpl();
@@ -149,6 +155,8 @@ public class ContentManagerPlugin extends Plugin
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
+        // Schedule the telemetry ping job to ensure it is registered in the system index
+        this.scheduleTelemetryPingJob();
 
         // Trigger update on start if enabled
         if (PluginSettings.getInstance().isUpdateOnStart()) {
@@ -311,6 +319,61 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
+ * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler.
+ * * This method ensures that the telemetry heartbeat is registered in the 
+ * internal job index. If the job document does not exist, it creates a new 
+ * one with a 24-hour interval.
+ */
+private void scheduleTelemetryPingJob() {
+    // Check if telemetry is enabled in settings
+    boolean isEnabled = PluginSettings.TELEMETRY_ENABLED.get(this.settings);
+    
+    if (!isEnabled) {
+        log.info("Telemetry job is disabled via settings. Skipping registration.");
+        return;
+    }
+    // Offload the check and indexing to the generic thread pool to avoid 
+    // blocking the main node startup thread.
+    this.threadPool.generic().execute(() -> {
+        try {
+            // Unique identifier for the telemetry job document in the system index
+            String TELEMETRY_JOB_ID = "wazuh-telemetry-ping-job";
+
+            // 1. Verify if the job document already exists in the jobs index
+            boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, TELEMETRY_JOB_ID).get().isExists();
+
+            if (!jobExists) {
+                // 2. Define the job configuration: 
+                // - Starts immediately (Instant.now())
+                // - Runs every 24 hours
+                // - Maps to the "telemetry-ping-task" executor type
+                ContentJobParameter job = new ContentJobParameter(
+                    "Telemetry Ping Periodic Task",
+                    TelemetryPingJob.JOB_TYPE, 
+                    new IntervalSchedule(Instant.now(), 24, ChronoUnit.HOURS),
+                    true, // isEnabled
+                    Instant.now(), // lastUpdateTime
+                    Instant.now()  // enabledTime
+                );
+
+                // 3. Persist the job definition as a JSON document in the system index
+                IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
+                        .id(TELEMETRY_JOB_ID)
+                        .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                
+                // Use actionGet() to ensure the index operation completes before proceeding
+                this.client.index(request).actionGet();
+                log.info("Telemetry Ping Job scheduled successfully (Interval: 24h).");
+            } else {
+                log.debug("Telemetry Ping Job already exists. Skipping initialization.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to schedule Telemetry Ping Job: {}", e.getMessage(), e);
+        }
+    });
+}
+
+    /**
      * Retrieves the list of settings defined by this plugin.
      *
      * @return A list of {@link Setting} objects including client timeout, API URL, bulk operation
@@ -329,7 +392,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CONTENT_CONTEXT,
                 PluginSettings.CONTENT_CONSUMER,
                 PluginSettings.IOC_CONTEXT,
-                PluginSettings.IOC_CONSUMER);
+                PluginSettings.IOC_CONSUMER,
+                PluginSettings.TELEMETRY_ENABLED);
     }
 
     /**
@@ -366,5 +430,16 @@ public class ContentManagerPlugin extends Plugin
     @Override
     public ScheduledJobParser getJobParser() {
         return (parser, id, jobDocVersion) -> ContentJobParameter.parse(parser);
+    }
+
+    /**
+    * Checks if the telemetry feature is currently enabled based on the plugin settings.
+    * This setting can be managed via the 'wazuh.telemetry.enabled' configuration key
+    * in the opensearch.yml file or updated dynamically through the cluster settings API.
+    *
+    * @return true if the telemetry ping job is allowed to run, false otherwise.
+    */
+    public boolean isTelemetryEnabled() {
+        return PluginSettings.TELEMETRY_ENABLED.get(this.settings);
     }
 }
