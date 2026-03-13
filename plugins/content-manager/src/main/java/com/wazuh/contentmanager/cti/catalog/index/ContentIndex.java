@@ -54,6 +54,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Ioc;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
@@ -235,6 +236,19 @@ public class ContentIndex {
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
     public void update(String id, List<Operation> operations) throws Exception {
+        this.update(id, operations, null);
+    }
+
+    /**
+     * Updates an existing document by applying a list of patch operations and optionally setting the
+     * CTI offset.
+     *
+     * @param id The ID of the document to update.
+     * @param operations The list of operations to apply to the document.
+     * @param offset The CTI offset value to store on the document, or null to leave unchanged.
+     * @throws Exception If the document does not exist, or if patching/indexing fails.
+     */
+    public void update(String id, List<Operation> operations, Long offset) throws Exception {
         // 1. Fetch
         GetResponse response =
                 this.client
@@ -249,6 +263,11 @@ public class ContentIndex {
         for (Operation op : operations) {
             JsonNode opJson = this.mapper.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);
+        }
+
+        // 2.5. Inject offset if provided
+        if (offset != null) {
+            currentDoc.put(Constants.KEY_OFFSET, offset);
         }
 
         // 3. Process
@@ -416,16 +435,19 @@ public class ContentIndex {
      */
     public ObjectNode processPayload(JsonNode payload) {
         try {
-
+          
             // Delegate parsing logic to the appropriate Model
             Resource resource;
-            switch (this.indexName) {
+            switch (this.indexName){
                 case Constants.INDEX_IOCS:
                     Ioc ioc = Ioc.fromPayload(payload);
                     return this.mapper.valueToTree(ioc);
                 case Constants.INDEX_DECODERS:
                     resource = Decoder.fromPayload(payload);
                     break;
+                case Constants.INDEX_CVES:
+                    Cve cve = Cve.fromPayload(payload);
+                    return this.mapper.valueToTree(cve);
                 default:
                     resource = Resource.fromPayload(payload);
                     break;

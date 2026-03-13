@@ -55,9 +55,14 @@ public class PluginSettings {
     private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
     private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3";
 
-    // Default values for Context and Consumer
+    // Default values for IOC Context and Consumer
     private static final String DEFAULT_IOC_CONTEXT = "ioc_provider_v3";
     private static final String DEFAULT_IOC_CONSUMER = "iocs_v3";
+
+    // Default values for CVE Context and Consumer
+    private static final String DEFAULT_CVE_CONTEXT = "vd_1.0.0";
+    private static final String DEFAULT_CVE_CONSUMER = "vd_4.8.0";
+
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 
@@ -176,6 +181,22 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Context for CVE Content. */
+    public static final Setting<String> CVE_CONTEXT =
+            Setting.simpleString(
+                    "plugins.content_manager.cve.content.context",
+                    DEFAULT_CVE_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Consumer for CVE Content. */
+    public static final Setting<String> CVE_CONSUMER =
+            Setting.simpleString(
+                    "plugins.content_manager.cve.content.consumer",
+                    DEFAULT_CVE_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** PIT (Point-in-Time) keepalive duration in seconds for paginated searches. */
     public static final Setting<Long> PIT_KEEPALIVE =
             Setting.longSetting(
@@ -205,6 +226,8 @@ public class PluginSettings {
     private final String contentConsumer;
     private final String iocContext;
     private final String iocConsumer;
+    private final String cveContext;
+    private final String cveConsumer;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
@@ -226,6 +249,8 @@ public class PluginSettings {
         this.contentConsumer = CONTENT_CONSUMER.get(settings);
         this.iocContext = IOC_CONTEXT.get(settings);
         this.iocConsumer = IOC_CONSUMER.get(settings);
+        this.cveContext = CVE_CONTEXT.get(settings);
+        this.cveConsumer = CVE_CONSUMER.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
@@ -365,6 +390,24 @@ public class PluginSettings {
      */
     public String getIocConsumer() {
         return this.iocConsumer;
+    }
+
+    /**
+     * Retrieves the CVE Context.
+     *
+     * @return the context string.
+     */
+    public String getCveContext() {
+        return this.cveContext;
+    }
+
+    /**
+     * Retrieves the CVE Consumer.
+     *
+     * @return the consumer string.
+     */
+    public String getCveConsumer() {
+        return this.cveConsumer;
     }
 
     /**

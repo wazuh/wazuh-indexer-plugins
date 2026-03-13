@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -152,13 +153,24 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             case CREATE:
                 if (offset.getPayload() != null) {
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
-                    if (payload.has(Constants.KEY_TYPE)) {
-                        String type = payload.get(Constants.KEY_TYPE).asText();
+                    // Inject the CTI offset value into the payload, so it is persisted
+                    if (payload.isObject()) {
+                        ((ObjectNode) payload)
+                                .put(Constants.KEY_OFFSET, offset.getOffset());
+                    }
+                    String type = null;
 
+                    if (payload.has(Constants.KEY_TYPE)) {
+                        type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
+                    } else if (id != null && id.startsWith("CVE-")) {
+                        // CVE documents are identified by their resource ID (CVE-YYYY-NNNNN)
+                        type = Constants.KEY_CVES;
+                    }
 
+                    if (type != null) {
                         index = this.indices.get(type);
                         if (index != null) {
                             index.create(id, payload);
@@ -170,9 +182,13 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 index = this.findIndexForId(id);
-                index.update(id, offset.getOperations());
+                index.update(id, offset.getOperations(), offset.getOffset());
                 break;
             case DELETE:
+                if (this.shouldSkipDelete(id)) {
+                    log.info("Skipping DELETE for CVE resource [{}] (CVE removals are not applied).", id);
+                    break;
+                }
                 index = this.findIndexForId(id);
                 index.delete(id);
                 break;
@@ -180,6 +196,19 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 log.warn("Unsupported JSON patch operation [{}]", offset.getType());
                 break;
         }
+    }
+
+    /**
+     * CVE removals from CTI are intentionally ignored.
+     *
+     * <p>We skip delete operations when processing the CVE consumer or when the resource ID follows
+     * the CVE identifier pattern.
+     */
+    private boolean shouldSkipDelete(String id) {
+        if (id != null && id.startsWith("CVE-")) {
+            return true;
+        }
+        return this.consumer.equals(PluginSettings.getInstance().getCveConsumer());
     }
 
     /**

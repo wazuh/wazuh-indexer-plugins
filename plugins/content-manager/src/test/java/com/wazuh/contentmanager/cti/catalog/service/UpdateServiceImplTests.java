@@ -149,8 +149,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Verify CREATE
         verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
 
-        // Verify UPDATE
-        verify(this.ruleIndex).update(eq("rule-2"), any(List.class));
+        // Verify UPDATE (offset is now passed as the third argument)
+        verify(this.ruleIndex).update(eq("rule-2"), any(List.class), any());
 
         // Verify DELETE
         verify(this.decoderIndex).delete("decoder-1");
@@ -355,5 +355,44 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.decoderIndex, never()).delete(anyString());
 
         verify(this.consumersIndex).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
+     * Tests that CVE DELETE operations are ignored while offset tracking still advances.
+     *
+     * @throws Exception if update execution fails.
+     */
+    public void testUpdate_SkipCveDelete() throws Exception {
+        // spotless:off
+        String changesJson =
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 60,
+                      "resource": "CVE-2026-0001",
+                      "type": "DELETE"
+                    }
+                  ]
+                }""";
+        // spotless:on
+
+        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn("{}");
+
+        this.updateService.update(59, 60);
+
+        verify(this.ruleIndex, never()).delete(anyString());
+        verify(this.decoderIndex, never()).delete(anyString());
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        Assert.assertEquals(60, captor.getValue().getLocalOffset());
     }
 }

@@ -209,7 +209,7 @@ if $PROCESS_ALL; then
   # Keep only stateless/ and cti/ modules
   filtered=()
   for m in "${MODULES[@]:-}"; do
-    if [[ "$m" == stateless/* || "$m" == cti/* || "$m" == filters ]]; then
+    if [[ "$m" == stateless/* || "$m" == cti/* || "$m" == filters || "$m" == cve ]]; then
       filtered+=("$m")
     fi
   done

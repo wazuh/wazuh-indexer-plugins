@@ -84,6 +84,7 @@ public class Constants {
     public static final String INDEX_KVDBS = ".cti-kvdbs";
     public static final String INDEX_DECODERS = ".cti-decoders";
     public static final String INDEX_IOCS = ".cti-iocs";
+    public static final String INDEX_CVES = ".cti-cves";
     public static final String INDEX_FILTERS = ".engine-filters";
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
@@ -92,6 +93,7 @@ public class Constants {
     public static final String KEY_RULES = "rules";
     public static final String KEY_DECODERS = "decoders";
     public static final String KEY_IOCS = "iocs";
+    public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
 
@@ -106,6 +108,7 @@ public class Constants {
     public static final String KEY_METADATA = "metadata";
     public static final String KEY_AUTHOR = "author";
     public static final String KEY_MODIFIED = "modified";
+    public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
@@ -144,7 +147,8 @@ public class Constants {
     public static final String TYPE_PREFILTER = "pre-filter";
     public static final String TYPE_POSTFILTER = "post-filter";
 
-    // Resources Indices Mapping. Output: Key -> Index Name
+    // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
+    // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.
     public static final Map<String, String> RESOURCE_INDICES =
             Map.of(
                     KEY_POLICY,
@@ -157,8 +161,6 @@ public class Constants {
                     INDEX_KVDBS,
                     KEY_DECODERS,
                     INDEX_DECODERS,
-                    KEY_IOCS,
-                    INDEX_IOCS,
                     KEY_FILTERS,
                     INDEX_FILTERS);
 

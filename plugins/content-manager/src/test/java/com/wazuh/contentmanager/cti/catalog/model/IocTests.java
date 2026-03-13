@@ -91,6 +91,51 @@ public class IocTests extends OpenSearchTestCase {
         Assert.assertEquals("Mirai", doc.getTags().get(0));
     }
 
+    /** Test that offset is extracted from the payload and stored at root level. */
+    public void testFromPayload_OffsetExtracted() {
+        // Arrange
+        ObjectNode payload = this.buildCompletePayload();
+        payload.put("offset", 42L);
+
+        // Act
+        Ioc ioc = Ioc.fromPayload(payload);
+
+        // Assert
+        Assert.assertNotNull(ioc);
+        Assert.assertEquals(Long.valueOf(42L), ioc.getOffset());
+    }
+
+    /** Test that offset is serialized at the root level in the output JSON. */
+    public void testFromPayload_OffsetSerializedAtRoot() {
+        // Arrange
+        ObjectNode payload = this.buildCompletePayload();
+        payload.put("offset", 99L);
+
+        // Act
+        Ioc ioc = Ioc.fromPayload(payload);
+        JsonNode serialized = this.mapper.valueToTree(ioc);
+
+        // Assert
+        Assert.assertTrue("Should contain 'offset' at root", serialized.has("offset"));
+        Assert.assertEquals(99L, serialized.get("offset").asLong());
+    }
+
+    /** Test that offset is null when not present in the payload. */
+    public void testFromPayload_OffsetNullWhenMissing() {
+        // Arrange
+        ObjectNode payload = this.buildCompletePayload();
+
+        // Act
+        Ioc ioc = Ioc.fromPayload(payload);
+
+        // Assert
+        Assert.assertNull(ioc.getOffset());
+
+        // Verify offset is omitted from serialized JSON (NON_NULL)
+        JsonNode serialized = this.mapper.valueToTree(ioc);
+        Assert.assertFalse("Should not contain 'offset' when null", serialized.has("offset"));
+    }
+
     /** Test that serializing an Ioc back to JSON produces the correct nested structure. */
     public void testRoundTrip_SerializationPreservesNestedStructure() {
         // Arrange

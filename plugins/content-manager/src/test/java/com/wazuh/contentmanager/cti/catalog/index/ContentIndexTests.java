@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.wazuh.contentmanager.utils.Constants;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -169,7 +170,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String yaml = source.get("decoder").asText();
         Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
         Assert.assertTrue(
-                yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
+            yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
     }
 
     /**
@@ -417,5 +418,45 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         Assert.assertNotNull("Should throw exception when document not found", exception);
         Assert.assertTrue(exception.getMessage().contains("not found"));
+    }
+
+    /** Test that update with offset injects the offset value into the indexed document. */
+    public void testUpdate_WithOffset() throws Exception {
+        String id = "offset-test-id";
+        long expectedOffset = 55L;
+
+        // Mock - existing document
+        String originalDocJson =
+                "{"
+                        + "\"type\": \"rule\","
+                        + "\"document\": {"
+                        + "  \"id\": \"R1\","
+                        + "  \"title\": \"Test Rule\""
+                        + "}"
+                        + "}";
+
+        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
+        getFuture.onResponse(this.getResponse);
+        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        List<Operation> operations = new ArrayList<>();
+        operations.add(new Operation("replace", "/document/title", null, "Updated Rule"));
+
+        // Act
+        this.contentIndex.update(id, operations, expectedOffset);
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
+        Assert.assertTrue("Should contain 'offset'", updatedDoc.has("offset"));
+        Assert.assertEquals(expectedOffset, updatedDoc.get("offset").asLong());
     }
 }
