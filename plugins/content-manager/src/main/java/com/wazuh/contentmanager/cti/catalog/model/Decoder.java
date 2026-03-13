@@ -119,54 +119,26 @@ public class Decoder extends Resource {
     }
 
     /**
-     * Sets the creation time on the given decoder JSON node.
+     * Sets the creation time on the given decoder JSON node, inside {@code metadata.date}.
      *
      * @param resourceNode The decoder JSON node.
      * @param timestamp The timestamp to set.
      */
     public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
-        ObjectNode authorNode = Decoder.getOrCreateAuthorNode(resourceNode);
-        authorNode.put(Constants.KEY_DATE, timestamp);
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
+        metadataNode.put(Constants.KEY_DATE, timestamp);
     }
 
     /**
-     * Sets the last modification time on the given decoder JSON node.
+     * Sets the last modification time on the given decoder JSON node, inside {@code
+     * metadata.modified}.
      *
      * @param resourceNode The decoder JSON node.
      * @param timestamp The timestamp to set.
      */
     public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
-        ObjectNode authorNode = Decoder.getOrCreateAuthorNode(resourceNode);
-        authorNode.put(Constants.KEY_MODIFIED, timestamp);
-    }
-
-    /**
-     * Retrieves the author object node from the given resource node's metadata. If the "metadata"
-     * node or its child "author" node do not exist, they are created and appropriately attached to
-     * the resource node hierarchy.
-     *
-     * @param resourceNode The resource JSON node to extract or attach the author node to.
-     * @return The existing or newly created author {@link ObjectNode}.
-     */
-    private static ObjectNode getOrCreateAuthorNode(ObjectNode resourceNode) {
-        ObjectNode metadataNode;
-        if (resourceNode.has(Constants.KEY_METADATA)
-                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-        } else {
-            metadataNode = MAPPER.createObjectNode();
-            resourceNode.set(Constants.KEY_METADATA, metadataNode);
-        }
-
-        ObjectNode authorNode;
-        if (metadataNode.has(Constants.KEY_AUTHOR)
-                && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-        } else {
-            authorNode = MAPPER.createObjectNode();
-            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-        }
-        return authorNode;
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
+        metadataNode.put(Constants.KEY_MODIFIED, timestamp);
     }
 
     /**

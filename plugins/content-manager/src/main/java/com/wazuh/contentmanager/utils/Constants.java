@@ -172,7 +172,7 @@ public class Constants {
     public static final String Q_DOCUMENT_TYPE = "document.type";
     public static final String Q_SPACE_NAME = "space.name";
     public static final String Q_DOCUMENT_ID = "document.id";
-    public static final String Q_DOCUMENT_TITLE = "document.title";
+    public static final String Q_DOCUMENT_TITLE = "document.metadata.title";
     public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";
 

@@ -97,11 +97,6 @@ public class RestPostDecoderAction extends AbstractCreateAction {
     }
 
     @Override
-    protected boolean isDecoder() {
-        return true;
-    }
-
-    @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
         String spaceError =

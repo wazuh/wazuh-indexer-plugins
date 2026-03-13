@@ -59,30 +59,18 @@ public class Policy {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // JSON Key Constants
-    private static final String TITLE_KEY = "title";
-    private static final String DATE_KEY = "date";
-    private static final String MODIFIED_KEY = "modified";
+    private static final String METADATA_KEY = "metadata";
     private static final String ROOT_DECODER_KEY = "root_decoder";
     private static final String INTEGRATIONS_KEY = "integrations";
     private static final String FILTERS_KEY = "filters";
     private static final String ENRICHMENTS_KEY = "enrichments";
-    private static final String AUTHOR_KEY = "author";
-    private static final String DESCRIPTION_KEY = "description";
-    private static final String DOCUMENTATION_KEY = "documentation";
-    private static final String REFERENCES_KEY = "references";
     private static final String ID_KEY = "id";
     private static final String ENABLED_KEY = "enabled";
     private static final String INDEX_UNCLASSIFIED_EVENTS_KEY = "index_unclassified_events";
     private static final String INDEX_DISCARDED_EVENTS_KEY = "index_discarded_events";
 
-    @JsonProperty(TITLE_KEY)
-    private String title;
-
-    @JsonProperty(DATE_KEY)
-    private String date;
-
-    @JsonProperty(MODIFIED_KEY)
-    private String modified;
+    @JsonProperty(METADATA_KEY)
+    private ResourceMetadata metadata;
 
     @JsonProperty(ROOT_DECODER_KEY)
     private String rootDecoder;
@@ -95,18 +83,6 @@ public class Policy {
 
     @JsonProperty(ENRICHMENTS_KEY)
     private List<String> enrichments;
-
-    @JsonProperty(AUTHOR_KEY)
-    private String author;
-
-    @JsonProperty(DESCRIPTION_KEY)
-    private String description;
-
-    @JsonProperty(DOCUMENTATION_KEY)
-    private String documentation;
-
-    @JsonProperty(REFERENCES_KEY)
-    private List<String> references;
 
     @JsonProperty(ID_KEY)
     private String id;
@@ -122,29 +98,23 @@ public class Policy {
 
     /** Default constructor. */
     public Policy() {
+        this.metadata = new ResourceMetadata();
+        this.metadata.setCompatibility(new ArrayList<>());
+        this.metadata.setReferences(new ArrayList<>());
         this.integrations = new ArrayList<>();
         this.filters = new ArrayList<>();
         this.enrichments = new ArrayList<>();
-        this.references = new ArrayList<>();
-        this.date = null;
-        this.modified = null;
     }
 
     /**
      * Constructs a new Policy with the specified parameters.
      *
      * @param id Unique identifier of the policy document.
-     * @param title Human-readable title of the policy.
-     * @param date Creation timestamp (ISO-8601).
-     * @param modified Last-modification timestamp (ISO-8601).
+     * @param metadata The metadata block for this policy.
      * @param rootDecoder The root decoder identifier.
      * @param integrations List of integration IDs referenced by this policy.
      * @param filters List of filter UUIDs linked to this policy.
      * @param enrichments List of active enrichment category names.
-     * @param author The author of the policy.
-     * @param description A brief description of the policy.
-     * @param documentation Detailed documentation for the policy.
-     * @param references External references or links related to the policy.
      * @param enabled Whether the policy is active and synchronized by the Engine; {@code null} if not
      *     set.
      * @param indexUnclassifiedEvents Whether uncategorized events are indexed into {@code
@@ -154,32 +124,26 @@ public class Policy {
     @JsonCreator
     public Policy(
             @JsonProperty(ID_KEY) String id,
-            @JsonProperty(TITLE_KEY) String title,
-            @JsonProperty(DATE_KEY) String date,
-            @JsonProperty(MODIFIED_KEY) String modified,
+            @JsonProperty(METADATA_KEY) ResourceMetadata metadata,
             @JsonProperty(ROOT_DECODER_KEY) String rootDecoder,
             @JsonProperty(INTEGRATIONS_KEY) List<String> integrations,
             @JsonProperty(FILTERS_KEY) List<String> filters,
             @JsonProperty(ENRICHMENTS_KEY) List<String> enrichments,
-            @JsonProperty(AUTHOR_KEY) String author,
-            @JsonProperty(DESCRIPTION_KEY) String description,
-            @JsonProperty(DOCUMENTATION_KEY) String documentation,
-            @JsonProperty(REFERENCES_KEY) List<String> references,
             @JsonProperty(ENABLED_KEY) Boolean enabled,
             @JsonProperty(INDEX_UNCLASSIFIED_EVENTS_KEY) Boolean indexUnclassifiedEvents,
             @JsonProperty(INDEX_DISCARDED_EVENTS_KEY) Boolean indexDiscardedEvents) {
         this.id = id;
-        this.title = title;
-        this.date = date;
-        this.modified = modified;
+        this.metadata = metadata != null ? metadata : new ResourceMetadata();
+        if (this.metadata.getCompatibility() == null) {
+            this.metadata.setCompatibility(new ArrayList<>());
+        }
+        if (this.metadata.getReferences() == null) {
+            this.metadata.setReferences(new ArrayList<>());
+        }
         this.rootDecoder = rootDecoder;
         this.integrations = integrations != null ? integrations : new ArrayList<>();
         this.filters = filters != null ? filters : new ArrayList<>();
         this.enrichments = enrichments != null ? enrichments : new ArrayList<>();
-        this.author = author;
-        this.description = description;
-        this.documentation = documentation;
-        this.references = references != null ? references : new ArrayList<>();
         this.enabled = enabled;
         this.indexUnclassifiedEvents = indexUnclassifiedEvents;
         this.indexDiscardedEvents = indexDiscardedEvents;
@@ -192,97 +156,17 @@ public class Policy {
      * @return A fully populated Policy instance.
      */
     public static Policy fromPayload(JsonNode payload) {
-        Policy policy = new Policy();
-        if (payload.has(ID_KEY) && !payload.get(ID_KEY).isNull()) {
-            policy.setId(payload.get(ID_KEY).asText());
+        Policy policy = MAPPER.convertValue(payload, Policy.class);
+        // Filter null entries from list fields (Jackson preserves JSON nulls in arrays)
+        if (policy.integrations != null) {
+            policy.integrations.removeIf(java.util.Objects::isNull);
         }
-
-        if (payload.has(DATE_KEY) && !payload.get(DATE_KEY).isNull()) {
-            policy.setDate(payload.get(DATE_KEY).asText());
+        if (policy.filters != null) {
+            policy.filters.removeIf(java.util.Objects::isNull);
         }
-
-        if (payload.has(MODIFIED_KEY) && !payload.get(MODIFIED_KEY).isNull()) {
-            policy.setModified(payload.get(MODIFIED_KEY).asText());
+        if (policy.enrichments != null) {
+            policy.enrichments.removeIf(java.util.Objects::isNull);
         }
-
-        if (payload.has(TITLE_KEY) && !payload.get(TITLE_KEY).isNull()) {
-            policy.title = payload.get(TITLE_KEY).asText();
-        }
-
-        if (payload.has(ROOT_DECODER_KEY) && !payload.get(ROOT_DECODER_KEY).isNull()) {
-            policy.setRootDecoder(payload.get(ROOT_DECODER_KEY).asText());
-        }
-
-        if (payload.has(INTEGRATIONS_KEY) && payload.get(INTEGRATIONS_KEY).isArray()) {
-            List<String> integrationsList = new ArrayList<>();
-            payload
-                    .get(INTEGRATIONS_KEY)
-                    .forEach(
-                            n -> {
-                                if (!n.isNull()) integrationsList.add(n.asText());
-                            });
-            policy.setIntegrations(integrationsList);
-        }
-
-        if (payload.has(FILTERS_KEY) && payload.get(FILTERS_KEY).isArray()) {
-            List<String> filtersList = new ArrayList<>();
-            payload
-                    .get(FILTERS_KEY)
-                    .forEach(
-                            n -> {
-                                if (!n.isNull()) filtersList.add(n.asText());
-                            });
-            policy.setFilters(filtersList);
-        }
-
-        if (payload.has(ENRICHMENTS_KEY) && payload.get(ENRICHMENTS_KEY).isArray()) {
-            List<String> enrichmentsList = new ArrayList<>();
-            payload
-                    .get(ENRICHMENTS_KEY)
-                    .forEach(
-                            n -> {
-                                if (!n.isNull()) enrichmentsList.add(n.asText());
-                            });
-            policy.setEnrichments(enrichmentsList);
-        }
-
-        if (payload.has(AUTHOR_KEY) && !payload.get(AUTHOR_KEY).isNull()) {
-            policy.setAuthor(payload.get(AUTHOR_KEY).asText());
-        }
-
-        if (payload.has(DESCRIPTION_KEY) && !payload.get(DESCRIPTION_KEY).isNull()) {
-            policy.setDescription(payload.get(DESCRIPTION_KEY).asText());
-        }
-
-        if (payload.has(DOCUMENTATION_KEY) && !payload.get(DOCUMENTATION_KEY).isNull()) {
-            policy.setDocumentation(payload.get(DOCUMENTATION_KEY).asText());
-        }
-
-        if (payload.has(REFERENCES_KEY) && payload.get(REFERENCES_KEY).isArray()) {
-            List<String> referencesList = new ArrayList<>();
-            payload
-                    .get(REFERENCES_KEY)
-                    .forEach(
-                            n -> {
-                                if (!n.isNull()) referencesList.add(n.asText());
-                            });
-            policy.setReferences(referencesList);
-        }
-
-        if (payload.has(ENABLED_KEY) && !payload.get(ENABLED_KEY).isNull()) {
-            policy.setEnabled(payload.get(ENABLED_KEY).asBoolean());
-        }
-
-        if (payload.has(INDEX_UNCLASSIFIED_EVENTS_KEY)
-                && !payload.get(INDEX_UNCLASSIFIED_EVENTS_KEY).isNull()) {
-            policy.setIndexUnclassifiedEvents(payload.get(INDEX_UNCLASSIFIED_EVENTS_KEY).asBoolean());
-        }
-
-        if (payload.has(INDEX_DISCARDED_EVENTS_KEY)
-                && !payload.get(INDEX_DISCARDED_EVENTS_KEY).isNull()) {
-            policy.setIndexDiscardedEvents(payload.get(INDEX_DISCARDED_EVENTS_KEY).asBoolean());
-        }
-
         return policy;
     }
 
@@ -330,58 +214,80 @@ public class Policy {
     }
 
     // Getters and Setters
+
     /**
-     * Gets the creation date of this policy.
+     * Gets the metadata block for this policy.
+     *
+     * @return The metadata object.
+     */
+    public ResourceMetadata getMetadata() {
+        return this.metadata;
+    }
+
+    /**
+     * Sets the metadata block for this policy.
+     *
+     * @param metadata The metadata object to set.
+     */
+    public void setMetadata(ResourceMetadata metadata) {
+        this.metadata = metadata;
+    }
+
+    /**
+     * Gets the creation date of this policy (delegated to metadata).
      *
      * @return The creation date as a string.
      */
     public String getDate() {
-        return this.date;
+        return this.metadata != null ? this.metadata.getDate() : null;
     }
 
     /**
-     * Sets the creation date of this policy.
+     * Sets the creation date of this policy (delegated to metadata).
      *
      * @param date The creation date to set.
      */
     public void setDate(String date) {
-        this.date = date;
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setDate(date);
     }
 
     /**
-     * Gets the last modified date of this policy.
+     * Gets the last modified date of this policy (delegated to metadata).
      *
      * @return The last modified date as a string.
      */
     public String getModified() {
-        return this.modified;
+        return this.metadata != null ? this.metadata.getModified() : null;
     }
 
     /**
-     * Sets the last modified date of this policy.
+     * Sets the last modified date of this policy (delegated to metadata).
      *
      * @param modified The last modified date to set.
      */
     public void setModified(String modified) {
-        this.modified = modified;
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setModified(modified);
     }
 
     /**
-     * Gets the title of this policy.
+     * Gets the title of this policy (delegated to metadata).
      *
      * @return The policy title.
      */
     public String getTitle() {
-        return this.title;
+        return this.metadata != null ? this.metadata.getTitle() : null;
     }
 
     /**
-     * Sets the title of this policy.
+     * Sets the title of this policy (delegated to metadata).
      *
      * @param title The policy title to set.
      */
     public void setTitle(String title) {
-        this.title = title;
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setTitle(title);
     }
 
     /**
@@ -457,75 +363,79 @@ public class Policy {
     }
 
     /**
-     * Gets the author of this policy.
+     * Gets the author of this policy (delegated to metadata).
      *
      * @return The author name.
      */
     public String getAuthor() {
-        return this.author;
+        return this.metadata != null ? this.metadata.getAuthor() : null;
     }
 
     /**
-     * Sets the author of this policy.
+     * Sets the author of this policy (delegated to metadata).
      *
      * @param author The author name to set. If null, defaults to empty string.
      */
     public void setAuthor(String author) {
-        this.author = author != null ? author : "";
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setAuthor(author != null ? author : "");
     }
 
     /**
-     * Gets the description of this policy.
+     * Gets the description of this policy (delegated to metadata).
      *
      * @return The policy description.
      */
     public String getDescription() {
-        return this.description;
+        return this.metadata != null ? this.metadata.getDescription() : null;
     }
 
     /**
-     * Sets the description of this policy.
+     * Sets the description of this policy (delegated to metadata).
      *
      * @param description The policy description to set. If null, defaults to empty string.
      */
     public void setDescription(String description) {
-        this.description = description != null ? description : "";
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setDescription(description != null ? description : "");
     }
 
     /**
-     * Gets the detailed documentation for this policy.
+     * Gets the detailed documentation for this policy (delegated to metadata).
      *
      * @return The policy documentation.
      */
     public String getDocumentation() {
-        return this.documentation;
+        return this.metadata != null ? this.metadata.getDocumentation() : null;
     }
 
     /**
-     * Sets the detailed documentation for this policy.
+     * Sets the detailed documentation for this policy (delegated to metadata).
      *
      * @param documentation The policy documentation to set. If null, defaults to empty string.
      */
     public void setDocumentation(String documentation) {
-        this.documentation = documentation != null ? documentation : "";
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setDocumentation(documentation != null ? documentation : "");
     }
 
     /**
-     * Gets the external references or links related to this policy.
+     * Gets the external references or links related to this policy (delegated to metadata).
      *
      * @return The list of policy references.
      */
     public List<String> getReferences() {
-        return this.references;
+        return this.metadata != null ? this.metadata.getReferences() : new ArrayList<>();
     }
 
     /**
-     * Sets the external references or links related to this policy.
+     * Sets the external references or links related to this policy (delegated to metadata).
      *
      * @param references The list of policy references to set. If null, an empty list is used.
      */
     public void setReferences(List<String> references) {
-        this.references = references != null ? references : new ArrayList<>();
+        if (this.metadata == null) this.metadata = new ResourceMetadata();
+        this.metadata.setReferences(references != null ? references : new ArrayList<>());
     }
 
     /**
@@ -603,15 +513,8 @@ public class Policy {
     @Override
     public String toString() {
         return "Policy{"
-                + "title='"
-                + this.title
-                + '\''
-                + ", date='"
-                + this.date
-                + '\''
-                + ", modified='"
-                + this.modified
-                + '\''
+                + "metadata="
+                + this.metadata
                 + ", rootDecoder='"
                 + this.rootDecoder
                 + '\''
@@ -621,17 +524,6 @@ public class Policy {
                 + this.filters
                 + ", enrichments="
                 + this.enrichments
-                + ", author='"
-                + this.author
-                + '\''
-                + ", description='"
-                + this.description
-                + '\''
-                + ", documentation='"
-                + this.documentation
-                + '\''
-                + ", references="
-                + this.references
                 + ", id='"
                 + this.id
                 + '\''
