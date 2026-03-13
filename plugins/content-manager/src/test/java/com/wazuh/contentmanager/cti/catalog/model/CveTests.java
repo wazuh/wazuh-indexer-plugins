@@ -42,7 +42,7 @@ public class CveTests extends OpenSearchTestCase {
         rawPayload.set("cveMetadata", metadata);
         rawPayload.put("offset", 10L);
 
-        Cve cve = Cve.fromPayload(rawPayload);
+        Cve cve = Cve.fromPayload(rawPayload, "CVE-2026-0001");
         JsonNode serialized = this.mapper.valueToTree(cve);
 
         assertTrue(serialized.has("document"));
@@ -50,6 +50,7 @@ public class CveTests extends OpenSearchTestCase {
         assertEquals(
                 "CVE-2026-0001", serialized.get("document").get("cveMetadata").get("cveId").asText());
         assertEquals(10L, serialized.get("offset").asLong());
+        assertEquals("CVE", serialized.get("type").asText());
         assertFalse(serialized.get("document").has("offset"));
     }
 
@@ -57,13 +58,15 @@ public class CveTests extends OpenSearchTestCase {
     public void testFromPayload_DocumentWrapperIsPreserved() {
         ObjectNode wrapped = this.mapper.createObjectNode();
         ObjectNode document = this.mapper.createObjectNode();
+        document.put("dataType", "CVE_RECORD");
         document.put("dataVersion", "5.1");
         wrapped.set("document", document);
 
-        Cve cve = Cve.fromPayload(wrapped);
+        Cve cve = Cve.fromPayload(wrapped, "CVE-2026-0002");
         JsonNode serialized = this.mapper.valueToTree(cve);
 
         assertEquals("5.1", serialized.get("document").get("dataVersion").asText());
+        assertEquals("CVE", serialized.get("type").asText());
         assertFalse(serialized.has("payload"));
     }
 
@@ -74,11 +77,36 @@ public class CveTests extends OpenSearchTestCase {
         legacyPayload.put("dataType", "CVE_RECORD");
         wrapped.set("payload", legacyPayload);
 
-        Cve cve = Cve.fromPayload(wrapped);
+        Cve cve = Cve.fromPayload(wrapped, "CVE-2026-0003");
         JsonNode serialized = this.mapper.valueToTree(cve);
 
         assertTrue(serialized.has("document"));
         assertEquals("CVE_RECORD", serialized.get("document").get("dataType").asText());
+        assertEquals("CVE", serialized.get("type").asText());
         assertFalse(serialized.has("payload"));
+    }
+
+    /** Verifies unknown resource names do not force a top-level content type. */
+    public void testFromPayload_UnknownResourceDoesNotSetType() {
+        ObjectNode rawPayload = this.mapper.createObjectNode();
+        rawPayload.put("dataType", "UNKNOWN_TYPE");
+
+        Cve cve = Cve.fromPayload(rawPayload, "UNKNOWN-RESOURCE");
+        JsonNode serialized = this.mapper.valueToTree(cve);
+
+        assertTrue(serialized.has("document"));
+        assertFalse(serialized.has("type"));
+    }
+
+    /** Verifies deriveType supports all expected resource patterns. */
+    public void testDeriveType_FromResourcePatterns() {
+        assertEquals("CNA-MAPPING-GLOBAL", Cve.deriveType("CNA-MAPPING-GLOBAL"));
+        assertEquals("CVE", Cve.deriveType("CVE-2026-0001"));
+        assertEquals("FEED-GLOBAL", Cve.deriveType("FEED-GLOBAL"));
+        assertEquals("OSCPE-GLOBAL", Cve.deriveType("OSCPE-GLOBAL"));
+        assertEquals("TCPE", Cve.deriveType("TCPE"));
+        assertEquals("TID", Cve.deriveType("TID-001"));
+        assertEquals("TVENDORS", Cve.deriveType("TVENDORS"));
+        assertNull(Cve.deriveType("UNMAPPED"));
     }
 }

@@ -22,6 +22,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.util.Arrays;
+import java.util.Locale;
+
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -43,6 +46,9 @@ public class Cve {
     @JsonProperty(Constants.KEY_OFFSET)
     private Long offset;
 
+    @JsonProperty(Constants.KEY_CONTENT_TYPE)
+    private String type;
+
     /** Default constructor. */
     public Cve() {}
 
@@ -59,6 +65,20 @@ public class Cve {
      * @return A fully populated Cve instance.
      */
     public static Cve fromPayload(JsonNode payload) {
+        return fromPayload(payload, null);
+    }
+
+    /**
+     * Factory method to create a Cve instance from a raw JsonNode payload and resource name.
+     *
+     * <p>When provided, {@code resourceName} is used to derive the indexed {@code type} using {@link
+     * #deriveType(String)}.
+     *
+     * @param payload The raw JSON object containing the CVE data.
+     * @param resourceName The CTI resource name/id.
+     * @return A fully populated Cve instance.
+     */
+    public static Cve fromPayload(JsonNode payload, String resourceName) {
         Cve cve = new Cve();
 
         if (payload == null || payload.isNull()) {
@@ -70,26 +90,122 @@ public class Cve {
         // Extract offset from the incoming node so it is always indexed at document root.
         if (normalized.isObject() && normalized.has(Constants.KEY_OFFSET)) {
             cve.setOffset(normalized.get(Constants.KEY_OFFSET).asLong());
-            ObjectNode stripped = (ObjectNode) normalized.deepCopy();
+            ObjectNode stripped = normalized.deepCopy();
             stripped.remove(Constants.KEY_OFFSET);
             normalized = stripped;
+        }
+
+        String explicitType = null;
+        if (normalized.isObject() && normalized.hasNonNull(Constants.KEY_CONTENT_TYPE)) {
+            explicitType = normalized.get(Constants.KEY_CONTENT_TYPE).asText();
+            CveContentType mappedType = CveContentType.fromValue(explicitType);
+            if (mappedType != null) {
+                cve.setType(mappedType.getValue());
+            }
         }
 
         if (normalized.isObject()) {
             // Accept both new and legacy wrappers while always serializing to `document`.
             if (normalized.has(KEY_DOCUMENT)) {
                 cve.setDocument(normalized.get(KEY_DOCUMENT));
+                if (cve.getType() == null) {
+                    cve.setType(deriveType(resourceName));
+                }
+                if (cve.getType() == null && explicitType != null) {
+                    cve.setType(explicitType);
+                }
                 return cve;
             }
             if (normalized.has(KEY_PAYLOAD)) {
                 cve.setDocument(normalized.get(KEY_PAYLOAD));
+                if (cve.getType() == null) {
+                    cve.setType(deriveType(resourceName));
+                }
+                if (cve.getType() == null && explicitType != null) {
+                    cve.setType(explicitType);
+                }
                 return cve;
+            }
+
+            // `type` at payload root is catalog metadata, not part of the CVE document body.
+            if (((ObjectNode) normalized).has(Constants.KEY_CONTENT_TYPE)) {
+                ((ObjectNode) normalized).remove(Constants.KEY_CONTENT_TYPE);
             }
         }
 
         // Raw CVE payload (no wrapper).
         cve.setDocument(normalized);
+        if (cve.getType() == null) {
+            cve.setType(deriveType(resourceName));
+        }
+        if (cve.getType() == null && explicitType != null) {
+            cve.setType(explicitType);
+        }
         return cve;
+    }
+
+    /**
+     * Derives CTI CVE type from the resource name/id.
+     *
+     * @param resourceName The CTI resource name (e.g. CVE-2026-0001, TID-001).
+     * @return The canonical CVE type value, or null when the pattern is unknown.
+     */
+    public static String deriveType(String resourceName) {
+        CveContentType type = CveContentType.fromResourceName(resourceName);
+        return type != null ? type.getValue() : null;
+    }
+
+    private enum CveContentType {
+        CNA_MAPPING_GLOBAL("CNA-MAPPING-GLOBAL"),
+        CVE("CVE"),
+        FEED_GLOBAL("FEED-GLOBAL"),
+        OSCPE_GLOBAL("OSCPE-GLOBAL"),
+        TCPE("TCPE"),
+        TID("TID"),
+        TVENDORS("TVENDORS");
+
+        private final String value;
+
+        CveContentType(String value) {
+            this.value = value;
+        }
+
+        private String getValue() {
+            return this.value;
+        }
+
+        private static CveContentType fromValue(String value) {
+            if (value == null) {
+                return null;
+            }
+            return Arrays.stream(values())
+                    .filter(type -> type.value.equalsIgnoreCase(value))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        private static CveContentType fromResourceName(String resourceName) {
+            if (resourceName == null || resourceName.isBlank()) {
+                return null;
+            }
+
+            String normalized = resourceName.trim().toUpperCase(Locale.ROOT);
+
+            if (normalized.startsWith("CVE-")) {
+                return CVE;
+            }
+            if (normalized.startsWith("TID-")) {
+                return TID;
+            }
+            return switch (normalized) {
+                case "CNA-MAPPING-GLOBAL" -> CNA_MAPPING_GLOBAL;
+                case "FEED-GLOBAL" -> FEED_GLOBAL;
+                case "OSCPE-GLOBAL" -> OSCPE_GLOBAL;
+                case "TCPE" -> TCPE;
+                case "TVENDORS" -> TVENDORS;
+                default -> null;
+            };
+        }
     }
 
     /**
@@ -126,5 +242,23 @@ public class Cve {
      */
     public void setOffset(Long offset) {
         this.offset = offset;
+    }
+
+    /**
+     * Gets the CTI Content type.
+     *
+     * @return The CTI Content value.
+     */
+    public String getType() {
+        return type;
+    }
+
+    /**
+     * Sets the CTI Content type.
+     *
+     * @param type The CTI content value.
+     */
+    public void setType(String type) {
+        this.type = type;
     }
 }

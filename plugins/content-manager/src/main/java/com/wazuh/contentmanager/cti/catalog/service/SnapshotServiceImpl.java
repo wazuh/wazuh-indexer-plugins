@@ -38,6 +38,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
@@ -210,18 +211,23 @@ public class SnapshotServiceImpl implements SnapshotService {
                     JsonNode payload = rootJson.get(JSON_PAYLOAD_KEY);
 
                     // 2. Determine Index.
-                    String name =
-                            rootJson.has(Constants.KEY_NAME) ? rootJson.get(Constants.KEY_NAME).asText() : null;
+                    String resourceName =
+                            rootJson.has(Constants.KEY_RESOURCE)
+                                    ? rootJson.get(Constants.KEY_RESOURCE).asText()
+                                    : (rootJson.has(Constants.KEY_NAME)
+                                            ? rootJson.get(Constants.KEY_NAME).asText()
+                                            : null);
+                    String cveType = Cve.deriveType(resourceName);
 
                     String type = null;
-                    if (payload.has(Constants.KEY_TYPE)) {
+                    if (cveType != null) {
+                        // CVE feed entities are identified by the resource name pattern.
+                        type = Constants.KEY_CVES;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
                         type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
-                    } else if (name != null && name.startsWith("CVE-")) {
-                        // CVE documents are identified by their name field (CVE-YYYY-NNNNN)
-                        type = Constants.KEY_CVES;
                     }
 
                     if (type == null) {
@@ -242,6 +248,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                                 .put(Constants.KEY_OFFSET, rootJson.get(Constants.KEY_OFFSET).asLong());
                     }
 
+                    if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
+                        ((ObjectNode) payload).put(Constants.KEY_CONTENT_TYPE, cveType);
+                    }
+
                     ObjectNode processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
@@ -249,12 +259,13 @@ public class SnapshotServiceImpl implements SnapshotService {
                     IndexRequest indexRequest =
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
-                    // Determine ID (root level "name" key)
-                    if (name != null) {
-                        indexRequest.id(name);
+                    // Determine ID from resource/name key.
+                    if (resourceName != null) {
+                        indexRequest.id(resourceName);
                     } else {
                         throw new IOException(
-                                "Missing 'name' key in CTI resource. {offset}:" + rootJson.get("offset").asInt());
+                                "Missing 'resource'/'name' key in CTI resource. {offset}:"
+                                        + rootJson.get("offset").asInt());
                     }
 
                     bulkRequest.add(indexRequest);

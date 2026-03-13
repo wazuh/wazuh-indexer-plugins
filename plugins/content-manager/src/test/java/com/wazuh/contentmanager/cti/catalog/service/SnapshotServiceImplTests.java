@@ -401,6 +401,39 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
+    /**
+     * Tests that CVE resources are identified from the root `resource` field and indexed as CVEs.
+     */
+    public void testInitialize_IndexesCveByResourceField() throws Exception {
+        String url = "http://example.com/cve.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+
+        Map<String, ContentIndex> cveOnlyMap = new HashMap<>();
+        cveOnlyMap.put("cves", this.contentIndexMock);
+
+        SnapshotServiceImpl cveSnapshotService =
+                new SnapshotServiceImpl(
+                        "test-context", "test-consumer", cveOnlyMap, this.consumersIndex, this.environment);
+        cveSnapshotService.setSnapshotClient(this.snapshotClient);
+
+        when(this.contentIndexMock.getIndexName()).thenReturn(".cti-cves");
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "cve.json",
+                        "{\"resource\": \"TID-123\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        cveSnapshotService.initialize(this.remoteConsumer);
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+
+        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
+        Assert.assertEquals(".cti-cves", request.index());
+        Assert.assertEquals("TID-123", request.id());
+    }
+
     /** Helper to create a temporary ZIP file containing a single file with specific content. */
     private Path createZipFileWithContent(String fileName, String content) throws IOException {
         Path zipPath = this.tempDir.resolve("test_" + System.nanoTime() + ".zip");

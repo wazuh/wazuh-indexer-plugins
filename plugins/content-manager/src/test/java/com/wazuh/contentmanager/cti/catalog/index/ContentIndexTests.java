@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -170,7 +169,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String yaml = source.get("decoder").asText();
         Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
         Assert.assertTrue(
-            yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
+                yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
     }
 
     /**
@@ -418,6 +417,17 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         Assert.assertNotNull("Should throw exception when document not found", exception);
         Assert.assertTrue(exception.getMessage().contains("not found"));
+    }
+
+    /** Test CVE payload normalization preserves explicit top-level `type`. */
+    public void testProcessPayload_CveTypeFromTopLevelType() throws IOException {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        JsonNode payload = this.mapper.readTree("{\"type\":\"CVE\",\"document\":{\"dataType\":\"CVE_RECORD\"}}");
+
+        JsonNode processed = cveIndex.processPayload(payload);
+
+        Assert.assertEquals("CVE", processed.get("type").asText());
+        Assert.assertEquals("CVE_RECORD", processed.get("document").get("dataType").asText());
     }
 
     /** Test that update with offset injects the offset value into the indexed document. */
