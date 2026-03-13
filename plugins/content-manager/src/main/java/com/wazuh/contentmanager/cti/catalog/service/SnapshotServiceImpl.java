@@ -322,7 +322,12 @@ public class SnapshotServiceImpl implements SnapshotService {
             Files.createDirectories(outputDir);
 
             // 2. Unzip local snapshot
-            Unzip.unzip(localZip, outputDir);
+            final Path extractDir = outputDir;
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        Unzip.unzip(localZip, extractDir);
+                        return null;
+                    });
 
             // 3. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);

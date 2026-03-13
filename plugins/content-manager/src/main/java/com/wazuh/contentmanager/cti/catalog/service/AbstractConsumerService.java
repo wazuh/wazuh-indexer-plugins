@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
 
 import java.nio.file.Files;
@@ -236,7 +237,15 @@ public abstract class AbstractConsumerService {
                             .resolve(Constants.CTI_SNAPSHOTS_DIR)
                             .resolve(this.getSnapshotFilename());
 
-            if (Files.exists(localSnapshot)) {
+            boolean snapshotExists;
+            try {
+                snapshotExists = AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshot));
+            } catch (Exception e) {
+                log.warn("Failed to check local snapshot at [{}]: {}", localSnapshot, e.getMessage());
+                snapshotExists = false;
+            }
+
+            if (snapshotExists) {
                 log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
                 SnapshotServiceImpl snapshotService =
                         new SnapshotServiceImpl(
@@ -253,6 +262,11 @@ public abstract class AbstractConsumerService {
                 } else {
                     log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
                 }
+            } else {
+                log.info(
+                        "No local snapshot at [{}] for consumer [{}], will use remote.",
+                        localSnapshot,
+                        consumer);
             }
         }
 

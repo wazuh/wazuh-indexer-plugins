@@ -1,7 +1,7 @@
 grant {
     permission java.net.SocketPermission "*", "connect,resolve";
     permission java.lang.RuntimePermission "accessDeclaredMembers";
-    permission java.io.FilePermission "*", "read,write";
+    permission java.io.FilePermission "*", "read,write,delete";
     permission java.io.FilePermission "/usr/share/wazuh-indexer/engine/data/-", "read,write";
     permission java.io.FilePermission "${opensearch.path.home}/plugins/wazuh-indexer-content-manager/snapshots/-", "read,delete";
 
