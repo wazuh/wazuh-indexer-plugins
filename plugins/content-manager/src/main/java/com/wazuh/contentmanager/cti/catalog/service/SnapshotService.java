@@ -31,4 +31,12 @@ public interface SnapshotService {
      * @return true if the snapshot was downloaded and initialized successfully; false otherwise.
      */
     boolean initialize(RemoteConsumer consumer);
+
+    /**
+     * Initializes a consumer from a pre-packaged local snapshot zip file.
+     *
+     * @param localZip Path to the local snapshot zip file.
+     * @return true if the local snapshot was processed and initialized successfully; false otherwise.
+     */
+    boolean initializeFromLocal(java.nio.file.Path localZip);
 }

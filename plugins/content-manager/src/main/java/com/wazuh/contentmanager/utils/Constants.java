@@ -164,6 +164,13 @@ public class Constants {
                     KEY_FILTERS,
                     INDEX_FILTERS);
 
+    // Snapshot constants
+    public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";
+    public static final String CTI_SNAPSHOTS_DIR = "snapshots";
+    public static final String CONTENT_SNAPSHOT_FILENAME = "ruleset.zip";
+    public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
+    public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
+
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
     public static final String KEY_TYPE_HASHES = "type_hashes";

@@ -20,8 +20,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -115,6 +118,14 @@ public abstract class AbstractConsumerService {
     public abstract void onSyncComplete(boolean isUpdated);
 
     /**
+     * Returns the local snapshot filename for this consumer. The file is expected to reside in the
+     * {@code snapshots} directory alongside the plugin installation.
+     *
+     * @return The snapshot zip filename (e.g., "ruleset.zip").
+     */
+    protected abstract String getSnapshotFilename();
+
+    /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      */
@@ -205,7 +216,61 @@ public abstract class AbstractConsumerService {
         boolean updated = false;
         long currentOffset = localConsumer != null ? localConsumer.getLocalOffset() : 0;
 
-        // Snapshot Initialization
+        // Offset mismatch resilience
+        if (localConsumer != null && remoteConsumer != null) {
+            if (currentOffset > remoteConsumer.getOffset()) {
+                log.warn(
+                        "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.",
+                        currentOffset,
+                        remoteConsumer.getOffset(),
+                        consumer);
+                currentOffset = 0;
+            }
+        }
+
+        // Local Snapshot Initialization (takes precedence over remote download)
+        if (currentOffset == 0) {
+            Path localSnapshot =
+                    this.environment
+                            .pluginsDir()
+                            .resolve(Constants.PLUGIN_DIR_NAME)
+                            .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                            .resolve(this.getSnapshotFilename());
+
+            boolean snapshotExists;
+            try {
+                snapshotExists = AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshot));
+            } catch (Exception e) {
+                log.warn("Failed to check local snapshot at [{}]: {}", localSnapshot, e.getMessage());
+                snapshotExists = false;
+            }
+
+            if (snapshotExists) {
+                log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
+                SnapshotServiceImpl snapshotService =
+                        new SnapshotServiceImpl(
+                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+
+                boolean localSuccess = snapshotService.initializeFromLocal(localSnapshot);
+                if (localSuccess) {
+                    currentOffset = snapshotService.getMaxOffsetSeen();
+                    log.info(
+                            "Initialized consumer [{}] from local snapshot, offset [{}]",
+                            consumer,
+                            currentOffset);
+                    updated = true;
+                } else {
+                    log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
+                }
+            } else {
+                log.info(
+                        "No local snapshot at [{}] for consumer [{}], will use remote.",
+                        localSnapshot,
+                        consumer);
+            }
+        }
+
+        // Remote Snapshot Initialization (fallback when local snapshot is absent or failed)
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
@@ -221,7 +286,7 @@ public abstract class AbstractConsumerService {
             updated = true;
         }
 
-        // Update
+        // Incremental Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
             log.info(
                     "Performing update for consumer [{}] from offset [{}] to [{}]",

@@ -435,10 +435,23 @@ public class ContentIndex {
      */
     public ObjectNode processPayload(JsonNode payload) {
         try {
-          
+            // Detect type from index name or payload
+            if (Constants.INDEX_CVES.equals(this.indexName)) {
+                Cve cve = Cve.fromPayload(payload);
+                return this.mapper.valueToTree(cve);
+            }
+
+            String type =
+                    payload.has(Constants.KEY_TYPE) ? payload.get(Constants.KEY_TYPE).asText() : null;
+
             // Delegate parsing logic to the appropriate Model
+            if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
+                Ioc ioc = Ioc.fromPayload(payload);
+                return this.mapper.valueToTree(ioc);
+            }
+
             Resource resource;
-            switch (this.indexName){
+            switch (this.indexName) {
                 case Constants.INDEX_IOCS:
                     Ioc ioc = Ioc.fromPayload(payload);
                     return this.mapper.valueToTree(ioc);
