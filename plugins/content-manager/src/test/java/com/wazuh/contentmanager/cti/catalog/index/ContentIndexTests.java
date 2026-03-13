@@ -39,6 +39,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -155,7 +156,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "2ebb3a6b-c4a3-47fb-aae5-a0d9bd8cbfed";
 
         // Act
-        ContentIndex contentIndex1 = new ContentIndex(this.client, Constants.INDEX_DECODERS, MAPPINGS_PATH);
+        ContentIndex contentIndex1 =
+                new ContentIndex(this.client, Constants.INDEX_DECODERS, MAPPINGS_PATH);
         contentIndex1.create(id, payload);
 
         // Assert
