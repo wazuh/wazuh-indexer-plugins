@@ -361,8 +361,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                         return null;
                     });
             log.info("Deleted local snapshot file [{}]", localZip);
-        } catch (IOException e) {
-            log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
         } catch (Exception e) {
             log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
         }

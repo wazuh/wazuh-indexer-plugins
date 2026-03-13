@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2026, Wazuh Inc.
+ * Copyright (C) 2024, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -52,6 +52,7 @@ public class ApiClient {
 
     /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
     public ApiClient() {
+        // Retrieve base URI from PluginSettings
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
         this.buildClient();
     }
