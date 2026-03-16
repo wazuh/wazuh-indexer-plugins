@@ -111,8 +111,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                         category,
                         space.asSecurityAnalyticsSource(),
                         new HashMap<>(),
-                        space.toString(),
-                        new ArrayList<>()));
+                        space.toString()));
     }
 
     @Override
