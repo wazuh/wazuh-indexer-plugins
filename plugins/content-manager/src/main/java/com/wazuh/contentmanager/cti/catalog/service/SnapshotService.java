@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import java.nio.file.Path;
 
 /**
  * Service interface for managing CTI snapshots. Defines the contract for initializing consumers
@@ -38,5 +39,5 @@ public interface SnapshotService {
      * @param localZip Path to the local snapshot zip file.
      * @return true if the local snapshot was processed and initialized successfully; false otherwise.
      */
-    boolean initializeFromLocal(java.nio.file.Path localZip);
+    boolean initializeFromLocal(Path localZip);
 }
