@@ -76,6 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add active response index with ISM policy [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
 - Implement Ioc delivery [(#858)](https://github.com/wazuh/wazuh-indexer-plugins/pull/858)
 - Add Centralized CTI Download Via Indexer [(#907)](https://github.com/wazuh/wazuh-indexer-plugins/pull/907)
+- Implement logic to import standard space into Wazuh Engine [(#924)](https://github.com/wazuh/wazuh-indexer-plugins/pull/924)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
