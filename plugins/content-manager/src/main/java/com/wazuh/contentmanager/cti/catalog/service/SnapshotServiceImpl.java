@@ -369,11 +369,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         try {
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
-                            this.maxOffsetSeen,
-                            this.maxOffsetSeen,
-                            localZip.toString());
+                            this.context, this.consumer, this.maxOffsetSeen, 0, localZip.toString());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
