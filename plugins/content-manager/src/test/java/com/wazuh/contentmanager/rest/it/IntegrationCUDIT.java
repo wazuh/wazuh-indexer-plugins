@@ -218,10 +218,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "id": "custom-id",
                         "title": "test-integration-with-id",
                         "author": "Wazuh Inc.",
-                        "category": "cloud-services",
                         "description": "Test.",
                         "documentation": "doc",
                         "references": ["https://wazuh.com"],
+                        "category": "cloud-services",
                         "enabled": true
                     }
                 }
@@ -295,10 +295,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "title": "test-integration-put-updated",
                         "author": "Wazuh Inc.",
-                        "category": "cloud-services",
                         "description": "Updated description.",
                         "documentation": "updated-doc",
                         "references": ["https://wazuh.com"],
+                        "category": "cloud-services",
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -319,7 +319,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         this.assertSpaceName(sourceAfter);
         assertEquals(
                 "Updated description.",
-                sourceAfter.path(Constants.KEY_DOCUMENT).path("description").asText());
+                sourceAfter.path(Constants.KEY_DOCUMENT).path("metadata").path("description").asText());
 
         // Verify hash updated
         String hashAfter = sourceAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
@@ -348,10 +348,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "title": "test-put-dup-b",
                         "author": "Wazuh Inc.",
-                        "category": "cloud-services",
                         "description": "Try changing to existing title.",
                         "documentation": "doc",
                         "references": ["https://wazuh.com"],
+                        "category": "cloud-services",
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -381,10 +381,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "title": "nonexistent",
                         "author": "Test",
-                        "category": "cloud-services",
                         "description": "",
                         "documentation": "",
                         "references": [],
+                        "category": "cloud-services",
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -417,10 +417,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "title": "test",
                         "author": "Test",
-                        "category": "cloud-services",
                         "description": "",
                         "documentation": "",
                         "references": [],
+                        "category": "cloud-services",
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -485,10 +485,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         "id": "some-id",
                         "title": "test-integration-put-idinbody-updated",
                         "author": "Wazuh Inc.",
-                        "category": "cloud-services",
                         "description": "Same.",
                         "documentation": "doc",
                         "references": ["https://wazuh.com"],
+                        "category": "cloud-services",
                         "enabled": true,
                         "rules": [],
                         "decoders": [],

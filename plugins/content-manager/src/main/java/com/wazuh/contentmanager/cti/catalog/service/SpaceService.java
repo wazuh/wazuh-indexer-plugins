@@ -178,7 +178,11 @@ public class SpaceService {
             policy.setEnabled(false);
             policy.setIndexUnclassifiedEvents(false);
             policy.setIndexDiscardedEvents(false);
-            Map<String, Object> docMap = this.objectMapper.convertValue(policy, Map.class);
+
+            ObjectNode docNode = this.objectMapper.valueToTree(policy);
+            Resource.nestMetadataFields(docNode);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> docMap = this.objectMapper.convertValue(docNode, Map.class);
 
             String docJson = this.objectMapper.writeValueAsString(docMap);
             String docHash = Resource.computeSha256(docJson);

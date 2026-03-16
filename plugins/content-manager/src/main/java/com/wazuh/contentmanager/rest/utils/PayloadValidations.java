@@ -110,7 +110,7 @@ public class PayloadValidations {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
-            // Query: space.name == space AND document.title == title
+            // Query: space.name == space AND document.metadata.title == title
             sourceBuilder.query(
                     QueryBuilders.boolQuery()
                             .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space))

@@ -308,27 +308,45 @@ public class RestPutPolicyAction extends BaseRestHandler {
         // Safekeep all unmodifiable values from the existing standard policy
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
 
-        // Extract metadata from existing policy (now nested under "metadata")
+        // Extract metadata from existing policy (now nested under "metadata", fallback to root)
         @SuppressWarnings("unchecked")
         Map<String, Object> existingMetadata =
                 (Map<String, Object>)
                         currentPolicyDoc.getOrDefault(Constants.KEY_METADATA, Collections.emptyMap());
-        String docCreationDate = existingMetadata.getOrDefault(Constants.KEY_DATE, "").toString();
+
+        Object dateObj = existingMetadata.get(Constants.KEY_DATE);
+        if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
+        String docCreationDate = dateObj != null ? dateObj.toString() : "";
 
         // Build a policy preserving existing fields, only overriding the 5 allowed fields
         Policy mergedPolicy = new Policy();
         mergedPolicy.setId(docId);
         mergedPolicy.setDate(docCreationDate);
         mergedPolicy.setModified(Instant.now().toString());
-        mergedPolicy.setTitle((String) existingMetadata.getOrDefault(Constants.KEY_TITLE, ""));
-        mergedPolicy.setAuthor((String) existingMetadata.getOrDefault(Constants.KEY_AUTHOR, ""));
-        mergedPolicy.setDescription(
-                (String) existingMetadata.getOrDefault(Constants.KEY_DESCRIPTION, ""));
-        mergedPolicy.setDocumentation((String) existingMetadata.getOrDefault("documentation", ""));
+
+        Object titleObj = existingMetadata.get(Constants.KEY_TITLE);
+        if (titleObj == null) titleObj = currentPolicyDoc.get(Constants.KEY_TITLE);
+        mergedPolicy.setTitle(titleObj != null ? titleObj.toString() : "");
+
+        Object authorObj = existingMetadata.get(Constants.KEY_AUTHOR);
+        if (authorObj == null) authorObj = currentPolicyDoc.get(Constants.KEY_AUTHOR);
+        mergedPolicy.setAuthor(authorObj != null ? authorObj.toString() : "");
+
+        Object descObj = existingMetadata.get(Constants.KEY_DESCRIPTION);
+        if (descObj == null) descObj = currentPolicyDoc.get(Constants.KEY_DESCRIPTION);
+        mergedPolicy.setDescription(descObj != null ? descObj.toString() : "");
+
+        Object docObj = existingMetadata.get("documentation");
+        if (docObj == null) docObj = currentPolicyDoc.get("documentation");
+        mergedPolicy.setDocumentation(docObj != null ? docObj.toString() : "");
+
+        Object refObj = existingMetadata.get("references");
+        if (refObj == null) refObj = currentPolicyDoc.get("references");
         @SuppressWarnings("unchecked")
         List<String> existingReferences =
-                (List<String>) existingMetadata.getOrDefault("references", Collections.emptyList());
+                (List<String>) (refObj != null ? refObj : Collections.emptyList());
         mergedPolicy.setReferences(existingReferences);
+
         mergedPolicy.setRootDecoder((String) currentPolicyDoc.getOrDefault("root_decoder", ""));
         mergedPolicy.setIntegrations(
                 (List<String>)
@@ -419,7 +437,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
         Map<String, Object> existingMeta =
                 (Map<String, Object>)
                         currentPolicyDoc.getOrDefault(Constants.KEY_METADATA, Collections.emptyMap());
-        String docCreationDate = existingMeta.getOrDefault(Constants.KEY_DATE, "").toString();
+
+        Object dateObj = existingMeta.get(Constants.KEY_DATE);
+        if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
+        String docCreationDate = dateObj != null ? dateObj.toString() : "";
         String docModificationDate = Instant.now().toString();
 
         // Update (set or overwrite unmodifiable values in incoming policy document)

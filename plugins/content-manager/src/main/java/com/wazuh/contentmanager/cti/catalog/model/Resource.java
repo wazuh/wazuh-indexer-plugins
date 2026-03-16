@@ -136,6 +136,7 @@ public class Resource {
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
             ObjectNode rawDoc = payload.get(JSON_DOCUMENT_KEY).deepCopy();
             Resource.preprocessDocument(rawDoc);
+            Resource.nestMetadataFields(rawDoc);
 
             resource.setDocument(MAPPER.convertValue(rawDoc, Map.class));
 
@@ -243,7 +244,15 @@ public class Resource {
 
     /** Metadata field names that should be nested under {@code metadata} during indexing. */
     private static final String[] METADATA_FIELD_NAMES = {
-        "title", "author", "description", "references", "documentation", "supports", "compatibility"
+        "title",
+        "author",
+        "description",
+        "references",
+        "documentation",
+        "supports",
+        "compatibility",
+        "date",
+        "modified"
     };
 
     /**

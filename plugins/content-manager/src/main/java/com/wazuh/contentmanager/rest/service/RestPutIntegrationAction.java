@@ -150,16 +150,15 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse requiredFields =
                 this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_ENABLED));
+                        resource,
+                        List.of(
+                                Constants.KEY_CATEGORY,
+                                Constants.KEY_ENABLED,
+                                Constants.KEY_TITLE,
+                                Constants.KEY_AUTHOR));
         if (requiredFields != null) return requiredFields;
 
-        RestResponse metadataValidation =
-                this.documentValidations.validateMetadataFields(
-                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-
-        if (metadataValidation != null) return metadataValidation;
-
-        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
+        String title = resource.get(Constants.KEY_TITLE).asText();
         String id = resource.get(Constants.KEY_ID).asText();
 
         return this.documentValidations.validateDuplicateTitle(

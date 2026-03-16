@@ -103,6 +103,16 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                 "properties": {
                                     "id":       {"type": "keyword"},
                                     "title":    {"type": "keyword"},
+                                    "metadata": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title":    {"type": "keyword"},
+                                            "author":   {"type": "keyword"},
+                                            "description": {"type": "text"},
+                                            "references":  {"type": "keyword"},
+                                            "documentation": {"type": "keyword"}
+                                        }
+                                    },
                                     "decoders": {"type": "keyword"},
                                     "rules":    {"type": "keyword"},
                                     "kvdbs":    {"type": "keyword"}
@@ -163,16 +173,25 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                 "properties": {
                                     "id": { "type": "keyword" },
                                     "root_decoder": { "type": "keyword" },
-                                    "date": { "type": "date" },
-                                    "modified": { "type": "date" },
-                                    "author": { "type": "keyword" },
-                                    "description": { "type": "text" },
-                                    "references": { "type": "keyword" },
-                                    "documentation": { "type": "keyword" },
+                                    "metadata": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": { "type": "keyword" },
+                                            "author": { "type": "keyword" },
+                                            "date": { "type": "date" },
+                                            "modified": { "type": "date" },
+                                            "description": { "type": "text" },
+                                            "references": { "type": "keyword" },
+                                            "documentation": { "type": "keyword" },
+                                            "compatibility": { "type": "keyword" }
+                                        }
+                                    },
                                     "integrations": { "type": "keyword" },
                                     "filters": { "type": "keyword" },
                                     "enrichments": { "type": "keyword" },
-                                    "title": { "type": "keyword" }
+                                    "enabled": { "type": "boolean" },
+                                    "index_unclassified_events": { "type": "boolean" },
+                                    "index_discarded_events": { "type": "boolean" }
                                 }
                             },
                             "hash": {
@@ -180,6 +199,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                 "properties": {
                                     "sha256": { "type": "keyword" }
                                 }
+                            },
+                            "offset": {
+                                "type": "unsigned_long"
                             },
                             "space": {
                                 "type": "object",
@@ -220,17 +242,19 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     {
                         "document": {
                             "id": "%s",
-                            "title": "Custom policy",
-                            "date": "%s",
-                            "modified": "%s",
                             "root_decoder": "",
                             "integrations": [],
                             "filters": [],
                             "enrichments": [],
-                            "author": "Wazuh Inc.",
-                            "description": "Custom policy",
-                            "documentation": "",
-                            "references": ["https://wazuh.com"]
+                            "metadata": {
+                                "title": "Custom policy",
+                                "author": "Wazuh Inc.",
+                                "date": "%s",
+                                "modified": "%s",
+                                "description": "Custom policy",
+                                "documentation": "",
+                                "references": ["https://wazuh.com"]
+                            }
                         },
                         "hash": {
                             "sha256": "%s"
@@ -507,6 +531,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     }
 
     private static String getString(String title) {
+        // spotless:off
         String payload = """
                 {
                     "resource": {
@@ -520,6 +545,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     }
                 }
                 """;
+        // spotless:on
         payload = String.format(Locale.ROOT, payload, title);
         return payload;
     }
@@ -539,7 +565,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     "resource": {
                         "enabled": true,
                         "metadata": {
-                            "author": {"name": "Wazuh, Inc."},
+                            "author": "Wazuh, Inc.",
                             "compatibility": "All wazuh events.",
                             "description": "Test decoder for integration tests.",
                             "module": "test",
@@ -812,7 +838,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
             String integrationId, String listField, String resourceId, String spaceName)
             throws IOException {
         JsonNode integration =
-            this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, spaceName);
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, spaceName);
         assertNotNull("Integration " + integrationId + " should exist in " + spaceName, integration);
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
         assertTrue("List '" + listField + "' should be an array", list.isArray());
@@ -844,7 +870,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     protected void assertResourceNotInIntegrationList(
             String integrationId, String listField, String resourceId) throws IOException {
         JsonNode integration =
-            this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft");
         if (integration == null) return; // Integration was deleted, resource is implicitly unlinked
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
         if (!list.isArray()) return;
