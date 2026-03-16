@@ -109,4 +109,135 @@ public class CveTests extends OpenSearchTestCase {
         assertEquals("TVENDORS", Cve.deriveType("TVENDORS"));
         assertNull(Cve.deriveType("UNMAPPED"));
     }
+
+    /** Verifies deriveType handles case insensitivity for resource names. */
+    public void testDeriveType_CaseInsensitivity() {
+        assertEquals("CVE", Cve.deriveType("cve-2026-0001"));
+        assertEquals("CVE", Cve.deriveType("CVE-2026-0001"));
+        assertEquals("CVE", Cve.deriveType("Cve-2026-0001"));
+        assertEquals("TID", Cve.deriveType("tid-001"));
+        assertEquals("TID", Cve.deriveType("TID-001"));
+        assertEquals("CNA-MAPPING-GLOBAL", Cve.deriveType("cna-mapping-global"));
+        assertEquals("FEED-GLOBAL", Cve.deriveType("feed-global"));
+        assertEquals("OSCPE-GLOBAL", Cve.deriveType("oscpe-global"));
+    }
+
+    /** Verifies deriveType handles edge cases with whitespace. */
+    public void testDeriveType_EdgeCasesWithWhitespace() {
+        assertEquals("CVE", Cve.deriveType("  CVE-2026-0001  "));
+        assertEquals("TID", Cve.deriveType("\tTID-001\t"));
+        assertEquals("TCPE", Cve.deriveType("  TCPE  "));
+        assertNull(Cve.deriveType(""));
+        assertNull(Cve.deriveType(null));
+        assertNull(Cve.deriveType("   "));
+    }
+
+    /** Verifies deriveType handles complex CVE identifiers. */
+    public void testDeriveType_ComplexCvePatterns() {
+        assertEquals("CVE", Cve.deriveType("CVE-1999-0001"));
+        assertEquals("CVE", Cve.deriveType("CVE-2000-10000"));
+        assertEquals("CVE", Cve.deriveType("CVE-2026-12345"));
+        assertEquals("TID", Cve.deriveType("TID-00001"));
+        assertEquals("TID", Cve.deriveType("TID-999"));
+    }
+
+    /** Verifies deriveType returns null for unrecognized patterns. */
+    public void testDeriveType_UnrecognizedPatterns() {
+        assertNull(Cve.deriveType("UNKNOWN"));
+        assertNull(Cve.deriveType("INVALID-2026-0001"));
+        assertNull(Cve.deriveType("CVE_2026_0001"));
+        assertNull(Cve.deriveType("TID_001"));
+        assertNull(Cve.deriveType("CVE"));
+        assertNull(Cve.deriveType("TID"));
+    }
+
+    /** Verifies explicit type in payload takes precedence over derived type. */
+    public void testFromPayload_ExplicitTypeOverridesResourceDerived() {
+        ObjectNode rawPayload = this.mapper.createObjectNode();
+        rawPayload.put("dataType", "CVE_RECORD");
+        rawPayload.put("type", "TCPE"); // Explicit type in payload
+
+        Cve cve = Cve.fromPayload(rawPayload, "CVE-2026-0001");
+        JsonNode serialized = this.mapper.valueToTree(cve);
+
+        // Explicit type should be preserved, even though resource would derive "CVE"
+        assertEquals("TCPE", serialized.get("type").asText());
+    }
+
+    /** Verifies offset extraction and preservation during serialization. */
+    public void testFromPayload_OffsetExtraction() {
+        ObjectNode rawPayload = this.mapper.createObjectNode();
+        rawPayload.put("dataType", "CVE_RECORD");
+        rawPayload.put("offset", 12345L);
+
+        Cve cve = Cve.fromPayload(rawPayload, "CVE-2026-0001");
+        JsonNode serialized = this.mapper.valueToTree(cve);
+
+        assertEquals(12345L, serialized.get("offset").asLong());
+        assertFalse(serialized.get("document").has("offset"));
+    }
+
+    /** Verifies multiple CVE types are correctly derived and stored. */
+    public void testFromPayload_AllCveTypes() {
+        String[] resources = {
+            "CNA-MAPPING-GLOBAL",
+            "CVE-2026-0001",
+            "FEED-GLOBAL",
+            "OSCPE-GLOBAL",
+            "TCPE",
+            "TID-001",
+            "TVENDORS"
+        };
+        String[] expectedTypes = {
+            "CNA-MAPPING-GLOBAL", "CVE", "FEED-GLOBAL", "OSCPE-GLOBAL", "TCPE", "TID", "TVENDORS"
+        };
+
+        for (int i = 0; i < resources.length; i++) {
+            ObjectNode payload = this.mapper.createObjectNode();
+            payload.put("id", resources[i]);
+            Cve cve = Cve.fromPayload(payload, resources[i]);
+            JsonNode serialized = this.mapper.valueToTree(cve);
+            assertEquals(
+                    "Type for resource " + resources[i], expectedTypes[i], serialized.get("type").asText());
+        }
+    }
+
+    /** Verifies Cve serialization includes all required fields. */
+    public void testFromPayload_SerializationIncludesAllFields() {
+        ObjectNode rawPayload = this.mapper.createObjectNode();
+        rawPayload.put("dataType", "CVE_RECORD");
+        rawPayload.put("id", "CVE-2026-0001");
+        rawPayload.put("offset", 999L);
+
+        Cve cve = Cve.fromPayload(rawPayload, "CVE-2026-0001");
+        JsonNode serialized = this.mapper.valueToTree(cve);
+
+        assertTrue("Should have document field", serialized.has("document"));
+        assertTrue("Should have offset field", serialized.has("offset"));
+        assertTrue("Should have type field", serialized.has("type"));
+        assertEquals("CVE", serialized.get("type").asText());
+        assertEquals(999L, serialized.get("offset").asLong());
+    }
+
+    /** Verifies null payload is handled gracefully. */
+    public void testFromPayload_NullPayload() {
+        Cve cve = Cve.fromPayload(null, "CVE-2026-0001");
+        JsonNode serialized = this.mapper.valueToTree(cve);
+
+        assertFalse(serialized.has("document"));
+        assertFalse(serialized.has("offset"));
+        assertFalse(serialized.has("type"));
+    }
+
+    /** Verifies fromPayload without resource name parameter. */
+    public void testFromPayload_WithoutResourceName() {
+        ObjectNode rawPayload = this.mapper.createObjectNode();
+        rawPayload.put("dataType", "CVE_RECORD");
+
+        Cve cve = Cve.fromPayload(rawPayload);
+        JsonNode serialized = this.mapper.valueToTree(cve);
+
+        assertTrue(serialized.has("document"));
+        assertFalse(serialized.has("type"));
+    }
 }

@@ -422,7 +422,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
     /** Test CVE payload normalization preserves explicit top-level `type`. */
     public void testProcessPayload_CveTypeFromTopLevelType() throws IOException {
         ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
-        JsonNode payload = this.mapper.readTree("{\"type\":\"CVE\",\"document\":{\"dataType\":\"CVE_RECORD\"}}");
+        JsonNode payload =
+                this.mapper.readTree("{\"type\":\"CVE\",\"document\":{\"dataType\":\"CVE_RECORD\"}}");
 
         JsonNode processed = cveIndex.processPayload(payload);
 

@@ -17,7 +17,7 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "strict",
+      "dynamic": "true",
       "properties": {
         "document": {
           "properties": {

@@ -401,9 +401,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
-    /**
-     * Tests that CVE resources are identified from the root `resource` field and indexed as CVEs.
-     */
+    /** Tests that CVE resources are identified from the root `resource` field and indexed as CVEs. */
     public void testInitialize_IndexesCveByResourceField() throws Exception {
         String url = "http://example.com/cve.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
