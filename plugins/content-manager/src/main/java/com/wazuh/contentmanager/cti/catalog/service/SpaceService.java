@@ -291,12 +291,21 @@ public class SpaceService {
                 spaceMap.put(Constants.KEY_NAME, targetSpace);
                 doc.put(Constants.KEY_SPACE, spaceMap);
 
+                // Update the inner document's space explicitly
+                if (doc.containsKey(Constants.KEY_DOCUMENT)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> innerDoc = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+                    innerDoc.put(Constants.KEY_SPACE, targetSpace);
+                }
+
                 // Find existing _id in target space to overwrite it, otherwise create new
                 String targetId = this.findDocumentId(indexName, targetSpace, docId);
 
                 IndexRequest indexRequest = new IndexRequest(indexName);
                 if (targetId != null) {
                     indexRequest.id(targetId);
+                } else {
+                    indexRequest.id(docId + "_" + targetSpace);
                 }
 
                 indexRequest.source(this.objectMapper.writeValueAsString(doc), XContentType.JSON);
@@ -405,6 +414,7 @@ public class SpaceService {
             @SuppressWarnings("unchecked")
             Map<String, Object> policyDoc =
                     (Map<String, Object>) policyDocument.get(Constants.KEY_DOCUMENT);
+            policyDoc.put(Constants.KEY_SPACE, targetSpace);
             JsonNode policyContentNode = this.objectMapper.valueToTree(policyDoc);
             policyNode.setAll((ObjectNode) policyContentNode);
         }
@@ -423,7 +433,7 @@ public class SpaceService {
             targetIntegrations.remove(id);
         }
         // Build array
-        ArrayNode integrationsArray = this.buildResourceArray(targetIntegrations);
+        ArrayNode integrationsArray = this.buildResourceArray(targetIntegrations, targetSpace);
         resourcesNode.set(Constants.KEY_INTEGRATIONS, integrationsArray);
 
         // Fetch all kvdbs from target space
@@ -433,7 +443,7 @@ public class SpaceService {
         for (String id : kvdbsToDelete) {
             targetKvdbs.remove(id);
         }
-        ArrayNode kvdbsArray = this.buildResourceArray(targetKvdbs);
+        ArrayNode kvdbsArray = this.buildResourceArray(targetKvdbs, targetSpace);
         resourcesNode.set(Constants.KEY_KVDBS, kvdbsArray);
 
         // Fetch all decoders from target space
@@ -443,7 +453,7 @@ public class SpaceService {
         for (String id : decodersToDelete) {
             targetDecoders.remove(id);
         }
-        ArrayNode decodersArray = this.buildResourceArray(targetDecoders);
+        ArrayNode decodersArray = this.buildResourceArray(targetDecoders, targetSpace);
         resourcesNode.set(Constants.KEY_DECODERS, decodersArray);
 
         // Fetch all filters from target space
@@ -453,7 +463,7 @@ public class SpaceService {
         for (String id : filtersToDelete) {
             targetFilters.remove(id);
         }
-        ArrayNode filtersArray = this.buildResourceArray(targetFilters);
+        ArrayNode filtersArray = this.buildResourceArray(targetFilters, targetSpace);
         resourcesNode.set(Constants.KEY_FILTERS, filtersArray);
 
         // Add resources to full_policy
@@ -471,12 +481,14 @@ public class SpaceService {
      * @param resources Map of resource ID to resource document.
      * @return An ArrayNode containing the document content of each resource.
      */
-    private ArrayNode buildResourceArray(Map<String, Map<String, Object>> resources) {
+    private ArrayNode buildResourceArray(
+            Map<String, Map<String, Object>> resources, String targetSpace) {
         ArrayNode array = this.objectMapper.createArrayNode();
         for (Map<String, Object> resource : resources.values()) {
             if (resource.containsKey(Constants.KEY_DOCUMENT)) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> content = (Map<String, Object>) resource.get(Constants.KEY_DOCUMENT);
+                content.put(Constants.KEY_SPACE, targetSpace);
                 JsonNode node = this.objectMapper.valueToTree(content);
                 array.add(node);
             }

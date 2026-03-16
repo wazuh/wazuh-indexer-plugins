@@ -33,12 +33,15 @@ import java.io.IOException;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -60,6 +63,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
     private final EngineService engine;
     private SpaceService spaceService;
+    private SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructor.
@@ -103,6 +107,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         this.spaceService = new SpaceService(client);
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
+        }
         return channel -> {
             RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());
@@ -161,10 +170,13 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 4. Consolidation Phase - Apply changes to target space
             this.consolidateChanges(context);
 
+            // 5. SAP Sync Phase - Sync promoted integrations and rules to Security Analytics Plugin
+            this.syncToSecurityAnalytics(context, spaceDiff.getSpace().promote());
+
             // After successful promotion, recalculate policy hashes for the promoted space
             this.spaceService.calculateAndUpdate(List.of(spaceDiff.getSpace().promote().toString()));
 
-            // 5. Response Phase - Reply with success
+            // 6. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
@@ -574,6 +586,67 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
                     context.rulesToDelete,
                     context.targetSpace);
+        }
+    }
+
+    /**
+     * Syncs promoted integrations and rules to the Security Analytics Plugin. This ensures that the
+     * SAP log-types-config and rules indices reflect the promoted resources in the target space.
+     *
+     * @param context The promotion context containing resources that were promoted.
+     * @param targetSpace The target space enum.
+     */
+    private void syncToSecurityAnalytics(PromotionContext context, Space targetSpace) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Sync promoted integrations
+        for (Map.Entry<String, Map<String, Object>> entry : context.integrationsToApply.entrySet()) {
+            try {
+                Map<String, Object> resource = entry.getValue();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document = (Map<String, Object>) resource.get(Constants.KEY_DOCUMENT);
+                if (document != null) {
+                    JsonNode docNode = mapper.valueToTree(document);
+                    this.securityAnalyticsService.upsertIntegration(
+                            docNode, targetSpace, RestRequest.Method.POST);
+                }
+            } catch (Exception e) {
+                log.error("Failed to sync integration [{}] to SAP: {}", entry.getKey(), e.getMessage());
+            }
+        }
+
+        // Delete integrations removed from target space
+        for (String integrationId : context.integrationsToDelete) {
+            try {
+                this.securityAnalyticsService.deleteIntegration(integrationId, false);
+            } catch (Exception e) {
+                log.error("Failed to delete integration [{}] from SAP: {}", integrationId, e.getMessage());
+            }
+        }
+
+        // Sync promoted rules
+        for (Map.Entry<String, Map<String, Object>> entry : context.rulesToApply.entrySet()) {
+            try {
+                Map<String, Object> resource = entry.getValue();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document = (Map<String, Object>) resource.get(Constants.KEY_DOCUMENT);
+                if (document != null) {
+                    JsonNode docNode = mapper.valueToTree(document);
+                    this.securityAnalyticsService.upsertRule(docNode, targetSpace, RestRequest.Method.POST);
+                }
+            } catch (Exception e) {
+                log.error("Failed to sync rule [{}] to SAP: {}", entry.getKey(), e.getMessage());
+            }
+        }
+
+        // Delete rules removed from target space
+        for (String ruleId : context.rulesToDelete) {
+            try {
+                boolean isStandard = targetSpace == Space.STANDARD || targetSpace == Space.CUSTOM;
+                this.securityAnalyticsService.deleteRule(ruleId, isStandard);
+            } catch (Exception e) {
+                log.error("Failed to delete rule [{}] from SAP: {}", ruleId, e.getMessage());
+            }
         }
     }
 

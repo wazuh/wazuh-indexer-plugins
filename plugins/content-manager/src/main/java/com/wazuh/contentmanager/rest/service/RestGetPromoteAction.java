@@ -234,6 +234,13 @@ public class RestGetPromoteAction extends BaseRestHandler {
         Map<String, Object> source = new HashMap<>(sourceDoc);
         Map<String, Object> target = new HashMap<>(targetDoc);
 
+        // Remove fields that naturally differ between spaces
+        source.remove(Constants.KEY_ID);
+        target.remove(Constants.KEY_ID);
+
+        source.remove(Constants.KEY_SPACE);
+        target.remove(Constants.KEY_SPACE);
+
         return !source.equals(target);
     }
 

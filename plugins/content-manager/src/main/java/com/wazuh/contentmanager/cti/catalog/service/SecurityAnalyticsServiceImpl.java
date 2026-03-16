@@ -31,6 +31,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
+import java.util.ArrayList;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -109,7 +110,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                         description,
                         category,
                         space.asSecurityAnalyticsSource(),
-                        new HashMap<>()));
+                        new HashMap<>(),
+                        space.toString(),
+                        new ArrayList<>()));
     }
 
     @Override
