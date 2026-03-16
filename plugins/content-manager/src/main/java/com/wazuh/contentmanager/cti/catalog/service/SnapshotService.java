@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import java.nio.file.Path;
+
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 
 /**
  * Service interface for managing CTI snapshots. Defines the contract for initializing consumers
