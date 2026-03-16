@@ -40,6 +40,8 @@ import java.util.concurrent.TimeUnit;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -58,6 +60,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final SpaceService spaceService;
+    private final EngineService engineService;
 
     /**
      * Constructs a new UnifiedConsumerSynchronizer.
@@ -65,12 +68,17 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
+     * @param engineService The engine service for loading content into the Engine.
      */
     public ConsumerRulesetService(
-            Client client, ConsumersIndex consumersIndex, Environment environment) {
+            Client client,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            EngineService engineService) {
         super(client, consumersIndex, environment);
         this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         this.spaceService = new SpaceService(client);
+        this.engineService = engineService;
 
         this.mapper = new ObjectMapper();
         this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
@@ -158,7 +166,27 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 this.syncDetectors();
             }
 
-            this.spaceService.calculateAndUpdate();
+            Set<String> changedSpaces = this.spaceService.calculateAndUpdate();
+
+            // Load the standard space into the Engine only if its hash changed
+            if (changedSpaces.contains(Space.STANDARD.toString())) {
+                this.loadStandardSpaceIntoEngine();
+            }
+        }
+    }
+
+    /** Builds the engine payload for the standard space and loads it into the Engine. */
+    private void loadStandardSpaceIntoEngine() {
+        if (this.engineService == null) {
+            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
+            return;
+        }
+        try {
+            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString(), true);
+            RestResponse response = this.engineService.promote(payload);
+            log.info("Engine load for standard space completed with status [{}].", response.getStatus());
+        } catch (Exception e) {
+            log.error("Failed to load standard space into Engine: {}", e.getMessage());
         }
     }
 
