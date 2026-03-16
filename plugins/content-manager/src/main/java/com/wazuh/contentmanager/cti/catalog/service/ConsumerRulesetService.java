@@ -184,7 +184,14 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         try {
             JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString(), true);
             RestResponse response = this.engineService.promote(payload);
-            log.info("Engine load for standard space completed with status [{}].", response.getStatus());
+            if (response.getStatus() == 200) {
+                log.info("Engine load for standard space completed successfully.");
+            } else {
+                log.warn(
+                        "Engine load for standard space returned status [{}]: {}",
+                        response.getStatus(),
+                        response.getMessage());
+            }
         } catch (Exception e) {
             log.error("Failed to load standard space into Engine: {}", e.getMessage());
         }
