@@ -336,12 +336,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
         if (descObj == null) descObj = currentPolicyDoc.get(Constants.KEY_DESCRIPTION);
         mergedPolicy.setDescription(descObj != null ? descObj.toString() : "");
 
-        Object docObj = existingMetadata.get("documentation");
-        if (docObj == null) docObj = currentPolicyDoc.get("documentation");
+        Object docObj = existingMetadata.get(Constants.KEY_DOCUMENTATION);
+        if (docObj == null) docObj = currentPolicyDoc.get(Constants.KEY_DOCUMENTATION);
         mergedPolicy.setDocumentation(docObj != null ? docObj.toString() : "");
 
-        Object refObj = existingMetadata.get("references");
-        if (refObj == null) refObj = currentPolicyDoc.get("references");
+        Object refObj = existingMetadata.get(Constants.KEY_REFERENCES);
+        if (refObj == null) refObj = currentPolicyDoc.get(Constants.KEY_REFERENCES);
         @SuppressWarnings("unchecked")
         List<String> existingReferences =
                 (List<String>) (refObj != null ? refObj : Collections.emptyList());

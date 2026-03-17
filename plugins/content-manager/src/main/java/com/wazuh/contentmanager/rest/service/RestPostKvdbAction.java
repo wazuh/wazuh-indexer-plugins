@@ -99,11 +99,18 @@ public class RestPostKvdbAction extends AbstractCreateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR, "content"));
+                this.documentValidations.validateRequiredFields(resource, List.of("content"));
 
         if (fieldValidation != null) {
             return fieldValidation;
+        }
+
+        RestResponse metadataValidation =
+                this.documentValidations.validateMetadataFields(
+                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
+
+        if (metadataValidation != null) {
+            return metadataValidation;
         }
 
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();

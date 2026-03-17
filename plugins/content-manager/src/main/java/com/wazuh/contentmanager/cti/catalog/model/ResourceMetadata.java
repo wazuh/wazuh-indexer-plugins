@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.wazuh.contentmanager.utils.Constants;
+
 /**
  * Shared metadata model for all catalog resources. Contains the common fields that are nested under
  * {@code document.metadata} in the indexed document.
@@ -36,15 +38,15 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResourceMetadata {
 
-    private static final String TITLE_KEY = "title";
-    private static final String AUTHOR_KEY = "author";
-    private static final String DATE_KEY = "date";
-    private static final String MODIFIED_KEY = "modified";
-    private static final String DESCRIPTION_KEY = "description";
-    private static final String REFERENCES_KEY = "references";
-    private static final String DOCUMENTATION_KEY = "documentation";
-    private static final String COMPATIBILITY_KEY = "compatibility";
-    private static final String SUPPORTS_KEY = "supports";
+    private static final String TITLE_KEY = Constants.KEY_TITLE;
+    private static final String AUTHOR_KEY = Constants.KEY_AUTHOR;
+    private static final String DATE_KEY = Constants.KEY_DATE;
+    private static final String MODIFIED_KEY = Constants.KEY_MODIFIED;
+    private static final String DESCRIPTION_KEY = Constants.KEY_DESCRIPTION;
+    private static final String REFERENCES_KEY = Constants.KEY_REFERENCES;
+    private static final String DOCUMENTATION_KEY = Constants.KEY_DOCUMENTATION;
+    private static final String COMPATIBILITY_KEY = Constants.KEY_COMPATIBILITY;
+    private static final String SUPPORTS_KEY = Constants.KEY_SUPPORTS;
 
     @JsonProperty(TITLE_KEY)
     private String title;

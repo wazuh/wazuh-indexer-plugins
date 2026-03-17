@@ -106,14 +106,21 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_TITLE, Constants.KEY_AUTHOR));
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_CATEGORY));
 
         if (fieldValidation != null) {
             return fieldValidation;
         }
 
-        String title = resource.get(Constants.KEY_TITLE).asText();
+        RestResponse metadataValidation =
+                this.documentValidations.validateMetadataFields(
+                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
+
+        if (metadataValidation != null) {
+            return metadataValidation;
+        }
+
+        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
 
         RestResponse duplicateValidation =
                 this.documentValidations.validateDuplicateTitle(

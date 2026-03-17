@@ -244,15 +244,15 @@ public class Resource {
 
     /** Metadata field names that should be nested under {@code metadata} during indexing. */
     private static final String[] METADATA_FIELD_NAMES = {
-        "title",
-        "author",
-        "description",
-        "references",
-        "documentation",
-        "supports",
-        "compatibility",
-        "date",
-        "modified"
+        Constants.KEY_TITLE,
+        Constants.KEY_AUTHOR,
+        Constants.KEY_DESCRIPTION,
+        Constants.KEY_REFERENCES,
+        Constants.KEY_DOCUMENTATION,
+        Constants.KEY_SUPPORTS,
+        Constants.KEY_COMPATIBILITY,
+        Constants.KEY_DATE,
+        Constants.KEY_MODIFIED
     };
 
     /**
@@ -263,7 +263,7 @@ public class Resource {
      * @param resourceNode The resource JSON node to restructure in place.
      */
     public static void nestMetadataFields(ObjectNode resourceNode) {
-        ObjectNode metadataNode = getOrCreateMetadataNode(resourceNode);
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
         for (String field : METADATA_FIELD_NAMES) {
             if (resourceNode.has(field)) {
                 metadataNode.set(field, resourceNode.get(field));
@@ -271,8 +271,9 @@ public class Resource {
             }
         }
         // Ensure supports defaults to empty array if not present (for non-Policy resources)
-        if (!metadataNode.has("supports") && !metadataNode.has("compatibility")) {
-            metadataNode.set("supports", MAPPER.createArrayNode());
+        if (!metadataNode.has(Constants.KEY_SUPPORTS)
+                && !metadataNode.has(Constants.KEY_COMPATIBILITY)) {
+            metadataNode.set(Constants.KEY_SUPPORTS, MAPPER.createArrayNode());
         }
     }
 
@@ -283,7 +284,7 @@ public class Resource {
      * @param timestamp The timestamp to set.
      */
     public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
-        ObjectNode metadataNode = getOrCreateMetadataNode(resourceNode);
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
         metadataNode.put(Constants.KEY_DATE, timestamp);
     }
 
@@ -295,7 +296,7 @@ public class Resource {
      * @param timestamp The timestamp to set.
      */
     public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
-        ObjectNode metadataNode = getOrCreateMetadataNode(resourceNode);
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
         metadataNode.put(Constants.KEY_MODIFIED, timestamp);
     }
 

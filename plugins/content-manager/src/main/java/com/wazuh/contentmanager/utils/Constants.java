@@ -114,6 +114,12 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
 
+    // Newly added keys for ResourceMetadata
+    public static final String KEY_REFERENCES = "references";
+    public static final String KEY_DOCUMENTATION = "documentation";
+    public static final String KEY_COMPATIBILITY = "compatibility";
+    public static final String KEY_SUPPORTS = "supports";
+
     // Enrichment types allowed in policy
     public static final String E_400_INVALID_ENRICHMENT =
             "Invalid enrichment type '%s'. Allowed values are: %s";
