@@ -124,6 +124,19 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
                     Constants.E_400_UUID_SHOULD_NOT_BE_PROVIDED, RestStatus.BAD_REQUEST.getStatus());
         }
 
+        RestResponse fieldValidation =
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_NAME));
+        if (fieldValidation != null) {
+            return fieldValidation;
+        }
+
+        RestResponse metadataValidation =
+                this.documentValidations.validateMetadataFields(
+                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
+        if (metadataValidation != null) {
+            return metadataValidation;
+        }
+
         // Validate space is either draft or standard.
         String spaceName = root.path(Constants.KEY_SPACE).asText(null);
 
