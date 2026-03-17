@@ -804,7 +804,7 @@ paths:
       summary: Execute promotion
       description: |
         Executes the promotion of content from the source space to the target space based on the
-        provided changes.
+        provided changes. Engine validation is only performed when promoting to `test`.
       operationId: promote
       requestBody:
         required: true
