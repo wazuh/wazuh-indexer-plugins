@@ -114,6 +114,7 @@ public class Constants {
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
+    public static final String KEY_PAYLOAD = "payload";
 
     // Enrichment types allowed in policy
     public static final String E_400_INVALID_ENRICHMENT =

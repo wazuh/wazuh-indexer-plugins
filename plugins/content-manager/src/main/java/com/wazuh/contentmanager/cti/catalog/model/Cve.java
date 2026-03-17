@@ -37,10 +37,7 @@ import com.wazuh.contentmanager.utils.Constants;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Cve {
 
-    private static final String KEY_PAYLOAD = "payload";
-    private static final String KEY_DOCUMENT = Constants.KEY_DOCUMENT;
-
-    @JsonProperty(KEY_DOCUMENT)
+    @JsonProperty(Constants.KEY_DOCUMENT)
     private JsonNode document;
 
     @JsonProperty(Constants.KEY_OFFSET)
@@ -106,8 +103,8 @@ public class Cve {
 
         if (normalized.isObject()) {
             // Accept both new and legacy wrappers while always serializing to `document`.
-            if (normalized.has(KEY_DOCUMENT)) {
-                cve.setDocument(normalized.get(KEY_DOCUMENT));
+            if (normalized.has(Constants.KEY_DOCUMENT)) {
+                cve.setDocument(normalized.get(Constants.KEY_DOCUMENT));
                 if (cve.getType() == null) {
                     cve.setType(deriveType(resourceName));
                 }
@@ -116,8 +113,8 @@ public class Cve {
                 }
                 return cve;
             }
-            if (normalized.has(KEY_PAYLOAD)) {
-                cve.setDocument(normalized.get(KEY_PAYLOAD));
+            if (normalized.has(Constants.KEY_PAYLOAD)) {
+                cve.setDocument(normalized.get(Constants.KEY_PAYLOAD));
                 if (cve.getType() == null) {
                     cve.setType(deriveType(resourceName));
                 }
@@ -128,7 +125,7 @@ public class Cve {
             }
 
             // `type` at payload root is catalog metadata, not part of the CVE document body.
-            if (((ObjectNode) normalized).has(Constants.KEY_CONTENT_TYPE)) {
+            if (normalized.has(Constants.KEY_CONTENT_TYPE)) {
                 ((ObjectNode) normalized).remove(Constants.KEY_CONTENT_TYPE);
             }
         }
