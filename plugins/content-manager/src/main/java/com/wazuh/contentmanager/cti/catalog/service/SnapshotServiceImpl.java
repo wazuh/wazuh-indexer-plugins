@@ -306,7 +306,7 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @return true if initialization was fully successful, false on failures.
      */
     @Override
-    public boolean initializeFromLocal(Path localZip) {
+    public boolean initialize(Path localZip) {
         log.info(
                 "Starting local snapshot initialization for context [{}] consumer [{}] from [{}]",
                 this.context,

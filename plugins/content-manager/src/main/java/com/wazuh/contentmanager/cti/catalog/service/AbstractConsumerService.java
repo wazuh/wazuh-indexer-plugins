@@ -251,7 +251,7 @@ public abstract class AbstractConsumerService {
                         new SnapshotServiceImpl(
                                 context, consumer, indicesMap, this.consumersIndex, this.environment);
 
-                boolean localSuccess = snapshotService.initializeFromLocal(localSnapshot);
+                boolean localSuccess = snapshotService.initialize(localSnapshot);
                 if (localSuccess) {
                     currentOffset = snapshotService.getMaxOffsetSeen();
                     log.info(

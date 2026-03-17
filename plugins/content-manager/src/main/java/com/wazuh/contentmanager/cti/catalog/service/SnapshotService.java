@@ -40,5 +40,5 @@ public interface SnapshotService {
      * @param localZip Path to the local snapshot zip file.
      * @return true if the local snapshot was processed and initialized successfully; false otherwise.
      */
-    boolean initializeFromLocal(Path localZip);
+    boolean initialize(Path localZip);
 }

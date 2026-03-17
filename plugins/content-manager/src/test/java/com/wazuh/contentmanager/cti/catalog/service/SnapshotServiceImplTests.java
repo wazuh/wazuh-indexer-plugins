@@ -417,7 +417,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      * Tests that initializeFromLocal successfully processes a local zip file, does not invoke the
      * SnapshotClient, and deletes the source zip file after completion.
      */
-    public void testInitializeFromLocal_Success()
+    public void testInitializeFromPath_Success()
             throws IOException,
                     URISyntaxException,
                     ExecutionException,
@@ -433,10 +433,10 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertTrue("Zip file should exist before init", Files.exists(localZip));
 
         // Act
-        boolean result = this.snapshotService.initializeFromLocal(localZip);
+        boolean result = this.snapshotService.initialize(localZip);
 
         // Assert
-        Assert.assertTrue("initializeFromLocal should return true", result);
+        Assert.assertTrue("initialize should return true", result);
 
         // SnapshotClient should NOT be invoked for local init
         verify(this.snapshotClient, never()).downloadFile(anyString());
@@ -462,7 +462,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      * Tests that maxOffsetSeen correctly tracks the maximum offset across all entries in the
      * snapshot.
      */
-    public void testInitializeFromLocal_MaxOffsetTracking() throws IOException {
+    public void testInitializeFromPath_MaxOffsetTracking() throws IOException {
         // spotless:off
         String jsonContent =
             "{\"name\": \"r1\", \"offset\": 10, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"r1\"}}}\n"
@@ -471,7 +471,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // spotless:on
         Path localZip = this.createZipFileWithContent("data.json", jsonContent);
 
-        this.snapshotService.initializeFromLocal(localZip);
+        this.snapshotService.initialize(localZip);
 
         Assert.assertEquals(
                 "maxOffsetSeen should be the highest offset in the file",
@@ -482,12 +482,12 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     /**
      * Tests that initializeFromLocal returns false when the zip file does not exist or is corrupted.
      */
-    public void testInitializeFromLocal_NonExistentFile() throws IOException, URISyntaxException {
+    public void testInitializeFromPath_NonExistentFile() throws IOException, URISyntaxException {
         Path nonExistentPath = this.tempDir.resolve("does_not_exist.zip");
 
-        boolean result = this.snapshotService.initializeFromLocal(nonExistentPath);
+        boolean result = this.snapshotService.initialize(nonExistentPath);
 
-        Assert.assertFalse("initializeFromLocal should return false for missing file", result);
+        Assert.assertFalse("initialize should return false for missing file", result);
         verify(this.snapshotClient, never()).downloadFile(anyString());
     }
 }
