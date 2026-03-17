@@ -158,6 +158,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     log.error(mapper.writeValueAsString(context.enginePayload));
                     return engineResponse;
                 }
+                log.info(
+                        "Engine validation for space [{}] completed successfully.",
+                        spaceDiff.getSpace().promote());
             }
 
             // 4. Consolidation Phase - Apply changes to target space
