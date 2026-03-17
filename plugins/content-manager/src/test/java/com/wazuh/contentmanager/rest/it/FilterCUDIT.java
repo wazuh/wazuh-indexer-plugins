@@ -144,6 +144,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
                             "author": "Wazuh, Inc."
                         },
@@ -176,6 +177,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
                             "author": "Wazuh, Inc."
                         },
@@ -207,6 +209,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
                             "author": "Wazuh, Inc."
                         },
@@ -297,6 +300,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test-filter-updated/0",
                         "enabled": false,
                         "metadata": {
+                            "title": "Updated Filter Title",
                             "description": "Updated filter description",
                             "author": "Updated Author"
                         },
@@ -358,6 +362,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test-filter-updated/0",
                         "enabled": false,
                         "metadata": {
+                            "title": "Updated Filter Title",
                             "description": "Updated filter description",
                             "author": "Updated Author"
                         },
@@ -403,6 +408,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
                             "author": "Wazuh, Inc."
                         },
@@ -607,6 +613,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test-filter/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter for integration tests",
                             "author": "Wazuh, Inc."
                         },

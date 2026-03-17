@@ -208,12 +208,14 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         return """
             {
                 "resource": {
-                    "title": "aws-fargate",
-                    "author": "Wazuh Inc.",
+                    "metadata": {
+                        "title": "aws-fargate",
+                        "author": "Wazuh Inc.",
+                        "description": "Desc",
+                        "documentation": "Docs",
+                        "references": ["https://wazuh.com"]
+                    },
                     "category": "cloud-services",
-                    "description": "Desc",
-                    "documentation": "Docs",
-                    "references": ["https://wazuh.com"],
                     "enabled": true,
                     "decoders": ["1cb80fdb-7209-4b96-8bd1-ec15864d0f35"],
                     "rules": [],
@@ -258,8 +260,8 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         String payload =
                 this.getValidPayload()
                         .replace(
-                                "\"title\": \"aws-fargate\"",
-                                "\"title\": \"aws-fargate\", \"id\": \"ignored-payload-id\"");
+                                "\"category\": \"cloud-services\"",
+                                "\"id\": \"ignored-payload-id\", \"category\": \"cloud-services\"");
         RestRequest request = this.buildRequest(payload, INTEGRATION_ID);
 
         RestResponse actualResponse = this.action.executeRequest(request, this.nodeClient);
@@ -413,7 +415,13 @@ public class RestPutIntegrationActionTests extends OpenSearchTestCase {
         String[] fields = {"title", "author", "category", "enabled"};
         for (String field : fields) {
             ObjectNode payload = (ObjectNode) this.mapper.readTree(this.getValidPayload());
-            ((ObjectNode) payload.get("resource")).remove(field);
+
+            if (field.equals("category") || field.equals("enabled")) {
+                ((ObjectNode) payload.get("resource")).remove(field);
+            } else {
+                ((ObjectNode) payload.get("resource").get("metadata")).remove(field);
+            }
+
             RestRequest request = this.buildRequest(payload.toString(), INTEGRATION_ID);
             RestResponse response = this.action.executeRequest(request, this.nodeClient);
             Assert.assertEquals(

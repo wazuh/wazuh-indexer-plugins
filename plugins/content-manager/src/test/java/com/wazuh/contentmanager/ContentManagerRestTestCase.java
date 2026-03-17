@@ -535,13 +535,15 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         String payload = """
                 {
                     "resource": {
-                        "title": "%s",
-                        "author": "Wazuh Inc.",
                         "category": "cloud-services",
-                        "description": "Integration test resource.",
-                        "documentation": "test-doc",
-                        "references": ["https://wazuh.com"],
-                        "enabled": true
+                        "enabled": true,
+                        "metadata": {
+                            "title": "%s",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration test resource.",
+                            "documentation": "test-doc",
+                            "references": ["https://wazuh.com"]
+                        }
                     }
                 }
                 """;
@@ -605,11 +607,13 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 {
                     "integration": "%s",
                     "resource": {
-                        "title": "Test Rule %s",
-                        "description": "A rule for integration tests.",
-                        "author": "Tester",
+                        "metadata": {
+                            "title": "Test Rule %s",
+                            "description": "A rule for integration tests.",
+                            "author": "Tester",
+                            "references": ["https://wazuh.com"]
+                        },
                         "sigma_id": "test-sigma",
-                        "references": ["https://wazuh.com"],
                         "enabled": true,
                         "status": "experimental",
                         "logsource": {
@@ -653,12 +657,14 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     "resource": {
                         "name": "test-kvdb",
                         "enabled": true,
-                        "author": "Wazuh Inc.",
                         "content": {"key1": "value1", "key2": "value2"},
-                        "description": "KVDB for integration tests.",
-                        "documentation": "test-doc",
-                        "references": ["https://wazuh.com"],
-                        "title": "Test KVDB"
+                        "metadata": {
+                            "title": "Test KVDB",
+                            "author": "Wazuh Inc.",
+                            "description": "KVDB for integration tests.",
+                            "documentation": "test-doc",
+                            "references": ["https://wazuh.com"]
+                        }
                     }
                 }
                 """;

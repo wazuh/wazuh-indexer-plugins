@@ -82,9 +82,11 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
                     + "\"resource\": {"
                     + "  \"name\": \"kvdb/example/0\","
                     + "  \"enabled\": true,"
-                    + "  \"title\": \"Example KVDB\","
-                    + "  \"description\": \"Example KVDB description\","
-                    + "  \"author\": \"Wazuh\","
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example KVDB\","
+                    + "    \"description\": \"Example KVDB description\","
+                    + "    \"author\": \"Wazuh\""
+                    + "  },"
                     + "  \"content\": {\"key\": \"value\"}"
                     + "}"
                     + "}";
@@ -94,8 +96,10 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
                     + "\"integration\": \"integration-1\","
                     + "\"resource\": {"
                     + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
-                    + "  \"title\": \"Example KVDB\","
-                    + "  \"author\": \"Wazuh\","
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example KVDB\","
+                    + "    \"author\": \"Wazuh\""
+                    + "  },"
                     + "  \"content\": {\"key\": \"value\"}"
                     + "}"
                     + "}";
@@ -263,13 +267,20 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
 
         for (String field : fields) {
             ObjectNode root = (ObjectNode) this.mapper.readTree(KVDB_PAYLOAD);
-            ((ObjectNode) root.get(Constants.KEY_RESOURCE)).remove(field);
+
+            if (field.equals("content")) {
+                ((ObjectNode) root.get(Constants.KEY_RESOURCE)).remove(field);
+            } else {
+                ((ObjectNode) root.get(Constants.KEY_RESOURCE).get("metadata")).remove(field);
+            }
 
             RestRequest request = this.buildRequest(root.toString());
             RestResponse response = this.action.executeRequest(request, this.client);
 
             Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-            Assert.assertTrue(response.getMessage().contains("Missing [" + field + "]"));
+
+            String expectedMissing = field.equals("content") ? field : "metadata." + field;
+            Assert.assertTrue(response.getMessage().contains("Missing [" + expectedMissing + "]"));
         }
     }
 
