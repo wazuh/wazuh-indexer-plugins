@@ -435,7 +435,6 @@ public class ContentIndex {
      */
     public ObjectNode processPayload(JsonNode payload) {
         try {
-
             // Delegate parsing logic to the appropriate Model
             Resource resource;
             switch (this.indexName) {
