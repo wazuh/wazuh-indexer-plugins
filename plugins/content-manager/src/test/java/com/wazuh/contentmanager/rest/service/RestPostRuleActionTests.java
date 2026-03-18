@@ -205,7 +205,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      */
     public void testPostRule201() throws IOException {
         String jsonRule =
-                "{\"integration\": \"integration-1\", \"resource\": {\"title\": \"Rule\", \"logsource\": { \"product\": \"p\" }}}";
+                "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
@@ -226,7 +226,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPostRule400_MissingIntegrationId() throws IOException {
-        String jsonRule = "{\"resource\": {\"title\": \"Rule\"}}";
+        String jsonRule = "{\"resource\": {\"metadata\": {\"title\": \"Rule\"}}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
@@ -247,7 +247,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      */
     public void testPostRule_idInPayloadIsIgnored() throws IOException {
         String jsonRule =
-                "{\"integration\": \"integration-1\", \"resource\": {\"id\": \"fake-id\", \"title\": \"Rule\", \"logsource\": { \"product\": \"p\" }}}";
+                "{\"integration\": \"integration-1\", \"resource\": {\"id\": \"fake-id\", \"metadata\": {\"title\": \"Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
@@ -269,7 +269,8 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPostRule400_IntegrationNotFound() throws IOException {
-        String jsonRule = "{\"integration\": \"missing\", \"resource\": {\"title\": \"R\"}}";
+        String jsonRule =
+                "{\"integration\": \"missing\", \"resource\": {\"metadata\": {\"title\": \"R\"}}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
@@ -291,7 +292,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      */
     public void testPostRule400_DuplicateTitle() throws IOException {
         String jsonRule =
-                "{\"integration\": \"integration-1\", \"resource\": {\"title\": \"Existing\"}}";
+                "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Existing\"}}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)
@@ -312,7 +313,8 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      * @throws IOException if an I/O error occurs during the test
      */
     public void testPostRule500_UnexpectedError() throws IOException {
-        String jsonRule = "{\"integration\": \"integration-1\", \"resource\": {\"title\": \"Error\"}}";
+        String jsonRule =
+                "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Error\"}}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withContent(new BytesArray(jsonRule), XContentType.JSON)

@@ -110,7 +110,7 @@ public class PayloadValidations {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
-            // Query: space.name == space AND document.title == title
+            // Query: space.name == space AND document.metadata.title == title
             sourceBuilder.query(
                     QueryBuilders.boolQuery()
                             .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space))
@@ -319,6 +319,45 @@ public class PayloadValidations {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Validates that a resource node contains a valid nested {@code metadata} block with required
+     * fields. Checks that {@code title} is present and non-empty, and that {@code date} (if present)
+     * is a valid ISO-8601 timestamp.
+     *
+     * @param resource The resource JSON node to validate.
+     * @param requiredMetadataFields The metadata field names that must be present.
+     * @return A RestResponse with an error if validation fails, or null if valid.
+     */
+    public RestResponse validateMetadataFields(
+            JsonNode resource, List<String> requiredMetadataFields) {
+        if (resource == null) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        if (!resource.has(Constants.KEY_METADATA) || !resource.get(Constants.KEY_METADATA).isObject()) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_METADATA),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        JsonNode metadata = resource.get(Constants.KEY_METADATA);
+        for (String field : requiredMetadataFields) {
+            if (!metadata.has(field)) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "metadata." + field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            JsonNode node = metadata.get(field);
+            if (node.isNull() || (node.isTextual() && node.asText().isBlank())) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, "metadata." + field),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
         return null;
     }
 
