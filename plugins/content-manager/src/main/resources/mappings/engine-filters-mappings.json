@@ -17,31 +17,35 @@
         },
         "metadata": {
           "properties": {
+            "title": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
             "author": {
-              "properties": {
-                "date": {
-                  "type": "date"
-                },
-                "email": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "modified": {
-                  "type": "date"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "url": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "modified": {
+              "type": "date"
             },
             "description": {
               "norms": false,
               "type": "text"
+            },
+            "references": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "documentation": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "supports": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },

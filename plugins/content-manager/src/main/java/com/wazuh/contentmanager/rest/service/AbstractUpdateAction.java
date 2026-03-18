@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -158,11 +157,8 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
 
             // 6. Update Timestamps & Preserve Metadata
             String currentTimestamp = this.getCurrentDate();
-            if (this.isDecoder()) {
-                Decoder.setLastModificationTime(resourceNode, currentTimestamp);
-            } else {
-                Resource.setLastModificationTime(resourceNode, currentTimestamp);
-            }
+            Resource.setLastModificationTime(resourceNode, currentTimestamp);
+            Resource.nestMetadataFields(resourceNode);
             validationError = this.preserveMetadata(index, id, resourceNode);
             if (validationError != null) {
                 log.warn(
@@ -203,43 +199,29 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
         }
     }
 
-    /** Indicates if the resource is a Decoder (requires special metadata handling). */
-    protected boolean isDecoder() {
-        return false;
-    }
-
-    /** Preserves creation date and other immutable fields from the existing document. */
+    /**
+     * Preserves creation date and other immutable fields from the existing document. All resource
+     * types now store date/modified under {@code metadata}.
+     */
     protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         JsonNode existingDoc = index.getDocument(id);
         if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
         JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
 
+        // Preserve creation date from existing metadata
         String date = null;
-        if (this.isDecoder()) {
-            if (doc.has(Constants.KEY_METADATA)
-                    && doc.get(Constants.KEY_METADATA).has(Constants.KEY_AUTHOR)) {
-                JsonNode auth = doc.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR);
-                if (auth.has(Constants.KEY_DATE)) date = auth.get(Constants.KEY_DATE).asText();
-            }
-        } else {
-            if (doc.has(Constants.KEY_DATE)) date = doc.get(Constants.KEY_DATE).asText();
+        if (doc.has(Constants.KEY_METADATA)
+                && doc.get(Constants.KEY_METADATA).has(Constants.KEY_DATE)) {
+            date = doc.get(Constants.KEY_METADATA).get(Constants.KEY_DATE).asText();
         }
 
         if (date != null) {
-            if (this.isDecoder()) {
-                if (resourceNode.has(Constants.KEY_METADATA)
-                        && resourceNode.get(Constants.KEY_METADATA).has(Constants.KEY_AUTHOR)) {
-                    ObjectNode author =
-                            (ObjectNode) resourceNode.get(Constants.KEY_METADATA).get(Constants.KEY_AUTHOR);
-                    author.put(Constants.KEY_DATE, date);
-                }
-            } else {
-                resourceNode.put(Constants.KEY_DATE, date);
-            }
+            ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
+            metadataNode.put(Constants.KEY_DATE, date);
         }
 
-        if (!this.isDecoder() && !resourceNode.has(Constants.KEY_ENABLED)) {
+        if (!resourceNode.has(Constants.KEY_ENABLED)) {
             if (doc.has(Constants.KEY_ENABLED)) {
                 resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
             } else {

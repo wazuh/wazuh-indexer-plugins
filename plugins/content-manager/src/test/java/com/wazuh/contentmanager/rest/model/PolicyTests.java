@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
+import com.wazuh.contentmanager.cti.catalog.model.ResourceMetadata;
 
 /**
  * Unit tests for the {@link Policy} class. This test suite validates Policy model operations
@@ -83,21 +84,25 @@ public class PolicyTests extends OpenSearchTestCase {
         List<String> enrichments = List.of("enrichment1");
         List<String> references = List.of("https://example.com/refs");
 
+        ResourceMetadata metadata =
+                new ResourceMetadata(
+                        null,
+                        "Wazuh Inc.",
+                        null,
+                        null,
+                        "Test policy description",
+                        references,
+                        "Documentation content");
+
         // Act
         Policy testPolicy =
                 new Policy(
                         "12345",
-                        null, // title
-                        null, // date
-                        null, // modified
+                        metadata,
                         "decoder/root/0", // rootDecoder
                         integrations,
                         filters,
                         enrichments,
-                        "Wazuh Inc.",
-                        "Test policy description",
-                        "Documentation content",
-                        references,
                         true, // enabled
                         false, // indexUnclassifiedEvents
                         true); // indexDiscardedEvents
@@ -120,10 +125,7 @@ public class PolicyTests extends OpenSearchTestCase {
     /** Test parameterized constructor with null values. */
     public void testParameterizedConstructor_NullValues() {
         // Act
-        Policy testPolicy =
-                new Policy(
-                        null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                        null);
+        Policy testPolicy = new Policy(null, null, null, null, null, null, null, null, null);
 
         // Assert
         Assert.assertNotNull(testPolicy.getIntegrations()); // Defaults to empty list
@@ -164,12 +166,15 @@ public class PolicyTests extends OpenSearchTestCase {
         integrationsArray.add("integration/wazuh-fim/0");
         payload.set("integrations", integrationsArray);
 
-        payload.put("author", "Wazuh Inc.");
-        payload.put("description", "Core policy");
-        payload.put("documentation", "Policy documentation");
+        ObjectNode metadataNode = this.mapper.createObjectNode();
+        metadataNode.put("author", "Wazuh Inc.");
+        metadataNode.put("description", "Core policy");
+        metadataNode.put("documentation", "Policy documentation");
         ArrayNode referencesArray = this.mapper.createArrayNode();
         referencesArray.add("https://wazuh.com");
-        payload.set("references", referencesArray);
+        metadataNode.set("references", referencesArray);
+        payload.set("metadata", metadataNode);
+
         return payload;
     }
 
@@ -193,7 +198,9 @@ public class PolicyTests extends OpenSearchTestCase {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
         payload.putNull("root_decoder");
-        payload.putNull("author");
+        ObjectNode metadataNode = this.mapper.createObjectNode();
+        metadataNode.putNull("author");
+        payload.set("metadata", metadataNode);
 
         // Act
         Policy testPolicy = Policy.fromPayload(payload);
@@ -223,6 +230,7 @@ public class PolicyTests extends OpenSearchTestCase {
     }
 
     /** Test toMap conversion with complete policy. */
+    @SuppressWarnings("unchecked")
     public void testToMap_CompletePolicy() {
         // Arrange
         List<String> integrations = Arrays.asList("int1", "int2");
@@ -239,10 +247,12 @@ public class PolicyTests extends OpenSearchTestCase {
         // Assert
         Assert.assertEquals("decoder/root/0", map.get("root_decoder"));
         Assert.assertEquals(integrations, map.get("integrations"));
-        Assert.assertEquals("Wazuh Inc.", map.get("author"));
-        Assert.assertEquals("Test description", map.get("description"));
-        Assert.assertEquals("Test docs", map.get("documentation"));
-        Assert.assertEquals(List.of("https://test.com"), map.get("references"));
+        Map<String, Object> metadataMap = (Map<String, Object>) map.get("metadata");
+        Assert.assertNotNull(metadataMap);
+        Assert.assertEquals("Wazuh Inc.", metadataMap.get("author"));
+        Assert.assertEquals("Test description", metadataMap.get("description"));
+        Assert.assertEquals("Test docs", metadataMap.get("documentation"));
+        Assert.assertEquals(List.of("https://test.com"), metadataMap.get("references"));
     }
 
     /** Test toMap conversion with minimal policy. */
@@ -256,7 +266,7 @@ public class PolicyTests extends OpenSearchTestCase {
         // Assert
         Assert.assertFalse(map.containsKey("root_decoder"));
         Assert.assertTrue(map.containsKey("integrations")); // Empty list are included
-        Assert.assertFalse(map.containsKey("author"));
+        Assert.assertTrue(map.containsKey("metadata")); // Metadata is always present
     }
 
     /** Test toJson conversion with complete policy. */
@@ -277,8 +287,8 @@ public class PolicyTests extends OpenSearchTestCase {
         Assert.assertEquals(2, json.get("integrations").size());
         Assert.assertEquals("int1", json.get("integrations").get(0).asText());
         Assert.assertEquals("int2", json.get("integrations").get(1).asText());
-        Assert.assertEquals("Wazuh Inc.", json.get("author").asText());
-        Assert.assertEquals("Test description", json.get("description").asText());
+        Assert.assertEquals("Wazuh Inc.", json.get("metadata").get("author").asText());
+        Assert.assertEquals("Test description", json.get("metadata").get("description").asText());
     }
 
     /** Test addIntegration with valid integration ID. */

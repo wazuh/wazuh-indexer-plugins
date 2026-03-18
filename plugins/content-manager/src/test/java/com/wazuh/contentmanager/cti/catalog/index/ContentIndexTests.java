@@ -129,7 +129,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         JsonNode source = this.mapper.readTree(request.source().utf8ToString());
         JsonNode doc = source.get("document");
-        Assert.assertTrue("Title should exist", doc.has("title"));
+        Assert.assertTrue("Metadata should exist", doc.has("metadata"));
+        Assert.assertTrue("Title should exist in metadata", doc.get("metadata").has("title"));
     }
 
     /** Test creating a Decoder. Validates that the YAML enrichment is generated. */

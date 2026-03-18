@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import java.nio.file.Path;
+
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 
 /**
@@ -31,4 +33,12 @@ public interface SnapshotService {
      * @return true if the snapshot was downloaded and initialized successfully; false otherwise.
      */
     boolean initialize(RemoteConsumer consumer);
+
+    /**
+     * Initializes a consumer from a pre-packaged local snapshot zip file.
+     *
+     * @param localZip Path to the local snapshot zip file.
+     * @return true if the local snapshot was processed and initialized successfully; false otherwise.
+     */
+    boolean initialize(Path localZip);
 }

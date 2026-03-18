@@ -144,12 +144,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
-                            "author": {
-                                "name": "Wazuh, Inc.",
-                                "email": "info@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Wazuh, Inc."
                         },
                         "check": "$host.os.platform == 'ubuntu'",
                         "type": "pre-filter"
@@ -180,12 +177,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
-                            "author": {
-                                "name": "Wazuh, Inc.",
-                                "email": "info@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Wazuh, Inc."
                         },
                         "check": "$host.os.platform == 'ubuntu'",
                         "type": "pre-filter"
@@ -215,12 +209,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
-                            "author": {
-                                "name": "Wazuh, Inc.",
-                                "email": "info@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Wazuh, Inc."
                         },
                         "check": "$host.os.platform == 'ubuntu'",
                         "type": "pre-filter"
@@ -309,12 +300,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test-filter-updated/0",
                         "enabled": false,
                         "metadata": {
+                            "title": "Updated Filter Title",
                             "description": "Updated filter description",
-                            "author": {
-                                "name": "Updated Author",
-                                "email": "updated@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Updated Author"
                         },
                         "check": "$host.os.platform == 'windows'",
                         "type": "post-filter"
@@ -374,12 +362,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test-filter-updated/0",
                         "enabled": false,
                         "metadata": {
+                            "title": "Updated Filter Title",
                             "description": "Updated filter description",
-                            "author": {
-                                "name": "Updated Author",
-                                "email": "updated@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Updated Author"
                         },
                         "check": "$host.os.platform == 'windows'",
                         "type": "post-filter"
@@ -423,12 +408,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter",
-                            "author": {
-                                "name": "Wazuh, Inc.",
-                                "email": "info@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Wazuh, Inc."
                         },
                         "check": "$host.os.platform == 'ubuntu'",
                         "type": "pre-filter"
@@ -631,12 +613,9 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                         "name": "filter/test-filter/0",
                         "enabled": true,
                         "metadata": {
+                            "title": "Test filter",
                             "description": "Test filter for integration tests",
-                            "author": {
-                                "name": "Wazuh, Inc.",
-                                "email": "info@wazuh.com",
-                                "url": "https://wazuh.com"
-                            }
+                            "author": "Wazuh, Inc."
                         },
                         "check": "$host.os.platform == 'ubuntu'",
                         "type": "pre-filter"

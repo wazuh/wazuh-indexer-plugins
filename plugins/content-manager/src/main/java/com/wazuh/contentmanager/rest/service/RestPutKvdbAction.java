@@ -97,9 +97,16 @@ public class RestPutKvdbAction extends AbstractUpdateAction {
 
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        return this.documentValidations.validateRequiredFields(
-                resource,
-                List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR, Constants.KEY_ENABLED, "content"));
+        RestResponse fieldValidation =
+                this.documentValidations.validateRequiredFields(
+                        resource, List.of(Constants.KEY_ENABLED, "content"));
+
+        if (fieldValidation != null) {
+            return fieldValidation;
+        }
+
+        return this.documentValidations.validateMetadataFields(
+                resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
     }
 
     @Override
