@@ -132,19 +132,27 @@ public class PolicyIT extends ContentManagerRestTestCase {
 
         JsonNode doc = policy.path(Constants.KEY_DOCUMENT);
         assertFalse("document.id should exist", doc.path("id").isMissingNode());
-        assertFalse("document.title should exist", doc.path("title").isMissingNode());
-        assertFalse("document.date should exist", doc.path("date").isMissingNode());
-        assertFalse("document.modified should exist", doc.path("modified").isMissingNode());
         assertFalse("document.root_decoder should exist", doc.path("root_decoder").isMissingNode());
         assertFalse("document.integrations should exist", doc.path("integrations").isMissingNode());
         assertFalse("document.filters should exist", doc.path("filters").isMissingNode());
         assertFalse("document.enrichments should exist", doc.path("enrichments").isMissingNode());
-        assertFalse("document.author should exist", doc.path("author").isMissingNode());
-        assertFalse("document.description should exist", doc.path("description").isMissingNode());
-        assertFalse("document.documentation should exist", doc.path("documentation").isMissingNode());
-        assertFalse("document.references should exist", doc.path("references").isMissingNode());
 
-        // Verify space fields
+        // Validate metadata structure
+        JsonNode metadata = doc.path("metadata");
+        assertFalse("document.metadata should exist", metadata.isMissingNode());
+        assertFalse("document.metadata.title should exist", metadata.path("title").isMissingNode());
+        assertFalse("document.metadata.date should exist", metadata.path("date").isMissingNode());
+        assertFalse(
+                "document.metadata.modified should exist", metadata.path("modified").isMissingNode());
+        assertFalse("document.metadata.author should exist", metadata.path("author").isMissingNode());
+        assertFalse(
+                "document.metadata.description should exist", metadata.path("description").isMissingNode());
+        assertFalse(
+                "document.metadata.documentation should exist",
+                metadata.path("documentation").isMissingNode());
+        assertFalse(
+                "document.metadata.references should exist", metadata.path("references").isMissingNode());
+
         assertFalse(
                 "space.name should exist",
                 policy.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).isMissingNode());
@@ -241,9 +249,6 @@ public class PolicyIT extends ContentManagerRestTestCase {
                 {
                     "type": "policy",
                     "resource": {
-                        "title": "Updated policy",
-                        "date": "2026-02-03T18:57:33.931731040Z",
-                        "modified": "2026-02-03T18:57:33.931731040Z",
                         "root_decoder": "%s",
                         "integrations": %s,
                         "filters": [],
@@ -251,10 +256,15 @@ public class PolicyIT extends ContentManagerRestTestCase {
                         "enabled": true,
                         "index_unclassified_events": false,
                         "index_discarded_events": false,
-                        "author": "Test",
-                        "description": "Updated policy description",
-                        "documentation": "",
-                        "references": []
+                        "metadata": {
+                            "title": "Updated policy",
+                            "date": "2026-02-03T18:57:33.931731040Z",
+                            "modified": "2026-02-03T18:57:33.931731040Z",
+                            "author": "Test",
+                            "description": "Updated policy description",
+                            "documentation": "",
+                            "references": []
+                        }
                     }
                 }
                 """;
@@ -273,11 +283,13 @@ public class PolicyIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "Custom policy",
-                        "author": "Test",
-                        "description": "Custom policy",
-                        "documentation": "",
-                        "references": []
+                        "metadata": {
+                            "title": "Custom policy",
+                            "author": "Test",
+                            "description": "Custom policy",
+                            "documentation": "",
+                            "references": []
+                        }
                     }
                 }
                 """;
@@ -302,11 +314,13 @@ public class PolicyIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "Custom policy",
-                        "author": "Test",
-                        "description": "Custom policy",
-                        "documentation": "",
-                        "references": [],
+                        "metadata": {
+                            "title": "Custom policy",
+                            "author": "Test",
+                            "description": "Custom policy",
+                            "documentation": "",
+                            "references": []
+                        },
                         "integrations": [],
                         "filters": [],
                         "enrichments": [],
@@ -359,7 +373,9 @@ public class PolicyIT extends ContentManagerRestTestCase {
                 {
                     "type": "policy",
                     "resource": {
-                        "title": "Custom policy"
+                        "metadata": {
+                            "title": "Custom policy"
+                        }
                     }
                 }
                 """;

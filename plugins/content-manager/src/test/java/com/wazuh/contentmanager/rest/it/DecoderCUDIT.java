@@ -159,7 +159,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                         "metadata": {
                             "title": "Test decoder",
                             "description": "Test",
-                            "author": {"name": "Wazuh, Inc."},
+                            "author": "Wazuh, Inc.",
                             "compatibility": "All",
                             "module": "test",
                             "references": [],
@@ -259,7 +259,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                         "metadata": {
                             "title": "Test Decoder UPDATED",
                             "description": "Updated description",
-                            "author": {"name": "Updated Author"},
+                            "author": "Updated Author",
                             "compatibility": "All",
                             "module": "test",
                             "references": [],
@@ -308,7 +308,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                         "metadata": {
                             "title": "Test",
                             "description": "Test",
-                            "author": {"name": "Test"},
+                            "author": "Test",
                             "compatibility": "All",
                             "module": "test",
                             "references": [],

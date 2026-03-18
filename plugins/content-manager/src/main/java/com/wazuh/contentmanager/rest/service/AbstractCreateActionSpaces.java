@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -148,17 +147,9 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
             resourceNode.put(Constants.KEY_ID, id);
 
             String currentTimestamp = this.getCurrentDate();
-            if (this.isDecoder()) {
-                Decoder.setCreationTime(resourceNode, currentTimestamp);
-                Decoder.setLastModificationTime(resourceNode, currentTimestamp);
-            } else if (this.isFilter()) {
-                ObjectNode authorNode = this.getOrCreateAuthorNode(resourceNode);
-                authorNode.put(Constants.KEY_DATE, currentTimestamp);
-                authorNode.put(Constants.KEY_MODIFIED, currentTimestamp);
-            } else {
-                Resource.setCreationTime(resourceNode, currentTimestamp);
-                Resource.setLastModificationTime(resourceNode, currentTimestamp);
-            }
+            Resource.setCreationTime(resourceNode, currentTimestamp);
+            Resource.setLastModificationTime(resourceNode, currentTimestamp);
+            Resource.nestMetadataFields(resourceNode);
 
             if (!resourceNode.has(Constants.KEY_ENABLED)) {
                 resourceNode.put(Constants.KEY_ENABLED, true);
@@ -221,26 +212,6 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
      */
     protected boolean requiresIntegrationId() {
         return true;
-    }
-
-    /**
-     * Indicates if the resource is a Decoder (requires special metadata handling).
-     *
-     * @return false by default. Subclasses representing Decoder resources should override to return
-     *     true.
-     */
-    protected boolean isDecoder() {
-        return false;
-    }
-
-    /**
-     * Indicates if the resource is a Filter (requires special metadata handling).
-     *
-     * @return false by default. Subclasses representing Filter resources should override to return
-     *     true.
-     */
-    protected boolean isFilter() {
-        return false;
     }
 
     /**
@@ -326,33 +297,4 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
      * @throws IOException If an I/O error occurs during parent linking operations.
      */
     protected abstract void linkToParent(Client client, String id, JsonNode root) throws IOException;
-
-    /**
-     * Retrieves the author object node from the given resource node's metadata. If the "metadata"
-     * node or its child "author" node do not exist, they are created and appropriately attached to
-     * the resource node hierarchy.
-     *
-     * @param resourceNode The resource JSON node to extract or attach the author node to.
-     * @return The existing or newly created author {@link ObjectNode}.
-     */
-    private ObjectNode getOrCreateAuthorNode(ObjectNode resourceNode) {
-        ObjectNode metadataNode;
-        if (resourceNode.has(Constants.KEY_METADATA)
-                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
-            metadataNode = (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
-        } else {
-            metadataNode = MAPPER.createObjectNode();
-            resourceNode.set(Constants.KEY_METADATA, metadataNode);
-        }
-
-        ObjectNode authorNode;
-        if (metadataNode.has(Constants.KEY_AUTHOR)
-                && metadataNode.get(Constants.KEY_AUTHOR).isObject()) {
-            authorNode = (ObjectNode) metadataNode.get(Constants.KEY_AUTHOR);
-        } else {
-            authorNode = MAPPER.createObjectNode();
-            metadataNode.set(Constants.KEY_AUTHOR, authorNode);
-        }
-        return authorNode;
-    }
 }

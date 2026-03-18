@@ -91,9 +91,17 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
 
         String id = doc.get(Constants.KEY_ID).asText();
-        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
-        String description =
-                doc.has(Constants.KEY_DESCRIPTION) ? doc.get(Constants.KEY_DESCRIPTION).asText() : "";
+        String name = "";
+        String description = "";
+        if (doc.has(Constants.KEY_METADATA) && doc.get(Constants.KEY_METADATA).isObject()) {
+            JsonNode metadata = doc.get(Constants.KEY_METADATA);
+            name = metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
+            description =
+                    metadata.has(Constants.KEY_DESCRIPTION)
+                            ? metadata.get(Constants.KEY_DESCRIPTION).asText()
+                            : "";
+        }
+
         String category = this.formatCategory(doc, false);
 
         log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);

@@ -104,8 +104,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 {
                     "integration": "%s",
                     "resource": {
-                        "description": "A rule without title",
-                        "author": "Tester",
+                        "metadata": {
+                            "description": "A rule without title",
+                            "author": "Tester"
+                        },
                         "logsource": {
                             "product": "system",
                             "category": "system"
@@ -141,7 +143,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "Orphan Rule",
+                        "metadata": {
+                            "title": "Orphan Rule",
+                            "author": "Tester"
+                        },
                         "logsource": {
                             "product": "system",
                             "category": "system"
@@ -183,11 +188,13 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                     "integration": "%s",
                     "resource": {
                         "id": "custom-id",
-                        "title": "Rule with explicit ID %s",
-                        "description": "A rule with an explicit ID field.",
-                        "author": "Tester",
+                        "metadata": {
+                            "title": "Rule with explicit ID %s",
+                            "description": "A rule with an explicit ID field.",
+                            "author": "Tester",
+                            "references": ["https://wazuh.com"]
+                        },
                         "sigma_id": "test-sigma-explicit",
-                        "references": ["https://wazuh.com"],
                         "enabled": true,
                         "status": "experimental",
                         "logsource": {
@@ -224,8 +231,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 {
                     "integration": "00000000-0000-0000-0000-000000000000",
                     "resource": {
-                        "title": "Rule with non-draft integration",
-                        "author": "Tester",
+                        "metadata": {
+                            "title": "Rule with non-draft integration",
+                            "author": "Tester"
+                        },
                         "logsource": {
                             "product": "system",
                             "category": "system"
@@ -297,9 +306,11 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 {
                     "type": "rule",
                     "resource": {
-                        "title": "Test Rule UPDATED",
-                        "description": "Updated rule description.",
-                        "author": "Tester",
+                        "metadata": {
+                            "title": "Test Rule UPDATED",
+                            "description": "Updated rule description.",
+                            "author": "Tester"
+                        },
                         "status": "experimental",
                         "logsource": {
                             "product": "system",
@@ -353,8 +364,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 {
                     "type": "rule",
                     "resource": {
-                        "description": "Updated without title",
-                        "author": "Tester",
+                        "metadata": {
+                            "description": "Updated without title",
+                            "author": "Tester"
+                        },
                         "logsource": {
                             "product": "system",
                             "category": "system"
@@ -390,8 +403,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 {
                     "type": "rule",
                     "resource": {
-                        "title": "Test",
-                        "author": "Test",
+                        "metadata": {
+                            "title": "Test",
+                            "author": "Test"
+                        },
                         "logsource": {
                             "product": "system",
                             "category": "system"
@@ -430,8 +445,10 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
                 {
                     "type": "rule",
                     "resource": {
-                        "title": "Test",
-                        "author": "Test",
+                        "metadata": {
+                            "title": "Test",
+                            "author": "Test"
+                        },
                         "logsource": {
                             "product": "system",
                             "category": "system"

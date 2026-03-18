@@ -9,23 +9,34 @@
         "root_decoder": {
           "type": "keyword"
         },
-        "date": {
-          "type": "date"
-        },
-        "modified": {
-          "type": "date"
-        },
-        "author": {
-          "type": "keyword"
-        },
-        "description": {
-          "type": "text"
-        },
-        "references": {
-          "type": "keyword"
-        },
-        "documentation": {
-          "type": "keyword"
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "keyword"
+            },
+            "author": {
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "modified": {
+              "type": "date"
+            },
+            "description": {
+              "type": "text"
+            },
+            "references": {
+              "type": "keyword"
+            },
+            "documentation": {
+              "type": "keyword"
+            },
+            "compatibility": {
+              "type": "keyword"
+            }
+          }
         },
         "integrations": {
           "type": "keyword"
@@ -44,9 +55,6 @@
         },
         "index_discarded_events": {
           "type": "boolean"
-        },
-        "title": {
-          "type": "keyword"
         }
       }
     },
