@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.GetRequest;
@@ -129,7 +131,7 @@ public class ConsumersIndex {
     /**
      * Creates the {@link ConsumersIndex#INDEX_NAME} index.
      *
-     * @return the response of the create index operation.
+     * @return the response of the create index operation, or null if the index already exists.
      * @throws ExecutionException if the client failed to execute the request.
      * @throws InterruptedException if the current thread was interrupted while waiting for the
      *     response.
@@ -151,11 +153,25 @@ public class ConsumersIndex {
         CreateIndexRequest request =
                 new CreateIndexRequest().index(INDEX_NAME).mapping(mappings).settings(settings);
 
-        return this.client
-                .admin()
-                .indices()
-                .create(request)
-                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        try {
+            return this.client
+                    .admin()
+                    .indices()
+                    .create(request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
+                log.info("Index [{}] already exists, skipping creation.", INDEX_NAME);
+                return null;
+            }
+            throw e;
+        } catch (TimeoutException e) {
+            if (this.exists()) {
+                log.info("Index [{}] already exists after timeout, skipping creation.", INDEX_NAME);
+                return null;
+            }
+            throw e;
+        }
     }
 
     /**
