@@ -171,7 +171,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     }
 
                     if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
-                        ((ObjectNode) payload).put(Constants.KEY_CONTENT_TYPE, cveType);
+                        ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
                     }
 
                     if (type != null) {

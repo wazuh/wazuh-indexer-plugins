@@ -249,7 +249,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
-                        ((ObjectNode) payload).put(Constants.KEY_CONTENT_TYPE, cveType);
+                        ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
                     }
 
                     ObjectNode processedPayload = indexHandler.processPayload(payload);

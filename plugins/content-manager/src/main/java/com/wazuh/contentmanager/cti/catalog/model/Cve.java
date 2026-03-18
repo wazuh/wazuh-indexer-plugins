@@ -43,7 +43,7 @@ public class Cve {
     @JsonProperty(Constants.KEY_OFFSET)
     private Long offset;
 
-    @JsonProperty(Constants.KEY_CONTENT_TYPE)
+    @JsonProperty(Constants.KEY_TYPE)
     private String type;
 
     /** Default constructor. */
@@ -93,8 +93,8 @@ public class Cve {
         }
 
         String explicitType = null;
-        if (normalized.isObject() && normalized.hasNonNull(Constants.KEY_CONTENT_TYPE)) {
-            explicitType = normalized.get(Constants.KEY_CONTENT_TYPE).asText();
+        if (normalized.isObject() && normalized.hasNonNull(Constants.KEY_TYPE)) {
+            explicitType = normalized.get(Constants.KEY_TYPE).asText();
             CveContentType mappedType = CveContentType.fromValue(explicitType);
             if (mappedType != null) {
                 cve.setType(mappedType.getValue());
@@ -125,8 +125,8 @@ public class Cve {
             }
 
             // `type` at payload root is catalog metadata, not part of the CVE document body.
-            if (normalized.has(Constants.KEY_CONTENT_TYPE)) {
-                ((ObjectNode) normalized).remove(Constants.KEY_CONTENT_TYPE);
+            if (normalized.has(Constants.KEY_TYPE)) {
+                ((ObjectNode) normalized).remove(Constants.KEY_TYPE);
             }
         }
 
