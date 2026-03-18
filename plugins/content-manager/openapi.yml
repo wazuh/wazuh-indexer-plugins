@@ -501,6 +501,8 @@ paths:
         Creates a rule in the draft space. The server generates the UUID.
         The rule is validated against the Wazuh engine before being stored.
         The rule is automatically linked to the specified integration.
+
+        **Validation Note:** The `logsource.product` field in the rule payload MUST exactly match the `metadata.title` of the parent integration specified by the `integration` ID.
       operationId: createRule
       requestBody:
         required: true
@@ -1505,6 +1507,7 @@ components:
           properties:
             product:
               type: string
+              description: Must exactly match the metadata.title of the associated integration.
             category:
               type: string
 
@@ -1555,6 +1558,7 @@ components:
           properties:
             product:
               type: string
+              description: Must exactly match the metadata.title of the associated integration.
             category:
               type: string
 

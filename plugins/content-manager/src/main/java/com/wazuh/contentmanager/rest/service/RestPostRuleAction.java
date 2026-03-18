@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest.Method;
@@ -25,6 +26,7 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -43,6 +45,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * <ul>
  *   <li>The payload contains all mandatory fields (title).
  *   <li>The parent integration exists and is in the draft space.
+ *   <li>The rule's logsource.product matches the integration's metadata.title.
  *   <li>A new UUID and creation timestamps are generated.
  *   <li>The rule is created in the Security Analytics Plugin (SAP).
  *   <li>The rule is indexed in the draft space.
@@ -53,8 +56,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <ul>
  *   <li>201 Created: Rule created successfully.
- *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name or parent integration
- *       validation failure.
+ *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name, parent integration
+ *       validation failure, or product/title mismatch.
  *   <li>500 Internal Server Error: SAP error or unexpected error.
  * </ul>
  */
@@ -115,6 +118,39 @@ public class RestPostRuleAction extends AbstractCreateAction {
                 this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
         if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+
+        // Validate that logsource.product matches the integration's metadata.title
+        GetResponse integrationResponse =
+                client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
+        if (integrationResponse.isExists()) {
+            Map<String, Object> source = integrationResponse.getSourceAsMap();
+            if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> doc = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                if (doc != null && doc.containsKey(Constants.KEY_METADATA)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> metadata = (Map<String, Object>) doc.get(Constants.KEY_METADATA);
+                    String integrationTitle =
+                            metadata != null ? (String) metadata.get(Constants.KEY_TITLE) : null;
+
+                    String ruleProduct = null;
+                    if (resource.has(Constants.KEY_LOGSOURCE)
+                            && resource.get(Constants.KEY_LOGSOURCE).has(Constants.KEY_PRODUCT)) {
+                        ruleProduct = resource.get(Constants.KEY_LOGSOURCE).get(Constants.KEY_PRODUCT).asText();
+                    }
+
+                    if (integrationTitle == null || !integrationTitle.equals(ruleProduct)) {
+                        return new RestResponse(
+                                "Rule logsource.product ('"
+                                        + ruleProduct
+                                        + "') must match the integration's metadata.title ('"
+                                        + integrationTitle
+                                        + "').",
+                                RestStatus.BAD_REQUEST.getStatus());
+                    }
+                }
+            }
+        }
 
         return null;
     }
