@@ -967,11 +967,21 @@ components:
           description: Log file path or logical source location
           example: "/var/log/auth.log"
 
-        agent_metadata:
+        metadata:
           type: object
           additionalProperties: true
-          description: Optional agent metadata passed to the logtest engine
+          description: Optional metadata passed to the logtest engine
           example: {}
+
+        space:
+          type: string
+          enum:
+            - standard
+            - custom
+            - draft
+            - test
+          description: Space to execute the logtest against
+          example: "test"
 
         event:
           type: string
