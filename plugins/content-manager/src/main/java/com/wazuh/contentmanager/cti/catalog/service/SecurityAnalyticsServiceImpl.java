@@ -104,7 +104,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
         String category = this.formatCategory(doc, false);
 
-        log.info("Creating/Updating Integration [{}] in SAP - documentId: {}", name, id);
+        log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
 
         return new WIndexIntegrationRequest(
                 id,

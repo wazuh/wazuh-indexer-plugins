@@ -380,6 +380,8 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Security Analytics Plugin.
 
+The rule is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+
 **Request**
 - Method: `POST`
 - Path: `/_plugins/_content_manager/rules`
@@ -972,6 +974,8 @@ curl -sk -u admin:admin -X DELETE \
 
 Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered in the Security Analytics Plugin.
 
+The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in the `source` field (e.g., "Draft") for cross-reference.
+
 **Request**
 - Method: `POST`
 - Path: `/_plugins/_content_manager/integrations`
@@ -1452,6 +1456,13 @@ The response lists changes grouped by content type. Each change includes:
 ### Execute Promotion
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
+
+In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics Plugin (SAP). For each promoted resource, a new SAP document is created in the target space with:
+- A newly generated UUID as the SAP document primary ID.
+- A `document.id` field storing the original CTI document UUID for cross-reference.
+- A `source` field indicating the target space (e.g., "Test", "Custom").
+
+This ensures that the same CTI resource can exist in multiple spaces with independent SAP documents.
 
 **Request**
 - Method: `POST`

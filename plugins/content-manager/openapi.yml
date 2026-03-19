@@ -499,6 +499,11 @@ paths:
       summary: Create Rule
       description: |
         Creates a rule in the draft space. The server generates the UUID.
+
+        The rule is also synchronized to the Security Analytics Plugin (SAP), where a separate
+        SAP document is created with its own auto-generated UUID. The SAP document stores the
+        CTI document UUID in a `document.id` field and the space in a `source` field for
+        cross-reference.
         The rule is validated against the Wazuh engine before being stored.
         The rule is automatically linked to the specified integration.
 
@@ -630,6 +635,11 @@ paths:
       summary: Create Integration
       description: |
         Creates a new integration in the draft space. The indexer generates the UUID for the integration.
+
+        The integration is also synchronized to the Security Analytics Plugin (SAP), where a
+        separate SAP document is created with its own auto-generated UUID. The SAP document
+        stores the CTI document UUID in a `document.id` field and the space in the `source`
+        field (e.g., "Draft") for cross-reference.
         The integration is validated against the Wazuh engine before being stored.
 
         **Required fields in resource:**
@@ -807,6 +817,13 @@ paths:
       description: |
         Executes the promotion of content from the source space to the target space based on the
         provided changes.
+
+        In addition to copying documents across CTI indices, this endpoint synchronizes
+        promoted **integrations** and **rules** with the Security Analytics Plugin (SAP).
+        For each promoted resource, a new SAP document is created in the target space with:
+        - A newly generated UUID as the SAP document ID.
+        - A `document.id` field storing the original CTI document UUID.
+        - A `source` field indicating the target space (e.g., "Draft", "Test", "Custom").
       operationId: promote
       requestBody:
         required: true
@@ -999,6 +1016,10 @@ components:
               items:
                 $ref: "#/components/schemas/PromotionDiffItem"
             integrations:
+              type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+            rules:
               type: array
               items:
                 $ref: "#/components/schemas/PromotionDiffItem"
