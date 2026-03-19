@@ -164,7 +164,7 @@ public class ConsumersIndex {
                     ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
                     : this.exists();
             if (alreadyExists) {
-                log.info("Index [{}] already exists, skipping creation.", INDEX_NAME);
+                log.debug("Index [{}] already exists, skipping creation.", INDEX_NAME);
                 return null;
             }
             throw e;
