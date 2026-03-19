@@ -2,69 +2,21 @@
 
 This section guides you through the upgrade process of the Wazuh indexer.
 
+The Wazuh indexer cluster remains operational throughout the upgrade. The rolling upgrade process allows nodes to be updated one at a time, ensuring continuous service availability and minimizing disruptions. The steps detailed in the following sections apply to both single-node and multi-node Wazuh indexer clusters. For multi-node Wazuh indexer clusters, repeat the following steps on every node.
+
 ## Preparing the upgrade
 
-In case Wazuh is installed in a multi-node cluster configuration, repeat the following steps for every node.
-
-Ensure you have added the Wazuh repository to every Wazuh indexer node before proceeding to perform the upgrade actions.
-
-### Yum
-
-1. Import the GPG key.
-
-    ```bash
-    rpm --import https://packages.wazuh.com/key/GPG-KEY-WAZUH
-    ```
-
-1. Add the repository.
-
-   ```bash
-   echo -e '[wazuh]\ngpgcheck=1\ngpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH\nenabled=1\nname=EL-$releasever - Wazuh\nbaseurl=https://packages.wazuh.com/5.x/yum/\nprotect=1' | tee /etc/yum.repos.d/wazuh.repo
-    ```
-
-### APT
-
-1. Install the following packages if missing.
-
-    ```bash
-    apt-get install gnupg apt-transport-https
-    ```
-
-1. Install the GPG key.
-
-   ```bash
-   curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && chmod 644 /usr/share/keyrings/wazuh.gpg
-   ```
-
-1. Add the repository.
-
-   ```bash
-   echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/5.x/apt/ stable main" | tee -a /etc/apt/sources.list.d/wazuh.list
-   ```
-
-1. Update the packages information.
-
-   ```bash
-   apt-get update
-   ```
-
-## Upgrading the Wazuh indexer
-
-The Wazuh indexer cluster remains operational throughout the upgrade. The rolling upgrade process allows nodes to be updated one at a time, ensuring continuous service availability and minimizing disruptions. The steps detailed in the following sections apply to both single-node and multi-node Wazuh indexer clusters.
-
-### Preparing the Wazuh indexer cluster for upgrade
-
-Perform the following steps on any of the Wazuh indexer nodes replacing `<WAZUH_INDEXER_IP_ADDRESS>`, `<USERNAME>`, and `<PASSWORD>`.
+Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_INDEXER_IP_ADDRESS`, `$USERNAME`, and `$PASSWORD`.
 
 1. Disable shard replication to prevent shard replicas from being created while Wazuh indexer nodes are being taken offline for the upgrade.
 
     ```bash
-    curl -X PUT "https://:9200/_cluster/settings" \
-    -u : -k -H "Content-Type: application/json" -d '
+    curl -X PUT "https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cluster/settings" \
+    -u $USERNAME:$PASSWORD -k -H "Content-Type: application/json" -d '
     {
-    "persistent": {
-        "cluster.routing.allocation.enable": "primaries"
-    }
+        "persistent": {
+            "cluster.routing.allocation.enable": "primaries"
+        }
     }'
     ```
 
@@ -89,7 +41,7 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `<WAZUH_
 1. Perform a flush operation on the cluster to commit transaction log entries to the index.
 
     ```bash
-    curl -X POST "https://<WAZUH_INDEXER_IP_ADDRESS>:9200/_flush" -u <USERNAME>:<PASSWORD> -k
+    curl -X POST "https://$WAZUH_INDEXER_IP_ADDRESS:9200/_flush" -u $USERNAME:$PASSWORD -k
     ```
 
     **Output**
@@ -125,13 +77,13 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `<WAZUH_
     #### Yum
 
     ```bash
-    yum upgrade wazuh-indexer
+    rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
     ```
 
     #### APT
 
     ```bash
-    apt-get install wazuh-indexer
+    dpkg -i wazuh-indexer-<VERSION>.deb
     ```
 
 1. Restart the Wazuh indexer service.
@@ -166,19 +118,19 @@ Repeat steps 1 to 3 above on all Wazuh indexer nodes before proceeding to the [p
 
 ### Post-upgrade actions
 
-Perform the following steps on any of the Wazuh indexer nodes replacing `<WAZUH_INDEXER_IP_ADDRESS>`, `<USERNAME>`, and `<PASSWORD>`.
+Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_INDEXER_IP_ADDRESS`, `$USERNAME`, and `$PASSWORD`.
 
 1. Check that the newly upgraded Wazuh indexer nodes are in the cluster.
 
     ```bash
-    curl -k -u <USERNAME>:<PASSWORD> https://<WAZUH_INDEXER_IP_ADDRESS>:9200/_cat/nodes?v
+    curl -k -u $USERNAME:$PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
     ```
 
 2. Re-enable shard allocation.
 
     ```bash
-    # curl -X PUT "https://<WAZUH_INDEXER_IP_ADDRESS>:9200/_cluster/settings" \
-    -u <USERNAME>:<PASSWORD> -k -H "Content-Type: application/json" -d '
+    curl -X PUT "https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cluster/settings" \
+    -u $USERNAME:$PASSWORD -k -H "Content-Type: application/json" -d '
     {
         "persistent": {
             "cluster.routing.allocation.enable": "all"
@@ -208,7 +160,7 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `<WAZUH_
 3. Check the status of the Wazuh indexer cluster again to see if the shard allocation has finished.
 
     ```bash
-    curl -k -u <USERNAME>:<PASSWORD> https://<WAZUH_INDEXER_IP_ADDRESS>:9200/_cat/nodes?v
+    curl -k -u $USERNAME:$PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
     ```
 
     **Output**
