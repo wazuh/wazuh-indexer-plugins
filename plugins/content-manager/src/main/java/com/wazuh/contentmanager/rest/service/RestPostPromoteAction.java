@@ -534,8 +534,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         this.securityAnalyticsService.upsertIntegration(
                                 docNode, targetSpaceEnum, RestRequest.Method.POST);
                     } catch (Exception e) {
-                        log.warn("Failed to sync integration [{}] to SAP for space [{}]: {}",
-                                entry.getKey(), context.targetSpace, e.getMessage());
+                        log.warn(
+                                "Failed to sync integration [{}] to SAP for space [{}]: {}",
+                                entry.getKey(),
+                                context.targetSpace,
+                                e.getMessage());
                     }
                 }
             }
@@ -579,8 +582,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         this.securityAnalyticsService.upsertRule(
                                 docNode, targetSpaceEnum, RestRequest.Method.POST);
                     } catch (Exception e) {
-                        log.warn("Failed to sync rule [{}] to SAP for space [{}]: {}",
-                                entry.getKey(), context.targetSpace, e.getMessage());
+                        log.warn(
+                                "Failed to sync rule [{}] to SAP for space [{}]: {}",
+                                entry.getKey(),
+                                context.targetSpace,
+                                e.getMessage());
                     }
                 }
             }

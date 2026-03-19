@@ -134,7 +134,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             WDeleteIntegrationAction.INSTANCE,
                             new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source))
                     .actionGet();
-            log.info("Integration [{}] deleted successfully (document.id={}, source={}).", id, id, source);
+            log.info(
+                    "Integration [{}] deleted successfully (document.id={}, source={}).", id, id, source);
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
             throw new OpenSearchException("Failed to delete Integration", e.getMessage());
@@ -179,10 +180,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String body = doc.toString();
         String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info(
-                "Creating/Updating Rule in SAP - documentId: {}, space: {}",
-                documentId,
-                sourceName);
+        log.info("Creating/Updating Rule in SAP - documentId: {}, space: {}", documentId, sourceName);
 
         if (space != Space.STANDARD) {
             this.client
@@ -230,9 +228,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String sourceName = space.asSecurityAnalyticsSource();
 
         log.info(
-                "Async creating/updating Rule in SAP - documentId: {}, space: {}",
-                documentId,
-                sourceName);
+                "Async creating/updating Rule in SAP - documentId: {}, space: {}", documentId, sourceName);
 
         if (space != Space.STANDARD) {
             this.executeAsync(
@@ -268,7 +264,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String source = Space.DRAFT.asSecurityAnalyticsSource();
         try {
             if (isStandard) {
-                log.info("Deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
+                log.info(
+                        "Deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
                 this.client
                         .execute(
                                 WDeleteRuleAction.INSTANCE,
@@ -295,13 +292,15 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
         String source = Space.DRAFT.asSecurityAnalyticsSource();
         if (isStandard) {
-            log.info("Async deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
+            log.info(
+                    "Async deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(
                     WDeleteRuleAction.INSTANCE,
                     new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
                     listener);
         } else {
-            log.info("Async deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
+            log.info(
+                    "Async deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(
                     WDeleteCustomRuleAction.INSTANCE,
                     new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
