@@ -79,13 +79,13 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 Install the following packages if missing:
 
-#### Yum
+#### yum
 
 ```bash
 yum install coreutils
 ```
 
-#### APT
+#### apt
 
 ```bash
 apt-get install debconf adduser procps
@@ -93,13 +93,13 @@ apt-get install debconf adduser procps
 
 ### Installing the Wazuh indexer package
 
-#### Yum
+#### rpm
 
 ```bash
 rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
 ```
 
-#### APT
+#### dpkg
 
 ```bash
 dpkg -i wazuh-indexer-<VERSION>.deb
@@ -165,7 +165,7 @@ chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 
 Enable and start the Wazuh indexer service.
 
-#### SystemD
+#### Systemd
 
 ```bash
 systemctl daemon-reload
@@ -175,7 +175,7 @@ systemctl start wazuh-indexer
 
 ---
 
-#### SysV init
+#### SysV
 
 Choose one option according to the operating system used.
 

@@ -56,39 +56,39 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_
     }
     ```
 
-### Upgrading the Wazuh indexer nodes
+## Upgrading the Wazuh indexer nodes
 
 1. Stop the Wazuh indexer service.
 
-    #### Systemd
+    **Systemd**
 
     ```bash
     systemctl stop wazuh-indexer
     ```
 
-    #### SysV init
+    **SysV**
 
     ```bash
     service wazuh-indexer stop
     ```
 
-1. Upgrade the Wazuh indexer to the latest version.
+2. Upgrade the Wazuh indexer to the latest version.
 
-    #### Yum
+    **rpm**
 
     ```bash
     rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
     ```
 
-    #### APT
+    **dpkg**
 
     ```bash
     dpkg -i wazuh-indexer-<VERSION>.deb
     ```
 
-1. Restart the Wazuh indexer service.
+3. Restart the Wazuh indexer service.
 
-    #### Systemd
+    **Systemd**
 
     ```bash
     systemctl daemon-reload
@@ -96,7 +96,7 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_
     systemctl start wazuh-indexer
     ```
 
-    #### SysV init
+    **SysV**
 
     Choose one option according to the operating system used.
 
@@ -116,7 +116,7 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_
 
 Repeat steps 1 to 3 above on all Wazuh indexer nodes before proceeding to the [post-upgrade actions](#post-upgrade-actions).
 
-### Post-upgrade actions
+## Post-upgrade actions
 
 Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_INDEXER_IP_ADDRESS`, `$USERNAME`, and `$PASSWORD`.
 
