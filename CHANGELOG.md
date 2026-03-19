@@ -153,6 +153,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
 - Fix flaky tests on Setup plugin [(#888)](https://github.com/wazuh/wazuh-indexer-plugins/pull/888/)
 - Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
+- Fix race condition on .cti-consumers index creation [(#928)](https://github.com/wazuh/wazuh-indexer-plugins/pull/928)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
