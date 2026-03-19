@@ -25,42 +25,37 @@
         "metadata": {
           "type": "object",
           "properties": {
-            "module": {
+            "title": {
               "type": "keyword"
             },
-            "title": {
-              "type": "text"
+            "author": {
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "modified": {
+              "type": "date"
             },
             "description": {
               "type": "text"
+            },
+            "references": {
+              "type": "keyword"
+            },
+            "documentation": {
+              "type": "keyword"
+            },
+            "supports": {
+              "type": "keyword"
+            },
+            "module": {
+              "type": "keyword"
             },
             "compatibility": {
               "type": "keyword"
             },
             "versions": {
-              "type": "keyword"
-            },
-            "author": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "keyword"
-                },
-                "email": {
-                  "type": "keyword"
-                },
-                "url": {
-                  "type": "keyword"
-                },
-                "date": {
-                  "type": "date"
-                },
-                "modified": {
-                  "type": "date"
-                }
-              }
-            },
-            "references": {
               "type": "keyword"
             }
           }

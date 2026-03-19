@@ -412,4 +412,82 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         }
         return zipPath;
     }
+
+    /**
+     * Tests that initializeFromLocal successfully processes a local zip file, does not invoke the
+     * SnapshotClient, and deletes the source zip file after completion.
+     */
+    public void testInitializeFromPath_Success()
+            throws IOException,
+                    URISyntaxException,
+                    ExecutionException,
+                    InterruptedException,
+                    TimeoutException {
+        // Create a local ZIP file with snapshot content
+        // spotless:off
+        String jsonContent =
+            "{\"name\": \"kvdb-001\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"kvdb-001\", \"title\": \"Test\"}}}\n"
+            + "{\"name\": \"kvdb-002\", \"offset\": 75, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"kvdb-002\", \"title\": \"Test2\"}}}";
+        // spotless:on
+        Path localZip = this.createZipFileWithContent("data.json", jsonContent);
+        Assert.assertTrue("Zip file should exist before init", Files.exists(localZip));
+
+        // Act
+        boolean result = this.snapshotService.initialize(localZip);
+
+        // Assert
+        Assert.assertTrue("initialize should return true", result);
+
+        // SnapshotClient should NOT be invoked for local init
+        verify(this.snapshotClient, never()).downloadFile(anyString());
+
+        // Indices should be cleared
+        verify(this.contentIndexMock, atLeastOnce()).clear();
+
+        // Documents should be processed and indexed
+        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
+        verify(this.contentIndexMock).waitForPendingUpdates();
+
+        // Consumer state should be updated with maxOffsetSeen
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+        Assert.assertEquals(75L, consumerCaptor.getValue().getLocalOffset());
+
+        // Source zip should be deleted
+        Assert.assertFalse("Source zip should be deleted after init", Files.exists(localZip));
+    }
+
+    /**
+     * Tests that maxOffsetSeen correctly tracks the maximum offset across all entries in the
+     * snapshot.
+     */
+    public void testInitializeFromPath_MaxOffsetTracking() throws IOException {
+        // spotless:off
+        String jsonContent =
+            "{\"name\": \"r1\", \"offset\": 10, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"r1\"}}}\n"
+            + "{\"name\": \"r2\", \"offset\": 200, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"r2\"}}}\n"
+            + "{\"name\": \"r3\", \"offset\": 150, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"r3\"}}}";
+        // spotless:on
+        Path localZip = this.createZipFileWithContent("data.json", jsonContent);
+
+        this.snapshotService.initialize(localZip);
+
+        Assert.assertEquals(
+                "maxOffsetSeen should be the highest offset in the file",
+                200L,
+                this.snapshotService.getMaxOffsetSeen());
+    }
+
+    /**
+     * Tests that initializeFromLocal returns false when the zip file does not exist or is corrupted.
+     */
+    public void testInitializeFromPath_NonExistentFile() throws IOException, URISyntaxException {
+        Path nonExistentPath = this.tempDir.resolve("does_not_exist.zip");
+
+        boolean result = this.snapshotService.initialize(nonExistentPath);
+
+        Assert.assertFalse("initialize should return false for missing file", result);
+        verify(this.snapshotClient, never()).downloadFile(anyString());
+    }
 }

@@ -108,6 +108,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         return this.CONSUMER;
     }
 
+    @Override
+    protected String getSnapshotFilename() {
+        return Constants.CONTENT_SNAPSHOT_FILENAME;
+    }
+
     /**
      * Returns the mappings configuration for the indices handled by this synchronizer.
      *

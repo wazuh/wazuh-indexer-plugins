@@ -68,6 +68,7 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
             "name": "filter/prefilter/0",
             "enabled": true,
             "metadata": {
+              "title": "Default Prefilter",
               "description": "Default filter to allow all events (for default ruleset)",
               "author": {
                 "email": "info@wazuh.com",
@@ -89,6 +90,7 @@ public class RestPutFilterActionTests extends OpenSearchTestCase {
             "name": "filter/prefilter/0",
             "enabled": true,
             "metadata": {
+              "title": "Default Prefilter with Mismatched ID",
               "description": "Default filter to allow all events (for default ruleset)",
               "author": {
                 "email": "info@wazuh.com",

@@ -65,6 +65,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
             "name": "filter/prefilter/0",
             "enabled": true,
             "metadata": {
+              "title": "Default Prefilter",
               "description": "Default filter to allow all events (for default ruleset)",
               "author": {
                 "email": "info@wazuh.com",
@@ -78,7 +79,6 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
         }
         """;
 
-
     private static final String FILTER_PAYLOAD_WITH_ID = """
         {
           "space": "draft",
@@ -87,6 +87,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
             "name": "filter/prefilter/0",
             "enabled": true,
             "metadata": {
+              "title": "Default Prefilter with ID",
               "description": "Default filter to allow all events (for default ruleset)",
               "author": {
                 "email": "info@wazuh.com",
