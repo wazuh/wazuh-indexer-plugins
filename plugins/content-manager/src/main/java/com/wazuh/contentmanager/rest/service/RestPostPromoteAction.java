@@ -33,12 +33,15 @@ import java.io.IOException;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -60,6 +63,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
     private final EngineService engine;
     private SpaceService spaceService;
+    private SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructor.
@@ -103,6 +107,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         this.spaceService = new SpaceService(client);
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
+        }
         return channel -> {
             RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());
@@ -497,6 +506,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
      * @throws IOException If consolidation fails.
      */
     private void consolidateChanges(PromotionContext context) throws IOException {
+        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
+        ObjectMapper mapper = new ObjectMapper();
+
         // Consolidate ADD/UPDATE operations for each resource type
         if (!context.policyToApply.isEmpty()) {
             this.spaceService.promoteSpace(
@@ -510,6 +522,23 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
                     context.integrationsToApply,
                     context.targetSpace);
+
+            // Sync promoted integrations with SAP in the target space
+            for (Map.Entry<String, Map<String, Object>> entry : context.integrationsToApply.entrySet()) {
+                Map<String, Object> doc = entry.getValue();
+                if (doc.containsKey(Constants.KEY_DOCUMENT)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+                    JsonNode docNode = mapper.valueToTree(document);
+                    try {
+                        this.securityAnalyticsService.upsertIntegration(
+                                docNode, targetSpaceEnum, RestRequest.Method.POST);
+                    } catch (Exception e) {
+                        log.warn("Failed to sync integration [{}] to SAP for space [{}]: {}",
+                                entry.getKey(), context.targetSpace, e.getMessage());
+                    }
+                }
+            }
         }
 
         if (!context.kvdbsToApply.isEmpty()) {
@@ -538,6 +567,23 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
                     context.rulesToApply,
                     context.targetSpace);
+
+            // Sync promoted rules with SAP in the target space
+            for (Map.Entry<String, Map<String, Object>> entry : context.rulesToApply.entrySet()) {
+                Map<String, Object> doc = entry.getValue();
+                if (doc.containsKey(Constants.KEY_DOCUMENT)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+                    JsonNode docNode = mapper.valueToTree(document);
+                    try {
+                        this.securityAnalyticsService.upsertRule(
+                                docNode, targetSpaceEnum, RestRequest.Method.POST);
+                    } catch (Exception e) {
+                        log.warn("Failed to sync rule [{}] to SAP for space [{}]: {}",
+                                entry.getKey(), context.targetSpace, e.getMessage());
+                    }
+                }
+            }
         }
 
         // Process DELETE operations for each resource type

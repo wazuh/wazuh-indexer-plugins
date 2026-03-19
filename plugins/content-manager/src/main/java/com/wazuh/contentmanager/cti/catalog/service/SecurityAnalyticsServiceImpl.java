@@ -104,20 +104,21 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
         String category = this.formatCategory(doc, false);
 
-        log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
+        log.info("Creating/Updating Integration [{}] in SAP - documentId: {}", name, id);
 
         return new WIndexIntegrationRequest(
                 id,
                 WriteRequest.RefreshPolicy.IMMEDIATE,
                 method,
                 new Integration(
-                        id,
+                        null,
                         null,
                         name,
                         description,
                         category,
                         space.asSecurityAnalyticsSource(),
-                        new HashMap<>()));
+                        new HashMap<>(),
+                        id));
     }
 
     @Override
@@ -169,25 +170,43 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return;
         }
 
-        String id = doc.get(Constants.KEY_ID).asText();
+        String documentId = doc.get(Constants.KEY_ID).asText();
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
+        String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info("Creating/Updating Rule [{}] in SAP", id);
+        log.info(
+                "Creating/Updating Rule in SAP - documentId: {}, space: {}",
+                documentId,
+                sourceName);
 
         if (space != Space.STANDARD) {
             this.client
                     .execute(
                             WIndexCustomRuleAction.INSTANCE,
                             new WIndexCustomRuleRequest(
-                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true))
+                                    documentId,
+                                    WriteRequest.RefreshPolicy.IMMEDIATE,
+                                    product,
+                                    method,
+                                    body,
+                                    true,
+                                    documentId,
+                                    sourceName))
                     .actionGet();
         } else {
             this.client
                     .execute(
                             WIndexRuleAction.INSTANCE,
                             new WIndexRuleRequest(
-                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true))
+                                    documentId,
+                                    WriteRequest.RefreshPolicy.IMMEDIATE,
+                                    product,
+                                    method,
+                                    body,
+                                    true,
+                                    documentId,
+                                    sourceName))
                     .actionGet();
         }
     }
@@ -201,23 +220,41 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return;
         }
 
-        String id = doc.get(Constants.KEY_ID).asText();
+        String documentId = doc.get(Constants.KEY_ID).asText();
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
+        String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info("Async creating/updating Rule [{}] in SAP", id);
+        log.info(
+                "Async creating/updating Rule in SAP - documentId: {}, space: {}",
+                documentId,
+                sourceName);
 
         if (space != Space.STANDARD) {
             this.executeAsync(
                     WIndexCustomRuleAction.INSTANCE,
                     new WIndexCustomRuleRequest(
-                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true),
+                            documentId,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            product,
+                            method,
+                            body,
+                            true,
+                            documentId,
+                            sourceName),
                     listener);
         } else {
             this.executeAsync(
                     WIndexRuleAction.INSTANCE,
                     new WIndexRuleRequest(
-                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true),
+                            documentId,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            product,
+                            method,
+                            body,
+                            true,
+                            documentId,
+                            sourceName),
                     listener);
         }
     }
