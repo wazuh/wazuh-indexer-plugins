@@ -501,6 +501,8 @@ paths:
         Creates a rule in the draft space. The server generates the UUID.
         The rule is validated against the Wazuh engine before being stored.
         The rule is automatically linked to the specified integration.
+
+        **Validation Note:** The `logsource.product` field in the rule payload MUST exactly match the `metadata.title` of the parent integration specified by the `integration` ID.
       operationId: createRule
       requestBody:
         required: true
@@ -1040,40 +1042,96 @@ components:
           enum: [draft, test]
           example: draft
 
-    # Request schema for creating an integration (POST)
-    IntegrationResourceCreate:
+    # Shared metadata block for non-policy resources (Integration, Decoder, Rule, KVDB, Filter)
+    ResourceMetadata:
       type: object
       additionalProperties: false
-      required:
-        - title
-        - author
-        - category
       properties:
         title:
           type: string
-          description: Integration title
-
+          description: Human-readable title
         author:
           type: string
-          description: Integration author name
-
-        category:
+          description: Author name
+        date:
           type: string
-          description: Integration category (e.g., cloud-services)
-
+          format: date-time
+          description: Creation timestamp (ISO-8601)
+        modified:
+          type: string
+          format: date-time
+          description: Last modification timestamp (ISO-8601)
         description:
           type: string
-          description: Integration description
-
-        documentation:
-          type: string
-          description: Documentation text or URL
-
+          description: Brief description
         references:
           type: array
           items:
             type: string
           description: Reference URLs
+        documentation:
+          type: string
+          description: Documentation text or URL
+        supports:
+          type: array
+          items:
+            type: string
+          description: Supported platforms or contexts (defaults to empty)
+
+    # Shared metadata block for Policy resources
+    PolicyMetadata:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          description: Human-readable title
+        author:
+          type: string
+          description: Author name
+        date:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO-8601)
+        modified:
+          type: string
+          format: date-time
+          description: Last modification timestamp (ISO-8601)
+        description:
+          type: string
+          description: Brief description
+        references:
+          type: array
+          items:
+            type: string
+          description: Reference URLs
+        documentation:
+          type: string
+          description: Documentation text or URL
+        compatibility:
+          type: array
+          items:
+            type: string
+          description: Compatibility information (defaults to empty)
+
+    # Request schema for creating an integration (POST)
+    IntegrationResourceCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - metadata
+        - category
+      properties:
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/ResourceMetadata"
+            - required:
+                - title
+                - author
+
+        category:
+          type: string
+          description: Integration category (e.g., cloud-services)
 
         enabled:
           type: boolean
@@ -1084,39 +1142,23 @@ components:
       type: object
       additionalProperties: false
       required:
-        - title
-        - author
+        - metadata
         - category
         - enabled
         - rules
         - decoders
         - kvdbs
       properties:
-        title:
-          type: string
-          description: Integration title
-
-        author:
-          type: string
-          description: Integration author name
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/ResourceMetadata"
+            - required:
+                - title
+                - author
 
         category:
           type: string
           description: Integration category
-
-        description:
-          type: string
-          description: Integration description
-
-        documentation:
-          type: string
-          description: Documentation text or URL
-
-        references:
-          type: array
-          items:
-            type: string
-          description: Reference URLs
 
         enabled:
           type: boolean
@@ -1379,29 +1421,15 @@ components:
           type: object
           additionalProperties: false
           required:
-            - title
-            - author
+            - metadata
             - content
           properties:
-            title:
-              type: string
-              description: Title of the resource
-
-            author:
-              type: string
-              description: Author of the integration
-
-            description:
-              type: string
-              description: Description of the integration
-
-            documentation:
-              type: string
-
-            references:
-              type: array
-              items:
-                type: string
+            metadata:
+              allOf:
+                - $ref: "#/components/schemas/ResourceMetadata"
+                - required:
+                    - title
+                    - author
 
             enabled:
               type: boolean
@@ -1422,32 +1450,18 @@ components:
           type: object
           additionalProperties: false
           required:
-            - title
-            - author
-            - description
-            - documentation
-            - references
+            - metadata
             - content
           properties:
-            title:
-              type: string
-              description: Title of the resource
-
-            author:
-              type: string
-              description: Author of the integration
-
-            description:
-              type: string
-              description: Description of the integration
-
-            documentation:
-              type: string
-
-            references:
-              type: array
-              items:
-                type: string
+            metadata:
+              allOf:
+                - $ref: "#/components/schemas/ResourceMetadata"
+                - required:
+                    - title
+                    - author
+                    - description
+                    - documentation
+                    - references
 
             enabled:
               type: boolean
@@ -1463,29 +1477,17 @@ components:
       type: object
       additionalProperties: false
       required:
-        - title
+        - metadata
       properties:
-        title:
-          type: string
-          description: Rule title
-
-        description:
-          type: string
-          description: Rule description
-
-        author:
-          type: string
-          description: Rule author
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/ResourceMetadata"
+            - required:
+                - title
 
         sigma_id:
           type: string
           description: Sigma rule ID
-
-        references:
-          type: array
-          items:
-            type: string
-          description: Reference URLs
 
         enabled:
           type: boolean
@@ -1505,6 +1507,7 @@ components:
           properties:
             product:
               type: string
+              description: Must exactly match the metadata.title of the associated integration.
             category:
               type: string
 
@@ -1523,31 +1526,19 @@ components:
       type: object
       additionalProperties: false
       required:
-        - title
+        - metadata
         - detection
         - logsource
       properties:
-        title:
-          type: string
-          description: Rule title
-
-        description:
-          type: string
-          description: Rule description
-
-        author:
-          type: string
-          description: Rule author
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/ResourceMetadata"
+            - required:
+                - title
 
         sigma_id:
           type: string
           description: Sigma rule ID
-
-        references:
-          type: array
-          items:
-            type: string
-          description: Reference URLs
 
         enabled:
           type: boolean
@@ -1567,6 +1558,7 @@ components:
           properties:
             product:
               type: string
+              description: Must exactly match the metadata.title of the associated integration.
             category:
               type: string
 
@@ -1601,13 +1593,11 @@ components:
       description: |
         Policy resource definition. The fields `enabled`, `index_unclassified_events`,
         and `index_discarded_events` are always required. When updating the **draft**
-        space, `author`, `description`, `documentation`, and `references` are also
-        required.
+        space, `metadata.author`, `metadata.description`, `metadata.documentation`,
+        and `metadata.references` are also required.
       properties:
-        title:
-          type: string
-          description: Human-readable name for the policy
-          example: "Production Policy"
+        metadata:
+          $ref: "#/components/schemas/PolicyMetadata"
 
         root_decoder:
           type: string
@@ -1656,28 +1646,6 @@ components:
           type: boolean
           description: Whether discarded events are indexed
           example: false
-
-        author:
-          type: string
-          description: Author of the policy (required for draft space)
-          example: "Wazuh Inc."
-
-        description:
-          type: string
-          description: Brief description of the policy (required for draft space)
-          example: "Policy description"
-
-        documentation:
-          type: string
-          description: Detailed documentation for the policy (required for draft space)
-          example: "Detailed documentation"
-
-        references:
-          type: array
-          items:
-            type: string
-          description: External reference URLs (required for draft space)
-          example: ["https://wazuh.com"]
 
     RestResponse:
       type: object

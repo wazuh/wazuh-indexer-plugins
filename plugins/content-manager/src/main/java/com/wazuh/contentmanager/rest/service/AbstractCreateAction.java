@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -122,13 +121,9 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             resourceNode.put(Constants.KEY_ID, id);
 
             String currentTimestamp = this.getCurrentDate();
-            if (this.isDecoder()) {
-                Decoder.setCreationTime(resourceNode, currentTimestamp);
-                Decoder.setLastModificationTime(resourceNode, currentTimestamp);
-            } else {
-                Resource.setCreationTime(resourceNode, currentTimestamp);
-                Resource.setLastModificationTime(resourceNode, currentTimestamp);
-            }
+            Resource.setCreationTime(resourceNode, currentTimestamp);
+            Resource.setLastModificationTime(resourceNode, currentTimestamp);
+            Resource.nestMetadataFields(resourceNode);
 
             if (!resourceNode.has(Constants.KEY_ENABLED)) {
                 resourceNode.put(Constants.KEY_ENABLED, true);
@@ -191,11 +186,6 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
      */
     protected boolean requiresIntegrationId() {
         return true;
-    }
-
-    /** Indicates if the resource is a Decoder (requires special metadata handling). */
-    protected boolean isDecoder() {
-        return false;
     }
 
     protected abstract String getIndexName();

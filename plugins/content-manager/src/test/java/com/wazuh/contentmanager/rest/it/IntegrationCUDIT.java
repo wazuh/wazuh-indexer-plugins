@@ -105,12 +105,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "test-integration-dup",
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "title": "test-integration-dup",
+                            "author": "Wazuh Inc.",
+                            "description": "Duplicate.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
                         "category": "cloud-services",
-                        "description": "Duplicate.",
-                        "documentation": "doc",
-                        "references": ["https://wazuh.com"],
                         "enabled": true
                     }
                 }
@@ -135,7 +137,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "author": "Wazuh Inc."
+                        },
                         "category": "cloud-services",
                         "enabled": true
                     }
@@ -161,7 +165,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "test-integration-no-author",
+                        "metadata": {
+                            "title": "test-integration-no-author"
+                        },
                         "category": "cloud-services",
                         "enabled": true
                     }
@@ -187,8 +193,10 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "test-integration-no-cat",
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "title": "test-integration-no-cat",
+                            "author": "Wazuh Inc."
+                        },
                         "enabled": true
                     }
                 }
@@ -216,12 +224,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "id": "custom-id",
-                        "title": "test-integration-with-id",
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "title": "test-integration-with-id",
+                            "author": "Wazuh Inc.",
+                            "description": "Test.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
                         "category": "cloud-services",
-                        "description": "Test.",
-                        "documentation": "doc",
-                        "references": ["https://wazuh.com"],
                         "enabled": true
                     }
                 }
@@ -293,12 +303,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "test-integration-put-updated",
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "title": "test-integration-put-updated",
+                            "author": "Wazuh Inc.",
+                            "description": "Updated description.",
+                            "documentation": "updated-doc",
+                            "references": ["https://wazuh.com"]
+                        },
                         "category": "cloud-services",
-                        "description": "Updated description.",
-                        "documentation": "updated-doc",
-                        "references": ["https://wazuh.com"],
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -319,7 +331,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         this.assertSpaceName(sourceAfter);
         assertEquals(
                 "Updated description.",
-                sourceAfter.path(Constants.KEY_DOCUMENT).path("description").asText());
+                sourceAfter.path(Constants.KEY_DOCUMENT).path("metadata").path("description").asText());
 
         // Verify hash updated
         String hashAfter = sourceAfter.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText();
@@ -346,12 +358,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "test-put-dup-b",
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "title": "test-put-dup-b",
+                            "author": "Wazuh Inc.",
+                            "description": "Try changing to existing title.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
                         "category": "cloud-services",
-                        "description": "Try changing to existing title.",
-                        "documentation": "doc",
-                        "references": ["https://wazuh.com"],
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -379,12 +393,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "nonexistent",
-                        "author": "Test",
+                        "metadata": {
+                            "title": "nonexistent",
+                            "author": "Test",
+                            "description": "",
+                            "documentation": "",
+                            "references": []
+                        },
                         "category": "cloud-services",
-                        "description": "",
-                        "documentation": "",
-                        "references": [],
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -415,12 +431,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "test",
-                        "author": "Test",
+                        "metadata": {
+                            "title": "test",
+                            "author": "Test",
+                            "description": "",
+                            "documentation": "",
+                            "references": []
+                        },
                         "category": "cloud-services",
-                        "description": "",
-                        "documentation": "",
-                        "references": [],
                         "enabled": true,
                         "rules": [],
                         "decoders": [],
@@ -452,7 +470,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         String payload = """
                 {
                     "resource": {
-                        "title": "updated-title"
+                        "metadata": {
+                            "title": "updated-title"
+                        }
                     }
                 }
                 """;
@@ -483,12 +503,14 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "id": "some-id",
-                        "title": "test-integration-put-idinbody-updated",
-                        "author": "Wazuh Inc.",
+                        "metadata": {
+                            "title": "test-integration-put-idinbody-updated",
+                            "author": "Wazuh Inc.",
+                            "description": "Same.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
                         "category": "cloud-services",
-                        "description": "Same.",
-                        "documentation": "doc",
-                        "references": ["https://wazuh.com"],
                         "enabled": true,
                         "rules": [],
                         "decoders": [],

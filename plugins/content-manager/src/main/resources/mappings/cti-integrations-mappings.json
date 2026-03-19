@@ -9,29 +9,40 @@
         "parent_decoder": {
           "type": "keyword"
         },
-        "title": {
-          "type": "keyword"
-        },
         "category": {
           "type": "keyword"
         },
-        "description": {
-          "type": "text"
-        },
-        "author": {
-          "type": "keyword"
-        },
-        "date": {
-          "type": "date"
-        },
-        "documentation": {
-          "type": "keyword"
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "keyword"
+            },
+            "author": {
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "modified": {
+              "type": "date"
+            },
+            "description": {
+              "type": "text"
+            },
+            "references": {
+              "type": "keyword"
+            },
+            "documentation": {
+              "type": "keyword"
+            },
+            "supports": {
+              "type": "keyword"
+            }
+          }
         },
         "enabled": {
           "type": "boolean"
-        },
-        "references": {
-          "type": "keyword"
         },
         "decoders": {
           "type": "keyword"
@@ -41,17 +52,6 @@
         },
         "rules": {
           "type": "keyword"
-        },
-        "metadata": {
-          "properties": {
-            "author": {
-              "properties": {
-                "modified": {
-                  "type": "date"
-                }
-              }
-            }
-          }
         }
       }
     },

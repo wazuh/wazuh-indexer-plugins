@@ -435,10 +435,9 @@ public class ContentIndex {
      */
     public ObjectNode processPayload(JsonNode payload) {
         try {
-          
             // Delegate parsing logic to the appropriate Model
             Resource resource;
-            switch (this.indexName){
+            switch (this.indexName) {
                 case Constants.INDEX_IOCS:
                     Ioc ioc = Ioc.fromPayload(payload);
                     return this.mapper.valueToTree(ioc);

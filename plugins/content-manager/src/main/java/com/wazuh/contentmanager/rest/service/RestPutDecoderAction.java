@@ -96,11 +96,6 @@ public class RestPutDecoderAction extends AbstractUpdateAction {
     }
 
     @Override
-    protected boolean isDecoder() {
-        return true;
-    }
-
-    @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         return null;
     }

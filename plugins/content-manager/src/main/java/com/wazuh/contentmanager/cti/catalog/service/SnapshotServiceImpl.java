@@ -26,6 +26,7 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -62,6 +63,9 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
     private final ObjectMapper mapper;
+
+    /** The maximum offset encountered while processing snapshot files. */
+    private long maxOffsetSeen;
 
     /**
      * Constructs a new SnapshotServiceImpl.
@@ -238,8 +242,9 @@ public class SnapshotServiceImpl implements SnapshotService {
 
                     // Inject the CTI offset value into the payload so it is persisted
                     if (rootJson.has(Constants.KEY_OFFSET) && payload.isObject()) {
-                        ((ObjectNode) payload)
-                                .put(Constants.KEY_OFFSET, rootJson.get(Constants.KEY_OFFSET).asLong());
+                        long offset = rootJson.get(Constants.KEY_OFFSET).asLong();
+                        ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset);
+                        this.maxOffsetSeen = Math.max(this.maxOffsetSeen, offset);
                     }
 
                     ObjectNode processedPayload = indexHandler.processPayload(payload);
@@ -279,6 +284,98 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         } catch (Exception e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the maximum offset encountered during the last snapshot file processing.
+     *
+     * @return the maximum offset value seen across all processed snapshot entries.
+     */
+    public long getMaxOffsetSeen() {
+        return this.maxOffsetSeen;
+    }
+
+    /**
+     * Initializes content from a pre-packaged local snapshot zip file. Unlike {@link
+     * #initialize(RemoteConsumer)}, this method reads directly from a local file path instead of
+     * downloading from a remote URL. After successful processing, the source zip file is permanently
+     * deleted.
+     *
+     * @param localZip Path to the local snapshot zip file.
+     * @return true if initialization was fully successful, false on failures.
+     */
+    @Override
+    public boolean initialize(Path localZip) {
+        log.info(
+                "Starting local snapshot initialization for context [{}] consumer [{}] from [{}]",
+                this.context,
+                this.consumer,
+                localZip);
+
+        Path outputDir = null;
+        this.maxOffsetSeen = 0;
+
+        try {
+            // 1. Prepare output directory
+            outputDir = this.environment.tmpDir().resolve("snapshot_" + System.currentTimeMillis());
+            Files.createDirectories(outputDir);
+
+            // 2. Unzip local snapshot
+            final Path extractDir = outputDir;
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        Unzip.unzip(localZip, extractDir);
+                        return null;
+                    });
+
+            // 3. Clear indices
+            this.indicesMap.values().forEach(ContentIndex::clear);
+
+            // 4. Process and Index Files
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
+                for (Path entry : stream) {
+                    this.processSnapshotFile(entry);
+                }
+            }
+
+            // Ensure all bulk requests are finished
+            if (!this.indicesMap.isEmpty()) {
+                log.info("Waiting for pending bulk updates to finish...");
+                this.indicesMap.values().iterator().next().waitForPendingUpdates();
+            }
+
+        } catch (Exception e) {
+            log.error("Error processing local snapshot: {}", e.getMessage());
+            return false;
+        } finally {
+            // Cleanup temporary extraction directory only
+            this.cleanup(null, outputDir);
+        }
+
+        // 5. Delete source zip file
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        Files.deleteIfExists(localZip);
+                        return null;
+                    });
+            log.info("Deleted local snapshot file [{}]", localZip);
+        } catch (Exception e) {
+            log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
+        }
+
+        // 6. Update Consumer State in .cti-consumers
+        try {
+            LocalConsumer updatedConsumer =
+                    new LocalConsumer(
+                            this.context, this.consumer, this.maxOffsetSeen, 0, localZip.toString());
+            this.consumersIndex.setConsumer(updatedConsumer);
+            return true;
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(
+                    "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
+            return false;
         }
     }
 

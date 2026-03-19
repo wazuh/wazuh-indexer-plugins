@@ -136,6 +136,7 @@ public class Resource {
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
             ObjectNode rawDoc = payload.get(JSON_DOCUMENT_KEY).deepCopy();
             Resource.preprocessDocument(rawDoc);
+            Resource.nestMetadataFields(rawDoc);
 
             resource.setDocument(MAPPER.convertValue(rawDoc, Map.class));
 
@@ -241,24 +242,78 @@ public class Resource {
         return wrapper;
     }
 
+    /** Metadata field names that should be nested under {@code metadata} during indexing. */
+    private static final String[] METADATA_FIELD_NAMES = {
+        Constants.KEY_TITLE,
+        Constants.KEY_AUTHOR,
+        Constants.KEY_DESCRIPTION,
+        Constants.KEY_REFERENCES,
+        Constants.KEY_DOCUMENTATION,
+        Constants.KEY_SUPPORTS,
+        Constants.KEY_COMPATIBILITY,
+        Constants.KEY_DATE,
+        Constants.KEY_MODIFIED
+    };
+
     /**
-     * Sets the creation time on the given resource JSON node.
+     * Moves metadata fields from the resource root into a nested {@code metadata} object. Fields that
+     * are already under {@code metadata} (e.g., {@code date}, {@code modified}) are preserved. This
+     * ensures the indexed document follows the {@code document.metadata.*} structure.
+     *
+     * @param resourceNode The resource JSON node to restructure in place.
+     */
+    public static void nestMetadataFields(ObjectNode resourceNode) {
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
+        for (String field : METADATA_FIELD_NAMES) {
+            if (resourceNode.has(field)) {
+                metadataNode.set(field, resourceNode.get(field));
+                resourceNode.remove(field);
+            }
+        }
+        // Ensure supports defaults to empty array if not present (for non-Policy resources)
+        if (!metadataNode.has(Constants.KEY_SUPPORTS)
+                && !metadataNode.has(Constants.KEY_COMPATIBILITY)) {
+            metadataNode.set(Constants.KEY_SUPPORTS, MAPPER.createArrayNode());
+        }
+    }
+
+    /**
+     * Sets the creation time on the given resource JSON node, inside {@code metadata.date}.
      *
      * @param resourceNode The resource JSON node.
      * @param timestamp The timestamp to set.
      */
     public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
-        resourceNode.put(Constants.KEY_DATE, timestamp);
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
+        metadataNode.put(Constants.KEY_DATE, timestamp);
     }
 
     /**
-     * Sets the last modification time on the given resource JSON node.
+     * Sets the last modification time on the given resource JSON node, inside {@code
+     * metadata.modified}.
      *
      * @param resourceNode The resource JSON node.
      * @param timestamp The timestamp to set.
      */
     public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
-        resourceNode.put(Constants.KEY_MODIFIED, timestamp);
+        ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
+        metadataNode.put(Constants.KEY_MODIFIED, timestamp);
+    }
+
+    /**
+     * Retrieves or creates the {@code metadata} object node within a resource node.
+     *
+     * @param resourceNode The resource JSON node.
+     * @return The existing or newly created metadata {@link ObjectNode}.
+     */
+    public static ObjectNode getOrCreateMetadataNode(ObjectNode resourceNode) {
+        if (resourceNode.has(Constants.KEY_METADATA)
+                && resourceNode.get(Constants.KEY_METADATA).isObject()) {
+            return (ObjectNode) resourceNode.get(Constants.KEY_METADATA);
+        }
+        ObjectNode metadataNode = MAPPER.createObjectNode();
+        resourceNode.set(Constants.KEY_METADATA, metadataNode);
+        return metadataNode;
     }
 
     /**

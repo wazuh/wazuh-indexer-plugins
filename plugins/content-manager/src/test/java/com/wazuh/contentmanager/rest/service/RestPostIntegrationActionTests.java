@@ -181,7 +181,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.mockSearchBehavior();
 
         String jsonPayload =
-                "{\"resource\": {\"author\": \"Wazuh\", \"category\": \"cloud\", \"title\": \"aws-fargate\"}}";
+                "{\"resource\": {\"metadata\": {\"author\": \"Wazuh\", \"title\": \"aws-fargate\"}, \"category\": \"cloud\"}}";
         when(request.content()).thenReturn(new BytesArray(jsonPayload));
 
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
@@ -202,7 +202,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         this.mockSearchBehavior();
 
         String jsonPayload =
-                "{\"resource\":{\"id\":\"fake-id\",\"title\":\"T\",\"author\":\"A\",\"category\":\"C\"}}";
+                "{\"resource\":{\"id\":\"fake-id\",\"metadata\":{\"title\":\"T\",\"author\":\"A\"},\"category\":\"C\"}}";
         when(request.content()).thenReturn(new BytesArray(jsonPayload));
 
         RestResponse actualResponse = this.action.executeRequest(request, this.client);
@@ -233,19 +233,27 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
      */
     public void testPostIntegration_missingMandatoryFields() throws IOException {
         String basePayload =
-                "{\"resource\": {\"title\": \"T\", \"author\": \"A\", \"category\": \"C\"}}";
+                "{\"resource\": {\"metadata\": {\"title\": \"T\", \"author\": \"A\"}, \"category\": \"C\"}}";
         String[] fields = {"title", "author", "category"};
 
         for (String field : fields) {
             ObjectNode root = (ObjectNode) this.mapper.readTree(basePayload);
-            ((ObjectNode) root.get("resource")).remove(field);
+
+            if (field.equals("category")) {
+                ((ObjectNode) root.get("resource")).remove(field);
+            } else {
+                ((ObjectNode) root.get("resource").get("metadata")).remove(field);
+            }
+
             RestRequest request = mock(RestRequest.class);
             when(request.hasContent()).thenReturn(true);
             when(request.content()).thenReturn(new BytesArray(root.toString()));
 
             RestResponse response = this.action.executeRequest(request, this.client);
             Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-            Assert.assertTrue(response.getMessage().contains("Missing [" + field + "]"));
+
+            String expectedMissing = field.equals("category") ? field : "metadata." + field;
+            Assert.assertTrue(response.getMessage().contains("Missing [" + expectedMissing + "]"));
         }
     }
 
@@ -258,7 +266,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
      */
     public void testPostIntegration_additionalFieldsAreIgnored() throws IOException {
         String basePayload =
-                "{\"resource\": {\"title\": \"T\", \"author\": \"A\", \"category\": \"C\"}}";
+                "{\"resource\": {\"metadata\": {\"title\": \"T\", \"author\": \"A\"}, \"category\": \"C\"}}";
         ObjectNode root = (ObjectNode) this.mapper.readTree(basePayload);
         ((ObjectNode) root.get("resource")).put("date", "2020-01-01");
 

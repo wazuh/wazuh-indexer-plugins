@@ -104,8 +104,10 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "integration": "%s",
                     "resource": {
                         "name": "test",
-                        "author": "Wazuh Inc.",
-                        "content": {"key": "value"}
+                        "content": {"key": "value"},
+                        "metadata": {
+                            "author": "Wazuh Inc."
+                        }
                     }
                 }
                 """;
@@ -136,8 +138,10 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "integration": "%s",
                     "resource": {
                         "name": "test",
-                        "title": "Test KVDB",
-                        "content": {"key": "value"}
+                        "content": {"key": "value"},
+                        "metadata": {
+                            "title": "Test KVDB"
+                        }
                     }
                 }
                 """;
@@ -168,8 +172,10 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "integration": "%s",
                     "resource": {
                         "name": "test",
-                        "title": "Test KVDB",
-                        "author": "Wazuh Inc."
+                        "metadata": {
+                            "title": "Test KVDB",
+                            "author": "Wazuh Inc."
+                        }
                     }
                 }
                 """;
@@ -195,9 +201,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "name": "test",
-                        "title": "Test KVDB",
-                        "author": "Wazuh Inc.",
-                        "content": {"key": "value"}
+                        "content": {"key": "value"},
+                        "metadata": {
+                            "title": "Test KVDB",
+                            "author": "Wazuh Inc."
+                        }
                     }
                 }
                 """;
@@ -228,9 +236,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "id": "custom-id",
                         "name": "test",
-                        "title": "Test KVDB",
-                        "author": "Wazuh Inc.",
-                        "content": {"key": "value"}
+                        "content": {"key": "value"},
+                        "metadata": {
+                            "title": "Test KVDB",
+                            "author": "Wazuh Inc."
+                        }
                     }
                 }
                 """;
@@ -255,13 +265,15 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "integration": "00000000-0000-0000-0000-000000000000",
                     "resource": {
                         "name": "test",
-                        "title": "Test KVDB",
-                        "author": "Wazuh Inc.",
                         "content": {"key": "value"},
                         "enabled": true,
-                        "description": "Test",
-                        "documentation": "test",
-                        "references": []
+                        "metadata": {
+                            "title": "Test KVDB",
+                            "author": "Wazuh Inc.",
+                            "description": "Test",
+                            "documentation": "test",
+                            "references": []
+                        }
                     }
                 }
                 """;
@@ -321,17 +333,19 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "name": "test-UPDATED",
                         "enabled": true,
-                        "author": "Wazuh.",
                         "content": {
                             "non_standard_timezones": {
                                 "AEST": "Australia/Sydney",
                                 "CEST": "Europe/Berlin"
                             }
                         },
-                        "description": "UPDATE",
-                        "documentation": "UPDATE.doc",
-                        "references": ["https://wazuh.com"],
-                        "title": "non_standard_timezones-2"
+                        "metadata": {
+                            "title": "non_standard_timezones-2",
+                            "author": "Wazuh.",
+                            "description": "UPDATE",
+                            "documentation": "UPDATE.doc",
+                            "references": ["https://wazuh.com"]
+                        }
                     }
                 }
                 """;
@@ -396,12 +410,14 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                     "resource": {
                         "name": "test",
                         "enabled": true,
-                        "author": "Test",
                         "content": {"key": "value"},
-                        "description": "",
-                        "documentation": "",
-                        "references": [],
-                        "title": "Test"
+                        "metadata": {
+                            "title": "Test",
+                            "author": "Test",
+                            "description": "",
+                            "documentation": "",
+                            "references": []
+                        }
                     }
                 }
                 """;
@@ -429,9 +445,11 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                 {
                     "resource": {
                         "name": "test",
-                        "title": "Test",
-                        "author": "Test",
-                        "content": {"key": "value"}
+                        "content": {"key": "value"},
+                        "metadata": {
+                            "title": "Test",
+                            "author": "Test"
+                        }
                     }
                 }
                 """;

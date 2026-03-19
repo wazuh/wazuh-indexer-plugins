@@ -81,11 +81,6 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
         return validSpaces;
     }
 
-    @Override
-    protected boolean isFilter() {
-        return true;
-    }
-
     /**
      * Return the route configuration for this handler.
      *
@@ -110,7 +105,15 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
             return createInvalidSpaceResponse();
         }
 
-        return null;
+        RestResponse fieldValidation =
+                this.documentValidations.validateRequiredFields(
+                        resource, List.of(Constants.KEY_NAME, Constants.KEY_ENABLED));
+        if (fieldValidation != null) {
+            return fieldValidation;
+        }
+
+        return this.documentValidations.validateMetadataFields(
+                resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
     }
 
     /**
