@@ -49,6 +49,15 @@ public interface SecurityAnalyticsService {
     void deleteIntegration(String id, boolean isStandard);
 
     /**
+     * Deletes an Integration from SAP in the specified space.
+     *
+     * @param id The CTI document ID of the integration to delete.
+     * @param isStandard Whether the integration is a Standard integration (true) or Custom (false).
+     * @param space The space to delete from.
+     */
+    void deleteIntegration(String id, boolean isStandard, Space space);
+
+    /**
      * Creates or updates a Rule in SAP.
      *
      * @param doc The JSON document containing the rule data.
@@ -64,6 +73,15 @@ public interface SecurityAnalyticsService {
      * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
      */
     void deleteRule(String id, boolean isStandard);
+
+    /**
+     * Deletes a Rule from SAP in the specified space.
+     *
+     * @param id The CTI document ID of the rule to delete.
+     * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
+     * @param space The space to delete from.
+     */
+    void deleteRule(String id, boolean isStandard, Space space);
 
     /**
      * Creates or updates a Threat Detector in SAP.

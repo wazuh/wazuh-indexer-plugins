@@ -53,6 +53,11 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
+    public void deleteIntegration(String id, boolean isStandard, Space space) {
+        log.debug("MockSecurityAnalyticsService.deleteIntegration called for id: {} space: {}", id, space);
+    }
+
+    @Override
     public void upsertRule(JsonNode doc, Space space, Method method) {
         log.debug("MockSecurityAnalyticsService.upsertRule called");
     }
@@ -60,6 +65,11 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     @Override
     public void deleteRule(String id, boolean isStandard) {
         log.debug("MockSecurityAnalyticsService.deleteRule called for id: {}", id);
+    }
+
+    @Override
+    public void deleteRule(String id, boolean isStandard, Space space) {
+        log.debug("MockSecurityAnalyticsService.deleteRule called for id: {} space: {}", id, space);
     }
 
     @Override

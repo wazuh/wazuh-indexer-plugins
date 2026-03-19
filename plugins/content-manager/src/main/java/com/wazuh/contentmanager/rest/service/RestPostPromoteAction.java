@@ -598,6 +598,20 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
                     context.integrationsToDelete,
                     context.targetSpace);
+
+            // Delete promoted integrations from SAP in the target space
+            for (String integrationId : context.integrationsToDelete) {
+                try {
+                    this.securityAnalyticsService.deleteIntegration(
+                            integrationId, false, targetSpaceEnum);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete integration [{}] from SAP for space [{}]: {}",
+                            integrationId,
+                            context.targetSpace,
+                            e.getMessage());
+                }
+            }
         }
 
         if (!context.kvdbsToDelete.isEmpty()) {
@@ -626,6 +640,19 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
                     context.rulesToDelete,
                     context.targetSpace);
+
+            // Delete promoted rules from SAP in the target space
+            for (String ruleId : context.rulesToDelete) {
+                try {
+                    this.securityAnalyticsService.deleteRule(ruleId, false, targetSpaceEnum);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete rule [{}] from SAP for space [{}]: {}",
+                            ruleId,
+                            context.targetSpace,
+                            e.getMessage());
+                }
+            }
         }
     }
 
