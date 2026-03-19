@@ -159,15 +159,12 @@ public class ConsumersIndex {
                     .indices()
                     .create(request)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
+        } catch (ExecutionException | TimeoutException e) {
+            boolean alreadyExists = e instanceof ExecutionException
+                    ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
+                    : this.exists();
+            if (alreadyExists) {
                 log.info("Index [{}] already exists, skipping creation.", INDEX_NAME);
-                return null;
-            }
-            throw e;
-        } catch (TimeoutException e) {
-            if (this.exists()) {
-                log.info("Index [{}] already exists after timeout, skipping creation.", INDEX_NAME);
                 return null;
             }
             throw e;
