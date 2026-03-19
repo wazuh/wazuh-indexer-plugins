@@ -37,7 +37,7 @@ import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.model.WazuhSettings;
 
 /**
- * PUT /_plugins/_wazuh/settings
+ * PUT /_plugins/_setup/settings
  *
  * <p>Persists configuration settings to the {@code .wazuh-settings} index. Currently supports the
  * {@code engine.index_raw_events} boolean flag which controls whether the Engine writes incoming

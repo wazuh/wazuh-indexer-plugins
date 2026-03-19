@@ -35,7 +35,7 @@
 - [Modules]()
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
-    - [API Reference]()
+    - [API Reference](ref/modules/setup/api-reference.md)
     - [Wazuh Common Schema](ref/modules/setup/schema.md)
   - [Content Manager](ref/modules/content-manager/index.md)
     - [Architecture](ref/modules/content-manager/architecture.md)
