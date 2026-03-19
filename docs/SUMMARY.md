@@ -18,6 +18,7 @@
   - [Content Manager](dev/plugins/content-manager.md)
     - [Content Manager Tutorial](dev/plugins/content-manager-tutorial.md)
   - [Notifications](dev/plugins/notifications.md)
+  - [Common Utils](dev/plugins/common-utils.md)
 
 # Reference Manual
 - [Introduction]()
