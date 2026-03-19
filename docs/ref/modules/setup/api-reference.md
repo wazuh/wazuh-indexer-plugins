@@ -8,7 +8,7 @@ The Setup plugin exposes a REST API under `/_plugins/_setup/`. All endpoints req
 
 ### Update Settings
 
-Persists configuration settings to the `.wazuh-settings` index. Currently supports the `engine.index_raw_events` boolean flag, which controls whether the Engine writes incoming events to the raw data stream before enrichment.
+Persists configuration settings to the `.wazuh-settings` index. Currently supports the `engine.index_raw_events` boolean flag, which controls whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream.
 
 **Request**
 - Method: `PUT`
@@ -19,7 +19,7 @@ Persists configuration settings to the `.wazuh-settings` index. Currently suppor
 | Field                      | Type    | Required | Description                                                                    |
 | -------------------------- | ------- | -------- | ------------------------------------------------------------------------------ |
 | `engine`                   | Object  | Yes      | Engine settings object                                                         |
-| `engine.index_raw_events`  | Boolean | Yes      | Whether the Engine writes incoming events to the raw data stream before enrichment |
+| `engine.index_raw_events`  | Boolean | Yes      | Whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream |
 
 **Example Request**
 

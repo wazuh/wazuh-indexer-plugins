@@ -40,8 +40,8 @@ import com.wazuh.setup.model.WazuhSettings;
  * PUT /_plugins/_setup/settings
  *
  * <p>Persists configuration settings to the {@code .wazuh-settings} index. Currently supports the
- * {@code engine.index_raw_events} boolean flag which controls whether the Engine writes incoming
- * events to the raw data stream before enrichment.
+ * {@code engine.index_raw_events} boolean flag which controls whether the Engine indexes raw events
+ * into the {@code wazuh-events-raw-v5} data stream.
  *
  * <p>Expected request body:
  *

@@ -37,7 +37,7 @@ paths:
       description: |
         Persists configuration settings to the `.wazuh-settings` index.
         Currently supports the `engine.index_raw_events` boolean flag, which controls
-        whether the Engine writes incoming events to the raw data stream before enrichment.
+        whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream.
       operationId: updateSettings
       tags:
         - Settings
@@ -138,7 +138,7 @@ components:
       properties:
         index_raw_events:
           type: boolean
-          description: Whether the Engine writes incoming events to the raw data stream before enrichment.
+          description: Whether the Engine indexes raw events into the wazuh-events-raw-v5 data stream.
           example: true
 
     RestResponse:
