@@ -1,6 +1,6 @@
 # Summary
 
-[Introduction](README.md)
+[Introduction](INSTALLATION.md)
 
 # Development Documentation
 
@@ -16,7 +16,7 @@
   - [Security](dev/plugins/security.md)
   - [Reporting](dev/plugins/reporting.md)
   - [Content Manager](dev/plugins/content-manager.md)
-    - [Content Manager Tutorial](dev/plugins/content-manager-tutorial.md)
+    - [Tutorial](dev/plugins/content-manager-tutorial.md)
   - [Notifications](dev/plugins/notifications.md)
 
 # Reference Manual
@@ -35,7 +35,7 @@
 - [Modules]()
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
-    - [API Reference]()
+    - [API Reference](ref/modules/setup/api-reference.md)
     - [Wazuh Common Schema](ref/modules/setup/schema.md)
   - [Content Manager](ref/modules/content-manager/index.md)
     - [Architecture](ref/modules/content-manager/architecture.md)
@@ -51,7 +51,7 @@
     - [Troubleshooting](ref/modules/notifications/troubleshooting.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
-- [Back Up and Restore](ref/backup-restore.md)
+- [Back up and Restore](ref/backup-restore.md)
 - [Security]()
   - [Access Control](ref/security/access-control.md)
   - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
