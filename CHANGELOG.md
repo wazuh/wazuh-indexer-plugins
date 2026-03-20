@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement Ioc delivery [(#858)](https://github.com/wazuh/wazuh-indexer-plugins/pull/858)
 - Add Centralized CTI Download Via Indexer [(#907)](https://github.com/wazuh/wazuh-indexer-plugins/pull/907)
 - Load CTI content from local snapshots [(#916)](https://github.com/wazuh/wazuh-indexer-plugins/pull/916)
+- Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
