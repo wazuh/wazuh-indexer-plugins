@@ -229,4 +229,34 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         Assert.assertEquals(expectedResponse, actualResponse);
         verify(this.engine, times(1)).logtest(any(JsonNode.class));
     }
+
+    /** Test that requests with an invalid space value return a 400 status code. */
+    public void testPostLogtest400_invalidSpace() {
+        // spotless:off
+        JsonNode payload = FixtureFactory.from(
+        """
+            {
+              "queue": 1,
+              "location": "/var/log/auth.log",
+              "metadata": {},
+              "space": "invalid_space",
+              "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
+              "trace_level": "NONE"
+            }
+            """
+        );
+        // spotless:on
+
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+        when(request.content())
+                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+        Assert.assertEquals(
+                String.format(java.util.Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, "space"),
+                actualResponse.getMessage());
+        verify(this.engine, never()).logtest(any(JsonNode.class));
+    }
 }
