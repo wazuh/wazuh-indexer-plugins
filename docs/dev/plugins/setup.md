@@ -386,7 +386,7 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 
 #### Fields Included (WCS-compatible)
 
-- **@timestamp**: When the active response was triggered
+- **@timestamp**: When the document was inserted into the wazuh-active-responses index (indexing time)
 - **event.doc_id**: Document ID of the matched alert that triggered the active response
 - **event.index**: Source index of the matched alert
 - **wazuh.active_response.name**: Name of the active response configured in the channel
