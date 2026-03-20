@@ -1,16 +1,32 @@
 [book]
-title = "Wazuh Indexer Documentation"
+title = "Wazuh Indexer technical documentation"
 authors = ["Wazuh Indexer Team"]
-description = "The technical documentation for the Wazuh Indexer, composed by the development documentation and the reference manual."
+description = "Technical documentation for the Wazuh Indexer, including development guidance and the reference manual."
 language = "en"
 src = "."
 
-[preprocessor]
+[build]
+build-dir = "book"
+create-missing = false
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
 
-[output]
-
 [output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/wazuh/wazuh-indexer-plugins"
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.fold]
+enable = true
+level = 0
+
+[output.html.search]
+enable = true
+
+[output.html.playground]
+editable = false
+copyable = true
+
+
