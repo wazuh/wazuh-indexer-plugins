@@ -154,7 +154,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
     public void testPutRule200() throws IOException {
         String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
         String jsonRule =
-                "{\"resource\": {\"title\": \"Nginx Core Dump Updated\", \"enabled\": \"true\", \"author\": \"Florian\", \"description\": \"D\", \"documentation\": \"D\", \"references\": []}}";
+                "{\"resource\": {\"enabled\": \"true\", \"metadata\": {\"title\": \"Nginx Core Dump Updated\", \"author\": \"Florian\", \"description\": \"D\", \"documentation\": \"D\", \"references\": []}}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", ruleId))
@@ -194,7 +194,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
      */
     public void testPutRule404_NotFound() {
         String ruleId = "missing-id";
-        String jsonRule = "{\"resource\": {\"title\": \"T\"}}";
+        String jsonRule = "{\"resource\": {\"metadata\": {\"title\": \"T\"}}}";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", ruleId))
@@ -211,7 +211,9 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of("id", ruleId))
-                        .withContent(new BytesArray("{\"resource\":{\"title\":\"T\"}}"), XContentType.JSON)
+                        .withContent(
+                                new BytesArray("{\"resource\":{\"metadata\":{\"title\":\"T\"}}}"),
+                                XContentType.JSON)
                         .build();
 
         when(this.nodeClient.prepareGet(anyString(), eq(ruleId)))

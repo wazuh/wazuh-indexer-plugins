@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.wazuh.contentmanager.utils.Constants;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -130,7 +129,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         JsonNode source = this.mapper.readTree(request.source().utf8ToString());
         JsonNode doc = source.get("document");
-        Assert.assertTrue("Title should exist", doc.has("title"));
+        Assert.assertTrue("Metadata should exist", doc.has("metadata"));
+        Assert.assertTrue("Title should exist in metadata", doc.get("metadata").has("title"));
     }
 
     /** Test creating a Decoder. Validates that the YAML enrichment is generated. */
@@ -170,7 +170,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String yaml = source.get("decoder").asText();
         Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
         Assert.assertTrue(
-            yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
+                yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
     }
 
     /**
