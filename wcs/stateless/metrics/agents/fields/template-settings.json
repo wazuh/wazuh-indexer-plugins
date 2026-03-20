@@ -1,0 +1,31 @@
+{
+  "index_patterns": [
+    "wazuh-metrics-agents*"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-agents",
+      "mapping.total_fields.limit": 500,
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
+        "refresh_interval": "5s",
+        "query.default_field": [
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
+          "wazuh.agent.status",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
+        ]
+      }
+    }
+  }
+}

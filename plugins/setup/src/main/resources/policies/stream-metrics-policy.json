@@ -1,0 +1,45 @@
+{
+  "policy": {
+    "policy_id": "stream-metrics-policy",
+    "description": "ISM policy for metrics data streams. Automatically deletes backing indices older than 30 days.",
+    "last_updated_time": 1772122150,
+    "schema_version": 1,
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "30d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": [
+          "wazuh-metrics-*"
+        ],
+        "priority": 100
+      }
+    ]
+  }
+}

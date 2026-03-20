@@ -1,0 +1,19 @@
+---
+name: wazuh-metrics-comms
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  event:
+    fields:
+      module: {}
+  network:
+    fields:
+      egress.bytes: {}
+      ingress.bytes: {}
+  wazuh:
+    fields:
+      cluster:
+        fields: "*"
+      schema:
+        fields: "*"

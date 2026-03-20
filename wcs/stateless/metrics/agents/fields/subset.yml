@@ -1,0 +1,28 @@
+---
+name: wazuh-metrics-agents
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  wazuh:
+    fields:
+      agent:
+        fields:
+          id: {}
+          name: {}
+          version: {}
+          groups: []
+          host:
+            fields:
+              ip: {}
+              architecture: {}
+              os:
+                fields:
+                  name: {}
+                  version: {}
+                  platform: {}
+                  full: {}
+      cluster:
+        fields: "*"
+      schema:
+        fields: "*"
