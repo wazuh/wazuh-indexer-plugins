@@ -235,7 +235,7 @@ public class ContentManagerPlugin extends Plugin
                                 try {
                                     CreateIndexResponse response = this.consumersIndex.createIndex();
 
-                                    if (response.isAcknowledged()) {
+                                    if (response != null && response.isAcknowledged()) {
                                         log.info(
                                                 "Index created: {} acknowledged={}",
                                                 response.index(),
