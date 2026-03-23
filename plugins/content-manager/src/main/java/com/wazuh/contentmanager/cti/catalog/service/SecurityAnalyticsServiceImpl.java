@@ -301,7 +301,14 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
 
         String id = doc.get(Constants.KEY_ID).asText();
-        String name = doc.has(Constants.KEY_TITLE) ? doc.get(Constants.KEY_TITLE).asText() : "";
+
+        // Extract name from the metadata object
+        String name = "";
+        if (doc.has(Constants.KEY_METADATA) && doc.get(Constants.KEY_METADATA).isObject()) {
+            JsonNode metadata = doc.get(Constants.KEY_METADATA);
+            name = metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
+        }
+
         String category = this.formatCategory(doc, rawCategory);
         List<String> rules = new ArrayList<>();
 
