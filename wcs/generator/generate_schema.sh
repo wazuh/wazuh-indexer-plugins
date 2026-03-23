@@ -178,7 +178,7 @@ function copy_files() {
 function generate_finding_enrichment_mapping() {
   local repo_path="$1"
   local events_template="plugins/setup/src/main/resources/templates/streams/events.json"
-  local enrichment_mapping="/tmp/wazuh-finding-enrichment-mapping.json"
+  local enrichment_mapping="./wazuh-finding-enrichment-mapping.json"
 
   echo
   echo "---> Generating finding-enrichment mapping"
