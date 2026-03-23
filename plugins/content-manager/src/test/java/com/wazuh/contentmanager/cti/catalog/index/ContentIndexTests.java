@@ -420,6 +420,18 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertTrue(exception.getMessage().contains("not found"));
     }
 
+    /** Test CVE payload normalization preserves explicit top-level `type`. */
+    public void testProcessPayload_CveTypeFromTopLevelType() throws IOException {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        JsonNode payload =
+                this.mapper.readTree("{\"type\":\"CVE\",\"document\":{\"dataType\":\"CVE_RECORD\"}}");
+
+        JsonNode processed = cveIndex.processPayload(payload);
+
+        Assert.assertEquals("CVE", processed.get("type").asText());
+        Assert.assertEquals("CVE_RECORD", processed.get("document").get("dataType").asText());
+    }
+
     /** Test that update with offset injects the offset value into the indexed document. */
     public void testUpdate_WithOffset() throws Exception {
         String id = "offset-test-id";
