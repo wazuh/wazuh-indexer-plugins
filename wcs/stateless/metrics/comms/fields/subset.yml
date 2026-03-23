@@ -9,8 +9,12 @@ fields:
       module: {}
   network:
     fields:
-      egress.bytes: {}
-      ingress.bytes: {}
+      egress:
+        fields:
+          bytes: {}
+      ingress:
+        fields:
+          bytes: {}
   wazuh:
     fields:
       cluster:

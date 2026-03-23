@@ -25,6 +25,7 @@
     - name: status
       type: keyword
       level: custom
+      short: Current connection status of the agent in Wazuh.
       description: >
         Current connection status of the agent in Wazuh. Expected values are
         `active`, `pending`, `disconnected` and `never_connected`.

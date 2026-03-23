@@ -107,3 +107,32 @@
       description: >
         Cumulative number of control messages processed from the queue.
       example: 2918243
+
+- name: network
+  title: Network
+  description: >
+    Network metrics.
+  type: group
+  group: 2
+  fields:
+    - name: ingress.bytes
+      type: long
+      level: custom
+      short: The number of bytes received on all network interfaces.
+      description: >
+        The number of bytes received (gauge) on all network interfaces by the
+        host since the last metric collection.
+      otel:
+        - metric: system.network.io
+          relation: metric
+
+    - name: egress.bytes
+      type: long
+      level: custom
+      short: The number of bytes sent on all network interfaces.
+      description: >
+        The number of bytes (gauge) sent out on all network interfaces by the
+        host since the last metric collection.
+      otel:
+        - metric: system.network.io
+          relation: metric
