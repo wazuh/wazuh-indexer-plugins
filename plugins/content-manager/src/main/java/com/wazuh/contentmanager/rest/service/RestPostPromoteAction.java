@@ -604,7 +604,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             for (String integrationId : context.integrationsToDelete) {
                 try {
                     this.securityAnalyticsService.deleteIntegration(
-                            integrationId, false, targetSpaceEnum);
+                            integrationId, targetSpaceEnum);
                 } catch (Exception e) {
                     log.warn(
                             "Failed to delete integration [{}] from SAP for space [{}]: {}",
@@ -645,7 +645,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // Delete promoted rules from SAP in the target space
             for (String ruleId : context.rulesToDelete) {
                 try {
-                    this.securityAnalyticsService.deleteRule(ruleId, false, targetSpaceEnum);
+                    this.securityAnalyticsService.deleteRule(ruleId, targetSpaceEnum);
                 } catch (Exception e) {
                     log.warn(
                             "Failed to delete rule [{}] from SAP for space [{}]: {}",

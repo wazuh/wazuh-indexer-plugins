@@ -122,13 +122,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteIntegration(String id, boolean isStandard) {
+    public void deleteIntegration(String id, Space space) {
         try {
-            if (isStandard) {
+            if (Space.STANDARD.equals(space)) {
                 this.deleteDetector(id);
             }
             // Use document.id + source="Draft" to find and delete the SAP document.
-            String source = Space.DRAFT.asSecurityAnalyticsSource();
+            String source = space.asSecurityAnalyticsSource();
             this.client
                     .execute(
                             WDeleteIntegrationAction.INSTANCE,
@@ -143,29 +143,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteIntegration(String id, boolean isStandard, Space space) {
-        String source = space.asSecurityAnalyticsSource();
-        try {
-            if (isStandard) {
-                this.deleteDetector(id);
-            }
-            this.client
-                    .execute(
-                            WDeleteIntegrationAction.INSTANCE,
-                            new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source))
-                    .actionGet();
-            log.info("Integration [{}] deleted successfully (document.id={}, source={}).", id, id, source);
-        } catch (Exception e) {
-            log.error("Failed to delete Integration [{}] in space [{}]: {}", id, source, e.getMessage());
-            throw new OpenSearchException("Failed to delete Integration", e.getMessage());
-        }
-    }
-
-    @Override
     public void deleteIntegrationAsync(
-            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
-        String source = Space.DRAFT.asSecurityAnalyticsSource();
-        if (isStandard) {
+        String id, Space space, ActionListener<? extends ActionResponse> listener) {
+        String source = space.asSecurityAnalyticsSource();
+        if (Space.STANDARD.equals(space)) {
             // Delete detector first, then delete integration on success.
             this.deleteDetectorAsync(
                     id,
@@ -279,10 +260,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteRule(String id, boolean isStandard) {
-        String source = Space.DRAFT.asSecurityAnalyticsSource();
+    public void deleteRule(String id, Space space) {
+        String source = space.asSecurityAnalyticsSource();
         try {
-            if (isStandard) {
+            if (Space.STANDARD.equals(space)) {
                 log.info(
                         "Deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
                 this.client
@@ -307,37 +288,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteRule(String id, boolean isStandard, Space space) {
-        String source = space.asSecurityAnalyticsSource();
-        try {
-            if (isStandard) {
-                log.info("Deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
-                this.client
-                        .execute(
-                                WDeleteRuleAction.INSTANCE,
-                                new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
-                        .actionGet();
-            } else {
-                log.info("Deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
-                this.client
-                        .execute(
-                                WDeleteCustomRuleAction.INSTANCE,
-                                new WDeleteCustomRuleRequest(
-                                        id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
-                        .actionGet();
-            }
-            log.info("Rule [{}] deleted successfully in space [{}].", id, source);
-        } catch (Exception e) {
-            log.error("Failed to delete Rule [{}] in space [{}]: {}", id, source, e.getMessage());
-            throw new OpenSearchException("Failed to delete Rule", e.getMessage());
-        }
-    }
-
-    @Override
     public void deleteRuleAsync(
-            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
-        String source = Space.DRAFT.asSecurityAnalyticsSource();
-        if (isStandard) {
+        String id, Space space, ActionListener<? extends ActionResponse> listener) {
+        String source = space.asSecurityAnalyticsSource();
+        if (Space.STANDARD.equals(space)) {
             log.info(
                     "Async deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(

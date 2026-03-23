@@ -34,54 +34,82 @@ public interface SecurityAnalyticsService {
      * Creates or updates an Integration in SAP.
      *
      * @param doc The JSON document containing the integration data.
-     * @param space The space of the integration.
+     * @param space The space the integration belongs to.
      * @param method The HTTP method (POST/PUT).
      */
     void upsertIntegration(JsonNode doc, Space space, Method method);
 
     /**
+     * Asynchronously creates or updates an Integration in SAP.
+     *
+     * @param doc The JSON document containing the integration data.
+     * @param space The space the integration belongs to.
+     * @param method The HTTP method (POST/PUT).
+     * @param listener The listener to be notified when the operation completes.
+     */
+    void upsertIntegrationAsync(
+        JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
+
+    /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
      * first.
      *
-     * @param id The identifier of the integration to delete.
-     * @param isStandard Whether the integration is a Standard integration (true) or Custom (false).
+     * @param id    The identifier of the integration to delete.
+     * @param space The space the integration belongs to.
      */
-    void deleteIntegration(String id, boolean isStandard);
+    void deleteIntegration(String id, Space space);
 
     /**
-     * Deletes an Integration from SAP in the specified space.
+     * Asynchronously deletes an Integration from SAP.
      *
-     * @param id The CTI document ID of the integration to delete.
-     * @param isStandard Whether the integration is a Standard integration (true) or Custom (false).
-     * @param space The space to delete from.
+     * @param id       The identifier of the integration to delete.
+     * @param space    The space the integration belongs to.
+     * @param listener The listener to be notified when the operation completes.
      */
-    void deleteIntegration(String id, boolean isStandard, Space space);
+    void deleteIntegrationAsync(
+        String id, Space space, ActionListener<? extends ActionResponse> listener);
+
+    // --------------------------------------------------------------------- //
 
     /**
      * Creates or updates a Rule in SAP.
      *
      * @param doc The JSON document containing the rule data.
-     * @param space The space the rule belongs to (determines if it's standard or custom).
+     * @param space The space the rule belongs to.
      * @param method The HTTP method (POST/PUT).
      */
     void upsertRule(JsonNode doc, Space space, Method method);
 
     /**
-     * Deletes a Rule from SAP.
+     * Asynchronously creates or updates a Rule in SAP.
      *
-     * @param id The identifier of the rule to delete.
-     * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
+     * @param doc The JSON document containing the rule data.
+     * @param space The space the rule belongs to.
+     * @param method The HTTP method (POST/PUT).
+     * @param listener The listener to be notified when the operation completes.
      */
-    void deleteRule(String id, boolean isStandard);
+    void upsertRuleAsync(
+        JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
 
     /**
-     * Deletes a Rule from SAP in the specified space.
+     * Deletes a Rule from SAP.
      *
-     * @param id The CTI document ID of the rule to delete.
-     * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
-     * @param space The space to delete from.
+     * @param id    The identifier of the rule to delete.
+     * @param space The space the rule belongs to.
      */
-    void deleteRule(String id, boolean isStandard, Space space);
+    void deleteRule(String id, Space space);
+
+    /**
+     * Asynchronously deletes a Rule from SAP.
+     *
+     * @param id       The identifier of the rule to delete.
+     * @param space    The space the rule belongs to.
+     * @param listener The listener to be notified when the operation completes.
+     */
+    void deleteRuleAsync(
+        String id, Space space, ActionListener<? extends ActionResponse> listener);
+
+    // --------------------------------------------------------------------- //
 
     /**
      * Creates or updates a Threat Detector in SAP.
@@ -93,55 +121,6 @@ public interface SecurityAnalyticsService {
     void upsertDetector(JsonNode doc, boolean rawCategory, Method method);
 
     /**
-     * Deletes a Threat Detector from SAP.
-     *
-     * @param id The identifier of the detector to delete.
-     */
-    void deleteDetector(String id);
-
-    /**
-     * Asynchronously creates or updates an Integration in SAP.
-     *
-     * @param doc The JSON document containing the integration data.
-     * @param space The space of the integration.
-     * @param method The HTTP method (POST/PUT).
-     * @param listener The listener to be notified when the operation completes.
-     */
-    void upsertIntegrationAsync(
-            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
-
-    /**
-     * Asynchronously deletes an Integration from SAP.
-     *
-     * @param id The identifier of the integration to delete.
-     * @param isStandard Whether the integration is a Standard integration (true) or Custom (false).
-     * @param listener The listener to be notified when the operation completes.
-     */
-    void deleteIntegrationAsync(
-            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener);
-
-    /**
-     * Asynchronously creates or updates a Rule in SAP.
-     *
-     * @param doc The JSON document containing the rule data.
-     * @param space The space the rule belongs to (determines if it's standard or custom).
-     * @param method The HTTP method (POST/PUT).
-     * @param listener The listener to be notified when the operation completes.
-     */
-    void upsertRuleAsync(
-            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
-
-    /**
-     * Asynchronously deletes a Rule from SAP.
-     *
-     * @param id The identifier of the rule to delete.
-     * @param isStandard Whether the rule is a Standard rule (true) or Custom rule (false).
-     * @param listener The listener to be notified when the operation completes.
-     */
-    void deleteRuleAsync(
-            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener);
-
-    /**
      * Asynchronously creates or updates a Threat Detector in SAP.
      *
      * @param doc The JSON document containing the integration data used to build the detector.
@@ -150,10 +129,17 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void upsertDetectorAsync(
-            JsonNode doc,
-            boolean rawCategory,
-            Method method,
-            ActionListener<? extends ActionResponse> listener);
+        JsonNode doc,
+        boolean rawCategory,
+        Method method,
+        ActionListener<? extends ActionResponse> listener);
+
+    /**
+     * Deletes a Threat Detector from SAP.
+     *
+     * @param id The identifier of the detector to delete.
+     */
+    void deleteDetector(String id);
 
     /**
      * Asynchronously deletes a Threat Detector from SAP.

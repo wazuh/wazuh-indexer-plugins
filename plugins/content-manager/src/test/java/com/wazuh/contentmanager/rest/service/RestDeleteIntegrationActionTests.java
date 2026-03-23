@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequestBuilder;
@@ -196,7 +197,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
         Assert.assertEquals(INTEGRATION_ID, actualResponse.getMessage());
-        verify(this.saService).deleteIntegration(INTEGRATION_ID, false);
+        verify(this.saService).deleteIntegration(INTEGRATION_ID, Space.DRAFT);
         verify(this.client).delete(any(DeleteRequest.class), any());
     }
 

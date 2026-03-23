@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
@@ -48,7 +49,6 @@ import static org.mockito.Mockito.*;
 public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
 
     private RestDeleteSpaceAction action;
-    private EngineService engineService;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
 
@@ -56,11 +56,11 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.engineService = mock(EngineService.class);
+        EngineService engineService = mock(EngineService.class);
         this.spaceService = mock(SpaceService.class);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
 
-        this.action = new RestDeleteSpaceAction(this.engineService);
+        this.action = new RestDeleteSpaceAction(engineService);
 
         this.action.setSpaceService(this.spaceService);
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
@@ -85,8 +85,8 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.securityAnalyticsService).deleteRule("rule1", false);
-        verify(this.securityAnalyticsService).deleteIntegration("int1", false);
+        verify(this.securityAnalyticsService).deleteRule("rule1", Space.DRAFT);
+        verify(this.securityAnalyticsService).deleteIntegration("int1", Space.DRAFT);
         verify(this.spaceService).deleteSpaceResources("draft");
         verify(this.spaceService).initializeSpace(eq("draft"), anyString());
     }
@@ -107,7 +107,7 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated SAP error"))
                 .when(this.securityAnalyticsService)
-                .deleteRule(anyString(), anyBoolean());
+                .deleteRule(anyString(), any(Space.class));
 
         RestResponse response = this.action.handleRequest(request);
 

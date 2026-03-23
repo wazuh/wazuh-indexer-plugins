@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
@@ -92,7 +93,7 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     @Override
     protected void deleteExternalServices(String id) {
-        this.securityAnalyticsService.deleteRule(id, false);
+        this.securityAnalyticsService.deleteRule(id, Space.DRAFT);
     }
 
     @Override
