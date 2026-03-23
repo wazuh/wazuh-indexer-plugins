@@ -156,15 +156,20 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 2. Gathering Phase - Build the engine payload
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
-            // 3. Validation Phase - Invoke engine validation
-            RestResponse engineResponse = this.engine.promote(context.enginePayload);
+            // 3. Validation Phase - Invoke engine validation only for test promotions
+            if (spaceDiff.getSpace().promote() == Space.TEST) {
+                RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
-            // Check if engine validation was successful
-            if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                    && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
-                log.error(mapper.writeValueAsString(context.enginePayload));
-                return engineResponse;
+                // Check if engine validation was successful
+                if (engineResponse.getStatus() != RestStatus.OK.getStatus()
+                        && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+                    log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
+                    log.error(mapper.writeValueAsString(context.enginePayload));
+                    return engineResponse;
+                }
+                log.info(
+                        "Engine validation for space [{}] completed successfully.",
+                        spaceDiff.getSpace().promote());
             }
 
             // 4. Consolidation Phase - Apply changes to target space

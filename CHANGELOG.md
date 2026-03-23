@@ -76,6 +76,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add active response index with ISM policy [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
 - Implement Ioc delivery [(#858)](https://github.com/wazuh/wazuh-indexer-plugins/pull/858)
 - Add Centralized CTI Download Via Indexer [(#907)](https://github.com/wazuh/wazuh-indexer-plugins/pull/907)
+- Implement logic to import standard space into Wazuh Engine [(#924)](https://github.com/wazuh/wazuh-indexer-plugins/pull/924)
+- Full Indexing of the Vulnerability Feed [(#921)](https://github.com/wazuh/wazuh-indexer-plugins/pull/921)
 - Load CTI content from local snapshots [(#916)](https://github.com/wazuh/wazuh-indexer-plugins/pull/916)
 - Suport creation and promotion of rules and integrations across spaces [(#930)](https://github.com/wazuh/wazuh-indexer-plugins/pull/930)
 - Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
@@ -128,6 +130,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restructure ecs folder [(#898)](https://github.com/wazuh/wazuh-indexer-plugins/pull/898)
 - Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 - Normalize metadata object [(#923)](https://github.com/wazuh/wazuh-indexer-plugins/pull/923)
+- Add support for multi-space logtest executions [(#937)](https://github.com/wazuh/wazuh-indexer-plugins/pull/937)
 - Add documentation for the Setup plugin's API [(#936)](https://github.com/wazuh/wazuh-indexer-plugins/pull/936)
 
 ### Deprecated

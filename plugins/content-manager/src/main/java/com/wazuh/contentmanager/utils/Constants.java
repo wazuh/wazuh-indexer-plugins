@@ -113,6 +113,7 @@ public class Constants {
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
+    public static final String KEY_PAYLOAD = "payload";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";

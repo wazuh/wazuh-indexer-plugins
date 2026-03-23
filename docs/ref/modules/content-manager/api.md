@@ -207,7 +207,8 @@ Sends a log event to the Wazuh Engine for analysis and returns the decoded and m
 | `queue`          | Integer | Yes      | Queue number for logtest execution           |
 | `location`       | String  | Yes      | Log file path or logical source location     |
 | `event`          | String  | Yes      | Raw log event to test                        |
-| `agent_metadata` | Object  | No       | Optional agent metadata passed to the Engine |
+| `metadata`       | Object  | No       | Optional metadata passed to the Engine       |
+| `space`          | String  | No       | Space to execute the logtest against         |
 | `trace_level`    | String  | No       | Trace verbosity: `NONE`, `BASIC`, or `FULL`  |
 
 **Example Request**
@@ -219,7 +220,8 @@ curl -sk -u admin:admin -X POST \
   -d '{
     "queue": 1,
     "location": "/var/log/auth.log",
-    "agent_metadata": {},
+    "metadata": {},
+    "space": "test",
     "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
     "trace_level": "NONE"
   }'

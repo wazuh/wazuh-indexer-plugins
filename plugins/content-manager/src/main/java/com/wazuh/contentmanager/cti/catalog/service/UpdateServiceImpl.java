@@ -31,6 +31,7 @@ import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -153,20 +154,24 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             case CREATE:
                 if (offset.getPayload() != null) {
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
+                    String cveType = Cve.deriveType(id);
                     // Inject the CTI offset value into the payload, so it is persisted
                     if (payload.isObject()) {
                         ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset.getOffset());
                     }
                     String type = null;
 
-                    if (payload.has(Constants.KEY_TYPE)) {
+                    if (cveType != null) {
+                        type = Constants.KEY_CVES;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
                         type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
-                    } else if (id != null && id.startsWith("CVE-")) {
-                        // CVE documents are identified by their resource ID (CVE-YYYY-NNNNN)
-                        type = Constants.KEY_CVES;
+                    }
+
+                    if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
+                        ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
                     }
 
                     if (type != null) {
@@ -204,7 +209,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * the CVE identifier pattern.
      */
     private boolean shouldSkipDelete(String id) {
-        if (id != null && id.startsWith("CVE-")) {
+        if (Cve.deriveType(id) != null) {
             return true;
         }
         return this.consumer.equals(PluginSettings.getInstance().getCveConsumer());

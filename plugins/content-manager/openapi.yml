@@ -816,7 +816,7 @@ paths:
       summary: Execute promotion
       description: |
         Executes the promotion of content from the source space to the target space based on the
-        provided changes.
+        provided changes. Engine validation is only performed when promoting to `test`.
 
         In addition to copying documents across CTI indices, this endpoint synchronizes
         promoted **integrations** and **rules** with the Security Analytics Plugin (SAP).
@@ -984,11 +984,21 @@ components:
           description: Log file path or logical source location
           example: "/var/log/auth.log"
 
-        agent_metadata:
+        metadata:
           type: object
           additionalProperties: true
-          description: Optional agent metadata passed to the logtest engine
+          description: Optional metadata passed to the logtest engine
           example: {}
+
+        space:
+          type: string
+          enum:
+            - standard
+            - custom
+            - draft
+            - test
+          description: Space to execute the logtest against
+          example: "test"
 
         event:
           type: string
