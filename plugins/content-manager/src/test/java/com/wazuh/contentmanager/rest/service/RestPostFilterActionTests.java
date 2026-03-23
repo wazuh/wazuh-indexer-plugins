@@ -161,7 +161,7 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
 
         // Mock SpaceService calculateAndUpdate to prevent NPE
         SpaceService spaceService = this.action.getPolicyHashService();
-        doNothing().when(spaceService).calculateAndUpdate(any());
+        when(spaceService.calculateAndUpdate(any())).thenReturn(Collections.emptySet());
     }
 
     /**
