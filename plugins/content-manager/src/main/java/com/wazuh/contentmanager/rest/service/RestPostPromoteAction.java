@@ -322,7 +322,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 this.spaceService.buildEnginePayload(
                         policyDocument,
                         targetSpace.toString(),
-                        true,
                         integrationsToApply,
                         kvdbsToApply,
                         decodersToApply,

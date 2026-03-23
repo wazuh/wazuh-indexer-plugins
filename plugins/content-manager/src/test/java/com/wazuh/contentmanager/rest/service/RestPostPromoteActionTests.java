@@ -103,17 +103,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock buildEnginePayload to return a valid JsonNode
         ObjectMapper mapper = new ObjectMapper();
         when(this.spaceService.buildEnginePayload(
-                        any(),
-                        anyString(),
-                        any(Boolean.class),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                        any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mapper.createObjectNode());
 
         this.action = new RestPostPromoteAction(this.engine, this.spaceService);

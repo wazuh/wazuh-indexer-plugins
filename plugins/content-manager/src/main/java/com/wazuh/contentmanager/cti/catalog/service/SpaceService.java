@@ -372,7 +372,6 @@ public class SpaceService {
      *
      * @param policyDocument The base policy document from target space.
      * @param targetSpace The target space name.
-     * @param loadInTester Whether the Engine should load the content into the tester.
      * @param integrationsToApply Map of integration IDs to their documents (from source space).
      * @param kvdbsToApply Map of kvdb IDs to their documents (from source space).
      * @param decodersToApply Map of decoder IDs to their documents (from source space).
@@ -387,15 +386,14 @@ public class SpaceService {
     public JsonNode buildEnginePayload(
             Map<String, Object> policyDocument,
             String targetSpace,
-            boolean loadInTester,
             Map<String, Map<String, Object>> integrationsToApply,
             Map<String, Map<String, Object>> kvdbsToApply,
             Map<String, Map<String, Object>> decodersToApply,
             Map<String, Map<String, Object>> filtersToApply,
-            java.util.Set<String> integrationsToDelete,
-            java.util.Set<String> kvdbsToDelete,
-            java.util.Set<String> decodersToDelete,
-            java.util.Set<String> filtersToDelete)
+            Set<String> integrationsToDelete,
+            Set<String> kvdbsToDelete,
+            Set<String> decodersToDelete,
+            Set<String> filtersToDelete)
             throws IOException {
 
         // Root payload structure
@@ -479,16 +477,14 @@ public class SpaceService {
      * entire space into the Engine, such as the standard space after a CTI sync.
      *
      * @param spaceName The space name to build the payload for.
-     * @param loadInTester Whether the Engine should load the content into the tester.
      * @return A JsonNode representing the engine payload.
      * @throws IOException If the policy or resource retrieval fails.
      */
-    public JsonNode buildEnginePayload(String spaceName, boolean loadInTester) throws IOException {
+    public JsonNode buildEnginePayload(String spaceName) throws IOException {
         Map<String, Object> policyDocument = this.getPolicy(spaceName);
         return this.buildEnginePayload(
                 policyDocument,
                 spaceName,
-                loadInTester,
                 Collections.emptyMap(),
                 Collections.emptyMap(),
                 Collections.emptyMap(),
