@@ -63,7 +63,7 @@ jobs:
           COMMITTER_USERNAME: "Wazuh Indexer Bot"
           SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
           SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_TITLE: ${{ github.event.pull_request.title || 'Update finding-enrichment mapping' }}
           SOURCE_PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           SAP_REPO="wazuh/wazuh-indexer-security-analytics"
