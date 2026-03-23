@@ -117,7 +117,6 @@ jobs:
           git push origin "$BRANCH_NAME"
 
           # Create or update PR using GitHub CLI
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
           EXISTING_PR=$(gh pr list --repo "$SAP_REPO" --head "$BRANCH_NAME" --json number --jq '.[].number')
           
           if [[ -z "$EXISTING_PR" ]]; then
@@ -134,6 +133,7 @@ jobs:
           fi
 
           rm -rf "$SAP_DIR"
+          rm -f "$MAPPING_FILE"
           
       - name: Convert static mappings to dynamic_templates
         run: |
