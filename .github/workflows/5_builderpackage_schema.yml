@@ -68,11 +68,9 @@ jobs:
         run: |
           SAP_REPO="wazuh/wazuh-indexer-security-analytics"
           SAP_MAPPING_PATH="src/main/resources/mappings/wazuh-finding-enrichment-mapping.json"
-          
-          echo "Searching for the generated mapping file..."
-          MAPPING_FILE=$(find ${{ github.workspace }} -name "wazuh-finding-enrichment-mapping.json" | head -n 1)
+          MAPPING_FILE="${{ github.workspace }}/plugins/setup/src/main/resources/wazuh-finding-enrichment-mapping.json"
 
-          if [[ -z "$MAPPING_FILE" || ! -f "$MAPPING_FILE" ]]; then
+          if [[ ! -f "$MAPPING_FILE" ]]; then
             echo "Finding-enrichment mapping was not generated. Skipping."
             exit 0
           fi
