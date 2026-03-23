@@ -1,3 +1,34 @@
 module_to_file=(
+  # Wazuh modules
+  [stateful/fim/files]=templates/states/fim-files.json
+  [stateful/fim/windows-registry-keys]=templates/states/fim-registry-keys.json
+  [stateful/fim/windows-registry-values]=templates/states/fim-registry-values.json
+  [stateful/inventory/browser-extensions]=templates/states/inventory-browser-extensions.json
+  [stateful/inventory/groups]=templates/states/inventory-groups.json
+  [stateful/inventory/hardware]=templates/states/inventory-hardware.json
+  [stateful/inventory/hotfixes]=templates/states/inventory-hotfixes.json
+  [stateful/inventory/interfaces]=templates/states/inventory-interfaces.json
+  [stateful/inventory/networks]=templates/states/inventory-networks.json
+  [stateful/inventory/packages]=templates/states/inventory-packages.json
+  [stateful/inventory/ports]=templates/states/inventory-ports.json
+  [stateful/inventory/processes]=templates/states/inventory-processes.json
+  [stateful/inventory/protocols]=templates/states/inventory-protocols.json
+  [stateful/inventory/services]=templates/states/inventory-services.json
+  [stateful/inventory/system]=templates/states/inventory-system.json
+  [stateful/inventory/users]=templates/states/inventory-users.json
+  [stateful/sca]=templates/states/sca.json
+  [stateful/vulnerabilities]=templates/states/vulnerabilities.json
+  # Stateless modules
   [stateless/events/main]=templates/streams/events.json
+  [stateless/active-responses]=templates/streams/active-responses.json
+  [stateless/events/raw]=templates/streams/raw.json
+  [stateless/events/unclassified]=templates/streams/unclassified.json
+  # Settings module
+  [settings]=templates/settings.json
+  # Engine filter module
+  [content/filters]=templates/content/filters.json
+  # IoC module
+  [content/ioc]=templates/content/ioc.json
+  # CVE module
+  [cve]=templates/cve.json
 )
