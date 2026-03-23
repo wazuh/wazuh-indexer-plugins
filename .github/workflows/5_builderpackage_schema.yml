@@ -63,18 +63,28 @@ jobs:
           COMMITTER_USERNAME: "Wazuh Indexer Bot"
           SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
           SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
-          # 1. Bind the untrusted user input to environment variables here
           PR_TITLE: ${{ github.event.pull_request.title }}
           SOURCE_PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          MAPPING_FILE="/tmp/wazuh-finding-enrichment-mapping.json"
           SAP_REPO="wazuh/wazuh-indexer-security-analytics"
           SAP_MAPPING_PATH="src/main/resources/mappings/wazuh-finding-enrichment-mapping.json"
           
-          if [[ ! -f "$MAPPING_FILE" ]]; then
+          # 1. Dynamically locate the generated file in the workspace
+          echo "Searching for the generated mapping file..."
+          MAPPING_FILE=$(find ${{ github.workspace }} -name "wazuh-finding-enrichment-mapping.json" | head -n 1)
+          
+          # 2. Fallback to /tmp just in case it actually is there
+          if [[ -z "$MAPPING_FILE" && -f "/tmp/wazuh-finding-enrichment-mapping.json" ]]; then
+            MAPPING_FILE="/tmp/wazuh-finding-enrichment-mapping.json"
+          fi
+          
+          # 3. Check if we found it
+          if [[ -z "$MAPPING_FILE" || ! -f "$MAPPING_FILE" ]]; then
             echo "Finding-enrichment mapping was not generated. Skipping."
             exit 0
           fi
+
+          echo "Found mapping file at: $MAPPING_FILE"
 
           # Clone the SAP repository
           SAP_DIR=$(mktemp -d)
