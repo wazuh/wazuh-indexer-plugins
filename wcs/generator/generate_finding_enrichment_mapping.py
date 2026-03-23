@@ -1,15 +1,11 @@
 """Generate the static finding-enrichment mapping from the events index template.
 
 Reads the Main events template (before dynamic_templates conversion) and
-extracts the mappings block as a standalone static mapping file suitable for the
-Security Analytics Plugin.
+extracts the mappings block. It then injects specific required fields (like 
+event.doc_id, event.index, and the rule object) to ensure they are always 
+present for the Security Analytics Plugin.
 
-The generated file is written to a temporary location. In GHA, it is then
-copied to the SAP repository and a PR is opened automatically. For local
-development, copy the output manually to the SAP repo.
-
-This script is meant to run AFTER generate_schema.sh produces the static
-events template and BEFORE convert_to_dynamic_templates.py converts it.
+The generated file is written to a temporary location.
 
 Usage:
     python3 generate_finding_enrichment_mapping.py <events_template> <output_file>
@@ -47,11 +43,87 @@ def extract_static_mappings(template_data):
     }
 
 
+def deep_merge(base, update):
+    """
+    Recursively merges dictionary 'update' into 'base'.
+    Ensures that if 'event' already exists, 'doc_id' and 'index' are added
+    to its properties without overwriting the entire 'event' object.
+    """
+    for key, value in update.items():
+        if isinstance(value, dict) and key in base and isinstance(base[key], dict):
+            deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
+def inject_required_fields(mapping):
+    """
+    Injects explicitly required fields into the mapping properties.
+    """
+    required_fields = {
+        "event": {
+            "type": "object",
+            "properties": {
+                "doc_id": {
+                    "type": "keyword"
+                },
+                "index": {
+                    "type": "keyword"
+                }
+            }
+        },
+        "rule": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "keyword"
+                },
+                "title": {
+                    "type": "keyword"
+                },
+                "tags": {
+                    "type": "keyword"
+                },
+                "level": {
+                    "type": "keyword"
+                },
+                "status": {
+                    "type": "keyword"
+                },
+                "sigma_id": {
+                    "type": "keyword"
+                },
+                "compliance": {
+                    "type": "object",
+                    "dynamic": True
+                },
+                "mitre": {
+                    "type": "object",
+                    "properties": {
+                        "tactic": {
+                            "type": "keyword"
+                        },
+                        "technique": {
+                            "type": "keyword"
+                        },
+                        "subtechnique": {
+                            "type": "keyword"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    deep_merge(mapping["properties"], required_fields)
+
+
 def count_leaves(props):
     """Count leaf (non-object) fields in a properties tree."""
     count = 0
     for v in props.values():
-        if "properties" in v:
+        if isinstance(v, dict) and "properties" in v:
             count += count_leaves(v["properties"])
         else:
             count += 1
@@ -70,7 +142,7 @@ def main():
         template_data = json.load(f)
 
     mapping = extract_static_mappings(template_data)
-
+    inject_required_fields(mapping)
     with open(args.output, "w") as f:
         json.dump(mapping, f, indent=2)
         f.write("\n")
