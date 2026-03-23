@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,When the document was inserted into the wazuh-active-responses index.
 9.1.0,true,event,event.doc_id,keyword,custom,,abc123,Document ID of the matched alert that triggered the active response.
 9.1.0,true,event,event.index,keyword,custom,,wazuh-events-v5-security,Source index of the matched alert that triggered the active response.
 9.1.0,true,wazuh,wazuh.active_response.agent_id,keyword,custom,,001,Agent configured in the active response channel.
