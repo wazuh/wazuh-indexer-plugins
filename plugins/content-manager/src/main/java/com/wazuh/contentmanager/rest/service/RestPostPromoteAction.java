@@ -34,16 +34,12 @@ import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * POST /_plugins/_content_manager/promote
@@ -94,7 +90,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         return List.of(
                 new NamedRoute.Builder()
                         .path(PluginSettings.PROMOTE_URI)
-                        .method(POST)
+                        .method(RestRequest.Method.POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
     }
@@ -434,7 +430,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 }
                 case UPDATE -> {
                     Map<String, Object> sourceDoc;
-                    // TODO fix when policies use the same document.id in different spaces
                     // Fetch the source policy
                     if (resourceType.equals(Constants.KEY_POLICY)) {
                         sourceDoc = this.spaceService.getPolicy(sourceSpace);
@@ -533,7 +528,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     JsonNode docNode = mapper.valueToTree(document);
                     try {
                         this.securityAnalyticsService.upsertIntegration(
-                                docNode, targetSpaceEnum, RestRequest.Method.POST);
+                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
                     } catch (Exception e) {
                         log.warn(
                                 "Failed to sync integration [{}] to SAP for space [{}]: {}",
@@ -581,7 +576,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     JsonNode docNode = mapper.valueToTree(document);
                     try {
                         this.securityAnalyticsService.upsertRule(
-                                docNode, targetSpaceEnum, RestRequest.Method.POST);
+                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
                     } catch (Exception e) {
                         log.warn(
                                 "Failed to sync rule [{}] to SAP for space [{}]: {}",
