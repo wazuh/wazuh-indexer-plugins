@@ -173,6 +173,32 @@ function copy_files() {
 }
 
 # ====
+# Generate the static finding-enrichment mapping from the events template.
+# ====
+function generate_finding_enrichment_mapping() {
+  local repo_path="$1"
+  local events_template="plugins/setup/src/main/resources/templates/streams/events.json"
+  local enrichment_mapping="/tmp/wazuh-finding-enrichment-mapping.json"
+
+  echo
+  echo "---> Generating finding-enrichment mapping"
+  if [[ ! -f "$events_template" ]]; then
+    echo "  Skipped: events template not found at $events_template"
+    return
+  fi
+
+  python3 "$repo_path/wcs/generator/generate_finding_enrichment_mapping.py" \
+    "$events_template" \
+    "$enrichment_mapping"
+
+  echo "  Output: $enrichment_mapping"
+  echo "  Note: This mapping belongs to the Security Analytics Plugin (SAP)."
+  echo "  In GHA, a PR will be opened automatically to wazuh/wazuh-indexer-security-analytics."
+  echo "  For local development, copy the file manually if needed:"
+  echo "    cp $enrichment_mapping <sap-repo>/src/main/resources/mappings/wazuh-finding-enrichment-mapping.json"
+}
+
+# ====
 # Display usage information.
 # ====
 function usage() {
@@ -229,6 +255,7 @@ function main() {
   fi
   update_modified_modules
   copy_files "$repo_path"
+  generate_finding_enrichment_mapping "$repo_path"
 }
 
 main "$@"

@@ -41,12 +41,6 @@ jobs:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
         run: bash wcs/generator/generate_schema.sh
 
-      - name: Convert static mappings to dynamic_templates
-        run: |
-          echo "Converting generated static mappings to dynamic_templates..."
-          
-          find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
-
       - name: Push changes
         env:
           GITHUB_TOKEN: ${{ secrets.INDEXER_BOT_TOKEN }}
@@ -60,4 +54,89 @@ jobs:
       - name: Display pull request link
         if: ${{ success() }}
         run: echo "::notice::Pull request link => $(cat /tmp/pull_request_link.txt)"
-     
+
+      - name: Open PR to Security Analytics Plugin if finding-enrichment mapping changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.INDEXER_BOT_TOKEN }}
+          COMMITER_EMAIL: ${{ secrets.INDEXER_BOT_EMAIL }}
+          COMMITTER_USERNAME: "Wazuh Indexer Bot"
+          SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
+          SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
+          # 1. Bind the untrusted user input to environment variables here
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          SOURCE_PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          MAPPING_FILE="/tmp/wazuh-finding-enrichment-mapping.json"
+          SAP_REPO="wazuh/wazuh-indexer-security-analytics"
+          SAP_MAPPING_PATH="src/main/resources/mappings/wazuh-finding-enrichment-mapping.json"
+          
+          if [[ ! -f "$MAPPING_FILE" ]]; then
+            echo "Finding-enrichment mapping was not generated. Skipping."
+            exit 0
+          fi
+
+          # Clone the SAP repository
+          SAP_DIR=$(mktemp -d)
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${SAP_REPO}.git" "$SAP_DIR"
+
+          # Compare with existing mapping in SAP
+          if diff -q "$MAPPING_FILE" "$SAP_DIR/$SAP_MAPPING_PATH" > /dev/null 2>&1; then
+            echo "Finding-enrichment mapping is unchanged. No PR needed."
+            rm -rf "$SAP_DIR"
+            exit 0
+          fi
+
+          echo "Finding-enrichment mapping has changed. Opening PR to ${SAP_REPO}..."
+
+          # Configure git identity
+          cd "$SAP_DIR"
+          git config user.email "${COMMITER_EMAIL}"
+          git config user.name "${COMMITTER_USERNAME}"
+
+          # Set up commit signing
+          mkdir -p ~/.ssh/
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519_bot
+          echo "${SSH_PUBLIC_KEY}" > ~/.ssh/id_ed25519_bot.pub
+          chmod 600 ~/.ssh/id_ed25519_bot
+          chmod 644 ~/.ssh/id_ed25519_bot.pub
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_ed25519_bot
+          git config gpg.format ssh
+          git config commit.gpgsign true
+          git config user.signingkey ~/.ssh/id_ed25519_bot.pub
+
+          # Create branch and commit
+          BRANCH_NAME="automated/update-finding-enrichment-mapping"
+          git checkout -B "$BRANCH_NAME"
+          cp "$MAPPING_FILE" "$SAP_MAPPING_PATH"
+          git add "$SAP_MAPPING_PATH"
+          
+          git commit -m "Update wazuh-finding-enrichment-mapping.json" \
+            -m "Automated update from wazuh-indexer-plugins." \
+            -m "Source PR: ${SOURCE_PR_URL}"
+          git push origin "$BRANCH_NAME"
+
+          # Create or update PR using GitHub CLI
+          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          EXISTING_PR=$(gh pr list --repo "$SAP_REPO" --head "$BRANCH_NAME" --json number --jq '.[].number')
+          
+          if [[ -z "$EXISTING_PR" ]]; then
+            SAP_PR_LINK=$(gh pr create \
+              --repo "$SAP_REPO" \
+              --title "$PR_TITLE" \
+              --body "Automated update of the finding-enrichment mapping from [wazuh-indexer-plugins](${SOURCE_PR_URL})." \
+              --head "$BRANCH_NAME" \
+              --base main)
+            echo "::notice::SAP PR created: ${SAP_PR_LINK}"
+          else
+            SAP_PR_LINK=$(gh pr view "$EXISTING_PR" --repo "$SAP_REPO" --json url --jq '.url')
+            echo "::notice::SAP PR already exists: ${SAP_PR_LINK}"
+          fi
+
+          rm -rf "$SAP_DIR"
+          
+      - name: Convert static mappings to dynamic_templates
+        run: |
+          echo "Converting generated static mappings to dynamic_templates..."
+          
+          find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
