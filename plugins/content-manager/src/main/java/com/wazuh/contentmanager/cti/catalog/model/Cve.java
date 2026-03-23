@@ -62,7 +62,7 @@ public class Cve {
      * @return A fully populated Cve instance.
      */
     public static Cve fromPayload(JsonNode payload) {
-        return fromPayload(payload, null);
+        return Cve.fromPayload(payload, null);
     }
 
     /**
@@ -106,7 +106,7 @@ public class Cve {
             if (normalized.has(Constants.KEY_DOCUMENT)) {
                 cve.setDocument(normalized.get(Constants.KEY_DOCUMENT));
                 if (cve.getType() == null) {
-                    cve.setType(deriveType(resourceName));
+                    cve.setType(Cve.deriveType(resourceName));
                 }
                 if (cve.getType() == null && explicitType != null) {
                     cve.setType(explicitType);
@@ -116,7 +116,7 @@ public class Cve {
             if (normalized.has(Constants.KEY_PAYLOAD)) {
                 cve.setDocument(normalized.get(Constants.KEY_PAYLOAD));
                 if (cve.getType() == null) {
-                    cve.setType(deriveType(resourceName));
+                    cve.setType(Cve.deriveType(resourceName));
                 }
                 if (cve.getType() == null && explicitType != null) {
                     cve.setType(explicitType);
@@ -133,7 +133,7 @@ public class Cve {
         // Raw CVE payload (no wrapper).
         cve.setDocument(normalized);
         if (cve.getType() == null) {
-            cve.setType(deriveType(resourceName));
+            cve.setType(Cve.deriveType(resourceName));
         }
         if (cve.getType() == null && explicitType != null) {
             cve.setType(explicitType);
@@ -175,7 +175,7 @@ public class Cve {
             if (value == null) {
                 return null;
             }
-            return Arrays.stream(values())
+            return Arrays.stream(CveContentType.values())
                     .filter(type -> type.value.equalsIgnoreCase(value))
                     .findFirst()
                     .orElse(null);
@@ -247,7 +247,7 @@ public class Cve {
      * @return The CTI Content value.
      */
     public String getType() {
-        return type;
+        return this.type;
     }
 
     /**
