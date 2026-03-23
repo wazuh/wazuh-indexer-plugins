@@ -105,7 +105,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         when(this.spaceService.buildEnginePayload(
                         any(),
                         anyString(),
-                        any(boolean.class),
+                        any(Boolean.class),
                         any(),
                         any(),
                         any(),

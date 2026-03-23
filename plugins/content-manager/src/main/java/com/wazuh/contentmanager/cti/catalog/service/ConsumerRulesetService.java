@@ -208,7 +208,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * parallel execution with a CountDownLatch to ensure all async requests complete.
      */
     private void syncIntegrations() {
-        if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
+        if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             return;
         }
 
@@ -258,7 +258,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * Standard and Custom rules.
      */
     private void syncRules() {
-        if (!this.indexExists(Constants.INDEX_RULES)) {
+        if (this.indexIsMissing(Constants.INDEX_RULES)) {
             return;
         }
 
@@ -309,7 +309,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * created in parallel.
      */
     private void syncDetectors() {
-        if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
+        if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             return;
         }
 
@@ -337,7 +337,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         // Process the first detector sequentially to ensure the config index is created
         CountDownLatch firstLatch = new CountDownLatch(1);
         this.securityAnalyticsService.upsertDetectorAsync(
-                docs.get(0),
+                docs.getFirst(),
                 true,
                 RestRequest.Method.POST,
                 ActionListener.wrap(
@@ -404,8 +404,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param indexName The name of the index to check.
      * @return true if the index exists, false otherwise.
      */
-    private boolean indexExists(String indexName) {
-        return this.client.admin().indices().prepareExists(indexName).get().isExists();
+    private boolean indexIsMissing(String indexName) {
+        return !this.client.admin().indices().prepareExists(indexName).get().isExists();
     }
 
     /**
