@@ -63,17 +63,19 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
     private final EngineService engine;
     private SpaceService spaceService;
-    private SecurityAnalyticsService securityAnalyticsService;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructor.
      *
-     * @param engine The service instance to communicate with the local engine service.
-     * @param spaceService The service instance to manage space operations.
+     * @param engine                   The service instance to communicate with the local engine service.
+     * @param spaceService             The service instance to manage space operations.
+     * @param securityAnalyticsService The service instance to communicate with the Security Analytics plugin.
      */
-    public RestPostPromoteAction(EngineService engine, SpaceService spaceService) {
+    public RestPostPromoteAction(EngineService engine, SpaceService spaceService, SecurityAnalyticsService securityAnalyticsService) {
         this.engine = engine;
         this.spaceService = spaceService;
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /** Return a short identifier for this handler. */
@@ -106,12 +108,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        this.spaceService = new SpaceService(client);
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
-            this.securityAnalyticsService = new MockSecurityAnalyticsService();
-        } else {
-            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        }
         return channel -> {
             RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());

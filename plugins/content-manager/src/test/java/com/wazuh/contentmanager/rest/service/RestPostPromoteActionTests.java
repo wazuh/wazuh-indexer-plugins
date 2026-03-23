@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.rest.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
@@ -106,7 +107,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mapper.createObjectNode());
 
-        this.action = new RestPostPromoteAction(this.engine, this.spaceService);
+        this.action = new RestPostPromoteAction(this.engine, this.spaceService, new MockSecurityAnalyticsService());
     }
 
     /**
