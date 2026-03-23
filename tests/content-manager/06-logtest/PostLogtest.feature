@@ -14,7 +14,8 @@ Feature: Log Test
       {
         "queue": 1,
         "location": "/var/log/auth.log",
-        "agent_metadata": {},
+        "metadata": {},
+        "space": "test",
         "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
         "trace_level": "NONE"
       }

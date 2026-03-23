@@ -1,0 +1,169 @@
+openapi: 3.0.0
+info:
+  title: Indexer Setup API
+  description: |
+    API for the Wazuh Indexer Setup plugin.
+    This API enables management of Wazuh platform settings such as Engine configuration.
+  version: 1.0.0
+  license:
+    name: AGPL 3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+servers:
+  - url: "{protocol}://{wazuh.indexer}:{port}/_plugins/_setup"
+    description: Wazuh Indexer Setup Plugin
+    variables:
+      protocol:
+        enum:
+          - "http"
+          - "https"
+        default: "https"
+      wazuh.indexer:
+        default: localhost
+      port:
+        default: "9200"
+
+tags:
+  - name: Settings
+    description: Operations for managing Wazuh platform settings
+
+security:
+  - bearerAuth: []
+  - basicAuth: []
+
+paths:
+  /settings:
+    put:
+      summary: Update Wazuh settings
+      description: |
+        Persists configuration settings to the `.wazuh-settings` index.
+        Currently supports the `engine.index_raw_events` boolean flag, which controls
+        whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream.
+      operationId: updateSettings
+      tags:
+        - Settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WazuhSettingsRequest"
+            examples:
+              enable_raw_events:
+                summary: Enable raw event indexing
+                value:
+                  engine:
+                    index_raw_events: true
+              disable_raw_events:
+                summary: Disable raw event indexing
+                value:
+                  engine:
+                    index_raw_events: false
+      responses:
+        "200":
+          description: OK - Settings updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                success:
+                  summary: Settings updated
+                  value:
+                    message: "Settings updated successfully."
+                    status: 200
+        "400":
+          description: |
+            Bad Request - The request could not be processed due to invalid input.
+
+            Common causes:
+            - Empty or missing request body
+            - Malformed JSON
+            - Missing required field (`engine` or `engine.index_raw_events`)
+            - Field `engine.index_raw_events` is not a boolean
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                invalid_body:
+                  summary: Invalid request body
+                  value:
+                    message: "Invalid request body."
+                    status: 400
+                missing_engine:
+                  summary: Missing engine field
+                  value:
+                    message: "Missing required field: 'engine'."
+                    status: 400
+                missing_index_raw_events:
+                  summary: Missing index_raw_events field
+                  value:
+                    message: "Missing required field: 'engine.index_raw_events'."
+                    status: 400
+                invalid_type:
+                  summary: Wrong type for index_raw_events
+                  value:
+                    message: "Field 'engine.index_raw_events' must be of type boolean."
+                    status: 400
+        "500":
+          description: |
+            Internal Server Error - The server encountered an unexpected error while persisting the settings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                internal_error:
+                  summary: Internal server error
+                  value:
+                    message: "Internal Server Error."
+                    status: 500
+
+components:
+  schemas:
+    WazuhSettingsRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - engine
+      properties:
+        engine:
+          $ref: "#/components/schemas/Engine"
+
+    Engine:
+      type: object
+      additionalProperties: false
+      required:
+        - index_raw_events
+      properties:
+        index_raw_events:
+          type: boolean
+          description: Whether the Engine indexes raw events into the wazuh-events-raw-v5 data stream.
+          example: true
+
+    RestResponse:
+      type: object
+      description: Standard response schema.
+      properties:
+        message:
+          type: string
+        status:
+          type: integer
+      required:
+        - message
+        - status
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication using JWT (JSON Web Token).
+        Include the token in the Authorization header as: `Authorization: Bearer <token>`
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        **Secure Basic Authentication**.
+        Clients must provide username and password encoded in Base64.
