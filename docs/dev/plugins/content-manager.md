@@ -419,7 +419,7 @@ sequenceDiagram
     Indexer-->>UI: response
 ```
 
-### Content RUD (Rules, Decoders, Integrations, KVDBs)
+### Content CUD (Rules, Decoders, Integrations, KVDBs)
 
 All four resource types follow the same patterns via the abstract class hierarchy:
 

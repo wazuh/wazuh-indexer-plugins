@@ -20,6 +20,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.cve.content.context`        | String  | `vd_1.0.0`                               | CVE content context identifier                                          |
 | `plugins.content_manager.cve.content.consumer`       | String  | `vd_4.8.0`                               | CVE content consumer identifier                                         |
 | `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content      |
+| `plugins.content_manager.telemetry.enabled`          | Boolean | `true`                                   | Enable or disable periodic telemetry pings to the CTI API. This setting is dynamic. |
 
 ## Configuration Examples
 
@@ -82,8 +83,21 @@ If you do not use the OpenSearch Security Analytics plugin:
 plugins.content_manager.catalog.create_detectors: false
 ```
 
+### Enable/Disable Telemetry Dynamically
+
+The telemetry ping job can be enabled or disabled at runtime without restarting the node using the Cluster Settings API:
+
+```bash
+curl -sk -u admin:admin -X PUT "[https://192.168.56.6:9200/_cluster/settings](https://192.168.56.6:9200/_cluster/settings)" -H 'Content-Type: application/json' -d'
+{
+  "persistent": {
+    "plugins.content_manager.telemetry.enabled": false
+  }
+}'
+```
+
 ## Notes
 
-- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect.
+- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, with the exception of dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
 - The `context` and `consumer` settings should only be changed if instructed by Wazuh support or documentation, as they must match valid CTI API contexts.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
