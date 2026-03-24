@@ -10,6 +10,7 @@ The Content Manager plugin handles:
 
 - **CTI Subscription:** Manages subscriptions and tokens with the CTI Console.
 - **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
+- **Update Check Service:** Sends a daily heartbeat to CTI so Wazuh can notify users when a newer version is available.
 - **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
 - **Security Analytics Integration:** Pushes rules, integrations, and detectors to the Security Analytics Plugin (SAP).
 - **User-Generated Content:** Full CUD for rules, decoders, integrations, KVDBs, and policies in the Draft space.
@@ -47,6 +48,32 @@ The plugin manages the following indices:
 3. Creates the `.cti-consumers` index on cluster manager nodes.
 4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
 5. Optionally triggers an immediate sync on start.
+6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.
+7. Registers a dynamic settings consumer to enable/disable telemetry at runtime.
+
+### Update Check Service internals
+
+The update check flow is split into two classes:
+
+- **`TelemetryPingJob`** (`jobscheduler/jobs/TelemetryPingJob.java`)
+  - Runs through Job Scheduler every 1 day.
+  - Reads cluster UUID from `ClusterService` metadata.
+  - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
+  - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
+
+- **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
+  - Sends an async GET request to CTI `/ping`.
+  - Headers sent:
+    - `wazuh-uid`: cluster UUID
+    - `wazuh-tag`: `v<version>`
+    - `user-agent`: `Wazuh Indexer <version>`
+  - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
+
+Runtime toggle behavior:
+
+- `plugins.content_manager.telemetry.enabled` is a **dynamic** setting.
+- Enabling it schedules the job and triggers an immediate ping.
+- Disabling it removes the telemetry job document from `.wazuh-content-manager-jobs`.
 
 ### REST Handlers
 
