@@ -131,6 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Normalize metadata object [(#923)](https://github.com/wazuh/wazuh-indexer-plugins/pull/923)
 - Add support for multi-space logtest executions [(#937)](https://github.com/wazuh/wazuh-indexer-plugins/pull/937)
 - Add documentation for the Setup plugin's API [(#936)](https://github.com/wazuh/wazuh-indexer-plugins/pull/936)
+- Disable deletion of root decoder [(#948)](https://github.com/wazuh/wazuh-indexer-plugins/pull/948)
 
 ### Deprecated
 -
