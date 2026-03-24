@@ -1,0 +1,15 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
+9.1.0,true,wazuh,wazuh.agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
+9.1.0,true,wazuh,wazuh.agent.host.ip,ip,core,array,,Host ip addresses.
+9.1.0,true,wazuh,wazuh.agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
+9.1.0,true,wazuh,wazuh.agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
+9.1.0,true,wazuh,wazuh.agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
+9.1.0,true,wazuh,wazuh.agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
+9.1.0,true,wazuh,wazuh.agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
+9.1.0,true,wazuh,wazuh.agent.name,keyword,core,,foo,Custom name of the agent.
+9.1.0,true,wazuh,wazuh.agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,wazuh-cluster-1,Wazuh cluster name.
+9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,wazuh-cluster-node-1,Wazuh cluster node name.
+9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
