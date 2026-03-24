@@ -80,6 +80,19 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     };
     // spotless:on
 
+    // spotless:off
+    private final String[] findings_categories = {
+        "access-management",
+        "applications",
+        "cloud-services",
+        "network-activity",
+        "security",
+        "system-activity",
+        "other",
+        "unclassified"
+    };
+    // spotless:on
+
     /** Default constructor */
     public SetupPlugin() {}
 
@@ -109,7 +122,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             ));
         }
         // Findings data streams (stores detection findings per category)
-        for (String category : this.categories) {
+        for (String category : this.findings_categories) {
             this.indices.add(new StreamIndex(
                 "wazuh-findings-v5-" + category,
                 "templates/findings-mappings"
