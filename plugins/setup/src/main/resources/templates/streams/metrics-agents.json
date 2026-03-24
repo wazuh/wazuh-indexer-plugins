@@ -36,6 +36,36 @@
           "properties": {
             "agent": {
               "properties": {
+                "config": {
+                  "properties": {
+                    "group": {
+                      "properties": {
+                        "hash": {
+                          "properties": {
+                            "md5": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "synced": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "hash": {
+                      "properties": {
+                        "md5": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      }
+                    }
+                  }
+                },
+                "disconnected_at": {
+                  "type": "date"
+                },
                 "groups": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -75,9 +105,29 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
+                "last_seen": {
+                  "type": "date"
+                },
                 "name": {
                   "ignore_above": 1024,
                   "type": "keyword"
+                },
+                "register": {
+                  "properties": {
+                    "ip": {
+                      "type": "ip"
+                    }
+                  }
+                },
+                "registered_at": {
+                  "type": "date"
+                },
+                "status": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "status_code": {
+                  "type": "integer"
                 },
                 "version": {
                   "ignore_above": 1024,

@@ -26,11 +26,67 @@
         "@timestamp": {
           "type": "date"
         },
+        "discarded": {
+          "properties": {
+            "total": {
+              "type": "long"
+            }
+          }
+        },
         "event": {
           "properties": {
             "module": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        "events": {
+          "properties": {
+            "total": {
+              "type": "long"
+            }
+          }
+        },
+        "messages": {
+          "properties": {
+            "control": {
+              "properties": {
+                "dropped_on_close": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "processed": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "received": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "replaced": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "usage": {
+                  "type": "float"
+                }
+              }
+            },
+            "total": {
+              "type": "long"
             }
           }
         },
@@ -49,6 +105,23 @@
                   "type": "long"
                 }
               }
+            }
+          }
+        },
+        "queue": {
+          "properties": {
+            "capacity": {
+              "type": "integer"
+            },
+            "size": {
+              "type": "integer"
+            }
+          }
+        },
+        "tcp": {
+          "properties": {
+            "sessions": {
+              "type": "integer"
             }
           }
         },
