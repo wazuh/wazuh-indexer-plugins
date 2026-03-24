@@ -127,7 +127,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             if (Space.STANDARD.equals(space)) {
                 this.deleteDetector(id);
             }
-            // Use document.id + source=<space> (via space.asSecurityAnalyticsSource()) to find and delete the SAP document.
+            // Use document.id + source=<space> (via space.asSecurityAnalyticsSource()) to find and delete
+            // the SAP document.
             String source = space.asSecurityAnalyticsSource();
             this.client
                     .execute(
