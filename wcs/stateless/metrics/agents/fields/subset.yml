@@ -12,6 +12,25 @@ fields:
           name: {}
           version: {}
           groups: []
+          register:
+            fields:
+              ip: {}
+          status: {}
+          status_code: {}
+          registered_at: {}
+          last_seen: {}
+          disconnected_at: {}
+          config:
+            fields:
+              hash:
+                fields:
+                  md5: {}
+              group:
+                fields:
+                  synced: {}
+                  hash:
+                    fields:
+                      md5: {}
           host:
             fields:
               ip: {}
