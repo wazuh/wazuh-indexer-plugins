@@ -79,4 +79,3 @@ else
 fi
 
 rm -rf "$SAP_DIR"
-rm -f "$MAPPING_FILE"
