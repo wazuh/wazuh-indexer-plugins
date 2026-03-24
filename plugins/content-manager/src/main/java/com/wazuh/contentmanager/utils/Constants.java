@@ -60,6 +60,8 @@ public class Constants {
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine Validation Failed: ";
+    public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
+            "Cannot remove decoder [%s] as it is set as root decoder.";
 
     // Log messages
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
