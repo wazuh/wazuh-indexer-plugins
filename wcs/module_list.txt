@@ -1,6 +1,5 @@
 module_to_file=(
 
-  [stateless/metrics/agents]=templates/streams/metrics-agents.json
   [stateless/metrics/comms]=templates/streams/metrics-comms.json
 
 )

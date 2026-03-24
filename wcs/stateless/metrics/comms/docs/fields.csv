@@ -1,0 +1,8 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,event,event.module,keyword,core,,apache,Name of the module this data is coming from.
+9.1.0,true,network,network.egress.bytes,long,custom,,,The number of bytes sent on all network interfaces.
+9.1.0,true,network,network.ingress.bytes,long,custom,,,The number of bytes received on all network interfaces.
+9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,master,Wazuh cluster name.
+9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,master,Wazuh cluster node name.
+9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1,Wazuh schema version.
