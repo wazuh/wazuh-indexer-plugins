@@ -23,6 +23,15 @@ Manages authentication with the Wazuh CTI API. Stores subscription tokens used f
 
 Implements the OpenSearch `JobSchedulerExtension` interface. Registers a periodic job (`wazuh-catalog-sync-job`) that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
 
+### Update Check Service (TelemetryPingJob)
+
+Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI Update check API endpoint (`/ping`).
+
+- Enabled by default through `plugins.content_manager.telemetry.enabled`.
+- Can be toggled at runtime because it is a dynamic setting.
+- Sends deployment metadata required for update checks (cluster UUID and deployed Wazuh version).
+- Job metadata is stored in `.wazuh-content-manager-jobs`.
+
 ### Consumer Service
 
 Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service.
@@ -69,6 +78,16 @@ Job Scheduler triggers
   → Applies CREATE/UPDATE/DELETE to content indices
   → Updates .cti-consumers offset
   → Security Analytics Service syncs changes
+```
+
+### Update Check Heartbeat
+
+```
+Job Scheduler triggers (every 24h)
+  → TelemetryPingJob checks plugins.content_manager.telemetry.enabled
+  → Reads cluster UUID and current Wazuh version
+  → TelemetryClient sends GET /ping to CTI Update check API
+  → Wazuh Dashboard can surface update availability to users
 ```
 
 ### User-Generated Content (CUD)

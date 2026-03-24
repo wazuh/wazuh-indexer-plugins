@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -52,7 +52,7 @@ public class ApiClient {
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
     private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/instances/token/exchange";
 
-    private CloseableHttpAsyncClient client;
+    protected CloseableHttpAsyncClient client;
 
     private final int TIMEOUT = 5;
 
