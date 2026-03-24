@@ -361,12 +361,15 @@ paths:
       summary: Delete Decoder
       description: |
         Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
+        A decoder cannot be deleted if it is currently set as the root decoder in the draft policy.
       operationId: deleteDecoder
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -1750,6 +1753,7 @@ components:
         - Engine validation failed (payload does not pass Wazuh Engine validation)
         - Resource not in draft space (only draft resources can be modified)
         - Resource has dependent resources that must be deleted first
+        - Cannot remove decoder as it is set as root decoder
       content:
         application/json:
           schema:
@@ -1774,6 +1778,11 @@ components:
               summary: Resource not in draft space
               value:
                 message: "Integration [9e301671-382d-4c1a-9abf-3d9d9544789c] is not in draft space"
+                status: 400
+            root_decoder:
+              summary: Decoder is set as root
+              value:
+                message: "Cannot remove decoder [82e215c4-988a-4f64-8d15-b98b2fc03a4f] as it is set as root decoder."
                 status: 400
 
     Unauthorized:

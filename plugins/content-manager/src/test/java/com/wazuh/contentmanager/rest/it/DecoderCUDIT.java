@@ -474,4 +474,54 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
         assertEquals("Expected 405 for missing ID", 405, statusCode);
     }
+
+    /**
+     * Delete a decoder that is set as the root decoder of the policy.
+     *
+     * <p>Verifies: Response status code is 400.
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testDeleteDecoder_rootDecoder_fails() throws IOException {
+        String integrationId = this.createIntegration("test-decoder-root-int");
+        String decoderId = this.createDecoder(integrationId);
+
+        // Link the decoder as the root decoder in the draft policy
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "root_decoder": "%s",
+                        "integrations": ["%s"],
+                        "filters": [],
+                        "enrichments": [],
+                        "enabled": true,
+                        "index_unclassified_events": true,
+                        "index_discarded_events": true,
+                        "metadata": {
+                            "title": "Test Policy",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration test policy.",
+                            "documentation": "test-doc",
+                            "references": ["https://wazuh.com"]
+                        }
+                    }
+                }
+                """;
+        payload = String.format(Locale.ROOT, payload, decoderId, integrationId);
+        // spotless:on
+
+        Response putPolicyResponse =
+                this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(putPolicyResponse));
+        this.refreshIndex(Constants.INDEX_POLICIES);
+
+        // Attempt to delete the root decoder
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.deleteResource(PluginSettings.DECODERS_URI, decoderId));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+    }
 }
