@@ -28,7 +28,8 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-events-v5*"
+          "wazuh-events-v5*",
+          "wazuh-findings-v5*"
         ],
         "priority": 50
       }

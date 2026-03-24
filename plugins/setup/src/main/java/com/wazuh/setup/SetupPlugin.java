@@ -118,7 +118,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
                 "wazuh-findings-v5-" + category,
-                "templates/findings-mappings"
+                "templates/streams/findings"
             ));
         }
         // Raw events data stream (stores original unprocessed events)
