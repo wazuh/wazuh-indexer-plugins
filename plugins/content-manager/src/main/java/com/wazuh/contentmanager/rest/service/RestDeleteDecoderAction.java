@@ -16,17 +16,14 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.NamedRoute;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -100,23 +97,21 @@ public class RestDeleteDecoderAction extends AbstractDeleteAction {
 
     @Override
     protected RestResponse validateDelete(Client client, String id) {
-        // Validate that the decoder is not a root decoder
-        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(
-                QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("document.root_decoder", id))
-                        .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString())));
-        sourceBuilder.size(0);
-        searchRequest.source(sourceBuilder);
-
         try {
-            SearchResponse response = client.search(searchRequest).actionGet();
-            if (response.getHits().getTotalHits() != null
-                    && response.getHits().getTotalHits().value() > 0) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_CANNOT_REMOVE_ROOT_DECODER, id),
-                        RestStatus.BAD_REQUEST.getStatus());
+            // Retrieve the draft policy using the SpaceService
+            Map<String, Object> policySource = this.spaceService.getPolicy(Space.DRAFT.toString());
+
+            if (policySource != null && policySource.containsKey(Constants.KEY_DOCUMENT)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document =
+                        (Map<String, Object>) policySource.get(Constants.KEY_DOCUMENT);
+
+                // Validate that the decoder is not set as the root decoder
+                if (document != null && id.equals(document.get("root_decoder"))) {
+                    return new RestResponse(
+                            String.format(Locale.ROOT, Constants.E_400_CANNOT_REMOVE_ROOT_DECODER, id),
+                            RestStatus.BAD_REQUEST.getStatus());
+                }
             }
         } catch (Exception e) {
             return new RestResponse(

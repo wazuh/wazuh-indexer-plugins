@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -233,22 +234,12 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
 
         this.mockDecoderInSpace(decoderId, "draft", true);
 
-        when(this.client.search(any(SearchRequest.class)))
-                .thenAnswer(
-                        invocation -> {
-                            SearchRequest searchReq = invocation.getArgument(0);
-                            PlainActionFuture<SearchResponse> future = PlainActionFuture.newFuture();
+        Map<String, Object> policyMap = new HashMap<>();
+        Map<String, Object> documentMap = new HashMap<>();
+        documentMap.put("root_decoder", decoderId);
+        policyMap.put(Constants.KEY_DOCUMENT, documentMap);
 
-                            if (searchReq.indices()[0].equals(Constants.INDEX_POLICIES)) {
-                                SearchHits hits =
-                                        new SearchHits(
-                                                new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
-                                SearchResponse searchResponse = mock(SearchResponse.class);
-                                when(searchResponse.getHits()).thenReturn(hits);
-                                future.onResponse(searchResponse);
-                            }
-                            return future;
-                        });
+        when(this.policyHashService.getPolicy(Space.DRAFT.toString())).thenReturn(policyMap);
 
         RestResponse response = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -272,8 +263,8 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
 
         this.mockDecoderInSpace(decoderId, "draft", true);
 
-        when(this.client.search(any(SearchRequest.class)))
-                .thenThrow(new RuntimeException("Simulated search failure"));
+        when(this.policyHashService.getPolicy(Space.DRAFT.toString()))
+                .thenThrow(new IOException("Simulated policy fetch failure"));
 
         RestResponse response = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
