@@ -8,6 +8,7 @@
     top_level: true
     expected:
       - check
+      - rule
   fields:
     - name: gdpr
       type: keyword
@@ -89,6 +90,7 @@
     top_level: true
     expected:
       - check
+      - rule
   fields:
     - name: tactic
       type: keyword

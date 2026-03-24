@@ -9237,6 +9237,96 @@
           }
         },
         {
+          "wcs_rule_compliance_cmmc": {
+            "path_match": "rule.compliance.cmmc",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_fedramp": {
+            "path_match": "rule.compliance.fedramp",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_gdpr": {
+            "path_match": "rule.compliance.gdpr",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_hipaa": {
+            "path_match": "rule.compliance.hipaa",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_iso_27001": {
+            "path_match": "rule.compliance.iso_27001",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_nis2": {
+            "path_match": "rule.compliance.nis2",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_nist_800_171": {
+            "path_match": "rule.compliance.nist_800_171",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_nist_800_53": {
+            "path_match": "rule.compliance.nist_800_53",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_pci_dss": {
+            "path_match": "rule.compliance.pci_dss",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_compliance_tsc": {
+            "path_match": "rule.compliance.tsc",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_rule_description": {
             "path_match": "rule.description",
             "mapping": {
@@ -9257,6 +9347,33 @@
         {
           "wcs_rule_license": {
             "path_match": "rule.license",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_mitre_subtechnique": {
+            "path_match": "rule.mitre.subtechnique",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_mitre_tactic": {
+            "path_match": "rule.mitre.tactic",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_mitre_technique": {
+            "path_match": "rule.mitre.technique",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -17016,7 +17133,14 @@
           "properties": {}
         },
         "rule": {
-          "properties": {}
+          "properties": {
+            "compliance": {
+              "properties": {}
+            },
+            "mitre": {
+              "properties": {}
+            }
+          }
         },
         "server": {
           "properties": {

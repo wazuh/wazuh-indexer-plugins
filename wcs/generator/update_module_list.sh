@@ -85,6 +85,9 @@ function map_stateless_modules() {
   if [[ -d "wcs/stateless/events/unclassified" ]]; then
     all_modules["stateless/events/unclassified"]="templates/streams/unclassified.json"
   fi
+  if [[ -d "wcs/stateless/events/findings" ]]; then
+    all_modules["stateless/events/findings"]="templates/streams/findings.json"
+  fi
 
   # Map active-responses module explicitly
   if [[ -d "wcs/stateless/active-responses" ]]; then
