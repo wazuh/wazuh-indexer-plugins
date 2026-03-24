@@ -89,36 +89,18 @@ function map_stateless_modules() {
     all_modules["stateless/events/findings"]="templates/findings-mappings.json"
   fi
 
-  # Map first-level directories in stateless (excluding special directories)
-  for dir in wcs/stateless/*/; do
-    if [[ -d "$dir" ]]; then
-      local module_name
-      module_name=$(basename "$dir")
+  # Map active-responses module explicitly
+  if [[ -d "wcs/stateless/active-responses" ]]; then
+    all_modules["stateless/active-responses"]="templates/streams/active-responses.json"
+  fi
 
-      # Skip special directories (events already mapped above)
-      if [[ "$module_name" == "events" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
-        continue
-      fi
-
-      # Handle cloud-services specially - map its subdirectories
-      if [[ "$module_name" == "cloud-services" ]]; then
-        for cloud_dir in wcs/stateless/cloud-services/*/; do
-          if [[ -d "$cloud_dir" ]]; then
-            local service_name
-            service_name=$(basename "$cloud_dir")
-            if [[ "$service_name" == "main" ]]; then
-              all_modules["stateless/cloud-services/main"]="templates/streams/cloud-services.json"
-            else
-              all_modules["stateless/cloud-services/$service_name"]="templates/streams/cloud-services-${service_name}.json"
-            fi
-          fi
-        done
-      else
-        # Regular stateless module
-        all_modules["stateless/$module_name"]="templates/streams/${module_name}.json"
-      fi
-    fi
-  done
+  # Map metrics submodules explicitly
+  if [[ -d "wcs/stateless/metrics/agents" ]]; then
+    all_modules["stateless/metrics/agents"]="templates/streams/metrics-agents.json"
+  fi
+  if [[ -d "wcs/stateless/metrics/comms" ]]; then
+    all_modules["stateless/metrics/comms"]="templates/streams/metrics-comms.json"
+  fi
 }
 
 # ====

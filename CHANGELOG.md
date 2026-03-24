@@ -80,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Full Indexing of the Vulnerability Feed [(#921)](https://github.com/wazuh/wazuh-indexer-plugins/pull/921)
 - Load CTI content from local snapshots [(#916)](https://github.com/wazuh/wazuh-indexer-plugins/pull/916)
 - Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
+- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941)
 - Implement telemetry ping job [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939)
 
 ### Dependencies
@@ -132,6 +133,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Normalize metadata object [(#923)](https://github.com/wazuh/wazuh-indexer-plugins/pull/923)
 - Add support for multi-space logtest executions [(#937)](https://github.com/wazuh/wazuh-indexer-plugins/pull/937)
 - Add documentation for the Setup plugin's API [(#936)](https://github.com/wazuh/wazuh-indexer-plugins/pull/936)
+- Disable deletion of root decoder [(#948)](https://github.com/wazuh/wazuh-indexer-plugins/pull/948)
 
 ### Deprecated
 -
