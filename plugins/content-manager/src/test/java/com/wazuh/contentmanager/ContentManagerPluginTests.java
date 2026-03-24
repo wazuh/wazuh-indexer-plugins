@@ -97,7 +97,10 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     public void testOnNodeStartedTriggerDisabled() {
         // Initialize settings with update_on_start = false
         Settings settings =
-                Settings.builder().put("plugins.content_manager.catalog.update_on_start", false).build();
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.update_on_start", false)
+                        .put("plugins.content_manager.telemetry.enabled", false)
+                        .build();
         PluginSettings.getInstance(settings);
 
         when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);

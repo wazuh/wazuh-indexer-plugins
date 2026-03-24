@@ -1,0 +1,155 @@
+{
+  "index_patterns": [
+    "wazuh-metrics-comms*"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "events.module",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
+        ],
+        "refresh_interval": "5s"
+      },
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms"
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "discarded": {
+          "properties": {
+            "total": {
+              "type": "long"
+            }
+          }
+        },
+        "event": {
+          "properties": {
+            "module": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "events": {
+          "properties": {
+            "total": {
+              "type": "long"
+            }
+          }
+        },
+        "messages": {
+          "properties": {
+            "control": {
+              "properties": {
+                "dropped_on_close": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "processed": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "received": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "replaced": {
+                  "properties": {
+                    "total": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "usage": {
+                  "type": "float"
+                }
+              }
+            },
+            "total": {
+              "type": "long"
+            }
+          }
+        },
+        "network": {
+          "properties": {
+            "egress": {
+              "properties": {
+                "bytes": {
+                  "type": "long"
+                }
+              }
+            },
+            "ingress": {
+              "properties": {
+                "bytes": {
+                  "type": "long"
+                }
+              }
+            }
+          }
+        },
+        "queue": {
+          "properties": {
+            "capacity": {
+              "type": "integer"
+            },
+            "size": {
+              "type": "integer"
+            }
+          }
+        },
+        "tcp": {
+          "properties": {
+            "sessions": {
+              "type": "integer"
+            }
+          }
+        },
+        "wazuh": {
+          "properties": {
+            "cluster": {
+              "properties": {
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "node": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "schema": {
+              "properties": {
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

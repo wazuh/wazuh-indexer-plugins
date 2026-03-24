@@ -16,13 +16,13 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 

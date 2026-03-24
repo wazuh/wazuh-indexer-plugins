@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequestBuilder;
@@ -37,10 +36,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -129,7 +128,6 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the
      * request is complete. The expected response is: {200, RestResponse}
-     *
      */
     public void testDeleteRule200() {
         // Arrange
@@ -160,7 +158,6 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * ID is missing. The expected response is: {400, RestResponse}
-     *
      */
     public void testDeleteRule400_MissingId() {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
@@ -171,7 +168,6 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * ID format is invalid. The expected response is: {400, RestResponse}
-     *
      */
     public void testDeleteRule400_InvalidUUID() {
         String invalidId = "not@valid#uuid";
@@ -186,7 +182,6 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * is not found. The expected response is: {404, RestResponse}
-     *
      */
     public void testDeleteRule404_NotFound() {
         String ruleId = "missing-id";
@@ -203,7 +198,6 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * is not in the draft space. The expected response is: {400, RestResponse}
-     *
      */
     public void testDeleteRule400_NotInDraft() {
         // Arrange
@@ -227,7 +221,6 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when an
      * unexpected error occurs. The expected response is: {500, RestResponse}
-     *
      */
     public void testDeleteRule500_UnexpectedError() {
         String ruleId = "error-id";

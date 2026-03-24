@@ -80,7 +80,7 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
 
     @Override
     public void deleteIntegrationAsync(
-        String id, Space space, ActionListener<? extends ActionResponse> listener) {
+            String id, Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteIntegrationAsync called for id: {}", id);
     }
 
@@ -92,7 +92,7 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
 
     @Override
     public void deleteRuleAsync(
-        String id, Space space, ActionListener<? extends ActionResponse> listener) {
+            String id, Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteRuleAsync called for id: {}", id);
     }
 

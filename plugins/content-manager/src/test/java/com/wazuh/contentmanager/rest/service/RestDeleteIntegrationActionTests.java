@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequestBuilder;
@@ -48,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;

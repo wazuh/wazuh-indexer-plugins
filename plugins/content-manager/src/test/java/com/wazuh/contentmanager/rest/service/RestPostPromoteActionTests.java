@@ -25,14 +25,13 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 import org.junit.Before;
 
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -110,7 +109,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                 .thenReturn(mapper.createObjectNode());
 
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
-        this.action = new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService);
+        this.action =
+                new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService);
     }
 
     /**
@@ -334,8 +334,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * When an integration is promoted via ADD, {@code upsertIntegration} must be called on SAP
-     * with the target space and {@code PUT} method.
+     * When an integration is promoted via ADD, {@code upsertIntegration} must be called on SAP with
+     * the target space and {@code PUT} method.
      */
     public void testSapSync_integrationUpsertCalledOnAdd() throws IOException {
         // Mock engine to return success (draft → test requires engine validation)
@@ -369,8 +369,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * When an integration is removed via REMOVE, {@code deleteIntegration} must be called on SAP
-     * with the integration id and target space.
+     * When an integration is removed via REMOVE, {@code deleteIntegration} must be called on SAP with
+     * the integration id and target space.
      */
     public void testSapSync_integrationDeleteCalledOnRemove() {
         // Mock engine to return success (draft → test requires engine validation)
@@ -403,8 +403,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * When a rule is promoted via ADD, {@code upsertRule} must be called on SAP with the target
-     * space and {@code PUT} method.
+     * When a rule is promoted via ADD, {@code upsertRule} must be called on SAP with the target space
+     * and {@code PUT} method.
      */
     public void testSapSync_ruleUpsertCalledOnAdd() throws IOException {
         // Override default mock: rule source doc must carry space "test" for ADD validation to pass

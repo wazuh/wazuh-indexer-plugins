@@ -47,14 +47,14 @@ generate_mappings() {
 
   # Include the common WCS fields if the module is an integration (e.g., stateless/aws)
   local include_wcs=""
-  if [[ "$ecs_module" == stateless/* && "$ecs_module" != stateless/events/main ]]; then
+  if [[ "$ecs_module" == stateless/events* && "$ecs_module" != stateless/events/main ]]; then
     include_wcs="$indexer_path/ecs/stateless/events/main/fields/custom"
   fi
 
   # Generate mappings
   python scripts/generator.py --strict \
     --semconv-version "$(get_otel_version)" \
-    --include "$in_files_dir/custom/" ${include_wcs} \
+    --include "$in_files_dir/custom/" "${include_wcs}" \
     --subset "$in_files_dir/subset.yml" \
     --template-settings "$in_files_dir/template-settings.json" \
     --template-settings-legacy "$in_files_dir/template-settings-legacy.json" \

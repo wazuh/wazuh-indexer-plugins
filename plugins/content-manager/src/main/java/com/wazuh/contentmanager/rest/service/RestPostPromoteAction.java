@@ -64,11 +64,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
     /**
      * Constructor.
      *
-     * @param engine                   The service instance to communicate with the local engine service.
-     * @param spaceService             The service instance to manage space operations.
-     * @param securityAnalyticsService The service instance to communicate with the Security Analytics plugin.
+     * @param engine The service instance to communicate with the local engine service.
+     * @param spaceService The service instance to manage space operations.
+     * @param securityAnalyticsService The service instance to communicate with the Security Analytics
+     *     plugin.
      */
-    public RestPostPromoteAction(EngineService engine, SpaceService spaceService, SecurityAnalyticsService securityAnalyticsService) {
+    public RestPostPromoteAction(
+            EngineService engine,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService) {
         this.engine = engine;
         this.spaceService = spaceService;
         this.securityAnalyticsService = securityAnalyticsService;
@@ -598,8 +602,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // Delete promoted integrations from SAP in the target space
             for (String integrationId : context.integrationsToDelete) {
                 try {
-                    this.securityAnalyticsService.deleteIntegration(
-                            integrationId, targetSpaceEnum);
+                    this.securityAnalyticsService.deleteIntegration(integrationId, targetSpaceEnum);
                 } catch (Exception e) {
                     log.warn(
                             "Failed to delete integration [{}] from SAP for space [{}]: {}",

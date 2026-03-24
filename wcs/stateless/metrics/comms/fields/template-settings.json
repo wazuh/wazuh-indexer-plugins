@@ -1,0 +1,23 @@
+{
+  "index_patterns": [
+    "wazuh-metrics-comms*"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms",
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "refresh_interval": "5s",
+        "query.default_field": [
+          "events.module",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
+        ]
+      }
+    }
+  }
+}

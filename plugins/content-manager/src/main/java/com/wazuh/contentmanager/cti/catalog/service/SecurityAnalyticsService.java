@@ -48,13 +48,13 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void upsertIntegrationAsync(
-        JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
+            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
      * first.
      *
-     * @param id    The identifier of the integration to delete.
+     * @param id The identifier of the integration to delete.
      * @param space The space the integration belongs to.
      */
     void deleteIntegration(String id, Space space);
@@ -62,12 +62,12 @@ public interface SecurityAnalyticsService {
     /**
      * Asynchronously deletes an Integration from SAP.
      *
-     * @param id       The identifier of the integration to delete.
-     * @param space    The space the integration belongs to.
+     * @param id The identifier of the integration to delete.
+     * @param space The space the integration belongs to.
      * @param listener The listener to be notified when the operation completes.
      */
     void deleteIntegrationAsync(
-        String id, Space space, ActionListener<? extends ActionResponse> listener);
+            String id, Space space, ActionListener<? extends ActionResponse> listener);
 
     // --------------------------------------------------------------------- //
 
@@ -89,12 +89,12 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void upsertRuleAsync(
-        JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
+            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
 
     /**
      * Deletes a Rule from SAP.
      *
-     * @param id    The identifier of the rule to delete.
+     * @param id The identifier of the rule to delete.
      * @param space The space the rule belongs to.
      */
     void deleteRule(String id, Space space);
@@ -102,12 +102,11 @@ public interface SecurityAnalyticsService {
     /**
      * Asynchronously deletes a Rule from SAP.
      *
-     * @param id       The identifier of the rule to delete.
-     * @param space    The space the rule belongs to.
+     * @param id The identifier of the rule to delete.
+     * @param space The space the rule belongs to.
      * @param listener The listener to be notified when the operation completes.
      */
-    void deleteRuleAsync(
-        String id, Space space, ActionListener<? extends ActionResponse> listener);
+    void deleteRuleAsync(String id, Space space, ActionListener<? extends ActionResponse> listener);
 
     // --------------------------------------------------------------------- //
 
@@ -129,10 +128,10 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void upsertDetectorAsync(
-        JsonNode doc,
-        boolean rawCategory,
-        Method method,
-        ActionListener<? extends ActionResponse> listener);
+            JsonNode doc,
+            boolean rawCategory,
+            Method method,
+            ActionListener<? extends ActionResponse> listener);
 
     /**
      * Deletes a Threat Detector from SAP.
