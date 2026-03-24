@@ -1,0 +1,138 @@
+---
+- name: queue
+  title: Queue
+  description: >
+    Message queue metrics.
+  type: group
+  group: 2
+  fields:
+    - name: size
+      type: integer
+      level: custom
+      description: >
+        Current number of messages queued. This is a gauge representing
+        instantaneous queue occupancy.
+      example: 0
+    - name: capacity
+      type: integer
+      level: custom
+      description: >
+        Maximum configured capacity of the message queue.
+      example: 131072
+
+- name: tcp
+  title: TCP
+  description: >
+    TCP session metrics.
+  type: group
+  group: 2
+  fields:
+    - name: sessions
+      type: integer
+      level: custom
+      description: >
+        Current number of active TCP sessions.
+      example: 9
+
+- name: discarded
+  title: Discarded
+  description: >
+    Discarded message counters.
+  type: group
+  group: 2
+  fields:
+    - name: total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of discarded messages.
+      example: 0
+
+- name: events
+  title: Events
+  description: >
+    Event forwarding metrics.
+  type: group
+  group: 2
+  fields:
+    - name: total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of events forwarded to downstream processing
+        components.
+      example: 5697755
+
+- name: messages
+  title: Messages
+  description: >
+    Message processing metrics.
+  type: group
+  group: 2
+  fields:
+    - name: total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of control messages received.
+      example: 2918262
+    - name: control.dropped_on_close.total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of queued messages dropped when the agent connection
+        was closed.
+      example: 0
+    - name: control.usage
+      type: float
+      level: custom
+      description: >
+        Current utilization ratio of the control message queue (0.0–1.0).
+      example: 0.42
+    - name: control.received.total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of control messages inserted into the control queue.
+      example: 2918243
+    - name: control.replaced.total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of control messages replaced in the queue.
+      example: 1
+    - name: control.processed.total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of control messages processed from the queue.
+      example: 2918243
+
+- name: network
+  title: Network
+  description: >
+    Network metrics.
+  type: group
+  group: 2
+  fields:
+    - name: ingress.bytes
+      type: long
+      level: custom
+      short: The number of bytes received on all network interfaces.
+      description: >
+        The number of bytes received (gauge) on all network interfaces by the
+        host since the last metric collection.
+      otel:
+        - metric: system.network.io
+          relation: metric
+
+    - name: egress.bytes
+      type: long
+      level: custom
+      short: The number of bytes sent on all network interfaces.
+      description: >
+        The number of bytes (gauge) sent out on all network interfaces by the
+        host since the last metric collection.
+      otel:
+        - metric: system.network.io
+          relation: metric

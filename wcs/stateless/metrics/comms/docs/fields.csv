@@ -1,0 +1,19 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,discarded,discarded.total,long,custom,,0,Cumulative number of discarded messages.
+9.1.0,true,event,event.module,keyword,core,,apache,Name of the module this data is coming from.
+9.1.0,true,events,events.total,long,custom,,5697755,Cumulative number of events forwarded to downstream processing components.
+9.1.0,true,messages,messages.control.dropped_on_close.total,long,custom,,0,Cumulative number of queued messages dropped when the agent connection was closed.
+9.1.0,true,messages,messages.control.processed.total,long,custom,,2918243,Cumulative number of control messages processed from the queue.
+9.1.0,true,messages,messages.control.received.total,long,custom,,2918243,Cumulative number of control messages inserted into the control queue.
+9.1.0,true,messages,messages.control.replaced.total,long,custom,,1,Cumulative number of control messages replaced in the queue.
+9.1.0,true,messages,messages.control.usage,float,custom,,0.42,Current utilization ratio of the control message queue (0.0–1.0).
+9.1.0,true,messages,messages.total,long,custom,,2918262,Cumulative number of control messages received.
+9.1.0,true,network,network.egress.bytes,long,custom,,,The number of bytes sent on all network interfaces.
+9.1.0,true,network,network.ingress.bytes,long,custom,,,The number of bytes received on all network interfaces.
+9.1.0,true,queue,queue.capacity,integer,custom,,131072,Maximum configured capacity of the message queue.
+9.1.0,true,queue,queue.size,integer,custom,,0,Current number of messages queued. This is a gauge representing instantaneous queue occupancy.
+9.1.0,true,tcp,tcp.sessions,integer,custom,,9,Current number of active TCP sessions.
+9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,master,Wazuh cluster name.
+9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,master,Wazuh cluster node name.
+9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1,Wazuh schema version.
