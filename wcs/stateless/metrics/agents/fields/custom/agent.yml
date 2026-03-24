@@ -72,3 +72,15 @@
       description: >
         MD5 hash of the merged group configuration currently applied to the agent.
       example: "16728192a0e2b5ca79e3d1385c32096e"
+
+- name: host
+  reusable:
+    top_level: false
+    expected:
+      - { at: wazuh.agent, as: host }
+
+- name: os
+  reusable:
+    top_level: false
+    expected:
+      - wazuh.agent.host
