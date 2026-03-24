@@ -1,0 +1,84 @@
+{
+  "index_patterns": [
+    "wazuh-metrics-comms*"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "index": {
+        "auto_expand_replicas": "0-1",
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "events.module",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
+        ],
+        "refresh_interval": "5s"
+      },
+      "mapping.total_fields.limit": 500,
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms"
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "event": {
+          "properties": {
+            "module": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "network": {
+          "properties": {
+            "egress": {
+              "properties": {
+                "bytes": {
+                  "type": "long"
+                }
+              }
+            },
+            "ingress": {
+              "properties": {
+                "bytes": {
+                  "type": "long"
+                }
+              }
+            }
+          }
+        },
+        "wazuh": {
+          "properties": {
+            "cluster": {
+              "properties": {
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "node": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "schema": {
+              "properties": {
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
