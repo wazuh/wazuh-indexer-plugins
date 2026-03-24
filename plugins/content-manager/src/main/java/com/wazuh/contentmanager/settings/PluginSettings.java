@@ -210,10 +210,18 @@ public class PluginSettings {
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
-                    "plugins.content_manager.engine.mock_enabled",
+                    "plugins.content_manager.engine.mock",
                     DEFAULT_ENGINE_MOCK_ENABLED,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /** Configuration setting to enable or disable the telemetry ping. Defaults to true. */
+    public static final Setting<Boolean> TELEMETRY_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.telemetry.enabled",
+                    true,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
 
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
@@ -231,6 +239,7 @@ public class PluginSettings {
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
+    private volatile boolean isTelemetryEnabled;
 
     /**
      * Private default constructor
@@ -254,6 +263,7 @@ public class PluginSettings {
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
+        this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -282,6 +292,10 @@ public class PluginSettings {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
         return INSTANCE;
+    }
+
+    public void setTelemetryEnabled(boolean isTelemetryEnabled) {
+        this.isTelemetryEnabled = isTelemetryEnabled;
     }
 
     /**
@@ -345,6 +359,15 @@ public class PluginSettings {
      */
     public Boolean isUpdateOnSchedule() {
         return this.updateOnSchedule;
+    }
+
+    /**
+     * Retrieves the value for the update on schedule setting.
+     *
+     * @return a Boolean indicating if the scheduled update is enabled.
+     */
+    public Boolean isTelemetryEnabled() {
+        return this.isTelemetryEnabled;
     }
 
     /**
