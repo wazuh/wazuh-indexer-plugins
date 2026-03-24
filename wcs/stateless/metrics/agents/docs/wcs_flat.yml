@@ -33,6 +33,54 @@
   required: true
   short: Date/time when the event originated.
   type: date
+wazuh.agent.config.group.hash.md5:
+  dashed_name: wazuh-agent-config-group-hash-md5
+  description: MD5 hash of the merged group configuration currently applied to the
+    agent.
+  example: 16728192a0e2b5ca79e3d1385c32096e
+  flat_name: wazuh.agent.config.group.hash.md5
+  ignore_above: 1024
+  level: custom
+  name: config.group.hash.md5
+  normalize: []
+  original_fieldset: agent
+  short: MD5 hash of the merged group configuration currently applied to the agent.
+  type: keyword
+wazuh.agent.config.group.synced:
+  dashed_name: wazuh-agent-config-group-synced
+  description: Status of the group configuration assigned to the agent.
+  example: true
+  flat_name: wazuh.agent.config.group.synced
+  level: custom
+  name: config.group.synced
+  normalize: []
+  original_fieldset: agent
+  short: Status of the group configuration assigned to the agent.
+  type: boolean
+wazuh.agent.config.hash.md5:
+  dashed_name: wazuh-agent-config-hash-md5
+  description: MD5 hash of the agent configuration used for integrity verification
+    and change detection.
+  example: 7fdd9b4cf9a06dbe937f7de73dcbe9e4
+  flat_name: wazuh.agent.config.hash.md5
+  ignore_above: 1024
+  level: custom
+  name: config.hash.md5
+  normalize: []
+  original_fieldset: agent
+  short: MD5 hash of the agent configuration used for integrity verification and change
+    detection.
+  type: keyword
+wazuh.agent.disconnected_at:
+  dashed_name: wazuh-agent-disconnected-at
+  description: Date/time when the agent was considered disconnected.
+  flat_name: wazuh.agent.disconnected_at
+  level: custom
+  name: disconnected_at
+  normalize: []
+  original_fieldset: agent
+  short: Date/time when the agent was considered disconnected.
+  type: date
 wazuh.agent.groups:
   dashed_name: wazuh-agent-groups
   description: List of groups the agent belongs to.
@@ -131,6 +179,17 @@ wazuh.agent.id:
   original_fieldset: agent
   short: Unique identifier of this agent.
   type: keyword
+wazuh.agent.last_seen:
+  dashed_name: wazuh-agent-last-seen
+  description: Date/time when the last keepalive from the agent was received.
+  example: '2026-03-09T12:29:57.000Z'
+  flat_name: wazuh.agent.last_seen
+  level: custom
+  name: last_seen
+  normalize: []
+  original_fieldset: agent
+  short: Date/time when the last keepalive from the agent was received.
+  type: date
 wazuh.agent.name:
   dashed_name: wazuh-agent-name
   description: 'Custom name of the agent.
@@ -147,6 +206,52 @@ wazuh.agent.name:
   original_fieldset: agent
   short: Custom name of the agent.
   type: keyword
+wazuh.agent.register.ip:
+  dashed_name: wazuh-agent-register-ip
+  description: Registration IP value from `client.keys` associated with the agent.
+  example: any
+  flat_name: wazuh.agent.register.ip
+  level: custom
+  name: register.ip
+  normalize: []
+  original_fieldset: agent
+  short: Registration IP value from `client.keys` associated with the agent.
+  type: ip
+wazuh.agent.registered_at:
+  dashed_name: wazuh-agent-registered-at
+  description: Date/time when the agent was registered in Wazuh.
+  example: '2026-01-26T12:46:20.000Z'
+  flat_name: wazuh.agent.registered_at
+  level: custom
+  name: registered_at
+  normalize: []
+  original_fieldset: agent
+  short: Date/time when the agent was registered in Wazuh.
+  type: date
+wazuh.agent.status:
+  dashed_name: wazuh-agent-status
+  description: Current connection status of the agent in Wazuh. Expected values are
+    `active`, `pending`, `disconnected` and `never_connected`.
+  example: active
+  flat_name: wazuh.agent.status
+  ignore_above: 1024
+  level: custom
+  name: status
+  normalize: []
+  original_fieldset: agent
+  short: Current connection status of the agent in Wazuh.
+  type: keyword
+wazuh.agent.status_code:
+  dashed_name: wazuh-agent-status-code
+  description: Internal numeric status code associated with the agent connection state.
+  example: 0
+  flat_name: wazuh.agent.status_code
+  level: custom
+  name: status_code
+  normalize: []
+  original_fieldset: agent
+  short: Internal numeric status code associated with the agent connection state.
+  type: integer
 wazuh.agent.version:
   dashed_name: wazuh-agent-version
   description: Version of the agent.
