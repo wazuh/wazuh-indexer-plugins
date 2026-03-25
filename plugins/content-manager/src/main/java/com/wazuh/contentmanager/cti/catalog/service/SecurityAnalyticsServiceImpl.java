@@ -111,27 +111,32 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 WriteRequest.RefreshPolicy.IMMEDIATE,
                 method,
                 new Integration(
-                        id,
+                        null,
                         null,
                         name,
                         description,
                         category,
                         space.asSecurityAnalyticsSource(),
-                        new HashMap<>()));
+                        new HashMap<>(),
+                        id));
     }
 
     @Override
-    public void deleteIntegration(String id, boolean isStandard) {
+    public void deleteIntegration(String id, Space space) {
         try {
-            if (isStandard) {
+            if (Space.STANDARD.equals(space)) {
                 this.deleteDetector(id);
             }
+            // Use document.id + source=<space> (via space.asSecurityAnalyticsSource()) to find and delete
+            // the SAP document.
+            String source = space.asSecurityAnalyticsSource();
             this.client
                     .execute(
                             WDeleteIntegrationAction.INSTANCE,
-                            new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
+                            new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source))
                     .actionGet();
-            log.info("Integration [{}] deleted successfully.", id);
+            log.info(
+                    "Integration [{}] deleted successfully (document.id={}, source={}).", id, id, source);
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
             throw new OpenSearchException("Failed to delete Integration", e.getMessage());
@@ -140,8 +145,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteIntegrationAsync(
-            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
-        if (isStandard) {
+            String id, Space space, ActionListener<? extends ActionResponse> listener) {
+        String source = space.asSecurityAnalyticsSource();
+        if (Space.STANDARD.equals(space)) {
             // Delete detector first, then delete integration on success.
             this.deleteDetectorAsync(
                     id,
@@ -150,14 +156,15 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                                 log.info("Detector [{}] deleted. Now deleting integration.", id);
                                 this.executeAsync(
                                         WDeleteIntegrationAction.INSTANCE,
-                                        new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
+                                        new WDeleteIntegrationRequest(
+                                                id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source),
                                         listener);
                             },
                             listener::onFailure));
         } else {
             this.executeAsync(
                     WDeleteIntegrationAction.INSTANCE,
-                    new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
+                    new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source),
                     listener);
         }
     }
@@ -169,25 +176,40 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return;
         }
 
-        String id = doc.get(Constants.KEY_ID).asText();
+        String documentId = doc.get(Constants.KEY_ID).asText();
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
+        String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info("Creating/Updating Rule [{}] in SAP", id);
+        log.info("Creating/Updating Rule in SAP - documentId: {}, space: {}", documentId, sourceName);
 
         if (space != Space.STANDARD) {
             this.client
                     .execute(
                             WIndexCustomRuleAction.INSTANCE,
                             new WIndexCustomRuleRequest(
-                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true))
+                                    documentId,
+                                    WriteRequest.RefreshPolicy.IMMEDIATE,
+                                    product,
+                                    method,
+                                    body,
+                                    true,
+                                    documentId,
+                                    sourceName))
                     .actionGet();
         } else {
             this.client
                     .execute(
                             WIndexRuleAction.INSTANCE,
                             new WIndexRuleRequest(
-                                    id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true))
+                                    documentId,
+                                    WriteRequest.RefreshPolicy.IMMEDIATE,
+                                    product,
+                                    method,
+                                    body,
+                                    true,
+                                    documentId,
+                                    sourceName))
                     .actionGet();
         }
     }
@@ -201,43 +223,62 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return;
         }
 
-        String id = doc.get(Constants.KEY_ID).asText();
+        String documentId = doc.get(Constants.KEY_ID).asText();
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
+        String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info("Async creating/updating Rule [{}] in SAP", id);
+        log.info(
+                "Async creating/updating Rule in SAP - documentId: {}, space: {}", documentId, sourceName);
 
         if (space != Space.STANDARD) {
             this.executeAsync(
                     WIndexCustomRuleAction.INSTANCE,
                     new WIndexCustomRuleRequest(
-                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true),
+                            documentId,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            product,
+                            method,
+                            body,
+                            true,
+                            documentId,
+                            sourceName),
                     listener);
         } else {
             this.executeAsync(
                     WIndexRuleAction.INSTANCE,
                     new WIndexRuleRequest(
-                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, method, body, true),
+                            documentId,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            product,
+                            method,
+                            body,
+                            true,
+                            documentId,
+                            sourceName),
                     listener);
         }
     }
 
     @Override
-    public void deleteRule(String id, boolean isStandard) {
+    public void deleteRule(String id, Space space) {
+        String source = space.asSecurityAnalyticsSource();
         try {
-            if (isStandard) {
-                log.info("Deleting Standard Rule [{}] from SAP", id);
+            if (Space.STANDARD.equals(space)) {
+                log.info(
+                        "Deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
                 this.client
                         .execute(
                                 WDeleteRuleAction.INSTANCE,
-                                new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                                new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
                         .actionGet();
             } else {
-                log.info("Deleting Custom Rule [{}] from SAP", id);
+                log.info("Deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
                 this.client
                         .execute(
                                 WDeleteCustomRuleAction.INSTANCE,
-                                new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                                new WDeleteCustomRuleRequest(
+                                        id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
                         .actionGet();
             }
             log.info("Rule [{}] deleted successfully.", id);
@@ -249,18 +290,21 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteRuleAsync(
-            String id, boolean isStandard, ActionListener<? extends ActionResponse> listener) {
-        if (isStandard) {
-            log.info("Async deleting Standard Rule [{}] from SAP", id);
+            String id, Space space, ActionListener<? extends ActionResponse> listener) {
+        String source = space.asSecurityAnalyticsSource();
+        if (Space.STANDARD.equals(space)) {
+            log.info(
+                    "Async deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(
                     WDeleteRuleAction.INSTANCE,
-                    new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true),
+                    new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
                     listener);
         } else {
-            log.info("Async deleting Custom Rule [{}] from SAP", id);
+            log.info(
+                    "Async deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(
                     WDeleteCustomRuleAction.INSTANCE,
-                    new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true),
+                    new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
                     listener);
         }
     }

@@ -84,7 +84,6 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * <p>Expected result: exactly 3 policy documents in {@code .cti-policies} (one per space: draft,
      * test, custom), regardless of how many times the workflow runs.
      */
-    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
         ensureGreen();
 
