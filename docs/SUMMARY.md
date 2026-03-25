@@ -18,7 +18,6 @@
   - [Content Manager](dev/plugins/content-manager.md)
     - [Tutorial](dev/plugins/content-manager-tutorial.md)
   - [Notifications](dev/plugins/notifications.md)
-  - [Common Utils](dev/plugins/common-utils.md)
 
 # Reference Manual
 - [Introduction]()
@@ -50,8 +49,6 @@
     - [Configuration](ref/modules/notifications/configuration.md)
     - [API Reference](ref/modules/notifications/api.md)
     - [Troubleshooting](ref/modules/notifications/troubleshooting.md)
-  - [Common Utils](ref/modules/common-utils/index.md)
-    - [Usage](ref/modules/common-utils/usage.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
 - [Back up and Restore](ref/backup-restore.md)

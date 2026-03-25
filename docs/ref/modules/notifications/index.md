@@ -25,6 +25,10 @@ The Wazuh Indexer Notifications plugin is a specialized component designed to ex
 | `ses_account` | — | Defines AWS SES sending details (region, role ARN, from address). |
 | `email_group` | — | Defines a group of email recipients for reuse across email-type channels. |
 
+## Dependencies
+
+This plugin has a dependency on the [wazuh-indexer-common-utils](https://github.com/wazuh/wazuh-indexer-common-utils) repository. It uses the Common Utils jar to provide shared utility functions and common components required for plugin functionality.
+
 ## Version
 
 The current plugin version is **5.0.0-alpha0** (see `VERSION.json` in the repository root).
