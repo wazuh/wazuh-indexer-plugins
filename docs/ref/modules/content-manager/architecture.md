@@ -113,16 +113,69 @@ GET /promote?space=draft
   → Returns changes preview (adds, updates, deletes per content type)
 
 POST /promote
-  → Space Service sends content to Engine via Unix socket
-  → Engine validates configuration
-  → Engine reloads configuration
-  → Target space updated to match promoted content
-  → For each promoted integration:
-      → Security Analytics Service creates a new SAP integration document
-        in the target space (new UUID, document.id = CTI UUID, source = target space)
-  → For each promoted rule:
-      → Security Analytics Service creates a new SAP rule document
-        in the target space (new UUID, document.id = CTI UUID, source = target space)
+  → Capture pre-promotion snapshots of target-space resources
+  → Engine validates configuration (draft → test only)
+  → Consolidate changes to CM indices (tracked for rollback)
+      → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
+      → Apply deletes: integrations, kvdbs, decoders, filters, rules
+  → Sync integrations and rules to SAP:
+      → ADDs use POST (new SAP document)
+      → UPDATEs use PUT (existing SAP document)
+  → Delete removed integrations/rules from SAP
+```
+
+### Rollback on Failure
+
+If any Content Manager index mutation fails during the consolidation phase, the
+promotion endpoint automatically performs a LIFO (Last-In, First-Out) rollback
+to restore the system to its pre-promotion state.
+
+#### Pre-Promotion Snapshots
+
+Before any writes, the system captures:
+- **Old versions** (`captureOldVersions`): For each resource being added or updated,
+  the current target-space version is fetched and stored. If the resource does not exist
+  in the target space, `null` is stored.
+- **Delete snapshots** (`captureDeleteSnapshots`): For each resource being deleted, the
+  full document is fetched from the source space and stored.
+
+#### CM Index Rollback
+
+Each successful index mutation is recorded as a `RollbackStep(kind, resourceType)`. On
+failure, steps are replayed in strict reverse (LIFO) order:
+
+| Forward operation | Old version | Rollback action |
+|---|---|---|
+| ADD (apply) | `null` | Delete the newly created document |
+| UPDATE (apply) | non-null | Restore the previous version |
+| DELETE | snapshot | Re-index the snapshotted document |
+
+Individual rollback step failures are logged and skipped so remaining steps can proceed.
+
+#### SAP Reconciliation
+
+After CM rollback completes, a best-effort SAP reconciliation runs in dependency order:
+
+1. **Revert applied rules** — ADDs are deleted from SAP; UPDATEs are restored to old version.
+2. **Revert applied integrations** — Same as above.
+3. **Restore deleted integrations** — Re-created from pre-deletion snapshots via POST.
+4. **Restore deleted rules** — Same as above.
+
+SAP reconciliation failures are logged as warnings but do not cause the overall rollback
+to fail, since SAP sync is considered best-effort.
+
+```
+Consolidation fails at step N
+  → LIFO rollback: undo step N-1, N-2, ..., 1
+      → APPLY + null old version → delete from target index
+      → APPLY + old version → restore old version to target index
+      → DELETE → re-index snapshot to target index
+  → SAP reconciliation (best-effort):
+      → Delete rules that were added to SAP
+      → Restore rules that were updated in SAP
+      → Restore integrations that were added/updated in SAP
+      → Re-create integrations/rules that were deleted from SAP
+  → Return 500 with error message
 ```
 
 ## Index Structure

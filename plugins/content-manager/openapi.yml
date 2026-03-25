@@ -827,6 +827,26 @@ paths:
         - A newly generated UUID as the SAP document ID.
         - A `document.id` field storing the original CTI document UUID.
         - A `source` field indicating the target space (e.g., "Draft", "Test", "Custom").
+
+        **Rollback on failure**: If any Content Manager index mutation fails during the
+        consolidation phase, the endpoint automatically initiates a LIFO (Last-In, First-Out)
+        rollback of all previously completed mutations:
+
+        1. **Pre-promotion snapshots** are captured before any writes. For resources being
+           added or updated, the current target-space version (if any) is saved. For resources
+           being deleted, the full document is snapshotted.
+        2. **CM index rollback**: Each successful mutation is recorded as a `RollbackStep`.
+           On failure, steps are replayed in reverse order:
+           - ADDs (where no prior version existed) are deleted.
+           - UPDATEs are restored to their pre-promotion version.
+           - DELETEs are re-indexed from the snapshot.
+        3. **SAP reconciliation** (best-effort): After CM rollback completes, SAP resources
+           are reconciled in dependency order — rules are reverted before integrations, then
+           deleted resources are restored. SAP reconciliation failures are logged but do not
+           cause the overall rollback to fail.
+
+        If the rollback itself encounters errors on individual steps, those steps are logged
+        and skipped so that remaining steps can still proceed.
       operationId: promote
       requestBody:
         required: true
