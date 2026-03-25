@@ -146,7 +146,7 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
             if (rules != null) {
                 for (String id : rules.keySet()) {
                     try {
-                        this.securityAnalyticsService.deleteRule(id, false);
+                        this.securityAnalyticsService.deleteRule(id, Space.DRAFT);
                         log.debug("Deleted rule [{}] from SAP for space reset", id);
                     } catch (Exception e) {
                         log.warn(
@@ -159,7 +159,7 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
             if (integrations != null) {
                 for (String id : integrations.keySet()) {
                     try {
-                        this.securityAnalyticsService.deleteIntegration(id, false);
+                        this.securityAnalyticsService.deleteIntegration(id, Space.DRAFT);
                         log.debug("Deleted integration [{}] from SAP for space reset", id);
                     } catch (Exception e) {
                         log.warn(

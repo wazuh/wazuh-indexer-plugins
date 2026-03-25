@@ -79,6 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement logic to import standard space into Wazuh Engine [(#924)](https://github.com/wazuh/wazuh-indexer-plugins/pull/924)
 - Full Indexing of the Vulnerability Feed [(#921)](https://github.com/wazuh/wazuh-indexer-plugins/pull/921)
 - Load CTI content from local snapshots [(#916)](https://github.com/wazuh/wazuh-indexer-plugins/pull/916)
+- Support creation and promotion of rules and integrations across spaces [(#930)](https://github.com/wazuh/wazuh-indexer-plugins/pull/930)
 - Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
 - Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941)
 - Implement telemetry ping job [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939)

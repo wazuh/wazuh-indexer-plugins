@@ -48,6 +48,12 @@ Handles incremental updates. Fetches change batches from the CTI API based on of
 
 Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
 
+**Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
+- `document.id` — the UUID of the original CTI document in the Content Manager.
+- `source` — the space the document belongs to, with the first letter capitalized (e.g., "Draft", "Test", "Custom", or "Sigma" for standard).
+
+This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
+
 ### Space Service
 
 Manages the four content spaces (standard, draft, test, custom). Routes CUD operations to the correct space partitions within system indices. Handles promotion by computing diffs between spaces in the promotion chain (Draft → Test → Custom).
@@ -103,14 +109,20 @@ REST request (POST/PUT/DELETE)
 
 ```
 GET /promote?space=draft
-  → Space Service computes diff (draft vs standard)
+  → Space Service computes diff (draft vs test, or test vs custom)
   → Returns changes preview (adds, updates, deletes per content type)
 
 POST /promote
-  → Space Service sends draft content to Engine via Unix socket
+  → Space Service sends content to Engine via Unix socket
   → Engine validates configuration
   → Engine reloads configuration
-  → Standard space updated to match promoted content
+  → Target space updated to match promoted content
+  → For each promoted integration:
+      → Security Analytics Service creates a new SAP integration document
+        in the target space (new UUID, document.id = CTI UUID, source = target space)
+  → For each promoted rule:
+      → Security Analytics Service creates a new SAP rule document
+        in the target space (new UUID, document.id = CTI UUID, source = target space)
 ```
 
 ## Index Structure

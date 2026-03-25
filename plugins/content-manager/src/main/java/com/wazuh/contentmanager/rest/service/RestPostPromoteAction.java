@@ -33,14 +33,13 @@ import java.io.IOException;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * POST /_plugins/_content_manager/promote
@@ -60,16 +59,23 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
     private final EngineService engine;
     private SpaceService spaceService;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructor.
      *
      * @param engine The service instance to communicate with the local engine service.
      * @param spaceService The service instance to manage space operations.
+     * @param securityAnalyticsService The service instance to communicate with the Security Analytics
+     *     plugin.
      */
-    public RestPostPromoteAction(EngineService engine, SpaceService spaceService) {
+    public RestPostPromoteAction(
+            EngineService engine,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService) {
         this.engine = engine;
         this.spaceService = spaceService;
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /** Return a short identifier for this handler. */
@@ -88,7 +94,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         return List.of(
                 new NamedRoute.Builder()
                         .path(PluginSettings.PROMOTE_URI)
-                        .method(POST)
+                        .method(RestRequest.Method.POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
     }
@@ -102,7 +108,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        this.spaceService = new SpaceService(client);
         return channel -> {
             RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());
@@ -268,6 +273,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
         Set<String> filtersToDelete = new HashSet<>();
         Set<String> rulesToDelete = new HashSet<>();
 
+        // Sets to track which resources are ADDs
+        Set<String> integrationAdds = new HashSet<>();
+        Set<String> ruleAdds = new HashSet<>();
+
         // Process each resource type
         this.processResourceChanges(
                 changes.getPolicy(),
@@ -284,6 +293,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 integrationsToDelete,
                 sourceSpace.toString(),
                 targetSpace.toString());
+        for (SpaceDiff.OperationItem item : changes.getIntegrations()) {
+            if (item.getOperation() == SpaceDiff.Operation.ADD) {
+                integrationAdds.add(item.getId());
+            }
+        }
 
         this.processResourceChanges(
                 changes.getKvdbs(),
@@ -316,6 +330,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 rulesToDelete,
                 sourceSpace.toString(),
                 targetSpace.toString());
+        for (SpaceDiff.OperationItem item : changes.getRules()) {
+            if (item.getOperation() == SpaceDiff.Operation.ADD) {
+                ruleAdds.add(item.getId());
+            }
+        }
 
         // Build engine payload with all target space resources + modifications
         JsonNode enginePayload =
@@ -344,6 +363,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 decodersToDelete,
                 filtersToDelete,
                 rulesToDelete,
+                integrationAdds,
+                ruleAdds,
                 targetSpace.toString());
     }
 
@@ -429,7 +450,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 }
                 case UPDATE -> {
                     Map<String, Object> sourceDoc;
-                    // TODO fix when policies use the same document.id in different spaces
                     // Fetch the source policy
                     if (resourceType.equals(Constants.KEY_POLICY)) {
                         sourceDoc = this.spaceService.getPolicy(sourceSpace);
@@ -502,6 +522,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
      * @throws IOException If consolidation fails.
      */
     private void consolidateChanges(PromotionContext context) throws IOException {
+        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
+        ObjectMapper mapper = new ObjectMapper();
+
         // Consolidate ADD/UPDATE operations for each resource type
         if (!context.policyToApply.isEmpty()) {
             this.spaceService.promoteSpace(
@@ -515,6 +538,29 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
                     context.integrationsToApply,
                     context.targetSpace);
+
+            // Sync promoted integrations with SAP in the target space
+            for (Map.Entry<String, Map<String, Object>> entry : context.integrationsToApply.entrySet()) {
+                Map<String, Object> doc = entry.getValue();
+                if (doc.containsKey(Constants.KEY_DOCUMENT)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+                    JsonNode docNode = mapper.valueToTree(document);
+                    try {
+                        RestRequest.Method method =
+                                context.integrationAdds.contains(entry.getKey())
+                                        ? RestRequest.Method.POST
+                                        : RestRequest.Method.PUT;
+                        this.securityAnalyticsService.upsertIntegration(docNode, targetSpaceEnum, method);
+                    } catch (Exception e) {
+                        log.warn(
+                                "Failed to sync integration [{}] to SAP for space [{}]: {}",
+                                entry.getKey(),
+                                context.targetSpace,
+                                e.getMessage());
+                    }
+                }
+            }
         }
 
         if (!context.kvdbsToApply.isEmpty()) {
@@ -543,6 +589,29 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
                     context.rulesToApply,
                     context.targetSpace);
+
+            // Sync promoted rules with SAP in the target space
+            for (Map.Entry<String, Map<String, Object>> entry : context.rulesToApply.entrySet()) {
+                Map<String, Object> doc = entry.getValue();
+                if (doc.containsKey(Constants.KEY_DOCUMENT)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+                    JsonNode docNode = mapper.valueToTree(document);
+                    try {
+                        RestRequest.Method method =
+                                context.ruleAdds.contains(entry.getKey())
+                                        ? RestRequest.Method.POST
+                                        : RestRequest.Method.PUT;
+                        this.securityAnalyticsService.upsertRule(docNode, targetSpaceEnum, method);
+                    } catch (Exception e) {
+                        log.warn(
+                                "Failed to sync rule [{}] to SAP for space [{}]: {}",
+                                entry.getKey(),
+                                context.targetSpace,
+                                e.getMessage());
+                    }
+                }
+            }
         }
 
         // Process DELETE operations for each resource type
@@ -551,6 +620,19 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
                     context.integrationsToDelete,
                     context.targetSpace);
+
+            // Delete promoted integrations from SAP in the target space
+            for (String integrationId : context.integrationsToDelete) {
+                try {
+                    this.securityAnalyticsService.deleteIntegration(integrationId, targetSpaceEnum);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete integration [{}] from SAP for space [{}]: {}",
+                            integrationId,
+                            context.targetSpace,
+                            e.getMessage());
+                }
+            }
         }
 
         if (!context.kvdbsToDelete.isEmpty()) {
@@ -579,6 +661,19 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
                     context.rulesToDelete,
                     context.targetSpace);
+
+            // Delete promoted rules from SAP in the target space
+            for (String ruleId : context.rulesToDelete) {
+                try {
+                    this.securityAnalyticsService.deleteRule(ruleId, targetSpaceEnum);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete rule [{}] from SAP for space [{}]: {}",
+                            ruleId,
+                            context.targetSpace,
+                            e.getMessage());
+                }
+            }
         }
     }
 
@@ -596,6 +691,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
         final Set<String> decodersToDelete;
         final Set<String> filtersToDelete;
         final Set<String> rulesToDelete;
+        final Set<String> integrationAdds;
+        final Set<String> ruleAdds;
         final String targetSpace;
 
         PromotionContext(
@@ -611,6 +708,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 Set<String> decodersToDelete,
                 Set<String> filtersToDelete,
                 Set<String> rulesToDelete,
+                Set<String> integrationAdds,
+                Set<String> ruleAdds,
                 String targetSpace) {
             this.enginePayload = enginePayload;
             this.policyToApply = policyToApply;
@@ -624,6 +723,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.decodersToDelete = decodersToDelete;
             this.filtersToDelete = filtersToDelete;
             this.rulesToDelete = rulesToDelete;
+            this.integrationAdds = integrationAdds;
+            this.ruleAdds = ruleAdds;
             this.targetSpace = targetSpace;
         }
     }

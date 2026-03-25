@@ -26,9 +26,9 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.*;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -42,6 +42,7 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.secure_sm.AccessController;
@@ -61,6 +62,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -72,6 +75,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.MockEngineService;
+import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
@@ -85,13 +89,13 @@ public class ContentManagerPlugin extends Plugin
 
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
-    private Settings settings;
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
     private TelemetryPingJob telemetryPingJob;
     private EngineService engine;
     private SpaceService spaceService;
+    private SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -148,13 +152,18 @@ public class ContentManagerPlugin extends Plugin
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
                 new TelemetryPingJob(environment.settings(), clusterService, threadPool, environment);
-        this.settings = environment.settings();
+
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
         runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
 
-        // Initialize Space Service
+        // Initialize services
         this.spaceService = new SpaceService(this.client);
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
+        }
 
         // Register hot-reload settings consumer
         clusterService
@@ -209,12 +218,12 @@ public class ContentManagerPlugin extends Plugin
     @Override
     public List<RestHandler> getRestHandlers(
             Settings settings,
-            org.opensearch.rest.RestController restController,
-            org.opensearch.common.settings.ClusterSettings clusterSettings,
-            org.opensearch.common.settings.IndexScopedSettings indexScopedSettings,
-            org.opensearch.common.settings.SettingsFilter settingsFilter,
-            org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
-            java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
                 new RestGetSubscriptionAction(this.ctiConsole),
@@ -242,7 +251,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestPutKvdbAction(this.engine),
                 new RestDeleteKvdbAction(this.engine),
                 // Promote endpoints
-                new RestPostPromoteAction(this.engine, this.spaceService),
+                new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService),
                 new RestGetPromoteAction(this.spaceService),
                 // Engine Filters endpoints
                 new RestPostFilterAction(this.engine),

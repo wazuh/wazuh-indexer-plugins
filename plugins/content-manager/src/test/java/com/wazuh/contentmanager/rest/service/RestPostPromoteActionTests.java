@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.when;
 public class RestPostPromoteActionTests extends OpenSearchTestCase {
     private EngineService engine;
     private SpaceService spaceService;
+    private SecurityAnalyticsService securityAnalyticsService;
     private RestPostPromoteAction action;
 
     /**
@@ -106,7 +108,9 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mapper.createObjectNode());
 
-        this.action = new RestPostPromoteAction(this.engine, this.spaceService);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        this.action =
+                new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService);
     }
 
     /**
@@ -327,6 +331,146 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     @AwaitsFix(bugUrl = "")
     public void testPostPromote400_missingResource() {
         Assert.fail("Not yet implemented");
+    }
+
+    /**
+     * When an integration is promoted via ADD, {@code upsertIntegration} must be called on SAP with
+     * the target space and {@code PUT} method.
+     */
+    public void testSapSync_integrationUpsertCalledOnAdd() throws IOException {
+        // Mock engine to return success (draft → test requires engine validation)
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [{"operation": "add", "id": "integration-1"}],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService)
+                .upsertIntegration(any(JsonNode.class), eq(Space.TEST), eq(RestRequest.Method.POST));
+    }
+
+    /**
+     * When an integration is removed via REMOVE, {@code deleteIntegration} must be called on SAP with
+     * the integration id and target space.
+     */
+    public void testSapSync_integrationDeleteCalledOnRemove() {
+        // Mock engine to return success (draft → test requires engine validation)
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [{"operation": "remove", "id": "integration-1"}],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService).deleteIntegration(eq("integration-1"), eq(Space.TEST));
+    }
+
+    /**
+     * When a rule is promoted via ADD, {@code upsertRule} must be called on SAP with the target space
+     * and {@code PUT} method.
+     */
+    public void testSapSync_ruleUpsertCalledOnAdd() throws IOException {
+        // Override default mock: rule source doc must carry space "test" for ADD validation to pass
+        Map<String, String> spaceTest = new HashMap<>();
+        spaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
+        Map<String, Object> ruleDoc = new HashMap<>();
+        ruleDoc.put(Constants.KEY_SPACE, spaceTest);
+        ruleDoc.put(Constants.KEY_DOCUMENT, new HashMap<>());
+        when(this.spaceService.getDocument(eq(Constants.INDEX_RULES), eq("test"), eq("rule-1")))
+                .thenReturn(ruleDoc);
+        // rule-1 must NOT exist in the target space (custom) for ADD to proceed
+        when(this.spaceService.getDocument(eq(Constants.INDEX_RULES), eq("custom"), eq("rule-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "test",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [{"operation": "add", "id": "rule-1"}],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        // test → custom promotion skips engine validation
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService)
+                .upsertRule(any(JsonNode.class), eq(Space.CUSTOM), eq(RestRequest.Method.POST));
+    }
+
+    /**
+     * When a rule is removed via REMOVE, {@code deleteRule} must be called on SAP with the rule id
+     * and target space.
+     */
+    public void testSapSync_ruleDeleteCalledOnRemove() {
+        // spotless:off
+        String payload = """
+                {
+                  "space": "test",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [{"operation": "remove", "id": "rule-1"}],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        // test → custom promotion skips engine validation
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService).deleteRule(eq("rule-1"), eq(Space.CUSTOM));
     }
 
     /** If the requested operation for the policy is not "update", return a 400 error. */

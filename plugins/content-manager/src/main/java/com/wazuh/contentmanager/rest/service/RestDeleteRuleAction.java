@@ -22,6 +22,7 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.util.List;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -92,7 +93,7 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     @Override
     protected void deleteExternalServices(String id) {
-        this.securityAnalyticsService.deleteRule(id, false);
+        this.securityAnalyticsService.deleteRule(id, Space.DRAFT);
     }
 
     @Override

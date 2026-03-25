@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -196,7 +197,7 @@ public class RestDeleteIntegrationActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
         Assert.assertEquals(INTEGRATION_ID, actualResponse.getMessage());
-        verify(this.saService).deleteIntegration(INTEGRATION_ID, false);
+        verify(this.saService).deleteIntegration(INTEGRATION_ID, Space.DRAFT);
         verify(this.client).delete(any(DeleteRequest.class), any());
     }
 
