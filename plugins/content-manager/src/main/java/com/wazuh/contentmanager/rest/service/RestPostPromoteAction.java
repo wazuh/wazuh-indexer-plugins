@@ -391,8 +391,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
      *
      * @param context The promotion context.
      * @param resourceType The resource type key.
+     * @throws IOException If the snapshot cannot be captured.
      */
-    private void captureOldVersions(PromotionContext context, String resourceType) {
+    private void captureOldVersions(PromotionContext context, String resourceType)
+            throws IOException {
         Map<String, Map<String, Object>> resourcesToApply = context.getApplyMap(resourceType);
         if (resourcesToApply.isEmpty()) {
             return;
@@ -416,7 +418,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         docId,
                         resourceType,
                         e.getMessage());
-                dest.put(docId, null);
+                throw e;
             }
         }
     }
@@ -427,8 +429,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
      *
      * @param context The promotion context.
      * @param resourceType The resource type key.
+     * @throws IOException If the snapshot cannot be captured.
      */
-    private void captureDeleteSnapshots(PromotionContext context, String resourceType) {
+    private void captureDeleteSnapshots(PromotionContext context, String resourceType)
+            throws IOException {
         Set<String> idsToDelete = context.getDeleteSet(resourceType);
         if (idsToDelete.isEmpty()) {
             return;
@@ -445,11 +449,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     dest.put(docId, existing);
                 }
             } catch (IOException e) {
-                log.warn(
-                        "Failed to snapshot delete target [{}] in [{}]: {}",
+                log.error(
+                        "Failed to snapshot delete target [{}] in [{}]: {}. Aborting promotion.",
                         docId,
                         resourceType,
                         e.getMessage());
+                throw e;
             }
         }
     }
@@ -666,19 +671,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
         ObjectMapper mapper = new ObjectMapper();
 
         // Consolidate ADD/UPDATE operations for each resource type
-        this.promoteIfNotEmpty(Constants.KEY_POLICY, context.policyToApply, context);
-        this.promoteIfNotEmpty(Constants.KEY_INTEGRATIONS, context.integrationsToApply, context);
-        this.promoteIfNotEmpty(Constants.KEY_KVDBS, context.kvdbsToApply, context);
-        this.promoteIfNotEmpty(Constants.KEY_DECODERS, context.decodersToApply, context);
-        this.promoteIfNotEmpty(Constants.KEY_FILTERS, context.filtersToApply, context);
-        this.promoteIfNotEmpty(Constants.KEY_RULES, context.rulesToApply, context);
+        for (String type : APPLY_RESOURCE_TYPES) {
+            this.promoteIfNotEmpty(type, context.getApplyMap(type), context);
+        }
 
         // Process DELETE operations for each resource type
-        this.deleteIfNotEmpty(Constants.KEY_INTEGRATIONS, context.integrationsToDelete, context);
-        this.deleteIfNotEmpty(Constants.KEY_KVDBS, context.kvdbsToDelete, context);
-        this.deleteIfNotEmpty(Constants.KEY_DECODERS, context.decodersToDelete, context);
-        this.deleteIfNotEmpty(Constants.KEY_FILTERS, context.filtersToDelete, context);
-        this.deleteIfNotEmpty(Constants.KEY_RULES, context.rulesToDelete, context);
+        for (String type : DELETE_RESOURCE_TYPES) {
+            this.deleteIfNotEmpty(type, context.getDeleteSet(type), context);
+        }
 
         // Best-effort SAP synchronization.
         // Deletes must happen before upserts: rules before integrations (dependency order).
