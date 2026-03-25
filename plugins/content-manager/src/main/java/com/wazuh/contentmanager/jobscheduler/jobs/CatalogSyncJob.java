@@ -70,7 +70,7 @@ public class CatalogSyncJob implements JobExecutor {
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
-                        new ConsumerRulesetService(client, consumersIndex, environment, engineService),
+                        new ConsumerRulesetService(client, consumersIndex, environment),
                         new ConsumerIocService(client, consumersIndex, environment, engineService),
                         new ConsumerCveService(client, consumersIndex, environment));
     }
