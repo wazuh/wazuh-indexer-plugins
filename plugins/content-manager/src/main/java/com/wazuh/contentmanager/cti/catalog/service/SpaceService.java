@@ -160,19 +160,19 @@ public class SpaceService {
                         .toString();
         try {
             String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-            String title = "Custom policy";
+            String title = "Custom space";
 
             Policy policy = new Policy();
             policy.setId(documentId);
             policy.setTitle(title);
             policy.setDescription(title);
-            policy.setAuthor("Wazuh Inc.");
+            policy.setAuthor("Custom");
             policy.setRootDecoder("");
             policy.setDocumentation("");
             policy.setIntegrations(Collections.emptyList());
             policy.setFilters(Collections.emptyList());
             policy.setEnrichments(Collections.emptyList());
-            policy.setReferences(List.of("https://wazuh.com"));
+            policy.setReferences(Collections.emptyList());
             policy.setDate(date);
             policy.setModified(date);
             policy.setEnabled(false);

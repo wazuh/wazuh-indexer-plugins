@@ -1,0 +1,40 @@
+---
+- name: rule
+  title: Rule
+  description: >
+    Fields related to the detection rule that generated the finding.
+  type: group
+  group: 2
+  fields:
+    - name: title
+      type: keyword
+      level: custom
+      description: >
+        Title of the rule that generated the finding.
+      example: "Suspicious PowerShell Execution"
+    - name: tags
+      type: keyword
+      level: custom
+      description: >
+        Tags associated with the rule.
+      normalize:
+        - array
+      example: '["attack.execution", "attack.t1059"]'
+    - name: level
+      type: keyword
+      level: custom
+      description: >
+        Severity level of the rule.
+      example: "high"
+    - name: status
+      type: keyword
+      level: custom
+      description: >
+        Status of the rule (e.g., stable, test, experimental).
+      example: "stable"
+    - name: sigma_id
+      type: keyword
+      level: custom
+      description: >
+        Sigma rule identifier.
+      example: "5af54681-df95-4c26-854f-2565e13cfab0"

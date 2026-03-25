@@ -280,10 +280,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,event,event.collector,keyword,custom,,file,Collector used to retrieve the event.
 9.1.0,true,event,event.created,date,core,,2016-05-23T08:05:34.857Z,Time when the event was first read by an agent or by your pipeline.
 9.1.0,true,event,event.dataset,keyword,core,,apache.access,Name of the dataset.
+9.1.0,true,event,event.doc_id,keyword,custom,,abc123,Document ID of the matched alert that triggered the active response.
 9.1.0,true,event,event.duration,long,core,,,Duration of the event in nanoseconds.
 9.1.0,true,event,event.end,date,extended,,,`event.end` contains the date when the event ended or when the activity was last observed.
 9.1.0,true,event,event.hash,keyword,extended,,123456789012345678901234567890ABCD,Hash (perhaps logstash fingerprint) of raw field to be able to demonstrate log integrity.
 9.1.0,true,event,event.id,keyword,core,,8a4f500d,Unique ID to describe the event.
+9.1.0,true,event,event.index,keyword,custom,,wazuh-events-v5-security,Source index of the matched alert that triggered the active response.
 9.1.0,true,event,event.ingested,date,core,,2016-05-23T08:05:35.101Z,Timestamp when an event arrived in the central data store.
 9.1.0,true,event,event.kind,keyword,core,,alert,The kind of the event. The highest categorization field in the hierarchy.
 9.1.0,true,event,event.module,keyword,core,,apache,Name of the module this data is coming from.
@@ -1102,6 +1104,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,rule,rule.compliance.tsc,keyword,custom,array,"[""CC6.1"", ""CC7.1""]",TSC requirements.
 9.1.0,true,rule,rule.description,keyword,extended,,Block requests to public DNS over HTTPS / TLS protocols,Rule description
 9.1.0,true,rule,rule.id,keyword,extended,,101,Rule ID
+9.1.0,true,rule,rule.level,keyword,custom,,high,Severity level of the rule.
 9.1.0,true,rule,rule.license,keyword,extended,,Apache 2.0,Rule license
 9.1.0,true,rule,rule.mitre.subtechnique,keyword,custom,array,"[""T1059.001"", ""T1078.001""]",MITRE ATT&CK subtechniques.
 9.1.0,true,rule,rule.mitre.tactic,keyword,custom,array,"[""TA0002"", ""TA0005""]",MITRE ATT&CK tactics.
@@ -1109,6 +1112,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,rule,rule.name,keyword,extended,,BLOCK_DNS_over_TLS,Rule name
 9.1.0,true,rule,rule.reference,keyword,extended,,https://en.wikipedia.org/wiki/DNS_over_TLS,Rule reference URL
 9.1.0,true,rule,rule.ruleset,keyword,extended,,Standard_Protocol_Filters,Rule ruleset
+9.1.0,true,rule,rule.sigma_id,keyword,custom,,5af54681-df95-4c26-854f-2565e13cfab0,Sigma rule identifier.
+9.1.0,true,rule,rule.status,keyword,custom,,stable,"Status of the rule (e.g., stable, test, experimental)."
+9.1.0,true,rule,rule.tags,keyword,custom,array,"[""attack.execution"", ""attack.t1059""]",Tags associated with the rule.
+9.1.0,true,rule,rule.title,keyword,custom,,Suspicious PowerShell Execution,Title of the rule that generated the finding.
 9.1.0,true,rule,rule.uuid,keyword,extended,,1100110011,Rule UUID
 9.1.0,true,rule,rule.version,keyword,extended,,1.1,Rule version
 9.1.0,true,server,server.address,keyword,extended,,,Server network address.

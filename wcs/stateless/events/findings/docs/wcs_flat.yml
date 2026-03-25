@@ -3866,6 +3866,17 @@ event.dataset:
   normalize: []
   short: Name of the dataset.
   type: keyword
+event.doc_id:
+  dashed_name: event-doc-id
+  description: Document ID of the matched alert that triggered the active response.
+  example: abc123
+  flat_name: event.doc_id
+  ignore_above: 1024
+  level: custom
+  name: doc_id
+  normalize: []
+  short: Document ID of the matched alert that triggered the active response.
+  type: keyword
 event.duration:
   dashed_name: event-duration
   description: 'Duration of the event in nanoseconds.
@@ -3916,6 +3927,17 @@ event.id:
   name: id
   normalize: []
   short: Unique ID to describe the event.
+  type: keyword
+event.index:
+  dashed_name: event-index
+  description: Source index of the matched alert that triggered the active response.
+  example: wazuh-events-v5-security
+  flat_name: event.index
+  ignore_above: 1024
+  level: custom
+  name: index
+  normalize: []
+  short: Source index of the matched alert that triggered the active response.
   type: keyword
 event.ingested:
   dashed_name: event-ingested
@@ -14743,6 +14765,17 @@ rule.id:
   normalize: []
   short: Rule ID
   type: keyword
+rule.level:
+  dashed_name: rule-level
+  description: Severity level of the rule.
+  example: high
+  flat_name: rule.level
+  ignore_above: 1024
+  level: custom
+  name: level
+  normalize: []
+  short: Severity level of the rule.
+  type: keyword
 rule.license:
   dashed_name: rule-license
   description: Name of the license under which the rule used to generate this event
@@ -14832,6 +14865,51 @@ rule.ruleset:
   name: ruleset
   normalize: []
   short: Rule ruleset
+  type: keyword
+rule.sigma_id:
+  dashed_name: rule-sigma-id
+  description: Sigma rule identifier.
+  example: 5af54681-df95-4c26-854f-2565e13cfab0
+  flat_name: rule.sigma_id
+  ignore_above: 1024
+  level: custom
+  name: sigma_id
+  normalize: []
+  short: Sigma rule identifier.
+  type: keyword
+rule.status:
+  dashed_name: rule-status
+  description: Status of the rule (e.g., stable, test, experimental).
+  example: stable
+  flat_name: rule.status
+  ignore_above: 1024
+  level: custom
+  name: status
+  normalize: []
+  short: Status of the rule (e.g., stable, test, experimental).
+  type: keyword
+rule.tags:
+  dashed_name: rule-tags
+  description: Tags associated with the rule.
+  example: '["attack.execution", "attack.t1059"]'
+  flat_name: rule.tags
+  ignore_above: 1024
+  level: custom
+  name: tags
+  normalize:
+  - array
+  short: Tags associated with the rule.
+  type: keyword
+rule.title:
+  dashed_name: rule-title
+  description: Title of the rule that generated the finding.
+  example: Suspicious PowerShell Execution
+  flat_name: rule.title
+  ignore_above: 1024
+  level: custom
+  name: title
+  normalize: []
+  short: Title of the rule that generated the finding.
   type: keyword
 rule.uuid:
   dashed_name: rule-uuid
