@@ -9,6 +9,10 @@
       type: keyword
       level: custom
       description: The name of the CVE.
+    - name: type
+      type: keyword
+      level: custom
+      description: The type of the CTI content.
     - name: offset
       type: unsigned_long
       level: custom

@@ -76,8 +76,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add active response index with ISM policy [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
 - Implement Ioc delivery [(#858)](https://github.com/wazuh/wazuh-indexer-plugins/pull/858)
 - Add Centralized CTI Download Via Indexer [(#907)](https://github.com/wazuh/wazuh-indexer-plugins/pull/907)
+- Implement logic to import standard space into Wazuh Engine [(#924)](https://github.com/wazuh/wazuh-indexer-plugins/pull/924)
+- Full Indexing of the Vulnerability Feed [(#921)](https://github.com/wazuh/wazuh-indexer-plugins/pull/921)
 - Load CTI content from local snapshots [(#916)](https://github.com/wazuh/wazuh-indexer-plugins/pull/916)
 - Add documentation for commom-utils plugin [(#929)](https://github.com/wazuh/wazuh-indexer-plugins/pull/929)
+- Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
+- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941)
+- Implement telemetry ping job [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939)
+- Create findings module [(#949)](https://github.com/wazuh/wazuh-indexer-plugins/pull/949)
+
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -127,6 +134,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restructure ecs folder [(#898)](https://github.com/wazuh/wazuh-indexer-plugins/pull/898)
 - Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 - Normalize metadata object [(#923)](https://github.com/wazuh/wazuh-indexer-plugins/pull/923)
+- Add support for multi-space logtest executions [(#937)](https://github.com/wazuh/wazuh-indexer-plugins/pull/937)
+- Add documentation for the Setup plugin's API [(#936)](https://github.com/wazuh/wazuh-indexer-plugins/pull/936)
+- Disable deletion of root decoder [(#948)](https://github.com/wazuh/wazuh-indexer-plugins/pull/948)
+- Update custom policy metadata [(#951)](https://github.com/wazuh/wazuh-indexer-plugins/pull/951)
 
 ### Deprecated
 -
@@ -156,6 +167,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
 - Fix flaky tests on Setup plugin [(#888)](https://github.com/wazuh/wazuh-indexer-plugins/pull/888/)
 - Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
+- Fix race condition on .cti-consumers index creation [(#928)](https://github.com/wazuh/wazuh-indexer-plugins/pull/928)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

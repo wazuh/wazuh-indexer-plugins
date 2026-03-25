@@ -2,7 +2,7 @@
 
 In this section you can find instructions on how to create and restore a backup of your Wazuh Indexer key files, preserving file permissions, ownership, and path. Later, you can move this folder contents back to the corresponding location to restore your certificates and configurations. Backing up these files is useful in cases such as moving your Wazuh installation to another system.
 
-> **Note**: This backup only restores the configuration files, not the data. To backup data stored in the indexer, use [snapshots](https://docs.opensearch.org/3.3/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
+> **Note**: This backup only restores the configuration files, not the data. To back up data stored in the indexer, use [snapshots](https://docs.opensearch.org/3.3/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
 
 ## Creating a backup
 
@@ -12,18 +12,24 @@ To create a backup of the Wazuh indexer, follow these steps. Repeat them on ever
 
 ### Preparing the backup
 
-1. Create the destination folder to store the files. For version control, add the date and time of the backup to the name of the folder.
+1. Backup the existing Wazuh indexer security configuration files.
 
     ```bash
-    bkp_folder=~/wazuh_files_backup/$(date +%F_%H:%M)
-    mkdir -p $bkp_folder && echo $bkp_folder
+    /usr/share/wazuh-indexer/bin/indexer-security-init.sh --options "-backup /etc/wazuh-indexer/opensearch-security -icl -nhnv"
     ```
 
-2. Save the host information.
+2. Create the destination folder to store the files. For version control, add the date and time of the backup to the name of the folder.
 
     ```bash
-    cat /etc/*release* > $bkp_folder/host-info.txt
-    echo -e "\n$(hostname): $(hostname -I)" >> $bkp_folder/host-info.txt
+    backup_folder=~/wazuh_files_backup/$(date +%F_%H:%M)
+    mkdir -p $backup_folder && echo $backup_folder
+    ```
+
+3. Save the host information.
+
+    ```bash
+    cat /etc/*release* > $backup_folder/host-info.txt
+    echo -e "\n$(hostname): $(hostname -I)" >> $backup_folder/host-info.txt
     ```
 
 ### Backing up the Wazuh indexer
@@ -39,16 +45,18 @@ rsync -aREz \
 /etc/wazuh-indexer/opensearch.yml \
 /etc/wazuh-indexer/opensearch.keystore \
 /etc/wazuh-indexer/opensearch-observability/ \
-/etc/wazuh-indexer/opensearch-reports-scheduler/ \
 /etc/wazuh-indexer/opensearch-security/ \
-/usr/lib/sysctl.d/wazuh-indexer.conf $bkp_folder
+/etc/wazuh-indexer/wazuh-indexer-reports-scheduler/ \
+/etc/wazuh-indexer/wazuh-indexer-notifications/ \
+/etc/wazuh-indexer/wazuh-indexer-notifications-core/ \
+/usr/lib/sysctl.d/wazuh-indexer.conf $backup_folder
 ```
 
 Compress the files and transfer them to the new server:
 
-    ```bash
-    tar -cvzf wazuh_central_components.tar.gz ~/wazuh_files_backup/
-    ```
+```bash
+tar -cvzf wazuh-indexer-backup.tar.gz $backup_folder
+```
 
 ## Restoring Wazuh indexer from backup
 
@@ -65,15 +73,15 @@ This guide explains how to restore a backup of your configuration files.
 1. In the new node, move the compressed backup file to the root `/` directory:
 
     ```bash
-    mv wazuh_central_components.tar.gz /
+    mv wazuh-indexer-backup.tar.gz /
     cd /
     ```
 
 2. Decompress the backup files and change the current working directory to the directory based on the date and time of the backup files:
 
     ```bash
-    tar -xzvf wazuh_central_components.tar.gz
-    cd ~/wazuh_files_backup/<DATE_TIME>
+    tar -xzvf wazuh-indexer-backup.tar.gz
+    cd $backup_folder
     ```
 
 #### Restoring Wazuh indexer files
@@ -86,26 +94,39 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     systemctl stop wazuh-indexer
     ```
 
-2. Restore the Wazuh indexer configuration files and change the file permissions and ownerships accordingly:
+2. Restore the Wazuh indexer configuration files and change the file permissions and ownership accordingly:
 
     ```bash
-    sudo cp etc/wazuh-indexer/jvm.options /etc/wazuh-indexer/jvm.options
+    cp etc/wazuh-indexer/jvm.options /etc/wazuh-indexer/jvm.options
+    cp -r etc/wazuh-indexer/jvm.options.d/ /etc/wazuh-indexer/jvm.options.d/
+    cp etc/wazuh-indexer/log4j2.properties /etc/wazuh-indexer/log4j2.properties
+    cp etc/wazuh-indexer/opensearch.keystore /etc/wazuh-indexer/opensearch.keystore
+    cp -r etc/wazuh-indexer/opensearch-observability/ /etc/wazuh-indexer/opensearch-observability/
+    cp -r etc/wazuh-indexer/wazuh-indexer-reports-scheduler/ /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
+    cp -r etc/wazuh-indexer/wazuh-indexer-notifications/ /etc/wazuh-indexer/wazuh-indexer-notifications/
+    cp -r etc/wazuh-indexer/wazuh-indexer-notifications-core/ /etc/wazuh-indexer/wazuh-indexer-notifications-core/
+    cp usr/lib/sysctl.d/wazuh-indexer.conf /usr/lib/sysctl.d/wazuh-indexer.conf
+
     chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/jvm.options
-    sudo cp -r etc/wazuh-indexer/jvm.options.d/* /etc/wazuh-indexer/jvm.options.d/
-    chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/jvm.options.d
-    sudo cp etc/wazuh-indexer/log4j2.properties /etc/wazuh-indexer/log4j2.properties
+    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/jvm.options.d
     chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/log4j2.properties
-    sudo cp etc/wazuh-indexer/opensearch.keystore /etc/wazuh-indexer/opensearch.keystore
     chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
-    sudo cp -r etc/wazuh-indexer/opensearch-observability/* /etc/wazuh-indexer/opensearch-observability/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch-observability/
-    sudo cp -r etc/wazuh-indexer/opensearch-reports-scheduler/* /etc/wazuh-indexer/opensearch-reports-scheduler/
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch-reports-scheduler/
-    sudo cp usr/lib/sysctl.d/wazuh-indexer.conf /usr/lib/sysctl.d/wazuh-indexer.conf
+    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
+    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications/
+    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications-core/
+    chown wazuh-indexer:wazuh-indexer /usr/lib/sysctl.d/wazuh-indexer.conf
     ```
 
 3. Start the Wazuh indexer service:
 
     ```bash
     systemctl start wazuh-indexer
+    ```
+
+4. Clear the backup files to free up space:
+
+    ```bash
+    rm -rf $backup_folder
+    rm -rf /wazuh-indexer-backup.tar.gz
     ```

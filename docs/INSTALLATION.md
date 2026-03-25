@@ -9,6 +9,11 @@ This folder contains the technical documentation for the Wazuh Indexer. The docu
 
 To work with this documentation, you need **mdBook** installed.
 
+| Tool | Required Version |
+| --- | --- |
+| mdbook | 0.5.2 |
+| mdbook-mermaid | 0.17.0 |
+
 - Get the latest `cargo` (hit enter when prompted for a default install)
   ```bash
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -16,8 +21,8 @@ To work with this documentation, you need **mdBook** installed.
 
 - Install `mdbook` and `mdbook-mermaid`
   ```bash
-  cargo install mdbook
-  cargo install mdbook-mermaid
+  cargo install mdbook --version 0.5.2 --locked
+  cargo install mdbook-mermaid --version 0.17.0 --locked
   ```
 
 ## Usage

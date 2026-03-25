@@ -4,6 +4,7 @@ grant {
     permission java.io.FilePermission "*", "read,write";
     permission java.io.FilePermission "/usr/share/wazuh-indexer/engine/data/-", "read,write";
     permission java.io.FilePermission "/usr/share/wazuh-indexer/plugins/wazuh-indexer-content-manager/snapshots/-", "read,write,delete";
+    permission java.io.FilePermission "/usr/share/wazuh-indexer/VERSION.json", "read";
 
     // needed to find the classloader to load whitelisted classes.
     permission java.lang.RuntimePermission "createClassLoader";

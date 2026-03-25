@@ -326,7 +326,8 @@ class ContentManagerTester:
         self.log("LOGTEST", "Running simulation...", "INFO")
         payload = {
             "queue": 1, "location": "/var/log/auth.log",
-            "agent_metadata": {
+            "space": "test",
+            "metadata": {
                 "agent": {
                     "name": "test-agent", "id": "000",
                     "host": {"os": {"name": "Ubuntu", "platform": "ubuntu"}, "ip": ["127.0.0.1"]}

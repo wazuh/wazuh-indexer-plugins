@@ -40,6 +40,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -414,6 +416,60 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Verify
         Assert.assertEquals(400, actualResponse.getStatus());
         Assert.assertTrue(actualResponse.getMessage().contains("expected source space"));
+    }
+
+    /** If the promotion is from TEST to CUSTOM, the engine should not be called. */
+    public void testPostPromoteToCustomSkipsEngine() throws IOException {
+        // Mock spaces
+        Map<String, String> mockSpaceTest = new HashMap<>();
+        mockSpaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
+        Map<String, String> mockSpaceCustom = new HashMap<>();
+        mockSpaceCustom.put(Constants.KEY_NAME, Space.CUSTOM.toString());
+
+        // Mock policy document for UPDATE operation (policy exists in test space)
+        Map<String, Object> mockPolicy = new HashMap<>();
+        mockPolicy.put(Constants.KEY_SPACE, mockSpaceTest);
+        Map<String, Object> mockPolicyDoc = new HashMap<>();
+        mockPolicyDoc.put("id", "policy");
+        mockPolicy.put(Constants.KEY_DOCUMENT, mockPolicyDoc);
+        when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), eq("test"), eq("policy")))
+                .thenReturn(mockPolicy);
+        when(this.spaceService.getPolicy(eq("test"))).thenReturn(mockPolicy);
+
+        // Mock decoder for ADD operation (decoder exists in test space, not in custom)
+        Map<String, Object> mockDecoder = new HashMap<>();
+        mockDecoder.put(Constants.KEY_SPACE, mockSpaceTest);
+        Map<String, Object> mockDecoderDoc = new HashMap<>();
+        mockDecoderDoc.put("id", "decoder-1");
+        mockDecoder.put(Constants.KEY_DOCUMENT, mockDecoderDoc);
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("test"), eq("decoder-1")))
+                .thenReturn(mockDecoder);
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("custom"), eq("decoder-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "test",
+                  "changes": {
+                    "policy": [{"operation": "update", "id": "policy"}],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [{"operation": "add", "id": "decoder-1"}],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        // Invoke method to test
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        // Verify - promotion succeeds and engine is never called
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine, never()).promote(any(JsonNode.class));
     }
 
     /**

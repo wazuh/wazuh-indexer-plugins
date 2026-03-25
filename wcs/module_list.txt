@@ -21,8 +21,11 @@ module_to_file=(
   # Stateless modules
   [stateless/events/main]=templates/streams/events.json
   [stateless/active-responses]=templates/streams/active-responses.json
+  [stateless/events/findings]=templates/streams/findings.json
   [stateless/events/raw]=templates/streams/raw.json
   [stateless/events/unclassified]=templates/streams/unclassified.json
+  [stateless/metrics/agents]=templates/streams/metrics-agents.json
+  [stateless/metrics/comms]=templates/streams/metrics-comms.json
   # Settings module
   [settings]=templates/settings.json
   # Engine filter module

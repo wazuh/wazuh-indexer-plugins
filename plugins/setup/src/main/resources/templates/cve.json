@@ -17,7 +17,7 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "strict",
+      "dynamic": "true",
       "properties": {
         "document": {
           "properties": {
@@ -1920,6 +1920,10 @@
           "type": "unsigned_long"
         },
         "tags": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "type": {
           "ignore_above": 1024,
           "type": "keyword"
         },

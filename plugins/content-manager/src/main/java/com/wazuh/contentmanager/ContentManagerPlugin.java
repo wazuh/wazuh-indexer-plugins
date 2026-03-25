@@ -16,10 +16,14 @@
  */
 package com.wazuh.contentmanager;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
@@ -40,10 +44,14 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -60,6 +68,7 @@ import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -68,14 +77,19 @@ import com.wazuh.contentmanager.utils.MockEngineService;
 public class ContentManagerPlugin extends Plugin
         implements ClusterPlugin, JobSchedulerExtension, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
-    private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
-    private static final String JOB_ID = "wazuh-catalog-sync-job";
+    private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
+    private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
+    private static final String TELEMETRY_JOB_ID = "wazuh-telemetry-ping-job";
+    private static final String VERSION_FILE_NAME = "VERSION.json";
+    private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
+    private Settings settings;
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
+    private TelemetryPingJob telemetryPingJob;
     private EngineService engine;
     private SpaceService spaceService;
 
@@ -131,11 +145,22 @@ public class ContentManagerPlugin extends Plugin
                 new CatalogSyncJob(
                         this.client, this.consumersIndex, environment, this.threadPool, this.engine);
 
+        // Initialize TelemetryPingJob
+        this.telemetryPingJob =
+                new TelemetryPingJob(environment.settings(), clusterService, threadPool, environment);
+        this.settings = environment.settings();
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
+        runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
 
         // Initialize Space Service
         this.spaceService = new SpaceService(this.client);
+
+        // Register hot-reload settings consumer
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
         return Collections.emptyList();
     }
@@ -161,10 +186,12 @@ public class ContentManagerPlugin extends Plugin
             } else {
                 log.info("Skipping catalog sync job trigger");
             }
-        }
 
-        // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
-        this.scheduleCatalogSyncJob();
+            // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
+            this.scheduleCatalogSyncJob();
+            // Schedule the telemetry ping job to ensure it is registered in the system index
+            this.scheduleTelemetryPingJob();
+        }
     }
 
     /**
@@ -235,7 +262,7 @@ public class ContentManagerPlugin extends Plugin
                                 try {
                                     CreateIndexResponse response = this.consumersIndex.createIndex();
 
-                                    if (response.isAcknowledged()) {
+                                    if (response != null && response.isAcknowledged()) {
                                         log.info(
                                                 "Index created: {} acknowledged={}",
                                                 response.index(),
@@ -255,13 +282,42 @@ public class ContentManagerPlugin extends Plugin
         }
     }
 
+    /** Check if the index exists; if not, create it with specific settings. */
+    private void ensureJobsIndexExists() {
+        boolean indexExists =
+                this.client
+                        .admin()
+                        .indices()
+                        .prepareExists(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                        .get()
+                        .isExists();
+
+        if (!indexExists) {
+            try {
+                Settings settings =
+                        Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
+
+                this.client
+                        .admin()
+                        .indices()
+                        .prepareCreate(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                        .setSettings(settings)
+                        .get();
+
+                log.info("Created job index {}.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+            } catch (Exception e) {
+                log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
+            }
+        }
+    }
+
     /**
      * Schedules the Catalog Sync Job within the OpenSearch Job Scheduler.
      *
      * <p>This method performs two main checks asynchronously:
      *
-     * <p>- Ensures the job index ({@value #JOB_INDEX_NAME}) exists. - Ensures the specific job
-     * document ({@value #JOB_ID}) exists.
+     * <p>- Ensures the job index ({@value #CONTENT_MANAGER_JOBS_INDEX_NAME}) exists. - Ensures the
+     * specific job document ({@value #CATALOG_SYNC_JOB_ID}) exists.
      *
      * <p>If either is missing, it creates them. The job is configured to run based on the interval
      * defined in PluginSettings.
@@ -272,33 +328,14 @@ public class ContentManagerPlugin extends Plugin
                 .execute(
                         () -> {
                             try {
-                                // 1. Check if the index exists; if not, create it with specific settings.
-                                boolean indexExists =
-                                        this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists();
-
-                                if (!indexExists) {
-                                    try {
-                                        Settings settings =
-                                                Settings.builder()
-                                                        .put("index.number_of_replicas", 0)
-                                                        .put("index.hidden", true)
-                                                        .build();
-
-                                        this.client
-                                                .admin()
-                                                .indices()
-                                                .prepareCreate(JOB_INDEX_NAME)
-                                                .setSettings(settings)
-                                                .get();
-
-                                        log.info("Created job index {}.", JOB_INDEX_NAME);
-                                    } catch (Exception e) {
-                                        log.warn("Could not create index {}: {}", JOB_INDEX_NAME, e.getMessage());
-                                    }
-                                }
+                                this.ensureJobsIndexExists();
 
                                 // 2. Check if the job document exists; if not, index it.
-                                boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, JOB_ID).get().isExists();
+                                boolean jobExists =
+                                        this.client
+                                                .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID)
+                                                .get()
+                                                .isExists();
 
                                 if (!jobExists) {
                                     ContentJobParameter job =
@@ -313,14 +350,126 @@ public class ContentManagerPlugin extends Plugin
                                                     Instant.now(),
                                                     Instant.now());
                                     IndexRequest request =
-                                            new IndexRequest(JOB_INDEX_NAME)
-                                                    .id(JOB_ID)
+                                            new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                                                    .id(CATALOG_SYNC_JOB_ID)
                                                     .source(job.toXContent(XContentFactory.jsonBuilder(), null));
                                     this.client.index(request).actionGet();
                                     log.info("Catalog Sync Job scheduled successfully.");
                                 }
                             } catch (Exception e) {
                                 log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                            }
+                        });
+    }
+
+    /**
+     * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler. * This method ensures
+     * that the telemetry heartbeat is registered in the internal job index. If the job document does
+     * not exist, it creates a new one with a 24-hour interval.
+     */
+    private void scheduleTelemetryPingJob() {
+        boolean isEnabled = PluginSettings.getInstance().isTelemetryEnabled();
+        if (!isEnabled) {
+            log.info("Telemetry job is disabled via settings. Skipping registration.");
+            return;
+        }
+
+        this.threadPool
+                .generic()
+                .execute(
+                        () -> {
+                            try {
+                                this.ensureJobsIndexExists();
+
+                                // Ensure cluster is operational.
+                                ClusterHealthStatus status =
+                                        this.client
+                                                .admin()
+                                                .cluster()
+                                                .prepareHealth()
+                                                .setWaitForGreenStatus()
+                                                .get()
+                                                .getStatus();
+                                if (status == ClusterHealthStatus.RED) {
+                                    log.info("Telemetry job is enabled, but cluster is RED. Skipping registration.");
+                                }
+
+                                boolean jobExists =
+                                        this.client
+                                                .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .get()
+                                                .isExists();
+
+                                if (!jobExists) {
+                                    ContentJobParameter job =
+                                            new ContentJobParameter(
+                                                    "Telemetry Ping Periodic Task",
+                                                    TelemetryPingJob.JOB_TYPE,
+                                                    new IntervalSchedule(Instant.now(), 1, ChronoUnit.DAYS),
+                                                    true,
+                                                    Instant.now(),
+                                                    Instant.now());
+
+                                    IndexRequest request =
+                                            new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                                                    .id(TELEMETRY_JOB_ID)
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+
+                                    this.client.index(request).actionGet();
+                                    log.info("Telemetry Ping Job scheduled successfully (Interval: 1d).");
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                            }
+                        });
+    }
+
+    /** Handles the dynamic setting change for telemetry */
+    private void onTelemetrySettingChanged(boolean isEnabled) {
+        PluginSettings.getInstance().setTelemetryEnabled(isEnabled);
+        if (isEnabled) {
+            log.info(
+                    "Telemetry setting dynamically enabled. Scheduling job and triggering initial run...");
+            this.scheduleTelemetryPingJob();
+            if (this.telemetryPingJob != null) {
+                this.telemetryPingJob.trigger();
+            }
+        } else {
+            log.info("Telemetry setting dynamically disabled. Removing job...");
+            this.removeTelemetryPingJob();
+        }
+    }
+
+    /** Removes the Telemetry Ping Job from the Job Scheduler */
+    private void removeTelemetryPingJob() {
+        this.threadPool
+                .generic()
+                .execute(
+                        () -> {
+                            try {
+                                boolean indexExists =
+                                        this.client
+                                                .admin()
+                                                .indices()
+                                                .prepareExists(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                                                .get()
+                                                .isExists();
+
+                                if (indexExists) {
+                                    boolean jobExists =
+                                            this.client
+                                                    .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                    .get()
+                                                    .isExists();
+                                    if (jobExists) {
+                                        this.client
+                                                .prepareDelete(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .get();
+                                        log.info("Telemetry Ping Job removed successfully.");
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to remove Telemetry Ping Job: {}", e.getMessage());
                             }
                         });
     }
@@ -345,6 +494,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CONTENT_CONSUMER,
                 PluginSettings.IOC_CONTEXT,
                 PluginSettings.IOC_CONSUMER,
+                PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.CVE_CONTEXT,
                 PluginSettings.CVE_CONSUMER,
                 PluginSettings.PIT_KEEPALIVE,
@@ -369,7 +519,7 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public String getJobIndex() {
-        return JOB_INDEX_NAME;
+        return CONTENT_MANAGER_JOBS_INDEX_NAME;
     }
 
     /** Returns the runner instance responsible for executing the scheduled jobs. */
@@ -386,5 +536,43 @@ public class ContentManagerPlugin extends Plugin
     @Override
     public ScheduledJobParser getJobParser() {
         return (parser, id, jobDocVersion) -> ContentJobParameter.parse(parser);
+    }
+
+    /**
+     * Returns the version of Wazuh. The version is stored in the
+     * '/usr/share/wazuh-indexerVERSION.json' file.
+     *
+     * @param env Environment instance to access the filesystem.
+     * @return the Wazuh version as string. Null if it cannot be read from the file or if the
+     *     'version' field is missing/empty.
+     */
+    public static String getVersion(Environment env) {
+        String pathHome = env.settings().get("path.home", "/usr/share/wazuh-indexer");
+        Path versionFilePath = Path.of(pathHome, VERSION_FILE_NAME);
+        try {
+            String fileVersion =
+                    AccessController.doPrivilegedChecked(
+                            () -> {
+                                String content = Files.readString(versionFilePath, StandardCharsets.UTF_8);
+                                JsonNode json = new ObjectMapper().readTree(content);
+                                JsonNode versionNode = json.get("version");
+                                return versionNode != null ? versionNode.asText() : null;
+                            });
+
+            if (fileVersion != null && !fileVersion.isBlank()) {
+                return fileVersion;
+            }
+
+            log.warn("VERSION.json found but 'version' field is empty or missing.");
+        } catch (Exception e) {
+            log.warn("Could not read VERSION.json: {}", e.getMessage());
+        }
+
+        String configuredVersion = System.getProperty(VERSION_SYSTEM_PROPERTY);
+        if (configuredVersion != null && !configuredVersion.isBlank()) {
+            return configuredVersion;
+        }
+
+        return null;
     }
 }

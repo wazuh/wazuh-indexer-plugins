@@ -207,7 +207,8 @@ Sends a log event to the Wazuh Engine for analysis and returns the decoded and m
 | `queue`          | Integer | Yes      | Queue number for logtest execution           |
 | `location`       | String  | Yes      | Log file path or logical source location     |
 | `event`          | String  | Yes      | Raw log event to test                        |
-| `agent_metadata` | Object  | No       | Optional agent metadata passed to the Engine |
+| `metadata`       | Object  | No       | Optional metadata passed to the Engine       |
+| `space`          | String  | No       | Space to execute the logtest against         |
 | `trace_level`    | String  | No       | Trace verbosity: `NONE`, `BASIC`, or `FULL`  |
 
 **Example Request**
@@ -219,7 +220,8 @@ curl -sk -u admin:admin -X POST \
   -d '{
     "queue": 1,
     "location": "/var/log/auth.log",
-    "agent_metadata": {},
+    "metadata": {},
+    "space": "test",
     "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
     "trace_level": "NONE"
   }'
@@ -743,6 +745,7 @@ curl -sk -u admin:admin -X PUT \
 ### Delete Decoder
 
 Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
+A decoder cannot be deleted if it is currently set as the root decoder in the draft policy.
 
 **Request**
 - Method: `DELETE`
@@ -770,13 +773,23 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
+**Example Response (set as root decoder)**
+```json
+{
+  "message": "Cannot remove decoder [acbdba85-09c4-45a0-a487-61c8eeec58e6] as it is set as root decoder.",
+  "status": 400
+}
+```
+
 **Status Codes**
 
-| Code | Description       |
-| ---- | ----------------- |
-| 200  | Decoder deleted   |
-| 404  | Decoder not found |
-| 500  | Internal error    |
+| Code | Description                    |
+|------|--------------------------------|
+| 200  | Decoder deleted                |
+| 400  | Decoder is set as root decoder |
+| 404  | Decoder not found              |
+| 500  | Internal error                 |
+
 
 ---
 

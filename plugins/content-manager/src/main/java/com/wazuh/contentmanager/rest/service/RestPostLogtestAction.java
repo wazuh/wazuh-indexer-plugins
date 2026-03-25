@@ -29,7 +29,9 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -127,7 +129,24 @@ public class RestPostLogtestAction extends BaseRestHandler {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 4. Logtest accepted
+        // 4. Validate space field if present
+        JsonNode spaceNode = jsonNode.get(Constants.KEY_SPACE);
+        if (spaceNode != null) {
+            if (!spaceNode.isTextual()) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_SPACE),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+            try {
+                Space.fromValue(spaceNode.asText());
+            } catch (IllegalArgumentException e) {
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_SPACE),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
+        // 5. Logtest accepted
         try {
             return this.engine.logtest(jsonNode).parseMessageAsJson();
         } catch (Exception e) {
