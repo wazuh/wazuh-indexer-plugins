@@ -273,6 +273,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
         Set<String> filtersToDelete = new HashSet<>();
         Set<String> rulesToDelete = new HashSet<>();
 
+        // Sets to track which resources are ADDs
+        Set<String> integrationAdds = new HashSet<>();
+        Set<String> ruleAdds = new HashSet<>();
+
         // Process each resource type
         this.processResourceChanges(
                 changes.getPolicy(),
@@ -289,6 +293,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 integrationsToDelete,
                 sourceSpace.toString(),
                 targetSpace.toString());
+        for (SpaceDiff.OperationItem item : changes.getIntegrations()) {
+            if (item.getOperation() == SpaceDiff.Operation.ADD) {
+                integrationAdds.add(item.getId());
+            }
+        }
 
         this.processResourceChanges(
                 changes.getKvdbs(),
@@ -321,6 +330,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 rulesToDelete,
                 sourceSpace.toString(),
                 targetSpace.toString());
+        for (SpaceDiff.OperationItem item : changes.getRules()) {
+            if (item.getOperation() == SpaceDiff.Operation.ADD) {
+                ruleAdds.add(item.getId());
+            }
+        }
 
         // Build engine payload with all target space resources + modifications
         JsonNode enginePayload =
@@ -349,6 +363,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 decodersToDelete,
                 filtersToDelete,
                 rulesToDelete,
+                integrationAdds,
+                ruleAdds,
                 targetSpace.toString());
     }
 
@@ -531,8 +547,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
                     JsonNode docNode = mapper.valueToTree(document);
                     try {
-                        this.securityAnalyticsService.upsertIntegration(
-                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
+                        RestRequest.Method method =
+                                context.integrationAdds.contains(entry.getKey())
+                                        ? RestRequest.Method.POST
+                                        : RestRequest.Method.PUT;
+                        this.securityAnalyticsService.upsertIntegration(docNode, targetSpaceEnum, method);
                     } catch (Exception e) {
                         log.warn(
                                 "Failed to sync integration [{}] to SAP for space [{}]: {}",
@@ -579,8 +598,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
                     JsonNode docNode = mapper.valueToTree(document);
                     try {
-                        this.securityAnalyticsService.upsertRule(
-                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
+                        RestRequest.Method method =
+                                context.ruleAdds.contains(entry.getKey())
+                                        ? RestRequest.Method.POST
+                                        : RestRequest.Method.PUT;
+                        this.securityAnalyticsService.upsertRule(docNode, targetSpaceEnum, method);
                     } catch (Exception e) {
                         log.warn(
                                 "Failed to sync rule [{}] to SAP for space [{}]: {}",
@@ -669,6 +691,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
         final Set<String> decodersToDelete;
         final Set<String> filtersToDelete;
         final Set<String> rulesToDelete;
+        final Set<String> integrationAdds;
+        final Set<String> ruleAdds;
         final String targetSpace;
 
         PromotionContext(
@@ -684,6 +708,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 Set<String> decodersToDelete,
                 Set<String> filtersToDelete,
                 Set<String> rulesToDelete,
+                Set<String> integrationAdds,
+                Set<String> ruleAdds,
                 String targetSpace) {
             this.enginePayload = enginePayload;
             this.policyToApply = policyToApply;
@@ -697,6 +723,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.decodersToDelete = decodersToDelete;
             this.filtersToDelete = filtersToDelete;
             this.rulesToDelete = rulesToDelete;
+            this.integrationAdds = integrationAdds;
+            this.ruleAdds = ruleAdds;
             this.targetSpace = targetSpace;
         }
     }

@@ -365,7 +365,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(200, actualResponse.getStatus());
         verify(this.securityAnalyticsService)
-                .upsertIntegration(any(JsonNode.class), eq(Space.TEST), eq(RestRequest.Method.PUT));
+                .upsertIntegration(any(JsonNode.class), eq(Space.TEST), eq(RestRequest.Method.POST));
     }
 
     /**
@@ -441,7 +441,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(200, actualResponse.getStatus());
         verify(this.securityAnalyticsService)
-                .upsertRule(any(JsonNode.class), eq(Space.CUSTOM), eq(RestRequest.Method.PUT));
+                .upsertRule(any(JsonNode.class), eq(Space.CUSTOM), eq(RestRequest.Method.POST));
     }
 
     /**
