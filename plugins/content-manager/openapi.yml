@@ -170,9 +170,10 @@ paths:
                 value:
                   integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
                   resource:
-                    title: "azure-functions"
-                    author: "Wazuh Inc."
-                    description: "This integration supports Azure Functions app logs."
+                    metadata:
+                      title: "azure-functions"
+                      author: "Wazuh Inc."
+                      description: "This integration supports Azure Functions app logs."
                     documentation: "test1234"
                     references:
                       - "https://wazuh.com"
