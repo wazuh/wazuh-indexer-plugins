@@ -791,7 +791,22 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 this.rollbackCmStep(step, context);
                 log.info("Rollback step OK: {}", step);
             } catch (Exception e) {
-                log.error("Rollback step FAILED [{}]: {}", step, e.getMessage());
+                String index = this.spaceService.getIndexForResourceType(step.resourceType);
+                Collection<String> ids =
+                        (step.kind == RollbackStep.Kind.APPLY)
+                                ? context.oldVersions
+                                        .getOrDefault(step.resourceType, Collections.emptyMap())
+                                        .keySet()
+                                : context.deleteSnapshots
+                                        .getOrDefault(step.resourceType, Collections.emptyMap())
+                                        .keySet();
+                log.error(
+                        "Rollback step FAILED [{}]. Index: [{}], Affected IDs: {}."
+                                + " Manual intervention required. Error: {}",
+                        step,
+                        index,
+                        ids,
+                        e.getMessage());
             }
         }
 
