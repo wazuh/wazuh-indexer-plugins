@@ -41,6 +41,7 @@
     - [Architecture](ref/modules/content-manager/architecture.md)
     - [Configuration](ref/modules/content-manager/configuration.md)
     - [API Reference](ref/modules/content-manager/api.md)
+    - [Sigma Rules](ref/modules/content-manager/sigma-rules.md)
     - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)
     - [Usage](ref/modules/reporting/usage.md)
