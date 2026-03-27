@@ -420,7 +420,7 @@ Fields within `resource`:
 | `status`      | String  | Yes      | Rule status (e.g., `experimental`, `stable`)                |
 | `level`       | String  | Yes      | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
 | `logsource`   | Object  | No       | Log source definition (`product`, `category`)               |
-| `detection`   | Object  | No       | Sigma detection logic with `condition` and selection fields |
+| `detection`   | Object  | Yes      | Sigma detection logic with `condition` and selection fields |
 | `mitre`       | Object  | No       | MITRE ATT&CK mapping (see [Sigma Rules](sigma-rules.md#mitre-attck-block))       |
 | `compliance`  | Object  | No       | Compliance framework mapping (see [Sigma Rules](sigma-rules.md#compliance-block)) |
 
