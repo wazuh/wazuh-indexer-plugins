@@ -6,7 +6,7 @@ The Wazuh indexer cluster remains operational throughout the upgrade. The rollin
 
 > [!NOTE]
 > This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
->   - [Local package generation](../dev/build-packages.md) (recommended).
+>   - [Local package generation](../../dev/build-packages.md) (recommended).
 >   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
 
 ## Preparing the upgrade
