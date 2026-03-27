@@ -417,8 +417,8 @@ Fields within `resource`:
 | `metadata`    | Object  | Yes      | Rule metadata (see below)                                   |
 | `sigma_id`    | String  | No       | Sigma rule ID                                               |
 | `enabled`     | Boolean | No       | Whether the rule is enabled                                 |
-| `status`      | String  | No       | Rule status (e.g., `experimental`, `stable`)                |
-| `level`       | String  | No       | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
+| `status`      | String  | Yes      | Rule status (e.g., `experimental`, `stable`)                |
+| `level`       | String  | Yes      | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
 | `logsource`   | Object  | No       | Log source definition (`product`, `category`)               |
 | `detection`   | Object  | No       | Sigma detection logic with `condition` and selection fields |
 | `mitre`       | Object  | No       | MITRE ATT&CK mapping (see [Sigma Rules](sigma-rules.md#mitre-attck-block))       |
