@@ -1,5 +1,10 @@
 # Installation
 
+> [!NOTE]
+> This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
+>   - [Local package generation](../dev/build-packages.md) (recommended).
+>   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
+
 ## Installing the Wazuh indexer step by step
 
 Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. The installation process is divided into three stages.

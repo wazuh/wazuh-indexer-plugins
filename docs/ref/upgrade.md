@@ -4,6 +4,11 @@ This section guides you through the upgrade process of the Wazuh indexer.
 
 The Wazuh indexer cluster remains operational throughout the upgrade. The rolling upgrade process allows nodes to be updated one at a time, ensuring continuous service availability and minimizing disruptions. The steps detailed in the following sections apply to both single-node and multi-node Wazuh indexer clusters. For multi-node Wazuh indexer clusters, repeat the following steps on every node.
 
+> [!NOTE]
+> This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
+>   - [Local package generation](../dev/build-packages.md) (recommended).
+>   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
+
 ## Preparing the upgrade
 
 Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_INDEXER_IP_ADDRESS`, `$USERNAME`, and `$PASSWORD`.
@@ -24,18 +29,18 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_
 
     ```bash
     {
-        "acknowledged" : true,
-        "persistent" : {
-          "cluster" : {
-            "routing" : {
-              "allocation" : {
-                "enable" : "primaries"
-              }
+      "acknowledged": true,
+      "persistent": {
+        "cluster": {
+          "routing": {
+            "allocation": {
+              "enable": "primaries"
             }
           }
-        },
-        "transient" : {}
         }
+      },
+      "transient": {}
+    }
     ```
 
 1. Perform a flush operation on the cluster to commit transaction log entries to the index.
