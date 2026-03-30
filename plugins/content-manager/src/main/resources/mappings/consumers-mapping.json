@@ -6,6 +6,9 @@
     "name": {
       "type": "keyword"
     },
+    "status": {
+      "type": "keyword"
+    },
     "local_offset": {
       "type": "long"
     },
