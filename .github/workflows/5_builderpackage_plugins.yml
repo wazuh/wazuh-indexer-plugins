@@ -113,10 +113,19 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
           restore-keys: |
-            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
-            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
+            m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
+      - name: Restore Maven Local Cache (common-utils)
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
       - name: Publish to Maven Local
         if: steps.cache-security-analytics.outputs.cache-hit != 'true'
         uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@main
@@ -129,7 +138,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ~/.m2/repository
-          key: m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
 
   build:
     needs: [branches, get-version, publish-common-utils, publish-security-analytics]
@@ -153,6 +162,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Restore Maven Local Cache (common-utils)
+        if: inputs.plugin != 'content-manager'
         uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
@@ -161,15 +171,15 @@ jobs:
             m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-
             m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
 
-      - name: Restore Maven Local Cache (security-analytics)
+      - name: Restore Maven Local Cache (security-analytics with deps)
         if: inputs.plugin == 'content-manager'
         uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
           restore-keys: |
-            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
-            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
+            m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}

@@ -3,11 +3,15 @@ Convert Wazuh Common Schema (WCS) static index templates to dynamic_templates.
 
 Reads an OpenSearch legacy index template with a monolithic static `properties`
 block and generates an optimized `dynamic_templates` array. The output template
-uses `"dynamic": "false_allow_templates"` so that only fields matching the
-WCS schema are accepted, but mappings are created lazily (on first ingest).
+preserves the original `"dynamic"` setting from the input template, ensuring only
+fields matching the WCS schema are accepted, with mappings created lazily (on first ingest).
 
 Usage:
     python3 convert_to_dynamic_templates.py input_template.json [output_template.json]
+
+Note:
+    The input template must have a valid `"dynamic"` setting in its mappings.
+    The script will preserve this value in the output.
 """
 
 import json
@@ -98,7 +102,7 @@ def convert_template(input_data):
     # 5. Overwrite the mappings block in the output
     template_block["mappings"] = {
         "date_detection": mappings.get("date_detection", False),
-        "dynamic": "false_allow_templates",
+        "dynamic": mappings.get("dynamic"),
         "dynamic_templates": dynamic_templates,
         "properties": static_props
     }
