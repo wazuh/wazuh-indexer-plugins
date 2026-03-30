@@ -97,7 +97,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         // Instantiate the synchronizer with the test cluster's client.
         // Environment and ConsumersIndex are only used by syncConsumerServices(), not onSyncComplete().
         ConsumerRulesetService synchronizer =
-                new ConsumerRulesetService(client(), new ConsumersIndex(client()), null);
+                new ConsumerRulesetService(client(), new ConsumersIndex(client()), null, null);
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);

@@ -51,7 +51,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
-                new ConsumerRulesetService(this.client, this.consumersIndex, this.environment);
+                new ConsumerRulesetService(
+                        this.client, this.consumersIndex, this.environment, this.engineService);
     }
 
     @After
