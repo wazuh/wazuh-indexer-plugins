@@ -25,7 +25,7 @@ The plugin manages the following indices:
 
 | Index                         | Purpose                              |
 | ----------------------------- | ------------------------------------ |
-| `.cti-consumers`              | Sync state (offsets, snapshot links) |
+| `.cti-consumers`              | Sync state (status, offsets, snapshot links) |
 | `.cti-policies`               | Policy documents                     |
 | `.cti-integrations`           | Integration definitions              |
 | `.cti-rules`                  | Detection rules                      |
@@ -62,7 +62,7 @@ The update check flow is split into two classes:
   - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
 
 - **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
-  - Sends an async GET request to CTI `/ping`.
+  - Sends an asynchronous GET request to CTI `/ping`.
   - Headers sent:
     - `wazuh-uid`: cluster UUID
     - `wazuh-tag`: `v<version>`
@@ -361,9 +361,9 @@ When `local_offset = 0`:
 
 When `local_offset > 0` and `local_offset < remote_offset`:
 
-1. Fetches changes in batches from the CTI API.
+1. Fetches the changes in batches from the CTI API.
 2. Applies JSON Patch operations (add, update, delete).
-3. Pushes changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+3. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 4. Updates the local offset.
 
 ### Post-Synchronization Phase
@@ -371,6 +371,7 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 1. Refreshes all content indices.
 2. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 3. Recalculates SHA-256 hashes for policy integrity verification.
+4. Sets consumer `status` to `idle` in `.cti-consumers`.
 
 ### Error Handling
 
@@ -544,6 +545,20 @@ The `.cti-policies` index stores policy configurations. See the [Policy document
 GET /.cti-consumers/_search
 {
   "query": { "match_all": {} }
+}
+```
+
+The `status` field indicates the sync lifecycle state:
+
+- `idle` — sync complete; content is safe to read.
+- `updating` — sync in progress; content may be partially written.
+
+To find consumers that are currently syncing or that failed mid-sync (status stuck at `updating`):
+
+```bash
+GET /.cti-consumers/_search
+{
+  "query": { "term": { "status": "updating" } }
 }
 ```
 
