@@ -28,7 +28,7 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "false_allow_templates",
+      "dynamic": "strict_allow_templates",
       "dynamic_templates": [
         {
           "wcs_agent_build_original": {
