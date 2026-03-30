@@ -108,6 +108,7 @@ Example output:
         "_source": {
           "name": "development_0.0.3",
           "context": "development_0.0.3",
+          "status": "idle",
           "local_offset": 3932,
           "remote_offset": 3932,
           "snapshot_link": "https://cti-pre.wazuh.com/store/..."
@@ -118,6 +119,8 @@ Example output:
 }
 ```
 
+- `status == idle`: Sync is complete; content is safe to read.
+- `status == updating`: Sync is in progress. If this persists after a sync should have finished, the previous sync may have failed mid-cycle.
 - `local_offset == remote_offset`: Content is up to date.
 - `local_offset < remote_offset`: Content needs updating.
 - `local_offset == 0`: Content has never been synced (snapshot required).

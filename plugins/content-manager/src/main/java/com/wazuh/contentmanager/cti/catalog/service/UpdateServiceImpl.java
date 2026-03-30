@@ -130,7 +130,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
             LocalConsumer updated =
                     new LocalConsumer(
-                            this.context, this.consumer, lastAppliedOffset, toOffset, current.getSnapshotLink());
+                            this.context,
+                            this.consumer,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
+                            lastAppliedOffset,
+                            toOffset,
+                            current.getSnapshotLink());
             this.consumersIndex.setConsumer(updated);
 
             log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
