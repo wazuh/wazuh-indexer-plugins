@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Resolve branches
         id: branches
-        uses: ./.github/actions/5_builderpackage_indexer_branch_resolver
+        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
         with:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
