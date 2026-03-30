@@ -34,7 +34,7 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 ### Consumer Service
 
-Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service.
+Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
 
 ### Snapshot Service
 
@@ -153,9 +153,19 @@ The `.cti-consumers` index stores one document per context/consumer pair:
   "_source": {
     "name": "development_0.0.3",
     "context": "development_0.0.3",
+    "status": "idle",
     "local_offset": 3932,
     "remote_offset": 3932,
     "snapshot_link": "https://cti-pre.wazuh.com/store/contexts/development_0.0.3/consumers/development_0.0.3/3932_1770988130.zip"
   }
 }
 ```
+
+The `status` field reflects the consumer's synchronization lifecycle:
+
+| Value | Meaning |
+| --------- | ----------------------------------------------------------------------- |
+| `idle` | Sync is complete; content indices are up-to-date and safe to read. |
+| `updating` | Sync is in progress; content may be partially written or inconsistent. |
+
+The status is set to `updating` at the very start of a sync cycle and only transitions back to `idle` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification. If a sync fails mid-cycle, the status remains `updating` as an observable failure signal.

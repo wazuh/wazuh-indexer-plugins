@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,8 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
@@ -35,6 +37,37 @@ import java.io.IOException;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
+    /** Represents whether the consumer is safe to query or is currently being updated. */
+    public enum Status {
+        IDLE("idle"),
+        UPDATING("updating");
+
+        private final String value;
+
+        Status(String value) {
+            this.value = value;
+        }
+
+        @JsonValue
+        @Override
+        public String toString() {
+            return this.value;
+        }
+
+        @JsonCreator
+        public static Status fromValue(String value) {
+            for (Status s : values()) {
+                if (s.value.equalsIgnoreCase(value)) {
+                    return s;
+                }
+            }
+            throw new IllegalArgumentException("Unknown consumer status: " + value);
+        }
+    }
+
+    @JsonProperty("status")
+    private Status status;
+
     @JsonProperty("local_offset")
     private long localOffset;
 
@@ -50,7 +83,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     }
 
     /**
-     * Constructs a new LocalConsumer with a basic identity.
+     * Constructs a new LocalConsumer with a basic identity. Status defaults to {@link Status#IDLE}.
      *
      * @param context The context identifier (e.g., "rules_development").
      * @param name The consumer name.
@@ -58,13 +91,14 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     public LocalConsumer(String context, String name) {
         this.context = context;
         this.name = name;
+        this.status = Status.IDLE;
         this.localOffset = 0;
         this.remoteOffset = 0;
         this.snapshotLink = "";
     }
 
     /**
-     * Constructs a LocalConsumer with full state details.
+     * Constructs a LocalConsumer with full state details. Status defaults to {@link Status#IDLE}.
      *
      * @param context The context identifier.
      * @param name The consumer name.
@@ -76,9 +110,44 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
             String context, String name, long localOffset, long remoteOffset, String snapshotUrl) {
         this.context = context;
         this.name = name;
+        this.status = Status.IDLE;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
         this.snapshotLink = snapshotUrl;
+    }
+
+    /**
+     * Constructs a LocalConsumer with full state details including explicit status.
+     *
+     * @param context The context identifier.
+     * @param name The consumer name.
+     * @param status The current synchronization status.
+     * @param localOffset The current offset processed locally.
+     * @param remoteOffset The last known offset available remotely.
+     * @param snapshotUrl The URL of the snapshot associated with this state.
+     */
+    public LocalConsumer(
+            String context,
+            String name,
+            Status status,
+            long localOffset,
+            long remoteOffset,
+            String snapshotUrl) {
+        this.context = context;
+        this.name = name;
+        this.status = status;
+        this.localOffset = localOffset;
+        this.remoteOffset = remoteOffset;
+        this.snapshotLink = snapshotUrl;
+    }
+
+    /**
+     * Gets the current synchronization status of the consumer.
+     *
+     * @return The {@link Status} indicating whether the consumer is idle or updating.
+     */
+    public Status getStatus() {
+        return this.status;
     }
 
     /**
@@ -111,7 +180,9 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     @Override
     public String toString() {
         return "LocalConsumer{"
-                + "localOffset="
+                + "status="
+                + this.status
+                + ", localOffset="
                 + this.localOffset
                 + ", remoteOffset="
                 + this.remoteOffset
@@ -151,6 +222,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 .startObject()
                 .field("name", this.name)
                 .field("context", this.context)
+                .field("status", this.status != null ? this.status.toString() : Status.IDLE.toString())
                 .field("local_offset", this.localOffset)
                 .field("remote_offset", this.remoteOffset)
                 .field("snapshot_link", this.snapshotLink)

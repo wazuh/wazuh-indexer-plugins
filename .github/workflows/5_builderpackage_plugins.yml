@@ -51,19 +51,15 @@ jobs:
   branches:
     runs-on: ubuntu-24.04
     outputs:
-      sap_plugin_ref: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}
+      security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
+      common_utils_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
     steps:
       - uses: actions/checkout@v6
-
       - name: Resolve branches
-        id: resolve
+        id: branches
         uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
         with:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
-
-      - name: Display resolved branches
-        run: |
-          echo "Security Analytics branch: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}"
 
   get-version:
     runs-on: ubuntu-24.04
@@ -72,38 +68,80 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            VERSION.json
       - name: Get version
         id: version
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
-  # Publish security-analytics-plugin and its commons to Local Maven
-  sap-maven-local-publication:
+  publish-common-utils:
     runs-on: ubuntu-24.04
     needs: [branches, get-version]
+    steps:
+      - name: Restore Maven Local Cache
+        id: cache-common-utils
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
+      - name: Publish to Maven Local
+        if: steps.cache-common-utils.outputs.cache-hit != 'true'
+        uses: wazuh/wazuh-indexer-common-utils/.github/actions/5_local_maven_publisher@main
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          revision: ${{ inputs.revision }}
+          reference: ${{ needs.branches.outputs.common_utils_plugin_ref }}
+      - name: Cache Maven Local
+        if: steps.cache-common-utils.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+
+  publish-security-analytics:
+    runs-on: ubuntu-24.04
+    needs: [branches, get-version, publish-common-utils]
     if: inputs.plugin == 'content-manager'
     steps:
-      - name: Publish SAP to Local Maven
+      - name: Restore Maven Local Cache
+        id: cache-security-analytics
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          restore-keys: |
+            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
+      - name: Publish to Maven Local
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
         uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@main
         with:
           version: ${{ needs.get-version.outputs.version }}
           revision: ${{ inputs.revision }}
-          reference: ${{ needs.branches.outputs.sap_plugin_ref }}
+          reference: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
       - name: Cache Maven Local
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: ~/.m2/repository
-          key: maven-sap-${{ github.run_id }}
+          key: m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
 
   build:
-    needs: [branches, get-version, sap-maven-local-publication]
+    needs: [branches, get-version, publish-common-utils, publish-security-analytics]
     runs-on: ubuntu-24.04
     permissions:
       actions: read
     if: |
-      always() && 
-      needs.branches.result == 'success' && 
-      needs.get-version.result == 'success' && 
-      (needs.sap-maven-local-publication.result == 'success' || needs.sap-maven-local-publication.result == 'skipped')
+      always() &&
+      needs.branches.result == 'success' &&
+      needs.get-version.result == 'success' &&
+      needs.publish-common-utils.result == 'success' &&
+      (needs.publish-security-analytics.result == 'success' || needs.publish-security-analytics.result == 'skipped')
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
@@ -114,12 +152,24 @@ jobs:
       - name: Setup Gradle # Used for caching
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Restore Maven Local Cache
+      - name: Restore Maven Local Cache (common-utils)
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
+
+      - name: Restore Maven Local Cache (security-analytics)
         if: inputs.plugin == 'content-manager'
         uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: maven-sap-${{ github.run_id }}
+          key: m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          restore-keys: |
+            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-security-analytics-${{ github.ref_name }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}

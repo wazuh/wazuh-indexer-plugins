@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
@@ -168,10 +169,16 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .cti-consumers
         try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : new LocalConsumer(this.context, this.consumer);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
                             this.context,
                             this.consumer,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
                             consumer.getSnapshotOffset(),
                             consumer.getOffset(),
                             snapshotUrl);
@@ -378,9 +385,19 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .cti-consumers
         try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : new LocalConsumer(this.context, this.consumer);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            this.context, this.consumer, this.maxOffsetSeen, 0, localZip.toString());
+                            this.context,
+                            this.consumer,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
+                            this.maxOffsetSeen,
+                            0,
+                            localZip.toString());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
