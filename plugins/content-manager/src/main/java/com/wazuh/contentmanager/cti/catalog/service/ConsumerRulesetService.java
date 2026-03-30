@@ -336,14 +336,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         // Process the first detector sequentially to ensure the config index is created
         CountDownLatch firstLatch = new CountDownLatch(1);
+        JsonNode firstDoc = docs.getFirst();
+        String firstName =
+                firstDoc.has("metadata") && firstDoc.get("metadata").has("title")
+                        ? firstDoc.get("metadata").get("title").asText()
+                        : "unknown";
         this.securityAnalyticsService.upsertDetectorAsync(
-                docs.getFirst(),
+                firstDoc,
                 true,
                 RestRequest.Method.POST,
                 ActionListener.wrap(
                         response -> firstLatch.countDown(),
                         e -> {
-                            log.error("Failed to sync first detector: {}", e.getMessage());
+                            log.error(
+                                    "Failed to sync detector for integration [{}]: {}", firstName, e.getMessage());
                             firstLatch.countDown();
                         }));
 
@@ -362,14 +368,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         if (docs.size() > 1) {
             CountDownLatch parallelLatch = new CountDownLatch(docs.size() - 1);
             for (int i = 1; i < docs.size(); i++) {
+                JsonNode doc = docs.get(i);
+                String name =
+                        doc.has("metadata") && doc.get("metadata").has("title")
+                                ? doc.get("metadata").get("title").asText()
+                                : "unknown";
                 this.securityAnalyticsService.upsertDetectorAsync(
-                        docs.get(i),
+                        doc,
                         true,
                         RestRequest.Method.POST,
                         ActionListener.wrap(
                                 response -> parallelLatch.countDown(),
                                 e -> {
-                                    log.error("Failed to sync detector: {}", e.getMessage());
+                                    log.error(
+                                            "Failed to sync detector for integration [{}]: {}", name, e.getMessage());
                                     parallelLatch.countDown();
                                 }));
             }
