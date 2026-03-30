@@ -150,7 +150,7 @@ jobs:
           java-version: 25
 
       - name: Setup Gradle # Used for caching
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Restore Maven Local Cache (common-utils)
         uses: actions/cache/restore@v5
