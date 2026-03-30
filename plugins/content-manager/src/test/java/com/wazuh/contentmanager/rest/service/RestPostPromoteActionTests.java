@@ -344,6 +344,11 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         engineResponse.setMessage("OK");
         when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
 
+        // integration-1 must NOT exist in the target space (test) for ADD → POST
+        when(this.spaceService.getDocument(
+                        eq(Constants.INDEX_INTEGRATIONS), eq("test"), eq("integration-1")))
+                .thenReturn(null);
+
         // spotless:off
         String payload = """
                 {

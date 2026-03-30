@@ -1546,7 +1546,20 @@ In addition to copying documents across CTI indices, promotion also synchronizes
 - A `document.id` field storing the original CTI document UUID for cross-reference.
 - A `source` field indicating the target space (e.g., "Test", "Custom").
 
+New resources (ADD operations) use `POST` to create SAP documents; existing resources (UPDATE operations) use `PUT` to update them in-place.
+
 This ensures that the same CTI resource can exist in multiple spaces with independent SAP documents.
+
+#### Rollback on Failure
+
+If any Content Manager index mutation fails during the consolidation phase, the endpoint
+automatically performs a **LIFO rollback** to restore the system to its pre-promotion state:
+
+1. **Pre-promotion snapshots** are captured before any writes — old versions for adds/updates, full documents for deletes.
+2. **CM rollback**: Each completed mutation is undone in reverse order. ADDs are deleted, UPDATEs are restored to their previous version, DELETEs are re-indexed from the snapshot.
+3. **SAP reconciliation** (best-effort): Rules and integrations synced to SAP during the forward pass are reverted — new SAP documents are deleted, updated ones are restored, and deleted ones are re-created from snapshots.
+
+Individual rollback or SAP reconciliation step failures are logged but do not prevent remaining steps from executing. On rollback, the endpoint returns a `500` status.
 
 **Request**
 - Method: `POST`
