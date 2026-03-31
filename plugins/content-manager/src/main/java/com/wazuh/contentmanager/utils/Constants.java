@@ -62,6 +62,10 @@ public class Constants {
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine Validation Failed: ";
     public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
             "Cannot remove decoder [%s] as it is set as root decoder.";
+    public static final String E_400_INTEGRATION_NOT_IN_TEST_SPACE =
+            "Integration testing is only supported for the 'test' space. Received space: '%s'.";
+    public static final String E_400_INTEGRATION_NOT_FOUND =
+            "Integration [%s] not found in the test space.";
 
     // Log messages
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -116,6 +120,7 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
+    public static final String KEY_STATUS = "status";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";
