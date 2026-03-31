@@ -342,7 +342,7 @@ public class ConsumerIocService extends AbstractConsumerService {
 
         RestResponse response = this.engineService.updateIoc(filePath, hash);
         if (response.getStatus() >= 200 && response.getStatus() < 300) {
-            log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, filePath);
+            log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, response.getMessage());
         } else {
             log.error(Constants.E_LOG_IOC_ENGINE_NOTIFY_FAILED, response.getMessage());
         }
