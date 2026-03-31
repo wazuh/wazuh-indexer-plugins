@@ -69,17 +69,22 @@ public class Constants {
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
-    public static final String E_LOG_ENGINE_VALIDATION = "Engine validation failed: {}";
     public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
+    public static final String E_LOG_MISSING_FIELD = "Missing '{}' field.";
+    public static final String E_LOG_MISSING_OBJECT = "Missing '{}' object.";
     public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
     public static final String W_LOG_OPERATION_FAILED_ID = "{} failed for {} [{}]: {}";
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
     public static final String W_LOG_EXTERNAL_NOT_FOUND =
             "Resource {} [{}] not found in external service, continuing deletion.";
+    public static final String I_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
+    public static final String I_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
+    public static final String I_LOG_SAP_DELETE_ASYNC =
+            "Sending delete request for {} to Security Analytics (document.id={}{}).";
 
     // Index Constants
     public static final String INDEX_POLICIES = ".cti-policies";
