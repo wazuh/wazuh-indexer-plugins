@@ -5,6 +5,10 @@ on:
     paths:
       - "plugins/**"
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   branches:
     runs-on: ubuntu-24.04
