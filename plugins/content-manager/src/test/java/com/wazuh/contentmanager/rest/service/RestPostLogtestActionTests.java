@@ -16,247 +16,177 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the {@link RestPostLogtestAction} class. This test suite validates the REST API
- * endpoint responsible for running CTI Logtests.
- *
- * <p>Tests verify Logtest requests, proper handling of Logtest data, and appropriate HTTP response
- * codes for successful Logtest requests and validation errors.
+ * Unit tests for {@link RestPostLogtestAction}. Validates request validation logic: required
+ * fields, space constraints, and delegation to {@link LogtestService}.
  */
 public class RestPostLogtestActionTests extends OpenSearchTestCase {
-    private EngineService engine;
-    private RestPostLogtestAction action;
 
-    /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
-     */
+    private RestPostLogtestAction action;
+    private AutoCloseable closeable;
+
+    @Mock private LogtestService logtestService;
+
+    private static final String INTEGRATION_ID = "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509";
+
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.engine = mock(EngineServiceImpl.class);
-        this.action = new RestPostLogtestAction(this.engine);
+        this.closeable = MockitoAnnotations.openMocks(this);
+        this.action = new RestPostLogtestAction(this.logtestService);
     }
 
-    /**
-     * Test the {@link RestPostLogtestAction#handleRequest(RestRequest)} method when the request is
-     * complete. The expected response is: {200, RestResponse}
-     */
-    public void testPostLogtest200() {
-        // Construct a valid payload to trigger 200 response
-        // spotless:off
-        JsonNode payload = FixtureFactory.from(
-        """
-            {
-              "queue": 1,
-              "location": "/var/log/auth.log",
-              "metadata": {},
-              "space": "test",
-              "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
-              "trace_level": "NONE"
-            }
-            """
-        );
-        // spotless:on
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        if (this.closeable != null) {
+            this.closeable.close();
+        }
+        super.tearDown();
+    }
 
-        // Mock the 200 response from the Wazuh Engine
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.OK.getStatus());
-        // spotless:off
-        expectedResponse.setMessage(
-            """
-            {
-              "status": "OK",
-              "result": {
-                "output": "{\\"wazuh\\":{\\"protocol\\":{\\"queue\\":1,\\"location\\":\\"syscheck\\"},\\"integration\\":{\\"category\\":\\"Security\\",\\"name\\":\\"integration/wazuh-core/0\\",\\"decoders\\":[\\"core-wazuh-message\\",\\"integrations\\"]}},\\"name\\":\\"nahuel\\",\\"event\\":{\\"original\\":\\"File /etc/passwd modified\\"},\\"@timestamp\\":\\"2025-12-26T17:33:22Z\\"}",
-                "asset_traces": [
-                  {
-                    "asset": "decoder/core-wazuh-message/0",
-                    "success": true,
-                    "traces": [
-                      "@timestamp: get_date -> Success"
-                    ]
-                  }
-                ]
-              }
-            }
-            """
-        );
-        // spotless:on
-        when(this.engine.logtest(payload)).thenReturn(expectedResponse);
-
-        // Invoke the method under test
+    private RestRequest mockRequest(String json) {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content())
-                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        // Assert the response is expected
-        Assert.assertEquals(expectedResponse, actualResponse);
-        verify(this.engine, times(1)).logtest(any(JsonNode.class));
+        when(request.content()).thenReturn(new BytesArray(json.getBytes(StandardCharsets.UTF_8)));
+        return request;
     }
 
-    /** Test that requests with no payload are handled properly, returning a 400 status code. */
-    public void testPostLogTest400_noPayload() {
-        RestResponse expectedResponse =
-                new RestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+    // spotless:off
+    private String validRequest() {
+        return String.format(Locale.ROOT,
+            """
+            {
+              "integration": "%s",
+              "space": "test",
+              "queue": 1,
+              "location": "/var/log/cassandra/system.log",
+              "event": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve",
+              "trace_level": "NONE"
+            }
+            """,
+            INTEGRATION_ID);
+    }
+    // spotless:on
 
-        // Create a RestRequest with the no payload
+    /** Empty payload returns 400. */
+    public void testEmptyPayload400() {
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(false);
-        when(request.content()).thenReturn(null);
-
-        RestResponse actualResponse = this.action.handleRequest(request);
-        Assert.assertEquals(expectedResponse, actualResponse);
+        RestResponse response = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any());
     }
 
-    /**
-     * Test the {@link RestPostLogtestAction#handleRequest(RestRequest)} method when the logtest has
-     * not been created (mock). The expected response is: {400, RestResponse}
-     */
-    public void testPostLogtest400() {
-        // Construct a bad payload to trigger 400 response
-        // spotless:off
-        JsonNode payload = FixtureFactory.from(
-        """
-            {
-              "queue": 1,
-              "location": "syscheck",
-              "event": "File /etc/passwd modified",
-              "trace_level": "ALL"
-            }
-            """
-        );
-        // spotless:on
-
-        // Mock the 400 response from the Wazuh Engine
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
-        // spotless:off
-        expectedResponse.setMessage(
-            """
-            {
-              "status": "ERROR",
-              "error": "metadata is required and must be a JSON object"
-            }
-            """
-        );
-        // spotless:on
-        when(this.engine.logtest(payload)).thenReturn(expectedResponse);
-
-        // Create a RestRequest with the bad payload
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-        when(request.content())
-                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
-
-        // Call the method under test
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        // Assert the response is expected
-        Assert.assertEquals(expectedResponse, actualResponse);
-        verify(this.engine, times(1)).logtest(any(JsonNode.class));
+    /** Invalid JSON returns 400. */
+    public void testInvalidJson400() {
+        RestRequest request = mockRequest("{not valid json");
+        RestResponse response = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any());
     }
 
-    /**
-     * Test the {@link RestPostLogtestAction#handleRequest(RestRequest)} method when an unexpected
-     * error occurs. The expected response is: {500, RestResponse}
-     */
-    public void testPostLogtest500() {
-        // Construct a bad payload to trigger 500 response
-        // This one is missing a value for location
+    /** Missing integration field returns 400. */
+    public void testMissingIntegration400() {
         // spotless:off
-        JsonNode payload = FixtureFactory.from(
-        """
-            {
-              "queue": 1,
-              "location": "/var/log/auth.log",
-              "metadata": {},
-              "space": "test",
-              "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
-              "trace_level": "NONE"
-            }
+        RestRequest request = mockRequest(
+            """
+            {"space": "test", "queue": 1, "location": "/var/log/test.log", "event": "test"}
             """
         );
         // spotless:on
-
-        // Mock the 500 response from the Wazuh Engine
-        RestResponse expectedResponse = new RestResponse();
-        expectedResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        // spotless:off
-        expectedResponse.setMessage(
-            """
-            {
-              "status": "ERROR",
-              "error": "metadata is required and must be a JSON object"
-            }
-            """
-        );
-        // spotless:on
-        when(this.engine.logtest(payload)).thenReturn(expectedResponse);
-
-        // Create a RestRequest with the bad payload
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-        when(request.content())
-                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
-
-        // Call the method under test
-        RestResponse actualResponse = this.action.handleRequest(request);
-
-        // Assert the response is expected
-        Assert.assertEquals(expectedResponse, actualResponse);
-        verify(this.engine, times(1)).logtest(any(JsonNode.class));
+        RestResponse response = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("integration"));
+        verify(this.logtestService, never()).executeLogtest(anyString(), any());
     }
 
-    /** Test that requests with an invalid space value return a 400 status code. */
-    public void testPostLogtest400_invalidSpace() {
+    /** Missing space field returns 400. */
+    public void testMissingSpace400() {
         // spotless:off
-        JsonNode payload = FixtureFactory.from(
-        """
-            {
-              "queue": 1,
-              "location": "/var/log/auth.log",
-              "metadata": {},
-              "space": "invalid_space",
-              "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
-              "trace_level": "NONE"
-            }
+        RestRequest request = mockRequest(
+            """
+            {"integration": "some-id", "queue": 1, "location": "/var/log/test.log", "event": "test"}
             """
         );
         // spotless:on
+        RestResponse response = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("space"));
+        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+    }
 
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-        when(request.content())
-                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
+    /** Non-test space returns 400 with appropriate message. */
+    public void testNonTestSpace400() {
+        // spotless:off
+        RestRequest request = mockRequest(
+            """
+            {"integration": "some-id", "space": "draft", "queue": 1, "event": "test"}
+            """
+        );
+        // spotless:on
+        RestResponse response = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("draft"));
+        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+    }
 
-        RestResponse actualResponse = this.action.handleRequest(request);
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
-        Assert.assertEquals(
-                String.format(java.util.Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, "space"),
-                actualResponse.getMessage());
-        verify(this.engine, never()).logtest(any(JsonNode.class));
+    /** Valid request delegates to LogtestService with correct arguments. */
+    public void testValidRequestDelegatesToService() {
+        RestResponse serviceResponse =
+                new RestResponse("{\"engine_result\":{}}", RestStatus.OK.getStatus());
+        when(this.logtestService.executeLogtest(anyString(), any(ObjectNode.class)))
+                .thenReturn(serviceResponse);
+
+        RestRequest request = mockRequest(validRequest());
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        var captor = org.mockito.ArgumentCaptor.forClass(ObjectNode.class);
+        verify(this.logtestService).executeLogtest(eq(INTEGRATION_ID), captor.capture());
+
+        // Verify integration field is stripped from engine payload
+        ObjectNode payload = captor.getValue();
+        Assert.assertFalse(payload.has("integration"));
+        Assert.assertTrue(payload.has("space"));
+        Assert.assertTrue(payload.has("queue"));
+        Assert.assertTrue(payload.has("event"));
+    }
+
+    /** Service response is returned as-is. */
+    public void testServiceResponsePassedThrough() {
+        RestResponse serviceResponse =
+                new RestResponse(
+                        "{\"engine_result\":{},\"security_analytics_result\":{}}", RestStatus.OK.getStatus());
+        when(this.logtestService.executeLogtest(anyString(), any(ObjectNode.class)))
+                .thenReturn(serviceResponse);
+
+        RestRequest request = mockRequest(validRequest());
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(serviceResponse, response);
     }
 }
