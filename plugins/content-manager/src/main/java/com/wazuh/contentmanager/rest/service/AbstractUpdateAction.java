@@ -195,7 +195,8 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
         } catch (Exception e) {
             log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
@@ -243,7 +244,7 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
     protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     /**
-     * Synchronizes the new resource with external services (Engine validation or SAP upsert).
+     * Synchronizes the new resource with external services (Engine validation or Security Analytics).
      *
      * @return null if successful, RestResponse with error otherwise.
      */

@@ -38,6 +38,7 @@ import java.util.Map;
 public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
+    public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
@@ -46,24 +47,27 @@ public class Constants {
     public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
     public static final String E_400_RESOURCE_SPACE_MISMATCH =
             "Invalid space value. Must be one of: %s.";
-    public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
-    public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_400_INTEGRATION_HAS_RESOURCES =
             "Cannot delete integration because it has %s attached.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
-    public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String E_400_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
-    public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine Validation Failed: ";
+    public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
     public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
             "Cannot remove decoder [%s] as it is set as root decoder.";
+    public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
+    public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
+    public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
+    public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
 
     // Log messages
+    public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
+    public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
     public static final String E_LOG_ENGINE_VALIDATION = "Engine validation failed: {}";
     public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
@@ -71,8 +75,6 @@ public class Constants {
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
     public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
-    public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
-    public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
     public static final String W_LOG_OPERATION_FAILED_ID = "{} failed for {} [{}]: {}";
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
