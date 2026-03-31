@@ -39,7 +39,7 @@ tags:
   - name: Integrations
     description: Manage integration metadata and related content
   - name: Logtest
-    description: Execute logtest against sample events
+    description: Execute logtest against sample events and evaluate Sigma rules via Security Analytics
   - name: Promotion
     description: Preview and promote content across spaces
   - name: Spaces
@@ -785,7 +785,12 @@ paths:
   /logtest:
     post:
       tags: [Logtest]
-      summary: Execute logtest
+      summary: Execute logtest with Sigma rule evaluation
+      description: |
+        Sends a log event to the Wazuh Engine for analysis and evaluates the integration's
+        Sigma rules against the normalized event via the Security Analytics Plugin.
+        The integration must exist in the test space. If the integration has no rules,
+        the SA result returns zero matches. If the engine fails, SA evaluation is skipped.
       operationId: executeLogtest
       requestBody:
         required: true
@@ -1003,10 +1008,25 @@ components:
       type: object
       additionalProperties: false
       required:
+        - integration
+        - space
         - queue
         - location
         - event
       properties:
+        integration:
+          type: string
+          format: uuid
+          description: ID of the integration to test against
+          example: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
+
+        space:
+          type: string
+          enum:
+            - test
+          description: Must be "test". Only the test space is supported for logtest.
+          example: "test"
+
         queue:
           type: integer
           minimum: 0
@@ -1016,28 +1036,18 @@ components:
         location:
           type: string
           description: Log file path or logical source location
-          example: "/var/log/auth.log"
+          example: "/var/log/cassandra/system.log"
+
+        event:
+          type: string
+          description: Raw log event to be tested
+          example: "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
 
         metadata:
           type: object
           additionalProperties: true
           description: Optional metadata passed to the logtest engine
           example: {}
-
-        space:
-          type: string
-          enum:
-            - standard
-            - custom
-            - draft
-            - test
-          description: Space to execute the logtest against
-          example: "test"
-
-        event:
-          type: string
-          description: Raw log event to be tested
-          example: "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2"
 
         trace_level:
           type: string
@@ -2046,40 +2056,71 @@ components:
                 message: "Internal Server Error"
                 status: 500
 
-    # Response body for logtest execution results (pass-through)
+    # Response body for logtest execution results (combined engine + SA)
     LogtestResponse:
-      description: Logtest result
+      description: Combined logtest result with engine output and Security Analytics rule evaluation.
       content:
         application/json:
           schema:
             type: object
-            additionalProperties: false
             properties:
-              status:
-                type: string
-                example: "OK"
-              result:
+              engine_result:
                 type: object
                 properties:
-                  output:
+                  status:
                     type: string
-                    example: '{"wazuh":{"protocol":{"queue":1,"location":"syscheck"},"integration":{"category":"Security","name":"integration/wazuh-core/0","decoders":["core-wazuh-message","integrations"]}},"name":"nahuel","event":{"original":"File /etc/passwd modified"},"@timestamp":"2025-12-26T17:33:22Z"}'
-                  asset_traces:
+                    enum: [success, error]
+                    example: "success"
+                  processed_event:
+                    type: object
+                    description: Engine output containing the normalized event and asset traces.
+                  error:
+                    type: object
+                    description: Present when status is "error".
+                    properties:
+                      message:
+                        type: string
+                      code:
+                        type: string
+                        enum: [ENGINE_ERROR, PARSE_ERROR]
+              security_analytics_result:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success, error, skipped]
+                    example: "success"
+                  reason:
+                    type: string
+                    description: Present when status is "skipped".
+                    example: "Engine processing failed"
+                  rules_evaluated:
+                    type: integer
+                    example: 2
+                  rules_matched:
+                    type: integer
+                    example: 1
+                  matches:
                     type: array
                     items:
                       type: object
                       properties:
-                        asset:
+                        rule_id:
                           type: string
-                          example: "decoder/core-wazuh-message/0"
-                        success:
-                          type: boolean
-                          example: true
-                        traces:
+                          format: uuid
+                        rule_name:
+                          type: string
+                        severity:
+                          type: string
+                          enum: [informational, low, medium, high, critical]
+                        matched_conditions:
                           type: array
                           items:
                             type: string
-                          example: ["@timestamp: get_date -> Success"]
+                        tags:
+                          type: array
+                          items:
+                            type: string
 
     PromotionPreviewResponse:
       description: Promotion preview result

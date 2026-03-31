@@ -192,9 +192,9 @@ curl -sk -u admin:admin -X POST \
 
 ### Execute Logtest
 
-Sends a log event to the Wazuh Engine for analysis and returns the decoded and matched result. The Indexer acts as a pass-through: it forwards the payload to the Engine via Unix socket and returns the Engine's response.
+Sends a log event to the Wazuh Engine for analysis and evaluates the integration's Sigma rules against the normalized event via the Security Analytics Plugin (SAP). The response combines the Engine's decoded output with the SAP rule evaluation results.
 
-> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint.
+> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. The integration must exist in the `test` space.
 
 **Request**
 - Method: `POST`
@@ -202,14 +202,15 @@ Sends a log event to the Wazuh Engine for analysis and returns the decoded and m
 
 **Request Body**
 
-| Field            | Type    | Required | Description                                  |
-| ---------------- | ------- | -------- | -------------------------------------------- |
-| `queue`          | Integer | Yes      | Queue number for logtest execution           |
-| `location`       | String  | Yes      | Log file path or logical source location     |
-| `event`          | String  | Yes      | Raw log event to test                        |
-| `metadata`       | Object  | No       | Optional metadata passed to the Engine       |
-| `space`          | String  | No       | Space to execute the logtest against         |
-| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `BASIC`, or `FULL`  |
+| Field            | Type    | Required | Description                                          |
+| ---------------- | ------- | -------- | ---------------------------------------------------- |
+| `integration`    | String  | Yes      | ID of the integration to test against                |
+| `space`          | String  | Yes      | Must be `"test"`                                     |
+| `queue`          | Integer | Yes      | Queue number for logtest execution                   |
+| `location`       | String  | Yes      | Log file path or logical source location             |
+| `event`          | String  | Yes      | Raw log event to test                                |
+| `metadata`       | Object  | No       | Optional metadata passed to the Engine               |
+| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`      |
 
 **Example Request**
 
@@ -218,49 +219,112 @@ curl -sk -u admin:admin -X POST \
   "https://192.168.56.6:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
-    "queue": 1,
-    "location": "/var/log/auth.log",
-    "metadata": {},
+    "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
     "space": "test",
-    "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
+    "queue": 1,
+    "location": "/var/log/cassandra/system.log",
+    "event": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve",
     "trace_level": "NONE"
   }'
 ```
 
-**Example Response (success)**
+**Example Response (success with rule match)**
 
 ```json
 {
-  "status": "OK",
-  "result": {
-    "output": "{\"wazuh\":{\"protocol\":{\"queue\":1,\"location\":\"syscheck\"},\"integration\":{\"category\":\"Security\",\"name\":\"integration/wazuh-core/0\",\"decoders\":[\"core-wazuh-message\",\"integrations\"]}},\"event\":{\"original\":\"Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2\"},\"@timestamp\":\"2026-02-19T12:00:00Z\"}",
-    "asset_traces": [
+  "engine_result": {
+    "status": "success",
+    "processed_event": {
+      "output": {
+        "event": {
+          "category": ["database"],
+          "kind": "event",
+          "original": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
+        },
+        "wazuh": {
+          "integration": {
+            "name": "test-integ",
+            "category": "other",
+            "decoders": ["decoder/cassandra-default/0"]
+          }
+        },
+        "message": "Node is ready to serve"
+      },
+      "asset_traces": []
+    }
+  },
+  "security_analytics_result": {
+    "status": "success",
+    "rules_evaluated": 2,
+    "rules_matched": 1,
+    "matches": [
       {
-        "asset": "decoder/core-wazuh-message/0",
-        "success": true,
-        "traces": ["@timestamp: get_date -> Success"]
+        "rule_id": "85bba177-a2e9-4468-9d59-26f4798906c9",
+        "rule_name": "Cassandra Database Event Detected",
+        "severity": "low",
+        "matched_conditions": ["event.category == 'database'", "event.kind == 'event'"],
+        "tags": []
       }
     ]
+  },
+}
+```
+
+**Example Response (Engine error, SAP skipped)**
+
+```json
+{
+  "engine_result": {
+    "status": "error",
+    "error": {
+      "message": "Failed to parse protobuff json request: invalid value",
+      "code": "ENGINE_ERROR"
+    }
+  },
+  "security_analytics_result": {
+    "status": "skipped",
+    "reason": "Engine processing failed"
   }
 }
 ```
 
-**Example Response (Engine unavailable)**
+**Example Response (no rules in integration)**
 
 ```json
 {
-  "message": "Error communicating with Engine socket: Connection refused",
-  "status": 500
+  "engine_result": {
+    "status": "success",
+    "processed_event": { "..." : "..." }
+  },
+  "security_analytics_result": {
+    "status": "success",
+    "rules_evaluated": 0,
+    "rules_matched": 0,
+    "matches": []
+  }
 }
 ```
 
+**Response Fields**
+
+| Field                                       | Type    | Description                                        |
+| ------------------------------------------- | ------- | -------------------------------------------------- |
+| `engine_result.status`                      | String  | `"success"` or `"error"`                           |
+| `engine_result.processed_event`             | Object  | Engine output (normalized event + asset traces)    |
+| `engine_result.error`                       | Object  | Present on error: `message` and `code`             |
+| `security_analytics_result.status`          | String  | `"success"`, `"error"`, or `"skipped"`             |
+| `security_analytics_result.reason`          | String  | Present when status is `"skipped"`                 |
+| `security_analytics_result.rules_evaluated` | Integer | Number of Sigma rules evaluated                    |
+| `security_analytics_result.rules_matched`   | Integer | Number of rules that matched                       |
+| `security_analytics_result.matches`         | Array   | List of matched rules with details                 |
+
 **Status Codes**
 
-| Code | Description                       |
-| ---- | --------------------------------- |
-| 200  | Logtest executed successfully     |
-| 400  | Invalid request body              |
-| 500  | Engine socket communication error |
+| Code | Description                                        |
+| ---- | -------------------------------------------------- |
+| 200  | Logtest executed (check inner status fields)       |
+| 400  | Missing/invalid fields or integration not found    |
+| 500  | Engine socket communication error or internal error|
 
 ---
 
