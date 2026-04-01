@@ -253,7 +253,7 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
     protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     /**
-     * Synchronizes the new resource with external services (Engine validation or SAP upsert).
+     * Synchronizes the new resource with external services (Engine validation or Security Analytics).
      *
      * @return null if successful, RestResponse with error otherwise.
      */
@@ -296,13 +296,14 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
         Object spaceName = spaceMap.get(Constants.KEY_NAME);
 
-        if (getAllowedSpaces() != null
+        if (this.getAllowedSpaces() != null
                 && spaceNameFromRequest != null
-                && !getAllowedSpaces().contains(Space.fromValue(spaceNameFromRequest))) {
+                && !this.getAllowedSpaces().contains(Space.fromValue(spaceNameFromRequest))) {
             return String.format(Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, validSpaces);
         }
 
-        if (!spaceNameFromRequest.equalsIgnoreCase(String.valueOf(spaceName))) {
+        if (spaceNameFromRequest != null
+                && !spaceNameFromRequest.equalsIgnoreCase(String.valueOf(spaceName))) {
             return String.format(Locale.ROOT, Constants.E_400_RESOURCE_SPACE_INVALID);
         }
 

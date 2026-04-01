@@ -232,14 +232,26 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations
-            this.syncIntegrations();
+            try {
+                this.syncIntegrations();
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "integrations", e.getMessage(), e);
+            }
 
             // Sync Rules
-            this.syncRules();
+            try {
+                this.syncRules();
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "rules", e.getMessage(), e);
+            }
 
             // Sync Detectors
             if (PluginSettings.getInstance().getCreateDetectors()) {
-                this.syncDetectors();
+                try {
+                    this.syncDetectors();
+                } catch (Exception e) {
+                    log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
+                }
             }
 
             Set<String> changedSpaces = this.spaceService.calculateAndUpdate();

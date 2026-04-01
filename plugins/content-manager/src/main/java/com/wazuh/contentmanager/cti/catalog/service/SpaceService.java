@@ -874,7 +874,12 @@ public class SpaceService {
             }
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
-                this.client.bulk(bulkUpdateRequest).actionGet();
+                bulkUpdateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                BulkResponse bulkResponse = this.client.bulk(bulkUpdateRequest).actionGet();
+                if (bulkResponse.hasFailures()) {
+                    log.error(
+                            "Bulk update of policy space hashes failed: {}", bulkResponse.buildFailureMessage());
+                }
             }
 
         } catch (Exception e) {
