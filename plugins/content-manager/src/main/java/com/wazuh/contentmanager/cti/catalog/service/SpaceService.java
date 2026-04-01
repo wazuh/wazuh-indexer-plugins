@@ -98,6 +98,64 @@ public class SpaceService {
     }
 
     /**
+     * Removes all resources from a space, including their SAP counterparts.
+     *
+     * <p>Steps performed:
+     *
+     * <ol>
+     *   <li>Fetches all resources currently in the space.
+     *   <li>Deletes rules from SAP (best-effort).
+     *   <li>Deletes integrations from SAP (best-effort, also deletes detectors for Standard).
+     *   <li>Deletes all documents for the space across all resource indices.
+     * </ol>
+     *
+     * @param space The space to reset.
+     * @param securityAnalyticsService The SAP service used to delete external resources.
+     * @throws IOException If the index deletion process fails.
+     */
+    public void resetSpace(Space space, SecurityAnalyticsService securityAnalyticsService)
+            throws IOException {
+        // 1. Fetch current resources to perform external deletions
+        Map<String, Map<String, String>> spaceResources = this.getSpaceResources(space.toString());
+
+        // 2. Delete SAP resources (best-effort)
+        Map<String, String> rules = spaceResources.get(Constants.KEY_RULES);
+        if (rules != null) {
+            for (String id : rules.keySet()) {
+                try {
+                    securityAnalyticsService.deleteRule(id, space);
+                    log.debug("Deleted rule [{}] from SAP for space [{}] reset", id, space);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete rule [{}] from SAP during space [{}] reset: {}",
+                            id,
+                            space,
+                            e.getMessage());
+                }
+            }
+        }
+
+        Map<String, String> integrations = spaceResources.get(Constants.KEY_INTEGRATIONS);
+        if (integrations != null) {
+            for (String id : integrations.keySet()) {
+                try {
+                    securityAnalyticsService.deleteIntegration(id, space);
+                    log.debug("Deleted integration [{}] from SAP for space [{}] reset", id, space);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete integration [{}] from SAP during space [{}] reset: {}",
+                            id,
+                            space,
+                            e.getMessage());
+                }
+            }
+        }
+
+        // 3. Delete all documents for the space across all resource indices
+        this.deleteSpaceResources(space.toString());
+    }
+
+    /**
      * Deletes all documents related to a specific space across all resource indices.
      *
      * @param spaceName The name of the space to wipe.

@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -170,15 +171,14 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         this.synchronizer.cleanupStandardSpaceIfConsumerChanged();
 
         verify(this.spaceService).getSpaceResources(Space.STANDARD.toString());
-        verify(this.spaceService, never()).deleteSpaceResources(any());
-        verifyNoInteractions(this.securityAnalyticsService);
+        verify(this.spaceService, never()).resetSpace(any(), any());
     }
 
     /**
      * When no LocalConsumer document exists and the Standard space has resources, the cleanup should
-     * delete rules and integrations from SAP and delete all Standard space documents from indices.
+     * delegate to SpaceService.resetSpace to delete SAP resources and index documents.
      */
-    public void testCleanupDeletesResourcesWhenConsumerChanged() throws Exception {
+    public void testCleanupResetsSpaceWhenConsumerChanged() throws Exception {
         GetResponse missingDoc = mock(GetResponse.class);
         when(missingDoc.isExists()).thenReturn(false);
         when(this.consumersIndex.getConsumer(any(), any())).thenReturn(missingDoc);
@@ -186,51 +186,34 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         Map<String, Map<String, String>> resources = new HashMap<>();
         Map<String, String> rules = new HashMap<>();
         rules.put("rule-1", "hash1");
-        rules.put("rule-2", "hash2");
         resources.put(Constants.KEY_RULES, rules);
-
-        Map<String, String> integrations = new HashMap<>();
-        integrations.put("integration-1", "hash3");
-        resources.put(Constants.KEY_INTEGRATIONS, integrations);
-
         when(this.spaceService.getSpaceResources(Space.STANDARD.toString())).thenReturn(resources);
 
         this.synchronizer.cleanupStandardSpaceIfConsumerChanged();
 
-        verify(this.securityAnalyticsService).deleteRule("rule-1", Space.STANDARD);
-        verify(this.securityAnalyticsService).deleteRule("rule-2", Space.STANDARD);
-        verify(this.securityAnalyticsService).deleteIntegration("integration-1", Space.STANDARD);
-        verify(this.spaceService).deleteSpaceResources(Space.STANDARD.toString());
+        verify(this.spaceService).resetSpace(eq(Space.STANDARD), eq(this.securityAnalyticsService));
     }
 
     /**
-     * When SAP deletion fails for one resource, the cleanup should continue and still delete all
-     * Standard space documents from indices.
+     * When resetSpace throws an IOException, the cleanup should catch it and not propagate, allowing
+     * the sync to proceed.
      */
-    public void testCleanupContinuesOnSAPFailure() throws Exception {
+    public void testCleanupHandlesResetSpaceFailure() throws Exception {
         GetResponse missingDoc = mock(GetResponse.class);
         when(missingDoc.isExists()).thenReturn(false);
         when(this.consumersIndex.getConsumer(any(), any())).thenReturn(missingDoc);
 
         Map<String, Map<String, String>> resources = new HashMap<>();
-        Map<String, String> rules = new HashMap<>();
-        rules.put("rule-1", "hash1");
-        resources.put(Constants.KEY_RULES, rules);
-
         Map<String, String> integrations = new HashMap<>();
-        integrations.put("integration-1", "hash2");
+        integrations.put("integration-1", "hash1");
         resources.put(Constants.KEY_INTEGRATIONS, integrations);
-
         when(this.spaceService.getSpaceResources(Space.STANDARD.toString())).thenReturn(resources);
-        doThrow(new RuntimeException("SAP unavailable"))
-                .when(this.securityAnalyticsService)
-                .deleteRule(eq("rule-1"), eq(Space.STANDARD));
+        doThrow(new IOException("Bulk deletion failed"))
+                .when(this.spaceService)
+                .resetSpace(eq(Space.STANDARD), any());
 
+        // Should not throw
         this.synchronizer.cleanupStandardSpaceIfConsumerChanged();
-
-        // SAP rule deletion failed, but integration deletion and index cleanup still happened
-        verify(this.securityAnalyticsService).deleteIntegration("integration-1", Space.STANDARD);
-        verify(this.spaceService).deleteSpaceResources(Space.STANDARD.toString());
     }
 
     /**
@@ -245,7 +228,6 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         // Should not throw
         this.synchronizer.cleanupStandardSpaceIfConsumerChanged();
 
-        verifyNoInteractions(this.securityAnalyticsService);
         verify(this.spaceService, never()).getSpaceResources(any());
     }
 }

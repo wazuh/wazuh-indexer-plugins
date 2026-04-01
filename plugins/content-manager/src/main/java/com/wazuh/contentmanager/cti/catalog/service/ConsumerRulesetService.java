@@ -133,39 +133,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             // 3. Consumer changed and old resources exist. Clean up.
             log.info("Consumer setting change detected. Cleaning up Standard space before re-sync.");
-
-            // 3a. Delete rules from SAP (best-effort)
-            Map<String, String> rules = spaceResources.get(Constants.KEY_RULES);
-            if (rules != null) {
-                for (String id : rules.keySet()) {
-                    try {
-                        this.securityAnalyticsService.deleteRule(id, Space.STANDARD);
-                        log.debug("Deleted rule [{}] from SAP during consumer change cleanup", id);
-                    } catch (Exception e) {
-                        log.warn("Failed to delete rule [{}] from SAP during cleanup: {}", id, e.getMessage());
-                    }
-                }
-            }
-
-            // 3b. Delete integrations from SAP (best-effort, also deletes detectors)
-            Map<String, String> integrations = spaceResources.get(Constants.KEY_INTEGRATIONS);
-            if (integrations != null) {
-                for (String id : integrations.keySet()) {
-                    try {
-                        this.securityAnalyticsService.deleteIntegration(id, Space.STANDARD);
-                        log.debug("Deleted integration [{}] from SAP during consumer change cleanup", id);
-                    } catch (Exception e) {
-                        log.warn(
-                                "Failed to delete integration [{}] from SAP during cleanup: {}",
-                                id,
-                                e.getMessage());
-                    }
-                }
-            }
-
-            // 3c. Delete all Standard space documents from indices
-            this.spaceService.deleteSpaceResources(Space.STANDARD.toString());
-
+            this.spaceService.resetSpace(Space.STANDARD, this.securityAnalyticsService);
             log.info("Standard space cleanup completed successfully.");
 
         } catch (Exception e) {
