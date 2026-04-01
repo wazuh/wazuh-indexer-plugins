@@ -134,15 +134,13 @@ public abstract class AbstractConsumerService {
      *
      * <p>Marks the consumer as {@link LocalConsumer.Status#UPDATING} before sync begins so that
      * external components can detect the in-progress state. The status is restored to {@link
-     * LocalConsumer.Status#IDLE} once synchronization completes, whether or not updates were applied.
+     * LocalConsumer.Status#IDLE} once synchronization completes, whether updates were applied.
      */
     public void synchronize() {
         this.setConsumerStatus(LocalConsumer.Status.UPDATING);
         boolean isUpdated = this.syncConsumerServices();
         log.info(
-                "Synchronization completed for consumer [{}]. Updated: {}",
-                this.getConsumer(),
-                isUpdated);
+                "Synchronization completed for consumer [{}]. Updated: {}", this.getConsumer(), isUpdated);
         this.onSyncComplete(isUpdated);
         this.setConsumerStatus(LocalConsumer.Status.IDLE);
     }
