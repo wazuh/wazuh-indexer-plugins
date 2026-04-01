@@ -139,13 +139,10 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         return null;
     }
 
-    /**
-     * Synchronizes the new integration with external services. 1. Validates with Engine. If
-     * validation fails, SAP upsert is rolled back. 2. Upserts to SAP.
-     */
+    /** Synchronizes the new integration with external services. */
     @Override
     protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        // 1. Engine Validate
+        // 1. Validate using the Engine.
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
@@ -153,16 +150,17 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    "Engine Validation Failed: " + engineResponse.getMessage(),
+                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 2. SAP Upsert
+        // 2. Send to Security Analytics.
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, POST);
         } catch (Exception e) {
             return new RestResponse(
-                    "SAP Upsert Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         return null;
     }
@@ -186,7 +184,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         if (searchResult == null
                 || !searchResult.has(Constants.Q_HITS)
                 || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException("Draft policy not found");
+            throw new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY);
         }
 
         ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);

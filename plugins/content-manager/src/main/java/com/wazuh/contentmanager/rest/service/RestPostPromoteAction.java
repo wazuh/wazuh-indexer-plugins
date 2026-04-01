@@ -178,7 +178,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 // Check if engine validation was successful
                 if (engineResponse.getStatus() != RestStatus.OK.getStatus()
                         && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                    log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
+                    log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
                     log.error(mapper.writeValueAsString(context.enginePayload));
                     return engineResponse;
                 }
@@ -794,10 +794,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 String index = this.spaceService.getIndexForResourceType(step.resourceType);
                 Collection<String> ids =
                         (step.kind == RollbackStep.Kind.APPLY)
-                                ? context.oldVersions
+                                ? context
+                                        .oldVersions
                                         .getOrDefault(step.resourceType, Collections.emptyMap())
                                         .keySet()
-                                : context.deleteSnapshots
+                                : context
+                                        .deleteSnapshots
                                         .getOrDefault(step.resourceType, Collections.emptyMap())
                                         .keySet();
                 log.error(

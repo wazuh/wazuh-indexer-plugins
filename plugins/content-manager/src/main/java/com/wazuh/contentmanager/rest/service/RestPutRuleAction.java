@@ -122,7 +122,8 @@ public class RestPutRuleAction extends AbstractUpdateAction {
             return null;
         } catch (Exception e) {
             return new RestResponse(
-                    "SAP Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }

@@ -166,7 +166,7 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
         if (searchResult == null
                 || !searchResult.has(Constants.Q_HITS)
                 || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException("Draft policy not found");
+            throw new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY);
         }
 
         ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);

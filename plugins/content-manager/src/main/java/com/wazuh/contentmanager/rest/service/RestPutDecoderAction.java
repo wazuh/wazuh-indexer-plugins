@@ -105,7 +105,7 @@ public class RestPutDecoderAction extends AbstractUpdateAction {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_DECODER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    "Engine Validation Failed: " + engineValidation.getMessage(),
+                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
