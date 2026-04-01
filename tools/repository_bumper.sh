@@ -19,6 +19,7 @@ function usage() {
     echo "Usage: $0 <version> <stage>"
     echo "  version:  The new version to set in VERSION.json (e.g., 4.5.0)"
     echo "  stage:    The new stage to set in VERSION.json (alpha, beta, rc, stable)"
+    echo "  --set-as-main: (Optional) Enable main branch mode: bump version values only,"
     exit 1
 }
 
@@ -130,13 +131,34 @@ function update_version_file() {
 # Main logic
 # ====
 function main() {
-    if [ "$#" -ne 2 ]; then
-        log "Error: Invalid number of arguments. Expected 2, got $#."
+    if [ "$#" -lt 2 ]; then
+        log "Error: Invalid number of arguments. Expected at least 2, got $#."
+        usage
+    fi
+
+    if [[ $# -gt 3 ]]; then
+        log "Error: Too many arguments. Expected at most 3, got $#."
         usage
     fi
 
     local version="$1"
     local stage="$2"
+    local set_as_main=""
+
+    # Parse optional flags
+    shift 2
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --set-as-main)
+                set_as_main="yes"
+                shift 1
+                ;;
+            *)
+                log "Error: Unknown argument '$1'."
+                usage
+                ;;
+        esac
+    done
 
     init_logging
     log "Starting update for VERSION.json with version=$version, stage=$stage"
