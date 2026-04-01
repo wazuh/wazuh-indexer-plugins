@@ -140,7 +140,7 @@ public abstract class AbstractConsumerService {
         this.setConsumerStatus(LocalConsumer.Status.UPDATING);
         boolean isUpdated = this.syncConsumerServices();
         log.info(
-                "Synchronization complete for consumer [{}]. Updates applied: {}",
+                "Synchronization completed for consumer [{}]. Updated: {}",
                 this.getConsumer(),
                 isUpdated);
         this.onSyncComplete(isUpdated);
