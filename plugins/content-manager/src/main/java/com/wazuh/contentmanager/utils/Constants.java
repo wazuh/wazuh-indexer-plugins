@@ -70,6 +70,7 @@ public class Constants {
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
     public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
+    public static final String E_LOG_SAP_SYNC_FAILED = "Failed to sync {} in Security Analytics: {}";
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
