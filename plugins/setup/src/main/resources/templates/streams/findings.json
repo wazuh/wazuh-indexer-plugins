@@ -1297,6 +1297,14 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
+                "feed": {
+                  "properties": {
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
                 "first_seen": {
                   "type": "date"
                 },

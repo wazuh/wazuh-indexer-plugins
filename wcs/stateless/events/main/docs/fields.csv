@@ -260,6 +260,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.to.address,keyword,extended,array,user1@example.com,Email address of recipient
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
 9.1.0,true,enrichments,enrichments.indicator.confidence,keyword,custom,,,Indicator confidence rating.
+9.1.0,true,enrichments,enrichments.indicator.feed.name,keyword,custom,,,Name of the feed that supplied the indicator.
 9.1.0,true,enrichments,enrichments.indicator.first_seen,date,custom,,,Date/time indicator was first reported.
 9.1.0,true,enrichments,enrichments.indicator.last_seen,date,custom,,,Date/time indicator was last reported.
 9.1.0,true,enrichments,enrichments.indicator.name,keyword,custom,,,Indicator display name.
