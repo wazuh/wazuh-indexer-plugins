@@ -165,14 +165,14 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             try {
                 this.syncIntegrations();
             } catch (Exception e) {
-                log.error("Failed to sync integrations to SAP: {}", e.getMessage(), e);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "integrations", e.getMessage(), e);
             }
 
             // Sync Rules
             try {
                 this.syncRules();
             } catch (Exception e) {
-                log.error("Failed to sync rules to SAP: {}", e.getMessage(), e);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "rules", e.getMessage(), e);
             }
 
             // Sync Detectors
@@ -180,7 +180,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 try {
                     this.syncDetectors();
                 } catch (Exception e) {
-                    log.error("Failed to sync detectors to SAP: {}", e.getMessage(), e);
+                    log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
                 }
             }
 
