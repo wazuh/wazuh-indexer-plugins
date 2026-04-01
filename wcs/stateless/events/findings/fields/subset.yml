@@ -643,5 +643,5 @@ fields:
     fields: "*"
   compliance:
     fields: "*"
-  mitre:
+  mitre: 
     fields: "*"
