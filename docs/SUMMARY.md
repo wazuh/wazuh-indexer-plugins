@@ -17,6 +17,7 @@
   - [Reporting](dev/plugins/reporting.md)
   - [Content Manager](dev/plugins/content-manager.md)
     - [Tutorial](dev/plugins/content-manager-tutorial.md)
+    - [Logtest](dev/plugins/content-manager-logtest.md)
   - [Notifications](dev/plugins/notifications.md)
 
 # Reference Manual
@@ -42,6 +43,7 @@
     - [Configuration](ref/modules/content-manager/configuration.md)
     - [API Reference](ref/modules/content-manager/api.md)
     - [Sigma Rules](ref/modules/content-manager/sigma-rules.md)
+    - [Logtest Usage](ref/modules/content-manager/rule-testing.md)
     - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)
     - [Usage](ref/modules/reporting/usage.md)
