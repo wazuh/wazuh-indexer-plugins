@@ -572,8 +572,6 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Mock spaces
         Map<String, String> mockSpaceTest = new HashMap<>();
         mockSpaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
-        Map<String, String> mockSpaceCustom = new HashMap<>();
-        mockSpaceCustom.put(Constants.KEY_NAME, Space.CUSTOM.toString());
 
         // Mock policy document for UPDATE operation (policy exists in test space)
         Map<String, Object> mockPolicy = new HashMap<>();

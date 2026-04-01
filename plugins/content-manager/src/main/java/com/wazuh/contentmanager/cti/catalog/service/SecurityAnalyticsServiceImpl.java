@@ -83,29 +83,29 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
      * @param method The HTTP method (POST/PUT).
      * @return The built request, or {@code null} if the document is missing an ID.
      */
-    public WIndexIntegrationRequest buildIntegrationRequest(
+    private WIndexIntegrationRequest buildIntegrationRequest(
             JsonNode doc, Space space, Method method) {
+        // Fail-fast.
         if (!doc.has(Constants.KEY_ID)) {
-            log.warn("Integration document missing ID. Skipping upsert.");
+            log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
+            return null;
+        }
+        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+            log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
             return null;
         }
 
         String id = doc.get(Constants.KEY_ID).asText();
-        String name = "";
-        String description = "";
-        if (doc.has(Constants.KEY_METADATA) && doc.get(Constants.KEY_METADATA).isObject()) {
-            JsonNode metadata = doc.get(Constants.KEY_METADATA);
-            name = metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
-            description =
-                    metadata.has(Constants.KEY_DESCRIPTION)
-                            ? metadata.get(Constants.KEY_DESCRIPTION).asText()
-                            : "";
-        }
-
+        JsonNode metadata = doc.get(Constants.KEY_METADATA);
+        String name =
+                metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
+        String description =
+                metadata.has(Constants.KEY_DESCRIPTION)
+                        ? metadata.get(Constants.KEY_DESCRIPTION).asText()
+                        : "";
         String category = this.formatCategory(doc, false);
 
-        log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
-
+        log.info(Constants.I_LOG_SAP_SEND, "integration", name, id);
         return new WIndexIntegrationRequest(
                 id,
                 WriteRequest.RefreshPolicy.IMMEDIATE,
@@ -128,18 +128,25 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 this.deleteDetector(id);
             }
             // Use document.id + source=<space> (via space.asSecurityAnalyticsSource()) to find and delete
-            // the SAP document.
+            // the document in Security Analytics.
             String source = space.asSecurityAnalyticsSource();
             this.client
                     .execute(
                             WDeleteIntegrationAction.INSTANCE,
                             new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source))
                     .actionGet();
-            log.info(
-                    "Integration [{}] deleted successfully (document.id={}, source={}).", id, id, source);
+            log.info(Constants.I_LOG_SAP_DELETED, "Integration", id, ", source=" + source);
         } catch (Exception e) {
-            log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
-            throw new OpenSearchException("Failed to delete Integration", e.getMessage());
+            String message =
+                    String.format(
+                            Locale.ROOT,
+                            "Failed to delete %s with id [%s] in space [%s]: %s",
+                            "integration",
+                            id,
+                            space.asSecurityAnalyticsSource(),
+                            e.getMessage());
+            log.error(message);
+            throw new OpenSearchException(message);
         }
     }
 
@@ -172,29 +179,33 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertRule(JsonNode doc, Space space, Method method) {
         if (!doc.has(Constants.KEY_ID)) {
-            log.warn("Rule document missing ID. Skipping upsert.");
+            log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
+            return;
+        }
+        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+            log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
             return;
         }
 
-        String documentId = doc.get(Constants.KEY_ID).asText();
+        String id = doc.get(Constants.KEY_ID).asText();
+        String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
         String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info("Creating/Updating Rule in SAP - documentId: {}, space: {}", documentId, sourceName);
-
+        log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
         if (space != Space.STANDARD) {
             this.client
                     .execute(
                             WIndexCustomRuleAction.INSTANCE,
                             new WIndexCustomRuleRequest(
-                                    documentId,
+                                    id,
                                     WriteRequest.RefreshPolicy.IMMEDIATE,
                                     product,
                                     method,
                                     body,
                                     true,
-                                    documentId,
+                                    id,
                                     sourceName))
                     .actionGet();
         } else {
@@ -202,13 +213,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     .execute(
                             WIndexRuleAction.INSTANCE,
                             new WIndexRuleRequest(
-                                    documentId,
+                                    id,
                                     WriteRequest.RefreshPolicy.IMMEDIATE,
                                     product,
                                     method,
                                     body,
                                     true,
-                                    documentId,
+                                    id,
                                     sourceName))
                     .actionGet();
         }
@@ -218,43 +229,45 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     public void upsertRuleAsync(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         if (!doc.has(Constants.KEY_ID)) {
-            log.warn("Rule document missing ID. Skipping upsert.");
-            listener.onResponse(null);
+            log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
+            return;
+        }
+        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+            log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
             return;
         }
 
-        String documentId = doc.get(Constants.KEY_ID).asText();
+        String id = doc.get(Constants.KEY_ID).asText();
+        String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
         String sourceName = space.asSecurityAnalyticsSource();
 
-        log.info(
-                "Async creating/updating Rule in SAP - documentId: {}, space: {}", documentId, sourceName);
-
+        log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
         if (space != Space.STANDARD) {
             this.executeAsync(
                     WIndexCustomRuleAction.INSTANCE,
                     new WIndexCustomRuleRequest(
-                            documentId,
+                            id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             product,
                             method,
                             body,
                             true,
-                            documentId,
+                            id,
                             sourceName),
                     listener);
         } else {
             this.executeAsync(
                     WIndexRuleAction.INSTANCE,
                     new WIndexRuleRequest(
-                            documentId,
+                            id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             product,
                             method,
                             body,
                             true,
-                            documentId,
+                            id,
                             sourceName),
                     listener);
         }
@@ -265,15 +278,12 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String source = space.asSecurityAnalyticsSource();
         try {
             if (Space.STANDARD.equals(space)) {
-                log.info(
-                        "Deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
                 this.client
                         .execute(
                                 WDeleteRuleAction.INSTANCE,
                                 new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
                         .actionGet();
             } else {
-                log.info("Deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
                 this.client
                         .execute(
                                 WDeleteCustomRuleAction.INSTANCE,
@@ -281,10 +291,18 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                                         id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
                         .actionGet();
             }
-            log.info("Rule [{}] deleted successfully.", id);
+            log.info(Constants.I_LOG_SAP_DELETED, "Rule", id, ", source=" + source);
         } catch (Exception e) {
-            log.error("Failed to delete Rule [{}]: {}", id, e.getMessage());
-            throw new OpenSearchException("Failed to delete Rule", e.getMessage());
+            String message =
+                    String.format(
+                            Locale.ROOT,
+                            "Failed to delete %s with id [%s] in space [%s]: %s",
+                            "rule",
+                            id,
+                            space.asSecurityAnalyticsSource(),
+                            e.getMessage());
+            log.error(message);
+            throw new OpenSearchException(message);
         }
     }
 
@@ -293,20 +311,17 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
         String source = space.asSecurityAnalyticsSource();
         if (Space.STANDARD.equals(space)) {
-            log.info(
-                    "Async deleting Standard Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(
                     WDeleteRuleAction.INSTANCE,
                     new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
                     listener);
         } else {
-            log.info(
-                    "Async deleting Custom Rule [{}] from SAP (document.id={}, source={})", id, id, source);
             this.executeAsync(
                     WDeleteCustomRuleAction.INSTANCE,
                     new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
                     listener);
         }
+        log.info(Constants.I_LOG_SAP_DELETE_ASYNC, "rule", id, ", source=" + source);
     }
 
     @Override
@@ -339,59 +354,62 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
      * @return The built request, or {@code null} if the document is missing an ID or has no rules.
      */
     public WIndexDetectorRequest buildDetectorRequest(JsonNode doc, boolean rawCategory) {
+        // Fail-fast.
         if (!doc.has(Constants.KEY_ID)) {
-            log.warn("Detector document missing ID. Skipping upsert.");
+            log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
+            return null;
+        }
+        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+            log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
+            return null;
+        }
+        if (!doc.has(Constants.KEY_RULES)) {
+            log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_RULES);
             return null;
         }
 
         String id = doc.get(Constants.KEY_ID).asText();
-
-        // Extract name from the metadata object
-        String name = "";
-        if (doc.has(Constants.KEY_METADATA) && doc.get(Constants.KEY_METADATA).isObject()) {
-            JsonNode metadata = doc.get(Constants.KEY_METADATA);
-            name = metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
-        }
-
+        JsonNode metadata = doc.get(Constants.KEY_METADATA);
+        String title =
+                metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
         String category = this.formatCategory(doc, rawCategory);
         List<String> rules = new ArrayList<>();
-
-        if (doc.has(Constants.KEY_RULES)) {
-            doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
-        }
+        doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
         if (rules.isEmpty()) {
+            log.debug("Detector [{}] has no rules. Skipping creation.", id);
             return null;
         }
 
-        log.info("Creating/Updating Detector [{}] for Integration", name);
-
+        log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
         return new WIndexDetectorRequest(
-                id, name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
+                id, title, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
     @Override
     public void deleteDetector(String id) {
         try {
-            log.info("Deleting Detector [{}] from SAP", id);
             this.client
                     .execute(
                             WDeleteDetectorAction.INSTANCE,
                             new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
                     .actionGet();
-            log.info("Detector [{}] deleted successfully.", id);
+            log.info(Constants.I_LOG_SAP_DELETED, "Detector", id, "");
         } catch (Exception e) {
-            log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
-            throw new OpenSearchException("Failed to delete Detector", e.getMessage());
+            String message =
+                    String.format(
+                            Locale.ROOT, "Failed to delete %s with id [%s]: %s", "detector", id, e.getMessage());
+            log.error(message);
+            throw new OpenSearchException(message);
         }
     }
 
     @Override
     public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
-        log.info("Async deleting Detector [{}] from SAP", id);
         this.executeAsync(
                 WDeleteDetectorAction.INSTANCE,
                 new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
                 listener);
+        log.info(Constants.I_LOG_SAP_DELETE_ASYNC, "detector", id, "");
     }
 
     /**
@@ -443,6 +461,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
 
         // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
+        // TODO can be removed. Subcategories are gone.
         if (rawCategory.contains("cloud-services")) {
             rawCategory = rawCategory.substring(0, 14);
         }
