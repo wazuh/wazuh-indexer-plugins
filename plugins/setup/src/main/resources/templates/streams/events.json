@@ -2275,6 +2275,15 @@
           }
         },
         {
+          "wcs_enrichments_indicator_feed_name": {
+            "path_match": "enrichments.indicator.feed.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_enrichments_indicator_first_seen": {
             "path_match": "enrichments.indicator.first_seen",
             "mapping": {
@@ -16566,7 +16575,11 @@
         "enrichments": {
           "properties": {
             "indicator": {
-              "properties": {}
+              "properties": {
+                "feed": {
+                  "properties": {}
+                }
+              }
             }
           }
         },

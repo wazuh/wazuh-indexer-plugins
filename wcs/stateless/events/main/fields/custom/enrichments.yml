@@ -41,6 +41,11 @@
       level: custom
       description: >
         Indicator provider.
+    - name: indicator.feed.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the feed that supplied the indicator.
     - name: source
       type: keyword
       level: custom

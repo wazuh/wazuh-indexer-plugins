@@ -3377,6 +3377,16 @@ enrichments.indicator.confidence:
   normalize: []
   short: Indicator confidence rating.
   type: keyword
+enrichments.indicator.feed.name:
+  dashed_name: enrichments-indicator-feed-name
+  description: Name of the feed that supplied the indicator.
+  flat_name: enrichments.indicator.feed.name
+  ignore_above: 1024
+  level: custom
+  name: indicator.feed.name
+  normalize: []
+  short: Name of the feed that supplied the indicator.
+  type: keyword
 enrichments.indicator.first_seen:
   dashed_name: enrichments-indicator-first-seen
   description: Date/time indicator was first reported.
