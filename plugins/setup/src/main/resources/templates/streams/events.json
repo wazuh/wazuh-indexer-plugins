@@ -10399,6 +10399,15 @@
           }
         },
         {
+          "wcs_threat_enrichments_indicator_feed_name": {
+            "path_match": "threat.enrichments.indicator.feed.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_threat_enrichments_indicator_file_accessed": {
             "path_match": "threat.enrichments.indicator.file.accessed",
             "mapping": {
@@ -17241,6 +17250,9 @@
                       }
                     },
                     "email": {
+                      "properties": {}
+                    },
+                    "feed": {
                       "properties": {}
                     },
                     "file": {

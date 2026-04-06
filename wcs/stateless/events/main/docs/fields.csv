@@ -1223,6 +1223,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
 9.1.0,true,threat,threat.enrichments.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
 9.1.0,true,threat,threat.enrichments.indicator.email.address,keyword,extended,,phish@example.com,Indicator email address
+9.1.0,true,threat,threat.enrichments.indicator.feed.name,keyword,custom,,,Name of the feed that supplied the indicator.
 9.1.0,true,threat,threat.enrichments.indicator.file.accessed,date,extended,,,Last time the file was accessed.
 9.1.0,true,threat,threat.enrichments.indicator.file.attributes,keyword,extended,array,"[""readonly"", ""system""]",Array of file attributes.
 9.1.0,true,threat,threat.enrichments.indicator.file.code_signature.digest_algorithm,keyword,extended,,sha256,Hashing algorithm used to sign the process.

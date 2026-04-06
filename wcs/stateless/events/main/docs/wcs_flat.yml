@@ -16492,6 +16492,16 @@ threat.enrichments.indicator.email.address:
   normalize: []
   short: Indicator email address
   type: keyword
+threat.enrichments.indicator.feed.name:
+  dashed_name: threat-enrichments-indicator-feed-name
+  description: Name of the feed that supplied the indicator.
+  flat_name: threat.enrichments.indicator.feed.name
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.feed.name
+  normalize: []
+  short: Name of the feed that supplied the indicator.
+  type: keyword
 threat.enrichments.indicator.file.accessed:
   dashed_name: threat-enrichments-indicator-file-accessed
   description: 'Last time the file was accessed.
