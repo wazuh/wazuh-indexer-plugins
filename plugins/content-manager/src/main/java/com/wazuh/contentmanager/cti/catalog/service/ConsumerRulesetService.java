@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.action.ActionListener;
@@ -59,8 +60,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
-    private final SpaceService spaceService;
+    private SecurityAnalyticsServiceImpl securityAnalyticsService;
+    private SpaceService spaceService;
     private final EngineService engineService;
 
     /**
@@ -87,6 +88,75 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 .configOverride(Policy.class)
                 .setInclude(
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
+    }
+
+    /**
+     * Runs the Standard space cleanup (if needed) before delegating to the parent synchronization
+     * logic. This ensures that stale resources from a previous consumer are removed before the new
+     * consumer's snapshot is loaded.
+     */
+    @Override
+    public void synchronize() {
+        this.cleanupStandardSpaceIfConsumerChanged();
+        super.synchronize();
+    }
+
+    /**
+     * Detects whether the content consumer/context settings have changed since the last sync and, if
+     * so, cleans up the Standard space before the new consumer's snapshot is loaded.
+     *
+     * <p>Detection heuristic: if no {@link com.wazuh.contentmanager.cti.catalog.model.LocalConsumer}
+     * document exists for the current composite ID ({@code context_consumer}) AND the Standard space
+     * already contains resources, then a consumer switch has occurred and cleanup is required.
+     */
+    void cleanupStandardSpaceIfConsumerChanged() {
+        try {
+            // 1. Check if a LocalConsumer document exists for the current context/consumer
+            GetResponse consumerDoc = this.consumersIndex.getConsumer(this.CONTEXT, this.CONSUMER);
+
+            if (consumerDoc != null && consumerDoc.isExists()) {
+                // Consumer doc already exists -- no setting change detected.
+                return;
+            }
+
+            // 2. No consumer doc for the current ID. Check if Standard space has resources.
+            Map<String, Map<String, String>> spaceResources =
+                    this.spaceService.getSpaceResources(Space.STANDARD.toString());
+
+            boolean hasResources =
+                    spaceResources.values().stream().anyMatch(m -> m != null && !m.isEmpty());
+
+            if (!hasResources) {
+                log.info("No existing Standard space resources found. Skipping cleanup.");
+                return;
+            }
+
+            // 3. Consumer changed and old resources exist. Clean up.
+            log.info("Consumer setting change detected. Cleaning up Standard space before re-sync.");
+            this.spaceService.resetSpace(Space.STANDARD, this.securityAnalyticsService);
+            log.info("Standard space cleanup completed successfully.");
+
+        } catch (Exception e) {
+            log.error("Failed to perform Standard space cleanup on consumer change: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Setter for spaceService to allow injection in tests.
+     *
+     * @param spaceService the space service to set
+     */
+    void setSpaceService(SpaceService spaceService) {
+        this.spaceService = spaceService;
+    }
+
+    /**
+     * Setter for securityAnalyticsService to allow injection in tests.
+     *
+     * @param securityAnalyticsService the security analytics service to set
+     */
+    void setSecurityAnalyticsService(SecurityAnalyticsServiceImpl securityAnalyticsService) {
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
