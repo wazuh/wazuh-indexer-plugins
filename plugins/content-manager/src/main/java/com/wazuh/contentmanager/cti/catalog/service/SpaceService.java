@@ -118,18 +118,24 @@ public class SpaceService {
         // 1. Fetch current resources to perform external deletions
         Map<String, Map<String, String>> spaceResources = this.getSpaceResources(space.toString());
 
+        // Translate from Standard to Sigma space for SAP resources
+        Space sapSpace = space;
+        if (space == Space.STANDARD) {
+            sapSpace = Space.SIGMA;
+        }
+
         // 2. Delete SAP resources (best-effort)
         Map<String, String> rules = spaceResources.get(Constants.KEY_RULES);
         if (rules != null) {
             for (String id : rules.keySet()) {
                 try {
-                    securityAnalyticsService.deleteRule(id, space);
-                    log.debug("Deleted rule [{}] from SAP for space [{}] reset", id, space);
+                    securityAnalyticsService.deleteRule(id, sapSpace);
+                    log.debug("Deleted rule [{}] from SAP for space [{}] reset", id, sapSpace);
                 } catch (Exception e) {
                     log.warn(
                             "Failed to delete rule [{}] from SAP during space [{}] reset: {}",
                             id,
-                            space,
+                            sapSpace,
                             e.getMessage());
                 }
             }
@@ -139,13 +145,13 @@ public class SpaceService {
         if (integrations != null) {
             for (String id : integrations.keySet()) {
                 try {
-                    securityAnalyticsService.deleteIntegration(id, space);
-                    log.debug("Deleted integration [{}] from SAP for space [{}] reset", id, space);
+                    securityAnalyticsService.deleteIntegration(id, sapSpace);
+                    log.debug("Deleted integration [{}] from SAP for space [{}] reset", id, sapSpace);
                 } catch (Exception e) {
                     log.warn(
                             "Failed to delete integration [{}] from SAP during space [{}] reset: {}",
                             id,
-                            space,
+                            sapSpace,
                             e.getMessage());
                 }
             }
