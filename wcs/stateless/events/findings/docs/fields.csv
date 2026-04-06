@@ -1371,6 +1371,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.geo.region_iso_code,keyword,core,,CA-QC,Region ISO code.
 9.1.0,true,threat,threat.enrichments.indicator.geo.region_name,keyword,core,,Quebec,Region name.
 9.1.0,true,threat,threat.enrichments.indicator.geo.timezone,keyword,core,,America/Argentina/Buenos_Aires,Time zone.
+9.1.0,true,threat,threat.enrichments.indicator.id,keyword,custom,,,"Unique identifier for the enrichment data, such as a hash of the indicator data or a unique ID from the provider."
 9.1.0,true,threat,threat.enrichments.indicator.ip,ip,extended,,1.2.3.4,Indicator IP address
 9.1.0,true,threat,threat.enrichments.indicator.last_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was last reported.
 9.1.0,true,threat,threat.enrichments.indicator.marking.tlp,keyword,extended,,CLEAR,Indicator TLP marking
@@ -1389,6 +1390,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.registry.value,keyword,core,,Debugger,Name of the value written.
 9.1.0,true,threat,threat.enrichments.indicator.scanner_stats,long,extended,,4,Scanner statistics
 9.1.0,true,threat,threat.enrichments.indicator.sightings,long,extended,,20,Number of times indicator observed
+9.1.0,true,threat,threat.enrichments.indicator.software,object,custom,,,"Name of the software associated with the indicator, such as malware or attack framework."
+9.1.0,true,threat,threat.enrichments.indicator.software.alias,keyword,custom,array,,Alias or alternative names for the software associated with the indicator.
+9.1.0,true,threat,threat.enrichments.indicator.software.name,keyword,custom,,,Name of the software associated with the indicator.
+9.1.0,true,threat,threat.enrichments.indicator.software.type,keyword,custom,,,"Type of software associated with the indicator, such as malware, attack framework, or tool."
+9.1.0,true,threat,threat.enrichments.indicator.tags,keyword,custom,array,,List of tags associated with the indicator.
 9.1.0,true,threat,threat.enrichments.indicator.type,keyword,extended,,ipv4-addr,Type of indicator
 9.1.0,true,threat,threat.enrichments.indicator.url.domain,keyword,extended,,www.elastic.co,Domain of the url.
 9.1.0,true,threat,threat.enrichments.indicator.url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."

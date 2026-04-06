@@ -18244,6 +18244,18 @@ threat.enrichments.indicator.geo.timezone:
   original_fieldset: geo
   short: Time zone.
   type: keyword
+threat.enrichments.indicator.id:
+  dashed_name: threat-enrichments-indicator-id
+  description: Unique identifier for the enrichment data, such as a hash of the indicator
+    data or a unique ID from the provider.
+  flat_name: threat.enrichments.indicator.id
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.id
+  normalize: []
+  short: Unique identifier for the enrichment data, such as a hash of the indicator
+    data or a unique ID from the provider.
+  type: keyword
 threat.enrichments.indicator.ip:
   dashed_name: threat-enrichments-indicator-ip
   description: Identifies a threat indicator as an IP address (irrespective of direction).
@@ -18468,6 +18480,61 @@ threat.enrichments.indicator.sightings:
   normalize: []
   short: Number of times indicator observed
   type: long
+threat.enrichments.indicator.software:
+  dashed_name: threat-enrichments-indicator-software
+  description: Name of the software associated with the indicator, such as malware
+    or attack framework.
+  flat_name: threat.enrichments.indicator.software
+  level: custom
+  name: enrichments.indicator.software
+  normalize: []
+  short: Name of the software associated with the indicator, such as malware or attack
+    framework.
+  type: object
+threat.enrichments.indicator.software.alias:
+  dashed_name: threat-enrichments-indicator-software-alias
+  description: Alias or alternative names for the software associated with the indicator.
+  flat_name: threat.enrichments.indicator.software.alias
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.software.alias
+  normalize:
+  - array
+  short: Alias or alternative names for the software associated with the indicator.
+  type: keyword
+threat.enrichments.indicator.software.name:
+  dashed_name: threat-enrichments-indicator-software-name
+  description: Name of the software associated with the indicator.
+  flat_name: threat.enrichments.indicator.software.name
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.software.name
+  normalize: []
+  short: Name of the software associated with the indicator.
+  type: keyword
+threat.enrichments.indicator.software.type:
+  dashed_name: threat-enrichments-indicator-software-type
+  description: Type of software associated with the indicator, such as malware, attack
+    framework, or tool.
+  flat_name: threat.enrichments.indicator.software.type
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.software.type
+  normalize: []
+  short: Type of software associated with the indicator, such as malware, attack framework,
+    or tool.
+  type: keyword
+threat.enrichments.indicator.tags:
+  dashed_name: threat-enrichments-indicator-tags
+  description: List of tags associated with the indicator.
+  flat_name: threat.enrichments.indicator.tags
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.tags
+  normalize:
+  - array
+  short: List of tags associated with the indicator.
+  type: keyword
 threat.enrichments.indicator.type:
   dashed_name: threat-enrichments-indicator-type
   description: Type of indicator as represented by Cyber Observable in STIX 2.0.
