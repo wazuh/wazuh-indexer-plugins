@@ -262,10 +262,16 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,enrichments,enrichments.indicator.confidence,keyword,custom,,,Indicator confidence rating.
 9.1.0,true,enrichments,enrichments.indicator.feed.name,keyword,custom,,,Name of the feed that supplied the indicator.
 9.1.0,true,enrichments,enrichments.indicator.first_seen,date,custom,,,Date/time indicator was first reported.
+9.1.0,true,enrichments,enrichments.indicator.id,keyword,custom,,,"Unique identifier for the enrichment data, such as a hash of the indicator data or a unique ID from the provider."
 9.1.0,true,enrichments,enrichments.indicator.last_seen,date,custom,,,Date/time indicator was last reported.
 9.1.0,true,enrichments,enrichments.indicator.name,keyword,custom,,,Indicator display name.
 9.1.0,true,enrichments,enrichments.indicator.provider,keyword,custom,,,Indicator provider.
 9.1.0,true,enrichments,enrichments.indicator.reference,keyword,custom,,,Indicator reference URL.
+9.1.0,true,enrichments,enrichments.indicator.software,object,custom,,,"Name of the software associated with the indicator, such as malware or attack framework."
+9.1.0,true,enrichments,enrichments.indicator.software.alias,keyword,custom,array,,Alias or alternative names for the software associated with the indicator.
+9.1.0,true,enrichments,enrichments.indicator.software.name,keyword,custom,,,Name of the software associated with the indicator.
+9.1.0,true,enrichments,enrichments.indicator.software.type,keyword,custom,,,"Type of software associated with the indicator, such as malware, attack framework, or tool."
+9.1.0,true,enrichments,enrichments.indicator.tags,keyword,custom,array,,List of tags associated with the indicator.
 9.1.0,true,enrichments,enrichments.indicator.type,keyword,custom,,,Type of indicator.
 9.1.0,true,enrichments,enrichments.source,keyword,custom,,,Source of the enrichment data identifying the external provider that supplied the indicator.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
@@ -1230,6 +1236,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
 9.1.0,true,threat,threat.enrichments.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
 9.1.0,true,threat,threat.enrichments.indicator.email.address,keyword,extended,,phish@example.com,Indicator email address
+9.1.0,true,threat,threat.enrichments.indicator.feed.name,keyword,custom,,,Name of the feed that supplied the indicator.
 9.1.0,true,threat,threat.enrichments.indicator.file.accessed,date,extended,,,Last time the file was accessed.
 9.1.0,true,threat,threat.enrichments.indicator.file.attributes,keyword,extended,array,"[""readonly"", ""system""]",Array of file attributes.
 9.1.0,true,threat,threat.enrichments.indicator.file.code_signature.digest_algorithm,keyword,extended,,sha256,Hashing algorithm used to sign the process.
@@ -1370,6 +1377,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.geo.region_iso_code,keyword,core,,CA-QC,Region ISO code.
 9.1.0,true,threat,threat.enrichments.indicator.geo.region_name,keyword,core,,Quebec,Region name.
 9.1.0,true,threat,threat.enrichments.indicator.geo.timezone,keyword,core,,America/Argentina/Buenos_Aires,Time zone.
+9.1.0,true,threat,threat.enrichments.indicator.id,keyword,custom,,,"Unique identifier for the enrichment data, such as a hash of the indicator data or a unique ID from the provider."
 9.1.0,true,threat,threat.enrichments.indicator.ip,ip,extended,,1.2.3.4,Indicator IP address
 9.1.0,true,threat,threat.enrichments.indicator.last_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was last reported.
 9.1.0,true,threat,threat.enrichments.indicator.marking.tlp,keyword,extended,,CLEAR,Indicator TLP marking
@@ -1388,6 +1396,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.registry.value,keyword,core,,Debugger,Name of the value written.
 9.1.0,true,threat,threat.enrichments.indicator.scanner_stats,long,extended,,4,Scanner statistics
 9.1.0,true,threat,threat.enrichments.indicator.sightings,long,extended,,20,Number of times indicator observed
+9.1.0,true,threat,threat.enrichments.indicator.software,object,custom,,,"Name of the software associated with the indicator, such as malware or attack framework."
+9.1.0,true,threat,threat.enrichments.indicator.software.alias,keyword,custom,array,,Alias or alternative names for the software associated with the indicator.
+9.1.0,true,threat,threat.enrichments.indicator.software.name,keyword,custom,,,Name of the software associated with the indicator.
+9.1.0,true,threat,threat.enrichments.indicator.software.type,keyword,custom,,,"Type of software associated with the indicator, such as malware, attack framework, or tool."
+9.1.0,true,threat,threat.enrichments.indicator.tags,keyword,custom,array,,List of tags associated with the indicator.
 9.1.0,true,threat,threat.enrichments.indicator.type,keyword,extended,,ipv4-addr,Type of indicator
 9.1.0,true,threat,threat.enrichments.indicator.url.domain,keyword,extended,,www.elastic.co,Domain of the url.
 9.1.0,true,threat,threat.enrichments.indicator.url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
