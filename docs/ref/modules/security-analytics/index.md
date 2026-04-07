@@ -34,7 +34,7 @@ Enriched findings are written to `wazuh-findings-v5-{category}-*`, where `{categ
 
 The following steps happen for every event that matches a detection rule:
 
-1. A Wazuh agent sends an event to the Wazuh Indexer. The event is indexed in the monitored data stream.
+1. A Wazuh Manager sends an event to the Wazuh Indexer. The event is indexed in the monitored data stream.
 2. SAP's Alerting monitor evaluates the event against all active Sigma rules for the configured log category.
 3. On a match, SAP creates a raw finding and fires the `SUBSCRIBE_FINDINGS_ACTION` transport action.
 4. `TransportCorrelateFindingAction` receives the action, runs the correlation engine, and calls `WazuhEnrichedFindingService.enrich(finding)`.
