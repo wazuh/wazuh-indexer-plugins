@@ -24423,6 +24423,15 @@ vulnerability.description:
   normalize: []
   short: Description of the vulnerability.
   type: keyword
+vulnerability.detected_at:
+  dashed_name: vulnerability-detected-at
+  description: Vulnerability's detection date.
+  flat_name: vulnerability.detected_at
+  level: custom
+  name: detected_at
+  normalize: []
+  short: Vulnerability's detection date.
+  type: date
 vulnerability.enumeration:
   dashed_name: vulnerability-enumeration
   description: The type of identifier used for this vulnerability. For example (https://cve.mitre.org/about/)
@@ -24447,6 +24456,15 @@ vulnerability.id:
   normalize: []
   short: ID of the vulnerability.
   type: keyword
+vulnerability.published_at:
+  dashed_name: vulnerability-published-at
+  description: Vulnerability's publication date.
+  flat_name: vulnerability.published_at
+  level: custom
+  name: published_at
+  normalize: []
+  short: Vulnerability's publication date.
+  type: date
 vulnerability.reference:
   dashed_name: vulnerability-reference
   description: A resource that provides additional information, context, and mitigations
@@ -24470,11 +24488,22 @@ vulnerability.report_id:
   normalize: []
   short: Scan identification number.
   type: keyword
+vulnerability.scanner.condition:
+  dashed_name: vulnerability-scanner-condition
+  description: The condition matched by the package that led the scanner to consider
+    it vulnerable.
+  flat_name: vulnerability.scanner.condition
+  ignore_above: 1024
+  level: custom
+  name: scanner.condition
+  normalize: []
+  short: The condition matched by the package that led the scanner to consider it
+    vulnerable.
+  type: keyword
 vulnerability.scanner.reference:
   dashed_name: vulnerability-scanner-reference
   description: Scanner's resource that provides additional information, context, and
     mitigations for the identified vulnerability.
-  example: https://www.example.com/vulnerability/12345
   flat_name: vulnerability.scanner.reference
   ignore_above: 1024
   level: custom
@@ -24482,6 +24511,17 @@ vulnerability.scanner.reference:
   normalize: []
   short: Scanner's resource that provides additional information, context, and mitigations
     for the identified vulnerability.
+  type: keyword
+vulnerability.scanner.source:
+  dashed_name: vulnerability-scanner-source
+  description: The origin of the decision of the scanner (AKA feed used to detect
+    the vulnerability).
+  flat_name: vulnerability.scanner.source
+  ignore_above: 1024
+  level: custom
+  name: scanner.source
+  normalize: []
+  short: The origin of the decision of the scanner (AKA feed used to detect the vulnerability).
   type: keyword
 vulnerability.scanner.vendor:
   dashed_name: vulnerability-scanner-vendor
@@ -24562,6 +24602,15 @@ vulnerability.severity:
   normalize: []
   short: Severity of the vulnerability.
   type: keyword
+vulnerability.under_evaluation:
+  dashed_name: vulnerability-under-evaluation
+  description: Indicates if the vulnerability is awaiting analysis by the NVD.
+  flat_name: vulnerability.under_evaluation
+  level: custom
+  name: under_evaluation
+  normalize: []
+  short: Indicates if the vulnerability is awaiting analysis by the NVD.
+  type: boolean
 wazuh.agent.build.original:
   dashed_name: wazuh-agent-build-original
   description: 'Extended build information for the agent.

@@ -15717,6 +15717,14 @@
           }
         },
         {
+          "wcs_vulnerability_detected_at": {
+            "path_match": "vulnerability.detected_at",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
           "wcs_vulnerability_enumeration": {
             "path_match": "vulnerability.enumeration",
             "mapping": {
@@ -15731,6 +15739,14 @@
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_vulnerability_published_at": {
+            "path_match": "vulnerability.published_at",
+            "mapping": {
+              "type": "date"
             }
           }
         },
@@ -15753,8 +15769,26 @@
           }
         },
         {
+          "wcs_vulnerability_scanner_condition": {
+            "path_match": "vulnerability.scanner.condition",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_vulnerability_scanner_reference": {
             "path_match": "vulnerability.scanner.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_vulnerability_scanner_source": {
+            "path_match": "vulnerability.scanner.source",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -15809,6 +15843,14 @@
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_vulnerability_under_evaluation": {
+            "path_match": "vulnerability.under_evaluation",
+            "mapping": {
+              "type": "boolean"
             }
           }
         },
