@@ -8,7 +8,7 @@ The complete flow is shown in the sequence diagram below:
 
 ```mermaid
 sequenceDiagram
-    participant A as Wazuh Agent
+    participant A as Wazuh Manager
     participant I as Wazuh Indexer
     participant SAP as Security Analytics Plugin
     participant TC as TransportCorrelateFindingAction
