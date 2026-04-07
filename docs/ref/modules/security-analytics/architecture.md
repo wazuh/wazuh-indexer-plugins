@@ -2,7 +2,7 @@
 
 ## Enrichment pipeline
 
-When SAP produces a finding, `WazuhEnrichedFindingService` runs an asynchronous enrichment chain that fetches the triggering event and the matching rule's metadata, assembles an enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}-*`.
+When SAP produces a finding, `WazuhEnrichedFindingService` runs an asynchronous enrichment chain that fetches the triggering event and the matching rule's metadata, assembles an enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`.
 
 The complete flow is shown in the sequence diagram below:
 
@@ -15,7 +15,7 @@ sequenceDiagram
     participant WS as WazuhEnrichedFindingService
     participant SI as Source Index
     participant RI as Rules Index
-    participant WF as wazuh-findings-v5-{category}-*
+    participant WF as wazuh-findings-v5-{category}*
 
     A->>I: Ingest event
     I->>SAP: Monitor evaluates event against Sigma rules
@@ -80,7 +80,7 @@ Before assembling an enriched document, the service reads `wazuh.integration.cat
 | `BULK_BATCH_SIZE`    | `100`                            | Pending index requests accumulated before a batch-trigger flush |
 | `MAX_IN_FLIGHT`      | `50`                             | Maximum concurrent async enrichment chains                      |
 | `FLUSH_INTERVAL`     | `5 s`                            | Interval between periodic flush runs                            |
-| Target index pattern | `wazuh-findings-v5-{category}-*` | Destination alias, resolved per finding                         |
+| Target data stream   | `wazuh-findings-v5-{category}*`  | Data stream destination, resolved per finding                   |
 | Rule metadata cache  | Unbounded, in-memory             | `ConcurrentHashMap`, keyed by rule ID, cleared on restart       |
 | Index operation type | `CREATE`                         | Prevents overwriting existing enriched findings                 |
 
@@ -91,4 +91,4 @@ Before assembling an enriched document, the service reads `wazuh.integration.cat
 | `.opensearch-sap-{category}-findings-*` | Raw SAP findings written by the Security Analytics Plugin    |
 | `.opensearch-pre-packaged-rules`        | Wazuh-provided Sigma rules; source for rule metadata         |
 | `.opensearch-custom-rules`              | User-created custom rules; fallback source for rule metadata |
-| `wazuh-findings-v5-{category}-*`        | Enriched findings written by `WazuhEnrichedFindingService`   |
+| `wazuh-findings-v5-{category}*`         | Enriched findings written by `WazuhEnrichedFindingService`   |
