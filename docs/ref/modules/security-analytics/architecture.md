@@ -75,20 +75,20 @@ Before assembling an enriched document, the service reads `wazuh.integration.cat
 
 ## Technical parameters
 
-| Parameter | Value | Description |
-|---|---|---|
-| `BULK_BATCH_SIZE` | `100` | Pending index requests accumulated before a batch-trigger flush |
-| `MAX_IN_FLIGHT` | `50` | Maximum concurrent async enrichment chains |
-| `FLUSH_INTERVAL` | `5 s` | Interval between periodic flush runs |
-| Target index pattern | `wazuh-findings-v5-{category}-*` | Destination alias, resolved per finding |
-| Rule metadata cache | Unbounded, in-memory | `ConcurrentHashMap`, keyed by rule ID, cleared on restart |
-| Index operation type | `CREATE` | Prevents overwriting existing enriched findings |
+| Parameter            | Value                            | Description                                                     |
+| -------------------- | -------------------------------- | --------------------------------------------------------------- |
+| `BULK_BATCH_SIZE`    | `100`                            | Pending index requests accumulated before a batch-trigger flush |
+| `MAX_IN_FLIGHT`      | `50`                             | Maximum concurrent async enrichment chains                      |
+| `FLUSH_INTERVAL`     | `5 s`                            | Interval between periodic flush runs                            |
+| Target index pattern | `wazuh-findings-v5-{category}-*` | Destination alias, resolved per finding                         |
+| Rule metadata cache  | Unbounded, in-memory             | `ConcurrentHashMap`, keyed by rule ID, cleared on restart       |
+| Index operation type | `CREATE`                         | Prevents overwriting existing enriched findings                 |
 
 ## System indices
 
-| Index | Description |
-|---|---|
-| `.opensearch-sap-{category}-findings-*` | Raw SAP findings written by the Security Analytics Plugin |
-| `opensearch-pre-packaged-rules` | Wazuh-provided Sigma rules; source for rule metadata |
-| `opensearch-custom-rules` | User-created custom rules; fallback source for rule metadata |
-| `wazuh-findings-v5-{category}-*` | Enriched findings written by `WazuhEnrichedFindingService` |
+| Index                                   | Description                                                  |
+| --------------------------------------- | ------------------------------------------------------------ |
+| `.opensearch-sap-{category}-findings-*` | Raw SAP findings written by the Security Analytics Plugin    |
+| `.opensearch-pre-packaged-rules`        | Wazuh-provided Sigma rules; source for rule metadata         |
+| `.opensearch-custom-rules`              | User-created custom rules; fallback source for rule metadata |
+| `wazuh-findings-v5-{category}-*`        | Enriched findings written by `WazuhEnrichedFindingService`   |
