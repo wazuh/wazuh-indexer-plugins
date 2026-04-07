@@ -2292,6 +2292,15 @@
           }
         },
         {
+          "wcs_enrichments_indicator_id": {
+            "path_match": "enrichments.indicator.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_enrichments_indicator_last_seen": {
             "path_match": "enrichments.indicator.last_seen",
             "mapping": {
@@ -2320,6 +2329,42 @@
         {
           "wcs_enrichments_indicator_reference": {
             "path_match": "enrichments.indicator.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_software_alias": {
+            "path_match": "enrichments.indicator.software.alias",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_software_name": {
+            "path_match": "enrichments.indicator.software.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_software_type": {
+            "path_match": "enrichments.indicator.software.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_tags": {
+            "path_match": "enrichments.indicator.tags",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -16631,6 +16676,9 @@
             "indicator": {
               "properties": {
                 "feed": {
+                  "properties": {}
+                },
+                "software": {
                   "properties": {}
                 }
               }

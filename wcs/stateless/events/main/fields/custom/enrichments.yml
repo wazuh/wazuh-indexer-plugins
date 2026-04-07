@@ -46,6 +46,40 @@
       level: custom
       description: >
         Name of the feed that supplied the indicator.
+    - name: indicator.id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier for the enrichment data, such as a hash of the indicator data or a unique ID from the provider.
+    - name: indicator.tags
+      type: keyword
+      normalize:
+        - array
+      level: custom
+      description: >
+        List of tags associated with the indicator.
+    - name: indicator.software
+      type: object
+      level: custom
+      description: >
+        Name of the software associated with the indicator, such as malware or attack framework.
+    - name: indicator.software.alias
+      type: keyword
+      normalize:
+        - array
+      level: custom
+      description: >
+        Alias or alternative names for the software associated with the indicator.
+    - name: indicator.software.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the software associated with the indicator.
+    - name: indicator.software.type
+      type: keyword
+      level: custom
+      description: >
+        Type of software associated with the indicator, such as malware, attack framework, or tool.
     - name: source
       type: keyword
       level: custom

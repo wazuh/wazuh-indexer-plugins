@@ -1308,6 +1308,10 @@
                 "first_seen": {
                   "type": "date"
                 },
+                "id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
                 "last_seen": {
                   "type": "date"
                 },
@@ -1320,6 +1324,27 @@
                   "type": "keyword"
                 },
                 "reference": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "software": {
+                  "properties": {
+                    "alias": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "type": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  },
+                  "type": "object"
+                },
+                "tags": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
