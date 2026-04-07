@@ -144,6 +144,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update custom policy metadata [(#951)](https://github.com/wazuh/wazuh-indexer-plugins/pull/951)
 - Update documentation for extended Sigma rule syntax [(#954)](https://github.com/wazuh/wazuh-indexer-plugins/pull/954)
 - Set mapping to `strict_allow_templates` for stateless main events [(#960)](https://github.com/wazuh/wazuh-indexer-plugins/pull/960)
+- Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 
 ### Deprecated
 -
