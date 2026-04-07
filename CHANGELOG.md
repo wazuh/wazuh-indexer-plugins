@@ -144,6 +144,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update custom policy metadata [(#951)](https://github.com/wazuh/wazuh-indexer-plugins/pull/951)
 - Update documentation for extended Sigma rule syntax [(#954)](https://github.com/wazuh/wazuh-indexer-plugins/pull/954)
 - Set mapping to `strict_allow_templates` for stateless main events [(#960)](https://github.com/wazuh/wazuh-indexer-plugins/pull/960)
+- Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 
 ### Deprecated
 -
@@ -175,6 +176,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
 - Fix race condition on .cti-consumers index creation [(#928)](https://github.com/wazuh/wazuh-indexer-plugins/pull/928)
 - Fix Splunk KV Store startup failure [(#984)](https://github.com/wazuh/wazuh-indexer-plugins/pull/984)
+- Reset Standard space on Context/Consumer changes [(#979)](https://github.com/wazuh/wazuh-indexer-plugins/pull/979)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

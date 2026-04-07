@@ -29,6 +29,9 @@ public enum Space {
     /** Standard content space for production-ready CTI resources. */
     STANDARD,
 
+    /** Standard content space for SAP Service standard resources. */
+    SIGMA,
+
     /** Custom content space for user-defined CTI resources. */
     CUSTOM,
 
