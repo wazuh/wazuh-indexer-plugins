@@ -61,8 +61,8 @@ function configure_git() {
 function push_changes() {
   echo
   echo "---> Pushing changes to the repository..."
-  git add plugins/setup/src/main/resources/*.json
-  git add wcs/**/docs/*
+  git add "plugins/setup/src/main/resources/*.json"
+  git add "wcs/**/docs/*"
   git add wcs/module_list.txt
   if [[ $(git status --porcelain --untracked-files=no | wc -l) -gt 0 ]]; then
     git status --short --untracked-files=no

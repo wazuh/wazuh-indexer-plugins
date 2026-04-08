@@ -26,7 +26,6 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -137,43 +136,10 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
         try {
             log.info("Starting reset operation for space [{}]", space);
 
-            // 1. Fetch current resources to perform external deletions
-            Map<String, Map<String, String>> spaceResources =
-                    this.spaceService.getSpaceResources(space.toString());
+            // 1. Delete SAP resources and all space documents from indices
+            this.spaceService.resetSpace(space, this.securityAnalyticsService);
 
-            // 2. Delete SAP resources (Integrations & Rules)
-            Map<String, String> rules = spaceResources.get(Constants.KEY_RULES);
-            if (rules != null) {
-                for (String id : rules.keySet()) {
-                    try {
-                        this.securityAnalyticsService.deleteRule(id, false);
-                        log.debug("Deleted rule [{}] from SAP for space reset", id);
-                    } catch (Exception e) {
-                        log.warn(
-                                "Failed to delete rule [{}] from SAP during space reset: {}", id, e.getMessage());
-                    }
-                }
-            }
-
-            Map<String, String> integrations = spaceResources.get(Constants.KEY_INTEGRATIONS);
-            if (integrations != null) {
-                for (String id : integrations.keySet()) {
-                    try {
-                        this.securityAnalyticsService.deleteIntegration(id, false);
-                        log.debug("Deleted integration [{}] from SAP for space reset", id);
-                    } catch (Exception e) {
-                        log.warn(
-                                "Failed to delete integration [{}] from SAP during space reset: {}",
-                                id,
-                                e.getMessage());
-                    }
-                }
-            }
-
-            // 3. Delete all documents associated with the space across all resource indices
-            this.spaceService.deleteSpaceResources(space.toString());
-
-            // 4. Re-generate the default policy for the space
+            // 2. Re-generate the default policy for the space
             String sharedDocumentId =
                     UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
                             .toString();

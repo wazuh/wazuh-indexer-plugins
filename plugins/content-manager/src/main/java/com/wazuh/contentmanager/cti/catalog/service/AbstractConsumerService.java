@@ -16,9 +16,12 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
@@ -128,10 +131,47 @@ public abstract class AbstractConsumerService {
     /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
+     *
+     * <p>Marks the consumer as {@link LocalConsumer.Status#UPDATING} before sync begins so that
+     * external components can detect the in-progress state. The status is restored to {@link
+     * LocalConsumer.Status#IDLE} once synchronization completes, whether updates were applied.
      */
     public void synchronize() {
+        this.setConsumerStatus(LocalConsumer.Status.UPDATING);
         boolean isUpdated = this.syncConsumerServices();
+        log.info(
+                "Synchronization completed for consumer [{}]. Updated: {}", this.getConsumer(), isUpdated);
         this.onSyncComplete(isUpdated);
+        this.setConsumerStatus(LocalConsumer.Status.IDLE);
+    }
+
+    /**
+     * Updates the consumer status in the {@code .cti-consumers} index.
+     *
+     * @param status The new {@link LocalConsumer.Status} to persist.
+     */
+    private void setConsumerStatus(LocalConsumer.Status status) {
+        String context = this.getContext();
+        String consumer = this.getConsumer();
+        try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(context, consumer);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? new ObjectMapper().readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : new LocalConsumer(context, consumer);
+            LocalConsumer updated =
+                    new LocalConsumer(
+                            context,
+                            consumer,
+                            status,
+                            current.getLocalOffset(),
+                            current.getRemoteOffset(),
+                            current.getSnapshotLink());
+            this.consumersIndex.setConsumer(updated);
+            log.debug("Consumer [{}] status set to [{}]", consumer, status);
+        } catch (Exception e) {
+            log.warn("Failed to set consumer [{}] status to [{}]: {}", consumer, status, e.getMessage());
+        }
     }
 
     /**

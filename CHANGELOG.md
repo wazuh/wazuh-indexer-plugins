@@ -76,7 +76,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add active response index with ISM policy [(#886)](https://github.com/wazuh/wazuh-indexer-plugins/pull/886)
 - Implement Ioc delivery [(#858)](https://github.com/wazuh/wazuh-indexer-plugins/pull/858)
 - Add Centralized CTI Download Via Indexer [(#907)](https://github.com/wazuh/wazuh-indexer-plugins/pull/907)
+- Implement logic to import standard space into Wazuh Engine [(#924)](https://github.com/wazuh/wazuh-indexer-plugins/pull/924)
+- Full Indexing of the Vulnerability Feed [(#921)](https://github.com/wazuh/wazuh-indexer-plugins/pull/921)
 - Load CTI content from local snapshots [(#916)](https://github.com/wazuh/wazuh-indexer-plugins/pull/916)
+- Add documentation for commom-utils plugin [(#929)](https://github.com/wazuh/wazuh-indexer-plugins/pull/929)
+- Support creation and promotion of rules and integrations across spaces [(#930)](https://github.com/wazuh/wazuh-indexer-plugins/pull/930)
+- Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
+- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941)
+- Implement telemetry ping job [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939)
+- Create findings module [(#949)](https://github.com/wazuh/wazuh-indexer-plugins/pull/949)
+- Add rollback mechanism to Promote action [(#953)](https://github.com/wazuh/wazuh-indexer-plugins/pull/953)
+- Add 'status' field to internal consumers index [(#962)](https://github.com/wazuh/wazuh-indexer-plugins/pull/962)
+- Add --set-as-main flag support to repository bumper [(#978)](https://github.com/wazuh/wazuh-indexer-plugins/pull/978)
+- Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
+- Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
+
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -126,6 +140,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restructure ecs folder [(#898)](https://github.com/wazuh/wazuh-indexer-plugins/pull/898)
 - Enhance Policy Update Endpoint to Allow Updates in the Standard Space [(#904)](https://github.com/wazuh/wazuh-indexer-plugins/pull/904)
 - Normalize metadata object [(#923)](https://github.com/wazuh/wazuh-indexer-plugins/pull/923)
+- Add support for multi-space logtest executions [(#937)](https://github.com/wazuh/wazuh-indexer-plugins/pull/937)
+- Add documentation for the Setup plugin's API [(#936)](https://github.com/wazuh/wazuh-indexer-plugins/pull/936)
+- Disable deletion of root decoder [(#948)](https://github.com/wazuh/wazuh-indexer-plugins/pull/948)
+- Update custom policy metadata [(#951)](https://github.com/wazuh/wazuh-indexer-plugins/pull/951)
+- Update documentation for extended Sigma rule syntax [(#954)](https://github.com/wazuh/wazuh-indexer-plugins/pull/954)
+- Set mapping to `strict_allow_templates` for stateless main events [(#960)](https://github.com/wazuh/wazuh-indexer-plugins/pull/960)
+- Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 
 ### Deprecated
 -
@@ -155,6 +176,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change data structure for IoCs [(#818)](https://github.com/wazuh/wazuh-indexer-plugins/pull/818)
 - Fix flaky tests on Setup plugin [(#888)](https://github.com/wazuh/wazuh-indexer-plugins/pull/888/)
 - Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
+- Fix race condition on .cti-consumers index creation [(#928)](https://github.com/wazuh/wazuh-indexer-plugins/pull/928)
+- Fix Splunk KV Store startup failure [(#984)](https://github.com/wazuh/wazuh-indexer-plugins/pull/984)
+- Reset Standard space on Context/Consumer changes [(#979)](https://github.com/wazuh/wazuh-indexer-plugins/pull/979)
+- Fix CodeQL reporting security warnings [(#992)](https://github.com/wazuh/wazuh-indexer-plugins/pull/992)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

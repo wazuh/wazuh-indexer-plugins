@@ -31,6 +31,7 @@ import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -111,7 +112,18 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
 
                 for (Offset offset : changes.get()) {
-                    this.applyOffset(offset);
+                    try {
+                        this.applyOffset(offset);
+                    } catch (Exception e) {
+                        log.error(
+                                "Failed to apply offset [{}] (type={}, resource={}): {}",
+                                offset.getOffset(),
+                                offset.getType(),
+                                offset.getResource(),
+                                e.getMessage(),
+                                e);
+                        throw e;
+                    }
                 }
 
                 lastAppliedOffset = currentToOffset;
@@ -129,7 +141,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
             LocalConsumer updated =
                     new LocalConsumer(
-                            this.context, this.consumer, lastAppliedOffset, toOffset, current.getSnapshotLink());
+                            this.context,
+                            this.consumer,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
+                            lastAppliedOffset,
+                            toOffset,
+                            current.getSnapshotLink());
             this.consumersIndex.setConsumer(updated);
 
             log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
@@ -153,20 +170,24 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             case CREATE:
                 if (offset.getPayload() != null) {
                     JsonNode payload = this.mapper.valueToTree(offset.getPayload());
+                    String cveType = Cve.deriveType(id);
                     // Inject the CTI offset value into the payload, so it is persisted
                     if (payload.isObject()) {
                         ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset.getOffset());
                     }
                     String type = null;
 
-                    if (payload.has(Constants.KEY_TYPE)) {
+                    if (cveType != null) {
+                        type = Constants.KEY_CVES;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
                         type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
-                    } else if (id != null && id.startsWith("CVE-")) {
-                        // CVE documents are identified by their resource ID (CVE-YYYY-NNNNN)
-                        type = Constants.KEY_CVES;
+                    }
+
+                    if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
+                        ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
                     }
 
                     if (type != null) {
@@ -204,7 +225,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * the CVE identifier pattern.
      */
     private boolean shouldSkipDelete(String id) {
-        if (id != null && id.startsWith("CVE-")) {
+        if (Cve.deriveType(id) != null) {
             return true;
         }
         return this.consumer.equals(PluginSettings.getInstance().getCveConsumer());

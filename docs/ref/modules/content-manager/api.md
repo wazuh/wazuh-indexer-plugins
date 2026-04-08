@@ -207,7 +207,8 @@ Sends a log event to the Wazuh Engine for analysis and returns the decoded and m
 | `queue`          | Integer | Yes      | Queue number for logtest execution           |
 | `location`       | String  | Yes      | Log file path or logical source location     |
 | `event`          | String  | Yes      | Raw log event to test                        |
-| `agent_metadata` | Object  | No       | Optional agent metadata passed to the Engine |
+| `metadata`       | Object  | No       | Optional metadata passed to the Engine       |
+| `space`          | String  | No       | Space to execute the logtest against         |
 | `trace_level`    | String  | No       | Trace verbosity: `NONE`, `BASIC`, or `FULL`  |
 
 **Example Request**
@@ -219,7 +220,8 @@ curl -sk -u admin:admin -X POST \
   -d '{
     "queue": 1,
     "location": "/var/log/auth.log",
-    "agent_metadata": {},
+    "metadata": {},
+    "space": "test",
     "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
     "trace_level": "NONE"
   }'
@@ -272,8 +274,8 @@ Updates the routing policy in the specified space. The policy defines which inte
 
 **Space-specific behavior**
 
-- **Draft space** (`/policy/draft`): All policy fields are accepted. The fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
-- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document.
+- **Draft space** (`/policy/draft`): All policy fields are accepted. The metadata fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
+- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. If the update changes the space hash, the full standard policy is automatically loaded to the local Engine.
 
 **Request**
 - Method: `PUT`
@@ -295,7 +297,7 @@ Fields within `resource`:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `title` | String | No | Human-readable policy name |
+| `metadata` | Object | Yes (draft) | Policy metadata (see below) |
 | `root_decoder` | String | No | Identifier of the root decoder for event processing |
 | `integrations` | Array | No | List of integration IDs (reorder only, no add/remove) |
 | `filters` | Array | No | List of filter UUIDs (reorder only, no add/remove) |
@@ -303,6 +305,12 @@ Fields within `resource`:
 | `enabled` | Boolean | Yes | Whether the policy is active and synchronized by the Engine |
 | `index_unclassified_events` | Boolean | Yes | Whether uncategorized events are indexed |
 | `index_discarded_events` | Boolean | Yes | Whether discarded events are indexed |
+
+Fields within `resource.metadata`:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `title` | String | No | Human-readable policy name |
 | `author` | String | Yes (draft) | Author of the policy |
 | `description` | String | Yes (draft) | Brief description |
 | `documentation` | String | Yes (draft) | Documentation text or URL |
@@ -316,7 +324,15 @@ curl -sk -u admin:admin -X PUT \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
-      "title": "Draft policy",
+      "metadata": {
+        "title": "Draft policy",
+        "author": "Wazuh Inc.",
+        "description": "Custom policy",
+        "documentation": "",
+        "references": [
+          "https://wazuh.com"
+        ]
+      },
       "root_decoder": "",
       "integrations": [
         "f16f33ec-a5ea-4dc4-bf33-616b1562323a"
@@ -325,13 +341,7 @@ curl -sk -u admin:admin -X PUT \
       "enrichments": [],
       "enabled": true,
       "index_unclassified_events": false,
-      "index_discarded_events": false,
-      "author": "Wazuh Inc.",
-      "description": "Custom policy",
-      "documentation": "",
-      "references": [
-        "https://wazuh.com"
-      ]
+      "index_discarded_events": false
     }
   }'
 ```
@@ -376,9 +386,18 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 ## Rules
 
+Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](sigma-rules.md) for the full format reference, including the `mitre`, `compliance`, and `metadata` blocks.
+
+> **Validation notes**:
+> - The `logsource.product` field must exactly match the `metadata.title` of the parent integration.
+> - Detection fields are validated against the Wazuh Common Schema (WCS); rules referencing unknown fields are rejected.
+> - IPv6 addresses are supported in detection conditions (standard, compressed, and CIDR notation).
+
 ### Create Rule
 
 Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Security Analytics Plugin.
+
+The rule is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
 **Request**
 - Method: `POST`
@@ -395,16 +414,25 @@ Fields within `resource`:
 
 | Field         | Type    | Required | Description                                                 |
 | ------------- | ------- | -------- | ----------------------------------------------------------- |
-| `title`       | String  | Yes      | Rule title (must be unique within the draft space)          |
-| `description` | String  | No       | Rule description                                            |
-| `author`      | String  | No       | Rule author                                                 |
+| `metadata`    | Object  | Yes      | Rule metadata (see below)                                   |
 | `sigma_id`    | String  | No       | Sigma rule ID                                               |
-| `references`  | Array   | No       | Reference URLs                                              |
 | `enabled`     | Boolean | No       | Whether the rule is enabled                                 |
-| `status`      | String  | No       | Rule status (e.g., `experimental`, `stable`)                |
-| `level`       | String  | No       | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
+| `status`      | String  | Yes      | Rule status (e.g., `experimental`, `stable`)                |
+| `level`       | String  | Yes      | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
 | `logsource`   | Object  | No       | Log source definition (`product`, `category`)               |
-| `detection`   | Object  | No       | Sigma detection logic with `condition` and selection fields |
+| `detection`   | Object  | Yes      | Sigma detection logic with `condition` and selection fields |
+| `mitre`       | Object  | No       | MITRE ATT&CK mapping (see [Sigma Rules](sigma-rules.md#mitre-attck-block))       |
+| `compliance`  | Object  | No       | Compliance framework mapping (see [Sigma Rules](sigma-rules.md#compliance-block)) |
+
+Fields within `resource.metadata`:
+
+| Field           | Type   | Required | Description                                        |
+| --------------- | ------ | -------- | -------------------------------------------------- |
+| `title`         | String | Yes      | Rule title (must be unique within the draft space) |
+| `author`        | String | No       | Rule author                                        |
+| `description`   | String | No       | Rule description                                   |
+| `references`    | Array  | No       | Reference URLs                                     |
+| `documentation` | String | No       | Documentation text or URL                          |
 
 **Example Request**
 
@@ -415,13 +443,15 @@ curl -sk -u admin:admin -X POST \
   -d '{
     "integration": "6b7b7645-00da-44d0-a74b-cffa7911e89c",
     "resource": {
-      "title": "Test Rule",
-      "description": "A Test rule",
-      "author": "Tester",
-      "sigma_id": "string",
-      "references": [
-        "https://wazuh.com"
-      ],
+      "metadata": {
+        "title": "Test Rule",
+        "description": "A Test rule",
+        "author": "Tester",
+        "references": [
+          "https://wazuh.com"
+        ]
+      },
+      "sigma_id": "19aefed0-ffd4-47dc-a7fc-f8b1425e84f9",
       "enabled": true,
       "status": "experimental",
       "logsource": {
@@ -436,7 +466,15 @@ curl -sk -u admin:admin -X POST \
           ]
         }
       },
-      "level": "low"
+      "level": "low",
+      "mitre": {
+        "tactic": ["TA0001"],
+        "technique": ["T1190"],
+        "subtechnique": []
+      },
+      "compliance": {
+        "pci_dss": ["6.5.1"]
+      }
     }
   }'
 ```
@@ -482,6 +520,8 @@ Updates an existing rule in the draft space.
 | ---------- | ------ | -------- | ----------------------------------------------- |
 | `resource` | Object | Yes      | Updated rule definition (same fields as create) |
 
+> **Note**: On update, `enabled`, `metadata.title`, and `metadata.author` are required. The `detection` and `logsource` fields are also required.
+
 **Example Request**
 
 ```bash
@@ -490,9 +530,12 @@ curl -sk -u admin:admin -X PUT \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
-      "title": "Test Hash Generation Rule",
-      "description": "A rule to verify that SHA-256 hashes are calculated correctly upon creation.",
-      "author": "Tester",
+      "metadata": {
+        "title": "Test Hash Generation Rule",
+        "description": "A rule to verify that SHA-256 hashes are calculated correctly upon creation.",
+        "author": "Tester"
+      },
+      "enabled": true,
       "status": "experimental",
       "logsource": {
         "product": "system",
@@ -743,6 +786,7 @@ curl -sk -u admin:admin -X PUT \
 ### Delete Decoder
 
 Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
+A decoder cannot be deleted if it is currently set as the root decoder in the draft policy.
 
 **Request**
 - Method: `DELETE`
@@ -770,13 +814,23 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
+**Example Response (set as root decoder)**
+```json
+{
+  "message": "Cannot remove decoder [acbdba85-09c4-45a0-a487-61c8eeec58e6] as it is set as root decoder.",
+  "status": 400
+}
+```
+
 **Status Codes**
 
-| Code | Description       |
-| ---- | ----------------- |
-| 200  | Decoder deleted   |
-| 404  | Decoder not found |
-| 500  | Internal error    |
+| Code | Description                    |
+|------|--------------------------------|
+| 200  | Decoder deleted                |
+| 400  | Decoder is set as root decoder |
+| 404  | Decoder not found              |
+| 500  | Internal error                 |
+
 
 ---
 
@@ -972,6 +1026,8 @@ curl -sk -u admin:admin -X DELETE \
 
 Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered in the Security Analytics Plugin.
 
+The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in the `source` field (e.g., "Draft") for cross-reference.
+
 **Request**
 - Method: `POST`
 - Path: `/_plugins/_content_manager/integrations`
@@ -984,15 +1040,21 @@ Creates a new integration in the draft space. An integration is a logical groupi
 
 Fields within `resource`:
 
-| Field           | Type    | Required | Description                                                                          |
-| --------------- | ------- | -------- | ------------------------------------------------------------------------------------ |
-| `title`         | String  | Yes      | Integration title (must be unique in draft space)                                    |
-| `author`        | String  | Yes      | Author of the integration                                                            |
-| `category`      | String  | Yes      | Category (e.g., `cloud-services`, `network-activity`, `security`, `system-activity`) |
-| `description`   | String  | No       | Description                                                                          |
-| `documentation` | String  | No       | Documentation text or URL                                                            |
-| `references`    | Array   | No       | Reference URLs                                                                       |
-| `enabled`       | Boolean | No       | Whether the integration is enabled                                                   |
+| Field      | Type    | Required | Description                                                                          |
+| ---------- | ------- | -------- | ------------------------------------------------------------------------------------ |
+| `metadata` | Object  | Yes      | Integration metadata (see below)                                                     |
+| `category` | String  | Yes      | Category (e.g., `cloud-services`, `network-activity`, `security`, `system-activity`) |
+| `enabled`  | Boolean | No       | Whether the integration is enabled                                                   |
+
+Fields within `resource.metadata`:
+
+| Field           | Type   | Required | Description                                       |
+| --------------- | ------ | -------- | ------------------------------------------------- |
+| `title`         | String | Yes      | Integration title (must be unique in draft space)  |
+| `author`        | String | Yes      | Author of the integration                          |
+| `description`   | String | No       | Description                                        |
+| `documentation` | String | No       | Documentation text or URL                          |
+| `references`    | Array  | No       | Reference URLs                                     |
 
 > **Note**: Do not include the `id` field — it is auto-generated by the Indexer.
 
@@ -1004,14 +1066,16 @@ curl -sk -u admin:admin -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
-      "title": "azure-functions",
-      "author": "Wazuh Inc.",
+      "metadata": {
+        "title": "azure-functions",
+        "author": "Wazuh Inc.",
+        "description": "This integration supports Azure Functions app logs.",
+        "documentation": "https://docs.wazuh.com/integrations/azure-functions",
+        "references": [
+          "https://wazuh.com"
+        ]
+      },
       "category": "cloud-services",
-      "description": "This integration supports Azure Functions app logs.",
-      "documentation": "https://docs.wazuh.com/integrations/azure-functions",
-      "references": [
-        "https://wazuh.com"
-      ],
       "enabled": true
     }
   }'
@@ -1060,18 +1124,24 @@ Updates an existing integration in the draft space. Only integrations in the dra
 
 Fields within `resource` (all required for update):
 
-| Field           | Type    | Required | Description                        |
-| --------------- | ------- | -------- | ---------------------------------- |
-| `title`         | String  | Yes      | Integration title                  |
-| `author`        | String  | Yes      | Author                             |
-| `category`      | String  | Yes      | Category                           |
-| `description`   | String  | Yes      | Description                        |
-| `documentation` | String  | Yes      | Documentation text or URL          |
-| `references`    | Array   | Yes      | Reference URLs                     |
-| `enabled`       | Boolean | No       | Whether the integration is enabled |
-| `rules`         | Array   | Yes      | Ordered list of rule IDs           |
-| `decoders`      | Array   | Yes      | Ordered list of decoder IDs        |
-| `kvdbs`         | Array   | Yes      | Ordered list of KVDB IDs           |
+| Field      | Type    | Required | Description                        |
+| ---------- | ------- | -------- | ---------------------------------- |
+| `metadata` | Object  | Yes      | Integration metadata (see below)   |
+| `category` | String  | Yes      | Category                           |
+| `enabled`  | Boolean | Yes      | Whether the integration is enabled |
+| `rules`    | Array   | Yes      | Ordered list of rule IDs           |
+| `decoders` | Array   | Yes      | Ordered list of decoder IDs        |
+| `kvdbs`    | Array   | Yes      | Ordered list of KVDB IDs           |
+
+Fields within `resource.metadata`:
+
+| Field           | Type   | Required | Description               |
+| --------------- | ------ | -------- | ------------------------- |
+| `title`         | String | Yes      | Integration title         |
+| `author`        | String | Yes      | Author                    |
+| `description`   | String | Yes      | Description               |
+| `documentation` | String | Yes      | Documentation text or URL |
+| `references`    | Array  | Yes      | Reference URLs            |
 
 > **Note**: The `rules`, `decoders`, and `kvdbs` arrays are mandatory on update to allow reordering. Pass empty arrays `[]` if the integration has none.
 
@@ -1083,12 +1153,14 @@ curl -sk -u admin:admin -X PUT \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
-      "title": "azure-functions-update",
-      "author": "Wazuh Inc.",
+      "metadata": {
+        "title": "azure-functions-update",
+        "author": "Wazuh Inc.",
+        "description": "This integration supports Azure Functions app logs.",
+        "documentation": "updated documentation",
+        "references": []
+      },
       "category": "cloud-services",
-      "description": "This integration supports Azure Functions app logs.",
-      "documentation": "updated documentation",
-      "references": [],
       "enabled": true,
       "rules": [],
       "decoders": [],
@@ -1186,16 +1258,22 @@ Creates a new key-value database in the draft space, linked to the specified int
 
 Fields within `resource`:
 
-| Field           | Type    | Required | Description                                  |
-| --------------- | ------- | -------- | -------------------------------------------- |
-| `title`         | String  | Yes      | KVDB title                                   |
-| `author`        | String  | Yes      | Author                                       |
-| `content`       | Object  | Yes      | Key-value data (at least one entry required) |
-| `name`          | String  | No       | KVDB identifier name                         |
-| `enabled`       | Boolean | No       | Whether the KVDB is enabled                  |
-| `description`   | String  | No       | Description                                  |
-| `documentation` | String  | No       | Documentation                                |
-| `references`    | Array   | No       | Reference URLs                               |
+| Field      | Type    | Required | Description                                  |
+| ---------- | ------- | -------- | -------------------------------------------- |
+| `metadata` | Object  | Yes      | KVDB metadata (see below)                    |
+| `content`  | Object  | Yes      | Key-value data (at least one entry required) |
+| `name`     | String  | No       | KVDB identifier name                         |
+| `enabled`  | Boolean | No       | Whether the KVDB is enabled                  |
+
+Fields within `resource.metadata`:
+
+| Field           | Type   | Required | Description               |
+| --------------- | ------ | -------- | ------------------------- |
+| `title`         | String | Yes      | KVDB title                |
+| `author`        | String | Yes      | Author                    |
+| `description`   | String | No       | Description               |
+| `documentation` | String | No       | Documentation             |
+| `references`    | Array  | No       | Reference URLs            |
 
 **Example Request**
 
@@ -1206,10 +1284,17 @@ curl -sk -u admin:admin -X POST \
   -d '{
     "integration": "f16f33ec-a5ea-4dc4-bf33-616b1562323a",
     "resource": {
-      "title": "non_standard_timezones",
+      "metadata": {
+        "title": "non_standard_timezones",
+        "author": "Wazuh Inc.",
+        "description": "",
+        "documentation": "",
+        "references": [
+          "https://wazuh.com"
+        ]
+      },
       "name": "non_standard_timezones",
       "enabled": true,
-      "author": "Wazuh Inc.",
       "content": {
         "non_standard_timezones": {
           "AEST": "Australia/Sydney",
@@ -1223,12 +1308,7 @@ curl -sk -u admin:admin -X POST \
           "SST": "Asia/Singapore",
           "WEST": "Europe/London"
         }
-      },
-      "description": "",
-      "documentation": "",
-      "references": [
-        "https://wazuh.com"
-      ]
+      }
     }
   }'
 ```
@@ -1276,16 +1356,22 @@ Updates an existing KVDB in the draft space.
 
 Fields within `resource` (all required for update):
 
-| Field           | Type    | Required | Description                 |
-| --------------- | ------- | -------- | --------------------------- |
-| `title`         | String  | Yes      | KVDB title                  |
-| `author`        | String  | Yes      | Author                      |
-| `content`       | Object  | Yes      | Key-value data              |
-| `description`   | String  | Yes      | Description                 |
-| `documentation` | String  | Yes      | Documentation               |
-| `references`    | Array   | Yes      | Reference URLs              |
-| `name`          | String  | No       | KVDB identifier name        |
-| `enabled`       | Boolean | No       | Whether the KVDB is enabled |
+| Field      | Type    | Required | Description                 |
+| ---------- | ------- | -------- | --------------------------- |
+| `metadata` | Object  | Yes      | KVDB metadata (see below)   |
+| `content`  | Object  | Yes      | Key-value data              |
+| `name`     | String  | No       | KVDB identifier name        |
+| `enabled`  | Boolean | No       | Whether the KVDB is enabled |
+
+Fields within `resource.metadata`:
+
+| Field           | Type   | Required | Description               |
+| --------------- | ------ | -------- | ------------------------- |
+| `title`         | String | Yes      | KVDB title                |
+| `author`        | String | Yes      | Author                    |
+| `description`   | String | Yes      | Description               |
+| `documentation` | String | Yes      | Documentation             |
+| `references`    | Array  | Yes      | Reference URLs            |
 
 **Example Request**
 
@@ -1295,9 +1381,17 @@ curl -sk -u admin:admin -X PUT \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
+      "metadata": {
+        "title": "non_standard_timezones-2",
+        "author": "Wazuh.",
+        "description": "UPDATE",
+        "documentation": "UPDATE.doc",
+        "references": [
+          "https://wazuh.com"
+        ]
+      },
       "name": "test-UPDATED",
       "enabled": true,
-      "author": "Wazuh.",
       "content": {
         "non_standard_timezones": {
           "AEST": "Australia/Sydney",
@@ -1311,13 +1405,7 @@ curl -sk -u admin:admin -X PUT \
           "SST": "Asia/Singapore",
           "WEST": "Europe/London"
         }
-      },
-      "description": "UPDATE",
-      "documentation": "UPDATE.doc",
-      "references": [
-        "https://wazuh.com"
-      ],
-      "title": "non_standard_timezones-2"
+      }
     }
   }'
 ```
@@ -1452,6 +1540,26 @@ The response lists changes grouped by content type. Each change includes:
 ### Execute Promotion
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
+
+In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics Plugin (SAP). For each promoted resource, a new SAP document is created in the target space with:
+- A newly generated UUID as the SAP document primary ID.
+- A `document.id` field storing the original CTI document UUID for cross-reference.
+- A `source` field indicating the target space (e.g., "Test", "Custom").
+
+New resources (ADD operations) use `POST` to create SAP documents; existing resources (UPDATE operations) use `PUT` to update them in-place.
+
+This ensures that the same CTI resource can exist in multiple spaces with independent SAP documents.
+
+#### Rollback on Failure
+
+If any Content Manager index mutation fails during the consolidation phase, the endpoint
+automatically performs a **LIFO rollback** to restore the system to its pre-promotion state:
+
+1. **Pre-promotion snapshots** are captured before any writes — old versions for adds/updates, full documents for deletes.
+2. **CM rollback**: Each completed mutation is undone in reverse order. ADDs are deleted, UPDATEs are restored to their previous version, DELETEs are re-indexed from the snapshot.
+3. **SAP reconciliation** (best-effort): Rules and integrations synced to SAP during the forward pass are reverted — new SAP documents are deleted, updated ones are restored, and deleted ones are re-created from snapshots.
+
+Individual rollback or SAP reconciliation step failures are logged but do not prevent remaining steps from executing. On rollback, the endpoint returns a `500` status.
 
 **Request**
 - Method: `POST`

@@ -52,16 +52,16 @@ public class PluginSettings {
     private static final boolean DEFAULT_CREATE_DETECTORS = true;
 
     // Default values for Context and Consumer
-    private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
-    private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3";
+    private static final String DEFAULT_CONTENT_CONTEXT = "t1-ruleset-5";
+    private static final String DEFAULT_CONTENT_CONSUMER = "public-ruleset-5";
 
     // Default values for IOC Context and Consumer
-    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider_v3";
-    private static final String DEFAULT_IOC_CONSUMER = "iocs_v3";
+    private static final String DEFAULT_IOC_CONTEXT = "t1-iocs-5";
+    private static final String DEFAULT_IOC_CONSUMER = "public-iocs-5";
 
     // Default values for CVE Context and Consumer
-    private static final String DEFAULT_CVE_CONTEXT = "vd_1.0.0";
-    private static final String DEFAULT_CVE_CONSUMER = "vd_4.8.0";
+    private static final String DEFAULT_CVE_CONTEXT = "t1-vulnerabilities-5";
+    private static final String DEFAULT_CVE_CONSUMER = "public-vulnerabilities-5";
 
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
@@ -70,7 +70,7 @@ public class PluginSettings {
     private static PluginSettings INSTANCE;
 
     /** Base Wazuh CTI URL */
-    public static final String CTI_URL = "https://cti.pre.cloud.wazuh.com/api/v1";
+    public static final String CTI_URL = "https://api.pre.cloud.wazuh.com/api/v1";
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
@@ -210,10 +210,18 @@ public class PluginSettings {
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
-                    "plugins.content_manager.engine.mock_enabled",
+                    "plugins.content_manager.engine.mock",
                     DEFAULT_ENGINE_MOCK_ENABLED,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /** Configuration setting to enable or disable the telemetry ping. Defaults to true. */
+    public static final Setting<Boolean> TELEMETRY_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.telemetry.enabled",
+                    true,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
 
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
@@ -231,6 +239,7 @@ public class PluginSettings {
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
+    private volatile boolean isTelemetryEnabled;
 
     /**
      * Private default constructor
@@ -254,6 +263,7 @@ public class PluginSettings {
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
+        this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -282,6 +292,10 @@ public class PluginSettings {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
         return INSTANCE;
+    }
+
+    public void setTelemetryEnabled(boolean isTelemetryEnabled) {
+        this.isTelemetryEnabled = isTelemetryEnabled;
     }
 
     /**
@@ -345,6 +359,15 @@ public class PluginSettings {
      */
     public Boolean isUpdateOnSchedule() {
         return this.updateOnSchedule;
+    }
+
+    /**
+     * Retrieves the value for the update on schedule setting.
+     *
+     * @return a Boolean indicating if the scheduled update is enabled.
+     */
+    public Boolean isTelemetryEnabled() {
+        return this.isTelemetryEnabled;
     }
 
     /**

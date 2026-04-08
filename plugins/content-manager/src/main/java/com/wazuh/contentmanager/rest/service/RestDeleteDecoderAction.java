@@ -16,13 +16,18 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -45,7 +50,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *
  * <ul>
  *   <li>200 OK: Decoder deleted successfully.
- *   <li>400 Bad Request: Decoder is not in draft space.
+ *   <li>400 Bad Request: Decoder is not in draft space, or is set as a root decoder.
  *   <li>404 Not Found: Decoder with specified ID was not found.
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
@@ -88,6 +93,32 @@ public class RestDeleteDecoderAction extends AbstractDeleteAction {
     @Override
     protected String getResourceType() {
         return Constants.KEY_DECODER;
+    }
+
+    @Override
+    protected RestResponse validateDelete(Client client, String id) {
+        try {
+            // Retrieve the draft policy using the SpaceService
+            Map<String, Object> policySource = this.spaceService.getPolicy(Space.DRAFT.toString());
+
+            if (policySource != null && policySource.containsKey(Constants.KEY_DOCUMENT)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document =
+                        (Map<String, Object>) policySource.get(Constants.KEY_DOCUMENT);
+
+                // Validate that the decoder is not set as the root decoder
+                if (document != null && id.equals(document.get("root_decoder"))) {
+                    return new RestResponse(
+                            String.format(Locale.ROOT, Constants.E_400_CANNOT_REMOVE_ROOT_DECODER, id),
+                            RestStatus.BAD_REQUEST.getStatus());
+                }
+            }
+        } catch (Exception e) {
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
+        return null;
     }
 
     @Override

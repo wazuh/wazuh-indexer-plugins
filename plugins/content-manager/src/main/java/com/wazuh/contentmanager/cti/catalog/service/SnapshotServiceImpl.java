@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
@@ -167,10 +169,16 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .cti-consumers
         try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : new LocalConsumer(this.context, this.consumer);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
                             this.context,
                             this.consumer,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
                             consumer.getSnapshotOffset(),
                             consumer.getOffset(),
                             snapshotUrl);
@@ -214,18 +222,23 @@ public class SnapshotServiceImpl implements SnapshotService {
                     JsonNode payload = rootJson.get(JSON_PAYLOAD_KEY);
 
                     // 2. Determine Index.
-                    String name =
-                            rootJson.has(Constants.KEY_NAME) ? rootJson.get(Constants.KEY_NAME).asText() : null;
+                    String resourceName =
+                            rootJson.has(Constants.KEY_RESOURCE)
+                                    ? rootJson.get(Constants.KEY_RESOURCE).asText()
+                                    : (rootJson.has(Constants.KEY_NAME)
+                                            ? rootJson.get(Constants.KEY_NAME).asText()
+                                            : null);
+                    String cveType = Cve.deriveType(resourceName);
 
                     String type = null;
-                    if (payload.has(Constants.KEY_TYPE)) {
+                    if (cveType != null) {
+                        // CVE feed entities are identified by the resource name pattern.
+                        type = Constants.KEY_CVES;
+                    } else if (payload.has(Constants.KEY_TYPE)) {
                         type = payload.get(Constants.KEY_TYPE).asText();
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
-                    } else if (name != null && name.startsWith("CVE-")) {
-                        // CVE documents are identified by their name field (CVE-YYYY-NNNNN)
-                        type = Constants.KEY_CVES;
                     }
 
                     if (type == null) {
@@ -247,6 +260,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                         this.maxOffsetSeen = Math.max(this.maxOffsetSeen, offset);
                     }
 
+                    if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
+                        ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
+                    }
+
                     ObjectNode processedPayload = indexHandler.processPayload(payload);
                     String indexName = indexHandler.getIndexName();
 
@@ -254,12 +271,13 @@ public class SnapshotServiceImpl implements SnapshotService {
                     IndexRequest indexRequest =
                             new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
-                    // Determine ID (root level "name" key)
-                    if (name != null) {
-                        indexRequest.id(name);
+                    // Determine ID from resource/name key.
+                    if (resourceName != null) {
+                        indexRequest.id(resourceName);
                     } else {
                         throw new IOException(
-                                "Missing 'name' key in CTI resource. {offset}:" + rootJson.get("offset").asInt());
+                                "Missing 'resource'/'name' key in CTI resource. {offset}:"
+                                        + rootJson.get("offset").asInt());
                     }
 
                     bulkRequest.add(indexRequest);
@@ -367,9 +385,19 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .cti-consumers
         try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : new LocalConsumer(this.context, this.consumer);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            this.context, this.consumer, this.maxOffsetSeen, 0, localZip.toString());
+                            this.context,
+                            this.consumer,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
+                            this.maxOffsetSeen,
+                            0,
+                            localZip.toString());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {

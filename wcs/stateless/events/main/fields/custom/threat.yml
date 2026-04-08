@@ -1,0 +1,58 @@
+---
+- name: threat
+  title: Threat
+  group: 2
+  short: Fields to classify and describe threats.
+  description: >
+    Fields to classify and describe threats.
+  type: group
+  fields:
+    - name: enrichments
+      type: nested
+      level: extended
+      description: >
+        A list of associated indicators objects enriching the event, and the context of that association/enrichment.
+    - name: enrichments.indicator
+      type: object
+      level: extended
+      description: >
+        Object containing associated indicators enriching the event.
+    - name: enrichments.indicator.feed.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the feed that supplied the indicator.
+    - name: enrichments.indicator.id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier for the enrichment data, such as a hash of the indicator data or a unique ID from the provider.
+    - name: enrichments.indicator.tags
+      type: keyword
+      normalize:
+        - array
+      level: custom
+      description: >
+        List of tags associated with the indicator.
+    - name: enrichments.indicator.software
+      type: object
+      level: custom
+      description: >
+        Name of the software associated with the indicator, such as malware or attack framework.
+    - name: enrichments.indicator.software.alias
+      type: keyword
+      normalize:
+        - array
+      level: custom
+      description: >
+        Alias or alternative names for the software associated with the indicator.
+    - name: enrichments.indicator.software.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the software associated with the indicator.
+    - name: enrichments.indicator.software.type
+      type: keyword
+      level: custom
+      description: >
+        Type of software associated with the indicator, such as malware, attack framework, or tool.

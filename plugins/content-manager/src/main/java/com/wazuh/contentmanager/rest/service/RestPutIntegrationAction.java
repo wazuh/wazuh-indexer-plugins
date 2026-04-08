@@ -172,7 +172,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
 
     @Override
     protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        // 1. Engine Validate
+        // 1. Validate using the Engine.
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
@@ -180,16 +180,17 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
             return new RestResponse(
-                    "Engine Validation Failed: " + engineResponse.getMessage(),
+                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 2. SAP Upsert
+        // 2. Send to Security Analytics.
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
         } catch (Exception e) {
             return new RestResponse(
-                    "SAP Upsert Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         return null;

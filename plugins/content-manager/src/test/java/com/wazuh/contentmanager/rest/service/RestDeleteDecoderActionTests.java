@@ -42,8 +42,10 @@ import org.junit.BeforeClass;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -122,18 +124,39 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
 
     /** Helper to mock unlinking logic search results. */
     private void mockUnlinkSearch(String decoderId) {
-        SearchHit hit =
-                new SearchHit(0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
-        hit.sourceRef(new BytesArray("{\"document\":{\"decoders\":[\"" + decoderId + "\"]}}"));
-        SearchHits hits =
-                new SearchHits(new SearchHit[] {hit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
+        when(this.client.search(any(SearchRequest.class)))
+                .thenAnswer(
+                        invocation -> {
+                            SearchRequest request = invocation.getArgument(0);
+                            PlainActionFuture<SearchResponse> future = PlainActionFuture.newFuture();
 
-        SearchResponse searchResponse = mock(SearchResponse.class);
-        when(searchResponse.getHits()).thenReturn(hits);
+                            if (request.indices() != null
+                                    && request.indices().length > 0
+                                    && request.indices()[0].equals(Constants.INDEX_POLICIES)) {
+                                // Return no hits for the Policy search validation mapping
+                                SearchHits emptyHits =
+                                        new SearchHits(
+                                                new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1.0f);
+                                SearchResponse emptySearchResponse = mock(SearchResponse.class);
+                                when(emptySearchResponse.getHits()).thenReturn(emptyHits);
+                                future.onResponse(emptySearchResponse);
+                            } else {
+                                // Return a mocked hit matching an integration dependency search
+                                SearchHit hit =
+                                        new SearchHit(
+                                                0, "integration-1", Collections.emptyMap(), Collections.emptyMap());
+                                hit.sourceRef(
+                                        new BytesArray("{\"document\":{\"decoders\":[\"" + decoderId + "\"]}}"));
+                                SearchHits hits =
+                                        new SearchHits(
+                                                new SearchHit[] {hit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0f);
 
-        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
-        searchFuture.onResponse(searchResponse);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+                                SearchResponse searchResponse = mock(SearchResponse.class);
+                                when(searchResponse.getHits()).thenReturn(hits);
+                                future.onResponse(searchResponse);
+                            }
+                            return future;
+                        });
 
         IndexResponse indexResponse = mock(IndexResponse.class);
         when(indexResponse.status()).thenReturn(RestStatus.OK);
@@ -193,6 +216,58 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
 
         RestResponse response = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test the {@link RestDeleteDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * decoder is set as root_decoder inside draft policy. The expected response is: {400,
+     * RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteDecoder400_RootDecoder() throws IOException {
+        String decoderId = "82e215c4-988a-4f64-8d15-b98b2fc03a4f";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", decoderId))
+                        .build();
+
+        this.mockDecoderInSpace(decoderId, "draft", true);
+
+        Map<String, Object> policyMap = new HashMap<>();
+        Map<String, Object> documentMap = new HashMap<>();
+        documentMap.put("root_decoder", decoderId);
+        policyMap.put(Constants.KEY_DOCUMENT, documentMap);
+
+        when(this.policyHashService.getPolicy(Space.DRAFT.toString())).thenReturn(policyMap);
+
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertEquals(
+                String.format(Locale.ROOT, Constants.E_400_CANNOT_REMOVE_ROOT_DECODER, decoderId),
+                response.getMessage());
+    }
+
+    /**
+     * Test the {@link RestDeleteDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * validation search throws an error. The expected response is: {500, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testDeleteDecoder500_SearchError() throws IOException {
+        String decoderId = "error-search-id";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", decoderId))
+                        .build();
+
+        this.mockDecoderInSpace(decoderId, "draft", true);
+
+        when(this.policyHashService.getPolicy(Space.DRAFT.toString()))
+                .thenThrow(new IOException("Simulated policy fetch failure"));
+
+        RestResponse response = this.action.executeRequest(request, this.client);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 
     /**

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -40,6 +41,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -52,6 +55,7 @@ import static org.mockito.Mockito.when;
 public class RestPostPromoteActionTests extends OpenSearchTestCase {
     private EngineService engine;
     private SpaceService spaceService;
+    private SecurityAnalyticsService securityAnalyticsService;
     private RestPostPromoteAction action;
 
     /**
@@ -104,7 +108,9 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                         any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mapper.createObjectNode());
 
-        this.action = new RestPostPromoteAction(this.engine, this.spaceService);
+        this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
+        this.action =
+                new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService);
     }
 
     /**
@@ -327,6 +333,151 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Assert.fail("Not yet implemented");
     }
 
+    /**
+     * When an integration is promoted via ADD, {@code upsertIntegration} must be called on SAP with
+     * the target space and {@code PUT} method.
+     */
+    public void testSapSync_integrationUpsertCalledOnAdd() throws IOException {
+        // Mock engine to return success (draft → test requires engine validation)
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // integration-1 must NOT exist in the target space (test) for ADD → POST
+        when(this.spaceService.getDocument(
+                        eq(Constants.INDEX_INTEGRATIONS), eq("test"), eq("integration-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [{"operation": "add", "id": "integration-1"}],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService)
+                .upsertIntegration(any(JsonNode.class), eq(Space.TEST), eq(RestRequest.Method.POST));
+    }
+
+    /**
+     * When an integration is removed via REMOVE, {@code deleteIntegration} must be called on SAP with
+     * the integration id and target space.
+     */
+    public void testSapSync_integrationDeleteCalledOnRemove() {
+        // Mock engine to return success (draft → test requires engine validation)
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [{"operation": "remove", "id": "integration-1"}],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService).deleteIntegration(eq("integration-1"), eq(Space.TEST));
+    }
+
+    /**
+     * When a rule is promoted via ADD, {@code upsertRule} must be called on SAP with the target space
+     * and {@code PUT} method.
+     */
+    public void testSapSync_ruleUpsertCalledOnAdd() throws IOException {
+        // Override default mock: rule source doc must carry space "test" for ADD validation to pass
+        Map<String, String> spaceTest = new HashMap<>();
+        spaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
+        Map<String, Object> ruleDoc = new HashMap<>();
+        ruleDoc.put(Constants.KEY_SPACE, spaceTest);
+        ruleDoc.put(Constants.KEY_DOCUMENT, new HashMap<>());
+        when(this.spaceService.getDocument(eq(Constants.INDEX_RULES), eq("test"), eq("rule-1")))
+                .thenReturn(ruleDoc);
+        // rule-1 must NOT exist in the target space (custom) for ADD to proceed
+        when(this.spaceService.getDocument(eq(Constants.INDEX_RULES), eq("custom"), eq("rule-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "test",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [{"operation": "add", "id": "rule-1"}],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        // test → custom promotion skips engine validation
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService)
+                .upsertRule(any(JsonNode.class), eq(Space.CUSTOM), eq(RestRequest.Method.POST));
+    }
+
+    /**
+     * When a rule is removed via REMOVE, {@code deleteRule} must be called on SAP with the rule id
+     * and target space.
+     */
+    public void testSapSync_ruleDeleteCalledOnRemove() {
+        // spotless:off
+        String payload = """
+                {
+                  "space": "test",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [{"operation": "remove", "id": "rule-1"}],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        // test → custom promotion skips engine validation
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.securityAnalyticsService).deleteRule(eq("rule-1"), eq(Space.CUSTOM));
+    }
+
     /** If the requested operation for the policy is not "update", return a 400 error. */
     public void testPostPromote400_invalidOperationForPolicy() {
         // Mock expected response
@@ -414,6 +565,58 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Verify
         Assert.assertEquals(400, actualResponse.getStatus());
         Assert.assertTrue(actualResponse.getMessage().contains("expected source space"));
+    }
+
+    /** If the promotion is from TEST to CUSTOM, the engine should not be called. */
+    public void testPostPromoteToCustomSkipsEngine() throws IOException {
+        // Mock spaces
+        Map<String, String> mockSpaceTest = new HashMap<>();
+        mockSpaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
+
+        // Mock policy document for UPDATE operation (policy exists in test space)
+        Map<String, Object> mockPolicy = new HashMap<>();
+        mockPolicy.put(Constants.KEY_SPACE, mockSpaceTest);
+        Map<String, Object> mockPolicyDoc = new HashMap<>();
+        mockPolicyDoc.put("id", "policy");
+        mockPolicy.put(Constants.KEY_DOCUMENT, mockPolicyDoc);
+        when(this.spaceService.getDocument(eq(Constants.INDEX_POLICIES), eq("test"), eq("policy")))
+                .thenReturn(mockPolicy);
+        when(this.spaceService.getPolicy(eq("test"))).thenReturn(mockPolicy);
+
+        // Mock decoder for ADD operation (decoder exists in test space, not in custom)
+        Map<String, Object> mockDecoder = new HashMap<>();
+        mockDecoder.put(Constants.KEY_SPACE, mockSpaceTest);
+        Map<String, Object> mockDecoderDoc = new HashMap<>();
+        mockDecoderDoc.put("id", "decoder-1");
+        mockDecoder.put(Constants.KEY_DOCUMENT, mockDecoderDoc);
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("test"), eq("decoder-1")))
+                .thenReturn(mockDecoder);
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("custom"), eq("decoder-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "test",
+                  "changes": {
+                    "policy": [{"operation": "update", "id": "policy"}],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [{"operation": "add", "id": "decoder-1"}],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        // Invoke method to test
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        // Verify - promotion succeeds and engine is never called
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine, never()).promote(any(JsonNode.class));
     }
 
     /**

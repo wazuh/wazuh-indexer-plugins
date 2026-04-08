@@ -76,7 +76,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         "network-activity",
         "security",
         "system-activity",
-        "other" // No integration in this category yet
+        "other", // No integration in this category yet
+        "unclassified"
     };
     // spotless:on
 
@@ -107,15 +108,28 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             this.indices.add(new StreamIndex(
                 "wazuh-events-v5-" + category
             ));
+
+            if(category.equals("unclassified")) {
+                // Unclassified events data stream (stores uncategorized events for investigation)
+                this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
+            }
+        }
+        // Findings data streams (stores detection findings per category)
+        for (String category : this.categories) {
+            this.indices.add(new StreamIndex(
+                "wazuh-findings-v5-" + category,
+                "templates/streams/findings"
+            ));
         }
         // Raw events data stream (stores original unprocessed events)
         this.indices.add(new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw"));
 
-        // Unclassified events data stream (stores uncategorized events for investigation)
-        this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
-
         // Active responses data stream (stores active response execution requests from monitor triggers)
         this.indices.add(new StreamIndex("wazuh-active-responses", "templates/streams/active-responses"));
+
+        // Metrics data streams
+        this.indices.add(new StreamIndex("wazuh-metrics-agents", "templates/streams/metrics-agents"));
+        this.indices.add(new StreamIndex("wazuh-metrics-comms", "templates/streams/metrics-comms"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
@@ -127,7 +141,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-hardware", "templates/states/inventory-hardware"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hotfixes", "templates/states/inventory-hotfixes"));
         this.indices.add(new StateIndex("wazuh-states-inventory-interfaces", "templates/states/inventory-interfaces"));
-        this.indices.add(new StateIndex("wazuh-monitoring", "templates/monitoring"));
         this.indices.add(new StateIndex("wazuh-states-inventory-networks", "templates/states/inventory-networks"));
         this.indices.add(new StateIndex("wazuh-states-inventory-packages", "templates/states/inventory-packages"));
         this.indices.add(new StateIndex("wazuh-states-inventory-ports", "templates/states/inventory-ports"));
@@ -137,7 +150,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "templates/states/inventory-system"));
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
-        this.indices.add(new StateIndex("wazuh-statistics", "templates/statistics"));
 
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");

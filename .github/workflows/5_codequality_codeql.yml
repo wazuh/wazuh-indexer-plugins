@@ -1,11 +1,103 @@
 name: (5.x) CodeQL
 
+permissions:
+  actions: read
+  contents: read
+
 on:
   push:
     paths:
       - "plugins/**"
 
 jobs:
+  branches:
+    runs-on: ubuntu-24.04
+    outputs:
+      security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
+      common_utils_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Resolve branches
+        id: branches
+        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
+        with:
+          branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+
+  get-version:
+    runs-on: ubuntu-24.04
+    needs: branches
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            VERSION.json
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
+
+  publish-common-utils:
+    runs-on: ubuntu-24.04
+    needs: [branches, get-version]
+    steps:
+      - name: Restore Maven Local Cache
+        id: cache-common-utils
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
+      - name: Publish to Maven Local
+        if: steps.cache-common-utils.outputs.cache-hit != 'true'
+        uses: wazuh/wazuh-indexer-common-utils/.github/actions/5_local_maven_publisher@main
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          revision: 0
+          reference: ${{ needs.branches.outputs.common_utils_plugin_ref }}
+      - name: Cache Maven Local
+        if: steps.cache-common-utils.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}
+
+  publish-security-analytics:
+    runs-on: ubuntu-24.04
+    needs: [branches, get-version, publish-common-utils]
+    steps:
+      - name: Restore Maven Local Cache
+        id: cache-security-analytics
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
+      - name: Restore Maven Local Cache (common-utils)
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
+      - name: Publish to Maven Local
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
+        uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@main
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          revision: 0
+          reference: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
+      - name: Cache Maven Local
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}
+
   analyze:
     name: Analyze
     # Runner size impacts CodeQL analysis time. To learn more, please see:
@@ -13,7 +105,8 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners
     # Consider using larger runners for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-24.04' }}
+    needs: [branches, get-version, publish-security-analytics]
+    runs-on: ubuntu-24.04
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       actions: read
@@ -23,19 +116,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["java"]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby', 'swift' ]
-        # Use only 'java' to analyze code written in Java, Kotlin or both
-        # Use only 'javascript' to analyze code written in JavaScript, TypeScript or both
-        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+        include:
+        - language: actions
+          build-mode: none
+        - language: java-kotlin
+          build-mode: none # This mode only analyzes Java. Set this to 'autobuild' or 'manual' to analyze Kotlin too.
+        # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
+        # Use `c-cpp` to analyze code written in C, C++ or both
+        # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
+        # Use 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
+        # To learn more about changing the languages that are analyzed or customizing the build mode for your analysis,
+        # see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning.
+        # If you are analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
+        # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Get version
-        id: version
-        run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -43,19 +140,13 @@ jobs:
           distribution: temurin
           java-version: 25
 
-      - name: Checkout Security Analytics
-        uses: actions/checkout@v6
+      - name: Restore Maven Local Cache (security-analytics with deps)
+        uses: actions/cache/restore@v5
         with:
-          repository: wazuh/wazuh-indexer-security-analytics
-          path: wazuh-indexer-security-analytics
-
-      - name: Publish to Maven Local Security Analytics Commons
-        working-directory: wazuh-indexer-security-analytics/commons
-        run: ../gradlew publishToMavenLocal -x check -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision || '0' }}
-
-      - name: Publish to Maven Local Security Analytics
-        working-directory: wazuh-indexer-security-analytics
-        run: ./gradlew publishToMavenLocal -x check -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision || '0' }}
+          path: ~/.m2/repository
+          key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

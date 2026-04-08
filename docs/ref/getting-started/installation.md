@@ -1,5 +1,11 @@
 # Installation
 
+> [!NOTE]
+> This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
+>   - [Local package generation](../../dev/build-packages.md) (recommended).
+>   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
+>   - [Staging S3 buckets](./packages.md)
+
 ## Installing the Wazuh indexer step by step
 
 Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. The installation process is divided into three stages.
@@ -36,10 +42,10 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
         #- name: node-3
         #  ip: "<indexer-node-ip>"
 
-      # Wazuh server nodes
-      # If there is more than one Wazuh server
+      # Wazuh manager nodes
+      # If there is more than one Wazuh manager
       # node, each one must have a node_type
-      server:
+      manager:
         - name: wazuh-1
           ip: "<wazuh-manager-ip>"
         #  node_type: master
@@ -79,78 +85,30 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 Install the following packages if missing:
 
-#### Yum
+#### yum
 
-  ```bash
-  yum install coreutils
-  ```
+```bash
+yum install coreutils
+```
 
-  ---
+#### apt
 
-#### APT
-
-  ```bash
-  apt-get install debconf adduser procps
-  ```
-
-### Adding the Wazuh repository
-
-#### Yum
-
-1. Import the GPG key.
-
-    ```bash
-    rpm --import https://packages.wazuh.com/key/GPG-KEY-WAZUH
-    ```
-
-1. Add the repository.
-
-    ```bash
-    echo -e '[wazuh]\ngpgcheck=1\ngpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH\nenabled=1\nname=EL-$releasever - Wazuh\nbaseurl=https://packages.wazuh.com/5.x/yum/\nprotect=1' | tee /etc/yum.repos.d/wazuh.repo
-    ```
-
----
-
-#### APT
-
-1. Install the following packages if missing.
-
-    ```bash
-    apt-get install gnupg apt-transport-https
-    ```
-
-2. Install the GPG key.
-
-    ```bash
-    curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && chmod 644 /usr/share/keyrings/wazuh.gpg
-    ```
-
-3. Add the repository.
-
-    ```bash
-    echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/5.x/apt/ stable main" | tee -a /etc/apt/sources.list.d/wazuh.list
-    ```
-
-4. Update the packages information.
-
-    ```bash
-    apt-get update
-    ```
+```bash
+apt-get install debconf adduser procps
+```
 
 ### Installing the Wazuh indexer package
 
-#### Yum
+#### rpm
 
 ```bash
-yum -y install wazuh-indexer
+rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
 ```
 
----
-
-#### APT
+#### dpkg
 
 ```bash
-apt-get -y install wazuh-indexer
+dpkg -i wazuh-indexer-<VERSION>.deb
 ```
 
 ### Configuring the Wazuh indexer
@@ -162,7 +120,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
   b. **`node.name`**: Name of the Wazuh indexer node as defined in the `config.yml` file. For example, `node-1`.
 
-  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your onfig.yml`definitions.
+  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your `config.yml` definitions.
 
   ```yml
   cluster.initial_cluster_manager_nodes:
@@ -223,7 +181,7 @@ systemctl start wazuh-indexer
 
 ---
 
-#### SysV init
+#### SysV
 
 Choose one option according to the operating system used.
 
@@ -257,10 +215,10 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 
 ### Testing the cluster installation
 
-1. Replace `<WAZUH_INDEXER_IP_ADDRESS>` and run the following commands to confirm that the installation is successful.
+1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful.
 
     ```bash
-    curl -k -u admin:admin https://<WAZUH_INDEXER_IP_ADRESS>:9200
+    curl -k -u admin:admin https://$WAZUH_INDEXER_IP_ADDRESS:9200
     ```
 
     **Output**
@@ -284,8 +242,8 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
     }
     ```
 
-1. Replace `<WAZUH_INDEXER_IP_ADDRESS>` and run the following command to check if the single-node or multi-node cluster is working correctly.
+1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following command to check if the single-node or multi-node cluster is working correctly.
 
     ```bash
-    curl -k -u admin:admin https://<WAZUH_INDEXER_IP_ADDRESS>:9200/_cat/nodes?v
+    curl -k -u admin:admin https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
     ```

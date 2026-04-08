@@ -1,0 +1,86 @@
+---
+- name: agent
+  reusable:
+    expected:
+      - { at: wazuh, as: agent }
+  title: Wazuh Agents
+  short: Wazuh Inc. custom fields.
+  type: group
+  group: 2
+  fields:
+    - name: groups
+      type: keyword
+      level: custom
+      description: >
+        List of groups the agent belongs to.
+      normalize:
+        - array
+      example: "[\"group1\", \"group2\"]"
+    - name: register.ip
+      type: ip
+      level: custom
+      description: >
+        Registration IP value from `client.keys` associated with the agent.
+      example: "any"
+    - name: status
+      type: keyword
+      level: custom
+      short: Current connection status of the agent in Wazuh.
+      description: >
+        Current connection status of the agent in Wazuh. Expected values are
+        `active`, `pending`, `disconnected` and `never_connected`.
+      example: "active"
+    - name: status_code
+      type: integer
+      level: custom
+      description: >
+        Internal numeric status code associated with the agent connection state.
+      example: 0
+    - name: registered_at
+      type: date
+      level: custom
+      description: >
+        Date/time when the agent was registered in Wazuh.
+      example: "2026-01-26T12:46:20.000Z"
+    - name: last_seen
+      type: date
+      level: custom
+      description: >
+        Date/time when the last keepalive from the agent was received.
+      example: "2026-03-09T12:29:57.000Z"
+    - name: disconnected_at
+      type: date
+      level: custom
+      description: >
+        Date/time when the agent was considered disconnected.
+    - name: config.hash.md5
+      type: keyword
+      level: custom
+      description: >
+        MD5 hash of the agent configuration used for integrity verification and
+        change detection.
+      example: "7fdd9b4cf9a06dbe937f7de73dcbe9e4"
+    - name: config.group.synced
+      type: boolean
+      level: custom
+      description: >
+        Status of the group configuration assigned to the agent.
+      example: true
+    - name: config.group.hash.md5
+      type: keyword
+      level: custom
+      description: >
+        MD5 hash of the merged group configuration currently applied to the agent.
+      example: "16728192a0e2b5ca79e3d1385c32096e"
+
+- name: host
+  reusable:
+    top_level: false
+    expected:
+      - { at: wazuh.agent, as: host }
+
+- name: os
+  reusable:
+    top_level: false
+    expected:
+      - wazuh.agent.host

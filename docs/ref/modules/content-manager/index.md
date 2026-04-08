@@ -2,6 +2,14 @@
 
 The Content Manager is a Wazuh Indexer plugin responsible for managing detection content — rules, decoders, integrations, key-value databases (KVDBs), and Indicators of Compromise (IoCs). It synchronizes content from the Wazuh Cyber Threat Intelligence (CTI) API, provides a REST API for user-generated content, and communicates with the Wazuh Engine to activate changes.
 
+It also includes the **Update check system**, which communicates with the CTI **Update check API** once per day to let Wazuh determine whether a newer Wazuh version is available for the deployment.
+
+Update check components are:
+
+- **Update check API** (CTI)
+- **Update check system** (Wazuh Indexer)
+- **Update check UI** (Wazuh Dashboard)
+
 ## CTI Synchronization
 
 The Content Manager periodically synchronizes content from the Wazuh CTI API. Three content contexts are managed:
@@ -32,6 +40,17 @@ By default, synchronization runs:
 - **Periodically** every 60 minutes (`plugins.content_manager.catalog.sync_interval: 60`)
 
 The periodic job is registered with the OpenSearch Job Scheduler and tracked in the `.wazuh-content-manager-jobs` index.
+
+## Update Check Service
+
+When `plugins.content_manager.telemetry.enabled` is `true` (default), the Content Manager schedules a daily update check heartbeat job.
+
+- **Frequency:** every 24 hours
+- **Scheduler document ID:** `wazuh-telemetry-ping-job`
+- **Endpoint:** CTI `/ping`
+- **Data sent:** cluster UUID and deployed Wazuh version (through headers)
+
+This information is used to detect update availability and surface notifications through the Wazuh Dashboard.
 
 ## User-Generated Content
 
@@ -118,7 +137,7 @@ The Content Manager uses the following system indices:
 | `.cti-iocs` | Indicators of Compromise |
 | `.cti-cves` | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
 | `.engine-filters` | Engine filters (routing filters for event classification) |
-| `.wazuh-content-manager-jobs` | Job Scheduler metadata for the periodic sync job |
+| `.wazuh-content-manager-jobs` | Job Scheduler metadata for periodic sync and update check jobs |
 
 ## CTI Subscription
 

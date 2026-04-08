@@ -64,6 +64,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     @Mock private ConsumersIndex consumersIndex;
     @Mock private ContentIndex ruleIndex;
     @Mock private ContentIndex decoderIndex;
+    @Mock private ContentIndex cveIndex;
     @Mock private GetResponse getResponse;
 
     private static final String CONTEXT = "rules_dev";
@@ -80,6 +81,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Map<String, ContentIndex> indices = new HashMap<>();
         indices.put("rule", this.ruleIndex);
         indices.put("decoder", this.decoderIndex);
+        indices.put("cves", this.cveIndex);
 
         this.updateService =
                 new UpdateServiceImpl(CONTEXT, CONSUMER, this.apiClient, this.consumersIndex, indices);
@@ -394,5 +396,43 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());
         Assert.assertEquals(60, captor.getValue().getLocalOffset());
+    }
+
+    /**
+     * Tests that non-CVE-prefixed CVE resources are routed to cves and receive derived type.
+     *
+     * @throws Exception if update execution fails.
+     */
+    public void testUpdate_CreateTIdResourceIsIndexedAsCveWithDerivedType() throws Exception {
+        // spotless:off
+        String changesJson =
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 70,
+                      "resource": "TID-123",
+                      "type": "CREATE",
+                      "payload": { "document": { "foo": "bar" } }
+                    }
+                  ]
+                }""";
+        // spotless:on
+
+        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn("{}");
+
+        this.updateService.update(69, 70);
+
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture());
+        Assert.assertEquals("TID", payloadCaptor.getValue().get("type").asText());
+        Assert.assertEquals(70L, payloadCaptor.getValue().get("offset").asLong());
     }
 }

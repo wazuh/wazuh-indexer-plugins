@@ -22,9 +22,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
@@ -40,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -56,8 +60,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
-    private final SpaceService spaceService;
+    private SecurityAnalyticsServiceImpl securityAnalyticsService;
+    private SpaceService spaceService;
+    private final EngineService engineService;
 
     /**
      * Constructs a new UnifiedConsumerSynchronizer.
@@ -65,12 +70,17 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
+     * @param engineService The engine service for loading content into the Engine.
      */
     public ConsumerRulesetService(
-            Client client, ConsumersIndex consumersIndex, Environment environment) {
+            Client client,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            EngineService engineService) {
         super(client, consumersIndex, environment);
         this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         this.spaceService = new SpaceService(client);
+        this.engineService = engineService;
 
         this.mapper = new ObjectMapper();
         this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
@@ -78,6 +88,75 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 .configOverride(Policy.class)
                 .setInclude(
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
+    }
+
+    /**
+     * Runs the Standard space cleanup (if needed) before delegating to the parent synchronization
+     * logic. This ensures that stale resources from a previous consumer are removed before the new
+     * consumer's snapshot is loaded.
+     */
+    @Override
+    public void synchronize() {
+        this.cleanupStandardSpaceIfConsumerChanged();
+        super.synchronize();
+    }
+
+    /**
+     * Detects whether the content consumer/context settings have changed since the last sync and, if
+     * so, cleans up the Standard space before the new consumer's snapshot is loaded.
+     *
+     * <p>Detection heuristic: if no {@link com.wazuh.contentmanager.cti.catalog.model.LocalConsumer}
+     * document exists for the current composite ID ({@code context_consumer}) AND the Standard space
+     * already contains resources, then a consumer switch has occurred and cleanup is required.
+     */
+    void cleanupStandardSpaceIfConsumerChanged() {
+        try {
+            // 1. Check if a LocalConsumer document exists for the current context/consumer
+            GetResponse consumerDoc = this.consumersIndex.getConsumer(this.CONTEXT, this.CONSUMER);
+
+            if (consumerDoc != null && consumerDoc.isExists()) {
+                // Consumer doc already exists -- no setting change detected.
+                return;
+            }
+
+            // 2. No consumer doc for the current ID. Check if Standard space has resources.
+            Map<String, Map<String, String>> spaceResources =
+                    this.spaceService.getSpaceResources(Space.STANDARD.toString());
+
+            boolean hasResources =
+                    spaceResources.values().stream().anyMatch(m -> m != null && !m.isEmpty());
+
+            if (!hasResources) {
+                log.info("No existing Standard space resources found. Skipping cleanup.");
+                return;
+            }
+
+            // 3. Consumer changed and old resources exist. Clean up.
+            log.info("Consumer setting change detected. Cleaning up Standard space before re-sync.");
+            this.spaceService.resetSpace(Space.STANDARD, this.securityAnalyticsService);
+            log.info("Standard space cleanup completed successfully.");
+
+        } catch (Exception e) {
+            log.error("Failed to perform Standard space cleanup on consumer change: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Setter for spaceService to allow injection in tests.
+     *
+     * @param spaceService the space service to set
+     */
+    void setSpaceService(SpaceService spaceService) {
+        this.spaceService = spaceService;
+    }
+
+    /**
+     * Setter for securityAnalyticsService to allow injection in tests.
+     *
+     * @param securityAnalyticsService the security analytics service to set
+     */
+    void setSecurityAnalyticsService(SecurityAnalyticsServiceImpl securityAnalyticsService) {
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
@@ -153,17 +232,56 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations
-            this.syncIntegrations();
+            try {
+                this.syncIntegrations();
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "integrations", e.getMessage(), e);
+            }
 
             // Sync Rules
-            this.syncRules();
+            try {
+                this.syncRules();
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "rules", e.getMessage(), e);
+            }
 
             // Sync Detectors
             if (PluginSettings.getInstance().getCreateDetectors()) {
-                this.syncDetectors();
+                try {
+                    this.syncDetectors();
+                } catch (Exception e) {
+                    log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
+                }
             }
 
-            this.spaceService.calculateAndUpdate();
+            Set<String> changedSpaces = this.spaceService.calculateAndUpdate();
+
+            // Load the standard space into the Engine only if its hash changed
+            if (changedSpaces.contains(Space.STANDARD.toString())) {
+                this.loadStandardSpaceIntoEngine();
+            }
+        }
+    }
+
+    /** Builds the engine payload for the standard space and loads it into the Engine. */
+    private void loadStandardSpaceIntoEngine() {
+        if (this.engineService == null) {
+            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
+            return;
+        }
+        try {
+            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
+            RestResponse response = this.engineService.promote(payload);
+            if (response.getStatus() == RestStatus.OK.getStatus()) {
+                log.info("Engine load for standard space completed successfully.");
+            } else {
+                log.warn(
+                        "Engine load for standard space returned status [{}]: {}",
+                        response.getStatus(),
+                        response.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Failed to load standard space into Engine: {}", e.getMessage());
         }
     }
 
@@ -172,7 +290,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * parallel execution with a CountDownLatch to ensure all async requests complete.
      */
     private void syncIntegrations() {
-        if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
+        if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             return;
         }
 
@@ -222,7 +340,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * Standard and Custom rules.
      */
     private void syncRules() {
-        if (!this.indexExists(Constants.INDEX_RULES)) {
+        if (this.indexIsMissing(Constants.INDEX_RULES)) {
             return;
         }
 
@@ -273,7 +391,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * created in parallel.
      */
     private void syncDetectors() {
-        if (!this.indexExists(Constants.INDEX_INTEGRATIONS)) {
+        if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             return;
         }
 
@@ -300,14 +418,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         // Process the first detector sequentially to ensure the config index is created
         CountDownLatch firstLatch = new CountDownLatch(1);
+        JsonNode firstDoc = docs.getFirst();
+        String firstName =
+                firstDoc.has("metadata") && firstDoc.get("metadata").has("title")
+                        ? firstDoc.get("metadata").get("title").asText()
+                        : "unknown";
         this.securityAnalyticsService.upsertDetectorAsync(
-                docs.get(0),
+                firstDoc,
                 true,
                 RestRequest.Method.POST,
                 ActionListener.wrap(
                         response -> firstLatch.countDown(),
                         e -> {
-                            log.error("Failed to sync first detector: {}", e.getMessage());
+                            log.error(
+                                    "Failed to sync detector for integration [{}]: {}", firstName, e.getMessage());
                             firstLatch.countDown();
                         }));
 
@@ -326,14 +450,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         if (docs.size() > 1) {
             CountDownLatch parallelLatch = new CountDownLatch(docs.size() - 1);
             for (int i = 1; i < docs.size(); i++) {
+                JsonNode doc = docs.get(i);
+                String name =
+                        doc.has("metadata") && doc.get("metadata").has("title")
+                                ? doc.get("metadata").get("title").asText()
+                                : "unknown";
                 this.securityAnalyticsService.upsertDetectorAsync(
-                        docs.get(i),
+                        doc,
                         true,
                         RestRequest.Method.POST,
                         ActionListener.wrap(
                                 response -> parallelLatch.countDown(),
                                 e -> {
-                                    log.error("Failed to sync detector: {}", e.getMessage());
+                                    log.error(
+                                            "Failed to sync detector for integration [{}]: {}", name, e.getMessage());
                                     parallelLatch.countDown();
                                 }));
             }
@@ -368,8 +498,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param indexName The name of the index to check.
      * @return true if the index exists, false otherwise.
      */
-    private boolean indexExists(String indexName) {
-        return this.client.admin().indices().prepareExists(indexName).get().isExists();
+    private boolean indexIsMissing(String indexName) {
+        return !this.client.admin().indices().prepareExists(indexName).get().isExists();
     }
 
     /**

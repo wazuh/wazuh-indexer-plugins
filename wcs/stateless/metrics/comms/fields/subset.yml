@@ -1,0 +1,54 @@
+---
+name: wazuh-metrics-comms
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  discarded:
+    fields:
+      total: {}
+  event:
+    fields:
+      module: {}
+  events:
+    fields:
+      total: {}
+  messages:
+    fields:
+      total: {}
+      control:
+        fields:
+          dropped_on_close:
+            fields:
+              total: {}
+          usage: {}
+          received:
+            fields:
+              total: {}
+          replaced:
+            fields:
+              total: {}
+          processed:
+            fields:
+              total: {}
+  network:
+    fields:
+      egress:
+        fields:
+          bytes: {}
+      ingress:
+        fields:
+          bytes: {}
+  queue:
+    fields:
+      size: {}
+      capacity: {}
+  tcp:
+    fields:
+      sessions: {}
+  wazuh:
+    fields:
+      cluster:
+        fields: "*"
+      schema:
+        fields: "*"

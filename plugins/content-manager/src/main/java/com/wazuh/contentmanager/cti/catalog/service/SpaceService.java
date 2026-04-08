@@ -98,6 +98,70 @@ public class SpaceService {
     }
 
     /**
+     * Removes all resources from a space, including their SAP counterparts.
+     *
+     * <p>Steps performed:
+     *
+     * <ol>
+     *   <li>Fetches all resources currently in the space.
+     *   <li>Deletes rules from SAP (best-effort).
+     *   <li>Deletes integrations from SAP (best-effort, also deletes detectors for Standard).
+     *   <li>Deletes all documents for the space across all resource indices.
+     * </ol>
+     *
+     * @param space The space to reset.
+     * @param securityAnalyticsService The SAP service used to delete external resources.
+     * @throws IOException If the index deletion process fails.
+     */
+    public void resetSpace(Space space, SecurityAnalyticsService securityAnalyticsService)
+            throws IOException {
+        // 1. Fetch current resources to perform external deletions
+        Map<String, Map<String, String>> spaceResources = this.getSpaceResources(space.toString());
+
+        // Translate from Standard to Sigma space for SAP resources
+        Space sapSpace = space;
+        if (space == Space.STANDARD) {
+            sapSpace = Space.SIGMA;
+        }
+
+        // 2. Delete SAP resources (best-effort)
+        Map<String, String> rules = spaceResources.get(Constants.KEY_RULES);
+        if (rules != null) {
+            for (String id : rules.keySet()) {
+                try {
+                    securityAnalyticsService.deleteRule(id, sapSpace);
+                    log.debug("Deleted rule [{}] from SAP for space [{}] reset", id, sapSpace);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete rule [{}] from SAP during space [{}] reset: {}",
+                            id,
+                            sapSpace,
+                            e.getMessage());
+                }
+            }
+        }
+
+        Map<String, String> integrations = spaceResources.get(Constants.KEY_INTEGRATIONS);
+        if (integrations != null) {
+            for (String id : integrations.keySet()) {
+                try {
+                    securityAnalyticsService.deleteIntegration(id, sapSpace);
+                    log.debug("Deleted integration [{}] from SAP for space [{}] reset", id, sapSpace);
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to delete integration [{}] from SAP during space [{}] reset: {}",
+                            id,
+                            sapSpace,
+                            e.getMessage());
+                }
+            }
+        }
+
+        // 3. Delete all documents for the space across all resource indices
+        this.deleteSpaceResources(space.toString());
+    }
+
+    /**
      * Deletes all documents related to a specific space across all resource indices.
      *
      * @param spaceName The name of the space to wipe.
@@ -160,19 +224,19 @@ public class SpaceService {
                         .toString();
         try {
             String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-            String title = "Custom policy";
+            String title = "Custom space";
 
             Policy policy = new Policy();
             policy.setId(documentId);
             policy.setTitle(title);
             policy.setDescription(title);
-            policy.setAuthor("Wazuh Inc.");
+            policy.setAuthor("Custom");
             policy.setRootDecoder("");
             policy.setDocumentation("");
             policy.setIntegrations(Collections.emptyList());
             policy.setFilters(Collections.emptyList());
             policy.setEnrichments(Collections.emptyList());
-            policy.setReferences(List.of("https://wazuh.com"));
+            policy.setReferences(Collections.emptyList());
             policy.setDate(date);
             policy.setModified(date);
             policy.setEnabled(false);
@@ -390,15 +454,18 @@ public class SpaceService {
             Map<String, Map<String, Object>> kvdbsToApply,
             Map<String, Map<String, Object>> decodersToApply,
             Map<String, Map<String, Object>> filtersToApply,
-            java.util.Set<String> integrationsToDelete,
-            java.util.Set<String> kvdbsToDelete,
-            java.util.Set<String> decodersToDelete,
-            java.util.Set<String> filtersToDelete)
+            Set<String> integrationsToDelete,
+            Set<String> kvdbsToDelete,
+            Set<String> decodersToDelete,
+            Set<String> filtersToDelete)
             throws IOException {
 
         // Root payload structure
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
-        rootPayload.put(Constants.KEY_PROMOTE, true);
+        boolean isTesterSpace =
+                Space.TEST.toString().equals(targetSpace) || Space.STANDARD.toString().equals(targetSpace);
+        rootPayload.put(Constants.KEY_PROMOTE, isTesterSpace);
+        rootPayload.put(Constants.KEY_SPACE, targetSpace);
 
         // Create the full_policy object
         ObjectNode fullPolicyNode = this.objectMapper.createObjectNode();
@@ -467,6 +534,29 @@ public class SpaceService {
         rootPayload.set(Constants.KEY_FULL_POLICY, fullPolicyNode);
 
         return rootPayload;
+    }
+
+    /**
+     * Builds the engine payload for a full space without any modifications. This is used to load an
+     * entire space into the Engine, such as the standard space after a CTI sync.
+     *
+     * @param spaceName The space name to build the payload for.
+     * @return A JsonNode representing the engine payload.
+     * @throws IOException If the policy or resource retrieval fails.
+     */
+    public JsonNode buildEnginePayload(String spaceName) throws IOException {
+        Map<String, Object> policyDocument = this.getPolicy(spaceName);
+        return this.buildEnginePayload(
+                policyDocument,
+                spaceName,
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptySet(),
+                Collections.emptySet(),
+                Collections.emptySet(),
+                Collections.emptySet());
     }
 
     /**
@@ -667,8 +757,10 @@ public class SpaceService {
     /**
      * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
      * processes only production spaces.
+     *
+     * @return The set of space names whose aggregate hashes changed.
      */
-    public void calculateAndUpdate() {
+    public Set<String> calculateAndUpdate() {
 
         List<String> productionSpaces =
                 Arrays.stream(Space.values())
@@ -676,7 +768,7 @@ public class SpaceService {
                         .map(Space::toString)
                         .collect(Collectors.toList());
 
-        this.calculateAndUpdate(productionSpaces);
+        return this.calculateAndUpdate(productionSpaces);
     }
 
     /**
@@ -684,14 +776,16 @@ public class SpaceService {
      * method was merged from SpaceService.
      *
      * @param targetSpaces The list of target spaces to process.
+     * @return The set of space names whose aggregate hashes changed.
      */
-    public void calculateAndUpdate(List<String> targetSpaces) {
+    public Set<String> calculateAndUpdate(List<String> targetSpaces) {
+        Set<String> changedSpaces = new HashSet<>();
         try {
             if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
                 log.warn(
                         "Policy index [{}] does not exist. Skipping hash calculation.",
                         Constants.INDEX_POLICIES);
-                return;
+                return changedSpaces;
             }
 
             SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
@@ -705,8 +799,9 @@ public class SpaceService {
 
                 @SuppressWarnings("unchecked")
                 Map<String, Object> space = (Map<String, Object>) source.get(Constants.KEY_SPACE);
+                String spaceName = null;
                 if (space != null) {
-                    String spaceName = (String) space.get(Constants.KEY_NAME);
+                    spaceName = (String) space.get(Constants.KEY_NAME);
                     // Check if the policy is in one of the target spaces
                     if (!targetSpaces.contains(spaceName)) {
                         continue;
@@ -769,6 +864,12 @@ public class SpaceService {
                 Map<String, Object> hashMap =
                         (Map<String, Object>) spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
 
+                // Track spaces whose aggregate hash changed
+                String oldHash = (String) hashMap.getOrDefault(Constants.KEY_SHA256, "");
+                if (spaceName != null && !spaceHash.equals(oldHash)) {
+                    changedSpaces.add(spaceName);
+                }
+
                 hashMap.put(Constants.KEY_SHA256, spaceHash);
                 spaceMap.put(Constants.KEY_HASH, hashMap);
                 updateMap.put(Constants.KEY_SPACE, spaceMap);
@@ -779,12 +880,18 @@ public class SpaceService {
             }
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
-                this.client.bulk(bulkUpdateRequest).actionGet();
+                bulkUpdateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                BulkResponse bulkResponse = this.client.bulk(bulkUpdateRequest).actionGet();
+                if (bulkResponse.hasFailures()) {
+                    log.error(
+                            "Bulk update of policy space hashes failed: {}", bulkResponse.buildFailureMessage());
+                }
             }
 
         } catch (Exception e) {
             log.error("Error calculating policy hashes: {}", e.getMessage(), e);
         }
+        return changedSpaces;
     }
 
     /**

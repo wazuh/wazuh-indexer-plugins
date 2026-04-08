@@ -80,6 +80,36 @@ function detect_modified_modules() {
     fi
   done
 
+  # If stateless/events/main is modified, add all other stateless modules
+  local main_modified=false
+  for m in "${modified_modules[@]}"; do
+    if [[ "$m" == "stateless/events/main" ]]; then
+      main_modified=true
+      break
+    fi
+  done
+
+  if [[ "$main_modified" == true ]]; then
+    echo
+    echo "---> stateless/events/main modified: adding all stateless/events modules"
+    for key in "${!module_to_file[@]}"; do
+      if [[ "$key" == stateless/events/* && "$key" != "stateless/events/main" ]]; then
+        # Add only if not already present
+        found=false
+        for m in "${modified_modules[@]}"; do
+          if [[ "$m" == "$key" ]]; then
+            found=true
+            break
+          fi
+        done
+        if [[ "$found" == false ]]; then
+          modified_modules+=("$key")
+          echo "  - $key (added)"
+        fi
+      fi
+    done
+  fi
+
   echo
   echo "---> Modified modules"
   modules_to_update=()

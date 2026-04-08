@@ -23,9 +23,18 @@ Manages authentication with the Wazuh CTI API. Stores subscription tokens used f
 
 Implements the OpenSearch `JobSchedulerExtension` interface. Registers a periodic job (`wazuh-catalog-sync-job`) that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
 
+### Update Check Service (TelemetryPingJob)
+
+Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI Update check API endpoint (`/ping`).
+
+- Enabled by default through `plugins.content_manager.telemetry.enabled`.
+- Can be toggled at runtime because it is a dynamic setting.
+- Sends deployment metadata required for update checks (cluster UUID and deployed Wazuh version).
+- Job metadata is stored in `.wazuh-content-manager-jobs`.
+
 ### Consumer Service
 
-Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service.
+Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
 
 ### Snapshot Service
 
@@ -38,6 +47,12 @@ Handles incremental updates. Fetches change batches from the CTI API based on of
 ### Security Analytics Service
 
 Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
+
+**Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
+- `document.id` — the UUID of the original CTI document in the Content Manager.
+- `source` — the space the document belongs to, with the first letter capitalized (e.g., "Draft", "Test", "Custom", or "Sigma" for standard).
+
+This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
 
 ### Space Service
 
@@ -71,6 +86,16 @@ Job Scheduler triggers
   → Security Analytics Service syncs changes
 ```
 
+### Update Check Heartbeat
+
+```
+Job Scheduler triggers (every 24h)
+  → TelemetryPingJob checks plugins.content_manager.telemetry.enabled
+  → Reads cluster UUID and current Wazuh version
+  → TelemetryClient sends GET /ping to CTI Update check API
+  → Wazuh Dashboard can surface update availability to users
+```
+
 ### User-Generated Content (CUD)
 
 ```
@@ -80,18 +105,90 @@ REST request (POST/PUT/DELETE)
   → Returns created/updated/deleted resource
 ```
 
+### Standard Policy Engine Loading
+
+The local Wazuh Engine must always reflect the latest version of the standard space policy. Whenever the standard space `space.hash` changes, the full policy — including all referenced integrations, decoders, kvdbs, filters, and rules — is built and sent to the Engine via `EngineService.promote()`.
+
+The `space.hash` is an aggregate SHA-256 computed from the individual hashes of the policy and every resource it references. Any change to the policy will trigger a reload. These changes include:
+
+- New or updated integrations, decoders, rules, kvdbs, or filters (via CTI sync)
+- Changes to policy settings (`enabled`, `index_unclassified_events`, `index_discarded_events`)
+- Changes to the enrichment types list
+- Reordering of the filters list
+
+The engine load is best-effort: if the Engine is unreachable, the error is logged but the operation (sync or REST update) still succeeds.
+
 ### Promotion
 
 ```
 GET /promote?space=draft
-  → Space Service computes diff (draft vs standard)
+  → Space Service computes diff (draft vs test, or test vs custom)
   → Returns changes preview (adds, updates, deletes per content type)
 
 POST /promote
-  → Space Service sends draft content to Engine via Unix socket
-  → Engine validates configuration
-  → Engine reloads configuration
-  → Standard space updated to match promoted content
+  → Capture pre-promotion snapshots of target-space resources
+  → Engine validates configuration (draft → test only)
+  → Consolidate changes to CM indices (tracked for rollback)
+      → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
+      → Apply deletes: integrations, kvdbs, decoders, filters, rules
+  → Sync integrations and rules to SAP:
+      → ADDs use POST (new SAP document)
+      → UPDATEs use PUT (existing SAP document)
+  → Delete removed integrations/rules from SAP
+```
+
+### Rollback on Failure
+
+If any Content Manager index mutation fails during the consolidation phase, the
+promotion endpoint automatically performs a LIFO (Last-In, First-Out) rollback
+to restore the system to its pre-promotion state.
+
+#### Pre-Promotion Snapshots
+
+Before any writes, the system captures:
+- **Old versions** (`captureOldVersions`): For each resource being added or updated,
+  the current target-space version is fetched and stored. If the resource does not exist
+  in the target space, `null` is stored.
+- **Delete snapshots** (`captureDeleteSnapshots`): For each resource being deleted, the
+  full document is fetched from the source space and stored.
+
+#### CM Index Rollback
+
+Each successful index mutation is recorded as a `RollbackStep(kind, resourceType)`. On
+failure, steps are replayed in strict reverse (LIFO) order:
+
+| Forward operation | Old version | Rollback action |
+|---|---|---|
+| ADD (apply) | `null` | Delete the newly created document |
+| UPDATE (apply) | non-null | Restore the previous version |
+| DELETE | snapshot | Re-index the snapshotted document |
+
+Individual rollback step failures are logged and skipped so remaining steps can proceed.
+
+#### SAP Reconciliation
+
+After CM rollback completes, a best-effort SAP reconciliation runs in dependency order:
+
+1. **Revert applied rules** — ADDs are deleted from SAP; UPDATEs are restored to old version.
+2. **Revert applied integrations** — Same as above.
+3. **Restore deleted integrations** — Re-created from pre-deletion snapshots via POST.
+4. **Restore deleted rules** — Same as above.
+
+SAP reconciliation failures are logged as warnings but do not cause the overall rollback
+to fail, since SAP sync is considered best-effort.
+
+```
+Consolidation fails at step N
+  → LIFO rollback: undo step N-1, N-2, ..., 1
+      → APPLY + null old version → delete from target index
+      → APPLY + old version → restore old version to target index
+      → DELETE → re-index snapshot to target index
+  → SAP reconciliation (best-effort):
+      → Delete rules that were added to SAP
+      → Restore rules that were updated in SAP
+      → Restore integrations that were added/updated in SAP
+      → Re-create integrations/rules that were deleted from SAP
+  → Return 500 with error message
 ```
 
 ## Index Structure
@@ -122,9 +219,19 @@ The `.cti-consumers` index stores one document per context/consumer pair:
   "_source": {
     "name": "development_0.0.3",
     "context": "development_0.0.3",
+    "status": "idle",
     "local_offset": 3932,
     "remote_offset": 3932,
     "snapshot_link": "https://cti-pre.wazuh.com/store/contexts/development_0.0.3/consumers/development_0.0.3/3932_1770988130.zip"
   }
 }
 ```
+
+The `status` field reflects the consumer's synchronization lifecycle:
+
+| Value | Meaning |
+| --------- | ----------------------------------------------------------------------- |
+| `idle` | Sync is complete; content indices are up-to-date and safe to read. |
+| `updating` | Sync is in progress; content may be partially written or inconsistent. |
+
+The status is set to `updating` at the very start of a sync cycle and only transitions back to `idle` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification. If a sync fails mid-cycle, the status remains `updating` as an observable failure signal.

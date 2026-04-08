@@ -10,6 +10,7 @@ The Content Manager plugin handles:
 
 - **CTI Subscription:** Manages subscriptions and tokens with the CTI Console.
 - **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
+- **Update Check Service:** Sends a daily heartbeat to CTI so Wazuh can notify users when a newer version is available.
 - **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
 - **Security Analytics Integration:** Pushes rules, integrations, and detectors to the Security Analytics Plugin (SAP).
 - **User-Generated Content:** Full CUD for rules, decoders, integrations, KVDBs, and policies in the Draft space.
@@ -24,7 +25,7 @@ The plugin manages the following indices:
 
 | Index                         | Purpose                              |
 | ----------------------------- | ------------------------------------ |
-| `.cti-consumers`              | Sync state (offsets, snapshot links) |
+| `.cti-consumers`              | Sync state (status, offsets, snapshot links) |
 | `.cti-policies`               | Policy documents                     |
 | `.cti-integrations`           | Integration definitions              |
 | `.cti-rules`                  | Detection rules                      |
@@ -47,6 +48,32 @@ The plugin manages the following indices:
 3. Creates the `.cti-consumers` index on cluster manager nodes.
 4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
 5. Optionally triggers an immediate sync on start.
+6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.
+7. Registers a dynamic settings consumer to enable/disable telemetry at runtime.
+
+### Update Check Service internals
+
+The update check flow is split into two classes:
+
+- **`TelemetryPingJob`** (`jobscheduler/jobs/TelemetryPingJob.java`)
+  - Runs through Job Scheduler every 1 day.
+  - Reads cluster UUID from `ClusterService` metadata.
+  - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
+  - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
+
+- **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
+  - Sends an asynchronous GET request to CTI `/ping`.
+  - Headers sent:
+    - `wazuh-uid`: cluster UUID
+    - `wazuh-tag`: `v<version>`
+    - `user-agent`: `Wazuh Indexer <version>`
+  - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
+
+Runtime toggle behavior:
+
+- `plugins.content_manager.telemetry.enabled` is a **dynamic** setting.
+- Enabling it schedules the job and triggers an immediate ping.
+- Disabling it removes the telemetry job document from `.wazuh-content-manager-jobs`.
 
 ### REST Handlers
 
@@ -334,9 +361,9 @@ When `local_offset = 0`:
 
 When `local_offset > 0` and `local_offset < remote_offset`:
 
-1. Fetches changes in batches from the CTI API.
+1. Fetches the changes in batches from the CTI API.
 2. Applies JSON Patch operations (add, update, delete).
-3. Pushes changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+3. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 4. Updates the local offset.
 
 ### Post-Synchronization Phase
@@ -344,6 +371,7 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 1. Refreshes all content indices.
 2. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 3. Recalculates SHA-256 hashes for policy integrity verification.
+4. Sets consumer `status` to `idle` in `.cti-consumers`.
 
 ### Error Handling
 
@@ -419,7 +447,7 @@ sequenceDiagram
     Indexer-->>UI: response
 ```
 
-### Content RUD (Rules, Decoders, Integrations, KVDBs)
+### Content CUD (Rules, Decoders, Integrations, KVDBs)
 
 All four resource types follow the same patterns via the abstract class hierarchy:
 
@@ -517,6 +545,20 @@ The `.cti-policies` index stores policy configurations. See the [Policy document
 GET /.cti-consumers/_search
 {
   "query": { "match_all": {} }
+}
+```
+
+The `status` field indicates the sync lifecycle state:
+
+- `idle` — sync complete; content is safe to read.
+- `updating` — sync in progress; content may be partially written.
+
+To find consumers that are currently syncing or that failed mid-sync (status stuck at `updating`):
+
+```bash
+GET /.cti-consumers/_search
+{
+  "query": { "term": { "status": "updating" } }
 }
 ```
 

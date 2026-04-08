@@ -54,3 +54,10 @@
       description: >
         Seconds configured in the channel (for stateful type).
       example: 300
+# For wazuh-active-responses, @timestamp reflects document insertion (indexing time), not ECS default semantics.
+- name: base
+  fields:
+    - name: "@timestamp"
+      short: When the document was inserted into the wazuh-active-responses index.
+      description: >
+        Date and time when the document was inserted into the wazuh-active-responses data stream.

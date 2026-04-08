@@ -36,10 +36,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -128,10 +128,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the
      * request is complete. The expected response is: {200, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule200() throws IOException {
+    public void testDeleteRule200() {
         // Arrange
         String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
 
@@ -150,7 +148,7 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
         // Assert
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertEquals(ruleId, response.getMessage());
-        verify(this.securityAnalyticsService).deleteRule(ruleId, false);
+        verify(this.securityAnalyticsService).deleteRule(ruleId, Space.DRAFT);
         verify(this.client).delete(any(DeleteRequest.class), any());
 
         // Verify policy hash recalculation
@@ -160,10 +158,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * ID is missing. The expected response is: {400, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule400_MissingId() throws IOException {
+    public void testDeleteRule400_MissingId() {
         RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
         RestResponse response = this.action.executeRequest(request, this.client);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
@@ -172,10 +168,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * ID format is invalid. The expected response is: {400, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule400_InvalidUUID() throws IOException {
+    public void testDeleteRule400_InvalidUUID() {
         String invalidId = "not@valid#uuid";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -188,10 +182,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * is not found. The expected response is: {404, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule404_NotFound() throws IOException {
+    public void testDeleteRule404_NotFound() {
         String ruleId = "missing-id";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
@@ -206,10 +198,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when the rule
      * is not in the draft space. The expected response is: {400, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule400_NotInDraft() throws IOException {
+    public void testDeleteRule400_NotInDraft() {
         // Arrange
         String ruleId = "prod-id";
         RestRequest request =
@@ -231,10 +221,8 @@ public class RestDeleteRuleActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteRuleAction#executeRequest(RestRequest, Client)} method when an
      * unexpected error occurs. The expected response is: {500, RestResponse}
-     *
-     * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteRule500_UnexpectedError() throws IOException {
+    public void testDeleteRule500_UnexpectedError() {
         String ruleId = "error-id";
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)

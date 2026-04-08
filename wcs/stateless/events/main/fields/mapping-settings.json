@@ -1,4 +1,4 @@
 {
-  "dynamic": "false_allow_templates",
+  "dynamic": "strict_allow_templates",
   "date_detection": false
 }

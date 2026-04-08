@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.integration;
+package com.wazuh.contentmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -85,7 +84,6 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * <p>Expected result: exactly 3 policy documents in {@code .cti-policies} (one per space: draft,
      * test, custom), regardless of how many times the workflow runs.
      */
-    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/877")
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
         ensureGreen();
 
@@ -99,7 +97,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         // Instantiate the synchronizer with the test cluster's client.
         // Environment and ConsumersIndex are only used by syncConsumerServices(), not onSyncComplete().
         ConsumerRulesetService synchronizer =
-                new ConsumerRulesetService(client(), new ConsumersIndex(client()), null);
+                new ConsumerRulesetService(client(), new ConsumersIndex(client()), null, null);
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);

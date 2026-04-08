@@ -3,6 +3,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,name,keyword,custom,,,The name of the CVE.
 9.1.0,true,base,offset,unsigned_long,custom,,,The offset of the CVE.
 9.1.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
+9.1.0,true,base,type,keyword,custom,,,The type of the CTI content.
 9.1.0,true,base,version,keyword,custom,,,The version of the CVE.
 9.1.0,true,document,document.containers.adp.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
 9.1.0,true,document,document.containers.adp.affected.cpes,keyword,custom,array,[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*],Affected products defined by CPE.

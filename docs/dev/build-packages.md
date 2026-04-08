@@ -41,6 +41,9 @@ Arguments:
 -p INDEXER_PLUGINS_BRANCH       [Optional] wazuh-indexer-plugins repo branch, default is 'main'.
 -r INDEXER_REPORTING_BRANCH     [Optional] wazuh-indexer-reporting repo branch, default is 'main'.
 -s SECURITY_ANALYTICS_BRANCH    [Optional] wazuh-indexer-security-analytics repo branch, default is 'main'.
+-n NOTIFICATIONS_BRANCH         [Optional] wazuh-indexer-notifications repo branch, default is 'main'.
+-c COMMON_UTILS_BRANCH          [Optional] wazuh-indexer-common-utils repo branch, default is 'main'.
+-e ENGINE_TARBALL               [Optional] Path to wazuh-engine tarball (.tar.gz) on the host.
 -R REVISION     [Optional] Package revision, default is '0'.
 -S STAGE        [Optional] Staging build, default is 'false'.
 -d DISTRIBUTION [Optional] Distribution, default is 'rpm'.
@@ -53,7 +56,7 @@ The example below it will generate a wazuh-indexer package for _Debian_ based sy
 
 ```bash
 # Wihtin wazuh-indexer/build-scripts/builder
-bash builder.sh -d deb -a x64 -R 1 -S true
+bash builder.sh -d deb -a x64 -R 0 -S true -e ./wazuh-engine-5.0.0-linux-amd64.tar.gz
 ```
 
 The resulting package will be stored at `wazuh-indexer/artifacts/dist`.

@@ -33,14 +33,13 @@ import java.io.IOException;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * POST /_plugins/_content_manager/promote
@@ -58,18 +57,44 @@ public class RestPostPromoteAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_promote";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote";
 
+    /** All resource types in the order they should be processed during consolidation. */
+    private static final List<String> APPLY_RESOURCE_TYPES =
+            List.of(
+                    Constants.KEY_POLICY,
+                    Constants.KEY_INTEGRATIONS,
+                    Constants.KEY_KVDBS,
+                    Constants.KEY_DECODERS,
+                    Constants.KEY_FILTERS,
+                    Constants.KEY_RULES);
+
+    /** Resource types that support DELETE operations (policy cannot be deleted). */
+    private static final List<String> DELETE_RESOURCE_TYPES =
+            List.of(
+                    Constants.KEY_INTEGRATIONS,
+                    Constants.KEY_KVDBS,
+                    Constants.KEY_DECODERS,
+                    Constants.KEY_FILTERS,
+                    Constants.KEY_RULES);
+
     private final EngineService engine;
     private SpaceService spaceService;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructor.
      *
      * @param engine The service instance to communicate with the local engine service.
      * @param spaceService The service instance to manage space operations.
+     * @param securityAnalyticsService The service instance to communicate with the Security Analytics
+     *     plugin.
      */
-    public RestPostPromoteAction(EngineService engine, SpaceService spaceService) {
+    public RestPostPromoteAction(
+            EngineService engine,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService) {
         this.engine = engine;
         this.spaceService = spaceService;
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /** Return a short identifier for this handler. */
@@ -88,7 +113,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
         return List.of(
                 new NamedRoute.Builder()
                         .path(PluginSettings.PROMOTE_URI)
-                        .method(POST)
+                        .method(RestRequest.Method.POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
     }
@@ -102,7 +127,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        this.spaceService = new SpaceService(client);
         return channel -> {
             RestResponse response = this.handleRequest(request);
             channel.sendResponse(response.toBytesRestResponse());
@@ -147,15 +171,20 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 2. Gathering Phase - Build the engine payload
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
-            // 3. Validation Phase - Invoke engine validation
-            RestResponse engineResponse = this.engine.promote(context.enginePayload);
+            // 3. Validation Phase - Invoke engine validation only for test promotions
+            if (spaceDiff.getSpace().promote() == Space.TEST) {
+                RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
-            // Check if engine validation was successful
-            if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                    && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                log.warn(Constants.E_LOG_ENGINE_VALIDATION, engineResponse.getMessage());
-                log.error(mapper.writeValueAsString(context.enginePayload));
-                return engineResponse;
+                // Check if engine validation was successful
+                if (engineResponse.getStatus() != RestStatus.OK.getStatus()
+                        && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+                    log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
+                    log.error(mapper.writeValueAsString(context.enginePayload));
+                    return engineResponse;
+                }
+                log.info(
+                        "Engine validation for space [{}] completed successfully.",
+                        spaceDiff.getSpace().promote());
             }
 
             // 4. Consolidation Phase - Apply changes to target space
@@ -231,10 +260,12 @@ public class RestPostPromoteAction extends BaseRestHandler {
 
     /**
      * Gathers all necessary data for the promotion operation. This method fetches all resources from
-     * the target space and applies the modifications from the source space.
+     * the target space and applies the modifications from the source space. It also captures
+     * pre-promotion snapshots of target-space resources for rollback support.
      *
      * @param spaceDiff The space diff request.
-     * @return A PromotionContext containing the engine payload and consolidation data.
+     * @return A PromotionContext containing the engine payload, consolidation data, and rollback
+     *     snapshots.
      * @throws IOException If any data gathering fails.
      */
     private PromotionContext gatherPromotionData(SpaceDiff spaceDiff) throws IOException {
@@ -326,20 +357,106 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         decodersToDelete,
                         filtersToDelete);
 
-        return new PromotionContext(
-                enginePayload,
-                policyToApply,
-                integrationsToApply,
-                kvdbsToApply,
-                decodersToApply,
-                filtersToApply,
-                rulesToApply,
-                integrationsToDelete,
-                kvdbsToDelete,
-                decodersToDelete,
-                filtersToDelete,
-                rulesToDelete,
-                targetSpace.toString());
+        PromotionContext context =
+                new PromotionContext(
+                        enginePayload,
+                        policyToApply,
+                        integrationsToApply,
+                        kvdbsToApply,
+                        decodersToApply,
+                        filtersToApply,
+                        rulesToApply,
+                        integrationsToDelete,
+                        kvdbsToDelete,
+                        decodersToDelete,
+                        filtersToDelete,
+                        rulesToDelete,
+                        targetSpace.toString());
+
+        // Capture pre-promotion snapshots for rollback support
+        for (String type : APPLY_RESOURCE_TYPES) {
+            this.captureOldVersions(context, type);
+        }
+        for (String type : DELETE_RESOURCE_TYPES) {
+            this.captureDeleteSnapshots(context, type);
+        }
+
+        return context;
+    }
+
+    /**
+     * Captures the current target-space version of each resource about to be added or updated. If the
+     * resource does not yet exist in the target space the entry is stored as {@code null}, indicating
+     * a pure ADD operation for rollback purposes.
+     *
+     * @param context The promotion context.
+     * @param resourceType The resource type key.
+     * @throws IOException If the snapshot cannot be captured.
+     */
+    private void captureOldVersions(PromotionContext context, String resourceType)
+            throws IOException {
+        Map<String, Map<String, Object>> resourcesToApply = context.getApplyMap(resourceType);
+        if (resourcesToApply.isEmpty()) {
+            return;
+        }
+        String indexName = this.spaceService.getIndexForResourceType(resourceType);
+        Map<String, Map<String, Object>> dest =
+                context.oldVersions.computeIfAbsent(resourceType, k -> new HashMap<>());
+
+        for (String docId : resourcesToApply.keySet()) {
+            try {
+                Map<String, Object> existing;
+                if (resourceType.equals(Constants.KEY_POLICY)) {
+                    existing = this.spaceService.getPolicy(context.targetSpace);
+                } else {
+                    existing = this.spaceService.getDocument(indexName, context.targetSpace, docId);
+                }
+                dest.put(docId, existing); // null means it was a new addition
+            } catch (IOException e) {
+                log.warn(
+                        "Failed to snapshot old version of [{}] in [{}]: {}",
+                        docId,
+                        resourceType,
+                        e.getMessage());
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Captures the current target-space version of each resource about to be deleted, so it can be
+     * restored on rollback.
+     *
+     * @param context The promotion context.
+     * @param resourceType The resource type key.
+     * @throws IOException If the snapshot cannot be captured.
+     */
+    private void captureDeleteSnapshots(PromotionContext context, String resourceType)
+            throws IOException {
+        Set<String> idsToDelete = context.getDeleteSet(resourceType);
+        if (idsToDelete.isEmpty()) {
+            return;
+        }
+        String indexName = this.spaceService.getIndexForResourceType(resourceType);
+        Map<String, Map<String, Object>> dest =
+                context.deleteSnapshots.computeIfAbsent(resourceType, k -> new HashMap<>());
+
+        for (String docId : idsToDelete) {
+            try {
+                Map<String, Object> existing =
+                        this.spaceService.getDocument(indexName, context.targetSpace, docId);
+                if (existing != null) {
+                    dest.put(docId, existing);
+                }
+            } catch (IOException e) {
+                log.error(
+                        "Failed to snapshot delete target [{}] in [{}]: {}. Aborting promotion.",
+                        docId,
+                        resourceType,
+                        e.getMessage());
+                throw e;
+            }
+        }
     }
 
     /**
@@ -424,7 +541,6 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 }
                 case UPDATE -> {
                     Map<String, Object> sourceDoc;
-                    // TODO fix when policies use the same document.id in different spaces
                     // Fetch the source policy
                     if (resourceType.equals(Constants.KEY_POLICY)) {
                         sourceDoc = this.spaceService.getPolicy(sourceSpace);
@@ -490,94 +606,404 @@ public class RestPostPromoteAction extends BaseRestHandler {
     }
 
     /**
-     * Consolidates all changes after successful validation by applying ADD/UPDATE operations and
-     * DELETE operations.
+     * Consolidates all changes after successful engine validation. Wraps {@link #doConsolidate} with
+     * a LIFO rollback on failure.
      *
      * @param context The promotion context containing all resources to consolidate.
-     * @throws IOException If consolidation fails.
+     * @throws IOException If consolidation fails (rollback will have been attempted already).
      */
     private void consolidateChanges(PromotionContext context) throws IOException {
-        // Consolidate ADD/UPDATE operations for each resource type
-        if (!context.policyToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_POLICY),
-                    context.policyToApply,
-                    context.targetSpace);
-        }
-
-        if (!context.integrationsToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
-                    context.integrationsToApply,
-                    context.targetSpace);
-        }
-
-        if (!context.kvdbsToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
-                    context.kvdbsToApply,
-                    context.targetSpace);
-        }
-
-        if (!context.decodersToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
-                    context.decodersToApply,
-                    context.targetSpace);
-        }
-
-        if (!context.filtersToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
-                    context.filtersToApply,
-                    context.targetSpace);
-        }
-
-        if (!context.rulesToApply.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
-                    context.rulesToApply,
-                    context.targetSpace);
-        }
-
-        // Process DELETE operations for each resource type
-        if (!context.integrationsToDelete.isEmpty()) {
-            this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_INTEGRATIONS),
-                    context.integrationsToDelete,
-                    context.targetSpace);
-        }
-
-        if (!context.kvdbsToDelete.isEmpty()) {
-            this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_KVDBS),
-                    context.kvdbsToDelete,
-                    context.targetSpace);
-        }
-
-        if (!context.decodersToDelete.isEmpty()) {
-            this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_DECODERS),
-                    context.decodersToDelete,
-                    context.targetSpace);
-        }
-
-        if (!context.filtersToDelete.isEmpty()) {
-            this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_FILTERS),
-                    context.filtersToDelete,
-                    context.targetSpace);
-        }
-
-        if (!context.rulesToDelete.isEmpty()) {
-            this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(Constants.KEY_RULES),
-                    context.rulesToDelete,
-                    context.targetSpace);
+        try {
+            this.doConsolidate(context);
+        } catch (Exception e) {
+            log.error("Consolidation failed, initiating LIFO rollback: {}", e.getMessage());
+            this.rollbackChanges(context);
+            throw e instanceof IOException
+                    ? (IOException) e
+                    : new IOException("Consolidation failed: " + e.getMessage(), e);
         }
     }
 
-    /** Internal context class to hold promotion data. */
+    /**
+     * Promotes resources to the target space index and records a rollback step on success.
+     *
+     * @param resourceType The resource type key.
+     * @param resources The resources to apply.
+     * @param context The promotion context (for target space and rollback stack).
+     * @throws IOException If the index operation fails.
+     */
+    private void promoteIfNotEmpty(
+            String resourceType, Map<String, Map<String, Object>> resources, PromotionContext context)
+            throws IOException {
+        if (!resources.isEmpty()) {
+            this.spaceService.promoteSpace(
+                    this.spaceService.getIndexForResourceType(resourceType), resources, context.targetSpace);
+            context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.APPLY, resourceType));
+        }
+    }
+
+    /**
+     * Deletes resources from the target space index and records a rollback step on success.
+     *
+     * @param resourceType The resource type key.
+     * @param ids The resource IDs to delete.
+     * @param context The promotion context (for target space and rollback stack).
+     * @throws IOException If the index operation fails.
+     */
+    private void deleteIfNotEmpty(String resourceType, Set<String> ids, PromotionContext context)
+            throws IOException {
+        if (!ids.isEmpty()) {
+            this.spaceService.deleteResources(
+                    this.spaceService.getIndexForResourceType(resourceType), ids, context.targetSpace);
+            context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.DELETE, resourceType));
+        }
+    }
+
+    /**
+     * Internal consolidation logic. Performs CM index mutations first (tracked for rollback), then
+     * best-effort SAP synchronization.
+     *
+     * @param context The promotion context containing all resources to consolidate.
+     * @throws IOException If any CM index mutation fails.
+     */
+    private void doConsolidate(PromotionContext context) throws IOException {
+        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Consolidate ADD/UPDATE operations for each resource type
+        for (String type : APPLY_RESOURCE_TYPES) {
+            this.promoteIfNotEmpty(type, context.getApplyMap(type), context);
+        }
+
+        // Process DELETE operations for each resource type
+        for (String type : DELETE_RESOURCE_TYPES) {
+            this.deleteIfNotEmpty(type, context.getDeleteSet(type), context);
+        }
+
+        // Best-effort SAP synchronization.
+        // Deletes must happen before upserts: rules before integrations (dependency order).
+        for (String ruleId : context.rulesToDelete) {
+            try {
+                this.securityAnalyticsService.deleteRule(ruleId, targetSpaceEnum);
+            } catch (Exception e) {
+                log.warn(
+                        "Failed to delete rule [{}] from SAP for space [{}]: {}",
+                        ruleId,
+                        context.targetSpace,
+                        e.getMessage());
+            }
+        }
+
+        for (String integrationId : context.integrationsToDelete) {
+            try {
+                this.securityAnalyticsService.deleteIntegration(integrationId, targetSpaceEnum);
+            } catch (Exception e) {
+                log.warn(
+                        "Failed to delete integration [{}] from SAP for space [{}]: {}",
+                        integrationId,
+                        context.targetSpace,
+                        e.getMessage());
+            }
+        }
+
+        this.upsertSapResources(
+                context.integrationsToApply,
+                context.oldVersions.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
+                Constants.KEY_INTEGRATIONS,
+                targetSpaceEnum,
+                mapper,
+                context.targetSpace);
+
+        this.upsertSapResources(
+                context.rulesToApply,
+                context.oldVersions.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
+                Constants.KEY_RULES,
+                targetSpaceEnum,
+                mapper,
+                context.targetSpace);
+    }
+
+    /**
+     * Best-effort upsert of resources to the Security Analytics Plugin. Uses POST for new resources
+     * (no old version) and PUT for updates.
+     *
+     * @param resources The resources to upsert.
+     * @param oldVersionsForType The pre-promotion snapshots to determine POST vs PUT.
+     * @param resourceType The resource type key.
+     * @param targetSpaceEnum The target space.
+     * @param mapper The ObjectMapper for JSON conversion.
+     * @param targetSpace The target space name (for logging).
+     */
+    private void upsertSapResources(
+            Map<String, Map<String, Object>> resources,
+            Map<String, Map<String, Object>> oldVersionsForType,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            String targetSpace) {
+        for (Map.Entry<String, Map<String, Object>> entry : resources.entrySet()) {
+            Map<String, Object> doc = entry.getValue();
+            if (doc.containsKey(Constants.KEY_DOCUMENT)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+                try {
+                    RestRequest.Method method =
+                            oldVersionsForType.get(entry.getKey()) == null
+                                    ? RestRequest.Method.POST
+                                    : RestRequest.Method.PUT;
+                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                        this.securityAnalyticsService.upsertIntegration(
+                                mapper.valueToTree(document), targetSpaceEnum, method);
+                    } else {
+                        this.securityAnalyticsService.upsertRule(
+                                mapper.valueToTree(document), targetSpaceEnum, method);
+                    }
+                } catch (Exception e) {
+                    log.warn(
+                            "Failed to sync {} [{}] to SAP for space [{}]: {}",
+                            resourceType,
+                            entry.getKey(),
+                            targetSpace,
+                            e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Replays recorded {@link RollbackStep}s in strict LIFO order, undoing each Content Manager index
+     * mutation. After CM rollback completes, performs a best-effort SAP reconciliation.
+     *
+     * @param context The promotion context with the rollback stack.
+     */
+    private void rollbackChanges(PromotionContext context) {
+        log.info(
+                "Starting LIFO rollback of promotion to space [{}] ({} steps)",
+                context.targetSpace,
+                context.rollbackSteps.size());
+
+        ListIterator<RollbackStep> it =
+                context.rollbackSteps.listIterator(context.rollbackSteps.size());
+
+        while (it.hasPrevious()) {
+            RollbackStep step = it.previous();
+            try {
+                this.rollbackCmStep(step, context);
+                log.info("Rollback step OK: {}", step);
+            } catch (Exception e) {
+                String index = this.spaceService.getIndexForResourceType(step.resourceType);
+                Collection<String> ids =
+                        (step.kind == RollbackStep.Kind.APPLY)
+                                ? context
+                                        .oldVersions
+                                        .getOrDefault(step.resourceType, Collections.emptyMap())
+                                        .keySet()
+                                : context
+                                        .deleteSnapshots
+                                        .getOrDefault(step.resourceType, Collections.emptyMap())
+                                        .keySet();
+                log.error(
+                        "Rollback step FAILED [{}]. Index: [{}], Affected IDs: {}."
+                                + " Manual intervention required. Error: {}",
+                        step,
+                        index,
+                        ids,
+                        e.getMessage());
+            }
+        }
+
+        log.info("LIFO rollback completed for promotion to space [{}]", context.targetSpace);
+        this.reconcileSapAfterRollback(context);
+    }
+
+    /**
+     * Undoes a single Content Manager index operation.
+     *
+     * <ul>
+     *   <li>APPLY with old version = null (ADD): deletes the newly created document.
+     *   <li>APPLY with old version ≠ null (UPDATE): restores the previous version.
+     *   <li>DELETE: re-indexes the pre-deletion snapshot.
+     * </ul>
+     *
+     * @param step The rollback step describing what to undo.
+     * @param context The promotion context containing snapshot data.
+     * @throws IOException If the CM index operation fails.
+     */
+    private void rollbackCmStep(RollbackStep step, PromotionContext context) throws IOException {
+        String indexName = this.spaceService.getIndexForResourceType(step.resourceType);
+
+        if (step.kind == RollbackStep.Kind.APPLY) {
+            Map<String, Map<String, Object>> versions =
+                    context.oldVersions.getOrDefault(step.resourceType, Collections.emptyMap());
+
+            Set<String> toDelete = new HashSet<>();
+            Map<String, Map<String, Object>> toRestore = new HashMap<>();
+
+            for (Map.Entry<String, Map<String, Object>> entry : versions.entrySet()) {
+                if (entry.getValue() == null) {
+                    toDelete.add(entry.getKey());
+                } else {
+                    toRestore.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            if (!toDelete.isEmpty()) {
+                this.spaceService.deleteResources(indexName, toDelete, context.targetSpace);
+            }
+            if (!toRestore.isEmpty()) {
+                this.spaceService.promoteSpace(indexName, toRestore, context.targetSpace);
+            }
+        } else {
+            Map<String, Map<String, Object>> snapshots =
+                    context.deleteSnapshots.getOrDefault(step.resourceType, Collections.emptyMap());
+            if (!snapshots.isEmpty()) {
+                this.spaceService.promoteSpace(indexName, snapshots, context.targetSpace);
+            }
+        }
+    }
+
+    /**
+     * Best-effort cleanup of SAP resources synced during the forward pass. Processes in dependency
+     * order: revert rules before integrations, then restore deleted resources in reverse order.
+     *
+     * @param context The promotion context containing SAP sync data and snapshots.
+     */
+    private void reconcileSapAfterRollback(PromotionContext context) {
+        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
+        ObjectMapper mapper = new ObjectMapper();
+
+        // 1. Revert added/updated rules (must go before integrations)
+        this.revertSapApplied(
+                context.rulesToApply,
+                context.oldVersions.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
+                Constants.KEY_RULES,
+                targetSpaceEnum,
+                mapper);
+
+        // 2. Revert added/updated integrations
+        this.revertSapApplied(
+                context.integrationsToApply,
+                context.oldVersions.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
+                Constants.KEY_INTEGRATIONS,
+                targetSpaceEnum,
+                mapper);
+
+        // 3. Restore deleted integrations
+        this.restoreSapDeleted(
+                context.deleteSnapshots.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
+                Constants.KEY_INTEGRATIONS,
+                targetSpaceEnum,
+                mapper);
+
+        // 4. Restore deleted rules
+        this.restoreSapDeleted(
+                context.deleteSnapshots.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
+                Constants.KEY_RULES,
+                targetSpaceEnum,
+                mapper);
+    }
+
+    /**
+     * Reverts SAP resources applied during the forward pass. ADDs are deleted; UPDATEs are restored
+     * to their previous version.
+     */
+    private void revertSapApplied(
+            Map<String, Map<String, Object>> resources,
+            Map<String, Map<String, Object>> oldVersionsForType,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper) {
+
+        for (Map.Entry<String, Map<String, Object>> entry : resources.entrySet()) {
+            String id = entry.getKey();
+            Map<String, Object> oldVersion = oldVersionsForType.get(id);
+
+            try {
+                if (oldVersion == null) {
+                    // Was a new addition → delete from SAP
+                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                        this.securityAnalyticsService.deleteIntegration(id, targetSpaceEnum);
+                    } else {
+                        this.securityAnalyticsService.deleteRule(id, targetSpaceEnum);
+                    }
+                    log.info(
+                            "SAP reconciliation: deleted {} [{}] from space [{}]",
+                            resourceType,
+                            id,
+                            targetSpaceEnum);
+                } else if (oldVersion.containsKey(Constants.KEY_DOCUMENT)) {
+                    // Was an update → restore old version
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> document =
+                            (Map<String, Object>) oldVersion.get(Constants.KEY_DOCUMENT);
+                    JsonNode docNode = mapper.valueToTree(document);
+                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                        this.securityAnalyticsService.upsertIntegration(
+                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
+                    } else {
+                        this.securityAnalyticsService.upsertRule(
+                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
+                    }
+                    log.info(
+                            "SAP reconciliation: restored {} [{}] in space [{}]",
+                            resourceType,
+                            id,
+                            targetSpaceEnum);
+                }
+            } catch (Exception e) {
+                log.warn("SAP reconciliation failed for {} [{}]: {}", resourceType, id, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Restores SAP resources that were deleted during the forward pass by re-creating them from their
+     * pre-deletion snapshots.
+     */
+    private void restoreSapDeleted(
+            Map<String, Map<String, Object>> snapshots,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper) {
+
+        for (Map.Entry<String, Map<String, Object>> entry : snapshots.entrySet()) {
+            String id = entry.getKey();
+            Map<String, Object> snapshot = entry.getValue();
+
+            try {
+                if (snapshot != null && snapshot.containsKey(Constants.KEY_DOCUMENT)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> document = (Map<String, Object>) snapshot.get(Constants.KEY_DOCUMENT);
+                    JsonNode docNode = mapper.valueToTree(document);
+                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                        this.securityAnalyticsService.upsertIntegration(
+                                docNode, targetSpaceEnum, RestRequest.Method.POST);
+                    } else {
+                        this.securityAnalyticsService.upsertRule(
+                                docNode, targetSpaceEnum, RestRequest.Method.POST);
+                    }
+                    log.info(
+                            "SAP reconciliation: restored deleted {} [{}] in space [{}]",
+                            resourceType,
+                            id,
+                            targetSpaceEnum);
+                }
+            } catch (Exception e) {
+                log.warn(
+                        "SAP reconciliation failed to restore deleted {} [{}]: {}",
+                        resourceType,
+                        id,
+                        e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Internal context class to hold promotion data and rollback state.
+     *
+     * <p>Stores pre-promotion snapshots and a LIFO rollback stack. Only CM index mutations are
+     * tracked; SAP reconciliation is best-effort post-rollback.
+     */
     private static class PromotionContext {
         final JsonNode enginePayload;
         final Map<String, Map<String, Object>> policyToApply;
@@ -592,6 +1018,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
         final Set<String> filtersToDelete;
         final Set<String> rulesToDelete;
         final String targetSpace;
+
+        /** Pre-promotion snapshots keyed by resource type. null value = new addition. */
+        final Map<String, Map<String, Map<String, Object>>> oldVersions = new HashMap<>();
+
+        /** Snapshots of documents about to be deleted, keyed by resource type. */
+        final Map<String, Map<String, Map<String, Object>>> deleteSnapshots = new HashMap<>();
+
+        /** Ordered rollback stack — every successful CM mutation is pushed here. */
+        final List<RollbackStep> rollbackSteps = new ArrayList<>();
 
         PromotionContext(
                 JsonNode enginePayload,
@@ -620,6 +1055,49 @@ public class RestPostPromoteAction extends BaseRestHandler {
             this.filtersToDelete = filtersToDelete;
             this.rulesToDelete = rulesToDelete;
             this.targetSpace = targetSpace;
+        }
+
+        /** Returns the apply map for the given resource type. */
+        Map<String, Map<String, Object>> getApplyMap(String type) {
+            return switch (type) {
+                case Constants.KEY_POLICY -> policyToApply;
+                case Constants.KEY_INTEGRATIONS -> integrationsToApply;
+                case Constants.KEY_KVDBS -> kvdbsToApply;
+                case Constants.KEY_DECODERS -> decodersToApply;
+                case Constants.KEY_FILTERS -> filtersToApply;
+                case Constants.KEY_RULES -> rulesToApply;
+                default -> Collections.emptyMap();
+            };
+        }
+
+        /** Returns the delete set for the given resource type. */
+        Set<String> getDeleteSet(String type) {
+            return switch (type) {
+                case Constants.KEY_INTEGRATIONS -> integrationsToDelete;
+                case Constants.KEY_KVDBS -> kvdbsToDelete;
+                case Constants.KEY_DECODERS -> decodersToDelete;
+                case Constants.KEY_FILTERS -> filtersToDelete;
+                case Constants.KEY_RULES -> rulesToDelete;
+                default -> Collections.emptySet();
+            };
+        }
+    }
+
+    /**
+     * A single CM index mutation that can be undone during rollback.
+     *
+     * @param kind APPLY (add/update) or DELETE.
+     * @param resourceType The resource type constant.
+     */
+    private record RollbackStep(Kind kind, String resourceType) {
+        enum Kind {
+            APPLY,
+            DELETE
+        }
+
+        @Override
+        public String toString() {
+            return kind + "/" + resourceType;
         }
     }
 }
