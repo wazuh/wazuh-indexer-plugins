@@ -1,5 +1,9 @@
 name: (5.x) CodeQL
 
+permissions:
+  actions: read
+  contents: read
+
 on:
   push:
     paths:
