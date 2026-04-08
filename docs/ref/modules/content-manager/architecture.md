@@ -105,6 +105,29 @@ REST request (POST/PUT/DELETE)
   → Returns created/updated/deleted resource
 ```
 
+### Standard Policy Engine Loading
+
+The standard space policy is loaded to the Wazuh Engine whenever its `space.hash` changes. This can be triggered by two flows:
+
+```
+CTI Sync completes (CatalogSyncJob)
+  → ConsumerRulesetService.onSyncComplete()
+  → SpaceService.calculateAndUpdate() recalculates space hashes
+  → If standard space hash changed:
+      → SpaceService.buildEnginePayload("standard")
+      → EngineService.promote(payload) via Unix socket
+
+PUT /policy/standard (RestPutPolicyAction)
+  → Validate and update standard policy in .cti-policies
+  → SpaceService.calculateAndUpdate("standard") recalculates space hash
+  → If standard space hash changed:
+      → SpaceService.buildEnginePayload("standard")
+      → EngineService.promote(payload) via Unix socket
+  → Return 200 OK
+```
+
+The engine load is best-effort: if the Engine is unreachable, the error is logged but the policy update (or sync) still succeeds. The full engine payload includes the policy document and all referenced integrations, decoders, kvdbs, filters, and rules for the standard space.
+
 ### Promotion
 
 ```
