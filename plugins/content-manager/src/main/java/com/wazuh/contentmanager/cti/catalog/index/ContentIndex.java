@@ -55,7 +55,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.model.*;
-import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -412,14 +411,20 @@ public class ContentIndex {
         this.semaphore.release(permits);
     }
 
-    /** Deletes all documents belonging to the {@link Space#STANDARD} space. */
+    /** Deletes all documents in the index by deleting and recreating it. */
     public void clear() {
-        SpaceService spaceService = new SpaceService(this.client);
+        if (this.mappingsPath == null) {
+            log.error("Cannot clear index [{}]: mappings path not set.", this.indexName);
+            return;
+        }
         try {
-            spaceService.deleteSpaceResources(Space.STANDARD);
-            spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            boolean exists = this.client.admin().indices().prepareExists(this.indexName).get().isExists();
+            if (exists) {
+                this.client.admin().indices().prepareDelete(this.indexName).get();
+            }
+            this.createIndex();
             log.debug("[{}] wiped and recreated", this.indexName);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
         }
     }
