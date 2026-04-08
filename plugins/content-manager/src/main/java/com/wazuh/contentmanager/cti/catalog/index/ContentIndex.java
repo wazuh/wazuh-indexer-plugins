@@ -41,6 +41,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
@@ -424,6 +425,52 @@ public class ContentIndex {
             log.debug("[{}] wiped and recreated", this.indexName);
         } catch (Exception e) {
             log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes all documents belonging to the specified space from the index. Unlike {@link #clear()},
+     * this preserves documents in other spaces and does not drop or recreate the index.
+     *
+     * @param spaceName The space name whose documents should be removed (e.g., "standard").
+     */
+    public void clearBySpace(String spaceName) {
+        try {
+            boolean exists = this.client.admin().indices().prepareExists(this.indexName).get().isExists();
+            if (!exists) {
+                log.debug(
+                        "[{}] does not exist, nothing to clear for space [{}]", this.indexName, spaceName);
+                return;
+            }
+
+            SearchRequest searchRequest = new SearchRequest(this.indexName);
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+            sourceBuilder.size(10000);
+            sourceBuilder.fetchSource(false);
+            searchRequest.source(sourceBuilder);
+
+            SearchResponse response = this.client.search(searchRequest).actionGet();
+
+            BulkRequest bulkRequest = new BulkRequest();
+            for (SearchHit hit : response.getHits().getHits()) {
+                bulkRequest.add(new DeleteRequest(this.indexName, hit.getId()));
+            }
+
+            if (bulkRequest.numberOfActions() > 0) {
+                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                BulkResponse bulkResponse = this.client.bulk(bulkRequest).actionGet();
+                if (bulkResponse.hasFailures()) {
+                    log.error(
+                            "[{}] clearBySpace [{}] had failures: {}",
+                            this.indexName,
+                            spaceName,
+                            bulkResponse.buildFailureMessage());
+                }
+            }
+            log.debug("[{}] cleared documents for space [{}]", this.indexName, spaceName);
+        } catch (Exception e) {
+            log.error("[{}] clearBySpace [{}] failed: {}", this.indexName, spaceName, e.getMessage());
         }
     }
 

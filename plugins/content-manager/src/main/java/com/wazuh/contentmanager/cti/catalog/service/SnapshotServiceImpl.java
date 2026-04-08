@@ -70,7 +70,13 @@ public class SnapshotServiceImpl implements SnapshotService {
     private long maxOffsetSeen;
 
     /**
-     * Constructs a new SnapshotServiceImpl.
+     * When non-null, only documents belonging to this space are removed before snapshot loading. When
+     * null, the entire index is dropped and recreated.
+     */
+    private final String snapshotClearSpace;
+
+    /**
+     * Constructs a new SnapshotServiceImpl that performs a full index wipe before loading.
      *
      * @param context The context of the snapshot.
      * @param consumer The consumer identifier.
@@ -84,6 +90,27 @@ public class SnapshotServiceImpl implements SnapshotService {
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
+        this(context, consumer, indicesMap, consumersIndex, environment, null);
+    }
+
+    /**
+     * Constructs a new SnapshotServiceImpl with a configurable clearing strategy.
+     *
+     * @param context The context of the snapshot.
+     * @param consumer The consumer identifier.
+     * @param indicesMap A map of content types to their corresponding ContentIndex.
+     * @param consumersIndex The consumers index to update consumer state.
+     * @param environment The OpenSearch environment.
+     * @param snapshotClearSpace When non-null, only documents in this space are deleted before
+     *     loading. When null, entire indices are dropped and recreated.
+     */
+    public SnapshotServiceImpl(
+            String context,
+            String consumer,
+            Map<String, ContentIndex> indicesMap,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            String snapshotClearSpace) {
         this.context = context;
         this.consumer = consumer;
         this.indicesMap = indicesMap;
@@ -91,6 +118,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
         this.mapper = new ObjectMapper();
+        this.snapshotClearSpace = snapshotClearSpace;
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -102,6 +130,19 @@ public class SnapshotServiceImpl implements SnapshotService {
      */
     public void setSnapshotClient(SnapshotClient client) {
         this.snapshotClient = client;
+    }
+
+    /**
+     * Clears managed indices before snapshot loading. When a space filter is configured, only
+     * documents belonging to that space are removed. Otherwise, entire indices are dropped and
+     * recreated.
+     */
+    private void clearIndices() {
+        if (this.snapshotClearSpace != null) {
+            this.indicesMap.values().forEach(index -> index.clearBySpace(this.snapshotClearSpace));
+        } else {
+            this.indicesMap.values().forEach(ContentIndex::clear);
+        }
     }
 
     /**
@@ -144,7 +185,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             Unzip.unzip(snapshotZip, outputDir);
 
             // 4. Clear indices
-            this.indicesMap.values().forEach(ContentIndex::clear);
+            this.clearIndices();
 
             // 5. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
@@ -348,7 +389,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     });
 
             // 3. Clear indices
-            this.indicesMap.values().forEach(ContentIndex::clear);
+            this.clearIndices();
 
             // 4. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {

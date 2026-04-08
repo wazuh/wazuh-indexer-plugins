@@ -185,6 +185,17 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
+     * Returns the Standard space name so that snapshot loading only clears STANDARD documents,
+     * preserving DRAFT, TEST, and CUSTOM resources in shared indices.
+     *
+     * @return The standard space name.
+     */
+    @Override
+    protected String getSnapshotClearSpace() {
+        return Space.STANDARD.toString();
+    }
+
+    /**
      * Returns the mappings configuration for the indices handled by this synchronizer.
      *
      * @return A map where keys are resource types and values are mapping file paths.

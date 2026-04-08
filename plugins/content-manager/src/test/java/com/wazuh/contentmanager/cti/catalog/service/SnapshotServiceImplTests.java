@@ -521,4 +521,77 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertFalse("initialize should return false for missing file", result);
         verify(this.snapshotClient, never()).downloadFile(anyString());
     }
+
+    /**
+     * Tests that when a snapshot clear space is configured, {@code clearBySpace()} is called instead
+     * of {@code clear()} during local snapshot initialization, preserving documents in other spaces.
+     */
+    public void testInitializeFromPath_UsesSpaceFilteredClear() throws Exception {
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        indicesMap.put("policy", this.contentIndexMock);
+        indicesMap.put("decoder", this.contentIndexMock);
+        indicesMap.put("rule", this.contentIndexMock);
+        indicesMap.put("reputation", this.contentIndexMock);
+
+        SnapshotServiceImpl filteredService =
+                new SnapshotServiceImpl(
+                        "test-context",
+                        "test-consumer",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        "standard");
+        filteredService.setSnapshotClient(this.snapshotClient);
+
+        when(this.contentIndexMock.processPayload(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(this.contentIndexMock.getIndexName()).thenReturn(".test-index");
+
+        Path localZip =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"123\"}}}");
+
+        filteredService.initialize(localZip);
+
+        verify(this.contentIndexMock, never()).clear();
+        verify(this.contentIndexMock, atLeastOnce()).clearBySpace("standard");
+    }
+
+    /**
+     * Tests that when a snapshot clear space is configured, {@code clearBySpace()} is called instead
+     * of {@code clear()} during remote snapshot initialization.
+     */
+    public void testInitializeRemote_UsesSpaceFilteredClear() throws Exception {
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+
+        SnapshotServiceImpl filteredService =
+                new SnapshotServiceImpl(
+                        "test-context",
+                        "test-consumer",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        "standard");
+        filteredService.setSnapshotClient(this.snapshotClient);
+
+        when(this.contentIndexMock.processPayload(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(this.contentIndexMock.getIndexName()).thenReturn(".test-index");
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"123\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"123\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        filteredService.initialize(this.remoteConsumer);
+
+        verify(this.contentIndexMock, never()).clear();
+        verify(this.contentIndexMock, atLeastOnce()).clearBySpace("standard");
+    }
 }

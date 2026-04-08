@@ -129,6 +129,18 @@ public abstract class AbstractConsumerService {
     protected abstract String getSnapshotFilename();
 
     /**
+     * Returns the space name to filter by when clearing indices before snapshot loading. When {@code
+     * null}, a full index wipe ({@link ContentIndex#clear()}) is performed. Subclasses managing
+     * shared indices (where documents from multiple spaces coexist) should override this to return a
+     * specific space name (e.g., "standard") so that documents in other spaces are preserved.
+     *
+     * @return The space name to clear, or {@code null} for a full wipe.
+     */
+    protected String getSnapshotClearSpace() {
+        return null;
+    }
+
+    /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      *
@@ -289,7 +301,12 @@ public abstract class AbstractConsumerService {
                 log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
                 SnapshotServiceImpl snapshotService =
                         new SnapshotServiceImpl(
-                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+                                context,
+                                consumer,
+                                indicesMap,
+                                this.consumersIndex,
+                                this.environment,
+                                this.getSnapshotClearSpace());
 
                 boolean localSuccess = snapshotService.initialize(localSnapshot);
                 if (localSuccess) {
