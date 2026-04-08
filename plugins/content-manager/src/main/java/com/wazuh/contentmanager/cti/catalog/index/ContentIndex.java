@@ -261,9 +261,15 @@ public class ContentIndex {
 
         // 2. Patch
         ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
+        ObjectNode documentNode =
+                currentDoc.has(Constants.KEY_DOCUMENT)
+                        ? (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT)
+                        : currentDoc;
+        String documentPrefix = "/" + Constants.KEY_DOCUMENT;
         for (Operation op : operations) {
             JsonNode opJson = this.mapper.valueToTree(op);
-            JsonPatch.applyOperation(currentDoc, opJson);
+            boolean pathTargetsDocument = op.getPath() != null && op.getPath().startsWith(documentPrefix);
+            JsonPatch.applyOperation(pathTargetsDocument ? currentDoc : documentNode, opJson);
         }
 
         // 2.5. Inject offset if provided

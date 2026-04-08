@@ -275,7 +275,7 @@ Updates the routing policy in the specified space. The policy defines which inte
 **Space-specific behavior**
 
 - **Draft space** (`/policy/draft`): All policy fields are accepted. The metadata fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
-- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document.
+- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. If the update changes the space hash, the full standard policy is automatically loaded to the local Engine.
 
 **Request**
 - Method: `PUT`

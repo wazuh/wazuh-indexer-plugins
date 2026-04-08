@@ -105,6 +105,19 @@ REST request (POST/PUT/DELETE)
   → Returns created/updated/deleted resource
 ```
 
+### Standard Policy Engine Loading
+
+The local Wazuh Engine must always reflect the latest version of the standard space policy. Whenever the standard space `space.hash` changes, the full policy — including all referenced integrations, decoders, kvdbs, filters, and rules — is built and sent to the Engine via `EngineService.promote()`.
+
+The `space.hash` is an aggregate SHA-256 computed from the individual hashes of the policy and every resource it references. Any change to the policy will trigger a reload. These changes include:
+
+- New or updated integrations, decoders, rules, kvdbs, or filters (via CTI sync)
+- Changes to policy settings (`enabled`, `index_unclassified_events`, `index_discarded_events`)
+- Changes to the enrichment types list
+- Reordering of the filters list
+
+The engine load is best-effort: if the Engine is unreachable, the error is logged but the operation (sync or REST update) still succeeds.
+
 ### Promotion
 
 ```

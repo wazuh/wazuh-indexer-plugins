@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -57,6 +58,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/policy_update";
 
     private SpaceService spaceService;
+    private EngineService engineService;
     private NodeClient client;
     private PayloadValidations payloadValidations;
 
@@ -66,9 +68,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * Constructs a new RestPutPolicyAction handler.
      *
      * @param spaceService The space service instance to fetch policies.
+     * @param engineService The engine service instance for loading policies into the Engine.
      */
-    public RestPutPolicyAction(SpaceService spaceService) {
+    public RestPutPolicyAction(SpaceService spaceService, EngineService engineService) {
         this.spaceService = spaceService;
+        this.engineService = engineService;
         this.payloadValidations = new PayloadValidations();
     }
 
@@ -76,11 +80,14 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * Constructs a new RestPutPolicyAction handler with explicit NodeClient (for testing or DI).
      *
      * @param spaceService The space service instance to fetch policies.
+     * @param engineService The engine service instance for loading policies into the Engine.
      * @param client The NodeClient to use for index operations. TODO should not be required to pass
      *     the client
      */
-    public RestPutPolicyAction(SpaceService spaceService, NodeClient client) {
+    public RestPutPolicyAction(
+            SpaceService spaceService, EngineService engineService, NodeClient client) {
         this.spaceService = spaceService;
+        this.engineService = engineService;
         this.client = client;
         this.payloadValidations = new PayloadValidations();
     }
@@ -92,6 +99,15 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     public void setPolicyHashService(SpaceService spaceService) {
         this.spaceService = spaceService;
+    }
+
+    /**
+     * Setter for the engine service, used in tests.
+     *
+     * @param engineService the engine service instance to set
+     */
+    public void setEngineService(EngineService engineService) {
+        this.engineService = engineService;
     }
 
     /**
@@ -251,7 +267,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
             }
 
             // Regenerate space hash because space composition changed
-            this.spaceService.calculateAndUpdate(List.of(spaceName));
+            Set<String> changedSpaces = this.spaceService.calculateAndUpdate(List.of(spaceName));
+
+            // Load the standard space into the Engine only if its hash changed
+            if (changedSpaces.contains(Space.STANDARD.toString())) {
+                this.loadStandardSpaceIntoEngine();
+            }
 
             return new RestResponse(policyId, RestStatus.OK.getStatus());
         } catch (IllegalArgumentException e) {
@@ -469,6 +490,28 @@ public class RestPutPolicyAction extends BaseRestHandler {
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());
+        }
+    }
+
+    /** Builds the engine payload for the standard space and loads it into the Engine. */
+    private void loadStandardSpaceIntoEngine() {
+        if (this.engineService == null) {
+            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
+            return;
+        }
+        try {
+            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
+            RestResponse response = this.engineService.promote(payload);
+            if (response.getStatus() == RestStatus.OK.getStatus()) {
+                log.info("Engine load for standard space completed successfully.");
+            } else {
+                log.warn(
+                        "Engine load for standard space returned status [{}]: {}",
+                        response.getStatus(),
+                        response.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Failed to load standard space into Engine: {}", e.getMessage());
         }
     }
 }

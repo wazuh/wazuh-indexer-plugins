@@ -89,6 +89,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add 'status' field to internal consumers index [(#962)](https://github.com/wazuh/wazuh-indexer-plugins/pull/962)
 - Add --set-as-main flag support to repository bumper [(#978)](https://github.com/wazuh/wazuh-indexer-plugins/pull/978)
 - Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
+- Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
 
 
 ### Dependencies
@@ -178,6 +179,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix race condition on .cti-consumers index creation [(#928)](https://github.com/wazuh/wazuh-indexer-plugins/pull/928)
 - Fix Splunk KV Store startup failure [(#984)](https://github.com/wazuh/wazuh-indexer-plugins/pull/984)
 - Reset Standard space on Context/Consumer changes [(#979)](https://github.com/wazuh/wazuh-indexer-plugins/pull/979)
+- Fix CodeQL reporting security warnings [(#992)](https://github.com/wazuh/wazuh-indexer-plugins/pull/992)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

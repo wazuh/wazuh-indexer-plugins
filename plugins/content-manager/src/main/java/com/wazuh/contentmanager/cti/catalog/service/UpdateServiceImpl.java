@@ -112,7 +112,18 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
 
                 for (Offset offset : changes.get()) {
-                    this.applyOffset(offset);
+                    try {
+                        this.applyOffset(offset);
+                    } catch (Exception e) {
+                        log.error(
+                                "Failed to apply offset [{}] (type={}, resource={}): {}",
+                                offset.getOffset(),
+                                offset.getType(),
+                                offset.getResource(),
+                                e.getMessage(),
+                                e);
+                        throw e;
+                    }
                 }
 
                 lastAppliedOffset = currentToOffset;
