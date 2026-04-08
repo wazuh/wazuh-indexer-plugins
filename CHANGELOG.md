@@ -89,7 +89,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add 'status' field to internal consumers index [(#962)](https://github.com/wazuh/wazuh-indexer-plugins/pull/962)
 - Add --set-as-main flag support to repository bumper [(#978)](https://github.com/wazuh/wazuh-indexer-plugins/pull/978)
 - Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
-- Load standard policy to Engine on space.hash update
+- Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
 
 
 ### Dependencies
