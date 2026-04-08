@@ -107,26 +107,16 @@ REST request (POST/PUT/DELETE)
 
 ### Standard Policy Engine Loading
 
-The standard space policy is loaded to the Wazuh Engine whenever its `space.hash` changes. This can be triggered by two flows:
+The local Wazuh Engine must always reflect the latest version of the standard space policy. Whenever the standard space `space.hash` changes, the full policy — including all referenced integrations, decoders, kvdbs, filters, and rules — is built and sent to the Engine via `EngineService.promote()`.
 
-```
-CTI Sync completes (CatalogSyncJob)
-  → ConsumerRulesetService.onSyncComplete()
-  → SpaceService.calculateAndUpdate() recalculates space hashes
-  → If standard space hash changed:
-      → SpaceService.buildEnginePayload("standard")
-      → EngineService.promote(payload) via Unix socket
+The `space.hash` is an aggregate SHA-256 computed from the individual hashes of the policy and every resource it references. Any change to the policy will trigger a reload. These changes include:
 
-PUT /policy/standard (RestPutPolicyAction)
-  → Validate and update standard policy in .cti-policies
-  → SpaceService.calculateAndUpdate("standard") recalculates space hash
-  → If standard space hash changed:
-      → SpaceService.buildEnginePayload("standard")
-      → EngineService.promote(payload) via Unix socket
-  → Return 200 OK
-```
+- New or updated integrations, decoders, rules, kvdbs, or filters (via CTI sync)
+- Changes to policy settings (`enabled`, `index_unclassified_events`, `index_discarded_events`)
+- Changes to the enrichment types list
+- Reordering of the filters list
 
-The engine load is best-effort: if the Engine is unreachable, the error is logged but the policy update (or sync) still succeeds. The full engine payload includes the policy document and all referenced integrations, decoders, kvdbs, filters, and rules for the standard space.
+The engine load is best-effort: if the Engine is unreachable, the error is logged but the operation (sync or REST update) still succeeds.
 
 ### Promotion
 
