@@ -42,9 +42,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -69,6 +71,7 @@ import static org.mockito.Mockito.when;
  */
 public class RestPutPolicyActionTests extends OpenSearchTestCase {
     private SpaceService service;
+    private EngineService engineService;
     private RestPutPolicyAction action;
     private NodeClient client;
     private AutoCloseable mocks;
@@ -87,11 +90,12 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         super.setUp();
         this.mocks = MockitoAnnotations.openMocks(this);
         this.service = mock(SpaceService.class);
+        this.engineService = mock(EngineService.class);
         this.client = mock(NodeClient.class, Answers.RETURNS_DEEP_STUBS);
         Settings settings = Settings.builder().build();
         PluginSettings.getInstance(settings);
 
-        this.action = new RestPutPolicyAction(this.service, this.client);
+        this.action = new RestPutPolicyAction(this.service, this.engineService, this.client);
 
         Map<String, Object> policy = new HashMap<>();
         Map<String, Object> document = new HashMap<>();
@@ -1601,5 +1605,114 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         // Verify SpaceService.calculateAndUpdate was called with "standard"
         verify(this.service).calculateAndUpdate(List.of("standard"));
+    }
+
+    // ========================
+    // Engine Loading Tests
+    // ========================
+
+    /** Test that the standard policy is loaded into the Engine when its space hash changes. */
+    public void testPutStandardPolicy_HashChanged_LoadsEngine() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+        when(this.service.calculateAndUpdate(anyList())).thenReturn(Set.of(Space.STANDARD.toString()));
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        when(this.engineService.promote(any()))
+                .thenReturn(new RestResponse("OK", RestStatus.OK.getStatus()));
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": true,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.engineService, times(1)).promote(any());
+    }
+
+    /** Test that the Engine is NOT called when the standard space hash did not change. */
+    public void testPutStandardPolicy_HashUnchanged_SkipsEngine() throws IOException {
+        this.mockStandardPolicy(Collections.emptyList(), Collections.emptyList(), List.of("int-1"));
+        when(this.service.findDocumentId(anyString(), anyString(), anyString()))
+                .thenReturn("standard-policy-os-id");
+        when(this.service.calculateAndUpdate(anyList())).thenReturn(Collections.emptySet());
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("standard-policy-os-id");
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"enrichments\": [],"
+                        + "\"filters\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false"
+                        + "}"
+                        + "}";
+
+        RestResponse response = this.action.handleRequest(this.buildStandardRequest(policyJson));
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.engineService, never()).promote(any());
+    }
+
+    /** Test that a draft-space update never triggers Engine loading. */
+    public void testPutDraftPolicy_NeverLoadsEngine() {
+        when(this.service.calculateAndUpdate(anyList())).thenReturn(Collections.emptySet());
+
+        String policyJson =
+                "{"
+                        + "\"type\": \"policy\","
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.engineService, never()).promote(any());
     }
 }
