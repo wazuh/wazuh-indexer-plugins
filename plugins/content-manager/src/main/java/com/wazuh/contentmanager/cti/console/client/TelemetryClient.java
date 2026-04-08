@@ -31,7 +31,7 @@ public class TelemetryClient extends ApiClient {
     private static final Logger log = LogManager.getLogger(TelemetryClient.class);
 
     /** Target endpoint for the telemetry heartbeat. */
-    private static final String PING_URI = "https://cti.pre.cloud.wazuh.com/api/v1/ping";
+    private static final String PING_URI = "https://api.pre.cloud.wazuh.com/api/v1/ping";
 
     /**
      * Performs an asynchronous GET request to the CTI ping endpoint. This follows a "fire-and-forget"
