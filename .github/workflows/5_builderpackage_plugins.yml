@@ -1,6 +1,10 @@
 run-name: Build ${{ inputs.plugin }} plugin | ${{ inputs.id  }}
 name: (5.x) Build packages
 
+permissions:
+  contents: read
+  packages: read
+
 # This workflow runs when any of the following occur:
 # - Run manually
 # - Invoked from another workflow
