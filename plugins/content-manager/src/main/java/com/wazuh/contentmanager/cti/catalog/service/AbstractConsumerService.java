@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -312,6 +313,20 @@ public abstract class AbstractConsumerService {
 
         // Remote Snapshot Initialization (fallback when local snapshot is absent or failed)
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
+            try {
+                // Note: space is always STANDARD.
+                // 1. Remove resources belonging to space in the .cti-* indices
+                SpaceService spaceService = new SpaceService(this.client);
+                spaceService.deleteSpaceResources(Space.STANDARD);
+                // 2. Remove resources belonging to the space in Security Analytics.
+                SecurityAnalyticsService securityAnalyticsService =
+                        new SecurityAnalyticsServiceImpl(this.client);
+                securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
+            } catch (Exception e) {
+                // TODO add logging
+                throw new RuntimeException(e);
+            }
+
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(

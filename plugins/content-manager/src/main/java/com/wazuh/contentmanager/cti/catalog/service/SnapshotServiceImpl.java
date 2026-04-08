@@ -54,9 +54,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
 
-    // Keys to navigate the JSON structure
-    private static final String JSON_PAYLOAD_KEY = "payload";
-
     private final String context;
     private final String consumer;
     protected final Map<String, ContentIndex> indicesMap;
@@ -143,10 +140,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             // 3. Unzip
             Unzip.unzip(snapshotZip, outputDir);
 
-            // 4. Clear indices
-            this.indicesMap.values().forEach(ContentIndex::clear);
-
-            // 5. Process and Index Files
+            // 4. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
                 for (Path entry : stream) {
                     this.processSnapshotFile(entry);
@@ -215,11 +209,11 @@ public class SnapshotServiceImpl implements SnapshotService {
                     JsonNode rootJson = this.mapper.readTree(line);
 
                     // 1. Validate and Extract Payload
-                    if (!rootJson.has(JSON_PAYLOAD_KEY)) {
-                        log.warn("Snapshot entry missing '{}'. Skipping.", JSON_PAYLOAD_KEY);
+                    if (!rootJson.has(Constants.KEY_PAYLOAD)) {
+                        log.warn("Snapshot entry missing '{}'. Skipping.", Constants.KEY_PAYLOAD);
                         continue;
                     }
-                    JsonNode payload = rootJson.get(JSON_PAYLOAD_KEY);
+                    JsonNode payload = rootJson.get(Constants.KEY_PAYLOAD);
 
                     // 2. Determine Index.
                     String resourceName =

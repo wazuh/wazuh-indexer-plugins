@@ -158,22 +158,23 @@ public class SpaceService {
         }
 
         // 3. Delete all documents for the space across all resource indices
-        this.deleteSpaceResources(space.toString());
+        this.deleteSpaceResources(space);
     }
 
     /**
      * Deletes all documents related to a specific space across all resource indices.
      *
-     * @param spaceName The name of the space to wipe.
+     * @param space The name of the space to wipe.
      * @throws IOException If the deletion process fails.
      */
-    public void deleteSpaceResources(String spaceName) throws IOException {
+    public void deleteSpaceResources(Space space) throws IOException {
+        String spaceName = space.toString();
         try {
             BulkRequest bulkRequest = new BulkRequest();
 
             for (String indexName : Constants.RESOURCE_INDICES.values()) {
                 boolean exists =
-                        offloadBlocking(
+                        this.offloadBlocking(
                                 () -> this.client.admin().indices().prepareExists(indexName).get().isExists());
                 if (exists) {
                     SearchRequest searchRequest = new SearchRequest(indexName);
@@ -184,7 +185,7 @@ public class SpaceService {
                     searchRequest.source(sourceBuilder);
 
                     SearchResponse response =
-                            offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+                            this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
 
                     for (SearchHit hit : response.getHits().getHits()) {
                         bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
@@ -194,7 +195,8 @@ public class SpaceService {
 
             if (bulkRequest.numberOfActions() > 0) {
                 bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                BulkResponse response = offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
+                BulkResponse response =
+                        this.offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
                 if (response.hasFailures()) {
                     throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
                 }
@@ -667,8 +669,7 @@ public class SpaceService {
      * @param targetSpace The target space (for verification).
      * @throws IOException If the delete operation fails.
      */
-    public void deleteResources(
-            String indexName, java.util.Set<String> resourceIdsToDelete, String targetSpace)
+    public void deleteResources(String indexName, Set<String> resourceIdsToDelete, String targetSpace)
             throws IOException {
         try {
             BulkRequest bulkRequest = new BulkRequest();

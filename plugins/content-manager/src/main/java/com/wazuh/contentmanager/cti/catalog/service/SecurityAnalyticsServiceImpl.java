@@ -412,6 +412,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         log.info(Constants.I_LOG_SAP_DELETE_ASYNC, "detector", id, "");
     }
 
+    @Override
+    public void deleteSpaceResources(Space space) {
+        // TODO
+    }
+
     /**
      * Executes an action asynchronously, bridging between the wildcard listener from the interface
      * and the concrete response type required by {@link Client#execute}.

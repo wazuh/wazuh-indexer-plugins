@@ -147,4 +147,9 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener);
+
+    /**
+     * @param space
+     */
+    void deleteSpaceResources(Space space);
 }

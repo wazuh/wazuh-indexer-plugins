@@ -83,7 +83,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         this.engineService = engineService;
 
         this.mapper = new ObjectMapper();
-        this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
         this.mapper
                 .configOverride(Policy.class)
                 .setInclude(
@@ -97,7 +97,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     @Override
     public void synchronize() {
-        this.cleanupStandardSpaceIfConsumerChanged();
         super.synchronize();
     }
 
@@ -114,6 +113,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             // 1. Check if a LocalConsumer document exists for the current context/consumer
             GetResponse consumerDoc = this.consumersIndex.getConsumer(this.CONTEXT, this.CONSUMER);
 
+            // TODO ???
             if (consumerDoc != null && consumerDoc.isExists()) {
                 // Consumer doc already exists -- no setting change detected.
                 return;
@@ -231,18 +231,21 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_FILTERS,
                     Constants.INDEX_POLICIES);
 
+            // Remove all stuff from the Standard space in Security Analytics and recreate them.
+            this.cleanupStandardSpaceIfConsumerChanged();
+
             // Sync Integrations
             try {
                 this.syncIntegrations();
             } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "integrations", e.getMessage(), e);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_INTEGRATIONS, e.getMessage(), e);
             }
 
             // Sync Rules
             try {
                 this.syncRules();
             } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "rules", e.getMessage(), e);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_RULES, e.getMessage(), e);
             }
 
             // Sync Detectors
@@ -254,12 +257,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 }
             }
 
-            Set<String> changedSpaces = this.spaceService.calculateAndUpdate();
-
-            // Load the standard space into the Engine only if its hash changed
-            if (changedSpaces.contains(Space.STANDARD.toString())) {
-                this.loadStandardSpaceIntoEngine();
-            }
+            // Reload STANDARD space, as it was updated.
+            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            this.loadStandardSpaceIntoEngine();
         }
     }
 
@@ -291,6 +291,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncIntegrations() {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
+            log.error(
+                    "Integrations index is missing. Cannot sync integrations to Security Analytics Plugin.");
             return;
         }
 
@@ -341,12 +343,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncRules() {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
+            log.error("Rules index is missing. Cannot sync rules to Security Analytics Plugin.");
             return;
         }
 
         SearchResponse searchResponse = this.searchAll(Constants.INDEX_RULES);
         SearchHit[] hits = searchResponse.getHits().getHits();
-        if (hits.length == 0) return;
+        if (hits.length == 0) {
+            return;
+        }
 
         CountDownLatch latch = new CountDownLatch(hits.length);
 
@@ -392,6 +397,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncDetectors() {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
+            log.error(
+                    "Integrations index is missing. Cannot sync detectors to Security Analytics Plugin.");
             return;
         }
 

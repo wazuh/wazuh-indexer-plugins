@@ -29,7 +29,6 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -54,11 +53,10 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        EngineService engineService = mock(EngineService.class);
         this.spaceService = mock(SpaceService.class);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
 
-        this.action = new RestDeleteSpaceAction(engineService);
+        this.action = new RestDeleteSpaceAction();
 
         this.action.setSpaceService(this.spaceService);
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
