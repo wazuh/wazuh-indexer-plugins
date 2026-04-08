@@ -131,7 +131,6 @@ test {
 }
 
 dependencies {
-  implementation 'com.google.code.gson:gson:2.13.2'
 }
 
 // Ensure the yamlRestTest source set can access plugin main and test classes
