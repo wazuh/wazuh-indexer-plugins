@@ -332,7 +332,12 @@ public abstract class AbstractConsumerService {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
+                            context,
+                            consumer,
+                            indicesMap,
+                            this.consumersIndex,
+                            this.environment,
+                            this.getSnapshotClearSpace());
 
             boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
             if (snapshotSuccess) {
