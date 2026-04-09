@@ -55,8 +55,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    private SecurityAnalyticsServiceImpl securityAnalyticsService;
-    private SpaceService spaceService;
+    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
+    private final SpaceService spaceService;
     private final EngineService engineService;
 
     /**
@@ -83,34 +83,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 .configOverride(Policy.class)
                 .setInclude(
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
-    }
-
-    /**
-     * Runs the Standard space cleanup (if needed) before delegating to the parent synchronization
-     * logic. This ensures that stale resources from a previous consumer are removed before the new
-     * consumer's snapshot is loaded.
-     */
-    @Override
-    public void synchronize() {
-        super.synchronize();
-    }
-
-    /**
-     * Setter for spaceService to allow injection in tests.
-     *
-     * @param spaceService the space service to set
-     */
-    void setSpaceService(SpaceService spaceService) {
-        this.spaceService = spaceService;
-    }
-
-    /**
-     * Setter for securityAnalyticsService to allow injection in tests.
-     *
-     * @param securityAnalyticsService the security analytics service to set
-     */
-    void setSecurityAnalyticsService(SecurityAnalyticsServiceImpl securityAnalyticsService) {
-        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
