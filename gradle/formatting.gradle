@@ -25,7 +25,7 @@ allprojects {
       }
         java {
             licenseHeaderFile("${rootProject.file("formatter/license-header.txt")}")
-            googleJavaFormat()
+            googleJavaFormat('1.34.0')  // 1.34+ supports JDK 25+
             removeUnusedImports()
             indentWithTabs(2)
             indentWithSpaces(4)

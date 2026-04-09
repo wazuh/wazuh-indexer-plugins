@@ -296,43 +296,44 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        if (hits.length == 0) return;
-
-        CountDownLatch latch = new CountDownLatch(hits.length);
-
-        for (SearchHit hit : hits) {
-            JsonNode source = this.parseHit(hit);
-            if (source == null) {
-                latch.countDown();
-                continue;
-            }
-            JsonNode doc = this.extractDocument(source, hit.getId());
-            if (doc == null) {
-                latch.countDown();
-                continue;
-            }
-            Space space = this.extractSpace(source);
-
-            this.securityAnalyticsService.upsertIntegrationAsync(
-                    doc,
-                    space,
-                    RestRequest.Method.POST,
-                    ActionListener.wrap(
-                            response -> latch.countDown(),
-                            e -> {
-                                log.error("Failed to sync integration {}: {}", hit.getId(), e.getMessage());
-                                latch.countDown();
-                            }));
-        }
-
         try {
+            Map<String, Map<String, Object>> integrations =
+                    this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+            if (integrations.isEmpty()) {
+                log.warn("No integrations to synchronize with the Security Analytics plugin");
+                return;
+            }
+
+            CountDownLatch latch = new CountDownLatch(integrations.size());
+
+            integrations.forEach(
+                    (id, sourceMap) -> {
+                        JsonNode source = this.mapper.valueToTree(sourceMap);
+                        JsonNode doc = this.extractDocument(source, id);
+                        if (doc == null) {
+                            latch.countDown();
+                            return;
+                        }
+
+                        this.securityAnalyticsService.upsertIntegrationAsync(
+                                doc,
+                                Space.STANDARD,
+                                RestRequest.Method.POST,
+                                ActionListener.wrap(
+                                        response -> latch.countDown(),
+                                        e -> {
+                                            log.error("Failed to sync integration {}: {}", id, e.getMessage());
+                                            latch.countDown();
+                                        }));
+                    });
+
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn("Timed out waiting for integrations sync");
             }
-        } catch (InterruptedException e) {
-            log.error("Interrupted waiting for integrations sync", e);
+        } catch (Exception e) {
+            log.error(
+                    "Unexpected error sending integrations to the Security Analytics plugin: {}",
+                    e.getMessage());
             Thread.currentThread().interrupt();
         }
     }
@@ -347,45 +348,43 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        SearchResponse searchResponse = this.searchAll(Constants.INDEX_RULES);
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        if (hits.length == 0) {
-            return;
-        }
-
-        CountDownLatch latch = new CountDownLatch(hits.length);
-
-        for (SearchHit hit : hits) {
-            JsonNode source = this.parseHit(hit);
-            if (source == null) {
-                latch.countDown();
-                continue;
-            }
-            JsonNode doc = this.extractDocument(source, hit.getId());
-            if (doc == null) {
-                latch.countDown();
-                continue;
-            }
-            Space space = this.extractSpace(source);
-
-            this.securityAnalyticsService.upsertRuleAsync(
-                    doc,
-                    space,
-                    RestRequest.Method.POST,
-                    ActionListener.wrap(
-                            response -> latch.countDown(),
-                            e -> {
-                                log.error("Failed to sync rule {}: {}", hit.getId(), e.getMessage());
-                                latch.countDown();
-                            }));
-        }
-
         try {
+            Map<String, Map<String, Object>> rules =
+                    this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
+            if (rules.isEmpty()) {
+                log.warn("No rules to synchronize with the Security Analytics plugin");
+                return;
+            }
+
+            CountDownLatch latch = new CountDownLatch(rules.size());
+
+            rules.forEach(
+                    (id, sourceMap) -> {
+                        JsonNode source = this.mapper.valueToTree(sourceMap);
+                        JsonNode doc = this.extractDocument(source, id);
+                        if (doc == null) {
+                            latch.countDown();
+                            return;
+                        }
+
+                        this.securityAnalyticsService.upsertRuleAsync(
+                                doc,
+                                Space.STANDARD,
+                                RestRequest.Method.POST,
+                                ActionListener.wrap(
+                                        response -> latch.countDown(),
+                                        e -> {
+                                            log.error("Failed to sync rule {}: {}", id, e.getMessage());
+                                            latch.countDown();
+                                        }));
+                    });
+
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn("Timed out waiting for rules sync");
             }
-        } catch (InterruptedException e) {
-            log.error("Interrupted waiting for rules sync", e);
+        } catch (Exception e) {
+            log.error(
+                    "Unexpected error sending rules to the Security Analytics plugin: {}", e.getMessage());
             Thread.currentThread().interrupt();
         }
     }

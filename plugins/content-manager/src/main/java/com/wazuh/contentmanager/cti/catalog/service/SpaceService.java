@@ -359,11 +359,11 @@ public class SpaceService {
      * Fetches all documents from a specific index that belong to a given space, keyed by document.id.
      *
      * @param indexName The index to search.
-     * @param spaceName The space to filter by.
+     * @param space The space to filter by.
      * @return A map of document.id to document content.
      * @throws IOException If the search operation fails.
      */
-    public Map<String, Map<String, Object>> getResourcesBySpace(String indexName, String spaceName)
+    public Map<String, Map<String, Object>> getResourcesBySpace(String indexName, Space space)
             throws IOException {
         Map<String, Map<String, Object>> resources = new HashMap<>();
 
@@ -371,7 +371,7 @@ public class SpaceService {
             if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
                 SearchRequest searchRequest = new SearchRequest(indexName);
                 SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
                 sourceBuilder.size(10000);
                 searchRequest.source(sourceBuilder);
 
@@ -389,7 +389,7 @@ public class SpaceService {
             log.error(
                     "Failed to fetch resources from [{}] for space [{}]: {}",
                     indexName,
-                    spaceName,
+                    space,
                     e.getMessage());
             throw new IOException("Failed to fetch resources: " + e.getMessage(), e);
         }
@@ -428,6 +428,8 @@ public class SpaceService {
             Set<String> filtersToDelete)
             throws IOException {
 
+        Space space = Space.fromValue(targetSpace);
+
         // Root payload structure
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
         boolean isTesterSpace =
@@ -454,7 +456,7 @@ public class SpaceService {
 
         // Fetch all integrations from target space
         Map<String, Map<String, Object>> targetIntegrations =
-                this.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, targetSpace);
+                this.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, space);
         // Apply modifications
         targetIntegrations.putAll(integrationsToApply);
         // Remove deletions
@@ -467,7 +469,7 @@ public class SpaceService {
 
         // Fetch all kvdbs from target space
         Map<String, Map<String, Object>> targetKvdbs =
-                this.getResourcesBySpace(Constants.INDEX_KVDBS, targetSpace);
+                this.getResourcesBySpace(Constants.INDEX_KVDBS, space);
         targetKvdbs.putAll(kvdbsToApply);
         for (String id : kvdbsToDelete) {
             targetKvdbs.remove(id);
@@ -477,7 +479,7 @@ public class SpaceService {
 
         // Fetch all decoders from target space
         Map<String, Map<String, Object>> targetDecoders =
-                this.getResourcesBySpace(Constants.INDEX_DECODERS, targetSpace);
+                this.getResourcesBySpace(Constants.INDEX_DECODERS, space);
         targetDecoders.putAll(decodersToApply);
         for (String id : decodersToDelete) {
             targetDecoders.remove(id);
@@ -487,7 +489,7 @@ public class SpaceService {
 
         // Fetch all filters from target space
         Map<String, Map<String, Object>> targetFilters =
-                this.getResourcesBySpace(Constants.INDEX_FILTERS, targetSpace);
+                this.getResourcesBySpace(Constants.INDEX_FILTERS, space);
         targetFilters.putAll(filtersToApply);
         for (String id : filtersToDelete) {
             targetFilters.remove(id);
