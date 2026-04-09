@@ -23,16 +23,11 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionType;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.Strings;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
@@ -419,72 +414,41 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteSpaceResources(Space space) {
-        String spaceName = space.toString();
-        log.info("Deleting Security Analytics resources for space [{}]", spaceName);
-
         // Translate STANDARD to SIGMA for SAP operations, matching the source name used
         // when the resources were originally indexed.
-        Space sapSpace = space;
-        if (space == Space.STANDARD) {
-            sapSpace = Space.SIGMA;
-        }
+        Space sapSpace = (space == Space.STANDARD) ? Space.SIGMA : space;
 
         try {
-            List<String> integrationIds = queryResourceIds(Constants.INDEX_INTEGRATIONS, spaceName);
-            List<String> ruleIds = queryResourceIds(Constants.INDEX_RULES, spaceName);
+            String source = sapSpace.asSecurityAnalyticsSource();
+            WDeleteSpaceResourcesResponse response =
+                    this.client
+                            .execute(
+                                    WDeleteSpaceResourcesAction.INSTANCE,
+                                    new WDeleteSpaceResourcesRequest(source, WriteRequest.RefreshPolicy.IMMEDIATE))
+                            .actionGet();
 
-            for (String id : integrationIds) {
-                this.deleteIntegration(id, sapSpace);
-            }
-            for (String id : ruleIds) {
-                this.deleteRule(id, sapSpace);
+            if (response.hasFailures()) {
+                log.warn(
+                        "Partial failures deleting SAP resources for space [{}]: {}",
+                        space,
+                        response.getFailureMessage());
             }
 
             log.info(
                     "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]",
-                    integrationIds.size(),
-                    ruleIds.size(),
-                    spaceName);
+                    response.getDeletedIntegrations(),
+                    response.getDeletedRules(),
+                    space);
         } catch (Exception e) {
             String message =
                     String.format(
                             Locale.ROOT,
                             "Failed to delete Security Analytics resources for space [%s]: %s",
-                            spaceName,
+                            space,
                             e.getMessage());
             log.error(message);
             throw new OpenSearchException(message, e);
         }
-    }
-
-    /**
-     * Queries a CTI index for all document IDs belonging to a given space.
-     *
-     * @param indexName The CTI index to query.
-     * @param spaceName The space name to filter by.
-     * @return A list of document IDs matching the space, or an empty list if the index does not
-     *     exist.
-     */
-    private List<String> queryResourceIds(String indexName, String spaceName) {
-        boolean exists = this.client.admin().indices().prepareExists(indexName).get().isExists();
-        if (!exists) {
-            return Collections.emptyList();
-        }
-
-        SearchRequest searchRequest = new SearchRequest(indexName);
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-        sourceBuilder.size(10000);
-        sourceBuilder.fetchSource(false);
-        searchRequest.source(sourceBuilder);
-
-        SearchResponse response = this.client.search(searchRequest).actionGet();
-
-        List<String> ids = new ArrayList<>();
-        for (SearchHit hit : response.getHits().getHits()) {
-            ids.add(hit.getId());
-        }
-        return ids;
     }
 
     /**

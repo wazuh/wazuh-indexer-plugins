@@ -150,7 +150,7 @@ public interface SecurityAnalyticsService {
 
     /**
      * Deletes all Security Analytics resources (integrations, rules, and detectors) belonging to the
-     * given space. Queries the CTI indices to find resource IDs, then removes each one from SAP.
+     * given space. Sends a single bulk-delete action to SAP, which handles the deletion internally.
      *
      * @param space The space whose resources should be deleted.
      */
