@@ -134,10 +134,10 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
             log.info("Starting reset operation for space [{}]", space);
 
             // Note: space is always DRAFT.
-            // 1. Remove resources belonging to space in the .cti-* indices
-            this.spaceService.deleteSpaceResources(space);
-            // 2. Remove resources belonging to the space in Security Analytics.
+            // 1. Remove resources belonging to the space in Security Analytics.
             this.securityAnalyticsService.deleteSpaceResources(space);
+            // 2. Remove resources belonging to space in the .cti-* indices.
+            this.spaceService.deleteSpaceResources(space);
 
             // Re-generate the default policy for the space
             String sharedDocumentId =

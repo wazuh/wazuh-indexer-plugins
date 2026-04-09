@@ -63,8 +63,8 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test successful reset of the "draft" space. Verifies that resetSpace is called to delete SAP
-     * resources and space documents, then the default policy is recreated.
+     * Test successful reset of the "draft" space. Verifies that SAP resources are deleted first, then
+     * space documents are removed, and finally the default policy is recreated.
      */
     public void testDeleteSpace_Success_Draft() throws Exception {
         RestRequest request =
@@ -75,13 +75,14 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.spaceService).resetSpace(Space.DRAFT, this.securityAnalyticsService);
+        verify(this.securityAnalyticsService).deleteSpaceResources(Space.DRAFT);
+        verify(this.spaceService).deleteSpaceResources(Space.DRAFT);
         verify(this.spaceService).initializeSpace(eq("draft"), anyString());
     }
 
     /**
-     * Test that if resetSpace throws an IOException, the handler catches it and returns a 500
-     * response.
+     * Test that if deleteSpaceResources throws an IOException, the handler catches it and returns a
+     * 500 response.
      */
     public void testDeleteSpace_ResetSpaceThrowsException_Returns500() throws Exception {
         RestRequest request =
@@ -89,9 +90,9 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
                         .withParams(Map.of(Constants.KEY_SPACE, "draft"))
                         .build();
 
-        doThrow(new java.io.IOException("Simulated SAP error"))
-                .when(this.spaceService)
-                .resetSpace(any(Space.class), any(SecurityAnalyticsService.class));
+        doThrow(new RuntimeException("Simulated SAP error"))
+                .when(this.securityAnalyticsService)
+                .deleteSpaceResources(any(Space.class));
 
         RestResponse response = this.action.handleRequest(request);
 
@@ -129,8 +130,8 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test failure when a core component (like SpaceService) throws an unexpected exception. Expected
-     * outcome: 500 Internal Server Error.
+     * Test failure when a core component throws an unexpected exception. Expected outcome: 500
+     * Internal Server Error.
      */
     public void testDeleteSpace_Exception_Returns500() throws Exception {
         RestRequest request =
@@ -140,7 +141,7 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated catastrophic failure"))
                 .when(this.spaceService)
-                .resetSpace(any(Space.class), any(SecurityAnalyticsService.class));
+                .deleteSpaceResources(any(Space.class));
 
         RestResponse response = this.action.handleRequest(request);
 

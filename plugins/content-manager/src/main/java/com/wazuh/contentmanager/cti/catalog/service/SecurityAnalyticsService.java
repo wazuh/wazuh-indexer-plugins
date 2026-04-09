@@ -149,7 +149,10 @@ public interface SecurityAnalyticsService {
     void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener);
 
     /**
-     * @param space
+     * Deletes all Security Analytics resources (integrations, rules, and detectors) belonging to the
+     * given space. Queries the CTI indices to find resource IDs, then removes each one from SAP.
+     *
+     * @param space The space whose resources should be deleted.
      */
     void deleteSpaceResources(Space space);
 }
