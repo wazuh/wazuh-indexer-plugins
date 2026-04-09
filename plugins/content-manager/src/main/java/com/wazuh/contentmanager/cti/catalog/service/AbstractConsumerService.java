@@ -327,8 +327,10 @@ public abstract class AbstractConsumerService {
                     SpaceService spaceService = new SpaceService(this.client);
                     spaceService.deleteSpaceResources(Space.STANDARD);
                 } catch (Exception e) {
-                    // TODO add logging
-                    throw new RuntimeException(e);
+                    log.error(
+                            "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}",
+                            consumer,
+                            e.getMessage());
                 }
             } else {
                 indicesMap.values().forEach(ContentIndex::clear);

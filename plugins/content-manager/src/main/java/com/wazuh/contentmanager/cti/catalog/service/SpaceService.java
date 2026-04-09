@@ -98,36 +98,6 @@ public class SpaceService {
     }
 
     /**
-     * Removes all resources from a space, including their SAP counterparts.
-     *
-     * <p>Steps performed:
-     *
-     * <ol>
-     *   <li>Fetches all resources currently in the space.
-     *   <li>Deletes rules from SAP (best-effort).
-     *   <li>Deletes integrations from SAP (best-effort, also deletes detectors for Standard).
-     *   <li>Deletes all documents for the space across all resource indices.
-     * </ol>
-     *
-     * @param space The space to reset.
-     * @param securityAnalyticsService The SAP service used to delete external resources.
-     * @throws IOException If the index deletion process fails.
-     */
-    public void resetSpace(Space space, SecurityAnalyticsService securityAnalyticsService)
-            throws IOException {
-        // 1. Delete SAP resources in bulk (best-effort)
-        try {
-            securityAnalyticsService.deleteSpaceResources(space);
-            log.debug("Deleted SAP resources for space [{}] reset", space);
-        } catch (Exception e) {
-            log.warn("Failed to Delete SAP resources during space [{}] reset: {}", space, e.getMessage());
-        }
-
-        // 2. Delete all documents for the space across all resource indices
-        this.deleteSpaceResources(space);
-    }
-
-    /**
      * Deletes all documents related to a specific space across all resource indices.
      *
      * @param space The name of the space to wipe.
