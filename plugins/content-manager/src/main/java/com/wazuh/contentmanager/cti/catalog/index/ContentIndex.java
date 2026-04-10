@@ -54,11 +54,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.cti.catalog.model.Cve;
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
-import com.wazuh.contentmanager.cti.catalog.model.Ioc;
-import com.wazuh.contentmanager.cti.catalog.model.Operation;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.cti.catalog.model.*;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;

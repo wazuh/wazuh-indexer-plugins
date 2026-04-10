@@ -22,18 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -60,8 +55,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
     private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    private SecurityAnalyticsServiceImpl securityAnalyticsService;
-    private SpaceService spaceService;
+    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
+    private final SpaceService spaceService;
     private final EngineService engineService;
 
     /**
@@ -83,80 +78,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         this.engineService = engineService;
 
         this.mapper = new ObjectMapper();
-        this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
         this.mapper
                 .configOverride(Policy.class)
                 .setInclude(
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
-    }
-
-    /**
-     * Runs the Standard space cleanup (if needed) before delegating to the parent synchronization
-     * logic. This ensures that stale resources from a previous consumer are removed before the new
-     * consumer's snapshot is loaded.
-     */
-    @Override
-    public void synchronize() {
-        this.cleanupStandardSpaceIfConsumerChanged();
-        super.synchronize();
-    }
-
-    /**
-     * Detects whether the content consumer/context settings have changed since the last sync and, if
-     * so, cleans up the Standard space before the new consumer's snapshot is loaded.
-     *
-     * <p>Detection heuristic: if no {@link com.wazuh.contentmanager.cti.catalog.model.LocalConsumer}
-     * document exists for the current composite ID ({@code context_consumer}) AND the Standard space
-     * already contains resources, then a consumer switch has occurred and cleanup is required.
-     */
-    void cleanupStandardSpaceIfConsumerChanged() {
-        try {
-            // 1. Check if a LocalConsumer document exists for the current context/consumer
-            GetResponse consumerDoc = this.consumersIndex.getConsumer(this.CONTEXT, this.CONSUMER);
-
-            if (consumerDoc != null && consumerDoc.isExists()) {
-                // Consumer doc already exists -- no setting change detected.
-                return;
-            }
-
-            // 2. No consumer doc for the current ID. Check if Standard space has resources.
-            Map<String, Map<String, String>> spaceResources =
-                    this.spaceService.getSpaceResources(Space.STANDARD.toString());
-
-            boolean hasResources =
-                    spaceResources.values().stream().anyMatch(m -> m != null && !m.isEmpty());
-
-            if (!hasResources) {
-                log.info("No existing Standard space resources found. Skipping cleanup.");
-                return;
-            }
-
-            // 3. Consumer changed and old resources exist. Clean up.
-            log.info("Consumer setting change detected. Cleaning up Standard space before re-sync.");
-            this.spaceService.resetSpace(Space.STANDARD, this.securityAnalyticsService);
-            log.info("Standard space cleanup completed successfully.");
-
-        } catch (Exception e) {
-            log.error("Failed to perform Standard space cleanup on consumer change: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Setter for spaceService to allow injection in tests.
-     *
-     * @param spaceService the space service to set
-     */
-    void setSpaceService(SpaceService spaceService) {
-        this.spaceService = spaceService;
-    }
-
-    /**
-     * Setter for securityAnalyticsService to allow injection in tests.
-     *
-     * @param securityAnalyticsService the security analytics service to set
-     */
-    void setSecurityAnalyticsService(SecurityAnalyticsServiceImpl securityAnalyticsService) {
-        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
@@ -208,7 +134,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     @Override
     protected Map<String, String> getAliases() {
-        // We use the alias names as the actual index names, so we do not create separate aliases.
+        // Not needed. We use the actual data stream names instead.
         return Collections.emptyMap();
     }
 
@@ -235,14 +161,14 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             try {
                 this.syncIntegrations();
             } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "integrations", e.getMessage(), e);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_INTEGRATIONS, e.getMessage(), e);
             }
 
             // Sync Rules
             try {
                 this.syncRules();
             } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, "rules", e.getMessage(), e);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_RULES, e.getMessage(), e);
             }
 
             // Sync Detectors
@@ -254,12 +180,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 }
             }
 
-            Set<String> changedSpaces = this.spaceService.calculateAndUpdate();
-
-            // Load the standard space into the Engine only if its hash changed
-            if (changedSpaces.contains(Space.STANDARD.toString())) {
-                this.loadStandardSpaceIntoEngine();
-            }
+            // Reload STANDARD space, as it was updated.
+            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            this.loadStandardSpaceIntoEngine();
         }
     }
 
@@ -291,46 +214,49 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncIntegrations() {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
+            log.error(
+                    "Integrations index is missing. Cannot sync integrations to Security Analytics Plugin.");
             return;
         }
 
-        SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        if (hits.length == 0) return;
-
-        CountDownLatch latch = new CountDownLatch(hits.length);
-
-        for (SearchHit hit : hits) {
-            JsonNode source = this.parseHit(hit);
-            if (source == null) {
-                latch.countDown();
-                continue;
-            }
-            JsonNode doc = this.extractDocument(source, hit.getId());
-            if (doc == null) {
-                latch.countDown();
-                continue;
-            }
-            Space space = this.extractSpace(source);
-
-            this.securityAnalyticsService.upsertIntegrationAsync(
-                    doc,
-                    space,
-                    RestRequest.Method.POST,
-                    ActionListener.wrap(
-                            response -> latch.countDown(),
-                            e -> {
-                                log.error("Failed to sync integration {}: {}", hit.getId(), e.getMessage());
-                                latch.countDown();
-                            }));
-        }
-
         try {
+            Map<String, Map<String, Object>> integrations =
+                    this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+            if (integrations.isEmpty()) {
+                log.warn("No integrations to synchronize with the Security Analytics plugin");
+                return;
+            }
+
+            CountDownLatch latch = new CountDownLatch(integrations.size());
+
+            integrations.forEach(
+                    (id, sourceMap) -> {
+                        JsonNode source = this.mapper.valueToTree(sourceMap);
+                        JsonNode doc = this.extractDocument(source, id);
+                        if (doc == null) {
+                            latch.countDown();
+                            return;
+                        }
+
+                        this.securityAnalyticsService.upsertIntegrationAsync(
+                                doc,
+                                Space.STANDARD,
+                                RestRequest.Method.POST,
+                                ActionListener.wrap(
+                                        response -> latch.countDown(),
+                                        e -> {
+                                            log.error("Failed to sync integration {}: {}", id, e.getMessage());
+                                            latch.countDown();
+                                        }));
+                    });
+
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn("Timed out waiting for integrations sync");
             }
-        } catch (InterruptedException e) {
-            log.error("Interrupted waiting for integrations sync", e);
+        } catch (Exception e) {
+            log.error(
+                    "Unexpected error sending integrations to the Security Analytics plugin: {}",
+                    e.getMessage());
             Thread.currentThread().interrupt();
         }
     }
@@ -341,46 +267,47 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncRules() {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
+            log.error("Rules index is missing. Cannot sync rules to Security Analytics Plugin.");
             return;
         }
 
-        SearchResponse searchResponse = this.searchAll(Constants.INDEX_RULES);
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        if (hits.length == 0) return;
-
-        CountDownLatch latch = new CountDownLatch(hits.length);
-
-        for (SearchHit hit : hits) {
-            JsonNode source = this.parseHit(hit);
-            if (source == null) {
-                latch.countDown();
-                continue;
-            }
-            JsonNode doc = this.extractDocument(source, hit.getId());
-            if (doc == null) {
-                latch.countDown();
-                continue;
-            }
-            Space space = this.extractSpace(source);
-
-            this.securityAnalyticsService.upsertRuleAsync(
-                    doc,
-                    space,
-                    RestRequest.Method.POST,
-                    ActionListener.wrap(
-                            response -> latch.countDown(),
-                            e -> {
-                                log.error("Failed to sync rule {}: {}", hit.getId(), e.getMessage());
-                                latch.countDown();
-                            }));
-        }
-
         try {
+            Map<String, Map<String, Object>> rules =
+                    this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
+            if (rules.isEmpty()) {
+                log.warn("No rules to synchronize with the Security Analytics plugin");
+                return;
+            }
+
+            CountDownLatch latch = new CountDownLatch(rules.size());
+
+            rules.forEach(
+                    (id, sourceMap) -> {
+                        JsonNode source = this.mapper.valueToTree(sourceMap);
+                        JsonNode doc = this.extractDocument(source, id);
+                        if (doc == null) {
+                            latch.countDown();
+                            return;
+                        }
+
+                        this.securityAnalyticsService.upsertRuleAsync(
+                                doc,
+                                Space.STANDARD,
+                                RestRequest.Method.POST,
+                                ActionListener.wrap(
+                                        response -> latch.countDown(),
+                                        e -> {
+                                            log.error("Failed to sync rule {}: {}", id, e.getMessage());
+                                            latch.countDown();
+                                        }));
+                    });
+
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn("Timed out waiting for rules sync");
             }
-        } catch (InterruptedException e) {
-            log.error("Interrupted waiting for rules sync", e);
+        } catch (Exception e) {
+            log.error(
+                    "Unexpected error sending rules to the Security Analytics plugin: {}", e.getMessage());
             Thread.currentThread().interrupt();
         }
     }
@@ -390,28 +317,30 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * sequentially to ensure the SAP detectors config index exists, then the remaining detectors are
      * created in parallel.
      */
-    private void syncDetectors() {
+    private void syncDetectors() throws IOException {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
+            log.error(
+                    "Integrations index is missing. Cannot sync detectors to Security Analytics Plugin.");
             return;
         }
 
-        SearchResponse searchResponse = this.searchAll(Constants.INDEX_INTEGRATIONS);
-        SearchHit[] hits = searchResponse.getHits().getHits();
+        Map<String, Map<String, Object>> integrations =
+                this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
 
-        // Pre-filter: only keep standard-space integrations with a valid detector request
         List<JsonNode> docs = new ArrayList<>();
-        for (SearchHit hit : hits) {
-            JsonNode source = this.parseHit(hit);
-            if (source == null || this.extractSpace(source) != Space.STANDARD) {
-                continue;
-            }
-            JsonNode doc = this.extractDocument(source, hit.getId());
-            if (doc != null && this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
-                docs.add(doc);
-            }
-        }
+        integrations.forEach(
+                (id, sourceMap) -> {
+                    JsonNode source = this.mapper.valueToTree(sourceMap);
+                    JsonNode doc = this.extractDocument(source, id);
+                    if (doc != null
+                            && this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
+                        docs.add(doc);
+                    }
+                });
 
-        if (docs.isEmpty()) return;
+        if (docs.isEmpty()) {
+            return;
+        }
 
         log.info(
                 "Syncing {} detectors ({} sequentially, {} in parallel)", docs.size(), 1, docs.size() - 1);
@@ -503,38 +432,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Executes a match-all search query on the specified index to retrieve all documents.
-     *
-     * <p>The search size is set to 10,000 to retrieve a large batch of documents.
-     *
-     * @param indexName The name of the index to search.
-     * @return The {@link SearchResponse} containing the search hits.
-     */
-    private SearchResponse searchAll(String indexName) {
-        SearchRequest searchRequest = new SearchRequest(indexName);
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchSourceBuilder.size(10000);
-        searchRequest.source(searchSourceBuilder);
-        return this.client.search(searchRequest).actionGet();
-    }
-
-    /**
-     * Parses a {@link SearchHit} source string into a {@link JsonNode}.
-     *
-     * @param hit The search hit to parse.
-     * @return The parsed {@link JsonNode}, or null if a syntax error occurs during parsing.
-     */
-    private JsonNode parseHit(SearchHit hit) {
-        try {
-            return this.mapper.readTree(hit.getSourceAsString());
-        } catch (Exception e) {
-            log.error("Failed to parse JSON from hit [{}]: {}", hit.getId(), e.getMessage());
-            return null;
-        }
-    }
-
-    /**
      * Extracts the inner "document" object from the source wrapper.
      *
      * @param source The source JSON object (the wrapper containing metadata and the document).
@@ -547,28 +444,5 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return null;
         }
         return source.get(Constants.KEY_DOCUMENT);
-    }
-
-    /**
-     * Extracts the {@link Space} from the source JSON object.
-     *
-     * <p>It looks for the "space.name" field. If the field is missing or the value is invalid, it
-     * defaults to {@link Space#STANDARD}.
-     *
-     * @param source The source JSON object.
-     * @return The extracted {@link Space}, or {@link Space#STANDARD} if not found or invalid.
-     */
-    private Space extractSpace(JsonNode source) {
-        if (source.has(Constants.KEY_SPACE) && source.get(Constants.KEY_SPACE).isObject()) {
-            JsonNode space = source.get(Constants.KEY_SPACE);
-            if (space.has(Constants.KEY_NAME)) {
-                try {
-                    return Space.fromValue(space.get(Constants.KEY_NAME).asText());
-                } catch (IllegalArgumentException e) {
-                    return Space.STANDARD;
-                }
-            }
-        }
-        return Space.STANDARD;
     }
 }

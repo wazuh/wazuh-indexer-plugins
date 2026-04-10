@@ -111,7 +111,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
             JsonNode policy = this.getPolicy(space);
             JsonNode integrations = policy.path(Constants.KEY_DOCUMENT).path(Constants.KEY_INTEGRATIONS);
             assertTrue(
-                    space + " policy integrations should be empty",
+                    space + " policy integrations should be empty. Got: " + integrations,
                     integrations.isArray() && integrations.isEmpty());
             String rootDecoder = policy.path(Constants.KEY_DOCUMENT).path("root_decoder").asText("");
             assertTrue(space + " policy root_decoder should be empty", rootDecoder.isEmpty());

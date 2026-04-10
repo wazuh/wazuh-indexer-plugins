@@ -33,6 +33,8 @@ On first run (when the local offset is `0`), the Content Manager performs a full
 
 When the local offset is behind the remote offset, the Content Manager fetches changes in batches (up to 1000 per request) and applies create, update, and delete operations to the content indices. The local offset is updated after each successful batch.
 
+If the local offset is ahead of the remote offset (e.g., consumer was changed), or if the update fails, the Content Manager resets to the latest snapshot to realign with the CTI API.
+
 ### Sync Schedule
 
 By default, synchronization runs:
