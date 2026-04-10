@@ -194,6 +194,7 @@ public class ContentManagerPlugin extends Plugin
                 this.catalogSyncJob.trigger();
             } else {
                 log.info("Skipping catalog sync job trigger");
+                log.info("Skipping catalog sync job trigger");
             }
 
             // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
