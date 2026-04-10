@@ -253,11 +253,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn("Timed out waiting for integrations sync");
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error(
+                    "Interrupted while sending integrations to the Security Analytics plugin: {}",
+                    e.getMessage());
         } catch (Exception e) {
             log.error(
                     "Unexpected error sending integrations to the Security Analytics plugin: {}",
                     e.getMessage());
-            Thread.currentThread().interrupt();
         }
     }
 
@@ -305,10 +309,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn("Timed out waiting for rules sync");
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error(
+                    "Interrupted while sending rules to the Security Analytics plugin: {}", e.getMessage());
         } catch (Exception e) {
             log.error(
                     "Unexpected error sending rules to the Security Analytics plugin: {}", e.getMessage());
-            Thread.currentThread().interrupt();
         }
     }
 

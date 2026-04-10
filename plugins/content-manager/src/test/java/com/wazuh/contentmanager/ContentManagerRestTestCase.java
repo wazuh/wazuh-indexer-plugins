@@ -56,7 +56,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     /**
      * Prevents the test framework from deleting all indices after each test. The Content Manager
      * plugin requires persistent indices (in particular {@code .cti-policies}) to function. The
-     * default behaviour would wipe them between tests, forcing costly re-creation and causing race
+     * default behavior would wipe them between tests, forcing costly re-creation and causing race
      * conditions with the plugin's internal validation.
      */
     @Override
@@ -518,7 +518,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected String createIntegration(String title) throws IOException {
         // spotless:off
-        String payload = getString(title);
+        String payload = ContentManagerRestTestCase.getString(title);
         // spotless:on
 
         Response response = this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
