@@ -256,6 +256,13 @@ public class ContentIndex {
 
         // 2. Patch
         ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
+
+        // Resources from the VD feed do not contain a "document" object, so we need to patch the root
+        // document instead of the "document" node.
+        if (this.indexName.equals(Constants.INDEX_CVES)) {
+            currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
+        }
+
         for (Operation op : operations) {
             JsonNode opJson = this.mapper.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);
