@@ -260,7 +260,7 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
     protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     /**
-     * Synchronizes the new resource with external services (Engine validation or SAP upsert).
+     * Synchronizes the new resource with external services (Wazuh Engine and/or Security Analytics).
      *
      * <p>This method allows subclasses to integrate with external systems. It is called after
      * validation and ID generation but before indexing. If this method returns an error, the entire

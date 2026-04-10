@@ -1297,8 +1297,20 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
+                "feed": {
+                  "properties": {
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
                 "first_seen": {
                   "type": "date"
+                },
+                "id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
                 },
                 "last_seen": {
                   "type": "date"
@@ -1312,6 +1324,27 @@
                   "type": "keyword"
                 },
                 "reference": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "software": {
+                  "properties": {
+                    "alias": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "type": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  },
+                  "type": "object"
+                },
+                "tags": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
@@ -5605,6 +5638,14 @@
                         }
                       }
                     },
+                    "feed": {
+                      "properties": {
+                        "name": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      }
+                    },
                     "file": {
                       "properties": {
                         "accessed": {
@@ -6168,6 +6209,10 @@
                         }
                       }
                     },
+                    "id": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
                     "ip": {
                       "type": "ip"
                     },
@@ -6245,6 +6290,27 @@
                     },
                     "sightings": {
                       "type": "long"
+                    },
+                    "software": {
+                      "properties": {
+                        "alias": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "name": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "type": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tags": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
                     },
                     "type": {
                       "ignore_above": 1024,
@@ -8187,6 +8253,9 @@
               "ignore_above": 1024,
               "type": "keyword"
             },
+            "detected_at": {
+              "type": "date"
+            },
             "enumeration": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -8194,6 +8263,9 @@
             "id": {
               "ignore_above": 1024,
               "type": "keyword"
+            },
+            "published_at": {
+              "type": "date"
             },
             "reference": {
               "ignore_above": 1024,
@@ -8205,7 +8277,15 @@
             },
             "scanner": {
               "properties": {
+                "condition": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
                 "reference": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "source": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
@@ -8235,6 +8315,9 @@
             "severity": {
               "ignore_above": 1024,
               "type": "keyword"
+            },
+            "under_evaluation": {
+              "type": "boolean"
             }
           }
         },

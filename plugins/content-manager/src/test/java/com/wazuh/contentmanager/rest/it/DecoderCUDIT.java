@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
+import org.junit.After;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -45,6 +46,12 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
     // ========================
     // POST - Create Decoder
     // ========================
+
+    @Override
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+    }
 
     /**
      * Successfully create a decoder linked to an integration.

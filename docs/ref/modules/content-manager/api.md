@@ -275,7 +275,7 @@ Updates the routing policy in the specified space. The policy defines which inte
 **Space-specific behavior**
 
 - **Draft space** (`/policy/draft`): All policy fields are accepted. The metadata fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
-- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document.
+- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. If the update changes the space hash, the full standard policy is automatically loaded to the local Engine.
 
 **Request**
 - Method: `PUT`
@@ -1636,6 +1636,8 @@ Resets a user space (`draft`) to its initial state.
 When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
+
+The resources are removed in the Content Manager (`.cti-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
 
 > **Note**: Only `draft` space can be reset.
 

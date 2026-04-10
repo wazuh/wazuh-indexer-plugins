@@ -26,14 +26,13 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -61,13 +60,10 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_space_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/space_delete";
 
-    private final EngineService engineService;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
 
-    public RestDeleteSpaceAction(EngineService engineService) {
-        this.engineService = engineService;
-    }
+    public RestDeleteSpaceAction() {}
 
     @Override
     public String getName() {
@@ -137,51 +133,21 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
         try {
             log.info("Starting reset operation for space [{}]", space);
 
-            // 1. Fetch current resources to perform external deletions
-            Map<String, Map<String, String>> spaceResources =
-                    this.spaceService.getSpaceResources(space.toString());
+            // Note: space is always DRAFT.
+            // 1. Remove resources belonging to the space in Security Analytics.
+            this.securityAnalyticsService.deleteSpaceResources(space);
+            // 2. Remove resources belonging to space in the .cti-* indices.
+            this.spaceService.deleteSpaceResources(space);
 
-            // 2. Delete SAP resources (Integrations & Rules)
-            Map<String, String> rules = spaceResources.get(Constants.KEY_RULES);
-            if (rules != null) {
-                for (String id : rules.keySet()) {
-                    try {
-                        this.securityAnalyticsService.deleteRule(id, Space.DRAFT);
-                        log.debug("Deleted rule [{}] from SAP for space reset", id);
-                    } catch (Exception e) {
-                        log.warn(
-                                "Failed to delete rule [{}] from SAP during space reset: {}", id, e.getMessage());
-                    }
-                }
-            }
-
-            Map<String, String> integrations = spaceResources.get(Constants.KEY_INTEGRATIONS);
-            if (integrations != null) {
-                for (String id : integrations.keySet()) {
-                    try {
-                        this.securityAnalyticsService.deleteIntegration(id, Space.DRAFT);
-                        log.debug("Deleted integration [{}] from SAP for space reset", id);
-                    } catch (Exception e) {
-                        log.warn(
-                                "Failed to delete integration [{}] from SAP during space reset: {}",
-                                id,
-                                e.getMessage());
-                    }
-                }
-            }
-
-            // 3. Delete all documents associated with the space across all resource indices
-            this.spaceService.deleteSpaceResources(space.toString());
-
-            // 4. Re-generate the default policy for the space
+            // Re-generate the default policy for the space
             String sharedDocumentId =
                     UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
                             .toString();
             this.spaceService.initializeSpace(space.toString(), sharedDocumentId);
 
-            log.info("Successfully reset space [{}]", space);
-
-            return new RestResponse("Space reset successfully", RestStatus.OK.getStatus());
+            String message = String.format(Locale.ROOT, "Successfully reset space [%s].", space);
+            log.info(message);
+            return new RestResponse(message, RestStatus.OK.getStatus());
         } catch (Exception e) {
             log.error("Failed to reset space [{}]: {}", space, e.getMessage());
             return new RestResponse(
@@ -192,7 +158,8 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
     /**
      * Setter for spaceService to allow injection in tests.
      *
-     * @param spaceService
+     * @param spaceService instance of SpaceService, for resources removal in the content manager and
+     *     policy re-generation/reload.
      */
     void setSpaceService(SpaceService spaceService) {
         this.spaceService = spaceService;
@@ -201,7 +168,8 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
     /**
      * Setter for securityAnalyticsService to allow injection in tests.
      *
-     * @param securityAnalyticsService
+     * @param securityAnalyticsService instance of SecurityAnalyticsService, for resources removal in
+     *     the Security Analytics plugin.
      */
     void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
         this.securityAnalyticsService = securityAnalyticsService;

@@ -233,7 +233,7 @@ public class ContentManagerPlugin extends Plugin
                 // User-generated content endpoints (Logtest)
                 new RestPostLogtestAction(this.engine),
                 // Policy endpoints
-                new RestPutPolicyAction(this.spaceService),
+                new RestPutPolicyAction(this.spaceService, this.engine),
                 // Rule endpoints
                 new RestPostRuleAction(),
                 new RestPutRuleAction(),
@@ -258,7 +258,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestPutFilterAction(this.engine),
                 new RestDeleteFilterAction(this.engine),
                 // Space deletion endpoint
-                new RestDeleteSpaceAction(this.engine));
+                new RestDeleteSpaceAction());
     }
 
     /** Performs initialization tasks for the plugin. */

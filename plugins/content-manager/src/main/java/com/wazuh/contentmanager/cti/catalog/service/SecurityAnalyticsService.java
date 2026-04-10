@@ -147,4 +147,12 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener);
+
+    /**
+     * Deletes all Security Analytics resources (integrations, rules, and detectors) belonging to the
+     * given space. Sends a single bulk-delete action to SAP, which handles the deletion internally.
+     *
+     * @param space The space whose resources should be deleted.
+     */
+    void deleteSpaceResources(Space space);
 }

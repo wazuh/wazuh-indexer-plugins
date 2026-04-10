@@ -109,4 +109,9 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteDetectorAsync called for id: {}", id);
     }
+
+    @Override
+    public void deleteSpaceResources(Space space) {
+        log.debug("MockSecurityAnalyticsService.deleteSpaceResources called for space: {}", space);
+    }
 }

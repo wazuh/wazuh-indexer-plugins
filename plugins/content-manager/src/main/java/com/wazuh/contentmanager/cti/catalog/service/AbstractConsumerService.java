@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -38,6 +39,8 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -312,6 +315,27 @@ public abstract class AbstractConsumerService {
 
         // Remote Snapshot Initialization (fallback when local snapshot is absent or failed)
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
+            if (Objects.equals(
+                    this.getConsumer(), PluginSettings.CONTENT_CONSUMER.get(this.environment.settings()))) {
+                try {
+                    // Note: space is always STANDARD.
+                    // 1. Remove resources belonging to the space in Security Analytics.
+                    SecurityAnalyticsService securityAnalyticsService =
+                            new SecurityAnalyticsServiceImpl(this.client);
+                    securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
+                    // 2. Remove resources belonging to space in the .cti-* indices.
+                    SpaceService spaceService = new SpaceService(this.client);
+                    spaceService.deleteSpaceResources(Space.STANDARD);
+                } catch (Exception e) {
+                    log.error(
+                            "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}",
+                            consumer,
+                            e.getMessage());
+                }
+            } else {
+                indicesMap.values().forEach(ContentIndex::clear);
+            }
+
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(

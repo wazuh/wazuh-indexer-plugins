@@ -200,7 +200,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
     protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     /**
-     * Synchronizes the new resource with external services (Engine validation or SAP upsert).
+     * Synchronizes the new resource with external services (Engine validation or Security Analytics).
      *
      * @return null if successful, RestResponse with error otherwise.
      */
