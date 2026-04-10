@@ -85,10 +85,10 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * test, custom), regardless of how many times the workflow runs.
      */
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
-        ensureGreen();
+        this.ensureGreen();
 
         // Create all content indices required by onSyncComplete
-        createContentIndices();
+        this.createContentIndices();
 
         // Initialize PluginSettings in the test JVM (the plugin runs in the external cluster JVM)
         PluginSettings.getInstance(
@@ -97,7 +97,11 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         // Instantiate the synchronizer with the test cluster's client.
         // Environment and ConsumersIndex are only used by syncConsumerServices(), not onSyncComplete().
         ConsumerRulesetService synchronizer =
-                new ConsumerRulesetService(client(), new ConsumersIndex(client()), null, null);
+                new ConsumerRulesetService(
+                        OpenSearchIntegTestCase.client(),
+                        new ConsumersIndex(OpenSearchIntegTestCase.client()),
+                        null,
+                        null);
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);
@@ -106,11 +110,11 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         synchronizer.onSyncComplete(true);
 
         // Refresh to make all documents searchable
-        client().admin().indices().prepareRefresh(INDEX_POLICIES).get();
+        OpenSearchIntegTestCase.client().admin().indices().prepareRefresh(INDEX_POLICIES).get();
 
         // Assert exactly 3 total policy documents
         SearchResponse totalResponse =
-                client()
+                OpenSearchIntegTestCase.client()
                         .search(
                                 new SearchRequest(INDEX_POLICIES)
                                         .source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0)))
@@ -123,7 +127,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
         // Assert exactly 1 document per space
         for (String spaceName : SPACE_NAMES) {
             SearchResponse spaceResponse =
-                    client()
+                    OpenSearchIntegTestCase.client()
                             .search(
                                     new SearchRequest(INDEX_POLICIES)
                                             .source(
@@ -145,7 +149,12 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
 
     @After
     public void clearFieldData() {
-        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
+        OpenSearchIntegTestCase.client()
+                .admin()
+                .indices()
+                .prepareClearCache()
+                .setFieldDataCache(true)
+                .get();
     }
 
     /** Creates all content indices required by the post-sync workflow with their proper mappings. */
@@ -161,7 +170,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
             String mappingPath = entry.getValue();
 
             String mapping;
-            try (InputStream is = getClass().getResourceAsStream(mappingPath)) {
+            try (InputStream is = this.getClass().getResourceAsStream(mappingPath)) {
                 assertNotNull("Could not find mapping resource: " + mappingPath, is);
                 mapping = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
@@ -171,9 +180,14 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
 
             assertTrue(
                     "Failed to create index " + indexName,
-                    client().admin().indices().create(request).actionGet().isAcknowledged());
+                    OpenSearchIntegTestCase.client()
+                            .admin()
+                            .indices()
+                            .create(request)
+                            .actionGet()
+                            .isAcknowledged());
         }
 
-        ensureGreen();
+        this.ensureGreen();
     }
 }
