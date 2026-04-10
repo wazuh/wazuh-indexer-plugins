@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Resolve branches
         id: branches
-        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@be268c37aac5ee729c643cb16f6888f8cae8d8ec
+        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
         with:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
       - name: Get common-utils latest commit
