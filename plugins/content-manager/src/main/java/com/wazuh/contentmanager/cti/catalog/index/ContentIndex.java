@@ -256,15 +256,16 @@ public class ContentIndex {
 
         // 2. Patch
         ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
-        ObjectNode documentNode =
-                currentDoc.has(Constants.KEY_DOCUMENT)
-                        ? (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT)
-                        : currentDoc;
-        String documentPrefix = "/" + Constants.KEY_DOCUMENT;
+
+        // Resources from the VD feed do not contain a "document" object, so we need to patch the root
+        // document instead of the "document" node.
+        if (this.indexName.equals(Constants.INDEX_CVES)) {
+            currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
+        }
+
         for (Operation op : operations) {
             JsonNode opJson = this.mapper.valueToTree(op);
-            boolean pathTargetsDocument = op.getPath() != null && op.getPath().startsWith(documentPrefix);
-            JsonPatch.applyOperation(pathTargetsDocument ? currentDoc : documentNode, opJson);
+            JsonPatch.applyOperation(currentDoc, opJson);
         }
 
         // 2.5. Inject offset if provided
