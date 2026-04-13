@@ -519,8 +519,8 @@ The policy endpoint now accepts a `{space}` path parameter (`draft` or `standard
 
 ```mermaid
 flowchart TD
-    UI[UI] -->|PUT /policy/{space}| Indexer
-    Indexer -->|Validate space| SpaceCheck{draft or standard?}
+    UI[UI] -->|"PUT /policy/{space}"| Indexer
+    Indexer -->|Validate space| SpaceCheck{is a valid space?}
     SpaceCheck -->|No| Error400[400 Bad Request]
     SpaceCheck -->|Yes| Parse[Parse & validate fields]
     Parse --> SpaceBranch{Space?}
@@ -618,7 +618,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    UI[UI] -->|DELETE /space/{space}| Indexer
+    UI[UI] -->|"DELETE /space/{space}"| Indexer
     Indexer -->|Validate space| Check{space == draft?}
     Check -->|No| Error400[400 Bad Request]
     Check -->|Yes| DeleteSAP[Delete draft resources from SAP]
