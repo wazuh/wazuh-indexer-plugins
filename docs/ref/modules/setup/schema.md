@@ -16,110 +16,34 @@ To list all deployed event templates:
 GET /_index_template/wazuh-events-*
 ```
 
-#### Access Management
+#### Categories
 
-None yet.
+The **Key** column is the canonical identifier used throughout the system — in data stream names, integrations, rules, decoders, and the Security Analytics plugin. Use it exactly as shown when creating or referencing any of these resources.
 
-#### Applications and Web Servers
+| Name              | Key                 | Example log types                             |
+| ----------------- | ------------------- | --------------------------------------------- |
+| Access Management | `access-management` | `ad_ldap`, `apache_access`, `okta`            |
+| Applications      | `applications`      | `github`, `gworkspace`, `m365`                |
+| Cloud Services    | `cloud-services`    | `azure`, `cloudtrail`, `s3`                   |
+| Network Activity  | `network-activity`  | `dns`, `network`, `vpcflow`                   |
+| Security          | `security`          | `waf`                                         |
+| System Activity   | `system-activity`   | `linux`, `windows`, `others_macos`            |
+| Other             | `other`             | `others_application`, `others_apt`, `others_web` |
+| Unclassified      | `unclassified`      | Events that could not be categorized          |
 
-| Integration Name                         | Subcategory | Category     |
-| ---------------------------------------- | ----------- | ------------ |
-| Apache integration                       | Apache      | Applications |
-| NGINX integration                        | -           | Applications |
-| IIS integration                          | -           | Applications |
-| Apache Tomcat integration                | Apache      | Applications |
-| WebSphere Application Server integration | -           | Applications |
-| Oracle WebLogic Server integration       | -           | Applications |
-| Spring Boot integration                  | -           | Applications |
-| squid                                    | -           | Applications |
+> **Note:** `unclassified` is a catch-all for events that could not be assigned to any other category. It is managed automatically by the pipeline and should not be used as a target category when creating new integrations or rules.
 
-#### Cloud Services
+### Data Streams
 
-| Integration Name     | Subcategory | Category       |
-| -------------------- | ----------- | -------------- |
-| Amazon Security Lake | AWS         | Cloud Services |
-| AWS                  | AWS         | Cloud Services |
-| AWS Bedrock          | AWS         | Cloud Services |
-| AWS Logs             | AWS         | Cloud Services |
-| AWS Fargate          | AWS         | Cloud Services |
-| AWS Firehose         | AWS         | Cloud Services |
-| Azure                | Azure       | Cloud Services |
-| Azure Blob Storage   | Azure       | Cloud Services |
-| Azure App Service    | Azure       | Cloud Services |
-| Azure Functions      | Azure       | Cloud Services |
-| Azure Metrics        | Azure       | Cloud Services |
-| Azure OpenAI         | Azure       | Cloud Services |
-| Cisco Umbrella       | -           | Cloud Services |
-| GCP                  | GCP         | Cloud Services |
-| Google SCC           | GCP         | Cloud Services |
-
-#### Network Activity
-
-| Integration Name    | Subcategory | Category         |
-| ------------------- | ----------- | ---------------- |
-| iptables            | -           | Network Activity |
-| Cisco ASA           | Cisco       | Network Activity |
-| Cisco IOS           | Cisco       | Network Activity |
-| Cisco Meraki        | Cisco       | Network Activity |
-| Cisco Aironet       | Cisco       | Network Activity |
-| Fortinet Fortigate  | Fortinet    | Network Activity |
-| CheckPoint          | -           | Network Activity |
-| SonicWall           | -           | Network Activity |
-| F5 BIG-IP           | -           | Network Activity |
-| pfSense             | -           | Network Activity |
-| Fortinet Fortiproxy | Fortinet    | Network Activity |
-
-#### Security 
-
-| Integration Name | Subcategory | Category |
-| ---------------- | ----------- | -------- |
-| Snort            | -           | Security |
-| Suricata         | -           | Security |
-| ModSecurity      | -           | Security |
-| Zeek             | -           | Security |
-
-#### System Activity
-
-| Integration Name        | Subcategory | Category        |
-| ----------------------- | ----------- | --------------- |
-| Auditd                  | Linux       | System Activity |
-| Sysmon Linux            | Linux       | System Activity |
-| Windows                 | Windows     | System Activity |
-| Windows DHCP            | Windows     | System Activity |
-| Windows DNS server      | Windows     | System Activity |
-| Windows Exchange server | Windows     | System Activity |
-| ULS                     | macOS       | System Activity |
-
-#### Other
-
-None yet.
-
-### Indices
-
-```
-wazuh-events-v5-access-management-000001
-wazuh-events-v5-applications-000001
-wazuh-events-v5-cloud-services-000001
-wazuh-events-v5-cloud-services-aws-000001
-wazuh-events-v5-cloud-services-azure-000001
-wazuh-events-v5-cloud-services-gcp-000001
-wazuh-events-v5-network-activity-000001
-wazuh-events-v5-other-000001
-wazuh-events-v5-security-000001
-wazuh-events-v5-system-activity-000001
-```
-
-### Aliases
+Each category maps to a dedicated data stream following the pattern `wazuh-events-v5-{key}`:
 
 ```
 wazuh-events-v5-access-management
 wazuh-events-v5-applications
 wazuh-events-v5-cloud-services
-wazuh-events-v5-cloud-services-aws
-wazuh-events-v5-cloud-services-azure
-wazuh-events-v5-cloud-services-gcp
 wazuh-events-v5-network-activity
 wazuh-events-v5-other
 wazuh-events-v5-security
 wazuh-events-v5-system-activity
+wazuh-events-v5-unclassified
 ```
