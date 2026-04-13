@@ -178,6 +178,16 @@ public class IndexStateManagement extends Index {
     @Override
     public void initialize() {
         this.createIndex(this.index);
+
+        // Wait for at least yellow status so shards are allocated before indexing policies.
+        this.client
+                .admin()
+                .cluster()
+                .prepareHealth(this.index)
+                .setWaitForYellowStatus()
+                .execute()
+                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+
         this.retry_index_creation = true; // Re-used variable to retry initialization of ISM policies.
         this.createPolicies();
     }

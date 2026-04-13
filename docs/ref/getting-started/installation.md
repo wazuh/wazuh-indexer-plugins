@@ -1,6 +1,6 @@
 # Installation
 
-> [!NOTE]
+> **Note**:
 > This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
 >   - [Local package generation](../../dev/build-packages.md) (recommended).
 >   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
@@ -16,7 +16,7 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 3. Cluster initialization
 
-> **Note** You need root user privileges to run all the commands described below.
+> **Note**: You need root user privileges to run all the commands described below.
 
 ## 1. Certificates creation
 
