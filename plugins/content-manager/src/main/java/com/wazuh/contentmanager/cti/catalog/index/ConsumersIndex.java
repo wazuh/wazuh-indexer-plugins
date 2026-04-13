@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -80,7 +80,8 @@ public class ConsumersIndex {
     public IndexResponse setConsumer(LocalConsumer consumer)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
         // Avoid faulty requests if the cluster is unstable.
-        if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
+        if (!ClusterInfo.indexStatusCheck(
+                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready");
         }
         // Composed ID
@@ -106,7 +107,8 @@ public class ConsumersIndex {
     public GetResponse getConsumer(String context, String consumer)
             throws ExecutionException, InterruptedException, TimeoutException {
         // Avoid faulty requests if the cluster is unstable.
-        if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
+        if (!ClusterInfo.indexStatusCheck(
+                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready");
         }
         // Composed ID
@@ -160,9 +162,10 @@ public class ConsumersIndex {
                     .create(request)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         } catch (ExecutionException | TimeoutException e) {
-            boolean alreadyExists = e instanceof ExecutionException
-                    ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
-                    : this.exists();
+            boolean alreadyExists =
+                    e instanceof ExecutionException
+                            ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
+                            : this.exists();
             if (alreadyExists) {
                 log.debug("Index [{}] already exists, skipping creation.", INDEX_NAME);
                 return null;

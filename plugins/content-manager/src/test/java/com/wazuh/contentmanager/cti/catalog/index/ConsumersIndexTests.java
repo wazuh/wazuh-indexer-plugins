@@ -28,6 +28,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -98,9 +99,12 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                         .prepareHealth()
                         .setIndices(anyString())
                         .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
                         .get())
                 .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.GREEN);
+        when(this.clusterHealthResponse.isTimedOut()).thenReturn(false);
 
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.indexResponse);
@@ -129,6 +133,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                         .prepareHealth()
                         .setIndices(anyString())
                         .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
                         .get())
                 .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.RED);
@@ -155,9 +161,12 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                         .prepareHealth()
                         .setIndices(anyString())
                         .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
                         .get())
                 .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.YELLOW);
+        when(this.clusterHealthResponse.isTimedOut()).thenReturn(false);
 
         PlainActionFuture<GetResponse> future = PlainActionFuture.newFuture();
         future.onResponse(this.getResponse);
@@ -223,5 +232,31 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         // Validate Settings (Hidden = true, Replicas = 0)
         Assert.assertEquals("true", request.settings().get("hidden"));
         Assert.assertEquals("0", request.settings().get("index.number_of_replicas"));
+    }
+
+    /**
+     * Tests that getConsumer throws RuntimeException when the health check times out waiting for
+     * active shards, even if the cluster status is not RED.
+     */
+    public void testGetConsumer_IndexNotReady_TimedOut() {
+        // Mock
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
+        when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.YELLOW);
+        when(this.clusterHealthResponse.isTimedOut()).thenReturn(true);
+
+        // Act and Assert
+        RuntimeException ex =
+                Assert.assertThrows(
+                        RuntimeException.class, () -> this.consumersIndex.getConsumer("ctx", "name"));
+        Assert.assertEquals("Index not ready", ex.getMessage());
     }
 }
