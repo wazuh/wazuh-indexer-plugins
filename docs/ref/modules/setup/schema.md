@@ -20,22 +20,24 @@ GET /_index_template/wazuh-events-*
 
 The **Key** column is the canonical identifier used throughout the system — in data stream names, integrations, rules, decoders, and the Security Analytics plugin. Use it exactly as shown when creating or referencing any of these resources.
 
-| Name              | Key                 | Example log types                             |
-| ----------------- | ------------------- | --------------------------------------------- |
-| Access Management | `access-management` | `ad_ldap`, `apache_access`, `okta`            |
-| Applications      | `applications`      | `github`, `gworkspace`, `m365`                |
-| Cloud Services    | `cloud-services`    | `azure`, `cloudtrail`, `s3`                   |
-| Network Activity  | `network-activity`  | `dns`, `network`, `vpcflow`                   |
-| Security          | `security`          | `waf`                                         |
-| System Activity   | `system-activity`   | `linux`, `windows`, `others_macos`            |
+| Name              | Key                 | Example log types                                |
+| ----------------- | ------------------- | ------------------------------------------------ |
+| Access Management | `access-management` | `ad_ldap`, `apache_access`, `okta`               |
+| Applications      | `applications`      | `github`, `gworkspace`, `m365`                   |
+| Cloud Services    | `cloud-services`    | `azure`, `cloudtrail`, `s3`                      |
+| Network Activity  | `network-activity`  | `dns`, `network`, `vpcflow`                      |
+| Security          | `security`          | `waf`                                            |
+| System Activity   | `system-activity`   | `linux`, `windows`, `others_macos`               |
 | Other             | `other`             | `others_application`, `others_apt`, `others_web` |
-| Unclassified      | `unclassified`      | Events that could not be categorized          |
+| Unclassified      | `unclassified`      | Events that could not be categorized             |
 
 > **Note:** `unclassified` is a catch-all for events that could not be assigned to any other category. It is managed automatically by the pipeline and should not be used as a target category when creating new integrations or rules.
 
 ### Data Streams
 
 Each category maps to a dedicated data stream following the pattern `wazuh-events-v5-{key}`:
+
+**Events**
 
 ```
 wazuh-events-v5-access-management
@@ -47,3 +49,17 @@ wazuh-events-v5-security
 wazuh-events-v5-system-activity
 wazuh-events-v5-unclassified
 ```
+
+**Findings**
+```
+wazuh-findings-v5-access-management
+wazuh-findings-v5-applications
+wazuh-findings-v5-cloud-services
+wazuh-findings-v5-network-activity
+wazuh-findings-v5-other
+wazuh-findings-v5-security
+wazuh-findings-v5-system-activity
+wazuh-findings-v5-unclassified
+```
+
+Check [Stream indices](./index.md#stream-indices) for details.
