@@ -381,22 +381,11 @@ If a critical error or data corruption is detected, the system resets `local_off
 
 ## Configuration Settings
 
-Settings are defined in `PluginSettings` and configured in `opensearch.yml`:
+To register a new setting, follow the existing pattern in `PluginSettings.java`. That will make it available in `opensearch.yml`.
 
-| Setting                                              | Type    | Default                                  | Description                                                             |
-| ---------------------------------------------------- | ------- | ---------------------------------------- | ----------------------------------------------------------------------- |
-| `plugins.content_manager.cti.api`                    | String  | `https://cti.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                          |
-| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                           |
-| `plugins.content_manager.max_items_per_bulk`         | Integer | `25`                                     | Maximum documents per bulk indexing request. Valid range: 10–25         |
-| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                    |
-| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50 |
-| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                             |
-| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                            |
-| `plugins.content_manager.catalog.content.context`    | String  | `development_0.0.3`                      | CTI catalog content context identifier                                  |
-| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3`                 | CTI catalog content consumer identifier                                 |
-| `plugins.content_manager.ioc.content.context`        | String  | `ioc_provider_v3`                        | IoC content context identifier                                          |
-| `plugins.content_manager.ioc.content.consumer`       | String  | `iocp_v3`                                | IoC content consumer identifier                                         |
-| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content      |
+For existing settings, check [Settings Reference](../../ref/modules/content-manager/configuration.md#settings-reference)
+
+When registering a new setting, document it in the section linked above.
 
 ### REST API URIs
 

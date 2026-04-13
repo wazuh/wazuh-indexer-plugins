@@ -53,7 +53,7 @@ Content is not being updated despite having a valid subscription.
      "https://192.168.56.6:9200/.cti-consumers/_search?pretty"
    ```
 
-   If `local_offset` equals `remote_offset`, the content is already up to date.
+   If `local_offset` equals `remote_offset`, the content is already up-to-date.
 
 2. Check the sync job is registered and enabled:
    ```bash
@@ -104,14 +104,14 @@ Example output:
   "hits": {
     "hits": [
       {
-        "_id": "development_0.0.3_development_0.0.3",
+        "_id": "t1-ruleset-5_public-ruleset-5",
         "_source": {
-          "name": "development_0.0.3",
-          "context": "development_0.0.3",
+          "name": "public-ruleset-5",
+          "context": "t1-ruleset-5",
           "status": "idle",
           "local_offset": 3932,
           "remote_offset": 3932,
-          "snapshot_link": "https://cti-pre.wazuh.com/store/..."
+          "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/t1-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
         }
       }
     ]
@@ -121,7 +121,7 @@ Example output:
 
 - `status == idle`: Sync is complete; content is safe to read.
 - `status == updating`: Sync is in progress. If this persists after a sync should have finished, the previous sync may have failed mid-cycle.
-- `local_offset == remote_offset`: Content is up to date.
+- `local_offset == remote_offset`: Content is up-to-date.
 - `local_offset < remote_offset`: Content needs updating.
 - `local_offset == 0`: Content has never been synced (snapshot required).
 

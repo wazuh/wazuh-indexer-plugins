@@ -4,22 +4,22 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 
 ## Settings Reference
 
-| Setting                                              | Type    | Default                                  | Description                                                             |
-| ---------------------------------------------------- | ------- | ---------------------------------------- | ----------------------------------------------------------------------- |
-| `plugins.content_manager.cti.api`                    | String  | `https://cti.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                          |
-| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                           |
-| `plugins.content_manager.max_items_per_bulk`         | Integer | `999`                                    | Maximum documents per bulk indexing request. Valid range: 10–999        |
-| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                    |
-| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50 |
-| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                             |
-| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                            |
-| `plugins.content_manager.catalog.content.context`    | String  | `development_0.0.3`                      | CTI catalog content context identifier                                  |
-| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3`                 | CTI catalog content consumer identifier                                 |
-| `plugins.content_manager.ioc.content.context`        | String  | `ioc_provider_v3`                        | IoC content context identifier                                          |
-| `plugins.content_manager.ioc.content.consumer`       | String  | `iocs_v3`                                | IoC content consumer identifier                                         |
-| `plugins.content_manager.cve.content.context`        | String  | `vd_1.0.0`                               | CVE content context identifier                                          |
-| `plugins.content_manager.cve.content.consumer`       | String  | `vd_4.8.0`                               | CVE content consumer identifier                                         |
-| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content      |
+| Setting                                              | Type    | Default                                  | Description                                                                     |
+| ---------------------------------------------------- | ------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| `plugins.content_manager.cti.api`                    | String  | `https://api.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                                  |
+| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                                   |
+| `plugins.content_manager.max_items_per_bulk`         | Integer | `999`                                    | Maximum documents per bulk indexing request. Valid range: 10–999                |
+| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                            |
+| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50         |
+| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                                     |
+| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                                    |
+| `plugins.content_manager.catalog.content.context`    | String  | `t1-ruleset-5`                           | CTI catalog content context identifier                                          |
+| `plugins.content_manager.catalog.content.consumer`   | String  | `public-ruleset-5`                       | CTI catalog content consumer identifier                                         |
+| `plugins.content_manager.ioc.content.context`        | String  | `t1-iocs-5`                              | IoC content context identifier                                                  |
+| `plugins.content_manager.ioc.content.consumer`       | String  | `public-iocs-5`                          | IoC content consumer identifier                                                 |
+| `plugins.content_manager.cve.content.context`        | String  | `t1-vulnerabilities-5`                   | CVE content context identifier                                                  |
+| `plugins.content_manager.cve.content.consumer`       | String  | `public-vulnerabilities-5`               | CVE content consumer identifier                                                 |
+| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
 | `plugins.content_manager.telemetry.enabled`          | Boolean | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
 
 ## Configuration Examples
@@ -113,7 +113,7 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 
 ## Notes
 
-- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, with the exception of dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
+- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
 - The `context` and `consumer` settings should only be changed if instructed by Wazuh support or documentation, as they must match valid CTI API contexts.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled.

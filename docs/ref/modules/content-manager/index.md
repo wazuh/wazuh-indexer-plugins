@@ -14,9 +14,9 @@ Update check components are:
 
 The Content Manager periodically synchronizes content from the Wazuh CTI API. Three content contexts are managed:
 
-- **Catalog context** (`development_0.0.3`): Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
-- **IoC context** (`ioc_provider`): Contains Indicators of Compromise for threat detection.
-- **CVE context** (`vd_1.0.0`): Contains Common Vulnerabilities and Exposures data, stored in `.cti-cves`. CVE documents do not have a space and are not subject to removals from CTI.
+- **Catalog context**: Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
+- **IoC context**: Contains Indicators of Compromise for threat detection.
+- **CVE context**: Contains Common Vulnerabilities and Exposures data, stored in `.cti-cves`. CVE documents do not have a space and are not subject to removals from CTI.
 
 Each context has an associated **consumer** that tracks synchronization state (current offset, snapshot URL) in the `.cti-consumers` index.
 
@@ -31,7 +31,7 @@ On first run (when the local offset is `0`), the Content Manager performs a full
 
 ### Incremental Updates
 
-When the local offset is behind the remote offset, the Content Manager fetches changes in batches (up to 1000 per request) and applies create, update, and delete operations to the content indices. The local offset is updated after each successful batch.
+When the local offset is behind the remote offset, the Content Manager fetches changes in batches (up to 1000 per request) and applies creation, update, and removal operations to the content indices. The local offset is updated after each successful batch.
 
 If the local offset is ahead of the remote offset (e.g., consumer was changed), or if the update fails, the Content Manager resets to the latest snapshot to realign with the CTI API.
 
@@ -71,12 +71,12 @@ See the [API Reference](api.md) for endpoint details.
 
 The Content Manager organizes content into spaces:
 
-| Space | Description |
-|---|---|
-| **Standard** | Read-only content synced from the CTI API. This is the baseline detection content. |
-| **Draft** | Writable space for user-generated content. CUD operations target this space. |
-| **Test** | Used for logtest operations and content validation before final promotion. |
-| **Custom** | The final space for user content. Content promoted to this space is used by the Wazuh Engine (via the manager package) to actively decode and process logs. |
+| Space        | Description                                                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Standard** | Read-only content synced from the CTI API. This is the baseline detection content.                                                                          |
+| **Draft**    | Writable space for user-generated content. CUD operations target this space.                                                                                |
+| **Test**     | Used for logtest operations and content validation before final promotion.                                                                                  |
+| **Custom**   | The final space for user content. Content promoted to this space is used by the Wazuh Engine (via the manager package) to actively decode and process logs. |
 
 Content flows through spaces in a promotion chain: **Draft → Test → Custom**. The Standard space exists independently as the upstream CTI baseline. Each space maintains its own copies of rules, decoders, integrations, KVDBs, filters, and the routing policy within the system indices.
 
@@ -128,18 +128,18 @@ This socket is used for:
 
 The Content Manager uses the following system indices:
 
-| Index | Description |
-|---|---|
-| `.cti-consumers` | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs) |
-| `.cti-rules` | Detection rules (both CTI-synced and user-generated, across all spaces) |
-| `.cti-decoders` | Log decoders |
-| `.cti-integrations` | Integration definitions |
-| `.cti-kvdbs` | Key-value databases |
-| `.cti-policies` | Routing policies |
-| `.cti-iocs` | Indicators of Compromise |
-| `.cti-cves` | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
-| `.engine-filters` | Engine filters (routing filters for event classification) |
-| `.wazuh-content-manager-jobs` | Job Scheduler metadata for periodic sync and update check jobs |
+| Index                         | Description                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| `.cti-consumers`              | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs)   |
+| `.cti-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
+| `.cti-decoders`               | Log decoders                                                                        |
+| `.cti-integrations`           | Integration definitions                                                             |
+| `.cti-kvdbs`                  | Key-value databases                                                                 |
+| `.cti-policies`               | Routing policies                                                                    |
+| `.cti-iocs`                   | Indicators of Compromise                                                            |
+| `.cti-cves`                   | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
+| `.engine-filters`             | Engine filters (routing filters for event classification)                           |
+| `.wazuh-content-manager-jobs` | Job Scheduler metadata for periodic sync and update check jobs                      |
 
 ## CTI Subscription
 
