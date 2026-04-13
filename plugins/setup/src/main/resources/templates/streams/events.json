@@ -2292,6 +2292,15 @@
           }
         },
         {
+          "wcs_enrichments_indicator_id": {
+            "path_match": "enrichments.indicator.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_enrichments_indicator_last_seen": {
             "path_match": "enrichments.indicator.last_seen",
             "mapping": {
@@ -2320,6 +2329,42 @@
         {
           "wcs_enrichments_indicator_reference": {
             "path_match": "enrichments.indicator.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_software_alias": {
+            "path_match": "enrichments.indicator.software.alias",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_software_name": {
+            "path_match": "enrichments.indicator.software.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_software_type": {
+            "path_match": "enrichments.indicator.software.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_enrichments_indicator_tags": {
+            "path_match": "enrichments.indicator.tags",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -10399,6 +10444,15 @@
           }
         },
         {
+          "wcs_threat_enrichments_indicator_feed_name": {
+            "path_match": "threat.enrichments.indicator.feed.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_threat_enrichments_indicator_file_accessed": {
             "path_match": "threat.enrichments.indicator.file.accessed",
             "mapping": {
@@ -11592,6 +11646,15 @@
           }
         },
         {
+          "wcs_threat_enrichments_indicator_id": {
+            "path_match": "threat.enrichments.indicator.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_threat_enrichments_indicator_ip": {
             "path_match": "threat.enrichments.indicator.ip",
             "mapping": {
@@ -11744,6 +11807,42 @@
             "path_match": "threat.enrichments.indicator.sightings",
             "mapping": {
               "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_threat_enrichments_indicator_software_alias": {
+            "path_match": "threat.enrichments.indicator.software.alias",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_threat_enrichments_indicator_software_name": {
+            "path_match": "threat.enrichments.indicator.software.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_threat_enrichments_indicator_software_type": {
+            "path_match": "threat.enrichments.indicator.software.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_threat_enrichments_indicator_tags": {
+            "path_match": "threat.enrichments.indicator.tags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -15618,6 +15717,14 @@
           }
         },
         {
+          "wcs_vulnerability_detected_at": {
+            "path_match": "vulnerability.detected_at",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
           "wcs_vulnerability_enumeration": {
             "path_match": "vulnerability.enumeration",
             "mapping": {
@@ -15632,6 +15739,14 @@
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_vulnerability_published_at": {
+            "path_match": "vulnerability.published_at",
+            "mapping": {
+              "type": "date"
             }
           }
         },
@@ -15654,8 +15769,26 @@
           }
         },
         {
+          "wcs_vulnerability_scanner_condition": {
+            "path_match": "vulnerability.scanner.condition",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_vulnerability_scanner_reference": {
             "path_match": "vulnerability.scanner.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_vulnerability_scanner_source": {
+            "path_match": "vulnerability.scanner.source",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -15710,6 +15843,14 @@
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_vulnerability_under_evaluation": {
+            "path_match": "vulnerability.under_evaluation",
+            "mapping": {
+              "type": "boolean"
             }
           }
         },
@@ -16578,6 +16719,9 @@
               "properties": {
                 "feed": {
                   "properties": {}
+                },
+                "software": {
+                  "properties": {}
                 }
               }
             }
@@ -17243,6 +17387,9 @@
                     "email": {
                       "properties": {}
                     },
+                    "feed": {
+                      "properties": {}
+                    },
                     "file": {
                       "properties": {
                         "code_signature": {
@@ -17295,6 +17442,9 @@
                           "properties": {}
                         }
                       }
+                    },
+                    "software": {
+                      "properties": {}
                     },
                     "url": {
                       "properties": {}

@@ -54,11 +54,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.cti.catalog.model.Cve;
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
-import com.wazuh.contentmanager.cti.catalog.model.Ioc;
-import com.wazuh.contentmanager.cti.catalog.model.Operation;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.cti.catalog.model.*;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -260,6 +256,13 @@ public class ContentIndex {
 
         // 2. Patch
         ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
+
+        // Resources from the VD feed do not contain a "document" object, so we need to patch the root
+        // document instead of the "document" node.
+        if (this.indexName.equals(Constants.INDEX_CVES)) {
+            currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
+        }
+
         for (Operation op : operations) {
             JsonNode opJson = this.mapper.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);

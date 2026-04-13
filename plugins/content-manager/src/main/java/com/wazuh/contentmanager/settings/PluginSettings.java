@@ -52,16 +52,16 @@ public class PluginSettings {
     private static final boolean DEFAULT_CREATE_DETECTORS = true;
 
     // Default values for Context and Consumer
-    private static final String DEFAULT_CONTENT_CONTEXT = "development_0.0.3";
-    private static final String DEFAULT_CONTENT_CONSUMER = "development_0.0.3";
+    private static final String DEFAULT_CONTENT_CONTEXT = "t1-ruleset-5";
+    private static final String DEFAULT_CONTENT_CONSUMER = "public-ruleset-5";
 
     // Default values for IOC Context and Consumer
-    private static final String DEFAULT_IOC_CONTEXT = "ioc_provider_v3";
-    private static final String DEFAULT_IOC_CONSUMER = "iocs_v3";
+    private static final String DEFAULT_IOC_CONTEXT = "t1-iocs-5";
+    private static final String DEFAULT_IOC_CONSUMER = "public-iocs-5";
 
     // Default values for CVE Context and Consumer
-    private static final String DEFAULT_CVE_CONTEXT = "vd_1.0.0";
-    private static final String DEFAULT_CVE_CONSUMER = "vd_4.8.0";
+    private static final String DEFAULT_CVE_CONTEXT = "t1-vulnerabilities-5";
+    private static final String DEFAULT_CVE_CONSUMER = "public-vulnerabilities-5";
 
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
@@ -70,7 +70,7 @@ public class PluginSettings {
     private static PluginSettings INSTANCE;
 
     /** Base Wazuh CTI URL */
-    public static final String CTI_URL = "https://cti.pre.cloud.wazuh.com/api/v1";
+    public static final String CTI_URL = "https://api.pre.cloud.wazuh.com/api/v1";
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =

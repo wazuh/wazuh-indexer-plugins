@@ -89,6 +89,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add 'status' field to internal consumers index [(#962)](https://github.com/wazuh/wazuh-indexer-plugins/pull/962)
 - Extend logTest endpoint to test rules [(#976)](https://github.com/wazuh/wazuh-indexer-plugins/pull/976)
 - Add --set-as-main flag support to repository bumper [(#978)](https://github.com/wazuh/wazuh-indexer-plugins/pull/978)
+- Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
+- Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
 
 
 ### Dependencies
@@ -145,6 +147,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update custom policy metadata [(#951)](https://github.com/wazuh/wazuh-indexer-plugins/pull/951)
 - Update documentation for extended Sigma rule syntax [(#954)](https://github.com/wazuh/wazuh-indexer-plugins/pull/954)
 - Set mapping to `strict_allow_templates` for stateless main events [(#960)](https://github.com/wazuh/wazuh-indexer-plugins/pull/960)
+- Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 
 ### Deprecated
 -
@@ -175,6 +178,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix flaky tests on Setup plugin [(#888)](https://github.com/wazuh/wazuh-indexer-plugins/pull/888/)
 - Fix link-checker workflow [(#890)](https://github.com/wazuh/wazuh-indexer-plugins/pull/890)
 - Fix race condition on .cti-consumers index creation [(#928)](https://github.com/wazuh/wazuh-indexer-plugins/pull/928)
+- Fix Splunk KV Store startup failure [(#984)](https://github.com/wazuh/wazuh-indexer-plugins/pull/984)
+- Fix CodeQL reporting security warnings [(#992)](https://github.com/wazuh/wazuh-indexer-plugins/pull/992)
+- Reset spaces in Security Analytics [(#1000)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1000)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

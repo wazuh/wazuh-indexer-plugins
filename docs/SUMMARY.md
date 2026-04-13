@@ -47,6 +47,8 @@
     - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)
     - [Usage](ref/modules/reporting/usage.md)
+  - [Security Analytics](ref/modules/security-analytics/index.md)
+    - [Architecture](ref/modules/security-analytics/architecture.md)
   - [Notifications](ref/modules/notifications/index.md)
     - [Architecture](ref/modules/notifications/architecture.md)
     - [Configuration](ref/modules/notifications/configuration.md)

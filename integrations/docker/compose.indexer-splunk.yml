@@ -127,7 +127,7 @@ services:
       		-ca root-ca.pem \
       		-ca-key root-ca.key \
       		-config /conf/cfssl.json \
-      		-profile=server - | \
+      		-profile=peer - | \
       	cfssljson -bare splunk
       	openssl pkcs8 -topk8 -inform pem -in splunk-key.pem -outform pem -nocrypt -out splunk.key
         rm splunk.csr

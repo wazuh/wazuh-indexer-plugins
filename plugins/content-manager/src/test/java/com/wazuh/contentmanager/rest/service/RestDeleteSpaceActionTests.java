@@ -24,13 +24,11 @@ import org.opensearch.test.rest.FakeRestRequest;
 import org.junit.Assert;
 import org.junit.Before;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -55,19 +53,18 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        EngineService engineService = mock(EngineService.class);
         this.spaceService = mock(SpaceService.class);
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
 
-        this.action = new RestDeleteSpaceAction(engineService);
+        this.action = new RestDeleteSpaceAction();
 
         this.action.setSpaceService(this.spaceService);
         this.action.setSecurityAnalyticsService(this.securityAnalyticsService);
     }
 
     /**
-     * Test successful reset of the "draft" space. Verifies that SAP resources and space documents are
-     * deleted, the default policy is recreated, and the engine logtest session is NOT cleared.
+     * Test successful reset of the "draft" space. Verifies that SAP resources are deleted first, then
+     * space documents are removed, and finally the default policy is recreated.
      */
     public void testDeleteSpace_Success_Draft() throws Exception {
         RestRequest request =
@@ -75,44 +72,31 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
                         .withParams(Map.of(Constants.KEY_SPACE, "draft"))
                         .build();
 
-        // Mock resources returned to delete them from SAP
-        Map<String, Map<String, String>> resources = new HashMap<>();
-        resources.put(Constants.KEY_RULES, Map.of("rule1", "hash1"));
-        resources.put(Constants.KEY_INTEGRATIONS, Map.of("int1", "hash2"));
-        when(this.spaceService.getSpaceResources("draft")).thenReturn(resources);
-
         RestResponse response = this.action.handleRequest(request);
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.securityAnalyticsService).deleteRule("rule1", Space.DRAFT);
-        verify(this.securityAnalyticsService).deleteIntegration("int1", Space.DRAFT);
-        verify(this.spaceService).deleteSpaceResources("draft");
+        verify(this.securityAnalyticsService).deleteSpaceResources(Space.DRAFT);
+        verify(this.spaceService).deleteSpaceResources(Space.DRAFT);
         verify(this.spaceService).initializeSpace(eq("draft"), anyString());
     }
 
     /**
-     * Test that if an exception occurs during individual SAP resource deletions, the reset process
-     * catches it and continues to delete the rest of the space successfully.
+     * Test that if deleteSpaceResources throws an IOException, the handler catches it and returns a
+     * 500 response.
      */
-    public void testDeleteSpace_SAPDeletionThrowsException_ContinuesSuccessfully() throws Exception {
+    public void testDeleteSpace_ResetSpaceThrowsException_Returns500() throws Exception {
         RestRequest request =
                 new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                         .withParams(Map.of(Constants.KEY_SPACE, "draft"))
                         .build();
 
-        Map<String, Map<String, String>> resources = new HashMap<>();
-        resources.put(Constants.KEY_RULES, Map.of("rule1", "hash1"));
-        when(this.spaceService.getSpaceResources("draft")).thenReturn(resources);
-
         doThrow(new RuntimeException("Simulated SAP error"))
                 .when(this.securityAnalyticsService)
-                .deleteRule(anyString(), any(Space.class));
+                .deleteSpaceResources(any(Space.class));
 
         RestResponse response = this.action.handleRequest(request);
 
-        // It should complete successfully despite the exception from SAP
-        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        verify(this.spaceService).deleteSpaceResources("draft");
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 
     /**
@@ -146,8 +130,8 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test failure when a core component (like SpaceService) throws an unexpected exception. Expected
-     * outcome: 500 Internal Server Error.
+     * Test failure when a core component throws an unexpected exception. Expected outcome: 500
+     * Internal Server Error.
      */
     public void testDeleteSpace_Exception_Returns500() throws Exception {
         RestRequest request =
@@ -155,8 +139,9 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
                         .withParams(Map.of(Constants.KEY_SPACE, "draft"))
                         .build();
 
-        when(this.spaceService.getSpaceResources("draft"))
-                .thenThrow(new RuntimeException("Simulated catastrophic failure"));
+        doThrow(new RuntimeException("Simulated catastrophic failure"))
+                .when(this.spaceService)
+                .deleteSpaceResources(any(Space.class));
 
         RestResponse response = this.action.handleRequest(request);
 

@@ -412,6 +412,45 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         log.info(Constants.I_LOG_SAP_DELETE_ASYNC, "detector", id, "");
     }
 
+    @Override
+    public void deleteSpaceResources(Space space) {
+        // Translate STANDARD to SIGMA for SAP operations, matching the source name used
+        // when the resources were originally indexed.
+        Space sapSpace = (space == Space.STANDARD) ? Space.SIGMA : space;
+
+        try {
+            String source = sapSpace.asSecurityAnalyticsSource();
+            WDeleteSpaceResourcesResponse response =
+                    this.client
+                            .execute(
+                                    WDeleteSpaceResourcesAction.INSTANCE,
+                                    new WDeleteSpaceResourcesRequest(source, WriteRequest.RefreshPolicy.IMMEDIATE))
+                            .actionGet();
+
+            if (response.hasFailures()) {
+                log.warn(
+                        "Partial failures deleting SAP resources for space [{}]: {}",
+                        space,
+                        response.getFailureMessage());
+            }
+
+            log.info(
+                    "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]",
+                    response.getDeletedIntegrations(),
+                    response.getDeletedRules(),
+                    space);
+        } catch (Exception e) {
+            String message =
+                    String.format(
+                            Locale.ROOT,
+                            "Failed to delete Security Analytics resources for space [%s]: %s",
+                            space,
+                            e.getMessage());
+            log.error(message);
+            throw new OpenSearchException(message, e);
+        }
+    }
+
     /**
      * Executes an action asynchronously, bridging between the wildcard listener from the interface
      * and the concrete response type required by {@link Client#execute}.

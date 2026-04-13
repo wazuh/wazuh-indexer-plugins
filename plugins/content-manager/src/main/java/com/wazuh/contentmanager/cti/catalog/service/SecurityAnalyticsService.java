@@ -158,4 +158,12 @@ public interface SecurityAnalyticsService {
      * @return The evaluation result as a JSON string.
      */
     String evaluateRules(String eventJson, List<String> ruleBodies);
+  
+    /**
+     * Deletes all Security Analytics resources (integrations, rules, and detectors) belonging to the
+     * given space. Sends a single bulk-delete action to SAP, which handles the deletion internally.
+     *
+     * @param space The space whose resources should be deleted.
+     */
+    void deleteSpaceResources(Space space);
 }

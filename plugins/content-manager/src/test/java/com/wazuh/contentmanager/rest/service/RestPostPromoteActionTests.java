@@ -99,7 +99,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
                 .thenReturn(mockDocument);
 
         // Mock getResourcesBySpace to return empty maps (target space is empty)
-        when(this.spaceService.getResourcesBySpace(anyString(), anyString()))
+        when(this.spaceService.getResourcesBySpace(anyString(), any(Space.class)))
                 .thenReturn(new HashMap<>());
 
         // Mock buildEnginePayload to return a valid JsonNode

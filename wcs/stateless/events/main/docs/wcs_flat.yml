@@ -3396,6 +3396,18 @@ enrichments.indicator.first_seen:
   normalize: []
   short: Date/time indicator was first reported.
   type: date
+enrichments.indicator.id:
+  dashed_name: enrichments-indicator-id
+  description: Unique identifier for the enrichment data, such as a hash of the indicator
+    data or a unique ID from the provider.
+  flat_name: enrichments.indicator.id
+  ignore_above: 1024
+  level: custom
+  name: indicator.id
+  normalize: []
+  short: Unique identifier for the enrichment data, such as a hash of the indicator
+    data or a unique ID from the provider.
+  type: keyword
 enrichments.indicator.last_seen:
   dashed_name: enrichments-indicator-last-seen
   description: Date/time indicator was last reported.
@@ -3434,6 +3446,61 @@ enrichments.indicator.reference:
   name: indicator.reference
   normalize: []
   short: Indicator reference URL.
+  type: keyword
+enrichments.indicator.software:
+  dashed_name: enrichments-indicator-software
+  description: Name of the software associated with the indicator, such as malware
+    or attack framework.
+  flat_name: enrichments.indicator.software
+  level: custom
+  name: indicator.software
+  normalize: []
+  short: Name of the software associated with the indicator, such as malware or attack
+    framework.
+  type: object
+enrichments.indicator.software.alias:
+  dashed_name: enrichments-indicator-software-alias
+  description: Alias or alternative names for the software associated with the indicator.
+  flat_name: enrichments.indicator.software.alias
+  ignore_above: 1024
+  level: custom
+  name: indicator.software.alias
+  normalize:
+  - array
+  short: Alias or alternative names for the software associated with the indicator.
+  type: keyword
+enrichments.indicator.software.name:
+  dashed_name: enrichments-indicator-software-name
+  description: Name of the software associated with the indicator.
+  flat_name: enrichments.indicator.software.name
+  ignore_above: 1024
+  level: custom
+  name: indicator.software.name
+  normalize: []
+  short: Name of the software associated with the indicator.
+  type: keyword
+enrichments.indicator.software.type:
+  dashed_name: enrichments-indicator-software-type
+  description: Type of software associated with the indicator, such as malware, attack
+    framework, or tool.
+  flat_name: enrichments.indicator.software.type
+  ignore_above: 1024
+  level: custom
+  name: indicator.software.type
+  normalize: []
+  short: Type of software associated with the indicator, such as malware, attack framework,
+    or tool.
+  type: keyword
+enrichments.indicator.tags:
+  dashed_name: enrichments-indicator-tags
+  description: List of tags associated with the indicator.
+  flat_name: enrichments.indicator.tags
+  ignore_above: 1024
+  level: custom
+  name: indicator.tags
+  normalize:
+  - array
+  short: List of tags associated with the indicator.
   type: keyword
 enrichments.indicator.type:
   dashed_name: enrichments-indicator-type
@@ -16492,6 +16559,16 @@ threat.enrichments.indicator.email.address:
   normalize: []
   short: Indicator email address
   type: keyword
+threat.enrichments.indicator.feed.name:
+  dashed_name: threat-enrichments-indicator-feed-name
+  description: Name of the feed that supplied the indicator.
+  flat_name: threat.enrichments.indicator.feed.name
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.feed.name
+  normalize: []
+  short: Name of the feed that supplied the indicator.
+  type: keyword
 threat.enrichments.indicator.file.accessed:
   dashed_name: threat-enrichments-indicator-file-accessed
   description: 'Last time the file was accessed.
@@ -18234,6 +18311,18 @@ threat.enrichments.indicator.geo.timezone:
   original_fieldset: geo
   short: Time zone.
   type: keyword
+threat.enrichments.indicator.id:
+  dashed_name: threat-enrichments-indicator-id
+  description: Unique identifier for the enrichment data, such as a hash of the indicator
+    data or a unique ID from the provider.
+  flat_name: threat.enrichments.indicator.id
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.id
+  normalize: []
+  short: Unique identifier for the enrichment data, such as a hash of the indicator
+    data or a unique ID from the provider.
+  type: keyword
 threat.enrichments.indicator.ip:
   dashed_name: threat-enrichments-indicator-ip
   description: Identifies a threat indicator as an IP address (irrespective of direction).
@@ -18458,6 +18547,61 @@ threat.enrichments.indicator.sightings:
   normalize: []
   short: Number of times indicator observed
   type: long
+threat.enrichments.indicator.software:
+  dashed_name: threat-enrichments-indicator-software
+  description: Name of the software associated with the indicator, such as malware
+    or attack framework.
+  flat_name: threat.enrichments.indicator.software
+  level: custom
+  name: enrichments.indicator.software
+  normalize: []
+  short: Name of the software associated with the indicator, such as malware or attack
+    framework.
+  type: object
+threat.enrichments.indicator.software.alias:
+  dashed_name: threat-enrichments-indicator-software-alias
+  description: Alias or alternative names for the software associated with the indicator.
+  flat_name: threat.enrichments.indicator.software.alias
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.software.alias
+  normalize:
+  - array
+  short: Alias or alternative names for the software associated with the indicator.
+  type: keyword
+threat.enrichments.indicator.software.name:
+  dashed_name: threat-enrichments-indicator-software-name
+  description: Name of the software associated with the indicator.
+  flat_name: threat.enrichments.indicator.software.name
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.software.name
+  normalize: []
+  short: Name of the software associated with the indicator.
+  type: keyword
+threat.enrichments.indicator.software.type:
+  dashed_name: threat-enrichments-indicator-software-type
+  description: Type of software associated with the indicator, such as malware, attack
+    framework, or tool.
+  flat_name: threat.enrichments.indicator.software.type
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.software.type
+  normalize: []
+  short: Type of software associated with the indicator, such as malware, attack framework,
+    or tool.
+  type: keyword
+threat.enrichments.indicator.tags:
+  dashed_name: threat-enrichments-indicator-tags
+  description: List of tags associated with the indicator.
+  flat_name: threat.enrichments.indicator.tags
+  ignore_above: 1024
+  level: custom
+  name: enrichments.indicator.tags
+  normalize:
+  - array
+  short: List of tags associated with the indicator.
+  type: keyword
 threat.enrichments.indicator.type:
   dashed_name: threat-enrichments-indicator-type
   description: Type of indicator as represented by Cyber Observable in STIX 2.0.
@@ -24279,6 +24423,15 @@ vulnerability.description:
   normalize: []
   short: Description of the vulnerability.
   type: keyword
+vulnerability.detected_at:
+  dashed_name: vulnerability-detected-at
+  description: Vulnerability's detection date.
+  flat_name: vulnerability.detected_at
+  level: custom
+  name: detected_at
+  normalize: []
+  short: Vulnerability's detection date.
+  type: date
 vulnerability.enumeration:
   dashed_name: vulnerability-enumeration
   description: The type of identifier used for this vulnerability. For example (https://cve.mitre.org/about/)
@@ -24303,6 +24456,15 @@ vulnerability.id:
   normalize: []
   short: ID of the vulnerability.
   type: keyword
+vulnerability.published_at:
+  dashed_name: vulnerability-published-at
+  description: Vulnerability's publication date.
+  flat_name: vulnerability.published_at
+  level: custom
+  name: published_at
+  normalize: []
+  short: Vulnerability's publication date.
+  type: date
 vulnerability.reference:
   dashed_name: vulnerability-reference
   description: A resource that provides additional information, context, and mitigations
@@ -24326,11 +24488,22 @@ vulnerability.report_id:
   normalize: []
   short: Scan identification number.
   type: keyword
+vulnerability.scanner.condition:
+  dashed_name: vulnerability-scanner-condition
+  description: The condition matched by the package that led the scanner to consider
+    it vulnerable.
+  flat_name: vulnerability.scanner.condition
+  ignore_above: 1024
+  level: custom
+  name: scanner.condition
+  normalize: []
+  short: The condition matched by the package that led the scanner to consider it
+    vulnerable.
+  type: keyword
 vulnerability.scanner.reference:
   dashed_name: vulnerability-scanner-reference
   description: Scanner's resource that provides additional information, context, and
     mitigations for the identified vulnerability.
-  example: https://www.example.com/vulnerability/12345
   flat_name: vulnerability.scanner.reference
   ignore_above: 1024
   level: custom
@@ -24338,6 +24511,17 @@ vulnerability.scanner.reference:
   normalize: []
   short: Scanner's resource that provides additional information, context, and mitigations
     for the identified vulnerability.
+  type: keyword
+vulnerability.scanner.source:
+  dashed_name: vulnerability-scanner-source
+  description: The origin of the decision of the scanner (AKA feed used to detect
+    the vulnerability).
+  flat_name: vulnerability.scanner.source
+  ignore_above: 1024
+  level: custom
+  name: scanner.source
+  normalize: []
+  short: The origin of the decision of the scanner (AKA feed used to detect the vulnerability).
   type: keyword
 vulnerability.scanner.vendor:
   dashed_name: vulnerability-scanner-vendor
@@ -24418,6 +24602,15 @@ vulnerability.severity:
   normalize: []
   short: Severity of the vulnerability.
   type: keyword
+vulnerability.under_evaluation:
+  dashed_name: vulnerability-under-evaluation
+  description: Indicates if the vulnerability is awaiting analysis by the NVD.
+  flat_name: vulnerability.under_evaluation
+  level: custom
+  name: under_evaluation
+  normalize: []
+  short: Indicates if the vulnerability is awaiting analysis by the NVD.
+  type: boolean
 wazuh.agent.build.original:
   dashed_name: wazuh-agent-build-original
   description: 'Extended build information for the agent.
