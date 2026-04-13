@@ -486,11 +486,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return rawCategory;
         }
 
-        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
-        // TODO can be removed. Subcategories are gone.
-        if (rawCategory.contains("cloud-services")) {
-            rawCategory = rawCategory.substring(0, 14);
-        }
         return Arrays.stream(rawCategory.split("-"))
                 .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
                 .trim();
