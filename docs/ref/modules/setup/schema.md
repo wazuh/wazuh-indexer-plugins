@@ -38,7 +38,6 @@ The **Key** column is the canonical identifier used throughout the system — in
 Each category maps to a dedicated data stream following the pattern `wazuh-events-v5-{key}`:
 
 **Events**
-
 ```
 wazuh-events-v5-access-management
 wazuh-events-v5-applications
