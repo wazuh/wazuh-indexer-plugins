@@ -194,7 +194,7 @@ curl -sk -u admin:admin -X POST \
 
 Sends a log event to the Wazuh Engine for analysis and evaluates the integration's Sigma rules against the normalized event via the Security Analytics Plugin (SAP). The response combines the Engine's decoded output with the SAP rule evaluation results.
 
-> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. The integration must exist in the `test` space.
+> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. The integration must exist in the specified space.
 
 **Request**
 - Method: `POST`
@@ -205,7 +205,7 @@ Sends a log event to the Wazuh Engine for analysis and evaluates the integration
 | Field            | Type    | Required | Description                                          |
 | ---------------- | ------- | -------- | ---------------------------------------------------- |
 | `integration`    | String  | Yes      | ID of the integration to test against                |
-| `space`          | String  | Yes      | Must be `"test"`                                     |
+| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
 | `queue`          | Integer | Yes      | Queue number for logtest execution                   |
 | `location`       | String  | Yes      | Log file path or logical source location             |
 | `event`          | String  | Yes      | Raw log event to test                                |
@@ -232,9 +232,9 @@ curl -sk -u admin:admin -X POST \
 
 ```json
 {
-  "engine_result": {
-    "status": "success",
-    "processed_event": {
+  "status": 200,
+  "message": {
+    "normalization": {
       "output": {
         "event": {
           "category": ["database"],
@@ -250,23 +250,32 @@ curl -sk -u admin:admin -X POST \
         },
         "message": "Node is ready to serve"
       },
-      "asset_traces": []
-    }
-  },
-  "security_analytics_result": {
-    "status": "success",
-    "rules_evaluated": 2,
-    "rules_matched": 1,
-    "matches": [
-      {
-        "rule_id": "85bba177-a2e9-4468-9d59-26f4798906c9",
-        "rule_name": "Cassandra Database Event Detected",
-        "severity": "low",
-        "matched_conditions": ["event.category == 'database'", "event.kind == 'event'"],
-        "tags": []
+      "asset_traces": [],
+      "validation": {
+        "valid": true,
+        "errors": []
       }
-    ]
-  },
+    },
+    "detection": {
+      "status": "success",
+      "rules_evaluated": 2,
+      "rules_matched": 1,
+      "matches": [
+        {
+          "rule": {
+            "id": "85bba177-a2e9-4468-9d59-26f4798906c9",
+            "title": "Cassandra Database Event Detected",
+            "level": "low",
+            "tags": []
+          },
+          "matched_conditions": [
+            "event.category matched 'database'",
+            "event.kind matched 'event'"
+          ]
+        }
+      ]
+    }
+  }
 }
 ```
 
@@ -274,16 +283,19 @@ curl -sk -u admin:admin -X POST \
 
 ```json
 {
-  "engine_result": {
-    "status": "error",
-    "error": {
-      "message": "Failed to parse protobuff json request: invalid value",
-      "code": "ENGINE_ERROR"
+  "status": 200,
+  "message": {
+    "normalization": {
+      "status": "error",
+      "error": {
+        "message": "Failed to parse protobuff json request: invalid value",
+        "code": "ENGINE_ERROR"
+      }
+    },
+    "detection": {
+      "status": "skipped",
+      "reason": "Engine processing failed"
     }
-  },
-  "security_analytics_result": {
-    "status": "skipped",
-    "reason": "Engine processing failed"
   }
 }
 ```
@@ -292,31 +304,39 @@ curl -sk -u admin:admin -X POST \
 
 ```json
 {
-  "engine_result": {
-    "status": "success",
-    "processed_event": { "..." : "..." }
-  },
-  "security_analytics_result": {
-    "status": "success",
-    "rules_evaluated": 0,
-    "rules_matched": 0,
-    "matches": []
+  "status": 200,
+  "message": {
+    "normalization": {
+      "output": { "..." : "..." },
+      "asset_traces": [],
+      "validation": { "valid": true, "errors": [] }
+    },
+    "detection": {
+      "status": "success",
+      "rules_evaluated": 0,
+      "rules_matched": 0,
+      "matches": []
+    }
   }
 }
 ```
 
 **Response Fields**
 
-| Field                                       | Type    | Description                                        |
-| ------------------------------------------- | ------- | -------------------------------------------------- |
-| `engine_result.status`                      | String  | `"success"` or `"error"`                           |
-| `engine_result.processed_event`             | Object  | Engine output (normalized event + asset traces)    |
-| `engine_result.error`                       | Object  | Present on error: `message` and `code`             |
-| `security_analytics_result.status`          | String  | `"success"`, `"error"`, or `"skipped"`             |
-| `security_analytics_result.reason`          | String  | Present when status is `"skipped"`                 |
-| `security_analytics_result.rules_evaluated` | Integer | Number of Sigma rules evaluated                    |
-| `security_analytics_result.rules_matched`   | Integer | Number of rules that matched                       |
-| `security_analytics_result.matches`         | Array   | List of matched rules with details                 |
+| Field                                  | Type    | Description                                                  |
+| -------------------------------------- | ------- | ------------------------------------------------------------ |
+| `normalization.output`                 | Object  | Engine normalized event output                               |
+| `normalization.asset_traces`           | Array   | List of decoders that processed the event                    |
+| `normalization.validation`             | Object  | Validation result (`valid`, `errors`)                        |
+| `normalization.status`                 | String  | Present on error: `"error"`                                  |
+| `normalization.error`                  | Object  | Present on error: `message` and `code`                       |
+| `detection.status`                     | String  | `"success"`, `"error"`, or `"skipped"`                       |
+| `detection.reason`                     | String  | Present when status is `"skipped"`                           |
+| `detection.rules_evaluated`            | Integer | Number of Sigma rules evaluated                              |
+| `detection.rules_matched`              | Integer | Number of rules that matched                                 |
+| `detection.matches`                    | Array   | List of matched rules with details                           |
+| `detection.matches[].rule`             | Object  | Rule metadata: `id`, `title`, `level`, `tags`                |
+| `detection.matches[].matched_conditions` | Array | Human-readable descriptions of conditions that matched       |
 
 **Status Codes**
 

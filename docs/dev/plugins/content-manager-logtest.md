@@ -17,9 +17,9 @@ The REST handler for `POST /_plugins/_content_manager/logtest`. Responsibilities
 
 1. Validates the request has content and is valid JSON.
 2. Validates required fields (`integration`, `space`).
-3. Validates that `space` is exactly `"test"`.
+3. Validates that `space` is `"test"` or `"standard"`.
 4. Strips the `integration` field from the payload (it's not part of the Engine request).
-5. Delegates to `LogtestService.executeLogtest(integrationId, enginePayload)`.
+5. Delegates to `LogtestService.executeLogtest(integrationId, space, enginePayload)`.
 
 The handler does **not** interact with indices or external services directly, all business logic is in the service.
 
@@ -29,11 +29,11 @@ The handler does **not** interact with indices or external services directly, al
 
 The orchestrator. Executes the full logtest flow:
 
-1. **Integration lookup** — Queries `.cti-integrations` for a document matching `document.id == integrationId` and `space.name == "test"`. Returns 400 if not found.
-2. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field.
-3. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `.cti-rules` by `document.id`.
+1. **Integration lookup** — Queries `.cti-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
+2. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
+3. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `.cti-rules` by `document.id`, filtered by the same space.
 4. **SAP evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
-5. **Response building** — Combines engine and SAP results into a single JSON response.
+5. **Response building** — Combines engine and SAP results into a single JSON response under the keys `normalization` and `detection`.
 
 **Error handling**:
 - If the Engine fails (HTTP error or exception), SAP evaluation is **skipped** and the response includes `status: "skipped"` with the reason.
@@ -51,9 +51,20 @@ The `EventMatcher` handles:
 - Field-equals-value conditions (exact match, case-insensitive)
 - Keyword (value-only) conditions (searches all event fields)
 - Wildcards (`*` for multi-char, `?` for single-char) via cached compiled regex patterns
-- Boolean, numeric, null, and string comparisons
+- String modifiers: `contains`, `startswith`, `endswith`
+- Explicit regex (`re` modifier)
+- CIDR subnet matching (IPv4 and IPv6)
+- Boolean, numeric (gt, gte, lt, lte), null, and string comparisons
 - Composite conditions: AND, OR, NOT
 - List values (any element matching counts as a match)
+
+Match results use a nested `rule` object per match entry:
+```json
+{
+  "rule": { "id": "...", "title": "...", "level": "...", "tags": [...] },
+  "matched_conditions": [...]
+}
+```
 
 ## Data Flow
 
@@ -65,10 +76,10 @@ RestPostLogtestAction
     │  validates request
     │  strips "integration" field
     ▼
-LogtestService.executeLogtest(integrationId, payload)
+LogtestService.executeLogtest(integrationId, space, payload)
     │
     ├──► client.prepareSearch(".cti-integrations")
-    │       → finds integration in test space
+    │       → finds integration in given space (test or standard)
     │       → extracts rule IDs from document.rules
     │
     ├──► engineService.logtest(payload)
@@ -77,7 +88,7 @@ LogtestService.executeLogtest(integrationId, payload)
     │       → extracts "output" node as normalized event JSON
     │
     ├──► client.prepareSearch(".cti-rules")
-    │       → fetches rule bodies by document.id
+    │       → fetches rule bodies by document.id + space filter
     │
     ├──► securityAnalytics.evaluateRules(normalizedEventJson, ruleBodies)
     │       → parses YAML → SigmaRule objects
@@ -85,15 +96,15 @@ LogtestService.executeLogtest(integrationId, payload)
     │       → returns JSON result
     │
     └──► builds combined response
-            { engine_result: {...}, security_analytics_result: {...} }
+            { normalization: {...}, detection: {...} }
 ```
 
 ## Index Dependencies
 
 | Index | Usage | Query |
 | --- | --- | --- |
-| `.cti-integrations` | Look up integration by ID in test space | `document.id == X AND space.name == "test"` |
-| `.cti-rules` | Fetch rule bodies by document IDs | `document.id IN [...]` |
+| `.cti-integrations` | Look up integration by ID in the given space | `document.id == X AND space.name == {space}` |
+| `.cti-rules` | Fetch rule bodies by document IDs in the given space | `document.id IN [...] AND space.name == {space}` |
 
 Both indices must exist and have `document.id` mapped as `keyword` for term queries to work.
 
@@ -128,7 +139,7 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 ### Supporting a new Engine response field
 
 1. Update `LogtestService.executeEngine()` to extract the field.
-2. Include it in the `engine_result` map within `buildCombinedResponse()` or `buildMatchEntry()`.
+2. Include it in the `normalization` map within `buildCombinedResponse()`.
 3. Add unit test scenarios in `LogtestServiceTests`.
 4. Update the API docs (`api.md`) response fields table.
 

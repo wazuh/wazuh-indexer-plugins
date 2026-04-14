@@ -16,6 +16,8 @@ Draft → Test → Custom
 
 Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Security Analytics Plugin (SAP) evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
 
+Logtest supports both the `test` and `standard` spaces. Use `test` for validating draft content, and `standard` for testing against production rules.
+
 ---
 
 ## Step 1: Create an Integration
@@ -170,47 +172,47 @@ curl -sk -u admin:admin -X POST \
 
 The response has two sections:
 
-**`engine_result`** — Shows how the Engine decoded and normalized the event:
+**`normalization`** — Shows how the Engine decoded and normalized the event:
 
 ```json
 {
-  "engine_result": {
-    "status": "success",
-    "processed_event": {
-      "output": {
-        "event": {
-          "category": ["authentication"],
-          "kind": "event",
-          "outcome": "failure",
-          "original": "Dec 19 12:00:00 host sshd[12345]: Failed password for root from 10.0.0.1 port 54321 ssh2"
-        },
-        "source": { "ip": "10.0.0.1" },
-        "user": { "name": "root" }
+  "normalization": {
+    "output": {
+      "event": {
+        "category": ["authentication"],
+        "kind": "event",
+        "outcome": "failure",
+        "original": "Dec 19 12:00:00 host sshd[12345]: Failed password for root from 10.0.0.1 port 54321 ssh2"
       },
-      "asset_traces": ["decoder/sshd-auth/0"]
-    }
+      "source": { "ip": "10.0.0.1" },
+      "user": { "name": "root" }
+    },
+    "asset_traces": ["decoder/sshd-auth/0"],
+    "validation": { "valid": true, "errors": [] }
   }
 }
 ```
 
-**`security_analytics_result`** — Shows which Sigma rules matched the normalized event:
+**`detection`** — Shows which Sigma rules matched the normalized event:
 
 ```json
 {
-  "security_analytics_result": {
+  "detection": {
     "status": "success",
     "rules_evaluated": 1,
     "rules_matched": 1,
     "matches": [
       {
-        "rule_id": "85bba177-a2e9-4468-9d59-26f4798906c9",
-        "rule_name": "SSH Failed Password Attempt",
-        "severity": "medium",
+        "rule": {
+          "id": "85bba177-a2e9-4468-9d59-26f4798906c9",
+          "title": "SSH Failed Password Attempt",
+          "level": "medium",
+          "tags": ["attack.credential-access", "attack.t1110.001"]
+        },
         "matched_conditions": [
-          "event.category == 'authentication'",
-          "event.outcome == 'failure'"
-        ],
-        "tags": ["attack.credential-access", "attack.t1110.001"]
+          "event.category matched 'authentication'",
+          "event.outcome matched 'failure'"
+        ]
       }
     ]
   }
