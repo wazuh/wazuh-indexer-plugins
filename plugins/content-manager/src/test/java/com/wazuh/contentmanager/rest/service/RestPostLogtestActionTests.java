@@ -98,7 +98,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         when(request.hasContent()).thenReturn(false);
         RestResponse response = this.action.handleRequest(request);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
     }
 
     /** Invalid JSON returns 400. */
@@ -106,7 +106,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestRequest request = mockRequest("{not valid json");
         RestResponse response = this.action.handleRequest(request);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
     }
 
     /** Missing integration field returns 400. */
@@ -121,7 +121,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("integration"));
-        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
     }
 
     /** Missing space field returns 400. */
@@ -136,7 +136,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("space"));
-        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
     }
 
     /** Non-test space returns 400 with appropriate message. */
@@ -151,14 +151,14 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         RestResponse response = this.action.handleRequest(request);
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("draft"));
-        verify(this.logtestService, never()).executeLogtest(anyString(), any());
+        verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
     }
 
     /** Valid request delegates to LogtestService with correct arguments. */
     public void testValidRequestDelegatesToService() {
         RestResponse serviceResponse =
-                new RestResponse("{\"engine_result\":{}}", RestStatus.OK.getStatus());
-        when(this.logtestService.executeLogtest(anyString(), any(ObjectNode.class)))
+                new RestResponse("{\"normalization\":{}}", RestStatus.OK.getStatus());
+        when(this.logtestService.executeLogtest(anyString(), any(), any(ObjectNode.class)))
                 .thenReturn(serviceResponse);
 
         RestRequest request = mockRequest(validRequest());
@@ -166,7 +166,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         var captor = org.mockito.ArgumentCaptor.forClass(ObjectNode.class);
-        verify(this.logtestService).executeLogtest(eq(INTEGRATION_ID), captor.capture());
+        verify(this.logtestService).executeLogtest(eq(INTEGRATION_ID), any(), captor.capture());
 
         // Verify integration field is stripped from engine payload
         ObjectNode payload = captor.getValue();
@@ -179,9 +179,8 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
     /** Service response is returned as-is. */
     public void testServiceResponsePassedThrough() {
         RestResponse serviceResponse =
-                new RestResponse(
-                        "{\"engine_result\":{},\"security_analytics_result\":{}}", RestStatus.OK.getStatus());
-        when(this.logtestService.executeLogtest(anyString(), any(ObjectNode.class)))
+                new RestResponse("{\"normalization\":{},\"detection\":{}}", RestStatus.OK.getStatus());
+        when(this.logtestService.executeLogtest(anyString(), any(), any(ObjectNode.class)))
                 .thenReturn(serviceResponse);
 
         RestRequest request = mockRequest(validRequest());

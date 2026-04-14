@@ -43,7 +43,7 @@ import com.wazuh.contentmanager.utils.Constants;
  * <p>Steps:
  *
  * <ol>
- *   <li>Look up the integration in the {@code .cti-integrations} index (must be in test space)
+ *   <li>Look up the integration in the {@code .cti-integrations} index (test or standard space)
  *   <li>Send the event to the Wazuh Engine for decoding and normalization
  *   <li>Extract rule IDs from the integration and fetch rule bodies from {@code .cti-rules}
  *   <li>Evaluate the Sigma rules against the Engine's normalized event via SAP
@@ -78,13 +78,14 @@ public class LogtestService {
      * Executes the full logtest flow: integration lookup, engine processing, rule fetching, and SAP
      * evaluation.
      *
-     * @param integrationId the integration document ID to look up in the test space
+     * @param integrationId the integration document ID to look up
+     * @param space the space to search in (test or standard)
      * @param enginePayload the request payload to forward to the Engine (without the integration
      *     field)
      * @return a {@link RestResponse} containing the combined engine and SAP results as JSON
      */
-    public RestResponse executeLogtest(String integrationId, ObjectNode enginePayload) {
-        // 1. Look up integration from .cti-integrations by document.id + space=test
+    public RestResponse executeLogtest(String integrationId, Space space, ObjectNode enginePayload) {
+        // 1. Look up integration from .cti-integrations by document.id + space
         SearchResponse integrationSearchResponse;
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -98,7 +99,7 @@ public class LogtestService {
                                                             .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, integrationId))
                                                             .must(
                                                                     QueryBuilders.termQuery(
-                                                                            Constants.Q_SPACE_NAME, Space.TEST.toString())))
+                                                                            Constants.Q_SPACE_NAME, space.toString())))
                                             .size(1))
                             .get();
         } catch (Exception e) {
@@ -109,7 +110,7 @@ public class LogtestService {
 
         if (Objects.requireNonNull(integrationSearchResponse.getHits().getTotalHits()).value() == 0) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INTEGRATION_NOT_FOUND, integrationId),
+                    String.format(Locale.ROOT, Constants.E_400_INTEGRATION_NOT_FOUND, integrationId, space),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -129,7 +130,7 @@ public class LogtestService {
                 integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
         List<String> ruleIds = extractRuleIds(integrationSource);
         List<String> ruleBodies =
-                ruleIds.isEmpty() ? List.of() : fetchRuleBodies(integrationId, ruleIds);
+                ruleIds.isEmpty() ? List.of() : fetchRuleBodies(integrationId, ruleIds, space);
 
         // 4. Extract normalized event for SAP evaluation
         String normalizedEventJson = (String) engineResult.remove("_normalized_event");
@@ -182,8 +183,8 @@ public class LogtestService {
                 return buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
             }
 
-            engineResult.put(Constants.KEY_STATUS, "success");
-            engineResult.put("processed_event", mapper.readValue(engineResponse.getMessage(), Map.class));
+            Map<String, Object> processedEvent = mapper.readValue(engineResponse.getMessage(), Map.class);
+            engineResult.putAll(processedEvent);
 
             engineResult.put(
                     "_normalized_event", extractNormalizedEvent(engineJson, engineResponse.getMessage()));
@@ -242,8 +243,8 @@ public class LogtestService {
             Map<String, Object> engineResult, Map<String, Object> sapResult) {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> combinedResponse = new LinkedHashMap<>();
-        combinedResponse.put("engine_result", engineResult);
-        combinedResponse.put("security_analytics_result", sapResult);
+        combinedResponse.put("normalization", engineResult);
+        combinedResponse.put("detection", sapResult);
 
         try {
             String json = mapper.writeValueAsString(combinedResponse);
@@ -286,9 +287,10 @@ public class LogtestService {
      *
      * @param integrationId the integration ID (used for logging on failure)
      * @param ruleIds the list of rule document IDs to fetch
+     * @param space the space to filter rules by
      * @return list of rule body strings (may be smaller than ruleIds if some rules were not found)
      */
-    private List<String> fetchRuleBodies(String integrationId, List<String> ruleIds) {
+    private List<String> fetchRuleBodies(String integrationId, List<String> ruleIds, Space space) {
         ObjectMapper mapper = new ObjectMapper();
         List<String> ruleBodies = new ArrayList<>();
         try {
@@ -297,7 +299,12 @@ public class LogtestService {
                             .prepareSearch(Constants.INDEX_RULES)
                             .setSource(
                                     new SearchSourceBuilder()
-                                            .query(QueryBuilders.termsQuery(Constants.Q_DOCUMENT_ID, ruleIds))
+                                            .query(
+                                                    QueryBuilders.boolQuery()
+                                                            .must(QueryBuilders.termsQuery(Constants.Q_DOCUMENT_ID, ruleIds))
+                                                            .must(
+                                                                    QueryBuilders.termQuery(
+                                                                            Constants.Q_SPACE_NAME, space.toString())))
                                             .size(ruleIds.size()))
                             .get();
             for (SearchHit hit : rulesSearchResponse.getHits().getHits()) {

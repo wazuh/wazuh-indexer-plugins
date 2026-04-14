@@ -107,7 +107,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
      *   <li>Request has content
      *   <li>Content is valid JSON
      *   <li>Required fields {@code integration} and {@code space} are present
-     *   <li>Space value is exactly {@code "test"}
+     *   <li>Space value is {@code "test"} or {@code "standard"}
      * </ol>
      *
      * @param request the incoming REST request
@@ -137,10 +137,18 @@ public class RestPostLogtestAction extends BaseRestHandler {
         String integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
         String space = jsonNode.get(Constants.KEY_SPACE).asText();
 
-        // 4. Validate space is exactly "test"
-        if (!Space.TEST.toString().equalsIgnoreCase(space)) {
+        // 4. Validate space is "test" or "standard"
+        Space spaceEnum;
+        try {
+            spaceEnum = Space.fromValue(space);
+        } catch (IllegalArgumentException e) {
             return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INTEGRATION_NOT_IN_TEST_SPACE, space),
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
@@ -148,6 +156,6 @@ public class RestPostLogtestAction extends BaseRestHandler {
         ObjectNode enginePayload = jsonNode.deepCopy();
         enginePayload.remove(Constants.KEY_INTEGRATION);
 
-        return this.logtestService.executeLogtest(integrationId, enginePayload);
+        return this.logtestService.executeLogtest(integrationId, spaceEnum, enginePayload);
     }
 }

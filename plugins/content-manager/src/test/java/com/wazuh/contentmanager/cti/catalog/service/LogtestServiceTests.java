@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Locale;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import org.mockito.Mock;
@@ -155,7 +156,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
     public void testIntegrationNotFound() throws Exception {
         mockClientSearch(createEmptySearchResponse());
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains(INTEGRATION_ID));
         verify(this.engine, never()).logtest(any());
@@ -168,7 +170,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
                 .thenReturn(this.searchRequestBuilder);
         when(this.searchRequestBuilder.get()).thenThrow(new RuntimeException("search failed"));
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
         verify(this.engine, never()).logtest(any());
     }
@@ -190,7 +193,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         when(this.engine.logtest(any(JsonNode.class)))
                 .thenReturn(createEngineError("Engine processing failed"));
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"skipped\""));
         Assert.assertTrue(response.getMessage().contains("Engine processing failed"));
@@ -210,7 +214,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         when(this.engine.logtest(any(JsonNode.class)))
                 .thenThrow(new RuntimeException("socket timeout"));
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"skipped\""));
         Assert.assertTrue(response.getMessage().contains("socket timeout"));
@@ -236,7 +241,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             ));
         // spotless:on
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":0"));
@@ -273,10 +279,11 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             );
         // spotless:on
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("engine_result"));
-        Assert.assertTrue(response.getMessage().contains("security_analytics_result"));
+        Assert.assertTrue(response.getMessage().contains("normalization"));
+        Assert.assertTrue(response.getMessage().contains("detection"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":1"));
         verify(this.securityAnalytics, times(1)).evaluateRules(anyString(), anyList());
     }
@@ -306,7 +313,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             .thenReturn("{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}");
         // spotless:on
 
-        this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
 
         // Verify the normalized event (output node) was passed to SAP
         var eventCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
@@ -337,7 +344,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             ));
         // spotless:on
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
         verify(this.securityAnalytics, never()).evaluateRules(anyString(), anyList());
@@ -368,7 +376,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // SAP returns unparseable response
         when(this.securityAnalytics.evaluateRules(anyString(), anyList())).thenReturn("not valid json");
 
-        RestResponse response = this.service.executeLogtest(INTEGRATION_ID, createEnginePayload());
+        RestResponse response =
+                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"error\""));
     }

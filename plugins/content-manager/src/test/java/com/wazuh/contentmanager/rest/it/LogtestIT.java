@@ -207,9 +207,9 @@ public class LogtestIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>The endpoint accepts the request (HTTP 200)
-     *   <li>The response contains both engine_result and security_analytics_result
-     *   <li>The engine_result status indicates an error (engine unavailable)
-     *   <li>The security_analytics_result is skipped when the engine fails
+     *   <li>The response contains both normalization and detection
+     *   <li>The normalization status indicates an error (engine unavailable)
+     *   <li>The detection is skipped when the engine fails
      * </ul>
      *
      * @throws IOException on communication error
@@ -235,17 +235,15 @@ public class LogtestIT extends ContentManagerRestTestCase {
         JsonNode body = this.responseAsJson(response);
         JsonNode messageNode = body.path("message");
 
-        assertTrue("Response should contain engine_result", messageNode.has("engine_result"));
-        assertTrue(
-                "Response should contain security_analytics_result",
-                messageNode.has("security_analytics_result"));
+        assertTrue("Response should contain normalization", messageNode.has("normalization"));
+        assertTrue("Response should contain detection", messageNode.has("detection"));
 
         // Engine is not available in test cluster, so it should report error
-        JsonNode engineResult = messageNode.path("engine_result");
+        JsonNode engineResult = messageNode.path("normalization");
         assertEquals("error", engineResult.path("status").asText());
 
         // SAP should be skipped when engine fails
-        JsonNode saResult = messageNode.path("security_analytics_result");
+        JsonNode saResult = messageNode.path("detection");
         assertEquals("skipped", saResult.path("status").asText());
     }
 
@@ -271,10 +269,8 @@ public class LogtestIT extends ContentManagerRestTestCase {
         JsonNode body = this.responseAsJson(response);
         JsonNode messageNode = body.path("message");
 
-        assertTrue("Response should contain engine_result", messageNode.has("engine_result"));
-        assertTrue(
-                "Response should contain security_analytics_result",
-                messageNode.has("security_analytics_result"));
+        assertTrue("Response should contain normalization", messageNode.has("normalization"));
+        assertTrue("Response should contain detection", messageNode.has("detection"));
     }
 
     /**
