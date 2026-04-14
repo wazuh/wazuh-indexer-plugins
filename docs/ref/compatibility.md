@@ -2,16 +2,15 @@
 
 ## Supported operating systems
 
-We aim to support as many operating systems as [OpenSearch](https://docs.opensearch.org/3.3/install-and-configure/install-opensearch/index/#operating-system-compatibility) does. Wazuh indexer should work on many Linux distributions, but we only test a handful. The following table lists the operating system versions that we currently support.
+We aim to support as many operating systems as [OpenSearch](https://docs.opensearch.org/3.5/install-and-configure/install-opensearch/index/#operating-system-compatibility) does. Wazuh indexer should work on many Linux distributions, but we only test a handful. The following table lists the operating system versions that we currently support.
 
 For 5.0.0 and above, we support the operating system versions and architectures included in the table below.
 | Name         | Version      | Architecture    |
 | ------------ | ------------ | --------------- |
-| Red Hat      | 8, 9         | x86_64, aarch64 |
+| Red Hat      | 9, 10        | x86_64, aarch64 |
 | Ubuntu       | 22.04, 24.04 | x86_64, aarch64 |
-| Amazon Linux | 2, 2023      | x86_64, aarch64 |
-| CentOS       | 8            | x86_64, aarch64 |
+| Amazon Linux | 2023         | x86_64, aarch64 |
 
 ## OpenSearch
 
-Currently, Wazuh indexer is using version `3.0.0` of OpenSearch.
+Currently, Wazuh indexer is using version `3.5.0` of OpenSearch.

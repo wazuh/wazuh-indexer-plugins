@@ -77,7 +77,7 @@ Runtime toggle behavior:
 
 ### REST Handlers
 
-The plugin registers 22 REST handlers, grouped by domain:
+The plugin registers 26 REST handlers, grouped by domain:
 
 | Domain           | Handler                        | Method | URI                                            |
 | ---------------- | ------------------------------ | ------ | ---------------------------------------------- |
@@ -86,7 +86,7 @@ The plugin registers 22 REST handlers, grouped by domain:
 |                  | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription`      |
 | **Update**       | `RestPostUpdateAction`         | POST   | `/_plugins/_content_manager/update`            |
 | **Logtest**      | `RestPostLogtestAction`        | POST   | `/_plugins/_content_manager/logtest`           |
-| **Policy**       | `RestPutPolicyAction`          | PUT    | `/_plugins/_content_manager/policy`            |
+| **Policy**       | `RestPutPolicyAction`          | PUT    | `/_plugins/_content_manager/policy/{space}`    |
 | **Rules**        | `RestPostRuleAction`           | POST   | `/_plugins/_content_manager/rules`             |
 |                  | `RestPutRuleAction`            | PUT    | `/_plugins/_content_manager/rules/{id}`        |
 |                  | `RestDeleteRuleAction`         | DELETE | `/_plugins/_content_manager/rules/{id}`        |
@@ -99,34 +99,45 @@ The plugin registers 22 REST handlers, grouped by domain:
 | **KVDBs**        | `RestPostKvdbAction`           | POST   | `/_plugins/_content_manager/kvdbs`             |
 |                  | `RestPutKvdbAction`            | PUT    | `/_plugins/_content_manager/kvdbs/{id}`        |
 |                  | `RestDeleteKvdbAction`         | DELETE | `/_plugins/_content_manager/kvdbs/{id}`        |
+| **Filters**      | `RestPostFilterAction`         | POST   | `/_plugins/_content_manager/filters`           |
+|                  | `RestPutFilterAction`          | PUT    | `/_plugins/_content_manager/filters/{id}`      |
+|                  | `RestDeleteFilterAction`       | DELETE | `/_plugins/_content_manager/filters/{id}`      |
 | **Promote**      | `RestPostPromoteAction`        | POST   | `/_plugins/_content_manager/promote`           |
 |                  | `RestGetPromoteAction`         | GET    | `/_plugins/_content_manager/promote`           |
+| **Spaces**       | `RestDeleteSpaceAction`        | DELETE | `/_plugins/_content_manager/space/{space}`     |
 
 ---
 
 ## Class Hierarchy
 
-The REST handlers follow a **Template Method** pattern through a three-level abstract class hierarchy:
+The REST handlers follow a **Template Method** pattern through a three-level abstract class hierarchy. There are two parallel branches — one where the target space is always `draft` (`AbstractCreateAction` / `AbstractUpdateAction` / `AbstractDeleteAction`) and one where the target space is supplied at runtime from the request body (`AbstractCreateActionSpaces` / `AbstractUpdateActionSpaces` / `AbstractDeleteActionSpaces`). The latter is used for resources like Filters that can live in either `draft` or `standard` space.
 
 ```
 BaseRestHandler
 ├── AbstractContentAction
-│   ├── AbstractCreateAction
+│   ├── AbstractCreateAction               # Target space always: draft
 │   │   ├── RestPostRuleAction
 │   │   ├── RestPostDecoderAction
 │   │   ├── RestPostIntegrationAction
 │   │   └── RestPostKvdbAction
-│   ├── AbstractUpdateAction
+│   ├── AbstractUpdateAction               # Target space always: draft
 │   │   ├── RestPutRuleAction
 │   │   ├── RestPutDecoderAction
 │   │   ├── RestPutIntegrationAction
 │   │   └── RestPutKvdbAction
-│   └── AbstractDeleteAction
-│       ├── RestDeleteRuleAction
-│       ├── RestDeleteDecoderAction
-│       ├── RestDeleteIntegrationAction
-│       └── RestDeleteKvdbAction
+│   ├── AbstractDeleteAction               # Target space always: draft
+│   │   ├── RestDeleteRuleAction
+│   │   ├── RestDeleteDecoderAction
+│   │   ├── RestDeleteIntegrationAction
+│   │   └── RestDeleteKvdbAction
+│   ├── AbstractCreateActionSpaces         # Target space from request body (draft|standard)
+│   │   └── RestPostFilterAction
+│   ├── AbstractUpdateActionSpaces         # Target space from request body (draft|standard)
+│   │   └── RestPutFilterAction
+│   └── AbstractDeleteActionSpaces         # Target space from request body (draft|standard)
+│       └── RestDeleteFilterAction
 ├── RestPutPolicyAction
+├── RestDeleteSpaceAction
 ├── RestGetSubscriptionAction
 ├── RestPostSubscriptionAction
 ├── RestDeleteSubscriptionAction
@@ -145,9 +156,11 @@ Base class for all content CUD actions. It:
 - Validates that a Draft policy exists before executing any content action.
 - Delegates to the abstract `executeRequest()` method for concrete logic.
 
-### AbstractCreateAction
+### AbstractCreateAction / AbstractCreateActionSpaces
 
-Handles **POST** requests to create new resources. The `executeRequest()` workflow:
+Handles **POST** requests to create new resources. `AbstractCreateAction` hard-codes the target space to `draft`. `AbstractCreateActionSpaces` reads the space from the request body instead, allowing `draft` or `standard` as the target.
+
+The `executeRequest()` workflow:
 
 1. **Validate request body** — ensures the request has content and valid JSON.
 2. **Validate payload structure** — checks for required `resource` key and optional `integration` key.
@@ -160,9 +173,11 @@ Handles **POST** requests to create new resources. The `executeRequest()` workfl
 
 Returns `201 Created` with the new resource UUID on success.
 
-### AbstractUpdateAction
+### AbstractUpdateAction / AbstractUpdateActionSpaces
 
-Handles **PUT** requests to update existing resources. The `executeRequest()` workflow:
+Handles **PUT** requests to update existing resources. `AbstractUpdateAction` restricts updates to the `draft` space. `AbstractUpdateActionSpaces` accepts a space value (`draft` or `standard`) from the request body.
+
+The `executeRequest()` workflow:
 
 1. **Validate ID** — checks the path parameter is present and correctly formatted.
 2. **Check existence and space** — verifies the resource exists and belongs to the Draft space.
@@ -175,9 +190,11 @@ Handles **PUT** requests to update existing resources. The `executeRequest()` wo
 
 Returns `200 OK` with the resource UUID on success.
 
-### AbstractDeleteAction
+### AbstractDeleteAction / AbstractDeleteActionSpaces
 
-Handles **DELETE** requests. The `executeRequest()` workflow:
+Handles **DELETE** requests. `AbstractDeleteAction` restricts deletions to the `draft` space. `AbstractDeleteActionSpaces` resolves the target space from the stored document (allowing deletion from both `draft` and `standard`).
+
+The `executeRequest()` workflow:
 
 1. **Validate ID** — checks format and presence.
 2. **Check existence and space** — resource must exist in Draft space.
@@ -381,22 +398,11 @@ If a critical error or data corruption is detected, the system resets `local_off
 
 ## Configuration Settings
 
-Settings are defined in `PluginSettings` and configured in `opensearch.yml`:
+To register a new setting, follow the existing pattern in `PluginSettings.java`. That will make it available in `opensearch.yml`.
 
-| Setting                                              | Type    | Default                                  | Description                                                             |
-| ---------------------------------------------------- | ------- | ---------------------------------------- | ----------------------------------------------------------------------- |
-| `plugins.content_manager.cti.api`                    | String  | `https://cti.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                          |
-| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                           |
-| `plugins.content_manager.max_items_per_bulk`         | Integer | `25`                                     | Maximum documents per bulk indexing request. Valid range: 10–25         |
-| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                    |
-| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50 |
-| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                             |
-| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                            |
-| `plugins.content_manager.catalog.content.context`    | String  | `development_0.0.3`                      | CTI catalog content context identifier                                  |
-| `plugins.content_manager.catalog.content.consumer`   | String  | `development_0.0.3`                 | CTI catalog content consumer identifier                                 |
-| `plugins.content_manager.ioc.content.context`        | String  | `ioc_provider_v3`                        | IoC content context identifier                                          |
-| `plugins.content_manager.ioc.content.consumer`       | String  | `iocp_v3`                                | IoC content consumer identifier                                         |
-| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content      |
+For existing settings, check [Settings Reference](../../ref/modules/content-manager/configuration.md#settings-reference)
+
+When registering a new setting, document it in the section linked above.
 
 ### REST API URIs
 
@@ -412,8 +418,10 @@ All endpoints are under `/_plugins/_content_manager`. The URI constants are defi
 | `DECODERS_URI`     | `/_plugins/_content_manager/decoders`     |
 | `INTEGRATIONS_URI` | `/_plugins/_content_manager/integrations` |
 | `KVDBS_URI`        | `/_plugins/_content_manager/kvdbs`        |
+| `FILTERS_URI`      | `/_plugins/_content_manager/filters`      |
 | `PROMOTE_URI`      | `/_plugins/_content_manager/promote`      |
 | `POLICY_URI`       | `/_plugins/_content_manager/policy`       |
+| `SPACE_URI`        | `/_plugins/_content_manager/space`        |
 
 ---
 
@@ -502,16 +510,28 @@ sequenceDiagram
     Indexer-->>User: 200 OK + UUID
 ```
 
-### Draft Policy Update
+### Policy Update
+
+The policy endpoint now accepts a `{space}` path parameter (`draft` or `standard`), allowing the same handler to serve both spaces with different validation rules.
+
+- **Draft space** — all policy fields are accepted. The `integrations` and `filters` arrays allow reordering but not adding or removing entries. `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
+- **Standard space** — only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. After a successful update, if the standard space hash changed, the updated policy is automatically loaded into the Engine.
 
 ```mermaid
 flowchart TD
-    UI[UI] -->|PUT /policy| Indexer
-    Indexer -->|Validate| Check{Valid content?}
-    Check -->|No| Error[400 Error]
-    Check -->|Yes| Parse[Parse & validate fields]
-    Parse --> Store[Index to .cti-policies in Draft space]
-    Store --> OK[200 OK]
+    UI[UI] -->|"PUT /policy/{space}"| Indexer
+    Indexer -->|Validate space| SpaceCheck{is a valid space?}
+    SpaceCheck -->|No| Error400[400 Bad Request]
+    SpaceCheck -->|Yes| Parse[Parse & validate fields]
+    Parse --> SpaceBranch{Space?}
+    SpaceBranch -->|draft| StoreDraft[Update draft policy in .cti-policies]
+    SpaceBranch -->|standard| StoreStd[Merge allowed fields into standard policy]
+    StoreDraft --> Hash[Recalculate space hash]
+    StoreStd --> Hash
+    Hash --> EngineCheck{Standard hash changed?}
+    EngineCheck -->|Yes| Engine[Load standard space into Engine]
+    EngineCheck -->|No| OK[200 OK]
+    Engine --> OK
 ```
 
 ### Policy Schema
@@ -520,20 +540,94 @@ The `.cti-policies` index stores policy configurations. See the [Policy document
 
 **Policy document fields:**
 
-| Field           | Type      | Description                                                  |
-| --------------- | --------- | ------------------------------------------------------------ |
-| `id`            | keyword   | Unique identifier                                            |
-| `title`         | keyword   | Human-readable name                                          |
-| `date`          | date      | Creation timestamp                                           |
-| `modified`      | date      | Last modification timestamp                                  |
-| `root_decoder`  | keyword   | Root decoder for event processing                            |
-| `integrations`  | keyword[] | Active integration IDs                                       |
-| `filters`       | keyword[] | Filter UUIDs                                                 |
-| `enrichments`   | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) |
-| `author`        | keyword   | Policy author                                                |
-| `description`   | text      | Brief description                                            |
-| `documentation` | keyword   | Documentation link                                           |
-| `references`    | keyword[] | External reference URLs                                      |
+| Field                      | Type      | Description                                                  | Editable in standard space |
+| -------------------------- | --------- | ------------------------------------------------------------ | :------------------------: |
+| `id`                       | keyword   | Unique identifier                                            | No                         |
+| `title`                    | keyword   | Human-readable name                                          | No                         |
+| `date`                     | date      | Creation timestamp                                           | No                         |
+| `modified`                 | date      | Last modification timestamp                                  | No                         |
+| `root_decoder`             | keyword   | Root decoder for event processing                            | No                         |
+| `integrations`             | keyword[] | Active integration IDs                                       | No                         |
+| `author`                   | keyword   | Policy author                                                | No                         |
+| `description`              | text      | Brief description                                            | No                         |
+| `documentation`            | keyword   | Documentation link                                           | No                         |
+| `references`               | keyword[] | External reference URLs                                      | No                         |
+| `filters`                  | keyword[] | Filter UUIDs (reordering allowed, no add/remove)             | Yes                        |
+| `enrichments`              | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) | Yes                        |
+| `enabled`                  | boolean   | Whether the policy is active                                 | Yes                        |
+| `index_unclassified_events`| boolean   | Index events that match no rule                              | Yes                        |
+| `index_discarded_events`   | boolean   | Index events explicitly discarded by rules                   | Yes                        |
+
+### Filters CUD (Engine Filters)
+
+Filters follow the same CUD pattern as other resource types but use the `AbstractCreateActionSpaces` / `AbstractUpdateActionSpaces` / `AbstractDeleteActionSpaces` hierarchy. The key difference is that the target space is supplied in the request body rather than being fixed to `draft`. Both `draft` and `standard` are accepted.
+
+Filters are linked directly to their space's policy document (the `filters` array) rather than to a parent integration.
+
+**Create (POST):**
+```mermaid
+sequenceDiagram
+    actor User
+    participant Indexer
+    participant Engine
+    participant FilterIndex as .engine-filters
+    participant PoliciesIndex as .cti-policies
+
+    User->>Indexer: POST /_plugins/_content_manager/filters
+    Indexer->>Indexer: Validate payload + space (draft|standard)
+    Indexer->>Engine: validateResource("filter", resource)
+    Engine-->>Indexer: OK
+    Indexer->>FilterIndex: Index in target space
+    Indexer->>PoliciesIndex: Add filter ID to space policy filters[]
+    Indexer-->>User: 201 Created + UUID
+```
+
+**Update (PUT):**
+```mermaid
+sequenceDiagram
+    actor User
+    participant Indexer
+    participant Engine
+    participant FilterIndex as .engine-filters
+
+    User->>Indexer: PUT /_plugins/_content_manager/filters/{id}
+    Indexer->>FilterIndex: Check exists + validate space (draft|standard)
+    Indexer->>Indexer: Validate payload
+    Indexer->>Engine: validateResource("filter", resource)
+    Engine-->>Indexer: OK
+    Indexer->>FilterIndex: Re-index document
+    Indexer-->>User: 200 OK + UUID
+```
+
+**Delete (DELETE):**
+```mermaid
+sequenceDiagram
+    actor User
+    participant Indexer
+    participant FilterIndex as .engine-filters
+    participant PoliciesIndex as .cti-policies
+
+    User->>Indexer: DELETE /_plugins/_content_manager/filters/{id}
+    Indexer->>FilterIndex: Check exists + resolve space
+    Indexer->>PoliciesIndex: Remove filter ID from space policy filters[]
+    Indexer->>FilterIndex: Delete document
+    Indexer-->>User: 200 OK + UUID
+```
+
+### Space Reset
+
+```mermaid
+flowchart TD
+    UI[UI] -->|"DELETE /space/{space}"| Indexer
+    Indexer -->|Validate space| Check{space == draft?}
+    Check -->|No| Error400[400 Bad Request]
+    Check -->|Yes| DeleteSAP[Delete draft resources from SAP]
+    DeleteSAP --> DeleteCTI[Delete all draft documents from .cti-* indices]
+    DeleteCTI --> RegenPolicy[Re-generate default draft policy]
+    RegenPolicy --> OK[200 OK]
+```
+
+Only the `draft` space can be reset. Attempting to reset any other space returns `400 Bad Request`. Failures in SAP cleanup are logged but do not block the reset — the primary goal is clearing the content indices and regenerating the policy.
 
 ---
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,7 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.transport.client.Client;
 
 /**
@@ -29,16 +30,26 @@ import org.opensearch.transport.client.Client;
 public class ClusterInfo {
 
     /**
-     * Checks if a given index is ready for operations.
+     * Checks if a given index is ready for operations. Blocks until at least one active shard is
+     * available or the timeout expires.
      *
      * @param client OpenSearch client.
      * @param index index name to check.
+     * @param timeoutSeconds maximum time to wait for the index to become ready.
      * @return true if the index is ready, false otherwise.
      */
-    public static boolean indexStatusCheck(Client client, String index) {
+    public static boolean indexStatusCheck(Client client, String index, long timeoutSeconds) {
         ClusterHealthResponse response =
-                client.admin().cluster().prepareHealth().setIndices(index).setWaitForYellowStatus().get();
-        return response.getStatus() != ClusterHealthStatus.RED;
+                client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(index)
+                        .setWaitForYellowStatus()
+                        .setWaitForActiveShards(1)
+                        .setTimeout(TimeValue.timeValueSeconds(timeoutSeconds))
+                        .get();
+        return response.getStatus() != ClusterHealthStatus.RED && !response.isTimedOut();
     }
 
     /**

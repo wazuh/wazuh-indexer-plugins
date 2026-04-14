@@ -323,6 +323,14 @@ public class ContentManagerPlugin extends Plugin
                 log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
             }
         }
+
+        // Wait for at least yellow status so shards are allocated and ready for reads/writes.
+        this.client
+                .admin()
+                .cluster()
+                .prepareHealth(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                .setWaitForYellowStatus()
+                .get();
     }
 
     /**
