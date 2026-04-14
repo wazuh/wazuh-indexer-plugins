@@ -28,11 +28,14 @@ import org.junit.Before;
 import java.lang.reflect.Field;
 import java.util.concurrent.ExecutorService;
 
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,6 +51,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private ThreadPool threadPool;
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
+    @Mock private ConsumersIndex consumersIndex;
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -57,11 +61,20 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         this.plugin = new ContentManagerPlugin();
 
-        when(this.threadPool.generic()).thenReturn(mock(ExecutorService.class));
+        ExecutorService mockExecutor = mock(ExecutorService.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(mockExecutor)
+                .execute(any(Runnable.class));
+        when(this.threadPool.generic()).thenReturn(mockExecutor);
 
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
+        this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
 
         ContentManagerPluginTests.clearInstance();
     }

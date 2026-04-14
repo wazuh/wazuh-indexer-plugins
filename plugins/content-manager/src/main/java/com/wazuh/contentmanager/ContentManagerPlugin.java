@@ -187,19 +187,20 @@ public class ContentManagerPlugin extends Plugin
     public void onNodeStarted(DiscoveryNode localNode) {
         // Only cluster managers are responsible for initialization and the startup sync trigger.
         if (localNode.isClusterManagerNode()) {
-            this.start();
+            this.start(
+                    () -> {
+                        // Trigger update on start if enabled
+                        if (PluginSettings.getInstance().isUpdateOnStart()) {
+                            this.catalogSyncJob.trigger();
+                        } else {
+                            log.info("Skipping catalog sync job trigger");
+                        }
 
-            // Trigger update on start if enabled
-            if (PluginSettings.getInstance().isUpdateOnStart()) {
-                this.catalogSyncJob.trigger();
-            } else {
-                log.info("Skipping catalog sync job trigger");
-            }
-
-            // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
-            this.scheduleCatalogSyncJob();
-            // Schedule the telemetry ping job to ensure it is registered in the system index
-            this.scheduleTelemetryPingJob();
+                        // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
+                        this.scheduleCatalogSyncJob();
+                        // Schedule the telemetry ping job
+                        this.scheduleTelemetryPingJob();
+                    });
         }
     }
 
@@ -261,8 +262,13 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteSpaceAction());
     }
 
-    /** Performs initialization tasks for the plugin. */
-    private void start() {
+    /**
+     * Performs initialization tasks for the plugin. Creates the consumers index asynchronously and
+     * invokes the provided callback once the operation completes (whether it succeeds or fails).
+     *
+     * @param onComplete callback to run after index creation completes
+     */
+    private void start(Runnable onComplete) {
         try {
             this.threadPool
                     .generic()
@@ -283,11 +289,13 @@ public class ContentManagerPlugin extends Plugin
                                             ConsumersIndex.INDEX_NAME,
                                             e.getMessage(),
                                             e);
+                                } finally {
+                                    onComplete.run();
                                 }
                             });
         } catch (Exception e) {
-            // Log or handle exception
             log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+            onComplete.run();
         }
     }
 
