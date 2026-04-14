@@ -175,8 +175,8 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Triggers the internal {@link #start()} method if the current node is a Cluster Manager to
-     * initialize indices. It also ensures the periodic catalog sync job is scheduled.
+     * Triggers the internal {@link #start(Runnable)} method if the current node is a Cluster Manager
+     * to initialize indices. It also ensures the periodic catalog sync job is scheduled.
      *
      * <p>The startup sync trigger is restricted to the cluster manager node to prevent every node in
      * the cluster from running a concurrent synchronization on startup.

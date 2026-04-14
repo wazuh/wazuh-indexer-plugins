@@ -181,6 +181,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix CodeQL reporting security warnings [(#992)](https://github.com/wazuh/wazuh-indexer-plugins/pull/992)
 - Reset spaces in Security Analytics [(#1000)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1000)
 - Fix CodeQL maven caching [(#1007)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1007)
+- Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
