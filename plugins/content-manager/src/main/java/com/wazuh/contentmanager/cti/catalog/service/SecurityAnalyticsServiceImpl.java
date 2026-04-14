@@ -23,11 +23,15 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionType;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.Strings;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
@@ -373,16 +377,61 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title =
                 metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
         String category = this.formatCategory(doc, rawCategory);
-        List<String> rules = new ArrayList<>();
-        doc.get(Constants.KEY_RULES).forEach(item -> rules.add(item.asText()));
+        List<String> rules = fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
         if (rules.isEmpty()) {
-            log.debug("Detector [{}] has no rules. Skipping creation.", id);
+            log.debug("Detector [{}] has no enabled rules. Skipping creation.", id);
             return null;
         }
 
         log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
         return new WIndexDetectorRequest(
                 id, title, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
+    /**
+     * Queries the {@code .cti-rules} index for documents whose {@code _id} matches the given rule IDs
+     * and whose {@code document.enabled} is {@code true}. Filtering is done entirely using an IDs
+     * query combined with a term filter; no source is fetched — only the matching {@code _id} values
+     * are collected.
+     *
+     * @param rulesNode the JSON array of candidate rule IDs from the integration document
+     * @return list of enabled rule IDs (may be empty)
+     */
+    private List<String> fetchEnabledRuleIds(JsonNode rulesNode) {
+        List<String> candidateIds = new ArrayList<>();
+        rulesNode.forEach(item -> candidateIds.add(item.asText()));
+        if (candidateIds.isEmpty()) {
+            return candidateIds;
+        }
+
+        try {
+            SearchResponse response =
+                    this.client
+                            .prepareSearch(Constants.INDEX_RULES)
+                            .setSource(
+                                    new SearchSourceBuilder()
+                                            .query(
+                                                    QueryBuilders.boolQuery()
+                                                            .must(
+                                                                    QueryBuilders.idsQuery()
+                                                                            .addIds(candidateIds.toArray(String[]::new)))
+                                                            .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ENABLED, true)))
+                                            .fetchSource(false)
+                                            .size(candidateIds.size()))
+                            .get();
+            List<String> enabledIds = new ArrayList<>();
+            for (SearchHit hit : response.getHits().getHits()) {
+                enabledIds.add(hit.getId());
+            }
+            int filtered = candidateIds.size() - enabledIds.size();
+            if (filtered > 0) {
+                log.info("Filtered {} disabled rule(s) from detector rule list", filtered);
+            }
+            return enabledIds;
+        } catch (Exception e) {
+            log.error("Failed to fetch enabled rule IDs: {}", e.getMessage());
+            return candidateIds;
+        }
     }
 
     @Override
