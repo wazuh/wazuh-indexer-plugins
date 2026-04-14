@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
@@ -322,6 +323,8 @@ public class ContentManagerPlugin extends Plugin
                         .get();
 
                 log.info("Created job index {}.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+            } catch (ResourceAlreadyExistsException e) {
+                log.info("Index {} already exists. Skipping.", CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (Exception e) {
                 log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
             }
