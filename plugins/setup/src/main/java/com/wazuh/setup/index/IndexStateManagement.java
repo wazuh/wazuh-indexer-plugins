@@ -153,7 +153,7 @@ public class IndexStateManagement extends Index {
                         createIndexResponse.isAcknowledged());
             }
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", index);
+            log.debug("Index {} already exists. Skipping.", index);
         } catch (IOException e) {
             log.error(
                     "Error reading index template from filesystem [{}]. Caused by: {}",

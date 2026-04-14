@@ -36,6 +36,7 @@ import org.junit.Before;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import com.wazuh.contentmanager.utils.Constants;
@@ -99,6 +100,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         // spotless:off
         return MAPPER.readTree(
                 String.format(
+                        Locale.ROOT,
                         """
                         {
                           "id": "integration-1",

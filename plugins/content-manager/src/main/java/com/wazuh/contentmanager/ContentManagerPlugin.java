@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
@@ -74,6 +75,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
@@ -301,15 +303,7 @@ public class ContentManagerPlugin extends Plugin
 
     /** Check if the index exists; if not, create it with specific settings. */
     private void ensureJobsIndexExists() {
-        boolean indexExists =
-                this.client
-                        .admin()
-                        .indices()
-                        .prepareExists(CONTENT_MANAGER_JOBS_INDEX_NAME)
-                        .get()
-                        .isExists();
-
-        if (!indexExists) {
+        if (!ClusterInfo.indexExists(this.client, CONTENT_MANAGER_JOBS_INDEX_NAME)) {
             try {
                 Settings settings =
                         Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
@@ -322,18 +316,20 @@ public class ContentManagerPlugin extends Plugin
                         .get();
 
                 log.info("Created job index {}.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+            } catch (ResourceAlreadyExistsException e) {
+                log.debug("Index {} already exists. Skipping.", CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (Exception e) {
                 log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
             }
         }
 
-        // Wait for at least yellow status so shards are allocated and ready for reads/writes.
-        this.client
-                .admin()
-                .cluster()
-                .prepareHealth(CONTENT_MANAGER_JOBS_INDEX_NAME)
-                .setWaitForYellowStatus()
-                .get();
+        // Wait for at least yellow status with active shards ready for operations.
+        if (!ClusterInfo.indexStatusCheck(
+                this.client,
+                CONTENT_MANAGER_JOBS_INDEX_NAME,
+                PluginSettings.getInstance().getClientTimeout())) {
+            throw new RuntimeException("Index " + CONTENT_MANAGER_JOBS_INDEX_NAME + " not ready");
+        }
     }
 
     /**
