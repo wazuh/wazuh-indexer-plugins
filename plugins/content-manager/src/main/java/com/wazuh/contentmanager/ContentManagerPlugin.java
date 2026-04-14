@@ -317,7 +317,7 @@ public class ContentManagerPlugin extends Plugin
 
                 log.info("Created job index {}.", CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (ResourceAlreadyExistsException e) {
-                log.info("Index {} already exists. Skipping.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+                log.debug("Index {} already exists. Skipping.", CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (Exception e) {
                 log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
             }
