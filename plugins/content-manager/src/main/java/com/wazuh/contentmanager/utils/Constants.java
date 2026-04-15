@@ -64,6 +64,7 @@ public class Constants {
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
+    public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
 
     // Log messages
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
