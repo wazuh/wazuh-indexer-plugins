@@ -148,6 +148,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Set mapping to `strict_allow_templates` for stateless main events [(#960)](https://github.com/wazuh/wazuh-indexer-plugins/pull/960)
 - Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 - Create detectors using only rules enabled [(#1017)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1017)
+- Set indicator.confidence as type short [(#1030)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1030)
 
 ### Deprecated
 -
