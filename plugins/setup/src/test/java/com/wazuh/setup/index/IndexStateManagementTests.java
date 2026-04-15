@@ -17,6 +17,8 @@
 package com.wazuh.setup.index;
 
 import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -26,6 +28,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.ClusterAdminClient;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import java.io.IOException;
@@ -41,6 +44,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     private IndexStateManagement ismIndex;
     private Client client;
     private IndicesAdminClient indicesAdminClient;
+    private ClusterAdminClient clusterAdminClient;
     private JsonUtils jsonUtils;
 
     @Override
@@ -50,6 +54,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
         this.indicesAdminClient = mock(IndicesAdminClient.class);
+        this.clusterAdminClient = mock(ClusterAdminClient.class);
         this.jsonUtils = mock(JsonUtils.class);
 
         // Default settings
@@ -59,6 +64,15 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         doReturn(adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
+        doReturn(this.clusterAdminClient).when(adminClient).cluster();
+
+        // Stub the health-wait chain used in initialize() so it does not NPE.
+        ClusterHealthRequestBuilder healthBuilder =
+                mock(ClusterHealthRequestBuilder.class, RETURNS_SELF);
+        doReturn(healthBuilder).when(this.clusterAdminClient).prepareHealth(anyString());
+        ActionFuture<ClusterHealthResponse> healthFuture = mock(ActionFuture.class);
+        doReturn(healthFuture).when(healthBuilder).execute();
+        doReturn(mock(ClusterHealthResponse.class)).when(healthFuture).actionGet(anyLong());
 
         this.ismIndex =
                 spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));

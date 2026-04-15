@@ -148,6 +148,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update documentation for extended Sigma rule syntax [(#954)](https://github.com/wazuh/wazuh-indexer-plugins/pull/954)
 - Set mapping to `strict_allow_templates` for stateless main events [(#960)](https://github.com/wazuh/wazuh-indexer-plugins/pull/960)
 - Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
+- Create detectors using only rules enabled [(#1017)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1017)
 
 ### Deprecated
 -
@@ -181,6 +182,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix Splunk KV Store startup failure [(#984)](https://github.com/wazuh/wazuh-indexer-plugins/pull/984)
 - Fix CodeQL reporting security warnings [(#992)](https://github.com/wazuh/wazuh-indexer-plugins/pull/992)
 - Reset spaces in Security Analytics [(#1000)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1000)
+- Fix CodeQL maven caching [(#1007)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1007)
+- Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

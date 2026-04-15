@@ -36,16 +36,30 @@ The Security plugin provides role-based access control (RBAC), user authenticati
 
 The Reporting plugin enables the generation of PDF and CSV reports from Wazuh Dashboard visualizations and saved searches. Reports can be triggered on demand or scheduled for periodic delivery.
 
+### Security Analytics Plugin
+
+The Security Analytics plugin provides advanced threat detection and analysis capabilities. It leverages rule-based threat detection analysis to identify anomalies, potential threats, and suspicious activities within the monitored environment through its security events.
+
+### Notifications Plugin
+
+The Notifications plugins takes a principal role on Wazuh's Active Response mechanism. It deploys dedicated notification channels for active response commands, to be executed on the agents.
+
+### Alerting Plugin
+
+The Alerting plugin provides real-time alerting capabilities based on predefined rules and conditions (monitors). Monitors are the core component of Threat Detectors, used by the Security Analytics plugin.
+
 ## Data Storage
 
 The Wazuh Indexer organizes data into purpose-specific indices:
 
-| Index pattern | Description |
-|---|---|
-| `wazuh-events-*` | Raw security events from monitored endpoints |
-| `wazuh-states-*` | System state and inventory data (vulnerabilities, packages, ports, etc.) |
-| `wazuh-statistics-*` | Operational statistics for the Wazuh cluster |
-| `.cti-*` | Content Manager system indices for CTI content |
+| Index pattern            | Description                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `wazuh-active-responses` | Raw security events from monitored endpoints                                  |
+| `wazuh-events-v5*`       | Security events from monitored endpoints                                      |
+| `wazuh-findings-v5*`     | Findings from security events (triggered by rules)                            |
+| `wazuh-states-v5*`       | Scan results, such as inventory data (vulnerabilities, packages, ports, etc.) |
+| `wazuh-metrics*`         | General metrics                                                               |
+| `.cti-*`                 | Content Manager system indices for CTI content                                |
 
 For a complete list of indices and their schemas, see the [Setup Plugin](modules/setup/index.md) documentation.
 

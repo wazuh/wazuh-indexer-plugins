@@ -4,7 +4,7 @@ This section guides you through the upgrade process of the Wazuh indexer.
 
 The Wazuh indexer cluster remains operational throughout the upgrade. The rolling upgrade process allows nodes to be updated one at a time, ensuring continuous service availability and minimizing disruptions. The steps detailed in the following sections apply to both single-node and multi-node Wazuh indexer clusters. For multi-node Wazuh indexer clusters, repeat the following steps on every node.
 
-> [!NOTE]
+> **Note**:
 > This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
 >   - [Local package generation](../dev/build-packages.md) (recommended).
 >   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
