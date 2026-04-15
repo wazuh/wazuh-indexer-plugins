@@ -142,7 +142,7 @@ public abstract class Index implements IndexInitializer {
                         createIndexResponse.isAcknowledged());
             }
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", index);
+            log.debug("Index {} already exists. Skipping.", index);
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.

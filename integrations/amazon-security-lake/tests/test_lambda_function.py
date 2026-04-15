@@ -72,7 +72,7 @@ def test_lambda_handler(mock_transform_events, aws_setup):
 
     assert response_json["size"] == 1
     assert response_json["upload_success"] is True
-    assert response_json["ocsf_upload_success"] is True
+    assert response_json["ocsf_upload"] is True
     mock_transform_events.assert_called_once()
 
 
