@@ -34,6 +34,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -161,7 +162,8 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
             Release lastPatch = getLastRelease(data, "patch");
 
             String uuid = this.clusterService.state().metadata().clusterUUID();
-            String lastCheckDate = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            String lastCheckDate =
+                    OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
             return new VersionCheckResponse(
                             uuid, lastCheckDate, tag, lastMajor, lastMinor, lastPatch, RestStatus.OK.getStatus())
@@ -170,10 +172,7 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
         } catch (Exception e) {
             log.error("Unexpected error during version check: {}", e.getMessage(), e);
             return new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus())
+                            Constants.E_500_CTI_UNREACHABLE, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
                     .toBytesRestResponse();
         }
     }
