@@ -3376,7 +3376,7 @@ enrichments.indicator.confidence:
   name: indicator.confidence
   normalize: []
   short: Indicator confidence rating.
-  type: keyword
+  type: short
 enrichments.indicator.feed.name:
   dashed_name: enrichments-indicator-feed-name
   description: Name of the feed that supplied the indicator.
