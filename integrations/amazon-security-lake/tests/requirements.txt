@@ -1,5 +1,5 @@
 moto==5.0.27
-pytest==8.3.4
+pytest==9.0.3
 requests==2.33.0
 pyarrow>=10.0.1
 parquet-tools>=0.2.15
