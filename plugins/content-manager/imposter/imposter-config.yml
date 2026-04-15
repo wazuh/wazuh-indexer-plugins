@@ -26,6 +26,12 @@ resources:
     response:
       scriptFile: scripts/instanceMeResponse.groovy
 
+  # Releases updates endpoint - returns available version updates
+  - path: /api/v1/releases/{tag}/updates
+    method: GET
+    response:
+      scriptFile: scripts/releasesUpdatesResponse.groovy
+
   # Catalog endpoint - conditional responses based on verify parameter
   - path: /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes
     method: GET

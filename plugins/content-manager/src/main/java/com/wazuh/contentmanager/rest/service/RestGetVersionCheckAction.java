@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
 import org.opensearch.rest.BaseRestHandler;
@@ -32,6 +33,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
@@ -64,6 +67,7 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/version_check_get";
 
     private final Environment environment;
+    private final ClusterService clusterService;
     private final ApiClient apiClient;
     private final ObjectMapper mapper;
 
@@ -71,9 +75,11 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
      * Constructs a new RestGetVersionCheckAction.
      *
      * @param environment the node environment for reading VERSION.json
+     * @param clusterService the cluster service for retrieving the cluster UUID
      */
-    public RestGetVersionCheckAction(Environment environment) {
+    public RestGetVersionCheckAction(Environment environment, ClusterService clusterService) {
         this.environment = environment;
+        this.clusterService = clusterService;
         this.apiClient = new ApiClient();
         this.mapper = new ObjectMapper();
     }
@@ -82,10 +88,13 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
      * Package-private constructor for dependency injection during unit tests.
      *
      * @param environment the node environment
+     * @param clusterService the cluster service
      * @param apiClient the API client (can be mocked)
      */
-    RestGetVersionCheckAction(Environment environment, ApiClient apiClient) {
+    RestGetVersionCheckAction(
+            Environment environment, ClusterService clusterService, ApiClient apiClient) {
         this.environment = environment;
+        this.clusterService = clusterService;
         this.apiClient = apiClient;
         this.mapper = new ObjectMapper();
     }
@@ -151,7 +160,11 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
             Release lastMinor = getLastRelease(data, "minor");
             Release lastPatch = getLastRelease(data, "patch");
 
-            return new VersionCheckResponse(lastMajor, lastMinor, lastPatch, RestStatus.OK.getStatus())
+            String uuid = this.clusterService.state().metadata().clusterUUID();
+            String lastCheckDate = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+            return new VersionCheckResponse(
+                            uuid, lastCheckDate, tag, lastMajor, lastMinor, lastPatch, RestStatus.OK.getStatus())
                     .toBytesRestResponse();
 
         } catch (Exception e) {

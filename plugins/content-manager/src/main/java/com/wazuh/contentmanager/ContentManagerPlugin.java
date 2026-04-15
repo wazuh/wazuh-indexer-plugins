@@ -97,6 +97,7 @@ public class ContentManagerPlugin extends Plugin
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
     private Environment environment;
+    private ClusterService clusterService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -131,6 +132,7 @@ public class ContentManagerPlugin extends Plugin
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
         this.environment = environment;
+        this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
@@ -234,7 +236,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteSubscriptionAction(this.ctiConsole),
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
                 // Version check endpoint
-                new RestGetVersionCheckAction(this.environment),
+                new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints (Logtest)
                 new RestPostLogtestAction(this.engine),
                 // Policy endpoints

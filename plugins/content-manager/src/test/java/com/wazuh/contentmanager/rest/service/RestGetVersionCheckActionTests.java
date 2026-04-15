@@ -18,6 +18,9 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
@@ -46,7 +49,9 @@ import static org.mockito.Mockito.when;
  * API endpoint responsible for checking available Wazuh version updates.
  */
 public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
+    private static final String TEST_UUID = "test-cluster-uuid-1234";
     private ApiClient apiClient;
+    private ClusterService clusterService;
     private RestGetVersionCheckAction action;
 
     /** Initialize PluginSettings singleton before all tests. */
@@ -64,6 +69,13 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.apiClient = mock(ApiClient.class);
+        this.clusterService = mock(ClusterService.class);
+
+        ClusterState clusterState = mock(ClusterState.class);
+        Metadata metadata = mock(Metadata.class);
+        when(this.clusterService.state()).thenReturn(clusterState);
+        when(clusterState.metadata()).thenReturn(metadata);
+        when(metadata.clusterUUID()).thenReturn(TEST_UUID);
     }
 
     /**
@@ -84,12 +96,12 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test successful version check with updates available in all categories. Expected: 200 with
-     * last_available_major, last_available_minor, last_available_patch.
+     * Test successful version check with updates available. Expected: 200 with message containing
+     * uuid, current_version, last_check_date, and release fields.
      */
     public void testHandleRequest200() throws Exception {
         Environment env = createEnvironmentWithVersion("5.0.0");
-        this.action = new RestGetVersionCheckAction(env, this.apiClient);
+        this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         // spotless:off
         String ctiResponseBody = "{\"data\":{" +
@@ -106,6 +118,11 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
         String body = response.content().utf8ToString();
 
         Assert.assertEquals(RestStatus.OK, response.status());
+        Assert.assertTrue(body.contains("\"uuid\""));
+        Assert.assertTrue(body.contains(TEST_UUID));
+        Assert.assertTrue(body.contains("\"current_version\""));
+        Assert.assertTrue(body.contains("v5.0.0"));
+        Assert.assertTrue(body.contains("\"last_check_date\""));
         Assert.assertTrue(body.contains("last_available_major"));
         Assert.assertTrue(body.contains("v6.0.0"));
         Assert.assertTrue(body.contains("last_available_minor"));
@@ -115,11 +132,12 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test successful version check with empty update arrays. Expected: 200 with empty data object.
+     * Test successful version check with empty update arrays. Expected: 200 with empty objects for
+     * each category.
      */
     public void testHandleRequest200EmptyArrays() throws Exception {
         Environment env = createEnvironmentWithVersion("5.0.0");
-        this.action = new RestGetVersionCheckAction(env, this.apiClient);
+        this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         String ctiResponseBody = "{\"data\":{\"major\":[],\"minor\":[],\"patch\":[]}}";
         SimpleHttpResponse ctiResponse = SimpleHttpResponse.create(200, ctiResponseBody, null);
@@ -129,15 +147,15 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
         String body = response.content().utf8ToString();
 
         Assert.assertEquals(RestStatus.OK, response.status());
-        Assert.assertFalse(body.contains("last_available_major"));
-        Assert.assertFalse(body.contains("last_available_minor"));
-        Assert.assertFalse(body.contains("last_available_patch"));
+        Assert.assertTrue(body.contains("last_available_major"));
+        Assert.assertTrue(body.contains("last_available_minor"));
+        Assert.assertTrue(body.contains("last_available_patch"));
     }
 
     /** Test when VERSION.json is missing. Expected: 500 with version not found message. */
     public void testHandleRequestVersionNotFound() throws Exception {
         Environment env = createEnvironmentWithVersion(null);
-        this.action = new RestGetVersionCheckAction(env, this.apiClient);
+        this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         BytesRestResponse response = this.action.handleRequest();
         String body = response.content().utf8ToString();
@@ -149,7 +167,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
     /** Test when the CTI API returns an error. Expected: error status forwarded. */
     public void testHandleRequestCtiError() throws Exception {
         Environment env = createEnvironmentWithVersion("5.0.0");
-        this.action = new RestGetVersionCheckAction(env, this.apiClient);
+        this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         String errorBody = "{\"errors\":{\"tag\":[\"is invalid\"]}}";
         SimpleHttpResponse ctiResponse = SimpleHttpResponse.create(400, errorBody, null);
@@ -163,7 +181,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
     /** Test when the API client throws an exception. Expected: 500. */
     public void testHandleRequestException() throws Exception {
         Environment env = createEnvironmentWithVersion("5.0.0");
-        this.action = new RestGetVersionCheckAction(env, this.apiClient);
+        this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         when(this.apiClient.getReleaseUpdates(anyString()))
                 .thenThrow(new ExecutionException("Connection refused", new RuntimeException()));
@@ -179,7 +197,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
      */
     public void testHandleRequestReturnsLastRelease() throws Exception {
         Environment env = createEnvironmentWithVersion("5.0.0");
-        this.action = new RestGetVersionCheckAction(env, this.apiClient);
+        this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         // spotless:off
         String ctiResponseBody = "{\"data\":{" +
