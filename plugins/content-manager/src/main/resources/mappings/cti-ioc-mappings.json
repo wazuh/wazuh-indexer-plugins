@@ -25,7 +25,7 @@
     "document": {
       "properties": {
         "confidence": {
-          "type": "long"
+          "type": "short"
         },
         "feed": {
           "properties": {
@@ -90,9 +90,6 @@
           "type": "keyword"
         }
       }
-    },
-    "offset": {
-      "type": "unsigned_long"
     },
     "type_hashes": {
       "type": "object"
