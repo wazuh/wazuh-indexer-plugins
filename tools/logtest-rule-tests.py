@@ -486,7 +486,7 @@ class LogtestRuleTester:
             "space": "test",
             "queue": 1,
             "location": "/var/log/test/logtest-validation.log",
-            "agent_metadata": {},
+            "metadata": {},
             "event": event,
             "trace_level": "NONE",
         }
