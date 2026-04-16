@@ -87,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Create findings module [(#949)](https://github.com/wazuh/wazuh-indexer-plugins/pull/949)
 - Add rollback mechanism to Promote action [(#953)](https://github.com/wazuh/wazuh-indexer-plugins/pull/953)
 - Add 'status' field to internal consumers index [(#962)](https://github.com/wazuh/wazuh-indexer-plugins/pull/962)
+- Extend logTest endpoint to test rules [(#976)](https://github.com/wazuh/wazuh-indexer-plugins/pull/976)
 - Add --set-as-main flag support to repository bumper [(#978)](https://github.com/wazuh/wazuh-indexer-plugins/pull/978)
 - Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
 - Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
