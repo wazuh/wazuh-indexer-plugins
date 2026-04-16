@@ -2137,6 +2137,75 @@ components:
                               type: array
                               items:
                                 type: string
+          examples:
+            with_matches:
+              summary: Response with matching rules
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "success"
+                    rules_evaluated: 5
+                    rules_matched: 2
+                    matches:
+                      - rule:
+                          id: "uuid-rule-1"
+                          title: "rule/cloudtrail-failed-authentication/0"
+                          level: "high"
+                          tags:
+                            - "authentication"
+                            - "aws"
+                            - "cloudtrail"
+                        matched_conditions:
+                          - "event.category == 'authentication'"
+                          - "event.outcome == 'failure'"
+                          - "cloud.provider == 'aws'"
+                      - rule:
+                          id: "uuid-rule-2"
+                          title: "rule/suspicious-console-login/0"
+                          level: "medium"
+                          tags:
+                            - "suspicious_activity"
+                            - "console_login"
+                        matched_conditions:
+                          - "event.type == 'start'"
+                          - "source.ip in suspicious_ips"
+            no_matches:
+              summary: Response with no matching rules
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "success"
+                    rules_evaluated: 5
+                    rules_matched: 0
+                    matches: []
+            with_errors:
+              summary: Response with engine processing failure
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: false
+                      errors: []
+                  detection:
+                    status: "skipped"
+                    reason: "Engine processing failed"
 
     PromotionPreviewResponse:
       description: Promotion preview result
