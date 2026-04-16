@@ -88,11 +88,11 @@ dependencies {
   compileOnly "org.apache.httpcomponents.core5:httpcore5-h2:5.4"
   compileOnly "org.apache.httpcomponents.core5:httpcore5:5.4"
 
-  // Use Jackson provided by OpenSearch (2.20.1) - only for compile time
-  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.20.1'
-  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
-  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.20'
-  compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.20.1'
+  // Use Jackson provided by OpenSearch (2.21.2) - only for compile time
+  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.21.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.21'
+  compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2'
 
   compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
   // ZipArchive dependencies used for integration tests
