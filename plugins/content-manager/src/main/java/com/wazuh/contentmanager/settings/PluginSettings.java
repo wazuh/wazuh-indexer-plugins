@@ -56,7 +56,7 @@ public class PluginSettings {
     private static final String DEFAULT_CONTENT_CONSUMER = "public-ruleset-5";
 
     // Default values for IOC Context and Consumer
-    private static final String DEFAULT_IOC_CONTEXT = "t1-iocs-5";
+    private static final String DEFAULT_IOC_CONTEXT = "t1-iocs-6";
     private static final String DEFAULT_IOC_CONSUMER = "public-iocs-5";
 
     // Default values for CVE Context and Consumer
