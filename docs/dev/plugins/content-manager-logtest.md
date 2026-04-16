@@ -16,10 +16,11 @@ RestPostLogtestAction  →  LogtestService  →  EngineService + SecurityAnalyti
 The REST handler for `POST /_plugins/_content_manager/logtest`. Responsibilities:
 
 1. Validates the request has content and is valid JSON.
-2. Validates required fields (`integration`, `space`).
+2. Validates the required field `space`.
 3. Validates that `space` is `"test"` or `"standard"`.
-4. Strips the `integration` field from the payload (it's not part of the Engine request).
+4. Extracts the optional `integration` field (if present) and strips it from the Engine payload.
 5. Delegates to `LogtestService.executeLogtest(integrationId, space, enginePayload)`.
+   If `integrationId` is `null`, only engine normalization is performed.
 
 The handler does **not** interact with indices or external services directly, all business logic is in the service.
 
@@ -29,14 +30,16 @@ The handler does **not** interact with indices or external services directly, al
 
 The orchestrator. Executes the full logtest flow:
 
-1. **Integration lookup** — Queries `.cti-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
-2. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
-3. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `.cti-rules` by `document.id`, filtered by the same space.
-4. **SAP evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
-5. **Response building** — Combines engine and SAP results into a single JSON response under the keys `normalization` and `detection`.
+1. **No-integration shortcut** — If `integrationId` is `null`, delegates to `executeEngineOnly()`: runs the Engine normalization and returns the result with `detection.status: "skipped"` and `reason: "No integration provided"`. Steps 2–5 below are skipped.
+2. **Integration lookup** — Queries `.cti-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
+3. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
+4. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `.cti-rules` by `document.id`, filtered by the same space.
+5. **SAP evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
+6. **Response building** — Combines engine and SAP results into a single JSON response under the keys `normalization` and `detection`.
 
 **Error handling**:
 - If the Engine fails (HTTP error or exception), SAP evaluation is **skipped** and the response includes `status: "skipped"` with the reason.
+- If no integration is provided, detection is skipped (normalization-only mode).
 - If the integration has no rules, SAP returns `rules_evaluated: 0, rules_matched: 0` with success status.
 - If SAP evaluation returns unparseable JSON, the SAP result is `status: "error"`.
 
@@ -77,6 +80,10 @@ RestPostLogtestAction
     │  strips "integration" field
     ▼
 LogtestService.executeLogtest(integrationId, space, payload)
+    │
+    ├──► [if integrationId == null]
+    │       → executeEngineOnly(payload)
+    │       → returns normalization + detection: { status: "skipped" }
     │
     ├──► client.prepareSearch(".cti-integrations")
     │       → finds integration in given space (test or standard)
