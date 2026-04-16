@@ -54,6 +54,7 @@
     - [Configuration](ref/modules/notifications/configuration.md)
     - [API Reference](ref/modules/notifications/api.md)
     - [Troubleshooting](ref/modules/notifications/troubleshooting.md)
+  - [Alerting](ref/modules/alerting/index.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
 - [Back up and Restore](ref/backup-restore.md)
