@@ -2118,19 +2118,22 @@ components:
                         items:
                           type: object
                           properties:
-                            rule_id:
-                              type: string
-                              format: uuid
-                            rule_name:
-                              type: string
-                            severity:
-                              type: string
-                              enum: [informational, low, medium, high, critical]
+                            rule:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                title:
+                                  type: string
+                                level:
+                                  type: string
+                                  enum: [informational, low, medium, high, critical]
+                                tags:
+                                  type: array
+                                  items:
+                                    type: string
                             matched_conditions:
-                              type: array
-                              items:
-                                type: string
-                            tags:
                               type: array
                               items:
                                 type: string
