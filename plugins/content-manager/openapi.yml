@@ -2064,69 +2064,76 @@ components:
           schema:
             type: object
             properties:
-              normalization:
+              status:
+                type: integer
+                description: HTTP status code of the logtest execution result.
+                example: 200
+              message:
                 type: object
-                description: Engine output containing the normalized event and asset traces.
                 properties:
-                  output:
+                  normalization:
                     type: object
-                    additionalProperties: true
-                    description: Normalized event output from the engine (Wazuh Common Schema format).
-                  asset_traces:
-                    type: array
-                    items:
-                      type: object
-                      additionalProperties: true
-                    description: Asset trace information generated during normalization.
-                  validation:
-                    type: object
+                    description: Engine output containing the normalized event and asset traces.
                     properties:
-                      valid:
-                        type: boolean
-                        description: Indicates if the event passed engine validation.
-                      errors:
+                      output:
+                        type: object
+                        additionalProperties: true
+                        description: Normalized event output from the engine (Wazuh Common Schema format).
+                      asset_traces:
                         type: array
                         items:
-                          type: string
-                        description: List of validation errors if the event is invalid.
-              detection:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [success, error, skipped]
-                    example: "success"
-                  reason:
-                    type: string
-                    description: Present when status is "skipped".
-                    example: "Engine processing failed"
-                  rules_evaluated:
-                    type: integer
-                    example: 2
-                  rules_matched:
-                    type: integer
-                    example: 1
-                  matches:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        rule_id:
-                          type: string
-                          format: uuid
-                        rule_name:
-                          type: string
-                        severity:
-                          type: string
-                          enum: [informational, low, medium, high, critical]
-                        matched_conditions:
-                          type: array
-                          items:
-                            type: string
-                        tags:
-                          type: array
-                          items:
-                            type: string
+                          type: object
+                          additionalProperties: true
+                        description: Asset trace information generated during normalization.
+                      validation:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                            description: Indicates if the event passed engine validation.
+                          errors:
+                            type: array
+                            items:
+                              type: string
+                            description: List of validation errors if the event is invalid.
+                  detection:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [success, error, skipped]
+                        example: "success"
+                      reason:
+                        type: string
+                        description: Present when status is "skipped".
+                        example: "Engine processing failed"
+                      rules_evaluated:
+                        type: integer
+                        example: 2
+                      rules_matched:
+                        type: integer
+                        example: 1
+                      matches:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rule_id:
+                              type: string
+                              format: uuid
+                            rule_name:
+                              type: string
+                            severity:
+                              type: string
+                              enum: [informational, low, medium, high, critical]
+                            matched_conditions:
+                              type: array
+                              items:
+                                type: string
+                            tags:
+                              type: array
+                              items:
+                                type: string
 
     PromotionPreviewResponse:
       description: Promotion preview result
