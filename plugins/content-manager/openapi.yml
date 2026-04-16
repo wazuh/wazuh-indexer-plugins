@@ -785,12 +785,17 @@ paths:
   /logtest:
     post:
       tags: [Logtest]
-      summary: Execute logtest with Sigma rule evaluation
+      summary: Execute logtest with optional Sigma rule evaluation
       description: |
-        Sends a log event to the Wazuh Engine for analysis and evaluates the integration's
-        Sigma rules against the normalized event via the Security Analytics Plugin.
-        The integration must exist in the test space. If the integration has no rules,
-        the SA result returns zero matches. If the engine fails, SA evaluation is skipped.
+        Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is
+        provided, the integration's Sigma rules are also evaluated against the normalized
+        event via the Security Analytics Plugin (SAP). If `integration` is omitted, only
+        the normalization step is performed and the `detection` section is returned with
+        `status: "skipped"`.
+
+        The integration must exist in the specified space (`test` or `standard`). If the
+        integration has no rules, the SAP result returns zero matches. If the engine fails,
+        SAP evaluation is skipped.
       operationId: executeLogtest
       requestBody:
         required: true
@@ -798,6 +803,24 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/LogtestRequest"
+            examples:
+              with_integration:
+                summary: Full logtest with integration and rule evaluation
+                value:
+                  integration: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/cassandra/system.log"
+                  event: "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
+                  trace_level: "NONE"
+              normalization_only:
+                summary: Normalization only (no integration, detection is skipped)
+                value:
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/syslog"
+                  event: "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+                  trace_level: "NONE"
       responses:
         "200":
           $ref: "#/components/responses/LogtestResponse"
@@ -1008,7 +1031,6 @@ components:
       type: object
       additionalProperties: false
       required:
-        - integration
         - space
         - queue
         - location
@@ -1017,14 +1039,17 @@ components:
         integration:
           type: string
           format: uuid
-          description: ID of the integration to test against
+          description: |
+            ID of the integration to test against. If omitted, only the
+            normalization step is performed and detection is skipped.
           example: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
 
         space:
           type: string
           enum:
             - test
-          description: Must be "test". Only the test space is supported for logtest.
+            - standard
+          description: Space where the integration exists. Must be `"test"` or `"standard"`.
           example: "test"
 
         queue:
@@ -2192,6 +2217,22 @@ components:
                     rules_evaluated: 5
                     rules_matched: 0
                     matches: []
+            normalization_only:
+              summary: Normalization only (no integration provided)
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output:
+                      event:
+                        original: "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "skipped"
+                    reason: "No integration provided"
             with_errors:
               summary: Response with engine processing failure
               value:

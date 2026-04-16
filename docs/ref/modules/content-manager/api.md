@@ -192,9 +192,9 @@ curl -sk -u admin:admin -X POST \
 
 ### Execute Logtest
 
-Sends a log event to the Wazuh Engine for analysis and evaluates the integration's Sigma rules against the normalized event via the Security Analytics Plugin (SAP). The response combines the Engine's decoded output with the SAP rule evaluation results.
+Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is provided, the integration's Sigma rules are also evaluated against the normalized event via the Security Analytics Plugin (SAP). If `integration` is omitted, only the normalization step is performed and the `detection` section is returned with `status: "skipped"`.
 
-> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. The integration must exist in the specified space.
+> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. When an integration is specified, it must exist in the specified space.
 
 **Request**
 - Method: `POST`
@@ -204,7 +204,7 @@ Sends a log event to the Wazuh Engine for analysis and evaluates the integration
 
 | Field            | Type    | Required | Description                                          |
 | ---------------- | ------- | -------- | ---------------------------------------------------- |
-| `integration`    | String  | Yes      | ID of the integration to test against                |
+| `integration`    | String  | No       | ID of the integration to test against. If omitted, only normalization is performed. |
 | `space`          | String  | Yes      | `"test"` or `"standard"`                             |
 | `queue`          | Integer | Yes      | Queue number for logtest execution                   |
 | `location`       | String  | Yes      | Log file path or logical source location             |
@@ -316,6 +316,44 @@ curl -sk -u admin:admin -X POST \
       "rules_evaluated": 0,
       "rules_matched": 0,
       "matches": []
+    }
+  }
+}
+```
+
+**Example Request (normalization only, no integration)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/logtest" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "test",
+    "queue": 1,
+    "location": "/var/log/syslog",
+    "event": "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2",
+    "trace_level": "NONE"
+  }'
+```
+
+**Example Response (normalization only)**
+
+```json
+{
+  "status": 200,
+  "message": {
+    "normalization": {
+      "output": {
+        "event": {
+          "original": "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+        }
+      },
+      "asset_traces": [],
+      "validation": { "valid": true, "errors": [] }
+    },
+    "detection": {
+      "status": "skipped",
+      "reason": "No integration provided"
     }
   }
 }

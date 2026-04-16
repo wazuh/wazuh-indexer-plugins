@@ -128,13 +128,11 @@ public class RestPostLogtestAction extends BaseRestHandler {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 3. Validate required fields
+        // 3. Validate required field: space
         validationError =
-                this.payloadValidations.validateRequiredFields(
-                        jsonNode, List.of(Constants.KEY_INTEGRATION, Constants.KEY_SPACE));
+                this.payloadValidations.validateRequiredFields(jsonNode, List.of(Constants.KEY_SPACE));
         if (validationError != null) return validationError;
 
-        String integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
         String space = jsonNode.get(Constants.KEY_SPACE).asText();
 
         // 4. Validate space is "test" or "standard"
@@ -152,7 +150,14 @@ public class RestPostLogtestAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 5. Delegate execution to Service
+        // 5. Extract optional integration ID
+        String integrationId = null;
+        if (jsonNode.has(Constants.KEY_INTEGRATION)
+                && !jsonNode.get(Constants.KEY_INTEGRATION).isNull()) {
+            integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
+        }
+
+        // 6. Delegate execution to Service
         ObjectNode enginePayload = jsonNode.deepCopy();
         enginePayload.remove(Constants.KEY_INTEGRATION);
 

@@ -85,6 +85,11 @@ public class LogtestService {
      * @return a {@link RestResponse} containing the combined engine and SAP results as JSON
      */
     public RestResponse executeLogtest(String integrationId, Space space, ObjectNode enginePayload) {
+        // If no integration provided, run engine only and skip detection
+        if (integrationId == null) {
+            return executeEngineOnly(enginePayload);
+        }
+
         // 1. Look up integration from .cti-integrations by document.id + space
         SearchResponse integrationSearchResponse;
         ObjectMapper mapper = new ObjectMapper();
@@ -321,6 +326,24 @@ public class LogtestService {
             log.warn("Failed to fetch rules for integration [{}]: {}", integrationId, e.getMessage());
         }
         return ruleBodies;
+    }
+
+    /**
+     * Executes engine normalization only, skipping integration lookup and rule evaluation. Used when
+     * no integration ID is provided in the request.
+     *
+     * @param enginePayload the payload to send to the Engine
+     * @return a {@link RestResponse} with engine results and a skipped detection section
+     */
+    private RestResponse executeEngineOnly(ObjectNode enginePayload) {
+        Map<String, Object> engineResult = executeEngine(enginePayload);
+        engineResult.remove("_normalized_event");
+
+        Map<String, Object> sapResult = new LinkedHashMap<>();
+        sapResult.put(Constants.KEY_STATUS, "skipped");
+        sapResult.put("reason", "integration field not provided");
+
+        return buildCombinedResponse(engineResult, sapResult);
     }
 
     /** Creates a success SAP result with zero matches. */
