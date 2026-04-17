@@ -41,7 +41,7 @@ tags:
   - name: Integrations
     description: Manage integration metadata and related content
   - name: Logtest
-    description: Execute logtest against sample events
+    description: Execute logtest against sample events and evaluate Sigma rules via Security Analytics
   - name: Promotion
     description: Preview and promote content across spaces
   - name: Spaces
@@ -807,7 +807,17 @@ paths:
   /logtest:
     post:
       tags: [Logtest]
-      summary: Execute logtest
+      summary: Execute logtest with optional Sigma rule evaluation
+      description: |
+        Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is
+        provided, the integration's Sigma rules are also evaluated against the normalized
+        event via the Security Analytics Plugin (SAP). If `integration` is omitted, only
+        the normalization step is performed and the `detection` section is returned with
+        `status: "skipped"`.
+
+        The integration must exist in the specified space (`test` or `standard`). If the
+        integration has no rules, the SAP result returns zero matches. If the engine fails,
+        SAP evaluation is skipped.
       operationId: executeLogtest
       requestBody:
         required: true
@@ -815,6 +825,24 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/LogtestRequest"
+            examples:
+              with_integration:
+                summary: Full logtest with integration and rule evaluation
+                value:
+                  integration: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/cassandra/system.log"
+                  event: "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
+                  trace_level: "NONE"
+              normalization_only:
+                summary: Normalization only (no integration, detection is skipped)
+                value:
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/syslog"
+                  event: "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+                  trace_level: "NONE"
       responses:
         "200":
           $ref: "#/components/responses/LogtestResponse"
@@ -1112,10 +1140,27 @@ components:
       type: object
       additionalProperties: false
       required:
+        - space
         - queue
         - location
         - event
       properties:
+        integration:
+          type: string
+          format: uuid
+          description: |
+            ID of the integration to test against. If omitted, only the
+            normalization step is performed and detection is skipped.
+          example: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
+
+        space:
+          type: string
+          enum:
+            - test
+            - standard
+          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+          example: "test"
+
         queue:
           type: integer
           minimum: 0
@@ -1125,28 +1170,18 @@ components:
         location:
           type: string
           description: Log file path or logical source location
-          example: "/var/log/auth.log"
+          example: "/var/log/cassandra/system.log"
+
+        event:
+          type: string
+          description: Raw log event to be tested
+          example: "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
 
         metadata:
           type: object
           additionalProperties: true
           description: Optional metadata passed to the logtest engine
           example: {}
-
-        space:
-          type: string
-          enum:
-            - standard
-            - custom
-            - draft
-            - test
-          description: Space to execute the logtest against
-          example: "test"
-
-        event:
-          type: string
-          description: Raw log event to be tested
-          example: "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2"
 
         trace_level:
           type: string
@@ -2233,39 +2268,172 @@ components:
                 status: 502
 
     # Response body for logtest execution results (pass-through)
+    # Response body for logtest execution results (combined engine + SA)
     LogtestResponse:
-      description: Logtest result
+      description: Combined logtest result with engine output and Security Analytics rule evaluation.
       content:
         application/json:
           schema:
             type: object
-            additionalProperties: false
             properties:
               status:
-                type: string
-                example: "OK"
-              result:
+                type: integer
+                description: HTTP status code of the logtest execution result.
+                example: 200
+              message:
                 type: object
                 properties:
-                  output:
-                    type: string
-                    example: '{"wazuh":{"protocol":{"queue":1,"location":"syscheck"},"integration":{"category":"Security","name":"integration/wazuh-core/0","decoders":["core-wazuh-message","integrations"]}},"name":"nahuel","event":{"original":"File /etc/passwd modified"},"@timestamp":"2025-12-26T17:33:22Z"}'
-                  asset_traces:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        asset:
-                          type: string
-                          example: "decoder/core-wazuh-message/0"
-                        success:
-                          type: boolean
-                          example: true
-                        traces:
-                          type: array
-                          items:
-                            type: string
-                          example: ["@timestamp: get_date -> Success"]
+                  normalization:
+                    type: object
+                    description: Engine output containing the normalized event and asset traces.
+                    properties:
+                      output:
+                        type: object
+                        additionalProperties: true
+                        description: Normalized event output from the engine (Wazuh Common Schema format).
+                      asset_traces:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: true
+                        description: Asset trace information generated during normalization.
+                      validation:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                            description: Indicates if the event passed engine validation.
+                          errors:
+                            type: array
+                            items:
+                              type: string
+                            description: List of validation errors if the event is invalid.
+                  detection:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [success, error, skipped]
+                        example: "success"
+                      reason:
+                        type: string
+                        description: Present when status is "skipped".
+                        example: "Engine processing failed"
+                      rules_evaluated:
+                        type: integer
+                        example: 2
+                      rules_matched:
+                        type: integer
+                        example: 1
+                      matches:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rule:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                title:
+                                  type: string
+                                level:
+                                  type: string
+                                  enum: [informational, low, medium, high, critical]
+                                tags:
+                                  type: array
+                                  items:
+                                    type: string
+                            matched_conditions:
+                              type: array
+                              items:
+                                type: string
+          examples:
+            with_matches:
+              summary: Response with matching rules
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "success"
+                    rules_evaluated: 5
+                    rules_matched: 2
+                    matches:
+                      - rule:
+                          id: "uuid-rule-1"
+                          title: "rule/cloudtrail-failed-authentication/0"
+                          level: "high"
+                          tags:
+                            - "authentication"
+                            - "aws"
+                            - "cloudtrail"
+                        matched_conditions:
+                          - "event.category == 'authentication'"
+                          - "event.outcome == 'failure'"
+                          - "cloud.provider == 'aws'"
+                      - rule:
+                          id: "uuid-rule-2"
+                          title: "rule/suspicious-console-login/0"
+                          level: "medium"
+                          tags:
+                            - "suspicious_activity"
+                            - "console_login"
+                        matched_conditions:
+                          - "event.type == 'start'"
+                          - "source.ip in suspicious_ips"
+            no_matches:
+              summary: Response with no matching rules
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "success"
+                    rules_evaluated: 5
+                    rules_matched: 0
+                    matches: []
+            normalization_only:
+              summary: Normalization only (no integration provided)
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output:
+                      event:
+                        original: "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "skipped"
+                    reason: "No integration provided"
+            with_errors:
+              summary: Response with engine processing failure
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: false
+                      errors: []
+                  detection:
+                    status: "skipped"
+                    reason: "Engine processing failed"
 
     PromotionPreviewResponse:
       description: Promotion preview result

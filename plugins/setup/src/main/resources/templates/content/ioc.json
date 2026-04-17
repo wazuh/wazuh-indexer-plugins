@@ -59,7 +59,7 @@
         "document": {
           "properties": {
             "confidence": {
-              "type": "long"
+              "type": "short"
             },
             "feed": {
               "properties": {

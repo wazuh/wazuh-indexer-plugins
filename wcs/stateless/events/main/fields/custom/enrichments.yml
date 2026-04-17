@@ -27,7 +27,7 @@
       description: >
         Date/time indicator was last reported.
     - name: indicator.confidence
-      type: keyword
+      type: short
       level: custom
       description: >
         Indicator confidence rating.

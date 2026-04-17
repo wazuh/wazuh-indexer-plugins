@@ -60,6 +60,10 @@ public class Constants {
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
     public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
             "Cannot remove decoder [%s] as it is set as root decoder.";
+    public static final String E_400_INVALID_SPACE =
+            "Logtest is only supported for the 'test' and 'standard' spaces. Received space: '%s'.";
+    public static final String E_400_INTEGRATION_NOT_FOUND =
+            "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
@@ -127,6 +131,7 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
+    public static final String KEY_STATUS = "status";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";

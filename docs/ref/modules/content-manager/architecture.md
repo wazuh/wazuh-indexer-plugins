@@ -54,6 +54,8 @@ Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and 
 
 This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
 
+> **Note:** SAP enforces a maximum of 100 rules per detector. If an integration has more than 100 enabled rules, the detector creation or update request will be rejected. See [Security Analytics — Detector constraints](../security-analytics/index.md#detector-constraints) for details.
+
 ### Space Service
 
 Manages the four content spaces (standard, draft, test, custom). Routes CUD operations to the correct space partitions within system indices. Handles promotion by computing diffs between spaces in the promotion chain (Draft → Test → Custom).
@@ -72,7 +74,7 @@ Job Scheduler triggers
   → Snapshot Service downloads ZIP from CTI API
   → Extracts and bulk-indexes into .cti-rules, .cti-decoders, etc.
   → Updates .cti-consumers with new offset
-  → Security Analytics Service creates detectors
+  → Security Analytics Service creates detectors (max 100 rules per detector)
 ```
 
 ### CTI Sync (Incremental)

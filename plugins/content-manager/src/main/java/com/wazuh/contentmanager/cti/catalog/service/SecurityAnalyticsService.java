@@ -22,6 +22,8 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 
+import java.util.List;
+
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 
 /**
@@ -147,6 +149,15 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener);
+
+    /**
+     * Evaluates a list of Sigma rules against a normalized event.
+     *
+     * @param eventJson The normalized event as a JSON string.
+     * @param ruleBodies The list of Sigma rule bodies to evaluate.
+     * @return The evaluation result as a JSON string.
+     */
+    String evaluateRules(String eventJson, List<String> ruleBodies);
 
     /**
      * Deletes all Security Analytics resources (integrations, rules, and detectors) belonging to the
