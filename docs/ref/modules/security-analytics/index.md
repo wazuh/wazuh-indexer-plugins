@@ -4,6 +4,12 @@ The Security Analytics Plugin (SAP) is a fork of the [OpenSearch Security Analyt
 
 SAP runs inside the Wazuh Indexer and operates as an OpenSearch plugin, using the standard OpenSearch transport layer for all internal communication.
 
+## Detector rule space restriction
+
+A detector can only reference rules from a single space type — either **Standard** (pre-packaged Sigma rules) or **Custom** (user-promoted rules) — never both simultaneously. This applies to both detector creation and update operations.
+
+When the restriction is violated, the API returns `400 Bad Request`.
+
 ## Wazuh enriched findings
 
 ### What is a finding?
