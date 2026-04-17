@@ -168,6 +168,15 @@ jobs:
           restore-keys: |
             m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-
             m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-
+      - name: Restore Maven Local Cache (alerting)
+        if: steps.cache-security-analytics.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
+          restore-keys: |
+            m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-
+            m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
       - name: Publish to Maven Local
         if: steps.cache-security-analytics.outputs.cache-hit != 'true'
         uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@main
