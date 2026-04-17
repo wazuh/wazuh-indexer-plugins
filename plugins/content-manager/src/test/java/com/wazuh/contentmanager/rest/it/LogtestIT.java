@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.apache.hc.core5.http.ParseException;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
@@ -103,11 +104,12 @@ public class LogtestIT extends ContentManagerRestTestCase {
     }
 
     /**
-     * Sending a POST without the required "integration" field returns 400.
+     * Sending a POST without the required "integration" field returns 200, and the detection phase is
+     * skipped.
      *
      * @throws IOException on communication error
      */
-    public void testMissingIntegrationField400() throws IOException {
+    public void testMissingIntegrationField200() throws IOException, ParseException {
         // spotless:off
         String payload = """
                 {
@@ -118,12 +120,15 @@ public class LogtestIT extends ContentManagerRestTestCase {
                 }
                 """;
         // spotless:on
-        ResponseException ex =
-                expectThrows(
-                        ResponseException.class,
-                        () -> this.makeRequest("POST", PluginSettings.LOGTEST_URI, payload));
-        assertEquals(
-                RestStatus.BAD_REQUEST.getStatus(), ex.getResponse().getStatusLine().getStatusCode());
+
+        Response response = this.makeRequest("POST", PluginSettings.LOGTEST_URI, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+
+        JsonNode body = this.responseAsJson(response);
+        JsonNode detectionNode = body.path("message").path("detection");
+
+        assertEquals("skipped", detectionNode.path("status").asText());
+        assertEquals("integration field not provided", detectionNode.path("reason").asText());
     }
 
     /**
