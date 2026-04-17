@@ -147,7 +147,7 @@ jobs:
 
   publish-security-analytics:
     runs-on: ubuntu-24.04
-    needs: [branches, get-version, publish-common-utils]
+    needs: [branches, get-version, publish-common-utils, publish-alerting]
     if: inputs.plugin == 'content-manager'
     steps:
       - name: Restore Maven Local Cache
