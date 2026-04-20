@@ -99,10 +99,8 @@ dependencies {
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
-  if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('integtest') }) {
-    zipArchive group: 'com.wazuh', name: 'wazuh-indexer-alerting', version: "${version}" // Dependency of SAP
-    zipArchive group: 'com.wazuh', name: 'wazuh-indexer-security-analytics', version: "${version}"
-  }
+  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-alerting', version: "${version}" // Dependency of SAP
+  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-security-analytics', version: "${version}"
 
 }
 
