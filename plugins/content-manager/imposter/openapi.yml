@@ -31,8 +31,8 @@ tags:
     description: CTI Console endpoints
   - name: CTI API
     description: Wazuh CTI resource endpoints
-  - name: CTI Releases
-    description: Wazuh CTI release version endpoints
+  - name: Wazuh Releases
+    description: Wazuh release version endpoints
 
 paths:
   /api/v1/instances/token:
@@ -128,7 +128,7 @@ paths:
         No authentication is required.
       operationId: getReleaseUpdates
       tags:
-        - CTI Releases
+        - Wazuh Releases
       parameters:
         - name: tag
           in: path
