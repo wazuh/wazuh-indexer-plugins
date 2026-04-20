@@ -240,6 +240,8 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
                 // User-generated content endpoints
                 new RestPostLogtestAction(this.logtestService),
+                new RestPostLogtestNormalizationAction(this.logtestService),
+                new RestPostLogtestDetectionAction(this.logtestService),
                 // Policy endpoints
                 new RestPutPolicyAction(this.spaceService, this.engine),
                 // Rule endpoints

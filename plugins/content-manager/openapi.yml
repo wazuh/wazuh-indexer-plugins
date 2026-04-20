@@ -829,6 +829,94 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /logtest/normalization:
+    post:
+      tags: [Logtest]
+      summary: Execute normalization only
+      description: |
+        Sends a log event to the Wazuh Engine for decoding and normalization without
+        performing Sigma rule detection. This is useful for validating that decoders
+        correctly parse and normalize events before testing detection rules.
+
+        The response contains the Engine's normalized output directly, including the
+        decoded fields, asset traces, and validation results.
+      operationId: executeLogtestNormalization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogtestNormalizationRequest"
+            examples:
+              basic:
+                summary: Normalize a Cassandra log event
+                value:
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/cassandra/system.log"
+                  metadata: {}
+                  trace_level: "NONE"
+                  input: "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message - 7500 - 4"
+      responses:
+        "200":
+          $ref: "#/components/responses/LogtestNormalizationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /logtest/detection:
+    post:
+      tags: [Logtest]
+      summary: Execute detection only
+      description: |
+        Evaluates an already-normalized event against the Sigma rules of a given
+        integration via the Security Analytics Plugin (SAP). This endpoint does **not**
+        call the Wazuh Engine — the caller must provide the normalized event object
+        directly in the `input` field.
+
+        Use this endpoint after obtaining a normalized event from the
+        `/logtest/normalization` endpoint, or when you already have a normalized event
+        and want to test different integrations' rules against it.
+
+        The integration must exist in the specified space (`test` or `standard`).
+      operationId: executeLogtestDetection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogtestDetectionRequest"
+            examples:
+              basic:
+                summary: Detect rules against a normalized event
+                value:
+                  space: "test"
+                  integration: "d3f3b0b8-4e25-4273-83ef-56a62003bcf7"
+                  input:
+                    event:
+                      category: ["database"]
+                      kind: "event"
+                      severity: 4
+                      duration: 7500
+                    source:
+                      ip: "10.42.3.15"
+                    process:
+                      thread:
+                        name: "CompactionExecutor-3"
+                    log:
+                      origin:
+                        file:
+                          name: "CassandraDaemon.java"
+                          line: 250
+      responses:
+        "200":
+          $ref: "#/components/responses/LogtestDetectionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Promotion endpoints: move content from draft/test into next space
   /promote:
     get:
@@ -1082,6 +1170,89 @@ components:
             - FULL
           description: Trace verbosity level
           example: "NONE"
+
+    # Request body for normalization-only logtest
+    LogtestNormalizationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - space
+      properties:
+        space:
+          type: string
+          enum:
+            - test
+            - standard
+          description: Space context for the normalization. Must be `"test"` or `"standard"`.
+          example: "test"
+
+        queue:
+          type: integer
+          minimum: 0
+          description: Queue number used for logtest execution
+          example: 1
+
+        location:
+          type: string
+          description: Log file path or logical source location
+          example: "/var/log/cassandra/system.log"
+
+        input:
+          type: string
+          description: Raw log event to be normalized
+          example: "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message"
+
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata passed to the Engine
+          example: {}
+
+        trace_level:
+          type: string
+          enum:
+            - NONE
+            - BASIC
+            - FULL
+          description: Trace verbosity level
+          example: "NONE"
+
+    # Request body for detection-only logtest
+    LogtestDetectionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - space
+        - integration
+        - input
+      properties:
+        space:
+          type: string
+          enum:
+            - test
+            - standard
+          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+          example: "test"
+
+        integration:
+          type: string
+          format: uuid
+          description: ID of the integration whose rules will be evaluated against the input event.
+          example: "d3f3b0b8-4e25-4273-83ef-56a62003bcf7"
+
+        input:
+          type: object
+          additionalProperties: true
+          description: |
+            Normalized event object to evaluate Sigma rules against. This is typically the
+            `output` field from a previous normalization response.
+          example:
+            event:
+              category: ["database"]
+              kind: "event"
+              severity: 4
+            source:
+              ip: "10.42.3.15"
 
     # Response body showing differences during promotion preview
     PolicyDiff:
@@ -2080,6 +2251,157 @@ components:
               value:
                 message: "Internal Server Error"
                 status: 500
+
+    # Response body for normalization-only logtest
+    LogtestNormalizationResponse:
+      description: Engine normalization result containing the decoded event.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code.
+                example: 200
+              message:
+                type: object
+                properties:
+                  output:
+                    type: object
+                    additionalProperties: true
+                    description: Normalized event output from the Engine (Wazuh Common Schema format).
+                  asset_traces:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                    description: Asset trace information generated during normalization.
+                  validation:
+                    type: object
+                    properties:
+                      valid:
+                        type: boolean
+                        description: Indicates if the event passed engine validation.
+                      errors:
+                        type: array
+                        items:
+                          type: string
+                        description: List of validation errors if the event is invalid.
+          examples:
+            success:
+              summary: Successful normalization
+              value:
+                status: 200
+                message:
+                  output:
+                    log:
+                      level: "INFO"
+                      origin:
+                        file:
+                          name: "CassandraDaemon.java"
+                          line: 250
+                    wazuh:
+                      space:
+                        name: "test"
+                      integration:
+                        decoders: ["decoder/cassandra-default/0"]
+                        name: "my-integration"
+                        category: "other"
+                    message: "Some message"
+                    event:
+                      duration: 7500
+                      category: ["database"]
+                      kind: "event"
+                      severity: 4
+                  asset_traces: []
+                  validation:
+                    valid: true
+                    errors: []
+
+    # Response body for detection-only logtest
+    LogtestDetectionResponse:
+      description: Security Analytics detection result with matched Sigma rules.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code.
+                example: 200
+              message:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success, error]
+                    example: "success"
+                  rules_evaluated:
+                    type: integer
+                    example: 12
+                  rules_matched:
+                    type: integer
+                    example: 6
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        rule:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            title:
+                              type: string
+                            level:
+                              type: string
+                              enum: [informational, low, medium, high, critical]
+                            tags:
+                              type: array
+                              items:
+                                type: string
+                        matched_conditions:
+                          type: array
+                          items:
+                            type: string
+          examples:
+            with_matches:
+              summary: Detection with matched rules
+              value:
+                status: 200
+                message:
+                  status: "success"
+                  rules_evaluated: 12
+                  rules_matched: 2
+                  matches:
+                    - rule:
+                        id: "4e52f215-bccc-4c0f-a37c-70606022be8e"
+                        title: "Numeric gte+lt condition"
+                        level: "high"
+                        tags: ["attack.execution", "attack.t1059"]
+                      matched_conditions:
+                        - "event.duration matched '>= 5000'"
+                        - "event.severity matched '< 10'"
+                    - rule:
+                        id: "1d489ded-7523-4329-8cd0-ebb21865a318"
+                        title: "Exact match event.kind=event"
+                        level: "low"
+                        tags: ["attack.execution", "attack.t1059"]
+                      matched_conditions:
+                        - "event.kind matched 'event'"
+            no_matches:
+              summary: No rules matched
+              value:
+                status: 200
+                message:
+                  status: "success"
+                  rules_evaluated: 5
+                  rules_matched: 0
+                  matches: []
 
     # Response body for logtest execution results (combined engine + SA)
     LogtestResponse:

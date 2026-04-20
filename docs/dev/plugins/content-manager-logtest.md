@@ -5,11 +5,13 @@
 The logtest flow involves three layers:
 
 ```
-RestPostLogtestAction  →  LogtestService  →  EngineService + SecurityAnalyticsService
-       (REST)              (Orchestration)       (External services)
+RestPostLogtestAction               →  LogtestService  →  EngineService + SecurityAnalyticsService
+RestPostLogtestNormalizationAction  →       ↑                    ↑
+RestPostLogtestDetectionAction      →       ↑                    ↑
+       (REST handlers)                (Orchestration)       (External services)
 ```
 
-### RestPostLogtestAction
+### RestPostLogtestAction (combined)
 
 **Path**: `rest/service/RestPostLogtestAction.java`
 
@@ -24,11 +26,41 @@ The REST handler for `POST /_plugins/_content_manager/logtest`. Responsibilities
 
 The handler does **not** interact with indices or external services directly, all business logic is in the service.
 
+### RestPostLogtestNormalizationAction
+
+**Path**: `rest/service/RestPostLogtestNormalizationAction.java`
+
+The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Responsibilities:
+
+1. Validates the request has content and is valid JSON.
+2. Validates the required field `space`.
+3. Validates that `space` is `"test"` or `"standard"`.
+4. Strips the `integration` field if present (not used for normalization).
+5. Delegates to `LogtestService.executeNormalization(enginePayload)`.
+
+### RestPostLogtestDetectionAction
+
+**Path**: `rest/service/RestPostLogtestDetectionAction.java`
+
+The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Responsibilities:
+
+1. Validates the request has content and is valid JSON.
+2. Validates the required fields `space`, `integration`, and `input`.
+3. Validates that `space` is `"test"` or `"standard"`.
+4. Validates that `input` is a JSON object (not a string or array).
+5. Delegates to `LogtestService.executeDetection(integrationId, space, inputEvent)`.
+
 ### LogtestService
 
 **Path**: `cti/catalog/service/LogtestService.java`
 
-The orchestrator. Executes the full logtest flow:
+The orchestrator. Provides three public entry points:
+
+- **`executeLogtest()`** — Full combined flow (normalization + detection)
+- **`executeNormalization()`** — Engine-only: forwards payload to `EngineService.logtest()` and returns the response directly with `parseMessageAsJson()`
+- **`executeDetection()`** — SAP-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRules()`, and returns the SAP result
+
+The full logtest flow:
 
 1. **No-integration shortcut** — If `integrationId` is `null`, delegates to `executeEngineOnly()`: runs the Engine normalization and returns the result with `detection.status: "skipped"` and `reason: "No integration provided"`. Steps 2–5 below are skipped.
 2. **Integration lookup** — Queries `.cti-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
@@ -75,7 +107,7 @@ Match results use a nested `rule` object per match entry:
 Client request
     │
     ▼
-RestPostLogtestAction
+RestPostLogtestAction (combined)
     │  validates request
     │  strips "integration" field
     ▼
@@ -106,6 +138,29 @@ LogtestService.executeLogtest(integrationId, space, payload)
             { normalization: {...}, detection: {...} }
 ```
 
+### Split Endpoints
+
+In addition to the combined flow, there are two dedicated endpoints that execute normalization and detection independently:
+
+```
+RestPostLogtestNormalizationAction           RestPostLogtestDetectionAction
+    │  validates: space                          │  validates: space, integration, input
+    │  strips integration field                  │
+    ▼                                            ▼
+LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id, space, input)
+    │                                            │
+    └──► engineService.logtest(payload)          ├──► client.prepareSearch(".cti-integrations")
+         → returns engine response directly      │       → finds integration
+                                                 ├──► extractRuleIds() + fetchRuleBodies()
+                                                 │       → fetches rule content from .cti-rules
+                                                 └──► securityAnalytics.evaluateRules(inputJson, ruleBodies)
+                                                         → returns SAP result directly
+```
+
+**Key differences from the combined endpoint:**
+- **Normalization** returns the raw Engine response (no detection wrapper). The `integration` field is stripped if present but has no effect on behavior.
+- **Detection** accepts a pre-normalized event as the `input` JSON object. It does not call the Engine — it goes straight to integration lookup → rule fetch → SAP evaluation.
+
 ## Index Dependencies
 
 | Index | Usage | Query |
@@ -121,7 +176,9 @@ Both indices must exist and have `document.id` mapped as `keyword` for term quer
 
 | Test class | Covers |
 | --- | --- |
-| `RestPostLogtestActionTests` | Request validation (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
+| `RestPostLogtestActionTests` | Request validation for combined endpoint (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
+| `RestPostLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
+| `RestPostLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
 | `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, SAP evaluation, response structure) |
 | `EventMatcherTests` | Sigma rule evaluation (field matching, wildcards, numerics, booleans, nulls, AND/OR/NOT conditions) |
 
@@ -139,8 +196,8 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 ### Supporting a new validation field
 
 1. Add the field constant to `Constants.java`.
-2. Add validation logic in `RestPostLogtestAction.handleRequest()`.
-3. Add unit test in `RestPostLogtestActionTests`.
+2. Add validation logic in the relevant handler(s): `RestPostLogtestAction`, `RestPostLogtestNormalizationAction`, and/or `RestPostLogtestDetectionAction`.
+3. Add unit tests in the corresponding test classes.
 4. Add integration test in `LogtestIT`.
 
 ### Supporting a new Engine response field
