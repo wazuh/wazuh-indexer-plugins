@@ -5,7 +5,7 @@
     IoC Document custom fields
   fields:
     - name: confidence
-      type: long
+      type: short
       level: custom
       description: >
         Confidence level or score for the IoC, typically representing the reliability of the indicator.

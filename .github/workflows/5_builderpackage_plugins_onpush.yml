@@ -34,6 +34,8 @@ jobs:
   call-build-workflow:
     permissions:
       actions: read
+      contents: read
+      packages: read
     needs: modified-plugins
     strategy:
       matrix:

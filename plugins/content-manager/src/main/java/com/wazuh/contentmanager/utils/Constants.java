@@ -60,10 +60,17 @@ public class Constants {
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
     public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
             "Cannot remove decoder [%s] as it is set as root decoder.";
+    public static final String E_400_INVALID_SPACE =
+            "Logtest is only supported for the 'test' and 'standard' spaces. Received space: '%s'.";
+    public static final String E_400_INTEGRATION_NOT_FOUND =
+            "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
+    public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
+    public static final String E_500_CTI_UNREACHABLE =
+            "Unable to reach the CTI API to check for updates.";
 
     // Log messages
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
@@ -88,14 +95,14 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
 
     // Index Constants
-    public static final String INDEX_POLICIES = ".cti-policies";
-    public static final String INDEX_INTEGRATIONS = ".cti-integrations";
-    public static final String INDEX_RULES = ".cti-rules";
-    public static final String INDEX_KVDBS = ".cti-kvdbs";
-    public static final String INDEX_DECODERS = ".cti-decoders";
-    public static final String INDEX_IOCS = ".cti-iocs";
-    public static final String INDEX_CVES = ".cti-cves";
-    public static final String INDEX_FILTERS = ".engine-filters";
+    public static final String INDEX_POLICIES = "wazuh-threatintel-policies";
+    public static final String INDEX_INTEGRATIONS = "wazuh-threatintel-integrations";
+    public static final String INDEX_RULES = "wazuh-threatintel-rules";
+    public static final String INDEX_KVDBS = "wazuh-threatintel-kvdbs";
+    public static final String INDEX_DECODERS = "wazuh-threatintel-decoders";
+    public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
+    public static final String INDEX_CVES = "wazuh-threatintel-vulnerabilities";
+    public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -124,6 +131,7 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
+    public static final String KEY_STATUS = "status";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";
@@ -196,6 +204,7 @@ public class Constants {
     public static final String Q_DOCUMENT_TYPE = "document.type";
     public static final String Q_SPACE_NAME = "space.name";
     public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_DOCUMENT_ENABLED = "document.enabled";
     public static final String Q_DOCUMENT_TITLE = "document.metadata.title";
     public static final String Q_HASH = "hash.sha256";
     public static final String Q_HITS = "hits";

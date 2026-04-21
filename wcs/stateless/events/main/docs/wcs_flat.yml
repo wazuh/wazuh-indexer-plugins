@@ -3371,12 +3371,11 @@ enrichments.indicator.confidence:
   dashed_name: enrichments-indicator-confidence
   description: Indicator confidence rating.
   flat_name: enrichments.indicator.confidence
-  ignore_above: 1024
   level: custom
   name: indicator.confidence
   normalize: []
   short: Indicator confidence rating.
-  type: keyword
+  type: short
 enrichments.indicator.feed.name:
   dashed_name: enrichments-indicator-feed-name
   description: Name of the feed that supplied the indicator.

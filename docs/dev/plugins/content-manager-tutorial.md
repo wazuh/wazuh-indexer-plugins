@@ -2,7 +2,7 @@
 
 This tutorial walks through adding a new REST endpoint to the Content Manager plugin, using a concrete example: **a GET endpoint to retrieve a single rule by ID**.
 
-By the end, you will have a working `GET /_plugins/_content_manager/rules/{id}` endpoint that fetches a rule document from the `.cti-rules` index.
+By the end, you will have a working `GET /_plugins/_content_manager/rules/{id}` endpoint that fetches a rule document from the `wazuh-threatintel-rules` index.
 
 ---
 
@@ -59,7 +59,7 @@ import com.wazuh.contentmanager.utils.Constants;
 /**
  * GET /_plugins/_content_manager/rules/{id}
  *
- * Retrieves a single rule document by its ID from the .cti-rules index.
+ * Retrieves a single rule document by its ID from the wazuh-threatintel-rules index.
  */
 public class RestGetRuleAction extends BaseRestHandler {
 

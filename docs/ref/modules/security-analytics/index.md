@@ -10,6 +10,14 @@ A detector can only reference rules from a single space type — either **Standa
 
 When the restriction is violated, the API returns `400 Bad Request`.
 
+## Detector constraints
+
+| Constraint           | Value | Description                                                                                              |
+| -------------------- | ----- | -------------------------------------------------------------------------------------------------------- |
+| Max rules per detector | 100 | Each detector input can reference at most 100 rules (custom or pre-packaged). Requests that exceed this limit are rejected with HTTP 400. |
+
+This limit is enforced at the transport layer (`TransportIndexDetectorAction`) and applies to all detector creation and update paths, including inter-plugin calls from the Content Manager.
+
 ## Wazuh enriched findings
 
 ### What is a finding?

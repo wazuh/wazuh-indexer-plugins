@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
@@ -62,6 +63,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -74,6 +76,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
@@ -96,6 +99,9 @@ public class ContentManagerPlugin extends Plugin
     private EngineService engine;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
+    private Environment environment;
+    private ClusterService clusterService;
+    private LogtestService logtestService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -129,6 +135,8 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
+        this.environment = environment;
+        this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
@@ -165,6 +173,9 @@ public class ContentManagerPlugin extends Plugin
             this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         }
 
+        this.logtestService =
+                new LogtestService(this.engine, this.securityAnalyticsService, this.client);
+
         // Register hot-reload settings consumer
         clusterService
                 .getClusterSettings()
@@ -175,8 +186,8 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Triggers the internal {@link #start()} method if the current node is a Cluster Manager to
-     * initialize indices. It also ensures the periodic catalog sync job is scheduled.
+     * Triggers the internal {@link #start(Runnable)} method if the current node is a Cluster Manager
+     * to initialize indices. It also ensures the periodic catalog sync job is scheduled.
      *
      * <p>The startup sync trigger is restricted to the cluster manager node to prevent every node in
      * the cluster from running a concurrent synchronization on startup.
@@ -231,8 +242,10 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostSubscriptionAction(this.ctiConsole),
                 new RestDeleteSubscriptionAction(this.ctiConsole),
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
-                // User-generated content endpoints (Logtest)
-                new RestPostLogtestAction(this.engine),
+                // Version check endpoint
+                new RestGetVersionCheckAction(this.environment, this.clusterService),
+                // User-generated content endpoints
+                new RestPostLogtestAction(this.logtestService),
                 // Policy endpoints
                 new RestPutPolicyAction(this.spaceService, this.engine),
                 // Rule endpoints
@@ -301,15 +314,7 @@ public class ContentManagerPlugin extends Plugin
 
     /** Check if the index exists; if not, create it with specific settings. */
     private void ensureJobsIndexExists() {
-        boolean indexExists =
-                this.client
-                        .admin()
-                        .indices()
-                        .prepareExists(CONTENT_MANAGER_JOBS_INDEX_NAME)
-                        .get()
-                        .isExists();
-
-        if (!indexExists) {
+        if (!ClusterInfo.indexExists(this.client, CONTENT_MANAGER_JOBS_INDEX_NAME)) {
             try {
                 Settings settings =
                         Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
@@ -322,18 +327,20 @@ public class ContentManagerPlugin extends Plugin
                         .get();
 
                 log.info("Created job index {}.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+            } catch (ResourceAlreadyExistsException e) {
+                log.debug("Index {} already exists. Skipping.", CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (Exception e) {
                 log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
             }
         }
 
-        // Wait for at least yellow status so shards are allocated and ready for reads/writes.
-        this.client
-                .admin()
-                .cluster()
-                .prepareHealth(CONTENT_MANAGER_JOBS_INDEX_NAME)
-                .setWaitForYellowStatus()
-                .get();
+        // Wait for at least yellow status with active shards ready for operations.
+        if (!ClusterInfo.indexStatusCheck(
+                this.client,
+                CONTENT_MANAGER_JOBS_INDEX_NAME,
+                PluginSettings.getInstance().getClientTimeout())) {
+            throw new RuntimeException("Index " + CONTENT_MANAGER_JOBS_INDEX_NAME + " not ready");
+        }
     }
 
     /**

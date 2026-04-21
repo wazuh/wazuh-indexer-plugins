@@ -192,9 +192,9 @@ curl -sk -u admin:admin -X POST \
 
 ### Execute Logtest
 
-Sends a log event to the Wazuh Engine for analysis and returns the decoded and matched result. The Indexer acts as a pass-through: it forwards the payload to the Engine via Unix socket and returns the Engine's response.
+Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is provided, the integration's Sigma rules are also evaluated against the normalized event via the Security Analytics Plugin (SAP). If `integration` is omitted, only the normalization step is performed and the `detection` section is returned with `status: "skipped"`.
 
-> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint.
+> **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. When an integration is specified, it must exist in the specified space.
 
 **Request**
 - Method: `POST`
@@ -202,14 +202,15 @@ Sends a log event to the Wazuh Engine for analysis and returns the decoded and m
 
 **Request Body**
 
-| Field            | Type    | Required | Description                                  |
-| ---------------- | ------- | -------- | -------------------------------------------- |
-| `queue`          | Integer | Yes      | Queue number for logtest execution           |
-| `location`       | String  | Yes      | Log file path or logical source location     |
-| `event`          | String  | Yes      | Raw log event to test                        |
-| `metadata`       | Object  | No       | Optional metadata passed to the Engine       |
-| `space`          | String  | No       | Space to execute the logtest against         |
-| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `BASIC`, or `FULL`  |
+| Field            | Type    | Required | Description                                          |
+| ---------------- | ------- | -------- | ---------------------------------------------------- |
+| `integration`    | String  | No       | ID of the integration to test against. If omitted, only normalization is performed. |
+| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
+| `queue`          | Integer | Yes      | Queue number for logtest execution                   |
+| `location`       | String  | Yes      | Log file path or logical source location             |
+| `event`          | String  | Yes      | Raw log event to test                                |
+| `metadata`       | Object  | No       | Optional metadata passed to the Engine               |
+| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`      |
 
 **Example Request**
 
@@ -218,49 +219,170 @@ curl -sk -u admin:admin -X POST \
   "https://192.168.56.6:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
-    "queue": 1,
-    "location": "/var/log/auth.log",
-    "metadata": {},
+    "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
     "space": "test",
-    "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
+    "queue": 1,
+    "location": "/var/log/cassandra/system.log",
+    "event": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve",
     "trace_level": "NONE"
   }'
 ```
 
-**Example Response (success)**
+**Example Response (success with rule match)**
 
 ```json
 {
-  "status": "OK",
-  "result": {
-    "output": "{\"wazuh\":{\"protocol\":{\"queue\":1,\"location\":\"syscheck\"},\"integration\":{\"category\":\"Security\",\"name\":\"integration/wazuh-core/0\",\"decoders\":[\"core-wazuh-message\",\"integrations\"]}},\"event\":{\"original\":\"Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2\"},\"@timestamp\":\"2026-02-19T12:00:00Z\"}",
-    "asset_traces": [
-      {
-        "asset": "decoder/core-wazuh-message/0",
-        "success": true,
-        "traces": ["@timestamp: get_date -> Success"]
+  "status": 200,
+  "message": {
+    "normalization": {
+      "output": {
+        "event": {
+          "category": ["database"],
+          "kind": "event",
+          "original": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
+        },
+        "wazuh": {
+          "integration": {
+            "name": "test-integ",
+            "category": "other",
+            "decoders": ["decoder/cassandra-default/0"]
+          }
+        },
+        "message": "Node is ready to serve"
+      },
+      "asset_traces": [],
+      "validation": {
+        "valid": true,
+        "errors": []
       }
-    ]
+    },
+    "detection": {
+      "status": "success",
+      "rules_evaluated": 2,
+      "rules_matched": 1,
+      "matches": [
+        {
+          "rule": {
+            "id": "85bba177-a2e9-4468-9d59-26f4798906c9",
+            "title": "Cassandra Database Event Detected",
+            "level": "low",
+            "tags": []
+          },
+          "matched_conditions": [
+            "event.category matched 'database'",
+            "event.kind matched 'event'"
+          ]
+        }
+      ]
+    }
   }
 }
 ```
 
-**Example Response (Engine unavailable)**
+**Example Response (Engine error, SAP skipped)**
 
 ```json
 {
-  "message": "Error communicating with Engine socket: Connection refused",
-  "status": 500
+  "status": 200,
+  "message": {
+    "normalization": {
+      "status": "error",
+      "error": {
+        "message": "Failed to parse protobuff json request: invalid value",
+        "code": "ENGINE_ERROR"
+      }
+    },
+    "detection": {
+      "status": "skipped",
+      "reason": "Engine processing failed"
+    }
+  }
 }
 ```
 
+**Example Response (no rules in integration)**
+
+```json
+{
+  "status": 200,
+  "message": {
+    "normalization": {
+      "output": { "..." : "..." },
+      "asset_traces": [],
+      "validation": { "valid": true, "errors": [] }
+    },
+    "detection": {
+      "status": "success",
+      "rules_evaluated": 0,
+      "rules_matched": 0,
+      "matches": []
+    }
+  }
+}
+```
+
+**Example Request (normalization only, no integration)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/logtest" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "test",
+    "queue": 1,
+    "location": "/var/log/syslog",
+    "event": "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2",
+    "trace_level": "NONE"
+  }'
+```
+
+**Example Response (normalization only)**
+
+```json
+{
+  "status": 200,
+  "message": {
+    "normalization": {
+      "output": {
+        "event": {
+          "original": "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+        }
+      },
+      "asset_traces": [],
+      "validation": { "valid": true, "errors": [] }
+    },
+    "detection": {
+      "status": "skipped",
+      "reason": "No integration provided"
+    }
+  }
+}
+```
+
+**Response Fields**
+
+| Field                                  | Type    | Description                                                  |
+| -------------------------------------- | ------- | ------------------------------------------------------------ |
+| `normalization.output`                 | Object  | Engine normalized event output                               |
+| `normalization.asset_traces`           | Array   | List of decoders that processed the event                    |
+| `normalization.validation`             | Object  | Validation result (`valid`, `errors`)                        |
+| `normalization.status`                 | String  | Present on error: `"error"`                                  |
+| `normalization.error`                  | Object  | Present on error: `message` and `code`                       |
+| `detection.status`                     | String  | `"success"`, `"error"`, or `"skipped"`                       |
+| `detection.reason`                     | String  | Present when status is `"skipped"`                           |
+| `detection.rules_evaluated`            | Integer | Number of Sigma rules evaluated                              |
+| `detection.rules_matched`              | Integer | Number of rules that matched                                 |
+| `detection.matches`                    | Array   | List of matched rules with details                           |
+| `detection.matches[].rule`             | Object  | Rule metadata: `id`, `title`, `level`, `tags`                |
+| `detection.matches[].matched_conditions` | Array | Human-readable descriptions of conditions that matched       |
+
 **Status Codes**
 
-| Code | Description                       |
-| ---- | --------------------------------- |
-| 200  | Logtest executed successfully     |
-| 400  | Invalid request body              |
-| 500  | Engine socket communication error |
+| Code | Description                                        |
+| ---- | -------------------------------------------------- |
+| 200  | Logtest executed (check inner status fields)       |
+| 400  | Missing/invalid fields or integration not found    |
+| 500  | Engine socket communication error or internal error|
 
 ---
 
@@ -1637,7 +1759,7 @@ When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
 
-The resources are removed in the Content Manager (`.cti-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
+The resources are removed in the Content Manager (`wazuh-threatintel-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
 
 > **Note**: Only `draft` space can be reset.
 
@@ -1674,6 +1796,94 @@ curl -sk -u admin:admin -X DELETE \
 | 200  | Space reset successfully                                                       |
 | 400  | Invalid space identifier, or attempted to reset a space different from `draft` |
 | 500  | Internal error (e.g., Engine unavailable or deletion failure)                  |
+
+## Version Check
+
+### Check Available Updates
+
+Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+
+**Request**
+- Method: `GET`
+- Path: `/_plugins/_content_manager/version/check`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin \
+  "https://192.168.56.6:9200/_plugins/_content_manager/version/check"
+```
+
+**Example Response (updates available)**
+
+```json
+{
+  "message": {
+    "uuid": "bd7f0db0-d094-48ca-b883-7019484ce71f",
+    "last_check_date": "2026-04-14T15:28:41.347387+00:00",
+    "current_version": "v5.0.0",
+    "last_available_major": {
+      "tag": "v6.0.0",
+      "title": "Wazuh v6.0.0",
+      "description": "Major release with new features...",
+      "published_date": "2026-03-01T10:00:00Z",
+      "semver": { "major": 6, "minor": 0, "patch": 0 }
+    },
+    "last_available_minor": {
+      "tag": "v5.1.0",
+      "title": "Wazuh v5.1.0",
+      "description": "Minor improvements and enhancements...",
+      "published_date": "2026-02-15T10:00:00Z",
+      "semver": { "major": 5, "minor": 1, "patch": 0 }
+    },
+    "last_available_patch": {
+      "tag": "v5.0.1",
+      "title": "Wazuh v5.0.1",
+      "description": "Bug fixes and stability improvements...",
+      "published_date": "2026-01-20T10:00:00Z",
+      "semver": { "major": 5, "minor": 0, "patch": 1 }
+    }
+  },
+  "status": 200
+}
+```
+
+**Example Response (no updates)**
+
+```json
+{
+  "message": {
+    "uuid": "bd7f0db0-d094-48ca-b883-7019484ce71f",
+    "last_check_date": "2026-04-14T15:28:41.347387+00:00",
+    "current_version": "v5.0.0",
+    "last_available_major": {},
+    "last_available_minor": {},
+    "last_available_patch": {}
+  },
+  "status": 200
+}
+```
+
+**Example Response (version not found)**
+
+```json
+{
+  "message": "Unable to determine current Wazuh version.",
+  "status": 500
+}
+```
+
+**Status Codes**
+
+| Code | Description                                            |
+| ---- | ------------------------------------------------------ |
+| 200  | Version check completed (may include updates or empty) |
+| 500  | Unable to determine version or internal error          |
+| 502  | CTI API returned an error                              |
+
+> **Note**: Categories with no available updates are represented as empty objects `{}`.
+
+---
 
 ## Documentation Maintenance
 

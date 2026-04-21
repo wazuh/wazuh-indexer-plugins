@@ -18,9 +18,8 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.NamedRoute;
@@ -32,8 +31,9 @@ import java.util.List;
 import java.util.Locale;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -42,27 +42,26 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /**
  * POST /_plugins/_content_manager/logtest
  *
- * <p>Triggers a log test execution in the local engine. Possible HTTP responses:
- *
- * <pre>
- *  - 200 Accepted: Wazuh Engine replied with a successful response.
- *  - 400 Bad Request: Wazuh Engine replied with an error response.
- *  - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
- * </pre>
+ * <p>Validates the incoming request, ensures the required {@code integration} and {@code space}
+ * fields are present and valid, then delegates execution to {@link LogtestService}. The response
+ * combines the Wazuh Engine's decoded output with Security Analytics Plugin (SAP) Sigma rule
+ * evaluation results.
  */
 public class RestPostLogtestAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPostLogtestAction.class);
     private static final String ENDPOINT_NAME = "content_manager_logtest";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/engine_logtest";
-    private final EngineService engine;
+
+    private final LogtestService logtestService;
+    private final PayloadValidations payloadValidations;
 
     /**
-     * Constructs a new RestPostLogtest.
+     * Constructs a new RestPostLogtestAction.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param logtestService the service that orchestrates engine and SA evaluation
      */
-    public RestPostLogtestAction(EngineService engine) {
-        this.engine = engine;
+    public RestPostLogtestAction(LogtestService logtestService) {
+        this.logtestService = logtestService;
+        this.payloadValidations = new PayloadValidations();
     }
 
     /** Return a short identifier for this handler. */
@@ -87,11 +86,11 @@ public class RestPostLogtestAction extends BaseRestHandler {
     }
 
     /**
-     * Handles incoming requests.
+     * Handles incoming requests by delegating to {@link #handleRequest(RestRequest)}.
      *
      * @param request the incoming REST request
      * @param client the node client
-     * @return a consumer that executes the update operation
+     * @return a consumer that sends the logtest response
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
@@ -100,26 +99,26 @@ public class RestPostLogtestAction extends BaseRestHandler {
     }
 
     /**
-     * Execute the logtest operation.
+     * Validates the request and delegates logtest execution to {@link LogtestService}.
      *
-     * @param request incoming request
-     * @return a BytesRestResponse describing the outcome
+     * <p>Validation steps:
+     *
+     * <ol>
+     *   <li>Request has content
+     *   <li>Content is valid JSON
+     *   <li>Required fields {@code integration} and {@code space} are present
+     *   <li>Space value is {@code "test"} or {@code "standard"}
+     * </ol>
+     *
+     * @param request the incoming REST request
+     * @return a {@link RestResponse} with the combined engine and SA results, or an error response
      */
     public RestResponse handleRequest(RestRequest request) {
-        // 1. Check if engine service exists
-        if (this.engine == null) {
-            log.error(Constants.E_LOG_ENGINE_IS_NULL);
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+        // 1. Check request's payload exists
+        RestResponse validationError = this.payloadValidations.validateRequestHasContent(request);
+        if (validationError != null) return validationError;
 
-        // 2. Check request's payload exists
-        if (request == null || !request.hasContent()) {
-            return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // 3. Check request's payload is valid JSON
+        // 2. Parse JSON
         ObjectMapper mapper = new ObjectMapper();
         JsonNode jsonNode;
         try {
@@ -129,29 +128,39 @@ public class RestPostLogtestAction extends BaseRestHandler {
                     Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 4. Validate space field if present
-        JsonNode spaceNode = jsonNode.get(Constants.KEY_SPACE);
-        if (spaceNode != null) {
-            if (!spaceNode.isTextual()) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_SPACE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-            try {
-                Space.fromValue(spaceNode.asText());
-            } catch (IllegalArgumentException e) {
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_SPACE),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
+        // 3. Validate required field: space
+        validationError =
+                this.payloadValidations.validateRequiredFields(jsonNode, List.of(Constants.KEY_SPACE));
+        if (validationError != null) return validationError;
+
+        String space = jsonNode.get(Constants.KEY_SPACE).asText();
+
+        // 4. Validate space is "test" or "standard"
+        Space spaceEnum;
+        try {
+            spaceEnum = Space.fromValue(space);
+        } catch (IllegalArgumentException e) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+        if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 5. Logtest accepted
-        try {
-            return this.engine.logtest(jsonNode).parseMessageAsJson();
-        } catch (Exception e) {
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        // 5. Extract optional integration ID
+        String integrationId = null;
+        if (jsonNode.has(Constants.KEY_INTEGRATION)
+                && !jsonNode.get(Constants.KEY_INTEGRATION).isNull()) {
+            integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
         }
+
+        // 6. Delegate execution to Service
+        ObjectNode enginePayload = jsonNode.deepCopy();
+        enginePayload.remove(Constants.KEY_INTEGRATION);
+
+        return this.logtestService.executeLogtest(integrationId, spaceEnum, enginePayload);
     }
 }
