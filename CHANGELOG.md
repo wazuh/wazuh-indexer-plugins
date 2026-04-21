@@ -92,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
 - Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
 - Add documentation for Wazuh Alerting plugin [(#980)](https://github.com/wazuh/wazuh-indexer-plugins/pull/980)
+- Add ruletesting extended endpoints [(#1040)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1040)
 
 
 ### Dependencies
