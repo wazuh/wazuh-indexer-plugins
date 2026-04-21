@@ -161,7 +161,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip, outputDir);
         }
 
-        // 6. Update Consumer State in .cti-consumers
+        // 6. Update Consumer State in .wazuh-cti-consumers
         try {
             GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
             LocalConsumer current =
@@ -377,7 +377,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
         }
 
-        // 6. Update Consumer State in .cti-consumers
+        // 6. Update Consumer State in .wazuh-cti-consumers
         try {
             GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
             LocalConsumer current =

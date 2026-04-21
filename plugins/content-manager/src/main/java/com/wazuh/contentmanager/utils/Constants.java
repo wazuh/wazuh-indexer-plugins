@@ -92,14 +92,14 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
 
     // Index Constants
-    public static final String INDEX_POLICIES = ".cti-policies";
-    public static final String INDEX_INTEGRATIONS = ".cti-integrations";
-    public static final String INDEX_RULES = ".cti-rules";
-    public static final String INDEX_KVDBS = ".cti-kvdbs";
-    public static final String INDEX_DECODERS = ".cti-decoders";
-    public static final String INDEX_IOCS = ".cti-iocs";
-    public static final String INDEX_CVES = ".cti-cves";
-    public static final String INDEX_FILTERS = ".engine-filters";
+    public static final String INDEX_POLICIES = "wazuh-threatintel-policies";
+    public static final String INDEX_INTEGRATIONS = "wazuh-threatintel-integrations";
+    public static final String INDEX_RULES = "wazuh-threatintel-rules";
+    public static final String INDEX_KVDBS = "wazuh-threatintel-kvdbs";
+    public static final String INDEX_DECODERS = "wazuh-threatintel-decoders";
+    public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
+    public static final String INDEX_CVES = "wazuh-threatintel-vulnerabilities";
+    public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";

@@ -48,18 +48,18 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE, numDataNodes = 2)
 public class SpaceInitializationIT extends OpenSearchIntegTestCase {
 
-    private static final String INDEX_POLICIES = ".cti-policies";
+    private static final String INDEX_POLICIES = "wazuh-threatintel-policies";
     private static final String Q_SPACE_NAME = "space.name";
     private static final String[] SPACE_NAMES = {"draft", "test", "custom"};
 
     private static final Map<String, String> INDEX_MAPPINGS =
             Map.of(
-                    ".cti-rules", "/mappings/cti-rules-mappings.json",
-                    ".cti-decoders", "/mappings/cti-decoders-mappings.json",
-                    ".cti-kvdbs", "/mappings/cti-kvdbs-mappings.json",
-                    ".cti-integrations", "/mappings/cti-integrations-mappings.json",
-                    ".engine-filters", "/mappings/engine-filters-mappings.json",
-                    ".cti-policies", "/mappings/cti-policies-mappings.json");
+                    "wazuh-threatintel-rules", "/mappings/cti-rules-mappings.json",
+                    "wazuh-threatintel-decoders", "/mappings/cti-decoders-mappings.json",
+                    "wazuh-threatintel-kvdbs", "/mappings/cti-kvdbs-mappings.json",
+                    "wazuh-threatintel-integrations", "/mappings/cti-integrations-mappings.json",
+                    "wazuh-threatintel-filters", "/mappings/engine-filters-mappings.json",
+                    "wazuh-threatintel-policies", "/mappings/cti-policies-mappings.json");
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -81,8 +81,8 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * produce duplicate policy documents. This simulates the scenario where two nodes in a cluster
      * both complete a synchronization and trigger the post-sync operations.
      *
-     * <p>Expected result: exactly 3 policy documents in {@code .cti-policies} (one per space: draft,
-     * test, custom), regardless of how many times the workflow runs.
+     * <p>Expected result: exactly 3 policy documents in {@code wazuh-threatintel-policies} (one per
+     * space: draft, test, custom), regardless of how many times the workflow runs.
      */
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
         this.ensureGreen();
