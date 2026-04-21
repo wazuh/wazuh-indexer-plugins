@@ -63,9 +63,9 @@ The orchestrator. Provides three public entry points:
 The full logtest flow:
 
 1. **No-integration shortcut** — If `integrationId` is `null`, delegates to `executeEngineOnly()`: runs the Engine normalization and returns the result with `detection.status: "skipped"` and `reason: "No integration provided"`. Steps 2–5 below are skipped.
-2. **Integration lookup** — Queries `.cti-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
+2. **Integration lookup** — Queries `wazuh-threatintel-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
 3. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
-4. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `.cti-rules` by `document.id`, filtered by the same space.
+4. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `wazuh-threatintel-rules` by `document.id`, filtered by the same space.
 5. **SAP evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
 6. **Response building** — Combines engine and SAP results into a single JSON response under the keys `normalization` and `detection`.
 
@@ -117,7 +117,7 @@ LogtestService.executeLogtest(integrationId, space, payload)
     │       → executeEngineOnly(payload)
     │       → returns normalization + detection: { status: "skipped" }
     │
-    ├──► client.prepareSearch(".cti-integrations")
+    ├──► client.prepareSearch("wazuh-threatintel-integrations")
     │       → finds integration in given space (test or standard)
     │       → extracts rule IDs from document.rules
     │
@@ -126,7 +126,7 @@ LogtestService.executeLogtest(integrationId, space, payload)
     │       → receives normalized event
     │       → extracts "output" node as normalized event JSON
     │
-    ├──► client.prepareSearch(".cti-rules")
+    ├──► client.prepareSearch("wazuh-threatintel-rules")
     │       → fetches rule bodies by document.id + space filter
     │
     ├──► securityAnalytics.evaluateRules(normalizedEventJson, ruleBodies)
@@ -165,8 +165,8 @@ LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id
 
 | Index | Usage | Query |
 | --- | --- | --- |
-| `.cti-integrations` | Look up integration by ID in the given space | `document.id == X AND space.name == {space}` |
-| `.cti-rules` | Fetch rule bodies by document IDs in the given space | `document.id IN [...] AND space.name == {space}` |
+| `wazuh-threatintel-integrations` | Look up integration by ID in the given space | `document.id == X AND space.name == {space}` |
+| `wazuh-threatintel-rules` | Fetch rule bodies by document IDs in the given space | `document.id IN [...] AND space.name == {space}` |
 
 Both indices must exist and have `document.id` mapped as `keyword` for term queries to work.
 

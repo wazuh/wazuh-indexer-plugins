@@ -65,11 +65,11 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     @Mock private ActionFuture<SearchResponse> searchFuture;
     @Mock private SearchResponse searchResponse;
 
-    private static final String POLICY_IDX = ".cti-policies";
-    private static final String INTEGRATION_IDX = ".cti-integrations";
-    private static final String DECODER_IDX = ".cti-decoders";
-    private static final String KVDB_IDX = ".cti-kvdbs";
-    private static final String RULE_IDX = ".cti-rules";
+    private static final String POLICY_IDX = "wazuh-threatintel-policies";
+    private static final String INTEGRATION_IDX = "wazuh-threatintel-integrations";
+    private static final String DECODER_IDX = "wazuh-threatintel-decoders";
+    private static final String KVDB_IDX = "wazuh-threatintel-kvdbs";
+    private static final String RULE_IDX = "wazuh-threatintel-rules";
 
     @Before
     @Override

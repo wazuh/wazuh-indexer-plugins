@@ -6,7 +6,7 @@
   "data_stream": {},
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": ".cti-iocs",
+      "plugins.index_state_management.rollover_alias": "wazuh-threatintel-enrichments",
       "mapping.total_fields.limit": 500,
       "mapping.nested_fields.limit": 50,
       "index": {

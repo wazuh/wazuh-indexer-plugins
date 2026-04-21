@@ -55,7 +55,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      * <ul>
      *   <li>Response status code is 201 Created.
      *   <li>Response body contains a generated resource ID.
-     *   <li>The integration exists in the .cti-integrations index.
+     *   <li>The integration exists in the wazuh-threatintel-integrations index.
      *   <li>The document space.name field is "draft".
      *   <li>The document has a non-empty hash.sha256 field.
      *   <li>The integration ID is listed in the draft policy's document.integrations.
@@ -283,7 +283,8 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The integration document is correctly updated in the .cti-integrations index.
+     *   <li>The integration document is correctly updated in the wazuh-threatintel-integrations
+     *       index.
      *   <li>The document space.name field is still "draft".
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
@@ -538,7 +539,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The integration no longer exists in the .cti-integrations index.
+     *   <li>The integration no longer exists in the wazuh-threatintel-integrations index.
      *   <li>The integration ID is no longer listed in the draft policy's document.integrations.
      *   <li>The draft policy space.hash.sha256 has been updated.
      *   <li>The draft policy hash.sha256 has been updated.

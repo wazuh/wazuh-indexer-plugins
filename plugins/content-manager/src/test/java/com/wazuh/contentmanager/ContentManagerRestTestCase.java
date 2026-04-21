@@ -55,9 +55,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
 
     /**
      * Prevents the test framework from deleting all indices after each test. The Content Manager
-     * plugin requires persistent indices (in particular {@code .cti-policies}) to function. The
-     * default behavior would wipe them between tests, forcing costly re-creation and causing race
-     * conditions with the plugin's internal validation.
+     * plugin requires persistent indices (in particular {@code wazuh-threatintel-policies}) to
+     * function. The default behavior would wipe them between tests, forcing costly re-creation and
+     * causing race conditions with the plugin's internal validation.
      */
     @Override
     protected boolean preserveIndicesUponCompletion() {
@@ -71,9 +71,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     /**
      * Seeds the test environment by ensuring the policies index exists.
      *
-     * <p>The Content Manager plugin requires the {@code .cti-policies} index with policy documents
-     * for all spaces before any REST endpoint can be used. In production this index is created by the
-     * CTI synchronization process, but in test clusters we must seed it manually.
+     * <p>The Content Manager plugin requires the {@code wazuh-threatintel-policies} index with policy
+     * documents for all spaces before any REST endpoint can be used. In production this index is
+     * created by the CTI synchronization process, but in test clusters we must seed it manually.
      *
      * <p>This method is a separate {@code @Before} method (not a {@code setUp()} override) to
      * guarantee it runs after the parent's {@code initClient()} has initialized the REST client.

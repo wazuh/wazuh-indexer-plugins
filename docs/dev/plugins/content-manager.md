@@ -25,14 +25,14 @@ The plugin manages the following indices:
 
 | Index                         | Purpose                              |
 | ----------------------------- | ------------------------------------ |
-| `.cti-consumers`              | Sync state (status, offsets, snapshot links) |
-| `.cti-policies`               | Policy documents                     |
-| `.cti-integrations`           | Integration definitions              |
-| `.cti-rules`                  | Detection rules                      |
-| `.cti-decoders`               | Decoder definitions                  |
-| `.cti-kvdbs`                  | Key-value databases                  |
-| `.cti-iocs`                   | Indicators of Compromise             |
-| `.engine-filters`             | Engine filter rules                  |
+| `.wazuh-cti-consumers`              | Sync state (status, offsets, snapshot links) |
+| `wazuh-threatintel-policies`               | Policy documents                     |
+| `wazuh-threatintel-integrations`           | Integration definitions              |
+| `wazuh-threatintel-rules`                  | Detection rules                      |
+| `wazuh-threatintel-decoders`               | Decoder definitions                  |
+| `wazuh-threatintel-kvdbs`                  | Key-value databases                  |
+| `wazuh-threatintel-enrichments`                   | Indicators of Compromise             |
+| `wazuh-threatintel-filters`             | Engine filter rules                  |
 | `.wazuh-content-manager-jobs` | Job scheduler metadata               |
 
 ---
@@ -45,7 +45,7 @@ The plugin manages the following indices:
 
 1. Initializes `PluginSettings`, `ConsumersIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
 2. Registers all REST handlers via `getRestHandlers()`.
-3. Creates the `.cti-consumers` index on cluster manager nodes.
+3. Creates the `.wazuh-cti-consumers` index on cluster manager nodes.
 4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
 5. Optionally triggers an immediate sync on start.
 6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.
@@ -388,7 +388,7 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 1. Refreshes all content indices.
 2. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 3. Recalculates SHA-256 hashes for policy integrity verification.
-4. Sets consumer `status` to `idle` in `.cti-consumers`.
+4. Sets consumer `status` to `idle` in `.wazuh-cti-consumers`.
 
 ### Error Handling
 
@@ -524,7 +524,7 @@ flowchart TD
     SpaceCheck -->|No| Error400[400 Bad Request]
     SpaceCheck -->|Yes| Parse[Parse & validate fields]
     Parse --> SpaceBranch{Space?}
-    SpaceBranch -->|draft| StoreDraft[Update draft policy in .cti-policies]
+    SpaceBranch -->|draft| StoreDraft[Update draft policy in wazuh-threatintel-policies]
     SpaceBranch -->|standard| StoreStd[Merge allowed fields into standard policy]
     StoreDraft --> Hash[Recalculate space hash]
     StoreStd --> Hash
@@ -536,7 +536,7 @@ flowchart TD
 
 ### Policy Schema
 
-The `.cti-policies` index stores policy configurations. See the [Policy document structure](#document-structure) above for the envelope format.
+The `wazuh-threatintel-policies` index stores policy configurations. See the [Policy document structure](#document-structure) above for the envelope format.
 
 **Policy document fields:**
 
@@ -570,8 +570,8 @@ sequenceDiagram
     actor User
     participant Indexer
     participant Engine
-    participant FilterIndex as .engine-filters
-    participant PoliciesIndex as .cti-policies
+    participant FilterIndex as wazuh-threatintel-filters
+    participant PoliciesIndex as wazuh-threatintel-policies
 
     User->>Indexer: POST /_plugins/_content_manager/filters
     Indexer->>Indexer: Validate payload + space (draft|standard)
@@ -588,7 +588,7 @@ sequenceDiagram
     actor User
     participant Indexer
     participant Engine
-    participant FilterIndex as .engine-filters
+    participant FilterIndex as wazuh-threatintel-filters
 
     User->>Indexer: PUT /_plugins/_content_manager/filters/{id}
     Indexer->>FilterIndex: Check exists + validate space (draft|standard)
@@ -604,8 +604,8 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant Indexer
-    participant FilterIndex as .engine-filters
-    participant PoliciesIndex as .cti-policies
+    participant FilterIndex as wazuh-threatintel-filters
+    participant PoliciesIndex as wazuh-threatintel-policies
 
     User->>Indexer: DELETE /_plugins/_content_manager/filters/{id}
     Indexer->>FilterIndex: Check exists + resolve space
@@ -622,7 +622,7 @@ flowchart TD
     Indexer -->|Validate space| Check{space == draft?}
     Check -->|No| Error400[400 Bad Request]
     Check -->|Yes| DeleteSAP[Delete draft resources from SAP]
-    DeleteSAP --> DeleteCTI[Delete all draft documents from .cti-* indices]
+    DeleteSAP --> DeleteCTI[Delete all draft documents from wazuh-threatintel-* indices]
     DeleteCTI --> RegenPolicy[Re-generate default draft policy]
     RegenPolicy --> OK[200 OK]
 ```
@@ -636,7 +636,7 @@ Only the `draft` space can be reset. Attempting to reset any other space returns
 ### Check Consumer Status
 
 ```bash
-GET /.cti-consumers/_search
+GET /.wazuh-cti-consumers/_search
 {
   "query": { "match_all": {} }
 }
@@ -650,7 +650,7 @@ The `status` field indicates the sync lifecycle state:
 To find consumers that are currently syncing or that failed mid-sync (status stuck at `updating`):
 
 ```bash
-GET /.cti-consumers/_search
+GET /.wazuh-cti-consumers/_search
 {
   "query": { "term": { "status": "updating" } }
 }
@@ -659,7 +659,7 @@ GET /.cti-consumers/_search
 ### Check Content by Space
 
 ```bash
-GET /.cti-rules/_search
+GET /wazuh-threatintel-rules/_search
 {
   "query": { "term": { "space.name": "draft" } },
   "size": 10
@@ -827,7 +827,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 #### 05 - Policy: Policy Initialization (6 scenarios)
 | #   | Scenario                                                                        |
 | --- | ------------------------------------------------------------------------------- |
-| 1   | The ".cti-policies" index exists                                                |
+| 1   | The "wazuh-threatintel-policies" index exists                                                |
 | 2   | Exactly four policy documents exist (one per space)                             |
 | 3   | Standard policy has a different document ID than draft/test/custom              |
 | 4   | Draft, test, and custom policies start with empty integrations and root_decoder |

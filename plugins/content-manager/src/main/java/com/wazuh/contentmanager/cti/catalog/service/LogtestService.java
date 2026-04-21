@@ -43,9 +43,11 @@ import com.wazuh.contentmanager.utils.Constants;
  * <p>Steps:
  *
  * <ol>
- *   <li>Look up the integration in the {@code .cti-integrations} index (test or standard space)
+ *   <li>Look up the integration in the {@code wazuh-threatintel-integrations} index (test or
+ *       standard space)
  *   <li>Send the event to the Wazuh Engine for decoding and normalization
- *   <li>Extract rule IDs from the integration and fetch rule bodies from {@code .cti-rules}
+ *   <li>Extract rule IDs from the integration and fetch rule bodies from {@code
+ *       wazuh-threatintel-rules}
  *   <li>Evaluate the Sigma rules against the Engine's normalized event via SAP
  *   <li>Return a combined response with both engine and SAP results
  * </ol>
@@ -90,7 +92,7 @@ public class LogtestService {
             return executeEngineOnly(enginePayload);
         }
 
-        // 1. Look up integration from .cti-integrations by document.id + space
+        // 1. Look up integration from wazuh-threatintel-integrations by document.id + space
         SearchResponse integrationSearchResponse;
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -373,7 +375,7 @@ public class LogtestService {
     }
 
     /**
-     * Fetches Sigma rule bodies from the {@code .cti-rules} index by document ID.
+     * Fetches Sigma rule bodies from the {@code wazuh-threatintel-rules} index by document ID.
      *
      * <p>Each rule document's {@code document} field contains the raw Sigma rule content (JSON or
      * YAML). If a rule cannot be fetched, it is silently skipped.
