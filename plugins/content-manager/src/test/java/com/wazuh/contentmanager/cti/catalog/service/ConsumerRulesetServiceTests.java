@@ -101,11 +101,12 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
     /** Tests that getIndexName returns the correct unified name. */
     public void testGetIndexNameFormatsCorrectly() {
-        Assert.assertEquals(".cti-rules", this.synchronizer.getIndexName("rule"));
-        Assert.assertEquals(".cti-decoders", this.synchronizer.getIndexName("decoder"));
-        Assert.assertEquals(".cti-kvdbs", this.synchronizer.getIndexName("kvdb"));
-        Assert.assertEquals(".cti-integrations", this.synchronizer.getIndexName("integration"));
-        Assert.assertEquals(".cti-policies", this.synchronizer.getIndexName("policy"));
+        Assert.assertEquals("wazuh-threatintel-rules", this.synchronizer.getIndexName("rule"));
+        Assert.assertEquals("wazuh-threatintel-decoders", this.synchronizer.getIndexName("decoder"));
+        Assert.assertEquals("wazuh-threatintel-kvdbs", this.synchronizer.getIndexName("kvdb"));
+        Assert.assertEquals(
+                "wazuh-threatintel-integrations", this.synchronizer.getIndexName("integration"));
+        Assert.assertEquals("wazuh-threatintel-policies", this.synchronizer.getIndexName("policy"));
     }
 
     public void testGetIndexNameReturnsErrorOnInvalidType() {
