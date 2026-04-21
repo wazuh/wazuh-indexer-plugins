@@ -159,6 +159,94 @@ public class LogtestService {
     }
 
     /**
+     * Executes engine normalization only, returning the engine's response directly.
+     *
+     * @param enginePayload the payload to send to the Engine
+     * @return a {@link RestResponse} with the engine normalization result
+     */
+    public RestResponse executeNormalization(ObjectNode enginePayload) {
+        try {
+            RestResponse engineResponse = this.engine.logtest(enginePayload);
+            return engineResponse.parseMessageAsJson();
+        } catch (Exception e) {
+            log.error("Engine normalization failed: {}", e.getMessage());
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+    }
+
+    /**
+     * Executes detection only: looks up integration, fetches rules, evaluates via SAP.
+     *
+     * @param integrationId the integration document ID to look up
+     * @param space the space to search in (test or standard)
+     * @param inputEvent the normalized event JSON object to evaluate
+     * @return a {@link RestResponse} with the SAP detection result
+     */
+    public RestResponse executeDetection(String integrationId, Space space, JsonNode inputEvent) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // 1. Look up integration
+        SearchResponse integrationSearchResponse;
+        try {
+            integrationSearchResponse =
+                    this.client
+                            .prepareSearch(Constants.INDEX_INTEGRATIONS)
+                            .setSource(
+                                    new SearchSourceBuilder()
+                                            .query(
+                                                    QueryBuilders.boolQuery()
+                                                            .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, integrationId))
+                                                            .must(
+                                                                    QueryBuilders.termQuery(
+                                                                            Constants.Q_SPACE_NAME, space.toString())))
+                                            .size(1))
+                            .get();
+        } catch (Exception e) {
+            log.error("Failed to look up integration [{}]: {}", integrationId, e.getMessage());
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
+        if (Objects.requireNonNull(integrationSearchResponse.getHits().getTotalHits()).value() == 0) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_INTEGRATION_NOT_FOUND, integrationId, space),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // 2. Fetch rule IDs from integration
+        Map<String, Object> integrationSource =
+                integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
+        List<String> ruleIds = extractRuleIds(integrationSource);
+        List<String> ruleBodies =
+                ruleIds.isEmpty() ? List.of() : fetchRuleBodies(integrationId, ruleIds, space);
+
+        // 3. Convert input event to JSON string for SAP
+        String eventJson = inputEvent.toString();
+
+        // 4. Evaluate rules
+        Map<String, Object> sapResult;
+        if (ruleBodies.isEmpty()) {
+            sapResult = createEmptySapResult();
+        } else {
+            String saResultJson = this.securityAnalytics.evaluateRules(eventJson, ruleBodies);
+            try {
+                sapResult = mapper.readValue(saResultJson, Map.class);
+            } catch (Exception e) {
+                sapResult = createErrorSapResult();
+            }
+        }
+
+        try {
+            String json = mapper.writeValueAsString(sapResult);
+            return new RestResponse(json, RestStatus.OK.getStatus()).parseMessageAsJson();
+        } catch (Exception e) {
+            return new RestResponse(
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+    }
+
+    /**
      * Sends the event payload to the Wazuh Engine and builds the engine result map.
      *
      * <p>On success, the normalized event JSON is stored under the internal key {@code
