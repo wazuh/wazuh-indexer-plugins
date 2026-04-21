@@ -40,6 +40,7 @@ public class PluginSettings {
     public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
     public static final String FILTERS_URI = PLUGINS_BASE_URI + "/filters";
     public static final String SPACE_URI = PLUGINS_BASE_URI + "/space";
+    public static final String VERSION_CHECK_URI = PLUGINS_BASE_URI + "/version/check";
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;

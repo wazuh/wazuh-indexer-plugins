@@ -181,6 +181,14 @@ run {
   useCluster testClusters.runCluster
 }
 
+afterEvaluate {
+    if (tasks.findByName('publishNebulaPublicationToMavenLocal') && tasks.findByName('generatePomFileForPluginZipPublication')) {
+        tasks.named('publishNebulaPublicationToMavenLocal').configure {
+            dependsOn tasks.named('generatePomFileForPluginZipPublication')
+        }
+    }
+}
+
 // updateVersion: Task to auto update version to the next development iteration
 task updateVersion {
   onlyIf { System.getProperty('newVersion') }

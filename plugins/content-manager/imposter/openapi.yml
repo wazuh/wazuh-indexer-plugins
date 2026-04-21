@@ -31,6 +31,8 @@ tags:
     description: CTI Console endpoints
   - name: CTI API
     description: Wazuh CTI resource endpoints
+  - name: Wazuh Releases
+    description: Wazuh release version endpoints
 
 paths:
   /api/v1/instances/token:
@@ -116,6 +118,37 @@ paths:
           $ref: '#/components/responses/InstanceMeSuccess'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/releases/{tag}/updates:
+    get:
+      summary: Get Release Updates
+      description: |
+        Returns available version updates for the given release tag.
+        The response includes arrays of newer major, minor, and patch releases.
+        No authentication is required.
+      operationId: getReleaseUpdates
+      tags:
+        - Wazuh Releases
+      parameters:
+        - name: tag
+          in: path
+          required: true
+          description: The semver release tag (e.g., "v5.0.0")
+          schema:
+            type: string
+            example: v5.0.0
+      responses:
+        '200':
+          $ref: '#/components/responses/ReleaseUpdatesSuccess'
+        '400':
+          description: Invalid tag format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                  tag: ["is invalid"]
 
   /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes:
     get:
@@ -462,6 +495,66 @@ components:
         - identifier
         - name
 
+    ReleaseUpdatesData:
+      type: object
+      description: Available release updates grouped by category.
+      properties:
+        major:
+          type: array
+          description: Available major version updates.
+          items:
+            $ref: '#/components/schemas/Release'
+        minor:
+          type: array
+          description: Available minor version updates.
+          items:
+            $ref: '#/components/schemas/Release'
+        patch:
+          type: array
+          description: Available patch version updates.
+          items:
+            $ref: '#/components/schemas/Release'
+      required:
+        - major
+        - minor
+        - patch
+
+    Release:
+      type: object
+      description: A single release entry.
+      properties:
+        tag:
+          type: string
+          example: "v5.1.0"
+        title:
+          type: string
+          example: "Wazuh v5.1.0"
+        description:
+          type: string
+          example: "Release notes..."
+        published_date:
+          type: string
+          format: date-time
+          example: "2026-06-15T10:00:00Z"
+        semver:
+          type: object
+          properties:
+            major:
+              type: integer
+              example: 5
+            minor:
+              type: integer
+              example: 1
+            patch:
+              type: integer
+              example: 0
+      required:
+        - tag
+        - title
+        - description
+        - published_date
+        - semver
+
     ErrorResponse:
       type: object
       description: Standard error response.
@@ -527,6 +620,49 @@ components:
                 access_token: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
                 issued_token_type: urn:wazuh:params:oauth:token-type:signed_url
                 expires_in: 300
+
+    ReleaseUpdatesSuccess:
+      description: OK - Release updates retrieved successfully.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/ReleaseUpdatesData'
+            required:
+              - data
+          examples:
+            updates_available:
+              summary: Updates available
+              value:
+                data:
+                  major: []
+                  minor:
+                    - tag: "v5.1.0"
+                      title: "Wazuh v5.1.0"
+                      description: "Minor improvements..."
+                      published_date: "2026-06-15T10:00:00Z"
+                      semver:
+                        major: 5
+                        minor: 1
+                        patch: 0
+                  patch:
+                    - tag: "v5.0.1"
+                      title: "Wazuh v5.0.1"
+                      description: "Bug fixes..."
+                      published_date: "2026-05-10T10:00:00Z"
+                      semver:
+                        major: 5
+                        minor: 0
+                        patch: 1
+            no_updates:
+              summary: No updates available
+              value:
+                data:
+                  major: []
+                  minor: []
+                  patch: []
 
     CatalogSuccess:
       description: OK - Catalog changes retrieved successfully.
