@@ -246,6 +246,8 @@ public class ContentManagerPlugin extends Plugin
                 new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints
                 new RestPostLogtestAction(this.logtestService),
+                new RestPostLogtestNormalizationAction(this.logtestService),
+                new RestPostLogtestDetectionAction(this.logtestService),
                 // Policy endpoints
                 new RestPutPolicyAction(this.spaceService, this.engine),
                 // Rule endpoints
