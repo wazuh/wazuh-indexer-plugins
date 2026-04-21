@@ -54,7 +54,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 201 Created.
-     *   <li>The filter exists in the .cti-filters index.
+     *   <li>The filter exists in the wazuh-threatintel-filters index.
      *   <li>The document space.name field is "draft".
      *   <li>The document has a non-empty hash.sha256 field.
      *   <li>The filter ID is listed in the draft policy's filters list.
@@ -95,7 +95,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 201 Created.
-     *   <li>The filter exists in the .cti-filters index in standard space.
+     *   <li>The filter exists in the wazuh-threatintel-filters index in standard space.
      *   <li>The document space.name field is "standard".
      *   <li>The document has a non-empty hash.sha256 field.
      *   <li>The filter ID is listed in the standard policy's filters list.
@@ -275,7 +275,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The filter document is correctly updated in the .cti-filters index.
+     *   <li>The filter document is correctly updated in the wazuh-threatintel-filters index.
      *   <li>The document space.name field is still "draft".
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
@@ -337,7 +337,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The filter document is correctly updated in the .cti-filters index.
+     *   <li>The filter document is correctly updated in the wazuh-threatintel-filters index.
      *   <li>The document space.name field is still "standard".
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The standard policy space.hash.sha256 has been updated.
@@ -484,7 +484,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The filter no longer exists in the .cti-filters index.
+     *   <li>The filter no longer exists in the wazuh-threatintel-filters index.
      *   <li>The filter ID is no longer listed in the draft policy's filters list.
      *   <li>The draft policy space.hash.sha256 has been updated.
      * </ul>
@@ -520,7 +520,7 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The filter no longer exists in the .cti-filters index.
+     *   <li>The filter no longer exists in the wazuh-threatintel-filters index.
      *   <li>The filter ID is no longer listed in the standard policy's filters list.
      *   <li>The standard policy space.hash.sha256 has been updated.
      * </ul>

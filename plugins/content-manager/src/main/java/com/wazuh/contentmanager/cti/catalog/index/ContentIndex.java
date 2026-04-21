@@ -126,8 +126,7 @@ public class ContentIndex {
     /**
      * Creates the index in OpenSearch using the configured mappings and settings.
      *
-     * <p>Applies specific settings (hidden=true, replicas=0) and registers an alias if one is
-     * defined.
+     * <p>Applies specific settings (replicas=0) and registers an alias if one is defined.
      *
      * @return The response from the create index operation, or null if mappings could not be read.
      * @throws ExecutionException If the client execution fails.
@@ -141,8 +140,7 @@ public class ContentIndex {
             return null;
         }
 
-        Settings settings =
-                Settings.builder().put("index.number_of_replicas", 0).put("hidden", true).build();
+        Settings settings = Settings.builder().put("index.number_of_replicas", 0).build();
 
         String mappings;
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {

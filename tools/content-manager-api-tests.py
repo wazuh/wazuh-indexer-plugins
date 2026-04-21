@@ -272,7 +272,7 @@ class ContentManagerTester:
     # =========================================================================
     def test_policy(self):
         self.log("POLICY", "Fetching Draft Policy...", "INFO")
-        search_res = self._send("GET", "/.cti-policies/_search", {"query": {"term": {"space.name": {"value": "draft"}}}}, 200)
+        search_res = self._send("GET", "/wazuh-threatintel-policies/_search", {"query": {"term": {"space.name": {"value": "draft"}}}}, 200)
 
         hits = search_res.get("hits", {}).get("hits", [])
         if hits:
@@ -351,7 +351,7 @@ class ContentManagerTester:
     # Cleanup & Tables
     # =========================================================================
     def get_index_counts(self):
-        indices = [".cti-iocs", ".cti-kvdbs", ".cti-rules", ".cti-decoders", ".cti-policies", ".cti-integrations"]
+        indices = ["wazuh-threatintel-enrichments", "wazuh-threatintel-kvdbs", "wazuh-threatintel-rules", "wazuh-threatintel-decoders", "wazuh-threatintel-policies", "wazuh-threatintel-integrations"]
         print(f"\n{Colors.HEADER}{Colors.BOLD}╔{'═'*42}╗{Colors.ENDC}")
         print(f"{Colors.HEADER}{Colors.BOLD}║           INDEX DOCUMENT COUNTS          ║{Colors.ENDC}")
         print(f"{Colors.HEADER}{Colors.BOLD}╠{'═'*27}╦{'═'*14}╣{Colors.ENDC}")
@@ -373,11 +373,11 @@ class ContentManagerTester:
         spaces = ["draft", "test", "custom"]
         
         cols = [
-            ("INTEGRATION", ".cti-integrations"),
-            ("KVDB",        ".cti-kvdbs"),
-            ("RULE",        ".cti-rules"),
-            ("DECODER",     ".cti-decoders"),
-            ("POLICY",      ".cti-policies")
+            ("INTEGRATION", "wazuh-threatintel-integrations"),
+            ("KVDB",        "wazuh-threatintel-kvdbs"),
+            ("RULE",        "wazuh-threatintel-rules"),
+            ("DECODER",     "wazuh-threatintel-decoders"),
+            ("POLICY",      "wazuh-threatintel-policies")
         ]
 
         W_LABEL = 12

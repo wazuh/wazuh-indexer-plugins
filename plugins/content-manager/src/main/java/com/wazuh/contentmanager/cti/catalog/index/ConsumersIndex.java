@@ -47,7 +47,7 @@ public class ConsumersIndex {
     private static final Logger log = LogManager.getLogger(ConsumersIndex.class);
 
     /** The name of the Contexts index */
-    public static final String INDEX_NAME = ".cti-consumers";
+    public static final String INDEX_NAME = ".wazuh-cti-consumers";
 
     /** Path of the index mapping file */
     private static final String MAPPING_PATH = "/mappings/consumers-mapping.json";

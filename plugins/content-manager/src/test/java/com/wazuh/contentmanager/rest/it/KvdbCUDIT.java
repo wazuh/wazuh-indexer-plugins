@@ -53,7 +53,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 201 Created.
-     *   <li>The KVDB exists in the .cti-kvdbs index.
+     *   <li>The KVDB exists in the wazuh-threatintel-kvdbs index.
      *   <li>The document space.name field is "draft".
      *   <li>The document has a non-empty hash.sha256 field.
      *   <li>The KVDB ID is listed in the integration's kvdbs list.
@@ -311,7 +311,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The KVDB document is correctly updated in the .cti-kvdbs index.
+     *   <li>The KVDB document is correctly updated in the wazuh-threatintel-kvdbs index.
      *   <li>The document space.name field is still "draft".
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
@@ -492,7 +492,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The KVDB no longer exists in the .cti-kvdbs index.
+     *   <li>The KVDB no longer exists in the wazuh-threatintel-kvdbs index.
      *   <li>The KVDB ID is no longer listed in the integration's kvdbs list.
      *   <li>The integration's hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
