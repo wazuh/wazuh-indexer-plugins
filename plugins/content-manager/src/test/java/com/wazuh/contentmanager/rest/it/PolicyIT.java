@@ -47,7 +47,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
     // ========================
 
     /**
-     * The .cti-policies index exists.
+     * The wazuh-threatintel-policies index exists.
      *
      * <p>Verifies: Response status code is 200 when querying the index.
      *
@@ -208,7 +208,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The draft policy in .cti-policies is updated.
+     *   <li>The draft policy in wazuh-threatintel-policies is updated.
      *   <li>Its space.hash.sha256 field is updated.
      * </ul>
      *

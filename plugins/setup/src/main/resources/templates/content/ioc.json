@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".cti-iocs*"
+    "wazuh-threatintel-enrichments*"
   ],
   "priority": 1,
   "template": {
@@ -30,7 +30,7 @@
       },
       "mapping.nested_fields.limit": 50,
       "mapping.total_fields.limit": 500,
-      "plugins.index_state_management.rollover_alias": ".cti-iocs"
+      "plugins.index_state_management.rollover_alias": "wazuh-threatintel-enrichments"
     },
     "mappings": {
       "date_detection": false,

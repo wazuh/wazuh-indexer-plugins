@@ -149,7 +149,7 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Updates the consumer status in the {@code .cti-consumers} index.
+     * Updates the consumer status in the {@code .wazuh-cti-consumers} index.
      *
      * @param status The new {@link LocalConsumer.Status} to persist.
      */
@@ -323,7 +323,7 @@ public abstract class AbstractConsumerService {
                     SecurityAnalyticsService securityAnalyticsService =
                             new SecurityAnalyticsServiceImpl(this.client);
                     securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
-                    // 2. Remove resources belonging to space in the .cti-* indices.
+                    // 2. Remove resources belonging to space in the wazuh-threatintel-* indices.
                     SpaceService spaceService = new SpaceService(this.client);
                     spaceService.deleteSpaceResources(Space.STANDARD);
                 } catch (Exception e) {
