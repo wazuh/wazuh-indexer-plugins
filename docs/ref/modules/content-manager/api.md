@@ -1759,7 +1759,7 @@ When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
 
-The resources are removed in the Content Manager (`.cti-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
+The resources are removed in the Content Manager (`wazuh-threatintel-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
 
 > **Note**: Only `draft` space can be reset.
 
