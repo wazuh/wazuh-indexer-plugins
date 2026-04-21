@@ -290,6 +290,102 @@ Content in the custom space is picked up by the Wazuh Engine and actively used f
 
 ---
 
+## Split Endpoints: Normalization and Detection
+
+In addition to the combined logtest endpoint, you can run normalization and detection as separate steps. This is useful for:
+
+- **Debugging decoders** without noise from detection results.
+- **Testing multiple integrations** against the same normalized event without re-running the Engine each time.
+- **Iterating on rules** without waiting for normalization on each call.
+
+### Normalization Only
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://localhost:9200/_plugins/_content_manager/logtest/normalization" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "test",
+    "queue": 1,
+    "location": "/var/log/auth.log",
+    "input": "Dec 19 12:00:00 host sshd[12345]: Failed password for root from 10.0.0.1 port 54321 ssh2",
+    "trace_level": "ALL"
+  }'
+```
+
+The response contains only the Engine's normalized output (no detection section):
+
+```json
+{
+  "status": 200,
+  "message": {
+    "output": {
+      "event": {
+        "category": ["authentication"],
+        "kind": "event",
+        "outcome": "failure"
+      },
+      "source": { "ip": "10.0.0.1" },
+      "user": { "name": "root" }
+    },
+    "asset_traces": ["decoder/sshd-auth/0"],
+    "validation": { "valid": true, "errors": [] }
+  }
+}
+```
+
+### Detection Only
+
+Take the normalized event (the `output` object from normalization) and pass it as `input` along with the integration ID:
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://localhost:9200/_plugins/_content_manager/logtest/detection" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "test",
+    "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
+    "input": {
+      "event": {
+        "category": ["authentication"],
+        "kind": "event",
+        "outcome": "failure"
+      },
+      "source": { "ip": "10.0.0.1" },
+      "user": { "name": "root" }
+    }
+  }'
+```
+
+The response contains only the detection result:
+
+```json
+{
+  "status": 200,
+  "message": {
+    "status": "success",
+    "rules_evaluated": 1,
+    "rules_matched": 1,
+    "matches": [
+      {
+        "rule": {
+          "id": "85bba177-a2e9-4468-9d59-26f4798906c9",
+          "title": "SSH Failed Password Attempt",
+          "level": "medium",
+          "tags": ["attack.credential-access", "attack.t1110.001"]
+        },
+        "matched_conditions": [
+          "event.category matched 'authentication'",
+          "event.outcome matched 'failure'"
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## Quick Reference
 
 | Action | Endpoint | Method |
@@ -300,6 +396,8 @@ Content in the custom space is picked up by the Wazuh Engine and actively used f
 | Update rule | `/_plugins/_content_manager/rules/{id}` | PUT |
 | Preview promotion | `/_plugins/_content_manager/promote?space={space}` | GET |
 | Execute promotion | `/_plugins/_content_manager/promote` | POST |
-| Run logtest | `/_plugins/_content_manager/logtest` | POST |
+| Run logtest (combined) | `/_plugins/_content_manager/logtest` | POST |
+| Normalization only | `/_plugins/_content_manager/logtest/normalization` | POST |
+| Detection only | `/_plugins/_content_manager/logtest/detection` | POST |
 
 For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](sigma-rules.md).
