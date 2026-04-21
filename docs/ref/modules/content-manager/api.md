@@ -1797,6 +1797,94 @@ curl -sk -u admin:admin -X DELETE \
 | 400  | Invalid space identifier, or attempted to reset a space different from `draft` |
 | 500  | Internal error (e.g., Engine unavailable or deletion failure)                  |
 
+## Version Check
+
+### Check Available Updates
+
+Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+
+**Request**
+- Method: `GET`
+- Path: `/_plugins/_content_manager/version/check`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin \
+  "https://192.168.56.6:9200/_plugins/_content_manager/version/check"
+```
+
+**Example Response (updates available)**
+
+```json
+{
+  "message": {
+    "uuid": "bd7f0db0-d094-48ca-b883-7019484ce71f",
+    "last_check_date": "2026-04-14T15:28:41.347387+00:00",
+    "current_version": "v5.0.0",
+    "last_available_major": {
+      "tag": "v6.0.0",
+      "title": "Wazuh v6.0.0",
+      "description": "Major release with new features...",
+      "published_date": "2026-03-01T10:00:00Z",
+      "semver": { "major": 6, "minor": 0, "patch": 0 }
+    },
+    "last_available_minor": {
+      "tag": "v5.1.0",
+      "title": "Wazuh v5.1.0",
+      "description": "Minor improvements and enhancements...",
+      "published_date": "2026-02-15T10:00:00Z",
+      "semver": { "major": 5, "minor": 1, "patch": 0 }
+    },
+    "last_available_patch": {
+      "tag": "v5.0.1",
+      "title": "Wazuh v5.0.1",
+      "description": "Bug fixes and stability improvements...",
+      "published_date": "2026-01-20T10:00:00Z",
+      "semver": { "major": 5, "minor": 0, "patch": 1 }
+    }
+  },
+  "status": 200
+}
+```
+
+**Example Response (no updates)**
+
+```json
+{
+  "message": {
+    "uuid": "bd7f0db0-d094-48ca-b883-7019484ce71f",
+    "last_check_date": "2026-04-14T15:28:41.347387+00:00",
+    "current_version": "v5.0.0",
+    "last_available_major": {},
+    "last_available_minor": {},
+    "last_available_patch": {}
+  },
+  "status": 200
+}
+```
+
+**Example Response (version not found)**
+
+```json
+{
+  "message": "Unable to determine current Wazuh version.",
+  "status": 500
+}
+```
+
+**Status Codes**
+
+| Code | Description                                            |
+| ---- | ------------------------------------------------------ |
+| 200  | Version check completed (may include updates or empty) |
+| 500  | Unable to determine version or internal error          |
+| 502  | CTI API returned an error                              |
+
+> **Note**: Categories with no available updates are represented as empty objects `{}`.
+
+---
+
 ## Documentation Maintenance
 
 To maintain technical consistency, any modification, addition or removal \
