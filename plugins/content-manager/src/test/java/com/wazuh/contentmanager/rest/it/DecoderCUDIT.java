@@ -60,7 +60,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 201 Created.
-     *   <li>The decoder exists in the .cti-decoders index.
+     *   <li>The decoder exists in the wazuh-threatintel-decoders index.
      *   <li>The document space.name field is "draft".
      *   <li>The document has a non-empty hash.sha256 field.
      *   <li>The decoder ID is listed in the integration's decoders list.
@@ -239,7 +239,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The decoder document is correctly updated in the .cti-decoders index.
+     *   <li>The decoder document is correctly updated in the wazuh-threatintel-decoders index.
      *   <li>The document space.name field is still "draft".
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
@@ -394,7 +394,7 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The decoder no longer exists in the .cti-decoders index.
+     *   <li>The decoder no longer exists in the wazuh-threatintel-decoders index.
      *   <li>The decoder ID is no longer listed in the integration's decoders list.
      *   <li>The integration's hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.

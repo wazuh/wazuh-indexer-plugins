@@ -53,7 +53,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 201 Created.
-     *   <li>The rule exists in the .cti-rules index.
+     *   <li>The rule exists in the wazuh-threatintel-rules index.
      *   <li>The document space.name field is "draft".
      *   <li>The document has a non-empty hash.sha256 field.
      *   <li>The rule ID is listed in the integration's rules list.
@@ -283,7 +283,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The rule document is correctly updated in the .cti-rules index.
+     *   <li>The rule document is correctly updated in the wazuh-threatintel-rules index.
      *   <li>The document space.name field is still "draft".
      *   <li>The document hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.
@@ -503,7 +503,7 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The rule no longer exists in the .cti-rules index.
+     *   <li>The rule no longer exists in the wazuh-threatintel-rules index.
      *   <li>The rule ID is no longer listed in the integration's rules list.
      *   <li>The integration's hash.sha256 field has been updated.
      *   <li>The draft policy space.hash.sha256 has been updated.

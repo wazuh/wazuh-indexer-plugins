@@ -16,9 +16,9 @@ The Content Manager periodically synchronizes content from the Wazuh CTI API. Th
 
 - **Catalog context**: Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
 - **IoC context**: Contains Indicators of Compromise for threat detection.
-- **CVE context**: Contains Common Vulnerabilities and Exposures data, stored in `.cti-cves`. CVE documents do not have a space and are not subject to removals from CTI.
+- **CVE context**: Contains Common Vulnerabilities and Exposures data, stored in `wazuh-threatintel-vulnerabilities`. CVE documents do not have a space and are not subject to removals from CTI.
 
-Each context has an associated **consumer** that tracks synchronization state (current offset, snapshot URL) in the `.cti-consumers` index.
+Each context has an associated **consumer** that tracks synchronization state (current offset, snapshot URL) in the `.wazuh-cti-consumers` index.
 
 ### Snapshot Initialization
 
@@ -27,7 +27,7 @@ On first run (when the local offset is `0`), the Content Manager performs a full
 1. Fetches the latest snapshot URL from the CTI API.
 2. Downloads and extracts the ZIP archive.
 3. Indexes the content into the appropriate system indices using bulk operations.
-4. Records the snapshot offset in `.cti-consumers`.
+4. Records the snapshot offset in `.wazuh-cti-consumers`.
 
 ### Incremental Updates
 
@@ -130,15 +130,15 @@ The Content Manager uses the following system indices:
 
 | Index                         | Description                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
-| `.cti-consumers`              | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs)   |
-| `.cti-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
-| `.cti-decoders`               | Log decoders                                                                        |
-| `.cti-integrations`           | Integration definitions                                                             |
-| `.cti-kvdbs`                  | Key-value databases                                                                 |
-| `.cti-policies`               | Routing policies                                                                    |
-| `.cti-iocs`                   | Indicators of Compromise                                                            |
-| `.cti-cves`                   | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
-| `.engine-filters`             | Engine filters (routing filters for event classification)                           |
+| `.wazuh-cti-consumers`              | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs)   |
+| `wazuh-threatintel-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
+| `wazuh-threatintel-decoders`               | Log decoders                                                                        |
+| `wazuh-threatintel-integrations`           | Integration definitions                                                             |
+| `wazuh-threatintel-kvdbs`                  | Key-value databases                                                                 |
+| `wazuh-threatintel-policies`               | Routing policies                                                                    |
+| `wazuh-threatintel-enrichments`                   | Indicators of Compromise                                                            |
+| `wazuh-threatintel-vulnerabilities`                   | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
+| `wazuh-threatintel-filters`             | Engine filters (routing filters for event classification)                           |
 | `.wazuh-content-manager-jobs` | Job Scheduler metadata for periodic sync and update check jobs                      |
 
 ## CTI Subscription

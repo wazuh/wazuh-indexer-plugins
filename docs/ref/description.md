@@ -59,7 +59,7 @@ The Wazuh Indexer organizes data into purpose-specific indices:
 | `wazuh-findings-v5*`     | Findings from security events (triggered by rules)                            |
 | `wazuh-states-v5*`       | Scan results, such as inventory data (vulnerabilities, packages, ports, etc.) |
 | `wazuh-metrics*`         | General metrics                                                               |
-| `.cti-*`                 | Content Manager system indices for CTI content                                |
+| `wazuh-threatintel-*`                 | Content Manager system indices for CTI content                                |
 
 For a complete list of indices and their schemas, see the [Setup Plugin](modules/setup/index.md) documentation.
 

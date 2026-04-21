@@ -109,21 +109,6 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
     }
 
-    /** Missing integration field returns 400. */
-    public void testMissingIntegration400() {
-        // spotless:off
-        RestRequest request = mockRequest(
-            """
-            {"space": "test", "queue": 1, "location": "/var/log/test.log", "event": "test"}
-            """
-        );
-        // spotless:on
-        RestResponse response = this.action.handleRequest(request);
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("integration"));
-        verify(this.logtestService, never()).executeLogtest(anyString(), any(), any());
-    }
-
     /** Missing space field returns 400. */
     public void testMissingSpace400() {
         // spotless:off

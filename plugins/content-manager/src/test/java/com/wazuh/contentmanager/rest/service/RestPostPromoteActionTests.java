@@ -163,7 +163,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Override the default mock to throw an exception simulating index not found
         when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), anyString(), anyString()))
                 .thenThrow(
-                        new org.opensearch.index.IndexNotFoundException("Index [.cti-decoders] not found."));
+                        new org.opensearch.index.IndexNotFoundException(
+                                "Index [wazuh-threatintel-decoders] not found."));
 
         // Invoke method to test
         RestResponse actualResponse = this.action.handleRequest(request);

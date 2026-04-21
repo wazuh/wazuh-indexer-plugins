@@ -91,6 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add --set-as-main flag support to repository bumper [(#978)](https://github.com/wazuh/wazuh-indexer-plugins/pull/978)
 - Add SAP findings enrichment documentation [(#988)](https://github.com/wazuh/wazuh-indexer-plugins/pull/988)
 - Implement standard policy load to Engine at space.hash update [(#995)](https://github.com/wazuh/wazuh-indexer-plugins/pull/995)
+- Implement version check CM API endpoint [(#1028)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1028)
 - Add documentation for Wazuh Alerting plugin [(#980)](https://github.com/wazuh/wazuh-indexer-plugins/pull/980)
 
 

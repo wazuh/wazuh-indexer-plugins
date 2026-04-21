@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".engine-filters"
+    "wazuh-threatintel-filters"
   ],
   "priority": 1,
   "template": {
