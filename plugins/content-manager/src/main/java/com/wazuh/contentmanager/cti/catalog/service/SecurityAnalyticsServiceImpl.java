@@ -383,9 +383,39 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             return null;
         }
 
+        List<String> sourceIndices = new ArrayList<>();
+        int interval = 1;
+        boolean enabled = true;
+
+        if (doc.has("detector") && doc.get("detector").isObject()) {
+            JsonNode detectorNode = doc.get("detector");
+
+            if (detectorNode.has("source")) {
+                detectorNode.get("source").forEach(s -> sourceIndices.add(s.asText()));
+            }
+
+            if (detectorNode.has("interval")) {
+                interval = detectorNode.get("interval").asInt();
+            }
+
+            if (detectorNode.has("enabled")) {
+                enabled = detectorNode.get("enabled").asBoolean();
+            }
+        } else {
+            // Default value
+            sourceIndices.add("wazuh-findings-v5*");
+        }
+
         log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
         return new WIndexDetectorRequest(
-                id, title, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
+                id,
+                title,
+                category,
+                rules,
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                sourceIndices,
+                interval,
+                enabled);
     }
 
     /**
