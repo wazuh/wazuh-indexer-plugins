@@ -1,5 +1,5 @@
 {
-  "dynamic": "true",
+  "dynamic": "false",
   "properties": {
     "document": {
       "properties": {
@@ -52,6 +52,20 @@
         },
         "rules": {
           "type": "keyword"
+        },
+        "detector": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "keyword"
+            },
+            "interval": {
+              "type": "integer"
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
