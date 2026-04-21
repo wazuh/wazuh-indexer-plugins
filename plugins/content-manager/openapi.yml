@@ -28,6 +28,8 @@ tags:
     description: Operations for managing CTI subscriptions and credentials
   - name: Content Updates
     description: Operations for triggering content updates
+  - name: Version Check
+    description: Check for available Wazuh version updates
   - name: KVDBs
     description: Manage key-value databases used by content
   - name: Decoders
@@ -39,7 +41,7 @@ tags:
   - name: Integrations
     description: Manage integration metadata and related content
   - name: Logtest
-    description: Execute logtest against sample events
+    description: Execute logtest against sample events and evaluate Sigma rules via Security Analytics
   - name: Promotion
     description: Preview and promote content across spaces
   - name: Spaces
@@ -149,6 +151,26 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  /version/check:
+    description: Check for available Wazuh version updates
+    get:
+      summary: Check Available Wazuh Updates
+      description: |
+        Returns whether there are newer versions of Wazuh available for download.
+        The check is performed by reading the current installed version from `VERSION.json`
+        and querying the CTI API for available updates. The response includes the latest
+        available major, minor, and patch updates when available.
+      operationId: getVersionCheck
+      tags:
+        - Version Check
+      responses:
+        "200":
+          $ref: "#/components/responses/VersionCheckSuccess"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
 
   # KVDB management endpoints
   /kvdbs:
@@ -785,7 +807,17 @@ paths:
   /logtest:
     post:
       tags: [Logtest]
-      summary: Execute logtest
+      summary: Execute logtest with optional Sigma rule evaluation
+      description: |
+        Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is
+        provided, the integration's Sigma rules are also evaluated against the normalized
+        event via the Security Analytics Plugin (SAP). If `integration` is omitted, only
+        the normalization step is performed and the `detection` section is returned with
+        `status: "skipped"`.
+
+        The integration must exist in the specified space (`test` or `standard`). If the
+        integration has no rules, the SAP result returns zero matches. If the engine fails,
+        SAP evaluation is skipped.
       operationId: executeLogtest
       requestBody:
         required: true
@@ -793,6 +825,24 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/LogtestRequest"
+            examples:
+              with_integration:
+                summary: Full logtest with integration and rule evaluation
+                value:
+                  integration: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/cassandra/system.log"
+                  event: "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
+                  trace_level: "NONE"
+              normalization_only:
+                summary: Normalization only (no integration, detection is skipped)
+                value:
+                  space: "test"
+                  queue: 1
+                  location: "/var/log/syslog"
+                  event: "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+                  trace_level: "NONE"
       responses:
         "200":
           $ref: "#/components/responses/LogtestResponse"
@@ -998,15 +1048,119 @@ components:
         - access_token
         - token_type
 
+    # Version check response models
+    VersionCheckData:
+      type: object
+      description: Version check result with cluster metadata and available updates.
+      required:
+        - uuid
+        - last_check_date
+        - current_version
+        - last_available_major
+        - last_available_minor
+        - last_available_patch
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: The cluster UUID.
+          example: "bd7f0db0-d094-48ca-b883-7019484ce71f"
+        last_check_date:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the check was performed.
+          example: "2026-04-14T15:28:41.347387+00:00"
+        current_version:
+          type: string
+          description: The currently installed Wazuh version tag.
+          example: "v5.0.0"
+        last_available_major:
+          $ref: "#/components/schemas/Release"
+        last_available_minor:
+          $ref: "#/components/schemas/Release"
+        last_available_patch:
+          $ref: "#/components/schemas/Release"
+
+    Release:
+      type: object
+      description: A single release entry from the CTI API.
+      properties:
+        tag:
+          type: string
+          description: Semver release tag.
+          example: "v5.1.0"
+        title:
+          type: string
+          description: Human-readable release title.
+          example: "Wazuh v5.1.0"
+        description:
+          type: string
+          description: Release notes in markdown format.
+          example: "## Manager\r\n\r\n### Added\r\n\r\n- New features..."
+        published_date:
+          type: string
+          format: date-time
+          description: ISO 8601 publication timestamp.
+          example: "2026-02-15T10:00:00Z"
+        semver:
+          $ref: "#/components/schemas/Semver"
+      required:
+        - tag
+        - title
+        - description
+        - published_date
+        - semver
+
+    Semver:
+      type: object
+      description: Semantic version components.
+      properties:
+        major:
+          type: integer
+          format: int32
+          description: Major version number.
+          example: 5
+        minor:
+          type: integer
+          format: int32
+          description: Minor version number.
+          example: 1
+        patch:
+          type: integer
+          format: int32
+          description: Patch version number.
+          example: 0
+      required:
+        - major
+        - minor
+        - patch
+
     # Request body for logtest execution
     LogtestRequest:
       type: object
       additionalProperties: false
       required:
+        - space
         - queue
         - location
         - event
       properties:
+        integration:
+          type: string
+          format: uuid
+          description: |
+            ID of the integration to test against. If omitted, only the
+            normalization step is performed and detection is skipped.
+          example: "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"
+
+        space:
+          type: string
+          enum:
+            - test
+            - standard
+          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+          example: "test"
+
         queue:
           type: integer
           minimum: 0
@@ -1016,28 +1170,18 @@ components:
         location:
           type: string
           description: Log file path or logical source location
-          example: "/var/log/auth.log"
+          example: "/var/log/cassandra/system.log"
+
+        event:
+          type: string
+          description: Raw log event to be tested
+          example: "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve"
 
         metadata:
           type: object
           additionalProperties: true
           description: Optional metadata passed to the logtest engine
           example: {}
-
-        space:
-          type: string
-          enum:
-            - standard
-            - custom
-            - draft
-            - test
-          description: Space to execute the logtest against
-          example: "test"
-
-        event:
-          type: string
-          description: Raw log event to be tested
-          example: "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2"
 
         trace_level:
           type: string
@@ -2046,40 +2190,250 @@ components:
                 message: "Internal Server Error"
                 status: 500
 
-    # Response body for logtest execution results (pass-through)
-    LogtestResponse:
-      description: Logtest result
+    VersionCheckSuccess:
+      description: Available version updates retrieved successfully.
       content:
         application/json:
           schema:
             type: object
-            additionalProperties: false
+            properties:
+              message:
+                $ref: "#/components/schemas/VersionCheckData"
+              status:
+                type: integer
+                example: 200
+            required:
+              - message
+              - status
+          examples:
+            updates_available:
+              summary: Updates available
+              value:
+                message:
+                  uuid: "bd7f0db0-d094-48ca-b883-7019484ce71f"
+                  last_check_date: "2026-04-14T15:28:41.347387+00:00"
+                  current_version: "v5.0.0"
+                  last_available_major:
+                    tag: "v6.0.0"
+                    title: "Wazuh v6.0.0"
+                    description: "Major release with new features..."
+                    published_date: "2026-03-01T10:00:00Z"
+                    semver:
+                      major: 6
+                      minor: 0
+                      patch: 0
+                  last_available_minor:
+                    tag: "v5.1.0"
+                    title: "Wazuh v5.1.0"
+                    description: "Minor improvements and enhancements..."
+                    published_date: "2026-02-15T10:00:00Z"
+                    semver:
+                      major: 5
+                      minor: 1
+                      patch: 0
+                  last_available_patch:
+                    tag: "v5.0.1"
+                    title: "Wazuh v5.0.1"
+                    description: "Bug fixes and stability improvements..."
+                    published_date: "2026-01-20T10:00:00Z"
+                    semver:
+                      major: 5
+                      minor: 0
+                      patch: 1
+                status: 200
+            no_updates:
+              summary: No updates available
+              value:
+                message:
+                  uuid: "bd7f0db0-d094-48ca-b883-7019484ce71f"
+                  last_check_date: "2026-04-14T15:28:41.347387+00:00"
+                  current_version: "v5.0.0"
+                  last_available_major: {}
+                  last_available_minor: {}
+                  last_available_patch: {}
+                status: 200
+
+    BadGateway:
+      description: |
+        Bad Gateway - The CTI API returned an error while checking for updates.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            cti_error:
+              summary: CTI API error
+              value:
+                message: "CTI API error"
+                status: 502
+
+    # Response body for logtest execution results (pass-through)
+    # Response body for logtest execution results (combined engine + SA)
+    LogtestResponse:
+      description: Combined logtest result with engine output and Security Analytics rule evaluation.
+      content:
+        application/json:
+          schema:
+            type: object
             properties:
               status:
-                type: string
-                example: "OK"
-              result:
+                type: integer
+                description: HTTP status code of the logtest execution result.
+                example: 200
+              message:
                 type: object
                 properties:
-                  output:
-                    type: string
-                    example: '{"wazuh":{"protocol":{"queue":1,"location":"syscheck"},"integration":{"category":"Security","name":"integration/wazuh-core/0","decoders":["core-wazuh-message","integrations"]}},"name":"nahuel","event":{"original":"File /etc/passwd modified"},"@timestamp":"2025-12-26T17:33:22Z"}'
-                  asset_traces:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        asset:
-                          type: string
-                          example: "decoder/core-wazuh-message/0"
-                        success:
-                          type: boolean
-                          example: true
-                        traces:
-                          type: array
-                          items:
-                            type: string
-                          example: ["@timestamp: get_date -> Success"]
+                  normalization:
+                    type: object
+                    description: Engine output containing the normalized event and asset traces.
+                    properties:
+                      output:
+                        type: object
+                        additionalProperties: true
+                        description: Normalized event output from the engine (Wazuh Common Schema format).
+                      asset_traces:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: true
+                        description: Asset trace information generated during normalization.
+                      validation:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                            description: Indicates if the event passed engine validation.
+                          errors:
+                            type: array
+                            items:
+                              type: string
+                            description: List of validation errors if the event is invalid.
+                  detection:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [success, error, skipped]
+                        example: "success"
+                      reason:
+                        type: string
+                        description: Present when status is "skipped".
+                        example: "Engine processing failed"
+                      rules_evaluated:
+                        type: integer
+                        example: 2
+                      rules_matched:
+                        type: integer
+                        example: 1
+                      matches:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rule:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                title:
+                                  type: string
+                                level:
+                                  type: string
+                                  enum: [informational, low, medium, high, critical]
+                                tags:
+                                  type: array
+                                  items:
+                                    type: string
+                            matched_conditions:
+                              type: array
+                              items:
+                                type: string
+          examples:
+            with_matches:
+              summary: Response with matching rules
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "success"
+                    rules_evaluated: 5
+                    rules_matched: 2
+                    matches:
+                      - rule:
+                          id: "uuid-rule-1"
+                          title: "rule/cloudtrail-failed-authentication/0"
+                          level: "high"
+                          tags:
+                            - "authentication"
+                            - "aws"
+                            - "cloudtrail"
+                        matched_conditions:
+                          - "event.category == 'authentication'"
+                          - "event.outcome == 'failure'"
+                          - "cloud.provider == 'aws'"
+                      - rule:
+                          id: "uuid-rule-2"
+                          title: "rule/suspicious-console-login/0"
+                          level: "medium"
+                          tags:
+                            - "suspicious_activity"
+                            - "console_login"
+                        matched_conditions:
+                          - "event.type == 'start'"
+                          - "source.ip in suspicious_ips"
+            no_matches:
+              summary: Response with no matching rules
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "success"
+                    rules_evaluated: 5
+                    rules_matched: 0
+                    matches: []
+            normalization_only:
+              summary: Normalization only (no integration provided)
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output:
+                      event:
+                        original: "Mar 31 10:00:00 myhost sshd[1234]: Accepted publickey for user from 192.168.1.1 port 22 ssh2"
+                    asset_traces: []
+                    validation:
+                      valid: true
+                      errors: []
+                  detection:
+                    status: "skipped"
+                    reason: "No integration provided"
+            with_errors:
+              summary: Response with engine processing failure
+              value:
+                status: 200
+                message:
+                  normalization:
+                    output: {}
+                    asset_traces: []
+                    validation:
+                      valid: false
+                      errors: []
+                  detection:
+                    status: "skipped"
+                    reason: "Engine processing failed"
 
     PromotionPreviewResponse:
       description: Promotion preview result

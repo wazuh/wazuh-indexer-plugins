@@ -546,6 +546,19 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         this.client.execute(action, request, (ActionListener<Resp>) listener);
     }
 
+    @Override
+    public String evaluateRules(String eventJson, java.util.List<String> ruleBodies) {
+        try {
+            WEvaluateRulesRequest request = new WEvaluateRulesRequest(eventJson, ruleBodies);
+            WEvaluateRulesResponse response =
+                    this.client.execute(WEvaluateRulesAction.INSTANCE, request).actionGet();
+            return response.getResultJson();
+        } catch (Exception e) {
+            log.error("Failed to evaluate rules via SAP transport action.", e);
+            return "{\"status\":\"error\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}";
+        }
+    }
+
     /**
      * Formats category strings from CTI documents. Transforms raw category identifiers into
      * human-readable format. This method was moved from CategoryFormatter.

@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -98,6 +99,9 @@ public class ContentManagerPlugin extends Plugin
     private EngineService engine;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
+    private Environment environment;
+    private ClusterService clusterService;
+    private LogtestService logtestService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -131,6 +135,8 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
+        this.environment = environment;
+        this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
@@ -166,6 +172,9 @@ public class ContentManagerPlugin extends Plugin
         } else {
             this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         }
+
+        this.logtestService =
+                new LogtestService(this.engine, this.securityAnalyticsService, this.client);
 
         // Register hot-reload settings consumer
         clusterService
@@ -233,8 +242,10 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostSubscriptionAction(this.ctiConsole),
                 new RestDeleteSubscriptionAction(this.ctiConsole),
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
-                // User-generated content endpoints (Logtest)
-                new RestPostLogtestAction(this.engine),
+                // Version check endpoint
+                new RestGetVersionCheckAction(this.environment, this.clusterService),
+                // User-generated content endpoints
+                new RestPostLogtestAction(this.logtestService),
                 // Policy endpoints
                 new RestPutPolicyAction(this.spaceService, this.engine),
                 // Rule endpoints

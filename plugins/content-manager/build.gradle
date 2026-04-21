@@ -99,8 +99,8 @@ dependencies {
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
-  zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}" // Dependency of SAP
-  zipArchive group: 'org.opensearch', name: 'wazuh-indexer-security-analytics', version: "${version}"
+  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-alerting', version: "${version}" // Dependency of SAP
+  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-security-analytics', version: "${version}"
 
 }
 

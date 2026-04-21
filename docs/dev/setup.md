@@ -49,6 +49,12 @@ git clone git@github.com:wazuh/wazuh-indexer-common-utils.git
 cd wazuh-indexer-common-utils
 git remote add upstream git@github.com:opensearch-project/common-utils.git
 cd ..
+
+# Alerting plugin (forked from OpenSearch)
+git clone git@github.com:wazuh/wazuh-indexer-alerting.git
+cd wazuh-indexer-alerting
+git remote add upstream git@github.com:opensearch-project/alerting.git
+cd ..
 ```
 
 ## 3. Vagrant
@@ -147,6 +153,13 @@ For the Common Utils plugin (Shared Library):
 ```bash
 cd wazuh-indexer-common-utils
 ./gradlew clean build publishToMavenLocal
+```
+
+For the Alerting plugin:
+
+```bash
+cd wazuh-indexer-alerting
+./gradlew build
 ```
 
 If compilation succeeds, your environment is ready. See [Build from Sources](build-sources.md) for more build commands.
