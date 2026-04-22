@@ -27,12 +27,12 @@ jobs:
       - name: Get common-utils latest commit
         id: common-utils-sha
         run: |
-          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-common-utils.git "${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}" | cut -f1)
+          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-common-utils.git "${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}" | cut -f1 | tr -d '[:space:]')
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
       - name: Get security-analytics latest commit
         id: security-analytics-sha
         run: |
-          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-security-analytics.git "${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}" | cut -f1)
+          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-security-analytics.git "${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}" | cut -f1 | tr -d '[:space:]')
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
 
   get-version:
