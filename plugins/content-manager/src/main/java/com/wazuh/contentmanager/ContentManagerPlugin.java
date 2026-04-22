@@ -99,6 +99,8 @@ public class ContentManagerPlugin extends Plugin
     private EngineService engine;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
+    private Environment environment;
+    private ClusterService clusterService;
     private LogtestService logtestService;
 
     /**
@@ -133,6 +135,8 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
+        this.environment = environment;
+        this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
@@ -238,8 +242,12 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostSubscriptionAction(this.ctiConsole),
                 new RestDeleteSubscriptionAction(this.ctiConsole),
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
+                // Version check endpoint
+                new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints
                 new RestPostLogtestAction(this.logtestService),
+                new RestPostLogtestNormalizationAction(this.logtestService),
+                new RestPostLogtestDetectionAction(this.logtestService),
                 // Policy endpoints
                 new RestPutPolicyAction(this.spaceService, this.engine),
                 // Rule endpoints

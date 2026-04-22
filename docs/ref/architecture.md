@@ -20,16 +20,16 @@ The Wazuh Indexer is built on top of [OpenSearch](https://opensearch.org/) and e
 │  │State Indices  │   │  Space Service   │  └──────────┘    │        │
 │  └───────────────┘   └───────┬──────────┘                  │        │
 │                              │                             │        │
-│                    ┌─────────┴──────────┐                  │        │
-│                    │  System Indices    │                  │        │
-│                    │  .cti-consumers    │                  │        │
-│                    │  .cti-rules        │                  │        │
-│                    │  .cti-decoders     │                  │        │
-│                    │  .cti-integrations │                  │        │
-│                    │  .cti-kvdbs        │                  │        │
-│                    │  .cti-policies     │                  │        │
-│                    │  .cti-iocs         │                  │        │
-│                    └────────────────────┘                  │        │
+│                    ┌─────────┴───────────────────────┐     │        │
+│                    │  System Indices                 │     │        │
+│                    │  .wazuh-cti-consumers           │     │        │
+│                    │  wazuh-threatintel-rules        │     │        │
+│                    │  wazuh-threatintel-decoders     │     │        │
+│                    │  wazuh-threatintel-integrations │     │        │
+│                    │  wazuh-threatintel-kvdbs        │     │        │
+│                    │  wazuh-threatintel-policies     │     │        │
+│                    │  wazuh-threatintel-enrichments  │     │        │
+│                    └─────────────────────────────────┘     │        │
 └─────────────────────────────────┬──────────────────────────┼────────┘
                                   │ Unix Socket              │
                           ┌───────┴────────┐          ┌──────┴───────┐

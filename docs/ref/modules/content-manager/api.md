@@ -386,6 +386,231 @@ curl -sk -u admin:admin -X POST \
 
 ---
 
+### Normalization Only
+
+Sends a log event to the Wazuh Engine for decoding and normalization without performing Sigma rule detection. Use this to validate that decoders correctly parse events before testing detection rules.
+
+> **Note**: A testing policy must be loaded in the Engine for normalization to execute successfully.
+
+**Request**
+- Method: `POST`
+- Path: `/_plugins/_content_manager/logtest/normalization`
+
+**Request Body**
+
+| Field            | Type    | Required | Description                                          |
+| ---------------- | ------- | -------- | ---------------------------------------------------- |
+| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
+| `queue`          | Integer | No       | Queue number for logtest execution                   |
+| `location`       | String  | No       | Log file path or logical source location             |
+| `input`          | String  | No       | Raw log event to normalize                           |
+| `metadata`       | Object  | No       | Optional metadata passed to the Engine               |
+| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`      |
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/logtest/normalization" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "test",
+    "queue": 1,
+    "location": "/var/log/cassandra/system.log",
+    "metadata": {},
+    "trace_level": "NONE",
+    "input": "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message - 7500 - 4"
+  }'
+```
+
+**Example Response**
+
+```json
+{
+  "status": 200,
+  "message": {
+    "output": {
+      "log": {
+        "level": "INFO",
+        "origin": {
+          "file": {
+            "name": "CassandraDaemon.java",
+            "line": 250
+          }
+        }
+      },
+      "wazuh": {
+        "space": { "name": "test" },
+        "protocol": { "location": "/var/log/cassandra/system.log", "queue": 1 },
+        "integration": {
+          "decoders": ["decoder/cassandra-default/0"],
+          "name": "my-integration",
+          "category": "other"
+        }
+      },
+      "message": "Some message",
+      "event": {
+        "duration": 7500,
+        "category": ["database"],
+        "kind": "event",
+        "severity": 4
+      },
+      "source": { "ip": "10.42.3.15" },
+      "process": {
+        "thread": { "name": "CompactionExecutor-3" }
+      }
+    },
+    "asset_traces": [],
+    "validation": {
+      "valid": true,
+      "errors": []
+    }
+  }
+}
+```
+
+**Response Fields**
+
+| Field                              | Type    | Description                                     |
+| ---------------------------------- | ------- | ----------------------------------------------- |
+| `message.output`                   | Object  | Engine normalized event output                  |
+| `message.asset_traces`             | Array   | List of decoders that processed the event       |
+| `message.validation`               | Object  | Validation result (`valid`, `errors`)            |
+
+**Status Codes**
+
+| Code | Description                                        |
+| ---- | -------------------------------------------------- |
+| 200  | Normalization executed successfully                |
+| 400  | Missing/invalid fields                             |
+| 500  | Engine socket communication error or internal error|
+
+---
+
+### Detection Only
+
+Evaluates an already-normalized event against the Sigma rules of a given integration via the Security Analytics Plugin (SAP). This endpoint does **not** call the Wazuh Engine — the normalized event must be provided directly in the `input` field.
+
+Use this after obtaining a normalized event from the `/logtest/normalization` endpoint, or when you already have a normalized event and want to test different integrations' rules against it.
+
+> **Note**: The integration must exist in the specified space. The `input` field must be a JSON object (the normalized event), not a raw log string.
+
+**Request**
+- Method: `POST`
+- Path: `/_plugins/_content_manager/logtest/detection`
+
+**Request Body**
+
+| Field            | Type    | Required | Description                                          |
+| ---------------- | ------- | -------- | ---------------------------------------------------- |
+| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
+| `integration`    | String  | Yes      | UUID of the integration whose rules to evaluate      |
+| `input`          | Object  | Yes      | Normalized event object to evaluate rules against    |
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/logtest/detection" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "test",
+    "integration": "d3f3b0b8-4e25-4273-83ef-56a62003bcf7",
+    "input": {
+      "event": {
+        "duration": 7500,
+        "category": ["database"],
+        "kind": "event",
+        "severity": 4,
+        "type": ["info"]
+      },
+      "source": { "ip": "10.42.3.15" },
+      "process": {
+        "thread": { "name": "CompactionExecutor-3" },
+        "command_line": "/query tables"
+      },
+      "log": {
+        "origin": {
+          "file": { "name": "CassandraDaemon.java", "line": 250 }
+        }
+      }
+    }
+  }'
+```
+
+**Example Response (matches found)**
+
+```json
+{
+  "status": 200,
+  "message": {
+    "status": "success",
+    "rules_evaluated": 12,
+    "rules_matched": 6,
+    "matches": [
+      {
+        "rule": {
+          "id": "4e52f215-bccc-4c0f-a37c-70606022be8e",
+          "title": "TEST: Numeric gte+lt only",
+          "level": "high",
+          "tags": ["attack.execution", "attack.t1059"]
+        },
+        "matched_conditions": [
+          "event.duration matched '>= 5000'",
+          "event.severity matched '< 10'"
+        ]
+      },
+      {
+        "rule": {
+          "id": "1d489ded-7523-4329-8cd0-ebb21865a318",
+          "title": "TEST: Exact match event.kind=event",
+          "level": "low",
+          "tags": ["attack.execution", "attack.t1059"]
+        },
+        "matched_conditions": [
+          "event.kind matched 'event'"
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Example Response (no rules in integration)**
+
+```json
+{
+  "status": 200,
+  "message": {
+    "status": "success",
+    "rules_evaluated": 0,
+    "rules_matched": 0,
+    "matches": []
+  }
+}
+```
+
+**Response Fields**
+
+| Field                                  | Type    | Description                                     |
+| -------------------------------------- | ------- | ----------------------------------------------- |
+| `message.status`                       | String  | `"success"` or `"error"`                        |
+| `message.rules_evaluated`              | Integer | Number of Sigma rules evaluated                 |
+| `message.rules_matched`                | Integer | Number of rules that matched                    |
+| `message.matches`                      | Array   | List of matched rules with details              |
+| `message.matches[].rule`               | Object  | Rule metadata: `id`, `title`, `level`, `tags`   |
+| `message.matches[].matched_conditions` | Array   | Human-readable descriptions of matched conditions|
+
+**Status Codes**
+
+| Code | Description                                        |
+| ---- | -------------------------------------------------- |
+| 200  | Detection executed (check `message.status`)        |
+| 400  | Missing/invalid fields or integration not found    |
+| 500  | Internal error                                     |
+
+---
+
 ## Policy
 
 ### Update Policy
@@ -1759,7 +1984,7 @@ When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
 
-The resources are removed in the Content Manager (`.cti-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
+The resources are removed in the Content Manager (`wazuh-threatintel-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
 
 > **Note**: Only `draft` space can be reset.
 
@@ -1796,6 +2021,94 @@ curl -sk -u admin:admin -X DELETE \
 | 200  | Space reset successfully                                                       |
 | 400  | Invalid space identifier, or attempted to reset a space different from `draft` |
 | 500  | Internal error (e.g., Engine unavailable or deletion failure)                  |
+
+## Version Check
+
+### Check Available Updates
+
+Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+
+**Request**
+- Method: `GET`
+- Path: `/_plugins/_content_manager/version/check`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin \
+  "https://192.168.56.6:9200/_plugins/_content_manager/version/check"
+```
+
+**Example Response (updates available)**
+
+```json
+{
+  "message": {
+    "uuid": "bd7f0db0-d094-48ca-b883-7019484ce71f",
+    "last_check_date": "2026-04-14T15:28:41.347387+00:00",
+    "current_version": "v5.0.0",
+    "last_available_major": {
+      "tag": "v6.0.0",
+      "title": "Wazuh v6.0.0",
+      "description": "Major release with new features...",
+      "published_date": "2026-03-01T10:00:00Z",
+      "semver": { "major": 6, "minor": 0, "patch": 0 }
+    },
+    "last_available_minor": {
+      "tag": "v5.1.0",
+      "title": "Wazuh v5.1.0",
+      "description": "Minor improvements and enhancements...",
+      "published_date": "2026-02-15T10:00:00Z",
+      "semver": { "major": 5, "minor": 1, "patch": 0 }
+    },
+    "last_available_patch": {
+      "tag": "v5.0.1",
+      "title": "Wazuh v5.0.1",
+      "description": "Bug fixes and stability improvements...",
+      "published_date": "2026-01-20T10:00:00Z",
+      "semver": { "major": 5, "minor": 0, "patch": 1 }
+    }
+  },
+  "status": 200
+}
+```
+
+**Example Response (no updates)**
+
+```json
+{
+  "message": {
+    "uuid": "bd7f0db0-d094-48ca-b883-7019484ce71f",
+    "last_check_date": "2026-04-14T15:28:41.347387+00:00",
+    "current_version": "v5.0.0",
+    "last_available_major": {},
+    "last_available_minor": {},
+    "last_available_patch": {}
+  },
+  "status": 200
+}
+```
+
+**Example Response (version not found)**
+
+```json
+{
+  "message": "Unable to determine current Wazuh version.",
+  "status": 500
+}
+```
+
+**Status Codes**
+
+| Code | Description                                            |
+| ---- | ------------------------------------------------------ |
+| 200  | Version check completed (may include updates or empty) |
+| 500  | Unable to determine version or internal error          |
+| 502  | CTI API returned an error                              |
+
+> **Note**: Categories with no available updates are represented as empty objects `{}`.
+
+---
 
 ## Documentation Maintenance
 

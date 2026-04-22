@@ -413,7 +413,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         "test-context", "test-consumer", cveOnlyMap, this.consumersIndex, this.environment);
         cveSnapshotService.setSnapshotClient(this.snapshotClient);
 
-        when(this.contentIndexMock.getIndexName()).thenReturn(".cti-cves");
+        when(this.contentIndexMock.getIndexName()).thenReturn("wazuh-threatintel-vulnerabilities");
 
         Path zipPath =
                 this.createZipFileWithContent(
@@ -427,7 +427,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
-        Assert.assertEquals(".cti-cves", request.index());
+        Assert.assertEquals("wazuh-threatintel-vulnerabilities", request.index());
         Assert.assertEquals("TID-123", request.id());
     }
 

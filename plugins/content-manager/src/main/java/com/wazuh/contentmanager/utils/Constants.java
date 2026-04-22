@@ -68,6 +68,9 @@ public class Constants {
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
+    public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
+    public static final String E_500_CTI_UNREACHABLE =
+            "Unable to reach the CTI API to check for updates.";
 
     // Log messages
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
@@ -92,14 +95,14 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
 
     // Index Constants
-    public static final String INDEX_POLICIES = ".cti-policies";
-    public static final String INDEX_INTEGRATIONS = ".cti-integrations";
-    public static final String INDEX_RULES = ".cti-rules";
-    public static final String INDEX_KVDBS = ".cti-kvdbs";
-    public static final String INDEX_DECODERS = ".cti-decoders";
-    public static final String INDEX_IOCS = ".cti-iocs";
-    public static final String INDEX_CVES = ".cti-cves";
-    public static final String INDEX_FILTERS = ".engine-filters";
+    public static final String INDEX_POLICIES = "wazuh-threatintel-policies";
+    public static final String INDEX_INTEGRATIONS = "wazuh-threatintel-integrations";
+    public static final String INDEX_RULES = "wazuh-threatintel-rules";
+    public static final String INDEX_KVDBS = "wazuh-threatintel-kvdbs";
+    public static final String INDEX_DECODERS = "wazuh-threatintel-decoders";
+    public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
+    public static final String INDEX_CVES = "wazuh-threatintel-vulnerabilities";
+    public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -129,6 +132,7 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_STATUS = "status";
+    public static final String KEY_INPUT = "input";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";

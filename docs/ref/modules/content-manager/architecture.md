@@ -35,7 +35,7 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 ### Consumer Service
 
-Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
+Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
 
 ### Snapshot Service
 
@@ -71,10 +71,10 @@ Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-i
 
 ```
 Job Scheduler triggers
-  → Consumer Service checks .cti-consumers (offset = 0)
+  → Consumer Service checks .wazuh-cti-consumers (offset = 0)
   → Snapshot Service downloads ZIP from CTI API
-  → Extracts and bulk-indexes into .cti-rules, .cti-decoders, etc.
-  → Updates .cti-consumers with new offset
+  → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
+  → Updates .wazuh-cti-consumers with new offset
   → Security Analytics Service creates detectors (max 100 rules per detector)
 ```
 
@@ -82,10 +82,10 @@ Job Scheduler triggers
 
 ```
 Job Scheduler triggers
-  → Consumer Service checks .cti-consumers (local_offset < remote_offset)
+  → Consumer Service checks .wazuh-cti-consumers (local_offset < remote_offset)
   → Update Service fetches change batches from CTI API
   → Applies CREATE/UPDATE/DELETE to content indices
-  → Updates .cti-consumers offset
+  → Updates .wazuh-cti-consumers offset
   → Security Analytics Service syncs changes
 ```
 
@@ -108,7 +108,7 @@ Job Scheduler triggers (every 24h thereafter)
 ```
 REST request (POST/PUT/DELETE)
   → Space Service routes to draft space
-  → Writes to .cti-rules / .cti-decoders / .cti-integrations / .cti-kvdbs
+  → Writes to wazuh-threatintel-rules / wazuh-threatintel-decoders / wazuh-threatintel-integrations / wazuh-threatintel-kvdbs
   → Returns created/updated/deleted resource
 ```
 
@@ -200,13 +200,13 @@ Consolidation fails at step N
 
 ## Index Structure
 
-Each content index (e.g., `.cti-rules`) stores documents from all three spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
+Each content index (e.g., `wazuh-threatintel-rules`) stores documents from all three spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
 
-Example document structure in `.cti-rules`:
+Example document structure in `wazuh-threatintel-rules`:
 
 ```json
 {
-  "_index": ".cti-rules",
+  "_index": "wazuh-threatintel-rules",
   "_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "_source": {
     "title": "SSH brute force attempt",
@@ -217,11 +217,11 @@ Example document structure in `.cti-rules`:
 }
 ```
 
-The `.cti-consumers` index stores one document per context/consumer pair:
+The `.wazuh-cti-consumers` index stores one document per context/consumer pair:
 
 ```json
 {
-  "_index": ".cti-consumers",
+  "_index": ".wazuh-cti-consumers",
   "_id": "t1-ruleset-5_public-ruleset-5",
   "_source": {
     "name": "public-ruleset-5",

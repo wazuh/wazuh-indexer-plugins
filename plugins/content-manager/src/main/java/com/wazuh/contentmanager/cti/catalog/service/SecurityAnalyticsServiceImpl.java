@@ -389,10 +389,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     /**
-     * Queries the {@code .cti-rules} index for documents whose {@code _id} matches the given rule IDs
-     * and whose {@code document.enabled} is {@code true}. Filtering is done entirely using an IDs
-     * query combined with a term filter; no source is fetched — only the matching {@code _id} values
-     * are collected.
+     * Queries the {@code wazuh-threatintel-rules} index for documents whose {@code _id} matches the
+     * given rule IDs and whose {@code document.enabled} is {@code true}. Filtering is done entirely
+     * using an IDs query combined with a term filter; no source is fetched — only the matching {@code
+     * _id} values are collected.
      *
      * @param rulesNode the JSON array of candidate rule IDs from the integration document
      * @return list of enabled rule IDs (may be empty)

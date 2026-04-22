@@ -18,7 +18,9 @@
 allprojects {
     project.apply plugin: "com.diffplug.spotless"
     spotless {
-      if (System.getenv('GITHUB_ACTIONS') == 'true') {
+      def skipCheck = System.getenv('GITHUB_ACTIONS') == 'true' ||
+          gradle.startParameter.excludedTaskNames.any { it == 'check' }
+      if (skipCheck) {
         enforceCheck false
       } else {
         ratchetFrom 'origin/main'

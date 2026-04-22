@@ -32,6 +32,8 @@ public class PluginSettings {
     public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
     public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
     public static final String LOGTEST_URI = PLUGINS_BASE_URI + "/logtest";
+    public static final String LOGTEST_NORMALIZATION_URI = LOGTEST_URI + "/normalization";
+    public static final String LOGTEST_DETECTION_URI = LOGTEST_URI + "/detection";
     public static final String KVDBS_URI = PLUGINS_BASE_URI + "/kvdbs";
     public static final String DECODERS_URI = PLUGINS_BASE_URI + "/decoders";
     public static final String RULES_URI = PLUGINS_BASE_URI + "/rules";
@@ -40,6 +42,7 @@ public class PluginSettings {
     public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
     public static final String FILTERS_URI = PLUGINS_BASE_URI + "/filters";
     public static final String SPACE_URI = PLUGINS_BASE_URI + "/space";
+    public static final String VERSION_CHECK_URI = PLUGINS_BASE_URI + "/version/check";
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;

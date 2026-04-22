@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -152,6 +152,38 @@ public class ApiClient {
                         + toOffset;
 
         SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+
+        final Future<SimpleHttpResponse> future =
+                this.client.execute(
+                        SimpleRequestProducer.create(request),
+                        SimpleResponseConsumer.create(),
+                        new HttpResponseCallback(request, "Outgoing request failed"));
+
+        return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Constructs the full URI for the releases updates endpoint.
+     *
+     * @param tag The release tag (e.g., "v5.0.0").
+     * @return A string representing the full absolute URL for the releases updates endpoint.
+     */
+    private String buildReleasesUpdatesURI(String tag) {
+        return this.baseUri + "/releases/" + tag + "/updates";
+    }
+
+    /**
+     * Retrieves available release updates for a given version tag from the CTI API.
+     *
+     * @param tag The release tag to query updates for (e.g., "v5.0.0").
+     * @return A {@link SimpleHttpResponse} containing the API response with available updates.
+     * @throws ExecutionException If the computation threw an exception.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the wait timed out.
+     */
+    public SimpleHttpResponse getReleaseUpdates(String tag)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        SimpleHttpRequest request = SimpleRequestBuilder.get(this.buildReleasesUpdatesURI(tag)).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
