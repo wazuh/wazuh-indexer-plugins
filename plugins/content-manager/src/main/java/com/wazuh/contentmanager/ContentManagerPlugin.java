@@ -401,7 +401,7 @@ public class ContentManagerPlugin extends Plugin
                                     log.info("Catalog Sync Job scheduled successfully.");
                                 }
                             } catch (Exception e) {
-                                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                                log.info("Error scheduling Catalog Sync Job: {}", e.getMessage());
                                 this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
@@ -425,7 +425,7 @@ public class ContentManagerPlugin extends Plugin
             return;
         }
         long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
-        log.warn(
+        log.info(
                 "Retrying {} (attempt {}/{}) in {}s.",
                 jobName,
                 nextAttempt,
@@ -508,7 +508,7 @@ public class ContentManagerPlugin extends Plugin
                                     }
                                 }
                             } catch (Exception e) {
-                                log.error("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                                log.info("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
                                 this.retryJobScheduling(
                                         "Telemetry Ping Job", attempt, this::scheduleTelemetryPingJob);
                             }
