@@ -48,6 +48,8 @@ Handles incremental updates. Fetches change batches from the CTI API based on of
 
 Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
 
+**Dynamic Configuration**: Instead of using hardcoded defaults, the service now extracts `enabled`, `interval`, and `source` (index patterns) directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
+
 **Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
 - `document.id` — the UUID of the original CTI document in the Content Manager.
 - `source` — the space the document belongs to, with the first letter capitalized (e.g., "Draft", "Test", "Custom", or "Sigma" for standard).
@@ -74,7 +76,7 @@ Job Scheduler triggers
   → Snapshot Service downloads ZIP from CTI API
   → Extracts and bulk-indexes into .cti-rules, .cti-decoders, etc.
   → Updates .cti-consumers with new offset
-  → Security Analytics Service creates detectors (max 100 rules per detector)
+  → Security Analytics Service creates detectors using dynamic CTI configuration (max 100 rules per detector)
 ```
 
 ### CTI Sync (Incremental)
