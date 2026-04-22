@@ -19,6 +19,7 @@ package com.wazuh.contentmanager;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -26,16 +27,20 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -165,6 +170,68 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.plugin.onNodeStarted(this.discoveryNode);
 
         verify(this.telemetryPingJob, never()).trigger();
+    }
+
+    /**
+     * Tests that a failed telemetry-scheduling attempt schedules exactly one retry with the expected
+     * backoff delay on the generic pool. The client chain is left unmocked so {@code
+     * ensureJobsIndexExists} throws inside the try/catch.
+     */
+    public void testTelemetryRetryScheduledOnFirstFailure() throws Exception {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
+        PluginSettings.getInstance(settings);
+
+        Method method =
+                ContentManagerPlugin.class.getDeclaredMethod("scheduleTelemetryPingJob", int.class);
+        method.setAccessible(true);
+        method.invoke(this.plugin, 0);
+
+        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        verify(this.threadPool)
+                .schedule(
+                        any(Runnable.class),
+                        eq(TimeValue.timeValueSeconds(expectedDelay)),
+                        eq(ThreadPool.Names.GENERIC));
+    }
+
+    /**
+     * Tests that once the retry budget is exhausted, no further retry is scheduled. The private
+     * method is invoked with {@code attempt == MAX_JOB_SCHEDULE_RETRIES} so the catch branch lands on
+     * the "give up" path.
+     */
+    public void testTelemetryGiveUpAfterMaxRetries() throws Exception {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
+        PluginSettings.getInstance(settings);
+
+        Method method =
+                ContentManagerPlugin.class.getDeclaredMethod("scheduleTelemetryPingJob", int.class);
+        method.setAccessible(true);
+        method.invoke(this.plugin, Constants.MAX_JOB_SCHEDULE_RETRIES);
+
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /**
+     * Tests that a failed catalog-sync-scheduling attempt schedules exactly one retry with the
+     * expected backoff delay.
+     */
+    public void testCatalogSyncRetryScheduledOnFirstFailure() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+
+        Method method =
+                ContentManagerPlugin.class.getDeclaredMethod("scheduleCatalogSyncJob", int.class);
+        method.setAccessible(true);
+        method.invoke(this.plugin, 0);
+
+        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        verify(this.threadPool)
+                .schedule(
+                        any(Runnable.class),
+                        eq(TimeValue.timeValueSeconds(expectedDelay)),
+                        eq(ThreadPool.Names.GENERIC));
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called on a non-cluster-manager node. */
