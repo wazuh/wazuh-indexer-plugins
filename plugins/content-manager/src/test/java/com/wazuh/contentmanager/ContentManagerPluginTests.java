@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -51,6 +52,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private ThreadPool threadPool;
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
+    @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private ConsumersIndex consumersIndex;
 
     /** Sets up the test environment before each test method. */
@@ -74,6 +76,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
+        this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
 
         ContentManagerPluginTests.clearInstance();
@@ -123,6 +126,45 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.catalogSyncJob, never()).trigger();
+    }
+
+    /**
+     * Tests that {@code telemetryPingJob.trigger()} is NOT invoked when telemetry is disabled —
+     * registration is skipped and the immediate ping must not run.
+     */
+    public void testOnNodeStartedTelemetryDisabledDoesNotTriggerPing() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.update_on_start", false)
+                        .put("plugins.content_manager.telemetry.enabled", false)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
+
+        this.plugin.onNodeStarted(this.discoveryNode);
+
+        verify(this.telemetryPingJob, never()).trigger();
+    }
+
+    /**
+     * Tests that {@code telemetryPingJob.trigger()} is NOT invoked when registration fails. The
+     * client chain is left unmocked so the scheduler path throws inside its try/catch — proving the
+     * immediate ping only runs after a successful registration.
+     */
+    public void testOnNodeStartedTelemetryTriggerGatedByRegistration() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.update_on_start", false)
+                        .put("plugins.content_manager.telemetry.enabled", true)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
+
+        this.plugin.onNodeStarted(this.discoveryNode);
+
+        verify(this.telemetryPingJob, never()).trigger();
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called on a non-cluster-manager node. */

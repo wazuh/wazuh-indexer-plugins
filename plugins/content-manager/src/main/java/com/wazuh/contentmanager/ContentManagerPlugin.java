@@ -391,7 +391,8 @@ public class ContentManagerPlugin extends Plugin
     /**
      * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler. * This method ensures
      * that the telemetry heartbeat is registered in the internal job index. If the job document does
-     * not exist, it creates a new one with a 24-hour interval.
+     * not exist, it creates a new one with a 24-hour interval and fires an immediate ping once
+     * registration succeeds. If the document already exists, the scheduler owns subsequent fires.
      */
     private void scheduleTelemetryPingJob() {
         boolean isEnabled = PluginSettings.getInstance().isTelemetryEnabled();
@@ -443,6 +444,12 @@ public class ContentManagerPlugin extends Plugin
 
                                     this.client.index(request).actionGet();
                                     log.info("Telemetry Ping Job scheduled successfully (Interval: 1d).");
+
+                                    // Run the first ping immediately; subsequent fires are owned by
+                                    // the Job Scheduler on the 1-day interval.
+                                    if (this.telemetryPingJob != null) {
+                                        this.telemetryPingJob.trigger();
+                                    }
                                 }
                             } catch (Exception e) {
                                 log.error("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
@@ -457,9 +464,6 @@ public class ContentManagerPlugin extends Plugin
             log.info(
                     "Telemetry setting dynamically enabled. Scheduling job and triggering initial run...");
             this.scheduleTelemetryPingJob();
-            if (this.telemetryPingJob != null) {
-                this.telemetryPingJob.trigger();
-            }
         } else {
             log.info("Telemetry setting dynamically disabled. Removing job...");
             this.removeTelemetryPingJob();

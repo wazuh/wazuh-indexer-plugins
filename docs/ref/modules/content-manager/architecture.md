@@ -31,6 +31,7 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 - Can be toggled at runtime because it is a dynamic setting.
 - Sends deployment metadata required for update checks (cluster UUID and deployed Wazuh version).
 - Job metadata is stored in `.wazuh-content-manager-jobs`.
+- The first ping is dispatched immediately after the job is registered in the scheduler; subsequent runs follow the 1-day interval.
 
 ### Consumer Service
 
@@ -91,7 +92,11 @@ Job Scheduler triggers
 ### Update Check Heartbeat
 
 ```
-Job Scheduler triggers (every 24h)
+Registration (on node start or dynamic enable)
+  → TelemetryPingJob document indexed in .wazuh-content-manager-jobs
+  → Immediate first ping fired once the document is written
+
+Job Scheduler triggers (every 24h thereafter)
   → TelemetryPingJob checks plugins.content_manager.telemetry.enabled
   → Reads cluster UUID and current Wazuh version
   → TelemetryClient sends GET /ping to CTI Update check API
