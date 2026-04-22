@@ -182,10 +182,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
         PluginSettings.getInstance(settings);
 
-        Method method =
-                ContentManagerPlugin.class.getDeclaredMethod("scheduleTelemetryPingJob", int.class);
-        method.setAccessible(true);
-        method.invoke(this.plugin, 0);
+        this.invokePrivateIntMethod("scheduleTelemetryPingJob", 0);
 
         long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
         verify(this.threadPool)
@@ -205,10 +202,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
         PluginSettings.getInstance(settings);
 
-        Method method =
-                ContentManagerPlugin.class.getDeclaredMethod("scheduleTelemetryPingJob", int.class);
-        method.setAccessible(true);
-        method.invoke(this.plugin, Constants.MAX_JOB_SCHEDULE_RETRIES);
+        this.invokePrivateIntMethod("scheduleTelemetryPingJob", Constants.MAX_JOB_SCHEDULE_RETRIES);
 
         verify(this.threadPool, never())
                 .schedule(any(Runnable.class), any(TimeValue.class), anyString());
@@ -221,10 +215,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     public void testCatalogSyncRetryScheduledOnFirstFailure() throws Exception {
         PluginSettings.getInstance(Settings.EMPTY);
 
-        Method method =
-                ContentManagerPlugin.class.getDeclaredMethod("scheduleCatalogSyncJob", int.class);
-        method.setAccessible(true);
-        method.invoke(this.plugin, 0);
+        this.invokePrivateIntMethod("scheduleCatalogSyncJob", 0);
 
         long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
         verify(this.threadPool)
@@ -255,6 +246,14 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    /** Helper to invoke a private {@code void method(int)} on the plugin via reflection. */
+    @SuppressForbidden(reason = "Unit test reflection")
+    private void invokePrivateIntMethod(String methodName, int value) throws Exception {
+        Method method = ContentManagerPlugin.class.getDeclaredMethod(methodName, int.class);
+        method.setAccessible(true);
+        method.invoke(this.plugin, value);
     }
 
     /**
