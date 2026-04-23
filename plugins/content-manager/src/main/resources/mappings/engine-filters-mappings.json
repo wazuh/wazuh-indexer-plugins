@@ -5,8 +5,8 @@
     "document": {
       "properties": {
         "check": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "object",
+          "enabled": false
         },
         "enabled": {
           "type": "boolean"
