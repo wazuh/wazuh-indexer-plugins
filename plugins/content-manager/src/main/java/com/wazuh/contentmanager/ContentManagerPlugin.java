@@ -401,7 +401,7 @@ public class ContentManagerPlugin extends Plugin
                                     log.info("Catalog Sync Job scheduled successfully.");
                                 }
                             } catch (Exception e) {
-                                log.info("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                                log.info("Failed to schedule Catalog Sync Job: {}, retrying", e.getMessage());
                                 this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
