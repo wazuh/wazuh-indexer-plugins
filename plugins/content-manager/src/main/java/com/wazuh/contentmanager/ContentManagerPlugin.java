@@ -135,6 +135,7 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
+        PluginSettings.getInstance().setWazuhVersion(getVersion(environment));
         this.environment = environment;
         this.clusterService = clusterService;
         this.client = client;

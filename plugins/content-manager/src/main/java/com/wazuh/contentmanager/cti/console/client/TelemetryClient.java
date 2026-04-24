@@ -51,7 +51,6 @@ public class TelemetryClient extends ApiClient {
                     SimpleRequestBuilder.get(PING_URI)
                             .addHeader("wazuh-uid", uuid)
                             .addHeader("wazuh-tag", "v" + version)
-                            .addHeader("user-agent", "Wazuh Indexer " + version)
                             .addHeader("Accept", "application/json")
                             .build();
 

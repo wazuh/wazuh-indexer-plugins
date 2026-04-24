@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
+import com.wazuh.contentmanager.utils.Constants;
 import reactor.util.annotation.NonNull;
 
 /** This class encapsulates configuration settings and constants for the Content Manager plugin. */
@@ -243,6 +244,7 @@ public class PluginSettings {
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
     private volatile boolean isTelemetryEnabled;
+    private String wazuhVersion;
 
     /**
      * Private default constructor
@@ -299,6 +301,34 @@ public class PluginSettings {
 
     public void setTelemetryEnabled(boolean isTelemetryEnabled) {
         this.isTelemetryEnabled = isTelemetryEnabled;
+    }
+
+    /**
+     * Sets the Wazuh version. Should be called once during plugin initialization.
+     *
+     * @param version the Wazuh version string (e.g., "5.0.0").
+     */
+    public void setWazuhVersion(String version) {
+        this.wazuhVersion = version;
+    }
+
+    /**
+     * Retrieves the Wazuh version.
+     *
+     * @return the Wazuh version string, or null if not set.
+     */
+    public String getWazuhVersion() {
+        return this.wazuhVersion;
+    }
+
+    /**
+     * Builds the custom user-agent string for CTI API communications.
+     *
+     * @return the user-agent string in the format "Wazuh Indexer {version}".
+     */
+    public String getUserAgent() {
+        String version = this.wazuhVersion != null ? this.wazuhVersion : "unknown";
+        return Constants.USER_AGENT_PREFIX + version;
     }
 
     /**

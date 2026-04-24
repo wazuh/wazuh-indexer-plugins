@@ -197,6 +197,9 @@ public class Constants {
     public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
     public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
 
+    // HTTP headers
+    public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
+
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
     public static final String KEY_TYPE_HASHES = "type_hashes";
