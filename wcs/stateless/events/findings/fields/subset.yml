@@ -631,7 +631,23 @@ fields:
   volume:
     fields: "*"
   vulnerability:
-    fields: "*"
+    fields:
+      category: {}
+      classification: {}
+      description: {}
+      enumeration: {}
+      id: {}
+      report_id: {}
+      scanner:
+        fields:
+          vendor: {}
+      score:
+        fields:
+          base: {}
+          environmental: {}
+          temporal: {}
+          version: {}
+      severity: {}
   x509:
     fields: "*"
   # Wazuh specific fields

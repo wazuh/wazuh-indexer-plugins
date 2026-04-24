@@ -19,7 +19,23 @@ fields:
           type: ""
           version: ""
   vulnerability:
-    fields: "*"
+    fields:
+      category: {}
+      classification: {}
+      description: {}
+      enumeration: {}
+      id: {}
+      report_id: {}
+      scanner:
+        fields:
+          vendor: {}
+      score:
+        fields:
+          base: {}
+          environmental: {}
+          temporal: {}
+          version: {}
+      severity: {}
   state:
     fields: "*"
   wazuh:
