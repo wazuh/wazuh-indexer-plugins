@@ -154,6 +154,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Create detectors using only rules enabled [(#1017)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1017)
 - Set indicator.confidence as type short [(#1030)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1030)
 - Change check object in filters template to object[(#1062)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1062)
+- Update ruleset feed for 5.0.0 beta2 [(#1073)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1073)
 
 ### Deprecated
 -
