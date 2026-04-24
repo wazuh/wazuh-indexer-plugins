@@ -24464,18 +24464,6 @@ vulnerability.published_at:
   normalize: []
   short: Vulnerability's publication date.
   type: date
-vulnerability.reference:
-  dashed_name: vulnerability-reference
-  description: A resource that provides additional information, context, and mitigations
-    for the identified vulnerability.
-  example: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-6111
-  flat_name: vulnerability.reference
-  ignore_above: 1024
-  level: extended
-  name: reference
-  normalize: []
-  short: Reference of the vulnerability.
-  type: keyword
 vulnerability.report_id:
   dashed_name: vulnerability-report-id
   description: The report or scan identification number.

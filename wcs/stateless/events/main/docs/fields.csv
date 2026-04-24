@@ -1839,7 +1839,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,vulnerability,vulnerability.enumeration,keyword,extended,,CVE,Identifier of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.id,keyword,extended,,CVE-2019-00001,ID of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.published_at,date,custom,,,Vulnerability's publication date.
-9.1.0,true,vulnerability,vulnerability.reference,keyword,extended,,https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-6111,Reference of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.report_id,keyword,extended,,20191018.0001,Scan identification number.
 9.1.0,true,vulnerability,vulnerability.scanner.condition,keyword,custom,,,The condition matched by the package that led the scanner to consider it vulnerable.
 9.1.0,true,vulnerability,vulnerability.scanner.reference,keyword,custom,,,"Scanner's resource that provides additional information, context, and mitigations for the identified vulnerability."
