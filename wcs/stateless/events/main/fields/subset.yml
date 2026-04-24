@@ -633,11 +633,16 @@ fields:
       category: {}
       classification: {}
       description: {}
+      detected_at: {}
       enumeration: {}
       id: {}
+      published_at: {}
       report_id: {}
       scanner:
         fields:
+          condition: {}
+          reference: {}
+          source: {}
           vendor: {}
       score:
         fields:
@@ -646,6 +651,7 @@ fields:
           temporal: {}
           version: {}
       severity: {}
+      under_evaluation: {}
   x509:
     fields: "*"
   # Wazuh specific fields
