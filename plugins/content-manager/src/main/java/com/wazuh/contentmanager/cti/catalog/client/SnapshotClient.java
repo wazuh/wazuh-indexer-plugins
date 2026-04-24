@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
@@ -38,7 +39,9 @@ import java.nio.file.StandardOpenOption;
 public class SnapshotClient {
 
     private static final Logger log = LogManager.getLogger(SnapshotClient.class);
+    private static final String USER_AGENT_PREFIX = "Wazuh Indexer";
     private final Environment env;
+    private final String version;
 
     /**
      * Default constructor.
@@ -46,7 +49,18 @@ public class SnapshotClient {
      * @param env node's environment
      */
     public SnapshotClient(Environment env) {
+        this(env, null);
+    }
+
+    /**
+     * Default constructor.
+     *
+     * @param env node's environment
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public SnapshotClient(Environment env, String version) {
         this.env = env;
+        this.version = version;
     }
 
     /***
@@ -62,6 +76,7 @@ public class SnapshotClient {
             // Setup
             final URI uri = new URI(snapshotURI);
             final HttpGet request = new HttpGet(uri);
+            request.addHeader(HttpHeaders.USER_AGENT, this.buildUserAgent());
             final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
             final Path path = this.env.tmpDir().resolve(filename);
 
@@ -99,5 +114,13 @@ public class SnapshotClient {
             log.info("Snapshot downloaded to [{}]", path);
             return path;
         }
+    }
+
+    private String buildUserAgent() {
+        if (this.version == null || this.version.isBlank()) {
+            return USER_AGENT_PREFIX;
+        }
+
+        return USER_AGENT_PREFIX + " " + this.version;
     }
 }

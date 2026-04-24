@@ -62,6 +62,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
     private final ObjectMapper mapper;
+    private final String version;
 
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
@@ -81,6 +82,26 @@ public class SnapshotServiceImpl implements SnapshotService {
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
+        this(context, consumer, indicesMap, consumersIndex, environment, null);
+    }
+
+    /**
+     * Constructs a new SnapshotServiceImpl.
+     *
+     * @param context The context of the snapshot.
+     * @param consumer The consumer identifier.
+     * @param indicesMap A map of content types to their corresponding ContentIndex.
+     * @param consumersIndex The consumers index to update consumer state.
+     * @param environment The OpenSearch environment.
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public SnapshotServiceImpl(
+            String context,
+            String consumer,
+            Map<String, ContentIndex> indicesMap,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            String version) {
         this.context = context;
         this.consumer = consumer;
         this.indicesMap = indicesMap;
@@ -88,8 +109,9 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
         this.mapper = new ObjectMapper();
+        this.version = version;
 
-        this.snapshotClient = new SnapshotClient(this.environment);
+        this.snapshotClient = new SnapshotClient(this.environment, version);
     }
 
     /**

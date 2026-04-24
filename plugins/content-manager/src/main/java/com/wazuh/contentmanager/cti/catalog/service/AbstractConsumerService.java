@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -227,9 +228,10 @@ public abstract class AbstractConsumerService {
     private boolean syncConsumerServices() {
         String context = this.getContext();
         String consumer = this.getConsumer();
+        String version = ContentManagerPlugin.getVersion(this.environment);
 
         ConsumerService consumerService =
-                new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+                new ConsumerServiceImpl(context, consumer, this.consumersIndex, version);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
@@ -292,7 +294,7 @@ public abstract class AbstractConsumerService {
                 log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
                 SnapshotServiceImpl snapshotService =
                         new SnapshotServiceImpl(
-                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+                                context, consumer, indicesMap, this.consumersIndex, this.environment, version);
 
                 boolean localSuccess = snapshotService.initialize(localSnapshot);
                 if (localSuccess) {
@@ -339,7 +341,7 @@ public abstract class AbstractConsumerService {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
+                            context, consumer, indicesMap, this.consumersIndex, this.environment, version);
 
             boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
             if (snapshotSuccess) {
@@ -360,7 +362,7 @@ public abstract class AbstractConsumerService {
 
             UpdateServiceImpl updateService =
                     new UpdateServiceImpl(
-                            context, consumer, new ApiClient(), this.consumersIndex, indicesMap);
+                            context, consumer, new ApiClient(version), this.consumersIndex, indicesMap);
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
             updated = true;

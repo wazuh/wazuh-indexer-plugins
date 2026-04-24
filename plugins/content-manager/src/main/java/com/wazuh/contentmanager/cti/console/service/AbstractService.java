@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,7 +28,16 @@ public abstract class AbstractService {
 
     /** Default constructor */
     public AbstractService() {
-        this.client = new ApiClient();
+        this(null);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public AbstractService(String version) {
+        this.client = new ApiClient(version);
         this.mapper = new ObjectMapper();
     }
 

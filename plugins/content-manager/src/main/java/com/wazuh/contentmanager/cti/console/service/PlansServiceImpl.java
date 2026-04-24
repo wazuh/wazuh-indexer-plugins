@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -37,7 +37,16 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
 
     /** Default constructor. */
     public PlansServiceImpl() {
-        super();
+        this(null);
+    }
+
+    /**
+     * Default constructor.
+     *
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public PlansServiceImpl(String version) {
+        super(version);
     }
 
     /**

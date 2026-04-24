@@ -46,18 +46,31 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 /** CTI Console API client. */
 public class ApiClient {
 
+    private static final String USER_AGENT_HEADER = "user-agent";
+    private static final String USER_AGENT_PREFIX = "Wazuh Indexer";
     private static final String BASE_URI = "https://localhost:8443";
     private static final String API_PREFIX = "/api/v1";
     private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
     private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/instances/token/exchange";
 
+    private final String version;
     protected CloseableHttpAsyncClient client;
 
     private final int TIMEOUT = 5;
 
     /** Constructs an CtiApiClient instance. */
     public ApiClient() {
+        this(null);
+    }
+
+    /**
+     * Constructs an CtiApiClient instance.
+     *
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public ApiClient(String version) {
+        this.version = version;
         this.buildClient();
     }
 
@@ -114,6 +127,7 @@ public class ApiClient {
         SimpleHttpRequest request =
                 SimpleRequestBuilder.post(TOKEN_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
+                        .addHeader(USER_AGENT_HEADER, this.buildUserAgent())
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -152,6 +166,7 @@ public class ApiClient {
                 SimpleRequestBuilder.post(RESOURCE_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
+                        .addHeader(USER_AGENT_HEADER, this.buildUserAgent())
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -184,6 +199,7 @@ public class ApiClient {
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-tag", "v5.0.0") // TODO make dynamic
+                        .addHeader(USER_AGENT_HEADER, this.buildUserAgent())
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -192,5 +208,13 @@ public class ApiClient {
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
         return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    private String buildUserAgent() {
+        if (this.version == null || this.version.isBlank()) {
+            return USER_AGENT_PREFIX;
+        }
+
+        return USER_AGENT_PREFIX + " " + this.version;
     }
 }

@@ -34,7 +34,16 @@ public abstract class AbstractService {
 
     /** Default constructor. Initializes the API client and ObjectMapper. */
     public AbstractService() {
-        this.client = new ApiClient();
+        this(null);
+    }
+
+    /**
+     * Initializes the API client and ObjectMapper.
+     *
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public AbstractService(String version) {
+        this.client = new ApiClient(version);
         this.mapper = new ObjectMapper();
     }
 

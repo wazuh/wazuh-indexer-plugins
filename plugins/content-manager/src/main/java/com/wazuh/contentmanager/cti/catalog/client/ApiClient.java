@@ -47,13 +47,27 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  */
 public class ApiClient {
 
+    private static final String USER_AGENT_HEADER = "user-agent";
+    private static final String USER_AGENT_PREFIX = "Wazuh Indexer";
+
     private final String baseUri;
+    private final String version;
     private CloseableHttpAsyncClient client;
 
     /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
     public ApiClient() {
+        this(null);
+    }
+
+    /**
+     * Constructs an ApiClient instance and initializes the underlying HTTP client.
+     *
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public ApiClient(String version) {
         // Retrieve base URI from PluginSettings
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
+        this.version = version;
         this.buildClient();
     }
 
@@ -118,7 +132,9 @@ public class ApiClient {
     public SimpleHttpResponse getConsumer(String context, String consumer)
             throws ExecutionException, InterruptedException, TimeoutException {
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(this.buildConsumerURI(context, consumer)).build();
+                SimpleRequestBuilder.get(this.buildConsumerURI(context, consumer))
+                        .addHeader(USER_AGENT_HEADER, this.buildUserAgent())
+                        .build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
@@ -151,7 +167,8 @@ public class ApiClient {
                         + "&to_offset="
                         + toOffset;
 
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri).addHeader(USER_AGENT_HEADER, this.buildUserAgent()).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
@@ -183,7 +200,10 @@ public class ApiClient {
      */
     public SimpleHttpResponse getReleaseUpdates(String tag)
             throws ExecutionException, InterruptedException, TimeoutException {
-        SimpleHttpRequest request = SimpleRequestBuilder.get(this.buildReleasesUpdatesURI(tag)).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(this.buildReleasesUpdatesURI(tag))
+                        .addHeader(USER_AGENT_HEADER, this.buildUserAgent())
+                        .build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
@@ -192,5 +212,13 @@ public class ApiClient {
                         new HttpResponseCallback(request, "Outgoing request failed"));
 
         return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    private String buildUserAgent() {
+        if (this.version == null || this.version.isBlank()) {
+            return USER_AGENT_PREFIX;
+        }
+
+        return USER_AGENT_PREFIX + " " + this.version;
     }
 }

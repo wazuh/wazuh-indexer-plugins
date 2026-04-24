@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -50,6 +50,20 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      * @param consumerIndex The index service for storing consumer metadata.
      */
     public ConsumerServiceImpl(String context, String consumer, ConsumersIndex consumerIndex) {
+        this(context, consumer, consumerIndex, null);
+    }
+
+    /**
+     * Constructs a ConsumerServiceImpl.
+     *
+     * @param context The context identifier.
+     * @param consumer The consumer identifier.
+     * @param consumerIndex The index service for storing consumer metadata.
+     * @param version The current version of the Wazuh Indexer.
+     */
+    public ConsumerServiceImpl(
+            String context, String consumer, ConsumersIndex consumerIndex, String version) {
+        super(version);
         this.context = context;
         this.consumer = consumer;
         this.consumerIndex = consumerIndex;

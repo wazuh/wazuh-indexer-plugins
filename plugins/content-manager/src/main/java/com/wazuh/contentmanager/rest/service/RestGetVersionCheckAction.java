@@ -81,7 +81,7 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
     public RestGetVersionCheckAction(Environment environment, ClusterService clusterService) {
         this.environment = environment;
         this.clusterService = clusterService;
-        this.apiClient = new ApiClient();
+        this.apiClient = new ApiClient(ContentManagerPlugin.getVersion(environment));
         this.mapper = new ObjectMapper();
     }
 
