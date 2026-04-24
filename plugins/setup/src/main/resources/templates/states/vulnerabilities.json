@@ -170,21 +170,11 @@
               "ignore_above": 1024,
               "type": "keyword"
             },
-            "detected_at": {
-              "type": "date"
-            },
             "enumeration": {
               "ignore_above": 1024,
               "type": "keyword"
             },
             "id": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "published_at": {
-              "type": "date"
-            },
-            "reference": {
               "ignore_above": 1024,
               "type": "keyword"
             },
@@ -194,18 +184,6 @@
             },
             "scanner": {
               "properties": {
-                "condition": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "reference": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "source": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
                 "vendor": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -232,9 +210,6 @@
             "severity": {
               "ignore_above": 1024,
               "type": "keyword"
-            },
-            "under_evaluation": {
-              "type": "boolean"
             }
           }
         },
