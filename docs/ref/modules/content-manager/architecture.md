@@ -19,6 +19,8 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 
 Manages authentication with the Wazuh CTI API. Stores subscription tokens used for all CTI requests. Without a valid token, sync operations are rejected.
 
+All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client.
+
 ### Job Scheduler (CatalogSyncJob)
 
 Implements the OpenSearch `JobSchedulerExtension` interface. Registers a periodic job (`wazuh-catalog-sync-job`) that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
@@ -29,7 +31,7 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 - Enabled by default through `plugins.content_manager.telemetry.enabled`.
 - Can be toggled at runtime because it is a dynamic setting.
-- Sends deployment metadata required for update checks (cluster UUID and deployed Wazuh version).
+- Sends deployment metadata required for update checks (cluster UUID, deployed Wazuh version, and user-agent).
 - Job metadata is stored in `.wazuh-content-manager-jobs`.
 
 ### Consumer Service

@@ -1,6 +1,10 @@
 // Instance Me Response Logic
 // Returns different responses based on Authorization header token
 
+// Log the incoming user-agent for validation
+def userAgent = context.request.headers['User-Agent']?.toString()
+logger.info("[instanceMe] User-Agent: ${userAgent}")
+
 def authHeader = context.request.headers['Authorization']?.toString()
 
 // Check if Authorization header is present
