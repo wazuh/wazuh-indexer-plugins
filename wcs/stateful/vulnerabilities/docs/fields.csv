@@ -25,15 +25,21 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,vulnerability,vulnerability.category,keyword,extended,array,"[""Firewall""]",Category of a vulnerability.
 9.1.0,true,vulnerability,vulnerability.classification,keyword,extended,,CVSS,Classification of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.description,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.
+9.1.0,true,vulnerability,vulnerability.detected_at,date,custom,,,Vulnerability's detection date.
 9.1.0,true,vulnerability,vulnerability.enumeration,keyword,extended,,CVE,Identifier of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.id,keyword,extended,,CVE-2019-00001,ID of the vulnerability.
+9.1.0,true,vulnerability,vulnerability.published_at,date,custom,,,Vulnerability's publication date.
 9.1.0,true,vulnerability,vulnerability.report_id,keyword,extended,,20191018.0001,Scan identification number.
+9.1.0,true,vulnerability,vulnerability.scanner.condition,keyword,custom,,,The condition matched by the package that led the scanner to consider it vulnerable.
+9.1.0,true,vulnerability,vulnerability.scanner.reference,keyword,custom,,,"Scanner's resource that provides additional information, context, and mitigations for the identified vulnerability."
+9.1.0,true,vulnerability,vulnerability.scanner.source,keyword,custom,,,The origin of the decision of the scanner (AKA feed used to detect the vulnerability).
 9.1.0,true,vulnerability,vulnerability.scanner.vendor,keyword,extended,,Tenable,Name of the scanner vendor.
 9.1.0,true,vulnerability,vulnerability.score.base,float,extended,,5.5,Vulnerability Base score.
 9.1.0,true,vulnerability,vulnerability.score.environmental,float,extended,,5.5,Vulnerability Environmental score.
 9.1.0,true,vulnerability,vulnerability.score.temporal,float,extended,,,Vulnerability Temporal score.
 9.1.0,true,vulnerability,vulnerability.score.version,keyword,extended,,2.0,CVSS version.
 9.1.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
+9.1.0,true,vulnerability,vulnerability.under_evaluation,boolean,custom,,,Indicates if the vulnerability is awaiting analysis by the NVD.
 9.1.0,true,wazuh,wazuh.agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,wazuh,wazuh.agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
 9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
