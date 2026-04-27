@@ -384,29 +384,30 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
 
         List<String> sourceIndices = new ArrayList<>();
-        int interval = 1;
+        int interval = 2;
         boolean enabled = true;
 
         if (doc.has("detector") && doc.get("detector").isObject()) {
             JsonNode detectorNode = doc.get("detector");
 
-            if (detectorNode.has("source")) {
+            if (detectorNode.has("source") && detectorNode.get("source").isArray()) {
+                sourceIndices.clear();
                 detectorNode.get("source").forEach(s -> sourceIndices.add(s.asText()));
             }
 
             if (detectorNode.has("interval")) {
-                interval = detectorNode.get("interval").asInt();
+                interval = detectorNode.path("interval").asInt(2);
             }
 
             if (detectorNode.has("enabled")) {
-                enabled = detectorNode.get("enabled").asBoolean();
+                enabled = detectorNode.path("enabled").asBoolean(true);
             }
-        } else {
-            // Default value
-            sourceIndices.add("wazuh-findings-v5*");
         }
 
         log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
+        // Extra info
+        log.info("Sending detector [{}] with ID [{}] to Security Analytics. Config: [Interval: {}m, Enabled: {}, Sources: {}]",
+            title, id, interval, enabled, sourceIndices);
         return new WIndexDetectorRequest(
                 id,
                 title,

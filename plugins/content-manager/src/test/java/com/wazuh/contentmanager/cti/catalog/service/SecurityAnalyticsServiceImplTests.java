@@ -97,19 +97,50 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
             rules.append("\"").append(ruleIds[i]).append("\"");
         }
         rules.append("]");
+
         // spotless:off
         return MAPPER.readTree(
-                String.format(
-                        Locale.ROOT,
-                        """
-                        {
-                          "id": "integration-1",
-                          "metadata": {"title": "Test Integration"},
-                          "category": "security",
-                          "rules": %s
-                        }
-                        """,
-                        rules));
+            String.format(
+                Locale.ROOT,
+                """
+                {
+                  "id": "integration-1",
+                  "metadata": {"title": "Test Integration"},
+                  "category": "security",
+                  "rules": %s
+                }
+                """,
+                rules));
+        // spotless:on
+    }
+
+    private JsonNode integrationDocWithDetector(String detectorJson, String... ruleIds) throws Exception {
+        StringBuilder rules = new StringBuilder();
+        for (int i = 0; i < ruleIds.length; i++) {
+            if (i > 0) rules.append(",");
+            rules.append("\"").append(ruleIds[i]).append("\"");
+        }
+
+
+        String detectorPart = (detectorJson != null && !detectorJson.isEmpty())
+            ? ",\"detector\": " + detectorJson
+            : "";
+
+        // spotless:off
+        String fullJson = String.format(
+            Locale.ROOT,
+            """
+            {
+              "id": "integration-1",
+              "metadata": {"title": "Test Integration"},
+              "category": "security",
+              "rules": [%s]
+              %s
+            }
+            """,
+            rules.toString(), detectorPart);
+
+        return MAPPER.readTree(fullJson);
         // spotless:on
     }
 
@@ -260,5 +291,66 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
         // No enabled rules → no detector
         assertNull("Detector should not be created when all rules are disabled", request);
+    }
+
+    /** * Verifies that dynamic detector configuration is correctly extracted
+     * from the CTI integration JSON when all fields are present.
+     */
+    public void testDynamicConfigExtraction() throws Exception {
+        String detectorJson = """
+        {
+          "enabled": true,
+          "interval": 10,
+          "source": ["custom-index-*", "another-index"]
+        }
+        """;
+        JsonNode doc = integrationDocWithDetector(detectorJson, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+
+        assertNotNull("Request should not be null", request);
+        assertEquals("Scan interval should match CTI value", 10, request.getInterval());
+        assertTrue("Detector should be enabled as specified in CTI", request.isEnabled());
+        assertEquals("Should extract the exact number of source patterns", 2, request.getSources().size());
+        assertTrue("Sources should contain the specified index pattern", request.getSources().contains("custom-index-*"));
+    }
+
+    /** * Verifies that the service applies safe default values when the
+     * "detector" configuration node is missing from the integration document.
+     */
+    public void testDynamicConfigFallback() throws Exception {
+        // Document without the "detector" node
+        JsonNode doc = integrationDocWithDetector(null, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+
+        assertNotNull("Request should not be null even without detector config", request);
+        // Validates internal fallback logic (defaults: 2m, enabled, empty sources)
+        assertEquals("Should fallback to default interval (2m)", 2, request.getInterval());
+        assertTrue("Should be enabled by default", request.isEnabled());
+        assertTrue("Sources should be empty to trigger SAP legacy pattern fallback", request.getSources().isEmpty());
+    }
+
+    /** * Verifies that the service is resilient to malformed data types in the
+     * CTI payload, falling back to defaults instead of throwing exceptions.
+     */
+    public void testDynamicConfigInvalidTypes() throws Exception {
+        String detectorJson = """
+        {
+          "interval": "invalid-int",
+          "enabled": "not-a-boolean"
+        }
+        """;
+        JsonNode doc = integrationDocWithDetector(detectorJson, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        // The service should handle parsing errors gracefully
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+
+        assertNotNull("Request should be created despite invalid field types", request);
+        assertEquals("Should use default interval when CTI value is invalid", 2, request.getInterval());
+        assertTrue("Should default to enabled when CTI boolean is malformed", request.isEnabled());
     }
 }
