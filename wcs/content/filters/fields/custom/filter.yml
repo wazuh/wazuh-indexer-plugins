@@ -66,7 +66,8 @@
           Last modification date of the filter metadata.
       example: "2024-02-20T14:45:00.000Z"
     - name: document.check
-      type: keyword
+      type: object
+      enabled: false
       level: custom
       description: >
           Check expression or identifier used by the filter.

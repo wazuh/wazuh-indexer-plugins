@@ -13,7 +13,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50         |
 | `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                                     |
 | `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                                    |
-| `plugins.content_manager.catalog.content.context`    | String  | `t1-ruleset-5`                           | CTI catalog content context identifier                                          |
+| `plugins.content_manager.catalog.content.context`    | String  | `beta-2-ruleset-5`                           | CTI catalog content context identifier                                          |
 | `plugins.content_manager.catalog.content.consumer`   | String  | `public-ruleset-5`                       | CTI catalog content consumer identifier                                         |
 | `plugins.content_manager.ioc.content.context`        | String  | `t1-iocs-5`                              | IoC content context identifier                                                  |
 | `plugins.content_manager.ioc.content.consumer`       | String  | `public-iocs-5`                          | IoC content consumer identifier                                                 |
@@ -85,7 +85,7 @@ plugins.content_manager.catalog.create_detectors: false
 
 ### Update check service behavior
 
-The update check service is enabled by default and runs once per day.
+The update check service is enabled by default and runs once per day, with an immediate first ping fired as soon as the job is registered in the scheduler.
 
 - It is implemented by a scheduled job (`wazuh-telemetry-ping-job`) in `.wazuh-content-manager-jobs`.
 - It sends a request to the CTI Update check API endpoint (`/ping`).
@@ -116,5 +116,5 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 - Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
 - The `context` and `consumer` settings should only be changed if instructed by Wazuh support or documentation, as they must match valid CTI API contexts.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
-- The update check service runs with a fixed interval of 1 day when enabled.
+- The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.
 - **Detector Configuration:** The settings for Security Analytics detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.

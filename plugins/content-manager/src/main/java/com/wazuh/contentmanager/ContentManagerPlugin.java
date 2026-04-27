@@ -30,6 +30,7 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -60,6 +61,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -77,6 +79,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
@@ -355,8 +358,15 @@ public class ContentManagerPlugin extends Plugin
      *
      * <p>If either is missing, it creates them. The job is configured to run based on the interval
      * defined in PluginSettings.
+     *
+     * <p>On startup the jobs index may not be ready yet; this method retries with a linear backoff up
+     * to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
      */
     private void scheduleCatalogSyncJob() {
+        this.scheduleCatalogSyncJob(0);
+    }
+
+    private void scheduleCatalogSyncJob(int attempt) {
         this.threadPool
                 .generic()
                 .execute(
@@ -391,17 +401,56 @@ public class ContentManagerPlugin extends Plugin
                                     log.info("Catalog Sync Job scheduled successfully.");
                                 }
                             } catch (Exception e) {
-                                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                                log.info("Failed to schedule Catalog Sync Job: {}, retrying", e.getMessage());
+                                this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
     }
 
     /**
-     * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler. * This method ensures
-     * that the telemetry heartbeat is registered in the internal job index. If the job document does
-     * not exist, it creates a new one with a 24-hour interval.
+     * Reschedules a failed job-registration attempt on the generic thread pool with a linear backoff.
+     * Stops after {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
+     *
+     * @param jobName human-readable name used in log messages.
+     * @param attempt zero-based attempt counter of the call that just failed.
+     * @param retryAction callback that re-runs the scheduling logic with the given attempt index.
+     */
+    private void retryJobScheduling(String jobName, int attempt, IntConsumer retryAction) {
+        int nextAttempt = attempt + 1;
+        if (nextAttempt > Constants.MAX_JOB_SCHEDULE_RETRIES) {
+            log.error(
+                    "Giving up scheduling {} after {} attempts.",
+                    jobName,
+                    Constants.MAX_JOB_SCHEDULE_RETRIES);
+            return;
+        }
+        long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        log.info(
+                "Retrying {} (attempt {}/{}) in {}s.",
+                jobName,
+                nextAttempt,
+                Constants.MAX_JOB_SCHEDULE_RETRIES,
+                delaySeconds);
+        this.threadPool.schedule(
+                () -> retryAction.accept(nextAttempt),
+                TimeValue.timeValueSeconds(delaySeconds),
+                ThreadPool.Names.GENERIC);
+    }
+
+    /**
+     * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler. This method ensures that
+     * the telemetry heartbeat is registered in the internal job index. If the job document does not
+     * exist, it creates a new one with a 24-hour interval and fires an immediate ping once
+     * registration succeeds. If the document already exists, the scheduler owns subsequent fires.
+     *
+     * <p>On startup the jobs index or the cluster may not be ready yet; this method retries with a
+     * linear backoff up to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
      */
     private void scheduleTelemetryPingJob() {
+        this.scheduleTelemetryPingJob(0);
+    }
+
+    private void scheduleTelemetryPingJob(int attempt) {
         boolean isEnabled = PluginSettings.getInstance().isTelemetryEnabled();
         if (!isEnabled) {
             log.info("Telemetry job is disabled via settings. Skipping registration.");
@@ -425,7 +474,7 @@ public class ContentManagerPlugin extends Plugin
                                                 .get()
                                                 .getStatus();
                                 if (status == ClusterHealthStatus.RED) {
-                                    log.info("Telemetry job is enabled, but cluster is RED. Skipping registration.");
+                                    throw new RuntimeException("Cluster is RED; telemetry registration deferred.");
                                 }
 
                                 boolean jobExists =
@@ -451,9 +500,17 @@ public class ContentManagerPlugin extends Plugin
 
                                     this.client.index(request).actionGet();
                                     log.info("Telemetry Ping Job scheduled successfully (Interval: 1d).");
+
+                                    // Run the first ping immediately; subsequent fires are owned by
+                                    // the Job Scheduler on the 1-day interval.
+                                    if (this.telemetryPingJob != null) {
+                                        this.telemetryPingJob.trigger();
+                                    }
                                 }
                             } catch (Exception e) {
-                                log.error("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                                log.info("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                                this.retryJobScheduling(
+                                        "Telemetry Ping Job", attempt, this::scheduleTelemetryPingJob);
                             }
                         });
     }
@@ -465,9 +522,6 @@ public class ContentManagerPlugin extends Plugin
             log.info(
                     "Telemetry setting dynamically enabled. Scheduling job and triggering initial run...");
             this.scheduleTelemetryPingJob();
-            if (this.telemetryPingJob != null) {
-                this.telemetryPingJob.trigger();
-            }
         } else {
             log.info("Telemetry setting dynamically disabled. Removing job...");
             this.removeTelemetryPingJob();

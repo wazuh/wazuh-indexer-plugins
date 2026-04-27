@@ -47,7 +47,7 @@ The periodic job is registered with the OpenSearch Job Scheduler and tracked in 
 
 When `plugins.content_manager.telemetry.enabled` is `true` (default), the Content Manager schedules a daily update check heartbeat job.
 
-- **Frequency:** every 24 hours
+- **Frequency:** every 24 hours (with an immediate first ping as soon as the job is registered)
 - **Scheduler document ID:** `wazuh-telemetry-ping-job`
 - **Endpoint:** CTI `/ping`
 - **Data sent:** cluster UUID and deployed Wazuh version (through headers)
