@@ -49,6 +49,7 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -203,7 +204,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostRule201() throws IOException {
+    public void testPostRule201() throws Exception {
         String jsonRule =
                 "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
         RestRequest request =
@@ -304,6 +305,58 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("already exists"));
+    }
+
+    /**
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when SAP rejects
+     * the rule due to unknown WCS fields. The expected response is: {400, RestResponse} with a clean
+     * error message.
+     */
+    public void testPostRule400_UnknownWcsFields() throws Exception {
+        String jsonRule =
+                "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Bad Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        this.mockDependencyChecks(true, false);
+        doThrow(
+                        new SecurityAnalyticsException(
+                                "The following fields are not part of the Wazuh Common Schema (WCS): [proceso.ejecutable]"))
+                .when(this.securityAnalyticsService)
+                .upsertRule(any(), eq(Space.DRAFT), any(Method.class));
+
+        RestResponse response = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_SECURITY_ANALYTICS_ERROR));
+        Assert.assertTrue(response.getMessage().contains("Wazuh Common Schema (WCS)"));
+        Assert.assertTrue(response.getMessage().contains("proceso.ejecutable"));
+    }
+
+    /**
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when SAP throws
+     * a non-WCS error. The expected response is: {500, RestResponse}.
+     */
+    public void testPostRule500_SapInternalError() throws Exception {
+        String jsonRule =
+                "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Err Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        this.mockDependencyChecks(true, false);
+        doThrow(new RuntimeException("Connection timeout"))
+                .when(this.securityAnalyticsService)
+                .upsertRule(any(), eq(Space.DRAFT), any(Method.class));
+
+        RestResponse response = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_SECURITY_ANALYTICS_ERROR));
+        Assert.assertTrue(response.getMessage().contains("Connection timeout"));
     }
 
     /**
