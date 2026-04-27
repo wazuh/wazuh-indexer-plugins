@@ -56,7 +56,7 @@ public class PluginSettings {
     private static final boolean DEFAULT_CREATE_DETECTORS = true;
 
     // Default values for Context and Consumer
-    private static final String DEFAULT_CONTENT_CONTEXT = "t1-ruleset-5";
+    private static final String DEFAULT_CONTENT_CONTEXT = "beta-2-ruleset-5";
     private static final String DEFAULT_CONTENT_CONSUMER = "public-ruleset-5";
 
     // Default values for IOC Context and Consumer

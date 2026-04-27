@@ -60,6 +60,7 @@ The update check flow is split into two classes:
   - Reads cluster UUID from `ClusterService` metadata.
   - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
   - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
+  - Exposes a `trigger()` method for immediate invocation, used by `ContentManagerPlugin` to fire the first ping as soon as the job document is indexed.
 
 - **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
   - Sends an asynchronous GET request to CTI `/ping`.
@@ -87,7 +88,7 @@ Affected clients:
 Runtime toggle behavior:
 
 - `plugins.content_manager.telemetry.enabled` is a **dynamic** setting.
-- Enabling it schedules the job and triggers an immediate ping.
+- Enabling it schedules the job; the immediate first ping is fired from within `scheduleTelemetryPingJob()` only after the job document has been successfully indexed, guaranteeing the ping only runs when the scheduled job is correctly registered.
 - Disabling it removes the telemetry job document from `.wazuh-content-manager-jobs`.
 
 ### REST Handlers
