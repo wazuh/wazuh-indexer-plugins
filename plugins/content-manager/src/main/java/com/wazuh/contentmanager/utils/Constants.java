@@ -66,7 +66,8 @@ public class Constants {
             "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
-    public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
+    public static final String E_SECURITY_ANALYTICS_ERROR =
+            "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
