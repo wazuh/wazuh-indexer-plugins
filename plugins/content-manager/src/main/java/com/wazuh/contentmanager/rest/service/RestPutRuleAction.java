@@ -26,6 +26,7 @@ import org.opensearch.transport.client.Client;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsClientException;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -120,9 +121,14 @@ public class RestPutRuleAction extends AbstractUpdateAction {
         try {
             this.securityAnalyticsService.upsertRule(resource, Space.DRAFT, Method.PUT);
             return null;
-        } catch (Exception e) {
+        } catch (SecurityAnalyticsClientException e) {
             return new RestResponse(
-                    Constants.E_500_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                    RestStatus.BAD_REQUEST.getStatus());
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            return new RestResponse(
+                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }

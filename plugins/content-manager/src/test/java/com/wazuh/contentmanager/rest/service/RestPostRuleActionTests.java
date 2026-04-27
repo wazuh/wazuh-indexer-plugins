@@ -203,7 +203,7 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostRule201() throws IOException {
+    public void testPostRule201() throws Exception {
         String jsonRule =
                 "{\"integration\": \"integration-1\", \"resource\": {\"metadata\": {\"title\": \"Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
         RestRequest request =

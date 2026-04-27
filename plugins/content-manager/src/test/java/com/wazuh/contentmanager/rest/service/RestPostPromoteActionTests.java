@@ -412,7 +412,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * When a rule is promoted via ADD, {@code upsertRule} must be called on SAP with the target space
      * and {@code PUT} method.
      */
-    public void testSapSync_ruleUpsertCalledOnAdd() throws IOException {
+    public void testSapSync_ruleUpsertCalledOnAdd() throws Exception {
         // Override default mock: rule source doc must carry space "test" for ADD validation to pass
         Map<String, String> spaceTest = new HashMap<>();
         spaceTest.put(Constants.KEY_NAME, Space.TEST.toString());

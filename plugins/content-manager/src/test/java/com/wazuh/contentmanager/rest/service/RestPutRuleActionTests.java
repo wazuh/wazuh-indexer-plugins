@@ -151,7 +151,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
      *
      * @throws IOException
      */
-    public void testPutRule200() throws IOException {
+    public void testPutRule200() throws Exception {
         String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
         String jsonRule =
                 "{\"resource\": {\"enabled\": \"true\", \"metadata\": {\"title\": \"Nginx Core Dump Updated\", \"author\": \"Florian\", \"description\": \"D\", \"documentation\": \"D\", \"references\": []}}}";
