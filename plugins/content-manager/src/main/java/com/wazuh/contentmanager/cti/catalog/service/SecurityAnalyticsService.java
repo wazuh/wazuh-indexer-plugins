@@ -80,7 +80,7 @@ public interface SecurityAnalyticsService {
      * @param space The space the rule belongs to.
      * @param method The HTTP method (POST/PUT).
      */
-    void upsertRule(JsonNode doc, Space space, Method method) throws SecurityAnalyticsClientException;
+    void upsertRule(JsonNode doc, Space space, Method method) throws SecurityAnalyticsException;
 
     /**
      * Asynchronously creates or updates a Rule in SAP.

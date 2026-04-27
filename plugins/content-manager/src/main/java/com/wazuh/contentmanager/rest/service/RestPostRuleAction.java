@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsClientException;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -161,7 +161,7 @@ public class RestPostRuleAction extends AbstractCreateAction {
         try {
             this.securityAnalyticsService.upsertRule(resource, Space.DRAFT, Method.POST);
             return null;
-        } catch (SecurityAnalyticsClientException e) {
+        } catch (SecurityAnalyticsException e) {
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());

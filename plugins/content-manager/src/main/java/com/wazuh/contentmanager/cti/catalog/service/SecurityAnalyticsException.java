@@ -20,13 +20,13 @@ package com.wazuh.contentmanager.cti.catalog.service;
  * Exception thrown when the Security Analytics Plugin rejects a request due to a client error, such
  * as invalid WCS fields.
  */
-public class SecurityAnalyticsClientException extends Exception {
+public class SecurityAnalyticsException extends Exception {
 
-    public SecurityAnalyticsClientException(String message) {
+    public SecurityAnalyticsException(String message) {
         super(message);
     }
 
-    public SecurityAnalyticsClientException(String message, Throwable cause) {
+    public SecurityAnalyticsException(String message, Throwable cause) {
         super(message, cause);
     }
 }

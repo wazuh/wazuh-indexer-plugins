@@ -48,7 +48,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsClientException;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -226,7 +226,7 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         this.mockSearch(0);
 
         doThrow(
-                        new SecurityAnalyticsClientException(
+                        new SecurityAnalyticsException(
                                 "The following fields are not part of the Wazuh Common Schema (WCS): [message22]"))
                 .when(this.securityAnalyticsService)
                 .upsertRule(

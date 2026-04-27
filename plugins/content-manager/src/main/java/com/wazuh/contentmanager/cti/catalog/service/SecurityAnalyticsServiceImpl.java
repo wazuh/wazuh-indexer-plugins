@@ -183,7 +183,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void upsertRule(JsonNode doc, Space space, Method method)
-            throws SecurityAnalyticsClientException {
+            throws SecurityAnalyticsException {
         if (!doc.has(Constants.KEY_ID)) {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
             return;
@@ -231,9 +231,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                         .actionGet();
             }
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
-            if (msg.contains("Wazuh Common Schema (WCS)")) {
-                throw new SecurityAnalyticsClientException(extractSapErrorMessage(msg), e);
+            String message = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            if (message.contains("Wazuh Common Schema (WCS)")) {
+                throw new SecurityAnalyticsException(
+                        SecurityAnalyticsServiceImpl.extractErrorMessage(message), e);
             }
             throw e;
         }
@@ -244,13 +245,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
      * (e.g. {@code {"SigmaError":"...message..."}}). This method parses the JSON and returns the
      * concatenated values, falling back to the raw message if parsing fails.
      *
-     * @param rawMessage the raw exception message, potentially JSON-formatted
+     * @param message the raw exception message, potentially JSON-formatted
      * @return the extracted error message
      */
-    static String extractSapErrorMessage(String rawMessage) {
+    static String extractErrorMessage(String message) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode errorNode = mapper.readTree(rawMessage);
+            JsonNode errorNode = mapper.readTree(message);
             List<String> errorMessages = new ArrayList<>();
             errorNode.elements().forEachRemaining(node -> errorMessages.add(node.asText()));
             if (!errorMessages.isEmpty()) {
@@ -259,7 +260,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         } catch (Exception ignored) {
             // If parsing fails, fallback to the raw message
         }
-        return rawMessage;
+        return message;
     }
 
     @Override
@@ -410,7 +411,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title =
                 metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
         String category = this.formatCategory(doc, rawCategory);
-        List<String> rules = fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
+        List<String> rules = this.fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
         if (rules.isEmpty()) {
             log.debug("Detector [{}] has no enabled rules. Skipping creation.", id);
             return null;

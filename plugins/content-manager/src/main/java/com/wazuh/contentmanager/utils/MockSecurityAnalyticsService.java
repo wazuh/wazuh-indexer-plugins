@@ -25,7 +25,7 @@ import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsClientException;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 
 /**
@@ -55,7 +55,7 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
 
     @Override
     public void upsertRule(JsonNode doc, Space space, Method method)
-            throws SecurityAnalyticsClientException {
+            throws SecurityAnalyticsException {
         log.debug("MockSecurityAnalyticsService.upsertRule called");
     }
 
