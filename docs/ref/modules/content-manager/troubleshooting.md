@@ -104,14 +104,14 @@ Example output:
   "hits": {
     "hits": [
       {
-        "_id": "t1-ruleset-5_public-ruleset-5",
+        "_id": "beta-2-ruleset-5_public-ruleset-5",
         "_source": {
           "name": "public-ruleset-5",
-          "context": "t1-ruleset-5",
+          "context": "beta-2-ruleset-5",
           "status": "idle",
           "local_offset": 3932,
           "remote_offset": 3932,
-          "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/t1-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+          "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/beta-2-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
         }
       }
     ]
