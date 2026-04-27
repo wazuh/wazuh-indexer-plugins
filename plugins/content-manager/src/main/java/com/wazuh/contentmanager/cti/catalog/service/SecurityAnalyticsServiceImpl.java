@@ -406,8 +406,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
         log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
         // Extra info
-        log.info("Sending detector [{}] with ID [{}] to Security Analytics. Config: [Interval: {}m, Enabled: {}, Sources: {}]",
-            title, id, interval, enabled, sourceIndices);
+        log.info(
+                "Sending detector [{}] with ID [{}] to Security Analytics. Config: [Interval: {}m, Enabled: {}, Sources: {}]",
+                title,
+                id,
+                interval,
+                enabled,
+                sourceIndices);
         return new WIndexDetectorRequest(
                 id,
                 title,
