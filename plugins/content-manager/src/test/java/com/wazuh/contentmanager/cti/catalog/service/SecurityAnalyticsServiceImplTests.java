@@ -261,4 +261,34 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         // No enabled rules → no detector
         assertNull("Detector should not be created when all rules are disabled", request);
     }
+
+    // ── extractSapErrorMessage tests ─────────────────────────────────────────
+
+    /** JSON with a single key: extracts the value. */
+    public void testExtractSapErrorMessage_singleKey() {
+        String raw = "{\"SigmaError\":\"Unknown WCS fields in detection: [proceso.ejecutable]\"}";
+        String result = SecurityAnalyticsServiceImpl.extractSapErrorMessage(raw);
+        assertEquals("Unknown WCS fields in detection: [proceso.ejecutable]", result);
+    }
+
+    /** JSON with multiple keys: concatenates values with space. */
+    public void testExtractSapErrorMessage_multipleKeys() {
+        String raw = "{\"Error1\":\"first problem\",\"Error2\":\"second problem\"}";
+        String result = SecurityAnalyticsServiceImpl.extractSapErrorMessage(raw);
+        assertEquals("first problem second problem", result);
+    }
+
+    /** Non-JSON input: returns the raw message unchanged. */
+    public void testExtractSapErrorMessage_nonJson() {
+        String raw = "Some plain text error message";
+        String result = SecurityAnalyticsServiceImpl.extractSapErrorMessage(raw);
+        assertEquals(raw, result);
+    }
+
+    /** Empty JSON object: returns the raw message (no values to extract). */
+    public void testExtractSapErrorMessage_emptyJsonObject() {
+        String raw = "{}";
+        String result = SecurityAnalyticsServiceImpl.extractSapErrorMessage(raw);
+        assertEquals(raw, result);
+    }
 }

@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsClientException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -58,6 +59,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -204,6 +206,64 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
         this.mockPrepareGetChain(this.createMockGetResponse("draft", false), ruleId);
         RestResponse response = this.action.executeRequest(request, this.nodeClient);
         Assert.assertEquals(RestStatus.NOT_FOUND.getStatus(), response.getStatus());
+    }
+
+    /**
+     * Test that when SAP rejects a rule update due to unknown WCS fields, the response is 400 with a
+     * clean error message.
+     */
+    public void testPutRule400_UnknownWcsFields() throws Exception {
+        String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
+        String jsonRule =
+                "{\"resource\": {\"enabled\": \"true\", \"metadata\": {\"title\": \"Bad Rule\", \"author\": \"Florian\"}}}";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        this.mockPrepareGetChain(this.createMockGetResponse("draft", true), ruleId);
+        this.mockSearch(0);
+
+        doThrow(
+                        new SecurityAnalyticsClientException(
+                                "The following fields are not part of the Wazuh Common Schema (WCS): [message22]"))
+                .when(this.securityAnalyticsService)
+                .upsertRule(
+                        any(), eq(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT), any(Method.class));
+
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_SECURITY_ANALYTICS_ERROR));
+        Assert.assertTrue(response.getMessage().contains("Wazuh Common Schema (WCS)"));
+        Assert.assertTrue(response.getMessage().contains("message22"));
+    }
+
+    /** Test that when SAP throws a non-WCS error during update, the response is 500. */
+    public void testPutRule500_SapInternalError() throws Exception {
+        String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
+        String jsonRule =
+                "{\"resource\": {\"enabled\": \"true\", \"metadata\": {\"title\": \"Err Rule\", \"author\": \"Florian\"}}}";
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        this.mockPrepareGetChain(this.createMockGetResponse("draft", true), ruleId);
+        this.mockSearch(0);
+
+        doThrow(new RuntimeException("SAP unavailable"))
+                .when(this.securityAnalyticsService)
+                .upsertRule(
+                        any(), eq(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT), any(Method.class));
+
+        RestResponse response = this.action.executeRequest(request, this.nodeClient);
+
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(Constants.E_SECURITY_ANALYTICS_ERROR));
+        Assert.assertTrue(response.getMessage().contains("SAP unavailable"));
     }
 
     public void testPutRule500() {
