@@ -230,4 +230,8 @@ public class Constants {
     public static final String OP_ADD = "add";
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
+
+    // Job Scheduler registration retries
+    public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
+    public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
 }

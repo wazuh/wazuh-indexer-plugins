@@ -153,6 +153,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 - Create detectors using only rules enabled [(#1017)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1017)
 - Set indicator.confidence as type short [(#1030)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1030)
+- Remove vulnerability scanner reference field [(#1072)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1072)
 - Change check object in filters template to object[(#1062)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1062)
 - Update ruleset feed for 5.0.0 beta2 [(#1073)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1073)
 
@@ -190,6 +191,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Reset spaces in Security Analytics [(#1000)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1000)
 - Fix CodeQL maven caching [(#1007)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1007)
 - Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
+- Fix Telemetry Ping Job not running immediately after registration [(#1052)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1052)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

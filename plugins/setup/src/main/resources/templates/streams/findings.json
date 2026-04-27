@@ -8266,10 +8266,6 @@
             "published_at": {
               "type": "date"
             },
-            "reference": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
             "report_id": {
               "ignore_above": 1024,
               "type": "keyword"
