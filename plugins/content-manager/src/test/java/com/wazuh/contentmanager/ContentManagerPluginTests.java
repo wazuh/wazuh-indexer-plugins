@@ -19,6 +19,7 @@ package com.wazuh.contentmanager;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -26,15 +27,20 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -51,6 +57,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private ThreadPool threadPool;
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
+    @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private ConsumersIndex consumersIndex;
 
     /** Sets up the test environment before each test method. */
@@ -74,6 +81,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
+        this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
 
         ContentManagerPluginTests.clearInstance();
@@ -125,6 +133,98 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
+    /**
+     * Tests that {@code telemetryPingJob.trigger()} is NOT invoked when telemetry is disabled —
+     * registration is skipped and the immediate ping must not run.
+     */
+    public void testOnNodeStartedTelemetryDisabledDoesNotTriggerPing() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.update_on_start", false)
+                        .put("plugins.content_manager.telemetry.enabled", false)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
+
+        this.plugin.onNodeStarted(this.discoveryNode);
+
+        verify(this.telemetryPingJob, never()).trigger();
+    }
+
+    /**
+     * Tests that {@code telemetryPingJob.trigger()} is NOT invoked when registration fails. The
+     * client chain is left unmocked so the scheduler path throws inside its try/catch — proving the
+     * immediate ping only runs after a successful registration.
+     */
+    public void testOnNodeStartedTelemetryTriggerGatedByRegistration() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.update_on_start", false)
+                        .put("plugins.content_manager.telemetry.enabled", true)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
+
+        this.plugin.onNodeStarted(this.discoveryNode);
+
+        verify(this.telemetryPingJob, never()).trigger();
+    }
+
+    /**
+     * Tests that a failed telemetry-scheduling attempt schedules exactly one retry with the expected
+     * backoff delay on the generic pool. The client chain is left unmocked so {@code
+     * ensureJobsIndexExists} throws inside the try/catch.
+     */
+    public void testTelemetryRetryScheduledOnFirstFailure() throws Exception {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
+        PluginSettings.getInstance(settings);
+
+        this.invokePrivateIntMethod("scheduleTelemetryPingJob", 0);
+
+        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        verify(this.threadPool)
+                .schedule(
+                        any(Runnable.class),
+                        eq(TimeValue.timeValueSeconds(expectedDelay)),
+                        eq(ThreadPool.Names.GENERIC));
+    }
+
+    /**
+     * Tests that once the retry budget is exhausted, no further retry is scheduled. The private
+     * method is invoked with {@code attempt == MAX_JOB_SCHEDULE_RETRIES} so the catch branch lands on
+     * the "give up" path.
+     */
+    public void testTelemetryGiveUpAfterMaxRetries() throws Exception {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
+        PluginSettings.getInstance(settings);
+
+        this.invokePrivateIntMethod("scheduleTelemetryPingJob", Constants.MAX_JOB_SCHEDULE_RETRIES);
+
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /**
+     * Tests that a failed catalog-sync-scheduling attempt schedules exactly one retry with the
+     * expected backoff delay.
+     */
+    public void testCatalogSyncRetryScheduledOnFirstFailure() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+
+        this.invokePrivateIntMethod("scheduleCatalogSyncJob", 0);
+
+        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        verify(this.threadPool)
+                .schedule(
+                        any(Runnable.class),
+                        eq(TimeValue.timeValueSeconds(expectedDelay)),
+                        eq(ThreadPool.Names.GENERIC));
+    }
+
     /** Tests that catalogSyncJob.trigger() is NOT called on a non-cluster-manager node. */
     public void testOnNodeStartedNonClusterManager() {
         Settings settings =
@@ -146,6 +246,14 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    /** Helper to invoke a private {@code void method(int)} on the plugin via reflection. */
+    @SuppressForbidden(reason = "Unit test reflection")
+    private void invokePrivateIntMethod(String methodName, int value) throws Exception {
+        Method method = ContentManagerPlugin.class.getDeclaredMethod(methodName, int.class);
+        method.setAccessible(true);
+        method.invoke(this.plugin, value);
     }
 
     /**

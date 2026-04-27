@@ -155,6 +155,19 @@ curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-kvdbs/_coun
 curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-enrichments/_count?pretty"
 ```
 
+## Job Scheduling on Startup
+
+During node startup, `scheduleCatalogSyncJob` and `scheduleTelemetryPingJob` both require the `.wazuh-content-manager-jobs` index to reach yellow status with at least one active shard before they can register their job documents. On a freshly initialized or resource-constrained cluster this can time out, producing entries like:
+
+```
+INFO   ... Failed to schedule Telemetry Ping Job: Index .wazuh-content-manager-jobs not ready
+INFO   ... Retrying Telemetry Ping Job (attempt 1/3) in 15s.
+```
+
+The plugin automatically retries each registration up to 3 times with a linear backoff (15 s, 30 s, 45 s). Each attempt logs the failure reason and the scheduled retry delay at `INFO` — these are expected during startup and do not require action.
+
+If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after 3 attempts.` and the job will only be retried on the next node start. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
+
 ## Log Monitoring
 
 Content Manager logs are part of the Wazuh Indexer logs. Use the following patterns to filter relevant entries:
