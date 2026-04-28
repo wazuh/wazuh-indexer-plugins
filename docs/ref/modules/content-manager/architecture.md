@@ -51,7 +51,7 @@ Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and 
 
 **Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
 - `document.id` — the UUID of the original CTI document in the Content Manager.
-- `source` — the space the document belongs to, with the first letter capitalized (e.g., "Draft", "Test", "Custom", or "Sigma" for standard).
+- `source` — the space the document belongs to (e.g., "draft", "test", "custom", or "standard").
 
 This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
 
