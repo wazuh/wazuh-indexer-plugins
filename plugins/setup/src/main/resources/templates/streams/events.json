@@ -16388,6 +16388,15 @@
           }
         },
         {
+          "wcs_wazuh_event_id": {
+            "path_match": "wazuh.event.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_wazuh_integration_category": {
             "path_match": "wazuh.integration.category",
             "mapping": {
@@ -17714,6 +17723,9 @@
               }
             },
             "cluster": {
+              "properties": {}
+            },
+            "event": {
               "properties": {}
             },
             "integration": {
