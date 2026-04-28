@@ -191,7 +191,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(PRODUCTS_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getWazuhVersion())
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .build();
 
         final Future<SimpleHttpResponse> future =

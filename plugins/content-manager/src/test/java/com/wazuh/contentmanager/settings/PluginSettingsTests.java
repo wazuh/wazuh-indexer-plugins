@@ -99,27 +99,27 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     public void testGetUserAgentDefaultsToUnknown() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
 
-        Assert.assertNull(pluginSettings.getWazuhVersion());
+        Assert.assertNull(pluginSettings.getVersion());
         Assert.assertEquals(Constants.USER_AGENT_PREFIX + "unknown", pluginSettings.getUserAgent());
     }
 
     /** Tests that getUserAgent returns the correct value after setWazuhVersion is called. */
     public void testGetUserAgentWithVersion() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhVersion("5.0.0");
+        pluginSettings.setVersion("5.0.0");
 
-        Assert.assertEquals("5.0.0", pluginSettings.getWazuhVersion());
+        Assert.assertEquals("5.0.0", pluginSettings.getVersion());
         Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
     }
 
     /** Tests that setWazuhVersion can be updated and getUserAgent reflects the latest value. */
     public void testSetWazuhVersionUpdatesUserAgent() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhVersion("4.9.0");
+        pluginSettings.setVersion("4.9.0");
 
         Assert.assertEquals(Constants.USER_AGENT_PREFIX + "4.9.0", pluginSettings.getUserAgent());
 
-        pluginSettings.setWazuhVersion("5.0.0");
+        pluginSettings.setVersion("5.0.0");
         Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
     }
 }
