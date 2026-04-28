@@ -1,6 +1,10 @@
 // Token Exchange Response Logic
 // Returns different responses based on Authorization header
 
+// Log the incoming user-agent for validation
+def userAgent = context.request.headers['User-Agent']?.toString()
+logger.info("[tokenExchange] User-Agent: ${userAgent}")
+
 def authHeader = context.request.headers.Authorization?.toString()
 def resource = context.request.formParams.resource?.toString()
 

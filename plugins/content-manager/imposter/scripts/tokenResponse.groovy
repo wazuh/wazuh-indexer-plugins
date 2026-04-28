@@ -3,6 +3,10 @@
 
 import java.util.concurrent.ConcurrentHashMap
 
+// Log the incoming user-agent for validation
+def userAgent = context.request.headers['User-Agent']?.toString()
+logger.info("[tokenRequest] User-Agent: ${userAgent}")
+
 // Use a static map to track request counts across invocations
 @groovy.transform.Field
 static ConcurrentHashMap<String, Integer> requestCounts = new ConcurrentHashMap<>()
