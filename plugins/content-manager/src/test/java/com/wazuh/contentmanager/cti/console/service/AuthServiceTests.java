@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Assert;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 
 import static org.mockito.Mockito.*;
@@ -51,6 +53,12 @@ public class AuthServiceTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+
+        try {
+            PluginSettings.getInstance(Settings.EMPTY);
+        } catch (IllegalStateException e) {
+            // Already initialized
+        }
 
         // Mock CTI Console API Client
         this.mockClient = mock(ApiClient.class);

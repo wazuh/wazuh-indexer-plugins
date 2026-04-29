@@ -83,6 +83,16 @@ If you do not use the OpenSearch Security Analytics plugin:
 plugins.content_manager.catalog.create_detectors: false
 ```
 
+### CTI communication headers
+
+All HTTP clients that communicate with Wazuh CTI services send a custom `User-Agent` header:
+
+```
+User-Agent: Wazuh Indexer <version>
+```
+
+For example: `Wazuh Indexer 5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. The version is read from `VERSION.json` at plugin startup.
+
 ### Update check service behavior
 
 The update check service is enabled by default and runs once per day, with an immediate first ping fired as soon as the job is registered in the scheduler.

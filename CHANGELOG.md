@@ -94,7 +94,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement version check CM API endpoint [(#1028)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1028)
 - Add documentation for Wazuh Alerting plugin [(#980)](https://github.com/wazuh/wazuh-indexer-plugins/pull/980)
 - Add ruletesting extended endpoints [(#1040)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1040)
-
+- Set custom user-agent header for CTI API communications [(#1074)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1074)
+- Implement wazuh.event.id WCS field [(#1097)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1097)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
