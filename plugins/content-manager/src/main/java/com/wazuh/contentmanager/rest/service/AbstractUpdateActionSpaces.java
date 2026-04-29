@@ -111,7 +111,7 @@ public abstract class AbstractUpdateActionSpaces extends AbstractContentAction {
             JsonNode rootNode;
             ObjectNode resourceNode;
 
-            if (this.isYamlRequest(request)) {
+            if (this.isYamlRequest(request) && this.supportsYamlField()) {
                 // YAML Request
                 try {
                     String yamlBody = request.content().utf8ToString();
