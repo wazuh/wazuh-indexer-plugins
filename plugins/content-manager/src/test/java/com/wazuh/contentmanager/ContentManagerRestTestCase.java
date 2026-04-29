@@ -20,6 +20,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -31,6 +33,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -333,6 +336,38 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected Response makeRequest(String method, String endpoint) throws IOException {
         return this.makeRequest(method, endpoint, null, Collections.emptyMap());
+    }
+
+    /**
+     * Makes a REST request with a YAML entity body ({@code Content-Type: application/yaml}).
+     *
+     * @param method HTTP method (POST or PUT)
+     * @param endpoint Target endpoint URI
+     * @param yamlEntity YAML string for the request body
+     * @param params Query parameters (e.g. {@code integration=<uuid>} or {@code space=draft})
+     * @return the HTTP Response
+     * @throws IOException on communication error
+     */
+    protected Response makeYamlRequest(
+            String method, String endpoint, String yamlEntity, Map<String, String> params)
+            throws IOException {
+        Request request = new Request(method, endpoint);
+        RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
+        options.setWarningsHandler(WarningsHandler.PERMISSIVE);
+        request.setOptions(options);
+
+        if (params != null) {
+            params.forEach(request::addParameter);
+        }
+
+        if (yamlEntity != null) {
+            request.setEntity(
+                    new StringEntity(
+                            yamlEntity,
+                            ContentType.create("application/yaml", StandardCharsets.UTF_8)));
+        }
+
+        return client().performRequest(request);
     }
 
     // ========================

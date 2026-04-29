@@ -24,6 +24,7 @@ import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Map;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -76,6 +77,10 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
         assertNotNull(source);
         this.assertSpaceName(source);
         this.assertHashPresent(source, "KVDB");
+
+        // Verify yaml field is populated
+        assertFalse(
+                "KVDB should have a non-empty yaml field", source.path("yaml").asText("").isEmpty());
 
         // Verify KVDB is in integration's kvdbs list
         this.assertResourceInIntegrationList(integrationId, Constants.KEY_KVDBS, kvdbId);
@@ -298,6 +303,98 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
                         ResponseException.class, () -> this.makeRequest("POST", PluginSettings.KVDBS_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * Create a KVDB using {@code Content-Type: application/yaml}.
+     *
+     * <p>Verifies:
+     *
+     * <ul>
+     *   <li>Response status code is 201 Created.
+     *   <li>The {@code yaml} field in the indexed document matches the submitted YAML.
+     *   <li>The {@code document} field is populated from the parsed YAML.
+     * </ul>
+     *
+     * @throws IOException On request failure.
+     */
+    public void testPostKvdb_yamlContentType_success() throws IOException {
+        String integrationId = this.createIntegration("test-kvdb-yaml");
+
+        // spotless:off
+        String yamlBody =
+                "integration: " + integrationId + "\n"
+                        + "resource:\n"
+                        + "  name: kvdb/yaml-test/0\n"
+                        + "  enabled: true\n"
+                        + "  metadata:\n"
+                        + "    title: YAML KVDB\n"
+                        + "    author: Wazuh Inc.\n"
+                        + "    description: KVDB created via YAML content-type.\n"
+                        + "  content:\n"
+                        + "    key1: value1\n"
+                        + "    key2: value2\n";
+        // spotless:on
+
+        Response response = this.makeYamlRequest("POST", PluginSettings.KVDBS_URI, yamlBody, null);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+
+        Map<String, Object> body = this.parseResponseAsMap(response);
+        String kvdbId = (String) body.get("message");
+        assertNotNull("KVDB ID should not be null", kvdbId);
+
+        // Verify document exists in draft space
+        this.assertResourceExistsInDraft(Constants.INDEX_KVDBS, kvdbId);
+
+        // Verify yaml field is populated with the original YAML
+        JsonNode source = this.getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
+        assertNotNull(source);
+        String storedYaml = source.path("yaml").asText("");
+        assertFalse("yaml field should be non-empty", storedYaml.isEmpty());
+        assertTrue("yaml field should contain the key name", storedYaml.contains("kvdb/yaml-test/0"));
+
+        // Verify document field is populated
+        assertFalse("document field should be populated", source.path("document").isMissingNode());
+    }
+
+    /**
+     * Create a KVDB via YAML with a float value ({@code version: 5.0}) and verify float fidelity.
+     *
+     * <p>The {@code yaml} field must preserve {@code 5.0} as a float, not {@code 5} as an integer.
+     *
+     * @throws IOException On request failure.
+     */
+    public void testPostKvdb_yamlFloatFidelity() throws IOException {
+        String integrationId = this.createIntegration("test-kvdb-float");
+
+        // spotless:off
+        String yamlBody =
+                "integration: " + integrationId + "\n"
+                        + "resource:\n"
+                        + "  name: kvdb/float-test/0\n"
+                        + "  enabled: true\n"
+                        + "  metadata:\n"
+                        + "    title: Float KVDB\n"
+                        + "    author: Wazuh Inc.\n"
+                        + "  content:\n"
+                        + "    version: 5.0\n"
+                        + "    threshold: 1.5\n";
+        // spotless:on
+
+        Response response = this.makeYamlRequest("POST", PluginSettings.KVDBS_URI, yamlBody, null);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+
+        Map<String, Object> body = this.parseResponseAsMap(response);
+        String kvdbId = (String) body.get("message");
+        assertNotNull("KVDB ID should not be null", kvdbId);
+
+        JsonNode source = this.getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
+        assertNotNull(source);
+
+        // The yaml field must preserve float notation
+        String storedYaml = source.path("yaml").asText("");
+        assertTrue("yaml field should preserve 5.0 as float", storedYaml.contains("5.0"));
+        assertTrue("yaml field should preserve 1.5 as float", storedYaml.contains("1.5"));
     }
 
     // ========================

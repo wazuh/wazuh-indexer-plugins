@@ -166,8 +166,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
-        Assert.assertTrue("Should contain 'decoder' field", source.has("decoder"));
-        String yaml = source.get("decoder").asText();
+        Assert.assertTrue("Should contain 'yaml' field", source.has("yaml"));
+        String yaml = source.get("yaml").asText();
         Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
         Assert.assertTrue(
                 yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
