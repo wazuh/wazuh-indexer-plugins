@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -58,6 +59,7 @@ import com.wazuh.contentmanager.cti.catalog.model.*;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.YamlUtils;
 
 /**
  * Manages the index for CTI content, providing methods for index creation, document indexing,
@@ -112,6 +114,7 @@ public class ContentIndex {
         this.mappingsPath = mappingsPath;
         this.alias = alias;
         this.mapper = new ObjectMapper();
+        this.mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
 
     /**
@@ -206,7 +209,21 @@ public class ContentIndex {
      * @throws IOException If the indexing operation fails.
      */
     public IndexResponse create(String id, JsonNode payload) throws IOException {
-        ObjectNode processedPayload = this.processPayload(payload);
+        ObjectNode processedPayload;
+        if (payload.isObject()
+                && payload.has("document")
+                && payload.has("space")
+                && payload.has("hash")) {
+            processedPayload = payload.deepCopy();
+        } else {
+            processedPayload = this.processPayload(payload);
+        }
+
+        // Ensure floating-point values keep their decimal scale
+        if (processedPayload.has("document")) {
+            YamlUtils.fixDecimalScale(processedPayload.get("document"));
+        }
+
         IndexRequest request =
                 new IndexRequest(this.indexName)
                         .id(id)
@@ -444,6 +461,12 @@ public class ContentIndex {
                     return this.mapper.valueToTree(ioc);
                 case Constants.INDEX_DECODERS:
                     resource = Decoder.fromPayload(payload);
+                    break;
+                case Constants.INDEX_KVDBS:
+                    resource = Kvdb.fromPayload(payload);
+                    break;
+                case Constants.INDEX_FILTERS:
+                    resource = Filter.fromPayload(payload);
                     break;
                 case Constants.INDEX_CVES:
                     Cve cve = Cve.fromPayload(payload);
