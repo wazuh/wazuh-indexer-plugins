@@ -387,32 +387,24 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         int interval = 2;
         boolean enabled = true;
 
-        if (doc.has("detector") && doc.get("detector").isObject()) {
-            JsonNode detectorNode = doc.get("detector");
+        if (doc.has(Constants.KEY_DETECTOR) && doc.get(Constants.KEY_DETECTOR).isObject()) {
+            JsonNode detectorNode = doc.get(Constants.KEY_DETECTOR);
 
-            if (detectorNode.has("source") && detectorNode.get("source").isArray()) {
-                sourceIndices.clear();
-                detectorNode.get("source").forEach(s -> sourceIndices.add(s.asText()));
+            if (detectorNode.has(Constants.KEY_SOURCE)
+                    && detectorNode.get(Constants.KEY_SOURCE).isArray()) {
+                detectorNode.get(Constants.KEY_SOURCE).forEach(s -> sourceIndices.add(s.asText()));
             }
 
-            if (detectorNode.has("interval")) {
-                interval = detectorNode.path("interval").asInt(2);
+            if (detectorNode.has(Constants.KEY_INTERVAL)) {
+                interval = detectorNode.path(Constants.KEY_INTERVAL).asInt(2);
             }
 
-            if (detectorNode.has("enabled")) {
-                enabled = detectorNode.path("enabled").asBoolean(true);
+            if (detectorNode.has(Constants.KEY_ENABLED)) {
+                enabled = detectorNode.path(Constants.KEY_ENABLED).asBoolean(true);
             }
         }
 
         log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
-        // Extra info
-        log.info(
-                "Sending detector [{}] with ID [{}] to Security Analytics. Config: [Interval: {}m, Enabled: {}, Sources: {}]",
-                title,
-                id,
-                interval,
-                enabled,
-                sourceIndices);
         return new WIndexDetectorRequest(
                 id,
                 title,
