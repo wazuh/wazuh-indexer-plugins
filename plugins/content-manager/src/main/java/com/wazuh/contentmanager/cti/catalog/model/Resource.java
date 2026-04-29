@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -38,7 +39,8 @@ import com.wazuh.contentmanager.utils.Constants;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Resource {
     private static final Logger log = LogManager.getLogger(Resource.class);
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final ObjectMapper MAPPER =
+            new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
     // JSON Key Constants
     private static final String JSON_DOCUMENT_KEY = "document";
@@ -49,7 +51,7 @@ public class Resource {
     private static final String JSON_SIGMA_ID_KEY = "sigma_id";
 
     @JsonProperty("document")
-    private Map<String, Object> document;
+    private JsonNode document;
 
     @JsonProperty("hash")
     private Map<String, String> hash;
@@ -138,7 +140,7 @@ public class Resource {
             Resource.preprocessDocument(rawDoc);
             Resource.nestMetadataFields(rawDoc);
 
-            resource.setDocument(MAPPER.convertValue(rawDoc, Map.class));
+            resource.setDocument(rawDoc);
 
             // 2. Calculate Hash
             String hashStr = Resource.computeSha256(rawDoc.toString());
@@ -319,18 +321,18 @@ public class Resource {
     /**
      * Gets the document content.
      *
-     * @return A Map representing the document.
+     * @return A JsonNode representing the document.
      */
-    public Map<String, Object> getDocument() {
+    public JsonNode getDocument() {
         return this.document;
     }
 
     /**
      * Sets the document content.
      *
-     * @param document A Map representing the document.
+     * @param document A JsonNode representing the document.
      */
-    public void setDocument(Map<String, Object> document) {
+    public void setDocument(JsonNode document) {
         this.document = document;
     }
 

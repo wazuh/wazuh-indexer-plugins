@@ -87,6 +87,11 @@ public class RestPostKvdbAction extends AbstractCreateAction {
     }
 
     @Override
+    protected boolean supportsYamlField() {
+        return true;
+    }
+
+    @Override
     protected String getIndexName() {
         return Constants.INDEX_KVDBS;
     }

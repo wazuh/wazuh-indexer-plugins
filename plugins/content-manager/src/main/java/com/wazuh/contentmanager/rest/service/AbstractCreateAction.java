@@ -37,6 +37,7 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.YamlUtils;
 
 /**
  * Abstract handler for creating new content resources.
@@ -77,33 +78,69 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
         }
 
         try {
+            String rawYaml = null;
             JsonNode rootNode;
-            try {
-                rootNode = MAPPER.readTree(request.content().streamInput());
-            } catch (IOException e) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED,
-                        "Creation",
-                        this.getResourceType(),
-                        "Invalid JSON format. Reason: " + e.getMessage());
-                return new RestResponse(
-                        Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
+            ObjectNode resourceNode;
 
-            // 2. Validate Payload Structure
-            validationError =
-                    this.documentValidations.validateResourcePayload(rootNode, this.requiresIntegrationId());
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED,
-                        "Payload structure validation",
-                        this.getResourceType(),
-                        validationError.getMessage());
-                return validationError;
-            }
+            if (this.isYamlRequest(request) && this.supportsYamlField()) {
+                // YAML Request
+                try {
+                    String yamlBody = request.content().utf8ToString();
+                    rootNode = YamlUtils.fromYaml(yamlBody);
+                } catch (IOException e) {
+                    log.warn(
+                            Constants.W_LOG_OPERATION_FAILED,
+                            "Creation",
+                            this.getResourceType(),
+                            "Invalid YAML format. Reason: " + e.getMessage());
+                    return new RestResponse(
+                            Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus());
+                }
 
-            ObjectNode resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
+                // Validate structure
+                validationError =
+                        this.documentValidations.validateResourcePayload(
+                                rootNode, this.requiresIntegrationId());
+                if (validationError != null) {
+                    log.warn(
+                            Constants.W_LOG_OPERATION_FAILED,
+                            "Payload structure validation",
+                            this.getResourceType(),
+                            validationError.getMessage());
+                    return validationError;
+                }
+                resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
+                rawYaml = YamlUtils.toYaml(resourceNode);
+            } else {
+                // JSON Request
+                try {
+                    rootNode = MAPPER.readTree(request.content().streamInput());
+                } catch (IOException e) {
+                    log.warn(
+                            Constants.W_LOG_OPERATION_FAILED,
+                            "Creation",
+                            this.getResourceType(),
+                            "Invalid JSON format. Reason: " + e.getMessage());
+                    return new RestResponse(
+                            Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus());
+                }
+
+                // 2. Validate Payload Structure
+                validationError =
+                        this.documentValidations.validateResourcePayload(
+                                rootNode, this.requiresIntegrationId());
+                if (validationError != null) {
+                    log.warn(
+                            Constants.W_LOG_OPERATION_FAILED,
+                            "Payload structure validation",
+                            this.getResourceType(),
+                            validationError.getMessage());
+                    return validationError;
+                }
+                resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
+            }
 
             // 3. Resource Specific Validation
             validationError = this.validatePayload(client, rootNode, resourceNode);
@@ -144,6 +181,15 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             // 7. Indexing
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
             JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
+
+            // Populate yaml field for resource types that support it
+            if (this.supportsYamlField()) {
+                if (rawYaml != null) {
+                    ((ObjectNode) ctiWrapper).put("yaml", rawYaml);
+                } else {
+                    ((ObjectNode) ctiWrapper).put("yaml", YamlUtils.toYaml(resourceNode));
+                }
+            }
 
             index.create(id, ctiWrapper);
 

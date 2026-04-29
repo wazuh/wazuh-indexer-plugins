@@ -318,6 +318,42 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
         Assert.assertTrue(actualResponse.getMessage().contains("is not in draft space"));
     }
 
+    /**
+     * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
+     * request uses {@code Content-Type: application/yaml}. The YAML body uses the same envelope as
+     * JSON ({@code integration} + {@code resource}). The expected response is: {201, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostDecoder_yamlContentType_success() throws IOException {
+        // spotless:off
+        String yamlBody =
+                "integration: integration-1\n"
+                        + "resource:\n"
+                        + "  name: decoder/example/yaml/0\n"
+                        + "  enabled: true\n"
+                        + "  metadata:\n"
+                        + "    title: YAML Decoder\n"
+                        + "    description: A decoder via YAML\n"
+                        + "    author:\n"
+                        + "      name: Wazuh\n";
+        // spotless:on
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(yamlBody), XContentType.YAML)
+                        .build();
+
+        RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
+        when(this.service.validateResource(eq(Constants.KEY_DECODER), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+        this.mockDependencySuccess();
+
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        Assert.assertNotNull(actualResponse.getMessage());
+    }
+
     private RestRequest buildRequest(String payload) {
         return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                 .withContent(new BytesArray(payload), XContentType.JSON)

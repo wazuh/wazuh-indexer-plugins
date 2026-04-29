@@ -67,6 +67,9 @@
         }
       }
     },
+    "yaml": {
+      "type": "text"
+    },
     "space": {
       "properties": {
         "name": {

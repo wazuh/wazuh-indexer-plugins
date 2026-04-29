@@ -225,6 +225,42 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
     }
 
+    /**
+     * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the
+     * request uses {@code Content-Type: application/yaml}. The YAML body uses the same envelope as
+     * JSON ({@code space} + {@code resource}). The expected response is: {201, RestResponse}
+     */
+    public void testPostFilter_yamlContentType_success() {
+        // spotless:off
+        String yamlBody =
+                "space: draft\n"
+                        + "resource:\n"
+                        + "  name: filter/prefilter/yaml/0\n"
+                        + "  enabled: true\n"
+                        + "  metadata:\n"
+                        + "    title: YAML Filter\n"
+                        + "    description: A filter via YAML\n"
+                        + "    author:\n"
+                        + "      name: Wazuh\n"
+                        + "  check: \"$host.os.platform == 'ubuntu'\"\n"
+                        + "  type: pre-filter\n";
+        // spotless:on
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(yamlBody), XContentType.YAML)
+                        .build();
+
+        RestResponse engineResponse = new RestResponse("{\"status\": \"OK\"}", 200);
+        when(this.service.validateResource(eq(Constants.KEY_FILTER), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+        this.mockDependencySuccess();
+
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        Assert.assertNotNull(actualResponse.getMessage());
+    }
+
     private RestRequest buildRequest(String payload) {
         return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                 .withContent(new BytesArray(payload), XContentType.JSON)
