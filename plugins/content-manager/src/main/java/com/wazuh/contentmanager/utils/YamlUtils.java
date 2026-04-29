@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Shared utility for YAML <-> JSON conversions.
+ * Shared utility for YAML - JSON conversions.
  *
  * <p>Uses Jackson's {@code YAMLFactory}-backed {@link ObjectMapper} configured with {@link
  * DeserializationFeature#USE_BIG_DECIMAL_FOR_FLOATS} to preserve type fidelity (e.g. {@code 5.0}
