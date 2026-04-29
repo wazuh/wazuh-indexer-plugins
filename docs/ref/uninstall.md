@@ -1,21 +1,21 @@
 # Uninstall
 
->**Note** You need root user privileges to run all the commands described below.
+> **Note:** You need root user privileges to run all the commands described below.
 
-## Yum
+## Red Hat-based platforms
 
 ```bash
-yum remove wazuh-indexer -y
-rm -rf /var/lib/wazuh-indexer/
-rm -rf /usr/share/wazuh-indexer/
-rm -rf /etc/wazuh-indexer/
+sudo rpm -e wazuh-indexer
+sudo rm -rf /var/lib/wazuh-indexer/
+sudo rm -rf /usr/share/wazuh-indexer/
+sudo rm -rf /etc/wazuh-indexer/
 ```
 
-## APT
+## Debian-based platforms
 
 ```bash
-apt-get remove wazuh-indexer -y
-rm -rf /var/lib/wazuh-indexer/
-rm -rf /usr/share/wazuh-indexer/
-rm -rf /etc/wazuh-indexer/
+sudo dpkg --purge wazuh-indexer
+sudo rm -rf /var/lib/wazuh-indexer/
+sudo rm -rf /usr/share/wazuh-indexer/
+sudo rm -rf /etc/wazuh-indexer/
 ```

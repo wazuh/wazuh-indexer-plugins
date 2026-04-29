@@ -85,30 +85,30 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 Install the following packages if missing:
 
-#### yum
+#### Red Hat-based platforms
 
 ```bash
-yum install coreutils
+rpm -ivh coreutils-*.rpm
 ```
 
-#### apt
+#### Debian-based platforms
 
 ```bash
-apt-get install debconf adduser procps
+dpkg -i debconf_*.deb adduser_*.deb procps_*.deb
 ```
 
 ### Installing the Wazuh indexer package
 
-#### rpm
+#### Debian-based platforms
 
 ```bash
-rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
+dpkg -i wazuh-indexer_*.deb
 ```
 
-#### dpkg
+#### Red Hat-based platforms
 
 ```bash
-dpkg -i wazuh-indexer-<VERSION>.deb
+rpm -ivh --replacepkgs wazuh-indexer-*.rpm
 ```
 
 ### Configuring the Wazuh indexer
