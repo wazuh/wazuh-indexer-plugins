@@ -18,28 +18,20 @@ package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.YamlUtils;
 
 /** Model representing a Decoder resource. */
 public class Decoder extends Resource {
     private static final Logger log = LogManager.getLogger(Decoder.class);
-
-    // Tools for YAML generation
-    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     private static final List<String> DECODER_ORDER_KEYS =
             Arrays.asList(
@@ -52,8 +44,8 @@ public class Decoder extends Resource {
                     "parse|message",
                     "normalize");
 
-    @JsonProperty("decoder")
-    private String decoder;
+    @JsonProperty("yaml")
+    private String yaml;
 
     /** Default constructor. */
     public Decoder() {
@@ -74,48 +66,11 @@ public class Decoder extends Resource {
 
         // 2. Decoder-specific logic (YAML generation)
         if (payload.has(Constants.KEY_DOCUMENT)) {
-            decoder.setDecoder(Decoder.toYamlString(payload));
+            JsonNode docNode = payload.get(Constants.KEY_DOCUMENT);
+            decoder.setYaml(YamlUtils.toYaml(docNode, DECODER_ORDER_KEYS));
         }
 
         return decoder;
-    }
-
-    /**
-     * Generates a YAML representation for decoder documents.
-     *
-     * @param payload The source JSON object.
-     * @return A string containing the formatted YAML, or {@code null} if the "document" key is
-     *     missing or an error occurs.
-     */
-    private static String toYamlString(JsonNode payload) {
-        try {
-            if (!payload.has("document")) {
-                return null;
-            }
-            JsonNode docNode = payload.get("document");
-
-            if (docNode != null && docNode.isObject()) {
-                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
-
-                // Add keys in order
-                for (String key : DECODER_ORDER_KEYS) {
-                    if (docNode.has(key)) orderedDecoderMap.put(key, docNode.get(key));
-                }
-
-                // Add remaining keys
-                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> field = fields.next();
-                    if (!DECODER_ORDER_KEYS.contains(field.getKey())) {
-                        orderedDecoderMap.put(field.getKey(), field.getValue());
-                    }
-                }
-                return yamlMapper.writeValueAsString(orderedDecoderMap);
-            }
-        } catch (IOException e) {
-            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
-        }
-        return null;
     }
 
     /**
@@ -142,25 +97,25 @@ public class Decoder extends Resource {
     }
 
     /**
-     * Gets the decoder YAML string.
+     * Gets the YAML string representation of this decoder.
      *
      * @return The decoder content in YAML format.
      */
-    public String getDecoder() {
-        return this.decoder;
+    public String getYaml() {
+        return this.yaml;
     }
 
     /**
-     * Sets the decoder YAML string.
+     * Sets the YAML string representation of this decoder.
      *
-     * @param decoder The decoder content in YAML format.
+     * @param yaml The decoder content in YAML format.
      */
-    public void setDecoder(String decoder) {
-        this.decoder = decoder;
+    public void setYaml(String yaml) {
+        this.yaml = yaml;
     }
 
     @Override
     public String toString() {
-        return "Decoder{" + "decoder='" + this.decoder + '\'' + ", " + super.toString() + '}';
+        return "Decoder{" + "yaml='" + this.yaml + '\'' + ", " + super.toString() + '}';
     }
 }
