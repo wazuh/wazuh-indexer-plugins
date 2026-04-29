@@ -94,14 +94,16 @@ dependencies {
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.21'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2'
 
-  compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
+  compileOnly "com.wazuh:wazuh-indexer-security-analytics-commons:$version"
   // ZipArchive dependencies used for integration tests
-  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  zipArchive "org.opensearch.plugin:opensearch-job-scheduler:$opensearch_build"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
-  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-alerting', version: "${version}" // Dependency of SAP
-  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-security-analytics', version: "${version}"
-
+  zipArchive "com.wazuh:wazuh-indexer-alerting:$version" // Dependency of SAP
+  zipArchive "com.wazuh:wazuh-indexer-security-analytics:$version"
+  // Setup plugin
+  zipArchive "org.opensearch.plugin:opensearch-index-management:$opensearch_build"
+  zipArchive "com.wazuh:wazuh-indexer-setup:$version"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -156,6 +158,11 @@ integTest {
 }
 
 testClusters.integTest {
+  // Enable memory tracking to diagnose OOM errors.
+  jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
+  jvmArgs '-XX:NativeMemoryTracking=summary'
+  jvmArgs '-Xms1g', '-Xmx1g'
+
   // The plugin's REST handlers use blocking actionGet() calls on transport threads.
   // This is a pre-existing design issue (28+ occurrences across the codebase) that
   // triggers a fatal AssertionError in OpenSearch 3.x when Java assertions are enabled.
@@ -163,7 +170,7 @@ testClusters.integTest {
   jvmArgs '-da:org.opensearch.transport.Transports'
   systemProperty "INDEXER_TEST_ENV", "true"
   systemProperty "wazuh.version", "${wazuh_version}"
-  setting 'plugins.content_manager.catalog.update_on_start', 'false'
+  setting 'plugins.content_manager.catalog.update_on_start', 'true'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
   setting 'plugins.content_manager.engine.mock', 'true'
