@@ -116,14 +116,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 WriteRequest.RefreshPolicy.IMMEDIATE,
                 method,
                 new Integration(
-                        null,
-                        null,
-                        name,
-                        description,
-                        category,
-                        space.asSecurityAnalyticsSource(),
-                        new HashMap<>(),
-                        id));
+                        null, null, name, description, category, space.toString(), new HashMap<>(), id));
     }
 
     @Override
@@ -132,9 +125,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             if (Space.STANDARD.equals(space)) {
                 this.deleteDetector(id);
             }
-            // Use document.id + source=<space> (via space.asSecurityAnalyticsSource()) to find and delete
+            // Use document.id + source=<space> to find and delete
             // the document in Security Analytics.
-            String source = space.asSecurityAnalyticsSource();
+            String source = space.toString();
             this.client
                     .execute(
                             WDeleteIntegrationAction.INSTANCE,
@@ -148,7 +141,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             "Failed to delete %s with id [%s] in space [%s]: %s",
                             "integration",
                             id,
-                            space.asSecurityAnalyticsSource(),
+                            space.toString(),
                             e.getMessage());
             log.error(message);
             throw new OpenSearchException(message);
@@ -158,7 +151,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteIntegrationAsync(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
-        String source = space.asSecurityAnalyticsSource();
+        String source = space.toString();
         if (Space.STANDARD.equals(space)) {
             // Delete detector first, then delete integration on success.
             this.deleteDetectorAsync(
@@ -197,7 +190,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
-        String sourceName = space.asSecurityAnalyticsSource();
+        String sourceName = space.toString();
 
         log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
         try {
@@ -279,7 +272,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
-        String sourceName = space.asSecurityAnalyticsSource();
+        String sourceName = space.toString();
 
         log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
         if (space != Space.STANDARD) {
@@ -313,7 +306,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteRule(String id, Space space) {
-        String source = space.asSecurityAnalyticsSource();
+        String source = space.toString();
         try {
             if (Space.STANDARD.equals(space)) {
                 this.client
@@ -337,7 +330,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             "Failed to delete %s with id [%s] in space [%s]: %s",
                             "rule",
                             id,
-                            space.asSecurityAnalyticsSource(),
+                            space.toString(),
                             e.getMessage());
             log.error(message);
             throw new OpenSearchException(message);
@@ -347,7 +340,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteRuleAsync(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
-        String source = space.asSecurityAnalyticsSource();
+        String source = space.toString();
         if (Space.STANDARD.equals(space)) {
             this.executeAsync(
                     WDeleteRuleAction.INSTANCE,
@@ -497,12 +490,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteSpaceResources(Space space) {
-        // Translate STANDARD to SIGMA for SAP operations, matching the source name used
-        // when the resources were originally indexed.
-        Space sapSpace = (space == Space.STANDARD) ? Space.SIGMA : space;
-
         try {
-            String source = sapSpace.asSecurityAnalyticsSource();
+            String source = space.toString();
             WDeleteSpaceResourcesResponse response =
                     this.client
                             .execute(
