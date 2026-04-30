@@ -226,7 +226,7 @@ public class Resource {
      * @param spaceName The target space name (e.g., "draft").
      * @return The constructed JsonNode wrapper containing the document, space, and hash.
      */
-    public JsonNode wrapResource(JsonNode resourceNode, String spaceName) {
+    public ObjectNode wrapResource(JsonNode resourceNode, String spaceName) {
         ObjectNode wrapper = MAPPER.createObjectNode();
         wrapper.set(Constants.KEY_DOCUMENT, resourceNode);
 

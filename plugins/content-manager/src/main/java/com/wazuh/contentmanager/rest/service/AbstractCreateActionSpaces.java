@@ -206,14 +206,14 @@ public abstract class AbstractCreateActionSpaces extends AbstractContentAction {
 
             // 7. Indexing
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, this.getSpaceName());
+            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, this.getSpaceName());
 
             // Populate yaml field for resource types that support it
             if (this.supportsYamlField()) {
                 if (rawYaml != null) {
-                    ((ObjectNode) ctiWrapper).put("yaml", rawYaml);
+                    ctiWrapper.put("yaml", rawYaml);
                 } else {
-                    ((ObjectNode) ctiWrapper).put("yaml", YamlUtils.toYaml(resourceNode));
+                    ctiWrapper.put("yaml", YamlUtils.toYaml(resourceNode));
                 }
             }
 

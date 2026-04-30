@@ -218,14 +218,14 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             }
 
             // 8. Indexing
-            JsonNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
+            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
 
             // Populate yaml field for resource types that support it
             if (this.supportsYamlField()) {
                 if (rawYaml != null) {
-                    ((ObjectNode) ctiWrapper).put("yaml", rawYaml);
+                    ctiWrapper.put("yaml", rawYaml);
                 } else {
-                    ((ObjectNode) ctiWrapper).put("yaml", YamlUtils.toYaml(resourceNode));
+                    ctiWrapper.put("yaml", YamlUtils.toYaml(resourceNode));
                 }
             }
 
