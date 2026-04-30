@@ -120,6 +120,11 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
             return metadataValidation;
         }
 
+        RestResponse detectorValidation = this.documentValidations.validateDetector(resource);
+        if (detectorValidation != null) {
+            return detectorValidation;
+        }
+
         String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
 
         RestResponse duplicateValidation =

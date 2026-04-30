@@ -47,6 +47,18 @@ public class PayloadValidations {
 
     private static final Pattern ID_PATTERN = Pattern.compile("^[a-zA-Z0-9-_]+$");
 
+    /** Index patterns allowed in a detector's {@code source} array. */
+    public static final Set<String> ALLOWED_DETECTOR_SOURCES =
+            Set.of(
+                    "wazuh-findings-v5-access-management",
+                    "wazuh-findings-v5-applications",
+                    "wazuh-findings-v5-cloud-services",
+                    "wazuh-findings-v5-network-activity",
+                    "wazuh-findings-v5-other",
+                    "wazuh-findings-v5-security",
+                    "wazuh-findings-v5-system-activity",
+                    "wazuh-findings-v5*");
+
     /** Public constructor to allow instantiation. */
     public PayloadValidations() {}
 
@@ -358,6 +370,64 @@ public class PayloadValidations {
                         RestStatus.BAD_REQUEST.getStatus());
             }
         }
+        return null;
+    }
+
+    /**
+     * Validates the optional {@code detector} object inside an integration resource.
+     *
+     * <p>The {@code detector} field is optional. When present, all three sub-fields ({@code source},
+     * {@code interval}, {@code enabled}) must be provided. Each entry in {@code source} must be one
+     * of the values in {@link #ALLOWED_DETECTOR_SOURCES}, and {@code interval} must be a positive
+     * integer.
+     *
+     * @param resource The integration resource JSON node.
+     * @return A RestResponse with an error if validation fails, or null if valid.
+     */
+    public RestResponse validateDetector(JsonNode resource) {
+        if (resource == null || !resource.has(Constants.KEY_DETECTOR)) {
+            return null;
+        }
+
+        JsonNode detector = resource.get(Constants.KEY_DETECTOR);
+        if (!detector.isObject()) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        boolean hasSource = detector.has(Constants.KEY_SOURCE);
+        boolean hasInterval = detector.has(Constants.KEY_INTERVAL);
+        boolean hasEnabled = detector.has(Constants.KEY_ENABLED);
+
+        if (!hasSource || !hasInterval || !hasEnabled) {
+            return new RestResponse(
+                    Constants.E_400_MISSING_DETECTOR_FIELDS, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        JsonNode sourceNode = detector.get(Constants.KEY_SOURCE);
+        if (!sourceNode.isArray()) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+        }
+        for (JsonNode entry : sourceNode) {
+            String value = entry.asText();
+            if (!ALLOWED_DETECTOR_SOURCES.contains(value)) {
+                return new RestResponse(
+                        String.format(
+                                Locale.ROOT,
+                                Constants.E_400_INVALID_DETECTOR_SOURCE,
+                                value,
+                                ALLOWED_DETECTOR_SOURCES),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        }
+
+        JsonNode intervalNode = detector.get(Constants.KEY_INTERVAL);
+        if (!intervalNode.isInt() || intervalNode.asInt() <= 0) {
+            return new RestResponse(
+                    Constants.E_400_INVALID_DETECTOR_INTERVAL, RestStatus.BAD_REQUEST.getStatus());
+        }
+
         return null;
     }
 
