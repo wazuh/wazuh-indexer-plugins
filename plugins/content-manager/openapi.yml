@@ -179,6 +179,9 @@ paths:
       summary: Create KVDB
       description: |
         Creates a KVDB in the draft space. The server generates the UUID.
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with an `integration` field and a `resource` field.
       operationId: createKvdb
       requestBody:
         required: true
@@ -188,7 +191,7 @@ paths:
               $ref: "#/components/schemas/KvdbResource"
             examples:
               create_kvdb:
-                summary: Example KVDB creation
+                summary: Example KVDB creation (JSON)
                 value:
                   integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
                   resource:
@@ -203,6 +206,24 @@ paths:
                     content:
                       key1: "value1"
                       key2: "value2"
+          application/yaml:
+            schema:
+              $ref: "#/components/schemas/KvdbResource"
+            examples:
+              create_kvdb_yaml:
+                summary: Example KVDB creation (YAML)
+                value: |
+                  integration: 9e301671-382d-4c1a-9abf-3d9d9544789c
+                  resource:
+                    name: kvdb/azure-functions/0
+                    enabled: true
+                    metadata:
+                      title: azure-functions
+                      author: Wazuh Inc.
+                      description: This integration supports Azure Functions app logs.
+                    content:
+                      key1: value1
+                      key2: value2
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -215,6 +236,9 @@ paths:
     put:
       tags: [KVDBs]
       summary: Update KVDB
+      description: |
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `resource` field.
       operationId: updateKvdb
       parameters:
         - $ref: "#/components/parameters/id"
@@ -226,7 +250,7 @@ paths:
               $ref: "#/components/schemas/KvdbResourceUpdate"
             examples:
               update_kvdb:
-                summary: Example KVDB update
+                summary: Example KVDB update (JSON)
                 value:
                   resource:
                     title: "azure-functions (Updated)"
@@ -240,6 +264,22 @@ paths:
                     content:
                       key1: "new_value1"
                       key3: "value3"
+          application/yaml:
+            schema:
+              $ref: "#/components/schemas/KvdbResourceUpdate"
+            examples:
+              update_kvdb_yaml:
+                summary: Example KVDB update (YAML)
+                value: |
+                  resource:
+                    name: kvdb/azure-functions/0
+                    enabled: false
+                    metadata:
+                      title: azure-functions (Updated)
+                      author: Wazuh Inc.
+                      description: Updated description for Azure Functions KVDB.
+                    content:
+                      key1: new_value1
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -273,6 +313,9 @@ paths:
         Creates a decoder in the draft space. The server generates the UUID for the decoder.
         The decoder is validated against the Wazuh engine before being stored.
         The decoder is automatically linked to the specified integration.
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with an `integration` field and a `resource` field.
       operationId: createDecoder
       requestBody:
         required: true
@@ -294,7 +337,7 @@ paths:
                   $ref: "#/components/schemas/DecoderResourceCreate"
             examples:
               create_decoder:
-                summary: Example decoder creation
+                summary: Example decoder creation (JSON)
                 value:
                   integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
                   resource:
@@ -316,6 +359,35 @@ paths:
                         - "https://www.cisco.com/..."
                       versions:
                         - "All known webhook formats"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - integration
+                - resource
+              properties:
+                integration:
+                  type: string
+                  format: uuid
+                resource:
+                  $ref: "#/components/schemas/DecoderResourceCreate"
+            examples:
+              create_decoder_yaml:
+                summary: Example decoder creation (YAML)
+                value: |
+                  integration: 9e301671-382d-4c1a-9abf-3d9d9544789c
+                  resource:
+                    name: decoder/netflow-default/0
+                    enabled: true
+                    metadata:
+                      title: NetFlow decoder
+                      description: Decoder for NetFlow logs.
+                      module: netflow
+                      author:
+                        name: Wazuh, Inc.
+                        email: info@wazuh.com
+                    normalize: []
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -331,6 +403,9 @@ paths:
       description: |
         Updates an existing decoder in the draft space. The decoder is validated against the Wazuh engine before being stored.
         The decoder ID in the path must match the resource ID in the payload (if provided).
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `resource` field.
       operationId: updateDecoder
       parameters:
         - $ref: "#/components/parameters/id"
@@ -348,7 +423,7 @@ paths:
                   $ref: "#/components/schemas/DecoderResource"
             examples:
               update_decoder:
-                summary: Example decoder update
+                summary: Example decoder update (JSON)
                 value:
                   resource:
                     enabled: true
@@ -369,6 +444,30 @@ paths:
                         - "https://www.cisco.com/c/en/us/products/ios-nx-os-software/ios-netflow/index.html"
                       versions:
                         - "All known webhook formats"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource
+              properties:
+                resource:
+                  $ref: "#/components/schemas/DecoderResource"
+            examples:
+              update_decoder_yaml:
+                summary: Example decoder update (YAML)
+                value: |
+                  resource:
+                    name: decoder/netflow-default/0
+                    enabled: true
+                    metadata:
+                      title: NetFlow decoder (Updated)
+                      description: Updated decoder description.
+                      module: netflow
+                      author:
+                        name: Wazuh, Inc.
+                        email: info@wazuh.com
+                    normalize: []
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -407,6 +506,9 @@ paths:
         Creates a filter in the draft or standard space. The server generates the UUID.
         The filter is validated against the Wazuh engine before being stored.
         The filter is automatically linked to the specified space's policy.
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `space` field and a `resource` field.
       operationId: createFilter
       requestBody:
         required: true
@@ -427,7 +529,7 @@ paths:
                   $ref: "#/components/schemas/FilterResourceCreate"
             examples:
               create_filter:
-                summary: Example filter creation
+                summary: Example filter creation (JSON)
                 value:
                   space: "draft"
                   resource:
@@ -441,6 +543,36 @@ paths:
                         url: "https://wazuh.com"
                     check: "$host.os.platform == 'ubuntu'"
                     type: "pre-filter"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                resource:
+                  $ref: "#/components/schemas/FilterResourceCreate"
+            examples:
+              create_filter_yaml:
+                summary: Example filter creation (YAML)
+                value: |
+                  space: draft
+                  resource:
+                    name: filter/prefilter/0
+                    enabled: true
+                    metadata:
+                      title: Default Prefilter
+                      description: Default filter to allow all events (for default ruleset)
+                      author:
+                        email: info@wazuh.com
+                        name: Wazuh, Inc.
+                        url: https://wazuh.com
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: pre-filter
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -456,6 +588,9 @@ paths:
       description: |
         Updates an existing filter in the draft or standard space. The filter is validated against the Wazuh engine before being stored.
         The filter ID in the path must match the resource ID in the payload (if provided).
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `space` field and a `resource` field.
       operationId: updateFilter
       parameters:
         - $ref: "#/components/parameters/id"
@@ -478,7 +613,7 @@ paths:
                   $ref: "#/components/schemas/FilterResource"
             examples:
               update_filter:
-                summary: Example filter update
+                summary: Example filter update (JSON)
                 value:
                   space: "draft"
                   resource:
@@ -492,6 +627,35 @@ paths:
                         url: "https://wazuh.com"
                     check: "$host.os.platform == 'ubuntu'"
                     type: "pre-filter"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                resource:
+                  $ref: "#/components/schemas/FilterResource"
+            examples:
+              update_filter_yaml:
+                summary: Example filter update (YAML)
+                value: |
+                  space: draft
+                  resource:
+                    name: filter/prefilter/0
+                    enabled: true
+                    metadata:
+                      description: Updated filter description
+                      author:
+                        email: info@wazuh.com
+                        name: Wazuh, Inc.
+                        url: https://wazuh.com
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: pre-filter
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
