@@ -25,6 +25,55 @@ The Wazuh Indexer Notifications plugin is a specialized component designed to ex
 | `ses_account` | — | Defines AWS SES sending details (region, role ARN, from address). |
 | `email_group` | — | Defines a group of email recipients for reuse across email-type channels. |
 
+## Default Notification Channels
+
+On first startup, the Notifications plugin automatically creates a set of **default notification channels**. These channels are pre-configured with placeholder URLs and are **disabled by default**, they serve as templates that users can customize with their own credentials and then enable.
+
+The following default channels are created:
+
+| Channel Name | Type | Target Service | Default URL |
+|---|---|---|---|
+| Slack Channel | `slack` | Slack | `https://hooks.slack.com/services/YOUR_WORKSPACE_ID/YOUR_CHANNEL_ID/YOUR_WEBHOOK_TOKEN` |
+| Jira Channel | `webhook` | Jira Cloud | `https://your-domain.atlassian.net/rest/api/3/issue` |
+| PagerDuty Channel | `webhook` | PagerDuty Events API v2 | `https://events.pagerduty.com/v2/enqueue` |
+| Shuffle Channel | `webhook` | Shuffle SOAR | `https://shuffler.io/api/v1/hooks/WEBHOOK_ID` |
+
+### Behavior
+
+- Default channels are created **only on the cluster manager node** during startup.
+- The initialization is **idempotent**: channels that already exist are not recreated or overwritten.
+- All default channels are created with an **empty access list**, making them visible to all users.
+- Each channel has a **fixed ID** (e.g., `default_slack_channel`), so they can be referenced predictably.
+
+### Configuring a Default Channel
+
+To activate a default channel:
+
+1. Retrieve the channel configuration using the [List Notification Configs](api.md) API or through the Wazuh Dashboard.
+2. Update the channel with your real credentials (webhook URL, API keys, headers, etc.).
+3. Set `is_enabled` to `true`.
+
+For example, to configure the Slack channel:
+
+```bash
+curl -sk -u admin:admin -X PUT \
+  "https://localhost:9200/_plugins/_notifications/configs/default_slack_channel" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "config": {
+      "name": "Slack Channel",
+      "description": "Production Slack notifications",
+      "config_type": "slack",
+      "is_enabled": true,
+      "slack": {
+        "url": "https://hooks.slack.com/services/T0123/B0456/xyzSecretToken"
+      }
+    }
+  }'
+```
+
+> **Note:** A sample alerting monitor is created alongside these channels. Review it under **Alerting > Monitors** in the Wazuh Dashboard before enabling alerts.
+
 ## Dependencies
 
 This plugin has a dependency on the [wazuh-indexer-common-utils](https://github.com/wazuh/wazuh-indexer-common-utils) repository. It uses the Common Utils jar to provide shared utility functions and common components required for plugin functionality.

@@ -22,7 +22,9 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -42,6 +44,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** CTI Console API client. */
 public class ApiClient {
@@ -74,9 +77,14 @@ public class ApiClient {
             throw new RuntimeException("Failed to initialize HttpClient", e);
         }
 
+        List<Header> defaultHeaders =
+                List.of(
+                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
+
         this.client =
                 HttpAsyncClients.custom()
                         .setIOReactorConfig(ioReactorConfig)
+                        .setDefaultHeaders(defaultHeaders)
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
@@ -183,7 +191,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(PRODUCTS_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-tag", "v5.0.0") // TODO make dynamic
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .build();
 
         final Future<SimpleHttpResponse> future =

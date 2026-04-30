@@ -2,6 +2,10 @@
 // Returns mock release updates based on the version tag in the path.
 // Simulates the CTI API GET /api/v1/releases/:tag/updates endpoint.
 
+// Log the incoming user-agent for validation
+def userAgent = context.request.headers['User-Agent']?.toString()
+logger.info("[releasesUpdates] User-Agent: ${userAgent}")
+
 def tag = context.request.pathParams['tag']
 
 // Validate tag format (must start with 'v')

@@ -196,6 +196,41 @@ Transport Action (resolve destination type)
 
 ---
 
+## Default Channel Initialization
+
+The plugin creates a set of default notification channels on startup so that users have pre-configured templates for common integrations (Slack, Jira, PagerDuty, Shuffle). These channels are created **disabled** with placeholder URLs.
+
+### Implementation
+
+The feature is implemented in `DefaultChannelInitializer` (`notifications/notifications/src/main/kotlin/.../index/DefaultChannelInitializer.kt`).
+
+### Adding or Modifying Default Channels
+
+To add a new default channel:
+
+1. Add a new `ChannelDefinition` entry to the `DEFAULT_CHANNELS` list in `DefaultChannelInitializer.kt`.
+2. Choose a unique, stable `id` prefixed with `default_` (e.g., `default_teams_channel`).
+3. Set `isEnabled = false` and use a placeholder URL with clear instructions in the `description`.
+4. Add a corresponding test case in `DefaultChannelInitializerTests.kt`.
+
+### ClusterPlugin Interface
+
+The `NotificationPlugin` class implements `ClusterPlugin` to gain access to the `onNodeStarted(DiscoveryNode)` lifecycle hook.
+
+### Testing
+
+Unit tests for the default channel initialization are in:
+```
+notifications/notifications/src/test/kotlin/.../index/DefaultChannelInitializerTests.kt
+```
+
+The tests verify:
+- All default channel definitions have valid configurations.
+- Channel IDs are unique and follow the naming convention.
+- The initializer correctly identifies missing channels and skips existing ones.
+
+---
+
 ## Extending with a New Destination
 
 To add a new notification destination:

@@ -166,7 +166,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
     private void mockSearch(SearchResponse response) {
         when(this.client.prepareSearch(anyString())).thenReturn(this.searchRequestBuilder);
-        when(this.searchRequestBuilder.setSource(sourceCaptor.capture()))
+        when(this.searchRequestBuilder.setSource(this.sourceCaptor.capture()))
                 .thenReturn(this.searchRequestBuilder);
         when(this.searchRequestBuilder.get()).thenReturn(response);
     }
@@ -179,7 +179,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
      * @param expectedIds the rule IDs that should appear in the IDs query
      */
     private void assertQueryCorrect(String... expectedIds) {
-        SearchSourceBuilder captured = sourceCaptor.getValue();
+        SearchSourceBuilder captured = this.sourceCaptor.getValue();
 
         // Source fetching must be disabled (we only need _id)
         assertFalse("fetchSource should be false", captured.fetchSource().fetchSource());
@@ -231,7 +231,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
     /** Integration with no rules: no query executed, returns null. */
     public void testNoRulesReturnsNull() throws Exception {
-        JsonNode doc = integrationDoc();
+        JsonNode doc = this.integrationDoc();
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
         assertNull("Detector should not be created when integration has no rules", request);
         // No search should have been triggered
@@ -240,14 +240,14 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
     /** All rules enabled: query built correctly, all IDs returned in detector. */
     public void testAllRulesEnabled() throws Exception {
-        JsonNode doc = integrationDoc(RULE_1, RULE_2);
-        mockSearch(createSearchResponse(createHit(RULE_1), createHit(RULE_2)));
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
+        this.mockSearch(this.createSearchResponse(this.createHit(RULE_1), this.createHit(RULE_2)));
 
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
 
         // Verify the query was built correctly
         verify(this.client).prepareSearch(Constants.INDEX_RULES);
-        assertQueryCorrect(RULE_1, RULE_2);
+        this.assertQueryCorrect(RULE_1, RULE_2);
 
         // Verify all enabled rules are in the detector
         assertNotNull("Detector should be created when all rules are enabled", request);
@@ -259,15 +259,15 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
     /** Some rules disabled: query includes all candidates, only enabled ones in detector. */
     public void testSomeRulesDisabled() throws Exception {
-        JsonNode doc = integrationDoc(RULE_1, RULE_2, RULE_3);
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2, RULE_3);
         // Query returns only RULE_1 and RULE_3 (RULE_2 has enabled=false in the index)
-        mockSearch(createSearchResponse(createHit(RULE_1), createHit(RULE_3)));
+        this.mockSearch(this.createSearchResponse(this.createHit(RULE_1), this.createHit(RULE_3)));
 
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
 
         // Verify the query was built with ALL three candidate IDs
         verify(this.client).prepareSearch(Constants.INDEX_RULES);
-        assertQueryCorrect(RULE_1, RULE_2, RULE_3);
+        this.assertQueryCorrect(RULE_1, RULE_2, RULE_3);
 
         // Verify only the enabled rules are in the detector
         assertNotNull("Detector should be created when some rules are enabled", request);
@@ -280,14 +280,14 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
     /** All rules disabled: query sent with all candidates, returns null (empty result). */
     public void testAllRulesDisabledReturnsNull() throws Exception {
-        JsonNode doc = integrationDoc(RULE_1, RULE_2);
-        mockSearch(createEmptySearchResponse());
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
+        this.mockSearch(this.createEmptySearchResponse());
 
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
 
         // Verify the query was still built correctly with both IDs
         verify(this.client).prepareSearch(Constants.INDEX_RULES);
-        assertQueryCorrect(RULE_1, RULE_2);
+        this.assertQueryCorrect(RULE_1, RULE_2);
 
         // No enabled rules → no detector
         assertNull("Detector should not be created when all rules are disabled", request);
@@ -296,7 +296,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
     /** * Verifies that dynamic detector configuration is correctly extracted
      * from the CTI integration JSON when all fields are present.
      */
-    public void testDynamicConfigExtraction() throws Exception {
+    public void testDetectorsDynamicConfigExtraction() throws Exception {
         String detectorJson = """
         {
           "enabled": true,
@@ -319,7 +319,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
     /** * Verifies that the service applies safe default values when the
      * "detector" configuration node is missing from the integration document.
      */
-    public void testDynamicConfigFallback() throws Exception {
+    public void testDetectorsDynamicConfigFallback() throws Exception {
         // Document without the "detector" node
         JsonNode doc = integrationDocWithDetector(null, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
@@ -352,5 +352,35 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         assertNotNull("Request should be created despite invalid field types", request);
         assertEquals("Should use default interval when CTI value is invalid", 2, request.getInterval());
         assertTrue("Should default to enabled when CTI boolean is malformed", request.isEnabled());
+    }
+
+    // ── extractSapErrorMessage tests ─────────────────────────────────────────
+
+    /** JSON with a single key: extracts the value. */
+    public void testExtractErrorMessage_singleKey() {
+        String raw = "{\"SigmaError\":\"Unknown WCS fields in detection: [proceso.ejecutable]\"}";
+        String result = SecurityAnalyticsServiceImpl.extractErrorMessage(raw);
+        assertEquals("Unknown WCS fields in detection: [proceso.ejecutable]", result);
+    }
+
+    /** JSON with multiple keys: concatenates values with space. */
+    public void testExtractErrorMessage_multipleKeys() {
+        String raw = "{\"Error1\":\"first problem\",\"Error2\":\"second problem\"}";
+        String result = SecurityAnalyticsServiceImpl.extractErrorMessage(raw);
+        assertEquals("first problem second problem", result);
+    }
+
+    /** Non-JSON input: returns the raw message unchanged. */
+    public void testExtractErrorMessage_nonJson() {
+        String raw = "Some plain text error message";
+        String result = SecurityAnalyticsServiceImpl.extractErrorMessage(raw);
+        assertEquals(raw, result);
+    }
+
+    /** Empty JSON object: returns the raw message (no values to extract). */
+    public void testExtractErrorMessage_emptyJsonObject() {
+        String raw = "{}";
+        String result = SecurityAnalyticsServiceImpl.extractErrorMessage(raw);
+        assertEquals(raw, result);
     }
 }

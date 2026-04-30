@@ -23,6 +23,7 @@ imposter/
     ├── tokenResponse.groovy            # Token request logic
     ├── tokenExchangeResponse.groovy    # Token exchange logic
     ├── instanceMeResponse.groovy       # Instance me logic
+    ├── releasesUpdatesResponse.groovy  # Release updates logic
     └── catalogResponse.groovy          # Catalog endpoint logic
 ```
 
@@ -326,6 +327,23 @@ To stop the server, use the helper script:
 ```bash
 ./imposter.sh stop    # Stop containers without removing them
 ./imposter.sh down    # Stop and remove containers
+```
+
+## Observability
+
+All Groovy response scripts log the incoming `User-Agent` header for every request. This is useful for verifying that the Content Manager plugin sends the expected custom user-agent (`Wazuh Indexer <version>`) instead of the default Apache HttpClient one.
+
+To inspect the logs:
+
+```bash
+cd images/
+docker compose logs -f
+```
+
+Log lines follow the format:
+```
+[tokenRequest] User-Agent: Wazuh Indexer 5.0.0
+[catalogResponse] User-Agent: Wazuh Indexer 5.0.0
 ```
 
 ## Customization

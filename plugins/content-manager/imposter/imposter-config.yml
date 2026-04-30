@@ -37,3 +37,9 @@ resources:
     method: GET
     response:
       scriptFile: scripts/catalogResponse.groovy
+
+  # Ping endpoint - returns available version updates
+  - path: /api/v1/ping
+    method: GET
+    response:
+      scriptFile: scripts/releasesUpdatesResponse.groovy
