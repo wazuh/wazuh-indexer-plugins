@@ -363,8 +363,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         if (yamlEntity != null) {
             request.setEntity(
                     new StringEntity(
-                            yamlEntity,
-                            ContentType.create("application/yaml", StandardCharsets.UTF_8)));
+                            yamlEntity, ContentType.create("application/yaml", StandardCharsets.UTF_8)));
         }
 
         return client().performRequest(request);

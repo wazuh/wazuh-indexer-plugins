@@ -185,9 +185,9 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             // Populate yaml field for resource types that support it
             if (this.supportsYamlField()) {
                 if (rawYaml != null) {
-                    ctiWrapper.put("yaml", rawYaml);
+                    ctiWrapper.put(Constants.KEY_YAML, rawYaml);
                 } else {
-                    ctiWrapper.put("yaml", YamlUtils.toYaml(resourceNode));
+                    ctiWrapper.put(Constants.KEY_YAML, YamlUtils.toYaml(resourceNode));
                 }
             }
 

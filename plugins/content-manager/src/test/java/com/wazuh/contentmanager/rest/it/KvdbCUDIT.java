@@ -80,7 +80,8 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
 
         // Verify yaml field is populated
         assertFalse(
-                "KVDB should have a non-empty yaml field", source.path("yaml").asText("").isEmpty());
+                "KVDB should have a non-empty yaml field",
+                source.path(Constants.KEY_YAML).asText("").isEmpty());
 
         // Verify KVDB is in integration's kvdbs list
         this.assertResourceInIntegrationList(integrationId, Constants.KEY_KVDBS, kvdbId);
@@ -349,7 +350,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
         // Verify yaml field is populated with the original YAML
         JsonNode source = this.getResourceByDocumentId(Constants.INDEX_KVDBS, kvdbId, "draft");
         assertNotNull(source);
-        String storedYaml = source.path("yaml").asText("");
+        String storedYaml = source.path(Constants.KEY_YAML).asText("");
         assertFalse("yaml field should be non-empty", storedYaml.isEmpty());
         assertTrue("yaml field should contain the key name", storedYaml.contains("kvdb/yaml-test/0"));
 
@@ -392,7 +393,7 @@ public class KvdbCUDIT extends ContentManagerRestTestCase {
         assertNotNull(source);
 
         // The yaml field must preserve float notation
-        String storedYaml = source.path("yaml").asText("");
+        String storedYaml = source.path(Constants.KEY_YAML).asText("");
         assertTrue("yaml field should preserve 5.0 as float", storedYaml.contains("5.0"));
         assertTrue("yaml field should preserve 1.5 as float", storedYaml.contains("1.5"));
     }

@@ -134,6 +134,7 @@ public class Constants {
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
+    public static final String KEY_YAML = "yaml";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";

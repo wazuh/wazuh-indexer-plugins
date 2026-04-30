@@ -25,7 +25,7 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 /** Model representing a KVDB resource with an additional YAML representation. */
 public class Kvdb extends Resource {
 
-    @JsonProperty("yaml")
+    @JsonProperty(Constants.KEY_YAML)
     private String yaml;
 
     /** Default constructor. */

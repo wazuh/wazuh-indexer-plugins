@@ -25,7 +25,7 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 /** Model representing a Filter resource with an additional YAML representation. */
 public class Filter extends Resource {
 
-    @JsonProperty("yaml")
+    @JsonProperty(Constants.KEY_YAML)
     private String yaml;
 
     /** Default constructor. */

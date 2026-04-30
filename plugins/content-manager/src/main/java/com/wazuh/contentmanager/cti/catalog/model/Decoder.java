@@ -44,7 +44,7 @@ public class Decoder extends Resource {
                     "parse|message",
                     "normalize");
 
-    @JsonProperty("yaml")
+    @JsonProperty(Constants.KEY_YAML)
     private String yaml;
 
     /** Default constructor. */
