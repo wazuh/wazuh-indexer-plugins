@@ -35,18 +35,24 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +64,43 @@ import static org.mockito.Mockito.when;
  */
 public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
+    private static class TestableConsumerCveService extends ConsumerCveService {
+        private final ConsumerService consumerService;
+        private final SnapshotServiceImpl snapshotService;
+
+        TestableConsumerCveService(
+                Client client,
+                ConsumersIndex consumersIndex,
+                Environment environment,
+                ConsumerService consumerService,
+                SnapshotServiceImpl snapshotService) {
+            super(client, consumersIndex, environment);
+            this.consumerService = consumerService;
+            this.snapshotService = snapshotService;
+        }
+
+        @Override
+        protected ConsumerService createConsumerService(
+                String context, String consumer, String consumerType, String catalogUri) {
+            return this.consumerService;
+        }
+
+        @Override
+        protected SnapshotServiceImpl createSnapshotService(
+                String context,
+                String consumer,
+                String consumerType,
+                String catalogUri,
+                Map<String, com.wazuh.contentmanager.cti.catalog.index.ContentIndex> indicesMap) {
+            return this.snapshotService;
+        }
+
+        @Override
+        public void onSyncComplete(boolean isUpdated) {
+            // No-op for fallback-path unit testing.
+        }
+    }
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private ConsumerCveService service;
@@ -68,12 +111,16 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
+    @Mock private ConsumerService consumerService;
+    @Mock private SnapshotServiceImpl snapshotService;
+    @Mock private org.opensearch.action.get.GetResponse getResponse;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        clearPluginSettings();
         PluginSettings.getInstance(Settings.EMPTY);
         this.service = new ConsumerCveService(this.client, this.consumersIndex, this.environment);
     }
@@ -84,7 +131,12 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
+        clearPluginSettings();
         super.tearDown();
+    }
+
+    private static void clearPluginSettings() {
+        PluginSettings.resetForTesting();
     }
 
     /**
@@ -131,12 +183,18 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
     /** Tests that getContext returns the expected CVE context. */
     public void testGetContextReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getCveContext(), this.service.getContext());
+        assertEquals(
+                PluginSettings.getContextFromCatalogUri(
+                        PluginSettings.getInstance().getCatalogVulnerabilities()),
+                this.service.getContext());
     }
 
     /** Tests that getConsumer returns the expected CVE consumer. */
     public void testGetConsumerReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getCveConsumer(), this.service.getConsumer());
+        assertEquals(
+                PluginSettings.getConsumerFromCatalogUri(
+                        PluginSettings.getInstance().getCatalogVulnerabilities()),
+                this.service.getConsumer());
     }
 
     /** Tests that getMappings returns the CVE mappings. */
@@ -154,5 +212,158 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
         assertNotNull(aliases);
         assertTrue(aliases.isEmpty());
+    }
+
+    /**
+     * Tests fallback to the local snapshot when a custom catalog URL is configured but remote
+     * retrieval fails.
+     */
+    public void testSynchronizeFallsBackToLocalSnapshotWhenRemoteConsumerIsUnavailable()
+            throws Exception {
+        Path pluginsDir = createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
+
+        clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer()).thenReturn(null);
+        when(this.consumerService.getRemoteConsumer()).thenReturn(null);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(localSnapshot))).thenReturn(true);
+        when(this.snapshotService.getMaxOffsetSeen()).thenReturn(222L);
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.consumerService,
+                        this.snapshotService);
+
+        fallbackService.synchronize();
+
+        verify(this.snapshotService).initialize(eq(localSnapshot));
+        verify(this.snapshotService, never())
+                .initialize(any(com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer.class));
+    }
+
+    /** Tests fallback to the local snapshot when remote snapshot initialization fails. */
+    public void testSynchronizeFallsBackToLocalSnapshotWhenRemoteSnapshotInitializationFails()
+            throws Exception {
+        Path pluginsDir = createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
+
+        clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+
+        when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer()).thenReturn(null);
+        when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+        when(remoteConsumer.getSnapshotLink())
+                .thenReturn("https://cti.example/store/vulnerabilities.zip");
+        when(remoteConsumer.getSnapshotOffset()).thenReturn(222L);
+        when(remoteConsumer.getOffset()).thenReturn(222L);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(remoteConsumer))).thenReturn(false);
+        when(this.snapshotService.initialize(eq(localSnapshot))).thenReturn(true);
+        when(this.snapshotService.getMaxOffsetSeen()).thenReturn(222L);
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.consumerService,
+                        this.snapshotService);
+
+        fallbackService.synchronize();
+
+        InOrder inOrder = inOrder(this.snapshotService);
+        inOrder.verify(this.snapshotService).initialize(eq(remoteConsumer));
+        inOrder.verify(this.snapshotService).initialize(eq(localSnapshot));
+    }
+
+    /** Tests that a successful remote initialization removes the packaged local snapshot. */
+    public void testSynchronizeDeletesLocalSnapshotAfterSuccessfulRemoteInitialization()
+            throws Exception {
+        Path pluginsDir = createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
+
+        clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+
+        when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer()).thenReturn(null);
+        when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+        when(remoteConsumer.getSnapshotLink())
+                .thenReturn("https://cti.example/store/vulnerabilities.zip");
+        when(remoteConsumer.getSnapshotOffset()).thenReturn(333L);
+        when(remoteConsumer.getOffset()).thenReturn(333L);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(remoteConsumer))).thenReturn(true);
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.consumerService,
+                        this.snapshotService);
+
+        fallbackService.synchronize();
+
+        verify(this.snapshotService).initialize(eq(remoteConsumer));
+        verify(this.snapshotService, never()).initialize(eq(localSnapshot));
+        assertFalse(Files.exists(localSnapshot));
     }
 }

@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -105,7 +106,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         this.snapshotService =
                 new SnapshotServiceImpl(
-                        context, consumer, indicesMap, this.consumersIndex, this.environment);
+                        context,
+                        consumer,
+                        "cti:catalog:consumer:ruleset",
+                        "https://cti.example/catalog/contexts/test-context/consumers/test-consumer",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         // Updated matchers to use JsonNode instead of JsonObject
@@ -410,7 +417,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         SnapshotServiceImpl cveSnapshotService =
                 new SnapshotServiceImpl(
-                        "test-context", "test-consumer", cveOnlyMap, this.consumersIndex, this.environment);
+                        "test-context",
+                        "test-consumer",
+                        "cti:catalog:consumer:vulnerabilities",
+                        "https://cti.example/catalog/contexts/test-context/consumers/test-consumer",
+                        cveOnlyMap,
+                        this.consumersIndex,
+                        this.environment);
         cveSnapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.getIndexName()).thenReturn(".wazuh-threatintel-vulnerabilities");
@@ -439,6 +452,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
             zos.putNextEntry(entry);
             zos.write(content.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
+        }
+        return zipPath;
+    }
+
+    /** Helper to create a temporary ZIP file containing multiple files with specific content. */
+    private Path createZipFileWithEntries(Map<String, String> entries) throws IOException {
+        Path zipPath = this.tempDir.resolve("test_multi_" + System.nanoTime() + ".zip");
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+            for (Map.Entry<String, String> entryData : entries.entrySet()) {
+                ZipEntry entry = new ZipEntry(entryData.getKey());
+                zos.putNextEntry(entry);
+                zos.write(entryData.getValue().getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
         }
         return zipPath;
     }
@@ -507,6 +534,52 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "maxOffsetSeen should be the highest offset in the file",
                 200L,
                 this.snapshotService.getMaxOffsetSeen());
+    }
+
+    /** Tests that local initialization uses consumer metadata found in manifest.json. */
+    public void testInitializeFromPath_UsesManifestConsumerMetadata() throws Exception {
+        // spotless:off
+        String manifestJson =
+            """
+                {
+                  "consumer": {
+                    "name": "public-iocs-5",
+                    "context": "t1-iocs-5",
+                    "type": "cti:catalog:consumer:iocs",
+                    "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                    "is_public": true,
+                    "local_offset": 222,
+                    "remote_offset": 222
+                  }
+                }
+                """;
+        String dataJson =
+            """
+                {"name":"ioc-1","offset":1,"payload":{"type":"ioc","document":{"id":"ioc-1"}}}
+                """;
+        // spotless:on
+
+        Map<String, String> entries = new LinkedHashMap<>();
+        entries.put("manifest.json", manifestJson);
+        entries.put("data.json", dataJson);
+        Path localZip = this.createZipFileWithEntries(entries);
+
+        boolean initialized = this.snapshotService.initialize(localZip);
+        Assert.assertTrue(initialized);
+
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
+
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals("public-iocs-5", persisted.getName());
+        Assert.assertEquals("t1-iocs-5", persisted.getContext());
+        Assert.assertEquals("cti:catalog:consumer:iocs", persisted.getType());
+        Assert.assertEquals(
+                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                persisted.getResource());
+        Assert.assertTrue(persisted.isPublic());
+        Assert.assertEquals(222L, persisted.getLocalOffset());
+        Assert.assertEquals(222L, persisted.getRemoteOffset());
     }
 
     /**

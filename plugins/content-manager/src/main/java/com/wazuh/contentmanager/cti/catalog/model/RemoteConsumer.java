@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -26,6 +26,9 @@ public class RemoteConsumer extends AbstractConsumer {
     private final long offset;
     private final String snapshotLink;
     private final long snapshotOffset;
+    private final String type;
+    private final String resource;
+    private final boolean isPublic;
 
     /**
      * Default constructor
@@ -38,6 +41,9 @@ public class RemoteConsumer extends AbstractConsumer {
         this.offset = data.get("last_offset").asLong(0);
         this.snapshotLink = data.get("last_snapshot_link").asText("");
         this.snapshotOffset = data.get("last_snapshot_offset").asLong(0);
+        this.type = data.get("type").asText("");
+        this.resource = data.get("resource").asText("");
+        this.isPublic = data.get("is_public").asBoolean(false);
     }
 
     /**
@@ -67,6 +73,21 @@ public class RemoteConsumer extends AbstractConsumer {
         return this.snapshotOffset;
     }
 
+    /** Gets the consumer type. */
+    public String getType() {
+        return this.type;
+    }
+
+    /** Gets the full CTI consumer URL. */
+    public String getResource() {
+        return this.resource;
+    }
+
+    /** Returns true if the remote consumer is public. */
+    public boolean isPublic() {
+        return this.isPublic;
+    }
+
     /**
      * Returns a string representation of the RemoteConsumer object.
      *
@@ -82,6 +103,14 @@ public class RemoteConsumer extends AbstractConsumer {
                 + '\''
                 + ", snapshotOffset="
                 + this.snapshotOffset
+                + ", type='"
+                + this.type
+                + '\''
+                + ", resource='"
+                + this.resource
+                + '\''
+                + ", isPublic="
+                + this.isPublic
                 + ", context='"
                 + this.context
                 + '\''

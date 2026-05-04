@@ -49,11 +49,14 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class ConsumerRulesetService extends AbstractConsumerService {
 
+    private static final String CONSUMER_TYPE = "cti:catalog:consumer:ruleset";
+
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
     private final ObjectMapper mapper;
 
-    private final String CONTEXT = PluginSettings.getInstance().getContentContext();
-    private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
+    private final String CATALOG_URI = PluginSettings.getInstance().getCatalogRuleset();
+    private final String CONTEXT = PluginSettings.getContextFromCatalogUri(this.CATALOG_URI);
+    private final String CONSUMER = PluginSettings.getConsumerFromCatalogUri(this.CATALOG_URI);
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final SpaceService spaceService;
@@ -103,6 +106,21 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     @Override
     protected String getConsumer() {
         return this.CONSUMER;
+    }
+
+    @Override
+    protected String getConsumerType() {
+        return CONSUMER_TYPE;
+    }
+
+    @Override
+    protected String getCatalogUri() {
+        return this.CATALOG_URI;
+    }
+
+    @Override
+    protected boolean isRulesetConsumer() {
+        return true;
     }
 
     @Override

@@ -30,9 +30,8 @@ import java.io.IOException;
 /**
  * Data Transfer Object representing the local state of a CTI Catalog Consumer.
  *
- * <p>This class tracks the synchronization status of a specific content context. It maintains the
- * {@code localOffset} versus the {@code remoteOffset}, along with a link to the snapshot for bulk
- * updates.
+ * <p>This class tracks the synchronization status of a specific CTI consumer. It stores
+ * local/remote offsets and the consumer metadata persisted in `.wazuh-cti-consumers`.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
@@ -74,8 +73,14 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     @JsonProperty("remote_offset")
     private long remoteOffset;
 
-    @JsonProperty("snapshot_link")
-    private String snapshotLink;
+    @JsonProperty("type")
+    private String type;
+
+    @JsonProperty("resource")
+    private String resource;
+
+    @JsonProperty("is_public")
+    private boolean isPublic;
 
     /** Default constructor. */
     public LocalConsumer() {
@@ -88,13 +93,16 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * @param context The context identifier (e.g., "rules_development").
      * @param name The consumer name.
      */
-    public LocalConsumer(String context, String name) {
+    public LocalConsumer(
+            String context, String name, String type, String resource, boolean isPublic) {
         this.context = context;
         this.name = name;
+        this.type = type;
+        this.resource = resource;
+        this.isPublic = isPublic;
         this.status = Status.IDLE;
         this.localOffset = 0;
         this.remoteOffset = 0;
-        this.snapshotLink = "";
     }
 
     /**
@@ -102,18 +110,28 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      *
      * @param context The context identifier.
      * @param name The consumer name.
+     * @param type The consumer type identifier.
+     * @param resource The full CTI consumer URL.
+     * @param isPublic Whether the consumer is public.
      * @param localOffset The current offset processed locally.
      * @param remoteOffset The last known offset available remotely.
-     * @param snapshotUrl The URL of the snapshot associated with this state.
      */
     public LocalConsumer(
-            String context, String name, long localOffset, long remoteOffset, String snapshotUrl) {
+            String context,
+            String name,
+            String type,
+            String resource,
+            boolean isPublic,
+            long localOffset,
+            long remoteOffset) {
         this.context = context;
         this.name = name;
+        this.type = type;
+        this.resource = resource;
+        this.isPublic = isPublic;
         this.status = Status.IDLE;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
-        this.snapshotLink = snapshotUrl;
     }
 
     /**
@@ -121,24 +139,30 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      *
      * @param context The context identifier.
      * @param name The consumer name.
+     * @param type The consumer type identifier.
+     * @param resource The full CTI consumer URL.
+     * @param isPublic Whether the consumer is public.
      * @param status The current synchronization status.
      * @param localOffset The current offset processed locally.
      * @param remoteOffset The last known offset available remotely.
-     * @param snapshotUrl The URL of the snapshot associated with this state.
      */
     public LocalConsumer(
             String context,
             String name,
+            String type,
+            String resource,
+            boolean isPublic,
             Status status,
             long localOffset,
-            long remoteOffset,
-            String snapshotUrl) {
+            long remoteOffset) {
         this.context = context;
         this.name = name;
+        this.type = type;
+        this.resource = resource;
+        this.isPublic = isPublic;
         this.status = status;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
-        this.snapshotLink = snapshotUrl;
     }
 
     /**
@@ -168,13 +192,24 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         return this.remoteOffset;
     }
 
-    /**
-     * Gets the snapshot download URL.
-     *
-     * @return A string containing the URL, or empty if not set.
-     */
-    public String getSnapshotLink() {
-        return this.snapshotLink;
+    /** Gets the consumer type. */
+    public String getType() {
+        return this.type;
+    }
+
+    /** Gets the full CTI consumer URL. */
+    public String getResource() {
+        return this.resource;
+    }
+
+    /** Returns true if the consumer is public. */
+    public boolean isPublic() {
+        return this.isPublic;
+    }
+
+    /** Helper to infer whether a consumer is public from its name. */
+    public static boolean isPublicConsumer(String consumerName) {
+        return consumerName != null && consumerName.startsWith("public-");
     }
 
     @Override
@@ -186,9 +221,14 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 + this.localOffset
                 + ", remoteOffset="
                 + this.remoteOffset
-                + ", snapshotLink='"
-                + this.snapshotLink
+                + ", type='"
+                + this.type
                 + '\''
+                + ", resource='"
+                + this.resource
+                + '\''
+                + ", isPublic="
+                + this.isPublic
                 + ", context='"
                 + this.context
                 + '\''
@@ -222,10 +262,12 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 .startObject()
                 .field("name", this.name)
                 .field("context", this.context)
+                .field("type", this.type)
+                .field("resource", this.resource)
+                .field("is_public", this.isPublic)
                 .field("status", this.status != null ? this.status.toString() : Status.IDLE.toString())
                 .field("local_offset", this.localOffset)
                 .field("remote_offset", this.remoteOffset)
-                .field("snapshot_link", this.snapshotLink)
                 .endObject();
 
         return builder;

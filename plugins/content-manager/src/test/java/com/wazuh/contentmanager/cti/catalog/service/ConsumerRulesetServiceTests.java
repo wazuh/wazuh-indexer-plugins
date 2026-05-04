@@ -68,14 +68,18 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     public void testGetContextReturnsExpectedValue() {
         String context = this.synchronizer.getContext();
 
-        Assert.assertEquals(PluginSettings.getInstance().getContentContext(), context);
+        Assert.assertEquals(
+                PluginSettings.getContextFromCatalogUri(PluginSettings.getInstance().getCatalogRuleset()),
+                context);
     }
 
     /** Tests that getConsumer returns the expected consumer value. */
     public void testGetConsumerReturnsExpectedValue() {
         String consumer = this.synchronizer.getConsumer();
 
-        Assert.assertEquals(PluginSettings.getInstance().getContentConsumer(), consumer);
+        Assert.assertEquals(
+                PluginSettings.getConsumerFromCatalogUri(PluginSettings.getInstance().getCatalogRuleset()),
+                consumer);
     }
 
     /** Tests that getMappings returns the expected index mappings. */

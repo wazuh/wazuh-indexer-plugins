@@ -56,6 +56,8 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     private final String context;
     private final String consumer;
+    private final String consumerType;
+    private final String consumerResource;
     protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
@@ -71,6 +73,8 @@ public class SnapshotServiceImpl implements SnapshotService {
      *
      * @param context The context of the snapshot.
      * @param consumer The consumer identifier.
+     * @param consumerType The consumer type identifier used as local document id.
+     * @param consumerResource The full CTI consumer URL.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
@@ -78,11 +82,15 @@ public class SnapshotServiceImpl implements SnapshotService {
     public SnapshotServiceImpl(
             String context,
             String consumer,
+            String consumerType,
+            String consumerResource,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
         this.context = context;
         this.consumer = consumer;
+        this.consumerType = consumerType;
+        this.consumerResource = consumerResource;
         this.indicesMap = indicesMap;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
@@ -163,19 +171,45 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .wazuh-cti-consumers
         try {
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            String effectiveType =
+                    (consumer.getType() == null || consumer.getType().isBlank())
+                            ? this.consumerType
+                            : consumer.getType();
+            String effectiveContext =
+                    (consumer.getContext() == null || consumer.getContext().isBlank())
+                            ? this.context
+                            : consumer.getContext();
+            String effectiveName =
+                    (consumer.getName() == null || consumer.getName().isBlank())
+                            ? this.consumer
+                            : consumer.getName();
+            String effectiveResource =
+                    (consumer.getResource() == null || consumer.getResource().isBlank())
+                            ? this.consumerResource
+                            : consumer.getResource();
+            // Preserve explicit remote visibility value; do not infer from consumer name here.
+            boolean effectiveIsPublic = consumer.isPublic();
+
+            GetResponse getResponse = this.consumersIndex.getConsumer(effectiveType);
             LocalConsumer current =
                     (getResponse != null && getResponse.isExists())
                             ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(this.context, this.consumer);
+                            : new LocalConsumer(
+                                    effectiveContext,
+                                    effectiveName,
+                                    effectiveType,
+                                    effectiveResource,
+                                    effectiveIsPublic);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
+                            effectiveContext,
+                            effectiveName,
+                            effectiveType,
+                            effectiveResource,
+                            effectiveIsPublic,
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
                             consumer.getSnapshotOffset(),
-                            consumer.getOffset(),
-                            snapshotUrl);
+                            consumer.getOffset());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
@@ -327,6 +361,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         Path outputDir = null;
         this.maxOffsetSeen = 0;
+        JsonNode manifestConsumer = null;
 
         try {
             // 1. Prepare output directory
@@ -341,12 +376,17 @@ public class SnapshotServiceImpl implements SnapshotService {
                         return null;
                     });
 
+            manifestConsumer = this.loadManifestConsumer(outputDir);
+
             // 3. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
             // 4. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
                 for (Path entry : stream) {
+                    if (Constants.MANIFEST_FILENAME.equals(entry.getFileName().toString())) {
+                        continue;
+                    }
                     this.processSnapshotFile(entry);
                 }
             }
@@ -379,19 +419,47 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .wazuh-cti-consumers
         try {
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            String effectiveType =
+                    this.readManifestString(manifestConsumer, Constants.KEY_TYPE, this.consumerType);
+            String effectiveContext = this.readManifestString(manifestConsumer, "context", this.context);
+            String effectiveName =
+                    this.readManifestString(manifestConsumer, Constants.KEY_NAME, this.consumer);
+            String effectiveResource =
+                    this.readManifestString(manifestConsumer, Constants.KEY_RESOURCE, this.consumerResource);
+            long manifestLocalOffset =
+                    this.readManifestLong(manifestConsumer, "local_offset", this.maxOffsetSeen);
+            long manifestRemoteOffset =
+                    this.readManifestLong(manifestConsumer, "remote_offset", manifestLocalOffset);
+
+            GetResponse getResponse = this.consumersIndex.getConsumer(effectiveType);
             LocalConsumer current =
                     (getResponse != null && getResponse.isExists())
                             ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(this.context, this.consumer);
+                            : null;
+            boolean effectiveIsPublic =
+                    this.readManifestBoolean(
+                            manifestConsumer,
+                            Constants.KEY_IS_PUBLIC,
+                            current != null ? current.isPublic() : false);
+            if (current == null) {
+                current =
+                        new LocalConsumer(
+                                effectiveContext,
+                                effectiveName,
+                                effectiveType,
+                                effectiveResource,
+                                effectiveIsPublic);
+            }
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
+                            effectiveContext,
+                            effectiveName,
+                            effectiveType,
+                            effectiveResource,
+                            effectiveIsPublic,
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
-                            this.maxOffsetSeen,
-                            0,
-                            localZip.toString());
+                            manifestLocalOffset,
+                            manifestRemoteOffset);
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
@@ -422,5 +490,56 @@ public class SnapshotServiceImpl implements SnapshotService {
         } catch (IOException e) {
             log.warn("Error during cleanup: {}", e.getMessage());
         }
+    }
+
+    /** Loads the consumer metadata section from an extracted snapshot manifest if present. */
+    private JsonNode loadManifestConsumer(Path outputDir) {
+        if (outputDir == null) {
+            return null;
+        }
+
+        Path manifestPath = outputDir.resolve(Constants.MANIFEST_FILENAME);
+        if (!Files.exists(manifestPath)) {
+            return null;
+        }
+
+        try {
+            JsonNode manifestRoot = this.mapper.readTree(Files.readAllBytes(manifestPath));
+            JsonNode node = manifestRoot;
+            if (node.has("data") && node.get("data").isObject()) {
+                node = node.get("data");
+            }
+            if (node.has("consumer") && node.get("consumer").isObject()) {
+                node = node.get("consumer");
+            }
+            return node;
+        } catch (Exception e) {
+            log.warn("Failed to parse snapshot manifest [{}]: {}", manifestPath, e.getMessage());
+            return null;
+        }
+    }
+
+    private String readManifestString(JsonNode node, String field, String defaultValue) {
+        if (node != null && node.has(field) && !node.get(field).isNull()) {
+            String value = node.get(field).asText(defaultValue);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return defaultValue;
+    }
+
+    private long readManifestLong(JsonNode node, String field, long defaultValue) {
+        if (node != null && node.has(field) && !node.get(field).isNull()) {
+            return node.get(field).asLong(defaultValue);
+        }
+        return defaultValue;
+    }
+
+    private boolean readManifestBoolean(JsonNode node, String field, boolean defaultValue) {
+        if (node != null && node.has(field) && !node.get(field).isNull()) {
+            return node.get(field).asBoolean(defaultValue);
+        }
+        return defaultValue;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -40,6 +40,8 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
 
     private final String context;
     private final String consumer;
+    private final String consumerType;
+    private final String consumerUri;
     private final ConsumersIndex consumerIndex;
 
     /**
@@ -47,11 +49,20 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      *
      * @param context The context identifier.
      * @param consumer The consumer identifier.
+     * @param consumerType The consumer type identifier used as local document id.
+     * @param consumerUri The full catalog consumer URL used for remote requests.
      * @param consumerIndex The index service for storing consumer metadata.
      */
-    public ConsumerServiceImpl(String context, String consumer, ConsumersIndex consumerIndex) {
+    public ConsumerServiceImpl(
+            String context,
+            String consumer,
+            String consumerType,
+            String consumerUri,
+            ConsumersIndex consumerIndex) {
         this.context = context;
         this.consumer = consumer;
+        this.consumerType = consumerType;
+        this.consumerUri = consumerUri;
         this.consumerIndex = consumerIndex;
     }
 
@@ -64,7 +75,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     @Override
     public LocalConsumer getLocalConsumer() {
         try {
-            GetResponse response = this.consumerIndex.getConsumer(this.context, this.consumer);
+            GetResponse response = this.consumerIndex.getConsumer(this.consumerType);
 
             return response.isExists()
                     ? this.mapper.readValue(response.getSourceAsString(), LocalConsumer.class)
@@ -86,7 +97,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     public RemoteConsumer getRemoteConsumer() {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getConsumer(this.context, this.consumer);
+            SimpleHttpResponse response = this.client.getConsumer(this.consumerUri);
 
             if (response.getCode() == 200) {
                 return this.mapper.readValue(response.getBodyText(), RemoteConsumer.class);
@@ -105,7 +116,13 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      * @return The initialized {@link LocalConsumer}, or null if persistence fails.
      */
     public LocalConsumer setConsumer() {
-        LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        this.context,
+                        this.consumer,
+                        this.consumerType,
+                        this.consumerUri,
+                        LocalConsumer.isPublicConsumer(this.consumer));
 
         try {
             IndexResponse response = this.consumerIndex.setConsumer(consumer);

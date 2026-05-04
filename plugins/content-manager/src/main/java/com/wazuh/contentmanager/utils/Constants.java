@@ -133,6 +133,7 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_STATUS = "status";
+    public static final String KEY_IS_PUBLIC = "is_public";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";
 
@@ -198,6 +199,7 @@ public class Constants {
     public static final String CONTENT_SNAPSHOT_FILENAME = "ruleset.zip";
     public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
     public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
+    public static final String MANIFEST_FILENAME = "manifest.json";
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";

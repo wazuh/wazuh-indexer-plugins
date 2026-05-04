@@ -31,6 +31,7 @@ import org.apache.hc.core5.util.Timeout;
 
 import javax.net.ssl.SSLContext;
 
+import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -104,30 +105,51 @@ public class ApiClient {
     }
 
     /**
-     * Constructs the full URI for a specific consumer within a given context.
+     * Normalizes a consumer URI.
      *
-     * @param context The context identifier (e.g., the specific catalog section).
-     * @param consumer The consumer identifier.
-     * @return A string representing the full absolute URL for the resource.
+     * <p>Blank values are returned as empty strings. Non-blank values must be absolute HTTP(S) URLs
+     * and have trailing slashes stripped.
+     *
+     * @throws IllegalArgumentException if a non-blank value is not an absolute HTTP(S) URL.
      */
-    private String buildConsumerURI(String context, String consumer) {
-        return this.baseUri + "/catalog/contexts/" + context + "/consumers/" + consumer;
+    private String buildConsumerURI(String consumerUri) {
+        if (consumerUri == null || consumerUri.isBlank()) {
+            return "";
+        }
+        String uri = consumerUri.trim();
+        if (!(uri.startsWith("https://") || uri.startsWith("http://"))) {
+            throw new IllegalArgumentException("Consumer URI must start with http:// or https://");
+        }
+
+        URI parsedUri;
+        try {
+            parsedUri = URI.create(uri);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Consumer URI is not a valid absolute URL: " + uri, e);
+        }
+        if (parsedUri.getHost() == null || parsedUri.getHost().isBlank()) {
+            throw new IllegalArgumentException("Consumer URI must include a valid host: " + uri);
+        }
+
+        while (uri.endsWith("/")) {
+            uri = uri.substring(0, uri.length() - 1);
+        }
+        return uri;
     }
 
     /**
      * Retrieves consumer details from the CTI Catalog.
      *
-     * @param context The context associated with the consumer.
-     * @param consumer The name or ID of the consumer to retrieve.
+     * @param consumerUri The full URL of the consumer.
      * @return A {@link SimpleHttpResponse} containing the API response.
      * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
      */
-    public SimpleHttpResponse getConsumer(String context, String consumer)
+    public SimpleHttpResponse getConsumer(String consumerUri)
             throws ExecutionException, InterruptedException, TimeoutException {
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(this.buildConsumerURI(context, consumer)).build();
+                SimpleRequestBuilder.get(this.buildConsumerURI(consumerUri)).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
@@ -141,8 +163,7 @@ public class ApiClient {
     /**
      * Retrieves the changes for a specific consumer within a given context.
      *
-     * @param context The context identifier.
-     * @param consumer The consumer identifier.
+     * @param consumerUri The full URL of the consumer.
      * @param fromOffset The starting offset (exclusive).
      * @param toOffset The ending offset (inclusive).
      * @return A {@link SimpleHttpResponse} containing the API response.
@@ -150,11 +171,10 @@ public class ApiClient {
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
      */
-    public SimpleHttpResponse getChanges(
-            String context, String consumer, long fromOffset, long toOffset)
+    public SimpleHttpResponse getChanges(String consumerUri, long fromOffset, long toOffset)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri =
-                this.buildConsumerURI(context, consumer)
+                this.buildConsumerURI(consumerUri)
                         + "/changes?from_offset="
                         + fromOffset
                         + "&to_offset="

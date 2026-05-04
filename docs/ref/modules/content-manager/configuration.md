@@ -13,12 +13,9 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50         |
 | `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                                     |
 | `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                                    |
-| `plugins.content_manager.catalog.content.context`    | String  | `beta-2-ruleset-5`                           | CTI catalog content context identifier                                          |
-| `plugins.content_manager.catalog.content.consumer`   | String  | `public-ruleset-5`                       | CTI catalog content consumer identifier                                         |
-| `plugins.content_manager.ioc.content.context`        | String  | `t1-iocs-5`                              | IoC content context identifier                                                  |
-| `plugins.content_manager.ioc.content.consumer`       | String  | `public-iocs-5`                          | IoC content consumer identifier                                                 |
-| `plugins.content_manager.cve.content.context`        | String  | `t1-vulnerabilities-5`                   | CVE content context identifier                                                  |
-| `plugins.content_manager.cve.content.consumer`       | String  | `public-vulnerabilities-5`               | CVE content consumer identifier                                                 |
+| `plugins.content_manager.catalog.ruleset`            | String  | `""`                                    | Full CTI consumer URL for ruleset content                                      |
+| `plugins.content_manager.catalog.iocs`               | String  | `""`                                    | Full CTI consumer URL for IoC content                                          |
+| `plugins.content_manager.catalog.vulnerabilities`    | String  | `""`                                    | Full CTI consumer URL for vulnerabilities content                              |
 | `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
 | `plugins.content_manager.telemetry.enabled`          | Boolean | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
 
@@ -26,7 +23,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 
 ### Default Configuration
 
-No configuration is required for default behavior. The Content Manager will sync content every 60 minutes using the pre-configured CTI contexts.
+No configuration is required for default behavior. The Content Manager will sync content every 60 minutes.
 
 ### Custom Sync Interval
 
@@ -124,6 +121,6 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 ## Notes
 
 - Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
-- The `context` and `consumer` settings should only be changed if instructed by Wazuh support or documentation, as they must match valid CTI API contexts.
+- The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.

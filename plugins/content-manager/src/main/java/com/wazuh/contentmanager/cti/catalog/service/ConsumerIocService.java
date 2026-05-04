@@ -66,12 +66,16 @@ public class ConsumerIocService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerIocService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int SEARCH_PAGE_SIZE = 10_000;
+    private static final String CONSUMER_TYPE = "cti:catalog:consumer:iocs";
+
+    /** Full CTI catalog consumer URL for IoCs. */
+    private final String CATALOG_URI = PluginSettings.getInstance().getCatalogIocs();
 
     /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getInstance().getIocContext();
+    private final String CONTEXT = PluginSettings.getContextFromCatalogUri(this.CATALOG_URI);
 
     /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getInstance().getIocConsumer();
+    private final String CONSUMER = PluginSettings.getConsumerFromCatalogUri(this.CATALOG_URI);
 
     /** The engine service for notifying the Engine about IOC updates. */
     private final EngineService engineService;
@@ -101,6 +105,16 @@ public class ConsumerIocService extends AbstractConsumerService {
     @Override
     protected String getConsumer() {
         return this.CONSUMER;
+    }
+
+    @Override
+    protected String getConsumerType() {
+        return CONSUMER_TYPE;
+    }
+
+    @Override
+    protected String getCatalogUri() {
+        return this.CATALOG_URI;
     }
 
     @Override

@@ -307,12 +307,16 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
     /** Tests that getContext returns the expected IOC context. */
     public void testGetContextReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getIocContext(), this.service.getContext());
+        assertEquals(
+                PluginSettings.getContextFromCatalogUri(PluginSettings.getInstance().getCatalogIocs()),
+                this.service.getContext());
     }
 
     /** Tests that getConsumer returns the expected IOC consumer. */
     public void testGetConsumerReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getIocConsumer(), this.service.getConsumer());
+        assertEquals(
+                PluginSettings.getConsumerFromCatalogUri(PluginSettings.getInstance().getCatalogIocs()),
+                this.service.getConsumer());
     }
 
     /** Tests that getMappings returns the IOC mappings. */

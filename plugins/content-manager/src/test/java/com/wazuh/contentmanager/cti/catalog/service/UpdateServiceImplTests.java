@@ -69,6 +69,9 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
     private static final String CONTEXT = "rules_dev";
     private static final String CONSUMER = "test_consumer";
+    private static final String CONSUMER_TYPE = "cti:catalog:consumer:ruleset";
+    private static final String CONSUMER_URI =
+            "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/rules_dev/consumers/test_consumer";
 
     @Before
     @Override
@@ -84,7 +87,14 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         indices.put("cves", this.cveIndex);
 
         this.updateService =
-                new UpdateServiceImpl(CONTEXT, CONSUMER, this.apiClient, this.consumersIndex, indices);
+                new UpdateServiceImpl(
+                        CONTEXT,
+                        CONSUMER,
+                        CONSUMER_TYPE,
+                        CONSUMER_URI,
+                        this.apiClient,
+                        this.consumersIndex,
+                        indices);
     }
 
     @After
@@ -130,7 +140,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // spotless:on
 
         // Mock
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
@@ -138,11 +148,15 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.ruleIndex.exists("rule-2")).thenReturn(true);
         when(this.decoderIndex.exists("decoder-1")).thenReturn(true);
 
-        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString())
                 .thenReturn(
-                        "{\"local_offset\": 9, \"remote_offset\": 100, \"snapshot_link\": \"http://snap\"}");
+                        "{\"type\":\"cti:catalog:consumer:ruleset\","
+                                + "\"resource\":\""
+                                + CONSUMER_URI
+                                + "\",\"is_public\":false,"
+                                + "\"local_offset\": 9, \"remote_offset\": 100}");
 
         // Act
         this.updateService.update(9, 12);
@@ -189,13 +203,13 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 }""";
         // spotless:on
 
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         // Mock
-        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(false);
 
         // Act
@@ -217,7 +231,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
      */
     public void testUpdate_ApiFailure() throws Exception {
         // Mock
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
 
         // Act
@@ -251,7 +265,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // spotless:on
 
         // Mock
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
@@ -294,12 +308,12 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // spotless:on
 
         // Mock
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
@@ -337,7 +351,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // spotless:on
 
         // Mock
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
@@ -345,7 +359,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.ruleIndex.exists("fake-id")).thenReturn(false);
         when(this.decoderIndex.exists("fake-id")).thenReturn(false);
 
-        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
@@ -379,12 +393,12 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 }""";
         // spotless:on
 
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
@@ -419,12 +433,12 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 }""";
         // spotless:on
 
-        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
                 .thenReturn(
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 

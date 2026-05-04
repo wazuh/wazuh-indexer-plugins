@@ -32,11 +32,16 @@ import com.wazuh.contentmanager.utils.Constants;
  * operations.
  */
 public class ConsumerCveService extends AbstractConsumerService {
+    private static final String CONSUMER_TYPE = "cti:catalog:consumer:vulnerabilities";
+
+    /** Full CTI catalog consumer URL for vulnerabilities. */
+    private final String CATALOG_URI = PluginSettings.getInstance().getCatalogVulnerabilities();
+
     /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getInstance().getCveContext();
+    private final String CONTEXT = PluginSettings.getContextFromCatalogUri(this.CATALOG_URI);
 
     /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getInstance().getCveConsumer();
+    private final String CONSUMER = PluginSettings.getConsumerFromCatalogUri(this.CATALOG_URI);
 
     /**
      * Constructs a new ConsumerCveService.
@@ -57,6 +62,16 @@ public class ConsumerCveService extends AbstractConsumerService {
     @Override
     protected String getConsumer() {
         return this.CONSUMER;
+    }
+
+    @Override
+    protected String getConsumerType() {
+        return CONSUMER_TYPE;
+    }
+
+    @Override
+    protected String getCatalogUri() {
+        return this.CATALOG_URI;
     }
 
     @Override
