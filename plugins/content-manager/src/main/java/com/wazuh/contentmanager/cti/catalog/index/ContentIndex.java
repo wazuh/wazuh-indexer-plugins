@@ -140,7 +140,12 @@ public class ContentIndex {
             return null;
         }
 
-        Settings settings = Settings.builder().put("index.number_of_replicas", 0).build();
+        Settings.Builder settingsBuilder =
+                Settings.builder().put("index.number_of_replicas", 0);
+        if (Constants.INDEX_CVES.equals(this.indexName)) {
+            settingsBuilder.put("index.hidden", true);
+        }
+        Settings settings = settingsBuilder.build();
 
         String mappings;
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
