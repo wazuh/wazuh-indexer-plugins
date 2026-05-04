@@ -101,6 +101,9 @@ function map_stateless_modules() {
   if [[ -d "wcs/stateless/metrics/comms" ]]; then
     all_modules["stateless/metrics/comms"]="templates/streams/metrics-comms.json"
   fi
+  if [[ -d "wcs/stateless/metrics/engine" ]]; then
+    all_modules["stateless/metrics/engine"]="templates/streams/metrics-normalization.json"
+  fi
 }
 
 # ====
