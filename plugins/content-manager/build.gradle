@@ -101,9 +101,8 @@ dependencies {
 
   zipArchive "com.wazuh:wazuh-indexer-alerting:$version" // Dependency of SAP
   zipArchive "com.wazuh:wazuh-indexer-security-analytics:$version"
-  // Setup plugin
+  // Setup plugin (from local sibling project to avoid requiring pre-published Maven artifact)
   zipArchive "org.opensearch.plugin:opensearch-index-management:$opensearch_build"
-  zipArchive "com.wazuh:wazuh-indexer-setup:$version"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -192,6 +191,14 @@ testClusters.integTest {
   testDistribution = "ARCHIVE"
   // This installs our plugin into the testClusters
   plugin(project.tasks.bundlePlugin.archiveFile)
+}
+
+// Install the setup plugin from the local sibling project (must be deferred until the
+// setup project is fully evaluated so that its bundlePlugin task exists).
+project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
+  testClusters.integTest {
+    plugin(setupProject.tasks.bundlePlugin.archiveFile)
+  }
 }
 
 run {
