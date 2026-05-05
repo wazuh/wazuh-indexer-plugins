@@ -1,0 +1,25 @@
+---
+name: wazuh-metrics-normalization
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+  event:
+    fields:
+      module: {}
+      kind: {}
+  metric:
+    fields:
+      name: {}
+      type: {}
+      enabled: {}
+      value: {}
+  wazuh:
+    fields:
+      cluster:
+        fields: "*"
+      space:
+        fields:
+          name: {}
+      schema:
+        fields: "*"

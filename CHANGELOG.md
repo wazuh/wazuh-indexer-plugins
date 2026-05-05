@@ -82,7 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add documentation for commom-utils plugin [(#929)](https://github.com/wazuh/wazuh-indexer-plugins/pull/929)
 - Support creation and promotion of rules and integrations across spaces [(#930)](https://github.com/wazuh/wazuh-indexer-plugins/pull/930)
 - Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
-- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941)
+- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941) [(#1114)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1114)
 - Implement telemetry ping job [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939)
 - Create findings module [(#949)](https://github.com/wazuh/wazuh-indexer-plugins/pull/949)
 - Add rollback mechanism to Promote action [(#953)](https://github.com/wazuh/wazuh-indexer-plugins/pull/953)

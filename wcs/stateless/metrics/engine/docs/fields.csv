@@ -1,0 +1,12 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,event,event.kind,keyword,core,,alert,The kind of the event. The highest categorization field in the hierarchy.
+9.1.0,true,event,event.module,keyword,core,,apache,Name of the module this data is coming from.
+9.1.0,true,metric,metric.enabled,boolean,custom,,True,Whether the metric is currently enabled.
+9.1.0,true,metric,metric.name,keyword,custom,,router.queue.size,"Name of the metric (e.g. router.queue.size, events.unclassified)."
+9.1.0,true,metric,metric.type,keyword,custom,,pull,"Collection type of the metric (e.g. pull, counter)."
+9.1.0,true,metric,metric.value,float,custom,,0,Numeric value of the metric. Can be an integer count or a floating-point ratio.
+9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,wazuh-cluster,Wazuh cluster name.
+9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,wazuh-node-1,Wazuh cluster node name.
+9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1,Wazuh schema version.
+9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,standard,"Wazuh space name. Null for global metrics, a string for space-scoped metrics."
