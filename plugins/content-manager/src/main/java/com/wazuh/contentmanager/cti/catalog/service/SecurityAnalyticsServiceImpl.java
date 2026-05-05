@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -115,14 +116,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 WriteRequest.RefreshPolicy.IMMEDIATE,
                 method,
                 new Integration(
-                        null,
-                        null,
-                        name,
-                        description,
-                        category,
-                        space.asSecurityAnalyticsSource(),
-                        new HashMap<>(),
-                        id));
+                        null, null, name, description, category, space.toString(), new HashMap<>(), id));
     }
 
     @Override
@@ -131,9 +125,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             if (Space.STANDARD.equals(space)) {
                 this.deleteDetector(id);
             }
-            // Use document.id + source=<space> (via space.asSecurityAnalyticsSource()) to find and delete
+            // Use document.id + source=<space> to find and delete
             // the document in Security Analytics.
-            String source = space.asSecurityAnalyticsSource();
+            String source = space.toString();
             this.client
                     .execute(
                             WDeleteIntegrationAction.INSTANCE,
@@ -147,7 +141,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             "Failed to delete %s with id [%s] in space [%s]: %s",
                             "integration",
                             id,
-                            space.asSecurityAnalyticsSource(),
+                            space.toString(),
                             e.getMessage());
             log.error(message);
             throw new OpenSearchException(message);
@@ -157,7 +151,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteIntegrationAsync(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
-        String source = space.asSecurityAnalyticsSource();
+        String source = space.toString();
         if (Space.STANDARD.equals(space)) {
             // Delete detector first, then delete integration on success.
             this.deleteDetectorAsync(
@@ -181,7 +175,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertRule(JsonNode doc, Space space, Method method) {
+    public void upsertRule(JsonNode doc, Space space, Method method)
+            throws SecurityAnalyticsException {
         if (!doc.has(Constants.KEY_ID)) {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
             return;
@@ -195,38 +190,70 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
-        String sourceName = space.asSecurityAnalyticsSource();
+        String sourceName = space.toString();
 
         log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
-        if (space != Space.STANDARD) {
-            this.client
-                    .execute(
-                            WIndexCustomRuleAction.INSTANCE,
-                            new WIndexCustomRuleRequest(
-                                    id,
-                                    WriteRequest.RefreshPolicy.IMMEDIATE,
-                                    product,
-                                    method,
-                                    body,
-                                    true,
-                                    id,
-                                    sourceName))
-                    .actionGet();
-        } else {
-            this.client
-                    .execute(
-                            WIndexRuleAction.INSTANCE,
-                            new WIndexRuleRequest(
-                                    id,
-                                    WriteRequest.RefreshPolicy.IMMEDIATE,
-                                    product,
-                                    method,
-                                    body,
-                                    true,
-                                    id,
-                                    sourceName))
-                    .actionGet();
+        try {
+            if (space != Space.STANDARD) {
+                this.client
+                        .execute(
+                                WIndexCustomRuleAction.INSTANCE,
+                                new WIndexCustomRuleRequest(
+                                        id,
+                                        WriteRequest.RefreshPolicy.IMMEDIATE,
+                                        product,
+                                        method,
+                                        body,
+                                        true,
+                                        id,
+                                        sourceName))
+                        .actionGet();
+            } else {
+                this.client
+                        .execute(
+                                WIndexRuleAction.INSTANCE,
+                                new WIndexRuleRequest(
+                                        id,
+                                        WriteRequest.RefreshPolicy.IMMEDIATE,
+                                        product,
+                                        method,
+                                        body,
+                                        true,
+                                        id,
+                                        sourceName))
+                        .actionGet();
+            }
+        } catch (Exception e) {
+            String message = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            if (message.contains("Wazuh Common Schema (WCS)")) {
+                throw new SecurityAnalyticsException(
+                        SecurityAnalyticsServiceImpl.extractErrorMessage(message), e);
+            }
+            throw e;
         }
+    }
+
+    /**
+     * Extracts a clean error message from a SAP JSON error response. SAP wraps errors as JSON objects
+     * (e.g. {@code {"SigmaError":"...message..."}}). This method parses the JSON and returns the
+     * concatenated values, falling back to the raw message if parsing fails.
+     *
+     * @param message the raw exception message, potentially JSON-formatted
+     * @return the extracted error message
+     */
+    static String extractErrorMessage(String message) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode errorNode = mapper.readTree(message);
+            List<String> errorMessages = new ArrayList<>();
+            errorNode.elements().forEachRemaining(node -> errorMessages.add(node.asText()));
+            if (!errorMessages.isEmpty()) {
+                return String.join(" ", errorMessages);
+            }
+        } catch (Exception ignored) {
+            // If parsing fails, fallback to the raw message
+        }
+        return message;
     }
 
     @Override
@@ -245,7 +272,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
         String product = ContentIndex.extractProduct(doc);
         String body = doc.toString();
-        String sourceName = space.asSecurityAnalyticsSource();
+        String sourceName = space.toString();
 
         log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
         if (space != Space.STANDARD) {
@@ -279,7 +306,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteRule(String id, Space space) {
-        String source = space.asSecurityAnalyticsSource();
+        String source = space.toString();
         try {
             if (Space.STANDARD.equals(space)) {
                 this.client
@@ -303,7 +330,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             "Failed to delete %s with id [%s] in space [%s]: %s",
                             "rule",
                             id,
-                            space.asSecurityAnalyticsSource(),
+                            space.toString(),
                             e.getMessage());
             log.error(message);
             throw new OpenSearchException(message);
@@ -313,7 +340,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void deleteRuleAsync(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
-        String source = space.asSecurityAnalyticsSource();
+        String source = space.toString();
         if (Space.STANDARD.equals(space)) {
             this.executeAsync(
                     WDeleteRuleAction.INSTANCE,
@@ -377,7 +404,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String title =
                 metadata.has(Constants.KEY_TITLE) ? metadata.get(Constants.KEY_TITLE).asText() : "";
         String category = this.formatCategory(doc, rawCategory);
-        List<String> rules = fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
+        List<String> rules = this.fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
         if (rules.isEmpty()) {
             log.debug("Detector [{}] has no enabled rules. Skipping creation.", id);
             return null;
@@ -463,12 +490,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void deleteSpaceResources(Space space) {
-        // Translate STANDARD to SIGMA for SAP operations, matching the source name used
-        // when the resources were originally indexed.
-        Space sapSpace = (space == Space.STANDARD) ? Space.SIGMA : space;
-
         try {
-            String source = sapSpace.asSecurityAnalyticsSource();
+            String source = space.toString();
             WDeleteSpaceResourcesResponse response =
                     this.client
                             .execute(

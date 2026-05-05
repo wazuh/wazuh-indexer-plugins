@@ -21,6 +21,9 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -31,6 +34,7 @@ import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -76,9 +80,14 @@ public class ApiClient {
             throw new RuntimeException("Failed to initialize HttpClient", e);
         }
 
+        List<Header> defaultHeaders =
+                List.of(
+                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
+
         this.client =
                 HttpAsyncClients.custom()
                         .setIOReactorConfig(ioReactorConfig)
+                        .setDefaultHeaders(defaultHeaders)
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(

@@ -94,7 +94,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement version check CM API endpoint [(#1028)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1028)
 - Add documentation for Wazuh Alerting plugin [(#980)](https://github.com/wazuh/wazuh-indexer-plugins/pull/980)
 - Add ruletesting extended endpoints [(#1040)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1040)
-
+- Set custom user-agent header for CTI API communications [(#1074)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1074)
+- Implement wazuh.event.id WCS field [(#1097)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1097)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -153,6 +154,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 - Create detectors using only rules enabled [(#1017)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1017)
 - Set indicator.confidence as type short [(#1030)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1030)
+- Remove vulnerability scanner reference field [(#1072)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1072)
+- Change check object in filters template to object[(#1062)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1062)
+- Update ruleset feed for 5.0.0 beta2 [(#1073)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1073)
+- Normalize space values in CM and SAP integration [(#1091)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1091)
 
 ### Deprecated
 -
@@ -188,6 +193,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Reset spaces in Security Analytics [(#1000)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1000)
 - Fix CodeQL maven caching [(#1007)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1007)
 - Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
+- Fix Telemetry Ping Job not running immediately after registration [(#1052)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1052)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

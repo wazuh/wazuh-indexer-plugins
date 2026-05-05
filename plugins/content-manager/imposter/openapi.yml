@@ -35,6 +35,45 @@ tags:
     description: Wazuh release version endpoints
 
 paths:
+  /api/v1/ping:
+    get:
+      summary: Ping
+      description: |
+        Health check endpoint for telemetry ping.
+
+        This endpoint is used by the TelemetryClient to send periodic pings containing the instance UUID and version.
+        It can be used to verify connectivity and monitor active instances.
+      operationId: ping
+      tags:
+        - CTI Console
+      parameters:
+        - name: wazuh-uid
+          in: header
+          required: true
+          description: The unique identifier of the Wazuh instance (UUID).
+          schema:
+            type: string
+            example: a17c21ed-1234-5678-9abc-def012345678
+        - name: wazuh-tag
+          in: header
+          required: true
+          description: The version tag of the Wazuh instance (e.g., "v5.0.0").
+          schema:
+            type: string
+            example: v5.0.0
+      responses:
+        '200':
+          $ref: '#/components/responses/ReleaseUpdatesSuccess'
+        '400':
+          description: Invalid tag format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                  tag: ["is invalid"]
+
   /api/v1/instances/token:
     post:
       summary: Token Request

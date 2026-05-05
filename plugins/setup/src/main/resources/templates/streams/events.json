@@ -15750,15 +15750,6 @@
           }
         },
         {
-          "wcs_vulnerability_reference": {
-            "path_match": "vulnerability.reference",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
           "wcs_vulnerability_report_id": {
             "path_match": "vulnerability.report_id",
             "mapping": {
@@ -16390,6 +16381,15 @@
         {
           "wcs_wazuh_cluster_node": {
             "path_match": "wazuh.cluster.node",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_event_id": {
+            "path_match": "wazuh.event.id",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -17723,6 +17723,9 @@
               }
             },
             "cluster": {
+              "properties": {}
+            },
+            "event": {
               "properties": {}
             },
             "integration": {

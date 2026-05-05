@@ -60,19 +60,35 @@ The update check flow is split into two classes:
   - Reads cluster UUID from `ClusterService` metadata.
   - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
   - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
+  - Exposes a `trigger()` method for immediate invocation, used by `ContentManagerPlugin` to fire the first ping as soon as the job document is indexed.
 
 - **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
   - Sends an asynchronous GET request to CTI `/ping`.
   - Headers sent:
     - `wazuh-uid`: cluster UUID
     - `wazuh-tag`: `v<version>`
-    - `user-agent`: `Wazuh Indexer <version>`
   - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
+
+### CTI HTTP Client User-Agent
+
+All HTTP clients that communicate with CTI services include a custom `User-Agent` header set as a **default header on the HTTP client builder**:
+
+```
+User-Agent: Wazuh Indexer <version>
+```
+
+The version is read from `VERSION.json` at plugin startup and stored in `PluginSettings`. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
+
+Affected clients:
+- **Console `ApiClient`** (`cti/console/client/ApiClient.java`) — async HTTP client for CTI Console authentication and plans.
+- **Catalog `ApiClient`** (`cti/catalog/client/ApiClient.java`) — async HTTP client for CTI Catalog consumer and changes.
+- **`SnapshotClient`** (`cti/catalog/client/SnapshotClient.java`) — sync HTTP client for downloading CTI snapshots.
+- **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`) — inherits from Console `ApiClient`.
 
 Runtime toggle behavior:
 
 - `plugins.content_manager.telemetry.enabled` is a **dynamic** setting.
-- Enabling it schedules the job and triggers an immediate ping.
+- Enabling it schedules the job; the immediate first ping is fired from within `scheduleTelemetryPingJob()` only after the job document has been successfully indexed, guaranteeing the ping only runs when the scheduled job is correctly registered.
 - Disabling it removes the telemetry job document from `.wazuh-content-manager-jobs`.
 
 ### REST Handlers

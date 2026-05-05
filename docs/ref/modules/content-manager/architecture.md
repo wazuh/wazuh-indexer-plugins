@@ -19,6 +19,8 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 
 Manages authentication with the Wazuh CTI API. Stores subscription tokens used for all CTI requests. Without a valid token, sync operations are rejected.
 
+All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client.
+
 ### Job Scheduler (CatalogSyncJob)
 
 Implements the OpenSearch `JobSchedulerExtension` interface. Registers a periodic job (`wazuh-catalog-sync-job`) that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
@@ -29,8 +31,9 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 - Enabled by default through `plugins.content_manager.telemetry.enabled`.
 - Can be toggled at runtime because it is a dynamic setting.
-- Sends deployment metadata required for update checks (cluster UUID and deployed Wazuh version).
+- Sends deployment metadata required for update checks (cluster UUID, deployed Wazuh version, and user-agent).
 - Job metadata is stored in `.wazuh-content-manager-jobs`.
+- The first ping is dispatched immediately after the job is registered in the scheduler; subsequent runs follow the 1-day interval.
 
 ### Consumer Service
 
@@ -50,7 +53,7 @@ Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and 
 
 **Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
 - `document.id` — the UUID of the original CTI document in the Content Manager.
-- `source` — the space the document belongs to, with the first letter capitalized (e.g., "Draft", "Test", "Custom", or "Sigma" for standard).
+- `source` — the space the document belongs to (e.g., "draft", "test", "custom", or "standard").
 
 This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
 
@@ -91,7 +94,11 @@ Job Scheduler triggers
 ### Update Check Heartbeat
 
 ```
-Job Scheduler triggers (every 24h)
+Registration (on node start or dynamic enable)
+  → TelemetryPingJob document indexed in .wazuh-content-manager-jobs
+  → Immediate first ping fired once the document is written
+
+Job Scheduler triggers (every 24h thereafter)
   → TelemetryPingJob checks plugins.content_manager.telemetry.enabled
   → Reads cluster UUID and current Wazuh version
   → TelemetryClient sends GET /ping to CTI Update check API
@@ -217,14 +224,14 @@ The `.wazuh-cti-consumers` index stores one document per context/consumer pair:
 ```json
 {
   "_index": ".wazuh-cti-consumers",
-  "_id": "t1-ruleset-5_public-ruleset-5",
+  "_id": "beta-2-ruleset-5_public-ruleset-5",
   "_source": {
     "name": "public-ruleset-5",
-    "context": "t1-ruleset-5",
+    "context": "beta-2-ruleset-5",
     "status": "idle",
     "local_offset": 3932,
     "remote_offset": 3932,
-    "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/t1-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+    "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/beta-2-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
   }
 }
 ```

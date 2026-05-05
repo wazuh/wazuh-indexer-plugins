@@ -66,7 +66,8 @@ public class Constants {
             "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
-    public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
+    public static final String E_SECURITY_ANALYTICS_ERROR =
+            "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
@@ -101,7 +102,7 @@ public class Constants {
     public static final String INDEX_KVDBS = "wazuh-threatintel-kvdbs";
     public static final String INDEX_DECODERS = "wazuh-threatintel-decoders";
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
-    public static final String INDEX_CVES = "wazuh-threatintel-vulnerabilities";
+    public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
@@ -197,6 +198,9 @@ public class Constants {
     public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
     public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
 
+    // HTTP headers
+    public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
+
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
     public static final String KEY_TYPE_HASHES = "type_hashes";
@@ -229,4 +233,8 @@ public class Constants {
     public static final String OP_ADD = "add";
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
+
+    // Job Scheduler registration retries
+    public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
+    public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
 }
