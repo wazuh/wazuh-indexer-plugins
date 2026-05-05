@@ -65,6 +65,7 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
@@ -94,6 +95,7 @@ public class ContentManagerPlugin extends Plugin
     private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
     private ConsumersIndex consumersIndex;
+    private CredentialsIndex credentialsIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
     private Client client;
@@ -144,6 +146,7 @@ public class ContentManagerPlugin extends Plugin
         this.client = client;
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
+        this.credentialsIndex = new CredentialsIndex(client);
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
@@ -200,22 +203,20 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        // Only cluster managers are responsible for initialization and the startup sync trigger.
         if (localNode.isClusterManagerNode()) {
             this.start(
                     () -> {
-                        // Trigger update on start if enabled
                         if (PluginSettings.getInstance().isUpdateOnStart()) {
                             this.catalogSyncJob.trigger();
                         } else {
                             log.info("Skipping catalog sync job trigger");
                         }
-
-                        // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
                         this.scheduleCatalogSyncJob();
-                        // Schedule the telemetry ping job
                         this.scheduleTelemetryPingJob();
                     });
+        } else {
+            // Non-CM nodes load credentials asynchronously on startup.
+            this.threadPool.generic().execute(this::tryLoadAccessToken);
         }
     }
 
@@ -242,10 +243,8 @@ public class ContentManagerPlugin extends Plugin
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
-                new RestGetSubscriptionAction(this.ctiConsole),
-                new RestPostSubscriptionAction(this.ctiConsole),
-                new RestDeleteSubscriptionAction(this.ctiConsole),
-                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
+                new RestPostSubscriptionAction(this.credentialsIndex),
+                new RestPostUpdateAction(this.catalogSyncJob),
                 // Version check endpoint
                 new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints
@@ -294,27 +293,64 @@ public class ContentManagerPlugin extends Plugin
                     .execute(
                             () -> {
                                 try {
-                                    CreateIndexResponse response = this.consumersIndex.createIndex();
-
-                                    if (response != null && response.isAcknowledged()) {
-                                        log.info(
-                                                "Index created: {} acknowledged={}",
-                                                response.index(),
-                                                response.isAcknowledged());
+                                    try {
+                                        CreateIndexResponse consumersResponse = this.consumersIndex.createIndex();
+                                        if (consumersResponse != null && consumersResponse.isAcknowledged()) {
+                                            log.info(
+                                                    "Index created: {} acknowledged={}",
+                                                    consumersResponse.index(),
+                                                    consumersResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Failed to create {} index, due to: {}",
+                                                ConsumersIndex.INDEX_NAME,
+                                                e.getMessage(),
+                                                e);
                                     }
-                                } catch (Exception e) {
-                                    log.error(
-                                            "Failed to create {} index, due to: {}",
-                                            ConsumersIndex.INDEX_NAME,
-                                            e.getMessage(),
-                                            e);
+
+                                    try {
+                                        CreateIndexResponse credentialsResponse = this.credentialsIndex.createIndex();
+                                        if (credentialsResponse != null && credentialsResponse.isAcknowledged()) {
+                                            log.info(
+                                                    "Index created: {} acknowledged={}",
+                                                    credentialsResponse.index(),
+                                                    credentialsResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Failed to create {} index, due to: {}",
+                                                CredentialsIndex.INDEX_NAME,
+                                                e.getMessage(),
+                                                e);
+                                    }
+
+                                    this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
                                 }
                             });
         } catch (Exception e) {
-            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+            log.error("Error during plugin initialization: {}", e.getMessage(), e);
             onComplete.run();
+        }
+    }
+
+    private void tryLoadAccessToken() {
+        try {
+            if (this.credentialsIndex.exists()) {
+                String token = this.credentialsIndex.getAccessToken();
+                if (token != null) {
+                    PluginSettings.getInstance().setAccessToken(token);
+                    log.info("CTI access token loaded from credentials index.");
+                } else {
+                    log.debug("Credentials index exists but no access token is stored.");
+                }
+            } else {
+                log.debug("Credentials index does not exist yet; access token not loaded.");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load CTI access token from credentials index: {}", e.getMessage());
         }
     }
 

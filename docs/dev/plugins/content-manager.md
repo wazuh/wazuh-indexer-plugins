@@ -8,7 +8,7 @@ This document describes the architecture, components, and extension points of th
 
 The Content Manager plugin handles:
 
-- **CTI Subscription:** Manages subscriptions and tokens with the CTI Console.
+- **CTI Credentials:** Stores the CTI access token in `.wazuh-cti-credentials` and caches it in `PluginSettings.accessToken` for REST handler use.
 - **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
 - **Update Check Service:** Sends a daily heartbeat to CTI so Wazuh can notify users when a newer version is available.
 - **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
@@ -43,9 +43,9 @@ The plugin manages the following indices:
 
 **`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `ActionPlugin`. On startup it:
 
-1. Initializes `PluginSettings`, `ConsumersIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
+1. Initializes `PluginSettings`, `ConsumersIndex`, `CredentialsIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
 2. Registers all REST handlers via `getRestHandlers()`.
-3. Creates the `.wazuh-cti-consumers` index on cluster manager nodes.
+3. Creates the `.wazuh-cti-consumers` and `.wazuh-cti-credentials` indices on cluster manager nodes.
 4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
 5. Optionally triggers an immediate sync on start.
 6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.
@@ -93,13 +93,11 @@ Runtime toggle behavior:
 
 ### REST Handlers
 
-The plugin registers 26 REST handlers, grouped by domain:
+The plugin registers 24 REST handlers, grouped by domain:
 
 | Domain           | Handler                        | Method | URI                                            |
 | ---------------- | ------------------------------ | ------ | ---------------------------------------------- |
-| **Subscription** | `RestGetSubscriptionAction`    | GET    | `/_plugins/_content_manager/subscription`      |
-|                  | `RestPostSubscriptionAction`   | POST   | `/_plugins/_content_manager/subscription`      |
-|                  | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription`      |
+| **Subscription** | `RestPostSubscriptionAction`   | POST   | `/_plugins/_content_manager/subscription`      |
 | **Update**       | `RestPostUpdateAction`         | POST   | `/_plugins/_content_manager/update`            |
 | **Logtest**      | `RestPostLogtestAction`        | POST   | `/_plugins/_content_manager/logtest`           |
 | **Policy**       | `RestPutPolicyAction`          | PUT    | `/_plugins/_content_manager/policy/{space}`    |
@@ -154,9 +152,7 @@ BaseRestHandler
 │       └── RestDeleteFilterAction
 ├── RestPutPolicyAction
 ├── RestDeleteSpaceAction
-├── RestGetSubscriptionAction
 ├── RestPostSubscriptionAction
-├── RestDeleteSubscriptionAction
 ├── RestPostUpdateAction
 ├── RestPostLogtestAction
 ├── RestPostPromoteAction

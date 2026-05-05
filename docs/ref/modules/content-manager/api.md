@@ -6,51 +6,9 @@ The Content Manager plugin exposes a REST API under `/_plugins/_content_manager/
 
 ## Subscription Management
 
-### Get CTI Subscription
+### Store CTI Credentials
 
-Retrieves the current CTI subscription token.
-
-**Request**
-- Method: `GET`
-- Path: `/_plugins/_content_manager/subscription`
-
-**Example Request**
-
-```bash
-curl -sk -u admin:admin \
-  "https://192.168.56.6:9200/_plugins/_content_manager/subscription"
-```
-
-**Example Response (subscription exists)**
-
-```json
-{
-  "access_token": "AYjcyMzY3ZDhiNmJkNTY",
-  "token_type": "Bearer"
-}
-```
-
-**Example Response (no subscription)**
-
-```json
-{
-  "message": "Token not found",
-  "status": 404
-}
-```
-
-**Status Codes**
-
-| Code | Description                 |
-| ---- | --------------------------- |
-| 200  | Subscription token returned |
-| 404  | No subscription registered  |
-
----
-
-### Register CTI Subscription
-
-Registers a new CTI subscription using a device code obtained from the Wazuh CTI Console.
+Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory.
 
 **Request**
 - Method: `POST`
@@ -58,12 +16,9 @@ Registers a new CTI subscription using a device code obtained from the Wazuh CTI
 
 **Request Body**
 
-| Field         | Type    | Required | Description                                |
-| ------------- | ------- | -------- | ------------------------------------------ |
-| `device_code` | String  | Yes      | Device authorization code from CTI Console |
-| `client_id`   | String  | Yes      | OAuth client identifier                    |
-| `expires_in`  | Integer | Yes      | Token expiration time in seconds           |
-| `interval`    | Integer | Yes      | Polling interval in seconds                |
+| Field          | Type   | Required | Description                                             |
+| -------------- | ------ | -------- | ------------------------------------------------------- |
+| `access_token` | String | Yes      | The CTI access token used to authenticate against the CTI API |
 
 **Example Request**
 
@@ -72,10 +27,7 @@ curl -sk -u admin:admin -X POST \
   "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
-    "device_code": "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
-    "client_id": "a17c21ed",
-    "expires_in": 1800,
-    "interval": 5
+    "access_token": "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
   }'
 ```
 
@@ -83,61 +35,18 @@ curl -sk -u admin:admin -X POST \
 
 ```json
 {
-  "message": "Subscription created successfully",
+  "message": "Credentials received",
   "status": 201
 }
 ```
 
 **Status Codes**
 
-| Code | Description                                                                    |
-| ---- | ------------------------------------------------------------------------------ |
-| 201  | Subscription registered successfully                                           |
-| 400  | Missing required fields (`device_code`, `client_id`, `expires_in`, `interval`) |
-| 401  | Unauthorized — endpoint accessed by unexpected user                            |
-| 500  | Internal error                                                                 |
-
----
-
-### Delete CTI Subscription
-
-Removes the current CTI subscription token and revokes all associated credentials.
-
-**Request**
-- Method: `DELETE`
-- Path: `/_plugins/_content_manager/subscription`
-
-**Example Request**
-
-```bash
-curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/subscription"
-```
-
-**Example Response (success)**
-
-```json
-{
-  "message": "Subscription deleted successfully",
-  "status": 200
-}
-```
-
-**Example Response (no subscription)**
-
-```json
-{
-  "message": "Token not found",
-  "status": 404
-}
-```
-
-**Status Codes**
-
-| Code | Description               |
-| ---- | ------------------------- |
-| 200  | Subscription deleted      |
-| 404  | No subscription to delete |
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 201  | Credentials stored successfully                 |
+| 400  | Missing or empty `access_token` field           |
+| 500  | Internal error                                  |
 
 ---
 
@@ -158,16 +67,16 @@ curl -sk -u admin:admin -X POST \
   "https://192.168.56.6:9200/_plugins/_content_manager/update"
 ```
 
-**Example Response (success)**
+**Example Response (accepted)**
 
 ```json
 {
-  "message": "Content update triggered successfully",
-  "status": 200
+  "message": "The update request has been accepted for processing.",
+  "status": 202
 }
 ```
 
-**Example Response (no subscription)**
+**Example Response (no credentials)**
 
 ```json
 {
@@ -176,14 +85,22 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
+**Example Response (update in progress)**
+
+```json
+{
+  "message": "A content update is already in progress.",
+  "status": 409
+}
+```
+
 **Status Codes**
 
 | Code | Description                             |
 | ---- | --------------------------------------- |
-| 200  | Sync triggered successfully             |
-| 404  | No subscription token found             |
+| 202  | Update request accepted for processing  |
+| 404  | No access token registered              |
 | 409  | A content update is already in progress |
-| 429  | Rate limit exceeded                     |
 | 500  | Internal error during sync              |
 
 ---

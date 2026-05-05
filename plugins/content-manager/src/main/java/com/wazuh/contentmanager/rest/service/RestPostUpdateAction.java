@@ -34,34 +34,28 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * POST /_plugins/content-manager/update
+ * POST /_plugins/_content_manager/update
  *
  * <p>Triggers a CTI content update operation.
  *
- * <p>Possible HTTP responses: - 202 Accepted: Update operation accepted and started - 404 Not
- * Found: No subscription exists (subscription required before updating) - 401 Unauthorized: The
- * endpoint is being accessed by a different user, the expected user is wazuh-server - 409 Conflict:
- * Another update operation is already in progress - 429 Too Many Requests: Rate limit exceeded -
- * 500 Internal Server Error: Unexpected error during processing
- *
- * <p>Response headers (for rate limiting): - X-RateLimit-Limit: Maximum number of requests allowed
- * per hour - X-RateLimit-Remaining: Number of requests remaining in current window -
- * X-RateLimit-Reset: Unix timestamp when the rate limit window resets
+ * <p>Possible HTTP responses:
+ * - 202 Accepted: Update request accepted for processing.
+ * - 404 Not Found: No access token stored; POST subscription must be called first.
+ * - 409 Conflict: A content update is already in progress.
+ * - 500 Internal Server Error: Unexpected error during processing.
  */
 public class RestPostUpdateAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_update";
-    private final CtiConsole ctiConsole;
+
     private final CatalogSyncJob catalogSyncJob;
 
     /**
      * Constructs a new RestPostUpdateAction.
      *
-     * @param console The CTI console instance for managing subscriptions and tokens.
-     * @param catalogSyncJob The catalog synchronization job to trigger updates.
+     * @param catalogSyncJob the catalog synchronization job to trigger updates.
      */
-    public RestPostUpdateAction(CtiConsole console, CatalogSyncJob catalogSyncJob) {
-        this.ctiConsole = console;
+    public RestPostUpdateAction(CatalogSyncJob catalogSyncJob) {
         this.catalogSyncJob = catalogSyncJob;
     }
 
@@ -79,7 +73,6 @@ public class RestPostUpdateAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                // POST /_plugins/content-manager/update
                 new NamedRoute.Builder()
                         .path(PluginSettings.UPDATE_URI)
                         .method(POST)
@@ -87,28 +80,21 @@ public class RestPostUpdateAction extends BaseRestHandler {
                         .build());
     }
 
-    /**
-     * Prepare the request by returning a consumer that executes the update operation.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
-     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> channel.sendResponse(this.handleRequest());
     }
 
     /**
-     * Execute the update operation.
+     * Executes the update operation.
      *
      * @return a BytesRestResponse describing the outcome
      * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            // 1. Check if Token exists (404 Not Found)
-            if (this.ctiConsole.getToken() == null) {
+            // 1. Check if access token exists (404 Not Found)
+            if (PluginSettings.getInstance().getAccessToken() == null) {
                 RestResponse error =
                         new RestResponse(
                                 "Token not found. Please create a subscription before attempting to update.",
@@ -116,20 +102,21 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
             }
 
-            // 2. Conflict Check (409 Conflict)
+            // 2. Conflict check, reject if a sync is already running (409 Conflict)
             if (this.catalogSyncJob.isRunning()) {
                 RestResponse error =
                         new RestResponse(
-                                "An update operation is already in progress. Please wait for it to complete.",
+                                "A content update is already in progress.",
                                 RestStatus.CONFLICT.getStatus());
                 return new BytesRestResponse(RestStatus.CONFLICT, error.toXContent());
             }
 
-            // 3. Rate Limit Check (429 Too Many Requests)
-
-            // 4. Update Accepted (202 ACCEPTED)
+            // 3. Trigger the catalog sync and return 202 Accepted
             this.catalogSyncJob.trigger();
-            RestResponse response = new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
+            RestResponse response =
+                    new RestResponse(
+                            "The update request has been accepted for processing.",
+                            RestStatus.ACCEPTED.getStatus());
             return new BytesRestResponse(RestStatus.ACCEPTED, response.toXContent());
         } catch (Exception e) {
             RestResponse error =
