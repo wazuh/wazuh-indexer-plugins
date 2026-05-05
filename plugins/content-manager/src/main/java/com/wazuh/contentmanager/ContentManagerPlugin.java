@@ -340,8 +340,8 @@ public class ContentManagerPlugin extends Plugin
      * Attempts to load the CTI access token from the credentials index into memory.
      *
      * <p>NOTE: The in-memory token is only updated on the node that handles the POST /subscription
-     * request. Other nodes in the cluster will not see the new token until they are restarted.
-     * A cluster-wide propagation mechanism (e.g. cluster state metadata or an internal transport
+     * request. Other nodes in the cluster will not see the new token until they are restarted. A
+     * cluster-wide propagation mechanism (e.g. cluster state metadata or an internal transport
      * action) may be needed in the future to keep all nodes in sync without restart.
      */
     private void tryLoadAccessToken() {

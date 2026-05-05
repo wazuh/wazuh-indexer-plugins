@@ -17,13 +17,14 @@
 package com.wazuh.contentmanager.cti.catalog.index;
 
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -53,6 +54,7 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    @SuppressForbidden(reason = "Unit test reset")
     private static void clearPluginSettingsInstance() throws Exception {
         Field f = PluginSettings.class.getDeclaredField("INSTANCE");
         f.setAccessible(true);
@@ -83,15 +85,17 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
         when(client.get(any())).thenReturn(future);
 
         // Subclass to bypass ClusterInfo.indexStatusCheck (static, cannot be Mockito-mocked)
-        CredentialsIndex idx = new CredentialsIndex(client) {
-            @Override
-            public String getAccessToken() throws ExecutionException, InterruptedException, TimeoutException {
-                GetResponse r = client.get(null).get(10L, java.util.concurrent.TimeUnit.SECONDS);
-                if (!r.isExists()) return null;
-                Map<String, Object> src = r.getSourceAsMap();
-                return src != null ? (String) src.get(ACCESS_TOKEN_FIELD) : null;
-            }
-        };
+        CredentialsIndex idx =
+                new CredentialsIndex(client) {
+                    @Override
+                    public String getAccessToken()
+                            throws ExecutionException, InterruptedException, TimeoutException {
+                        GetResponse r = client.get(null).get(10L, java.util.concurrent.TimeUnit.SECONDS);
+                        if (!r.isExists()) return null;
+                        Map<String, Object> src = r.getSourceAsMap();
+                        return src != null ? (String) src.get(ACCESS_TOKEN_FIELD) : null;
+                    }
+                };
 
         Assert.assertNull(idx.getAccessToken());
     }
@@ -103,21 +107,24 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
 
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(true);
-        when(getResponse.getSourceAsMap()).thenReturn(Map.of(CredentialsIndex.ACCESS_TOKEN_FIELD, "my-token"));
+        when(getResponse.getSourceAsMap())
+                .thenReturn(Map.of(CredentialsIndex.ACCESS_TOKEN_FIELD, "my-token"));
 
         ActionFuture<GetResponse> future = mock(ActionFuture.class);
         when(future.get(anyLong(), any())).thenReturn(getResponse);
         when(client.get(any())).thenReturn(future);
 
-        CredentialsIndex idx = new CredentialsIndex(client) {
-            @Override
-            public String getAccessToken() throws ExecutionException, InterruptedException, TimeoutException {
-                GetResponse r = client.get(null).get(10L, java.util.concurrent.TimeUnit.SECONDS);
-                if (!r.isExists()) return null;
-                Map<String, Object> src = r.getSourceAsMap();
-                return src != null ? (String) src.get(ACCESS_TOKEN_FIELD) : null;
-            }
-        };
+        CredentialsIndex idx =
+                new CredentialsIndex(client) {
+                    @Override
+                    public String getAccessToken()
+                            throws ExecutionException, InterruptedException, TimeoutException {
+                        GetResponse r = client.get(null).get(10L, java.util.concurrent.TimeUnit.SECONDS);
+                        if (!r.isExists()) return null;
+                        Map<String, Object> src = r.getSourceAsMap();
+                        return src != null ? (String) src.get(ACCESS_TOKEN_FIELD) : null;
+                    }
+                };
 
         Assert.assertEquals("my-token", idx.getAccessToken());
     }

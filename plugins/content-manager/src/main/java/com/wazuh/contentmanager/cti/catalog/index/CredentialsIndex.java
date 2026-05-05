@@ -99,8 +99,7 @@ public class CredentialsIndex {
      * @throws InterruptedException if the current thread was interrupted.
      * @throws TimeoutException if the operation exceeded the configured timeout.
      */
-    public String getAccessToken()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public String getAccessToken() throws ExecutionException, InterruptedException, TimeoutException {
         if (!ClusterInfo.indexStatusCheck(
                 this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready: " + INDEX_NAME);

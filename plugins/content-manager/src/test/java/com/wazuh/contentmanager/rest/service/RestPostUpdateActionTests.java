@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
@@ -52,6 +53,7 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    @SuppressForbidden(reason = "Unit test reset")
     private static void clearPluginSettingsInstance() throws Exception {
         Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
         instance.setAccessible(true);
@@ -81,7 +83,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
-    /** access_token set but job already running → 409 with exact conflict message, trigger NOT called */
+    /**
+     * access_token set but job already running → 409 with exact conflict message, trigger NOT called
+     */
     public void testHandleRequest_Conflict() throws IOException {
         PluginSettings.getInstance().setAccessToken("valid-token");
         when(this.catalogSyncJob.isRunning()).thenReturn(true);

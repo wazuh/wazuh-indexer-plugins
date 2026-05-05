@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
@@ -56,6 +57,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    @SuppressForbidden(reason = "Unit test reset")
     private static void clearPluginSettingsInstance() throws Exception {
         Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
         instance.setAccessible(true);
@@ -64,9 +66,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
 
     private RestRequest buildRequest(String json) {
         return new FakeRestRequest.Builder(xContentRegistry())
-                .withContent(
-                        new BytesArray(json.getBytes(StandardCharsets.UTF_8)),
-                        XContentType.JSON)
+                .withContent(new BytesArray(json.getBytes(StandardCharsets.UTF_8)), XContentType.JSON)
                 .build();
     }
 
@@ -119,7 +119,9 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     /** Index throws → 500 */
     public void testPostCredentials500_IndexError() throws Exception {
         RestRequest request = buildRequest("{\"access_token\": \"tok\"}");
-        doThrow(new RuntimeException("Index not ready")).when(this.credentialsIndex).storeCredentials("tok");
+        doThrow(new RuntimeException("Index not ready"))
+                .when(this.credentialsIndex)
+                .storeCredentials("tok");
 
         BytesRestResponse response = this.action.handleRequest(request);
 

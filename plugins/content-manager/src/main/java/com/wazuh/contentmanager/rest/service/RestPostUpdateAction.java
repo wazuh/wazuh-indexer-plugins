@@ -26,7 +26,6 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -38,11 +37,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <p>Triggers a CTI content update operation.
  *
- * <p>Possible HTTP responses:
- * - 202 Accepted: Update request accepted for processing.
- * - 404 Not Found: No access token stored; POST subscription must be called first.
- * - 409 Conflict: A content update is already in progress.
- * - 500 Internal Server Error: Unexpected error during processing.
+ * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 404 Not
+ * Found: No access token stored; POST subscription must be called first. - 409 Conflict: A content
+ * update is already in progress. - 500 Internal Server Error: Unexpected error during processing.
  */
 public class RestPostUpdateAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
@@ -106,8 +103,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
             if (this.catalogSyncJob.isRunning()) {
                 RestResponse error =
                         new RestResponse(
-                                "A content update is already in progress.",
-                                RestStatus.CONFLICT.getStatus());
+                                "A content update is already in progress.", RestStatus.CONFLICT.getStatus());
                 return new BytesRestResponse(RestStatus.CONFLICT, error.toXContent());
             }
 

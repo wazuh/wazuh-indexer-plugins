@@ -39,10 +39,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * <p>Stores the provided CTI access token in the credentials index and in the plugin-wide
  * PluginSettings variable.
  *
- * <p>Possible HTTP responses:
- * - 201 Created: Credentials stored successfully.
- * - 400 Bad Request: Missing or empty access_token field.
- * - 500 Internal Server Error: Unexpected error during processing.
+ * <p>Possible HTTP responses: - 201 Created: Credentials stored successfully. - 400 Bad Request:
+ * Missing or empty access_token field. - 500 Internal Server Error: Unexpected error during
+ * processing.
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
@@ -98,8 +97,8 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Parses the request payload, validates the access_token field, persists it, and updates
-     * the plugin-wide variable.
+     * Parses the request payload, validates the access_token field, persists it, and updates the
+     * plugin-wide variable.
      *
      * @param request the incoming REST request
      * @return a BytesRestResponse representing the operation result
@@ -123,8 +122,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         if (accessToken == null || accessToken.isBlank()) {
             RestResponse error =
                     new RestResponse(
-                            "Missing [" + ACCESS_TOKEN_FIELD + "] field.",
-                            RestStatus.BAD_REQUEST.getStatus());
+                            "Missing [" + ACCESS_TOKEN_FIELD + "] field.", RestStatus.BAD_REQUEST.getStatus());
             return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
         }
 
