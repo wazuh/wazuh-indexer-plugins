@@ -6,7 +6,7 @@
         "id": {
           "type": "keyword"
         },
-        "parent_decoder": {
+        "default_parent": {
           "type": "keyword"
         },
         "category": {

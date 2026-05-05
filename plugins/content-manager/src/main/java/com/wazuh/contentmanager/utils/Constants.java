@@ -102,7 +102,7 @@ public class Constants {
     public static final String INDEX_KVDBS = "wazuh-threatintel-kvdbs";
     public static final String INDEX_DECODERS = "wazuh-threatintel-decoders";
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
-    public static final String INDEX_CVES = "wazuh-threatintel-vulnerabilities";
+    public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
