@@ -30,6 +30,7 @@ import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -480,6 +481,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
      * hash computation completes. Only one PIT should be created (for hash computation), and
      * engineService.updateIoc should never be called.
      */
+    @SuppressForbidden(reason = "Setting system property required to test INDEXER_TEST_ENV gate")
     @SuppressWarnings("unchecked")
     public void testOnSyncCompleteSkipsExportInTestEnvironment() {
         System.setProperty("INDEXER_TEST_ENV", "true");
