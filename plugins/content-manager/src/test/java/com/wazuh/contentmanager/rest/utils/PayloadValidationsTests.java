@@ -70,19 +70,19 @@ public class PayloadValidationsTests extends OpenSearchTestCase {
     }
 
     public void testValidateDetector_validAllFields_returnsNull() throws Exception {
-        String json = detectorJson("[\"wazuh-findings-v5-security\"]", "5", "true");
+        String json = detectorJson("[\"wazuh-events-v5-security\"]", "5", "true");
         assertNull(this.validations.validateDetector(parse(json)));
     }
 
     public void testValidateDetector_validWildcardSource_returnsNull() throws Exception {
-        String json = detectorJson("[\"wazuh-findings-v5*\"]", "1", "false");
+        String json = detectorJson("[\"wazuh-events-v5*\"]", "1", "false");
         assertNull(this.validations.validateDetector(parse(json)));
     }
 
     public void testValidateDetector_multipleValidSources_returnsNull() throws Exception {
         String json =
                 detectorJson(
-                        "[\"wazuh-findings-v5-security\",\"wazuh-findings-v5-applications\"]", "2", "true");
+                        "[\"wazuh-events-v5-security\",\"wazuh-events-v5-applications\"]", "2", "true");
         assertNull(this.validations.validateDetector(parse(json)));
     }
 
@@ -97,7 +97,7 @@ public class PayloadValidationsTests extends OpenSearchTestCase {
     public void testValidateDetector_missingInterval_returnsBadRequest() throws Exception {
         RestResponse response =
                 this.validations.validateDetector(
-                        parse(detectorJson("[\"wazuh-findings-v5-security\"]", null, "true")));
+                        parse(detectorJson("[\"wazuh-events-v5-security\"]", null, "true")));
         assertNotNull(response);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(Constants.E_400_MISSING_DETECTOR_FIELDS, response.getMessage());
@@ -106,7 +106,7 @@ public class PayloadValidationsTests extends OpenSearchTestCase {
     public void testValidateDetector_missingEnabled_returnsBadRequest() throws Exception {
         RestResponse response =
                 this.validations.validateDetector(
-                        parse(detectorJson("[\"wazuh-findings-v5-security\"]", "2", null)));
+                        parse(detectorJson("[\"wazuh-events-v5-security\"]", "2", null)));
         assertNotNull(response);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(Constants.E_400_MISSING_DETECTOR_FIELDS, response.getMessage());
@@ -124,7 +124,7 @@ public class PayloadValidationsTests extends OpenSearchTestCase {
     public void testValidateDetector_zeroInterval_returnsBadRequest() throws Exception {
         RestResponse response =
                 this.validations.validateDetector(
-                        parse(detectorJson("[\"wazuh-findings-v5-security\"]", "0", "true")));
+                        parse(detectorJson("[\"wazuh-events-v5-security\"]", "0", "true")));
         assertNotNull(response);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(Constants.E_400_INVALID_DETECTOR_INTERVAL, response.getMessage());
@@ -133,7 +133,7 @@ public class PayloadValidationsTests extends OpenSearchTestCase {
     public void testValidateDetector_negativeInterval_returnsBadRequest() throws Exception {
         RestResponse response =
                 this.validations.validateDetector(
-                        parse(detectorJson("[\"wazuh-findings-v5-security\"]", "-1", "true")));
+                        parse(detectorJson("[\"wazuh-events-v5-security\"]", "-1", "true")));
         assertNotNull(response);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(Constants.E_400_INVALID_DETECTOR_INTERVAL, response.getMessage());
@@ -142,7 +142,7 @@ public class PayloadValidationsTests extends OpenSearchTestCase {
     public void testValidateDetector_stringInterval_returnsBadRequest() throws Exception {
         RestResponse response =
                 this.validations.validateDetector(
-                        parse(detectorJson("[\"wazuh-findings-v5-security\"]", "\"five\"", "true")));
+                        parse(detectorJson("[\"wazuh-events-v5-security\"]", "\"five\"", "true")));
         assertNotNull(response);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         assertEquals(Constants.E_400_INVALID_DETECTOR_INTERVAL, response.getMessage());
