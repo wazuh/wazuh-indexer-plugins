@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
@@ -79,6 +80,33 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      */
     protected String getCurrentDate() {
         return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
+    }
+
+    /**
+     * Checks whether the incoming request uses {@code application/yaml} content type.
+     *
+     * <p>Uses {@link RestRequest#getMediaType()} which is set by the OpenSearch framework after
+     * parsing the Content-Type header. A try-catch guards against null internal state in test mocks.
+     *
+     * @param request The REST request.
+     * @return {@code true} if the request content type is YAML.
+     */
+    protected boolean isYamlRequest(RestRequest request) {
+        try {
+            return XContentType.YAML.equals(request.getMediaType());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Indicates if this resource type supports YAML field storage. When true, a {@code yaml} field
+     * containing the YAML representation of the resource is stored alongside the document.
+     *
+     * @return false by default. Override to return true for Decoders, KVDBs, and Filters.
+     */
+    protected boolean supportsYamlField() {
+        return false;
     }
 
     /**

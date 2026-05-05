@@ -122,7 +122,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         mappings.put(Constants.KEY_DECODER, "/mappings/cti-decoders-mappings.json");
         mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
         mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
-        mappings.put(Constants.KEY_FILTERS, "/mappings/engine-filters-mappings.json");
         mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
     }
