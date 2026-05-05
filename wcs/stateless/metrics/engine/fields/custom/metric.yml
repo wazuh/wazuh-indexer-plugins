@@ -1,0 +1,32 @@
+---
+- name: metric
+  title: Metric
+  description: >
+    Individual metric entry from the Wazuh Engine.
+  type: group
+  group: 2
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        Name of the metric (e.g. router.queue.size, events.unclassified).
+      example: "router.queue.size"
+    - name: type
+      type: keyword
+      level: custom
+      description: >
+        Collection type of the metric (e.g. pull, counter).
+      example: "pull"
+    - name: enabled
+      type: boolean
+      level: custom
+      description: >
+        Whether the metric is currently enabled.
+      example: true
+    - name: value
+      type: float
+      level: custom
+      description: >
+        Numeric value of the metric. Can be an integer count or a floating-point ratio.
+      example: 0
