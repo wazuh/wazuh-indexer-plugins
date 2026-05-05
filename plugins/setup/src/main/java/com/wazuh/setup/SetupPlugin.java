@@ -130,6 +130,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // Metrics data streams
         this.indices.add(new StreamIndex("wazuh-metrics-agents", "templates/streams/metrics-agents"));
         this.indices.add(new StreamIndex("wazuh-metrics-comms", "templates/streams/metrics-comms"));
+        this.indices.add(new StreamIndex("wazuh-metrics-normalization", "templates/streams/metrics-normalization"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));

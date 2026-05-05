@@ -26,6 +26,7 @@ module_to_file=(
   [stateless/events/unclassified]=templates/streams/unclassified.json
   [stateless/metrics/agents]=templates/streams/metrics-agents.json
   [stateless/metrics/comms]=templates/streams/metrics-comms.json
+  [stateless/metrics/engine]=templates/streams/metrics-normalization.json
   # Settings module
   [settings]=templates/settings.json
   # Engine filter module
