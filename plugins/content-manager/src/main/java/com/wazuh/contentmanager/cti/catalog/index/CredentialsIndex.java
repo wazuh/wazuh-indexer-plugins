@@ -135,7 +135,7 @@ public class CredentialsIndex {
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
         Settings settings =
-                Settings.builder().put("index.number_of_replicas", 0).put("hidden", true).build();
+                Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
 
         String mappings;
         try {

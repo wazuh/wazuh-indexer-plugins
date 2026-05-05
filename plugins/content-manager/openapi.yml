@@ -86,27 +86,21 @@ paths:
     post:
       summary: Initiate On-Demand Content Update
       description: |
-        Trigger an immediate update of threat intelligence content from subscribed CTI feeds.
-        This operation is asynchronous and returns immediately with a task identifier.
+        Trigger an immediate update of the registered consumers.
+        This operation is asynchronous and returns immediately.
         The update process runs in the background and may take several minutes to complete
         depending on the volume of new threat intelligence data.
-
-        **Rate Limiting**: This endpoint is rate-limited to prevent excessive API calls.
-        The default limit is 10 requests per hour.
+        If a content update is already in progress, the request is rejected with a 409 response.
       operationId: updateContent
       tags:
         - Content Updates
       responses:
         "202":
           $ref: "#/components/responses/UpdateAccepted"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -2096,22 +2090,6 @@ components:
               value:
                 message: "The update request has been accepted for processing."
                 status: 202
-      headers:
-        X-RateLimit-Limit:
-          description: The maximum number of requests allowed per hour.
-          schema:
-            type: integer
-            example: 10
-        X-RateLimit-Remaining:
-          description: The number of requests remaining in the current window.
-          schema:
-            type: integer
-            example: 7
-        X-RateLimit-Reset:
-          description: The time at which the current rate limit window resets (Unix timestamp).
-          schema:
-            type: integer
-            example: 1699963200
 
     OkResponse:
       description: |
@@ -2185,9 +2163,6 @@ components:
                 message: "Cannot remove decoder [82e215c4-988a-4f64-8d15-b98b2fc03a4f] as it is set as root decoder."
                 status: 400
 
-    Unauthorized:
-      description: Unauthorized - Authentication failed or credentials are invalid.
-
     ResourceDeleted:
       description: OK - Resource deleted successfully.
       content:
@@ -2239,39 +2214,6 @@ components:
               value:
                 message: "A content update is already in progress."
                 status: 409
-
-    TooManyRequests:
-      description: Too Many Requests - Rate limit exceeded.
-      headers:
-        X-RateLimit-Limit:
-          description: The maximum number of requests allowed per hour.
-          schema:
-            type: integer
-            example: 10
-        X-RateLimit-Remaining:
-          description: The number of requests remaining (will be 0).
-          schema:
-            type: integer
-            example: 0
-        X-RateLimit-Reset:
-          description: The time at which the current rate limit window resets (Unix timestamp).
-          schema:
-            type: integer
-            example: 1699963200
-        Retry-After:
-          description: Number of seconds to wait before retrying.
-          schema:
-            type: integer
-            example: 3600
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/RestResponse"
-          examples:
-            rate_limit_exceeded:
-              summary: Rate limit exceeded
-              value:
-                error: "Too many update requests. Please try again later."
 
     InternalServerError:
       description: |
