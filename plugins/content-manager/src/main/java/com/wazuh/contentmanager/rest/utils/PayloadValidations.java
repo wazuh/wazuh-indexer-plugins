@@ -50,14 +50,14 @@ public class PayloadValidations {
     /** Index patterns allowed in a detector's {@code source} array. */
     public static final Set<String> ALLOWED_DETECTOR_SOURCES =
             Set.of(
-                    "wazuh-findings-v5-access-management",
-                    "wazuh-findings-v5-applications",
-                    "wazuh-findings-v5-cloud-services",
-                    "wazuh-findings-v5-network-activity",
-                    "wazuh-findings-v5-other",
-                    "wazuh-findings-v5-security",
-                    "wazuh-findings-v5-system-activity",
-                    "wazuh-findings-v5*");
+                    "wazuh-events-v5-access-management",
+                    "wazuh-events-v5-applications",
+                    "wazuh-events-v5-cloud-services",
+                    "wazuh-events-v5-network-activity",
+                    "wazuh-events-v5-other",
+                    "wazuh-events-v5-security",
+                    "wazuh-events-v5-system-activity",
+                    "wazuh-events-v5*");
 
     /** Public constructor to allow instantiation. */
     public PayloadValidations() {}
@@ -426,6 +426,12 @@ public class PayloadValidations {
         if (!intervalNode.isInt() || intervalNode.asInt() <= 0) {
             return new RestResponse(
                     Constants.E_400_INVALID_DETECTOR_INTERVAL, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        JsonNode enabledNode = detector.get(Constants.KEY_ENABLED);
+        if (!enabledNode.isBoolean()) {
+            return new RestResponse(
+                    "detector.enabled must be a boolean.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         return null;
