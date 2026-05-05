@@ -475,6 +475,42 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         verify(this.engineService, never()).updateIoc(anyString(), anyString());
     }
 
+    /**
+     * Tests that when INDEXER_TEST_ENV=true, the export and engine notification are skipped after
+     * hash computation completes. Only one PIT should be created (for hash computation), and
+     * engineService.updateIoc should never be called.
+     */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncCompleteSkipsExportInTestEnvironment() {
+        System.setProperty("INDEXER_TEST_ENV", "true");
+        try {
+            this.mockPitLifecycle();
+
+            // Mock search returning empty results (hash computation finds no docs)
+            SearchResponse emptySearchResponse = mock(SearchResponse.class);
+            when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+            ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
+            when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
+            when(this.client.search(any(SearchRequest.class))).thenReturn(emptyFuture);
+
+            this.mockIndexResponse();
+
+            this.service.onSyncComplete(true);
+
+            // Only one PIT should be created (hash computation), not a second one for export
+            verify(this.client, times(1))
+                    .execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+            verify(this.client, times(1))
+                    .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+
+            // Engine should never be notified
+            verify(this.engineService, never()).updateIoc(anyString(), anyString());
+            verify(this.engineService, never()).getIocState();
+        } finally {
+            System.clearProperty("INDEXER_TEST_ENV");
+        }
+    }
+
     /** Tests that search is paginated — one search per type (all empty) plus no extra. */
     @SuppressWarnings("unchecked")
     public void testEmptyIndexProducesEmptyTypeHashes() throws Exception {

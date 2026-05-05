@@ -129,7 +129,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
 
             if ("true".equals(System.getProperty("INDEXER_TEST_ENV"))) {
-                log.info(Constants.E_LOG_IOC_EXPORT_FAILED, "test environment");
+                log.info("IOCs export skipped: test environment");
                 return;
             }
             // Export IoCs to NDJSON and load them into the Engine.
