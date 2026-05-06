@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "9f3a25c1-8e2c-4bd9-a4d7-2b1f7c0e9012",
     "name": "Engine Validation Gating on Promotion — Validation",
-    "description": "Validates that the Content Manager only forwards a promotion payload to the local Wazuh Engine when the changeset touches engine-related resources.\n\nBackground:\n  RestPostPromoteAction#handleRequest used to call engine.promote() for every DRAFT→TEST promotion, including promotions that only modify integrations, rules, or the policy — none of which are processed by the engine. The new condition skips the engine call unless decoders, kvdbs, or filters are part of the changeset (apply or delete).\n\nExpected behavior under test:\n  - DRAFT→TEST promotions whose changes contain only integrations, rules, or policy succeed without consulting the engine.\n  - DRAFT→TEST promotions whose changes contain decoders, kvdbs, or filters still go through engine validation.\n\nHow to use:\n  1. Import this collection.\n  2. Set `baseUrl`, `cm_username`, `cm_password` in the collection variables (defaults: https://localhost:9200, admin/admin).\n  3. Run folders 0 → 2 in order. Resource IDs are auto-captured.\n\nValidating the gating with the engine OFF (recommended):\n  After running folder 0 (bootstrap), stop the wazuh-engine service and re-run a fresh execution from folder 0. With the engine down:\n    - Folder 1 requests should still return 200 (engine call was skipped — the new behavior).\n    - Folder 2 requests should return 500 (engine call attempted, engine unreachable).\n  Without the fix, every folder 1 request would also fail with 500.\n\nNotes:\n  - Each test issues a single POST /_plugins/_content_manager/promote with a hand-crafted payload, scoped to a specific resource type so the gating condition is exercised in isolation.\n  - Resources used per test are distinct so that ADD operations do not collide with previously promoted entries.",
+    "description": "Validates that the Content Manager only forwards a promotion payload to the local Wazuh Engine when the changeset touches engine-related resources.\n\nBackground:\n  RestPostPromoteAction#handleRequest used to call engine.promote() for every DRAFT→TEST promotion, including promotions that only modify integrations, rules, or the policy — none of which are processed by the engine. The new condition skips the engine call unless decoders, kvdbs, or filters are part of the changeset (apply or delete).\n\nExpected behavior under test:\n  - DRAFT→TEST promotions whose changes contain only integrations, rules, or policy succeed without consulting the engine.\n  - DRAFT→TEST promotions whose changes contain decoders, kvdbs, or filters still go through engine validation.\n\nHow to use:\n  1. Import this collection.\n  2. Set `baseUrl`, `cm_username`, `cm_password` in the collection variables (defaults: https://localhost:9200, admin/admin).\n  3. Run folders 0 → 2 in order. Resource IDs are auto-captured.\n\nValidating the gating with the engine OFF (recommended):\n  After running folder 0 (bootstrap), stop the wazuh-engine service and re-run a fresh execution from folder 0. With the engine down:\n    - Folder 1 requests should still return 200 (engine call was skipped — the new behavior).\n    - Folder 2 requests should return 500 (engine call attempted, engine unreachable). With the engine UP, folder 2 may also return 200 (accepted) or 400 (engine validation rejected the policy); any of these confirms the engine was reached.\n  Without the fix, every folder 1 request would also fail with 500.\n\nNotes:\n  - Each test issues a single POST /_plugins/_content_manager/promote with a hand-crafted payload, scoped to a specific resource type so the gating condition is exercised in isolation.\n  - Resources used per test are distinct so that ADD operations do not collide with previously promoted entries.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -209,7 +209,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"integration\": \"{{integration_a_id}}\",\n  \"resource\": {\n    \"logsource\": { \"product\": \"engine-gating\" },\n    \"tags\": [\"engine-gating\"],\n    \"falsepositives\": [\"Unknown\"],\n    \"level\": \"low\",\n    \"status\": \"test\",\n    \"references\": [],\n    \"metadata\": {\n      \"author\": \"Wazuh\",\n      \"title\": \"Engine gating rule\",\n      \"description\": \"Rule used by engine gating tests\"\n    },\n    \"compliance\": { \"pci_dss\": [\"6.2\"], \"gdpr\": [\"32\"] },\n    \"mitre\": { \"tactic\": [\"TA0040\"], \"technique\": [\"T1499\"] },\n    \"detection\": {\n      \"condition\": \"selection\",\n      \"selection\": { \"message|contains\": \"engine-gating\" }\n    }\n  }\n}",
+              "raw": "{\n  \"integration\": \"{{integration_a_id}}\",\n  \"resource\": {\n    \"logsource\": { \"product\": \"engine-gating-a\" },\n    \"tags\": [\"attack.credential-access\", \"attack.t1555.005\"],\n    \"falsepositives\": [\"Unknown\"],\n    \"level\": \"high\",\n    \"status\": \"test\",\n    \"references\": [],\n    \"metadata\": {\n      \"author\": \"Wazuh\",\n      \"title\": \"Engine gating rule\",\n      \"description\": \"Rule used by engine gating tests\"\n    },\n    \"compliance\": { \"pci_dss\": [\"6.2\", \"11.4\"], \"gdpr\": [\"32\"] },\n    \"mitre\": { \"tactic\": [\"TA0040\"], \"technique\": [\"T1499\"] },\n    \"detection\": {\n      \"condition\": \"selection\",\n      \"selection\": { \"message|contains\": \"engine-gating\" }\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -252,7 +252,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"space\": \"draft\",\n  \"resource\": {\n    \"name\": \"filter/engine-gating-a/0\",\n    \"metadata\": {\n      \"title\": \"Engine gating filter\",\n      \"author\": \"Wazuh Inc.\",\n      \"description\": \"Filter used by engine gating tests.\",\n      \"references\": [\"https://wazuh.com\"]\n    }\n  }\n}",
+              "raw": "{\n  \"space\": \"draft\",\n  \"resource\": {\n    \"name\": \"filter/engine-gating-a/0\",\n    \"enabled\": true,\n    \"type\": \"pre-filter\",\n    \"check\": \"$wazuh.integration.category == 'system-activity'\",\n    \"metadata\": {\n      \"title\": \"Engine gating filter\",\n      \"description\": \"Filter used by engine gating tests.\",\n      \"author\": {\n        \"name\": \"Wazuh, Inc.\",\n        \"email\": \"info@wazuh.com\",\n        \"url\": \"https://wazuh.com\"\n      },\n      \"references\": [\"https://wazuh.com\"]\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -459,8 +459,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200 (engine reachable) or 500 (engine down)', function () {",
-                  "    pm.expect([200, 500]).to.include(pm.response.code);",
+                  "pm.test('Engine was reached (status 200, 400 or 500)', function () {",
+                  "    pm.expect([200, 400, 500]).to.include(pm.response.code);",
                   "});",
                   "if (pm.response.code === 200) {",
                   "    pm.test('Promotion completed', function () {",
@@ -496,7 +496,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["_plugins", "_content_manager", "promote"]
             },
-            "description": "Decoders are part of the engine payload — the gating condition forwards the changeset to engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
+            "description": "Decoders are part of the engine payload — the gating condition forwards the changeset to engine.promote(). Any of {200, 400, 500} confirms the engine was reached: 200 = engine accepted; 400 = engine rejected the policy; 500 = engine unreachable."
           },
           "response": []
         },
@@ -508,8 +508,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200 (engine reachable) or 500 (engine down)', function () {",
-                  "    pm.expect([200, 500]).to.include(pm.response.code);",
+                  "pm.test('Engine was reached (status 200, 400 or 500)', function () {",
+                  "    pm.expect([200, 400, 500]).to.include(pm.response.code);",
                   "});",
                   "if (pm.response.code === 200) {",
                   "    pm.test('Promotion completed', function () {",
@@ -545,7 +545,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["_plugins", "_content_manager", "promote"]
             },
-            "description": "KVDBs are part of the engine payload — gating still routes this through engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
+            "description": "KVDBs are part of the engine payload — gating still routes this through engine.promote(). Any of {200, 400, 500} confirms the engine was reached: 200 = engine accepted; 400 = engine rejected the policy; 500 = engine unreachable."
           },
           "response": []
         },
@@ -557,8 +557,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200 (engine reachable) or 500 (engine down)', function () {",
-                  "    pm.expect([200, 500]).to.include(pm.response.code);",
+                  "pm.test('Engine was reached (status 200, 400 or 500)', function () {",
+                  "    pm.expect([200, 400, 500]).to.include(pm.response.code);",
                   "});",
                   "if (pm.response.code === 200) {",
                   "    pm.test('Promotion completed', function () {",
@@ -594,7 +594,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["_plugins", "_content_manager", "promote"]
             },
-            "description": "Filters are part of the engine payload — gating still routes this through engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
+            "description": "Filters are part of the engine payload — gating still routes this through engine.promote(). Any of {200, 400, 500} confirms the engine was reached: 200 = engine accepted; 400 = engine rejected the policy; 500 = engine unreachable."
           },
           "response": []
         }
