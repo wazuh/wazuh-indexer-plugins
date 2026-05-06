@@ -136,5 +136,4 @@ public class AuthServiceTests extends OpenSearchTestCase {
         token = this.authService.getToken(subscription);
         Assert.assertNull(token);
     }
-
 }

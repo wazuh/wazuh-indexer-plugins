@@ -37,8 +37,8 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link TokenExchangeService} interface and its implementation. This test suite
- * validates the token exchange flow, where an access token is exchanged for a temporary
- * HMAC-signed URL granting access to a specific CTI resource.
+ * validates the token exchange flow, where an access token is exchanged for a temporary HMAC-signed
+ * URL granting access to a specific CTI resource.
  */
 public class TokenExchangeServiceTests extends OpenSearchTestCase {
     private TokenExchangeService tokenExchangeService;
