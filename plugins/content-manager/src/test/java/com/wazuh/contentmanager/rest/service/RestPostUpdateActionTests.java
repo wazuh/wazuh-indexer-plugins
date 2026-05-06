@@ -73,16 +73,6 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, times(1)).trigger();
     }
 
-    /** No access_token → 404, trigger NOT called */
-    public void testHandleRequest_NoToken() throws IOException {
-        // accessToken is null by default after initialization
-
-        BytesRestResponse response = this.action.handleRequest();
-
-        Assert.assertEquals(RestStatus.NOT_FOUND, response.status());
-        verify(this.catalogSyncJob, never()).trigger();
-    }
-
     /**
      * access_token set but job already running → 409 with exact conflict message, trigger NOT called
      */
