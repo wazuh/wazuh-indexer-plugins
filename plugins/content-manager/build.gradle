@@ -161,6 +161,7 @@ testClusters.integTest {
   jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
   jvmArgs '-XX:NativeMemoryTracking=summary'
   jvmArgs '-Xms1g', '-Xmx1g'
+  jvmArgs '-Xss2m'
 
   // The plugin's REST handlers use blocking actionGet() calls on transport threads.
   // This is a pre-existing design issue (28+ occurrences across the codebase) that
