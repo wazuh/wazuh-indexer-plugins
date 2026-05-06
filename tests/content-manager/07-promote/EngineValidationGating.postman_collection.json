@@ -1,0 +1,534 @@
+{
+  "info": {
+    "_postman_id": "9f3a25c1-8e2c-4bd9-a4d7-2b1f7c0e9012",
+    "name": "Engine Validation Gating on Promotion — Validation",
+    "description": "Validates that the Content Manager only forwards a promotion payload to the local Wazuh Engine when the changeset touches engine-related resources.\n\nBackground:\n  RestPostPromoteAction#handleRequest used to call engine.promote() for every DRAFT→TEST promotion, including promotions that only modify integrations, rules, filters, or the policy — none of which are processed by the engine. The new condition skips the engine call unless decoders or kvdbs are part of the changeset (apply or delete).\n\nExpected behavior under test:\n  - DRAFT→TEST promotions whose changes contain only integrations, rules, or policy succeed without consulting the engine.\n  - DRAFT→TEST promotions whose changes contain decoders or kvdbs still go through engine validation.\n\nHow to use:\n  1. Import this collection.\n  2. Set `baseUrl`, `cm_username`, `cm_password` in the collection variables (defaults: https://localhost:9200, admin/admin).\n  3. Run folders 0 → 2 in order. Resource IDs are auto-captured.\n\nValidating the gating with the engine OFF (recommended):\n  After running folder 0 (bootstrap), stop the wazuh-engine service and re-run a fresh execution from folder 0. With the engine down:\n    - Folder 1 requests should still return 200 (engine call was skipped — the new behavior).\n    - Folder 2 requests should return 500 (engine call attempted, engine unreachable).\n  Without the fix, every folder 1 request would also fail with 500.\n\nNotes:\n  - Each test issues a single POST /_plugins/_content_manager/promote with a hand-crafted payload, scoped to a specific resource type so the gating condition is exercised in isolation.\n  - Resources used per test are distinct so that ADD operations do not collide with previously promoted entries.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Bootstrap (DRAFT)",
+      "item": [
+        {
+          "name": "0.1 Create Integration A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Integration A created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const body = pm.response.json();",
+                  "if (body && body.message) {",
+                  "    pm.collectionVariables.set('integration_a_id', body.message);",
+                  "    console.log('integration_a_id:', body.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource\": {\n    \"metadata\": {\n      \"title\": \"engine-gating-a\",\n      \"author\": \"Wazuh Inc.\",\n      \"description\": \"Parent integration for decoder/kvdb/rule used by engine gating tests.\",\n      \"documentation\": \"engine-validation-gating\",\n      \"references\": [\"https://wazuh.com\"]\n    },\n    \"category\": \"system-activity\",\n    \"enabled\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/integrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "integrations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.2 Create Integration B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Integration B created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const body = pm.response.json();",
+                  "if (body && body.message) {",
+                  "    pm.collectionVariables.set('integration_b_id', body.message);",
+                  "    console.log('integration_b_id:', body.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource\": {\n    \"metadata\": {\n      \"title\": \"engine-gating-b\",\n      \"author\": \"Wazuh Inc.\",\n      \"description\": \"Standalone integration used to test engine-skip on integration-only promotion.\",\n      \"documentation\": \"engine-validation-gating\",\n      \"references\": [\"https://wazuh.com\"]\n    },\n    \"category\": \"system-activity\",\n    \"enabled\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/integrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "integrations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.3 Create Decoder A (under Integration A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Decoder A created', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "if (body && body.message) {",
+                  "    pm.collectionVariables.set('decoder_a_id', body.message);",
+                  "    console.log('decoder_a_id:', body.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integration\": \"{{integration_a_id}}\",\n  \"resource\": {\n    \"enabled\": true,\n    \"metadata\": {\n      \"compatibility\": \"All wazuh events.\",\n      \"description\": \"Decoder used by engine gating tests.\",\n      \"module\": \"wazuh\",\n      \"references\": [\"https://documentation.wazuh.com/\"],\n      \"title\": \"engine-gating decoder\",\n      \"versions\": [\"Wazuh 5.*\"]\n    },\n    \"name\": \"decoder/engine-gating-a/0\",\n    \"normalize\": [\n      { \"map\": [ { \"@timestamp\": \"get_date()\" } ] }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/decoders",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "decoders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.4 Create KVDB A (under Integration A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('KVDB A created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const body = pm.response.json();",
+                  "if (body && body.message) {",
+                  "    pm.collectionVariables.set('kvdb_a_id', body.message);",
+                  "    console.log('kvdb_a_id:', body.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integration\": \"{{integration_a_id}}\",\n  \"resource\": {\n    \"enabled\": true,\n    \"metadata\": {\n      \"title\": \"engine-gating kvdb\",\n      \"author\": \"Wazuh Inc.\",\n      \"description\": \"KVDB used by engine gating tests.\",\n      \"references\": [\"https://wazuh.com\"]\n    },\n    \"content\": {\n      \"foo\": \"bar\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/kvdbs",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "kvdbs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.5 Create Rule A (under Integration A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Rule A created', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "if (body && body.message) {",
+                  "    pm.collectionVariables.set('rule_a_id', body.message);",
+                  "    console.log('rule_a_id:', body.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integration\": \"{{integration_a_id}}\",\n  \"resource\": {\n    \"logsource\": { \"product\": \"engine-gating\" },\n    \"tags\": [\"engine-gating\"],\n    \"falsepositives\": [\"Unknown\"],\n    \"level\": \"low\",\n    \"status\": \"test\",\n    \"references\": [],\n    \"metadata\": {\n      \"author\": \"Wazuh\",\n      \"title\": \"Engine gating rule\",\n      \"description\": \"Rule used by engine gating tests\"\n    },\n    \"compliance\": { \"pci_dss\": [\"6.2\"], \"gdpr\": [\"32\"] },\n    \"mitre\": { \"tactic\": [\"TA0040\"], \"technique\": [\"T1499\"] },\n    \"detection\": {\n      \"condition\": \"selection\",\n      \"selection\": { \"message|contains\": \"engine-gating\" }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/rules",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "rules"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Creates one resource per type in DRAFT. Each test in folders 1 and 2 promotes a distinct subset so ADD operations don't collide."
+    },
+    {
+      "name": "1. Engine SKIPPED (no decoders/kvdbs in changeset)",
+      "item": [
+        {
+          "name": "1.1 Promote Integration B only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Promotion completed', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.match(/promotion completed/i);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [],\n    \"integrations\": [{ \"operation\": \"add\", \"id\": \"{{integration_b_id}}\" }],\n    \"kvdbs\": [],\n    \"decoders\": [],\n    \"filters\": [],\n    \"rules\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "Promotes a single integration with no decoder/kvdb activity. The new gating condition should bypass engine.promote(). With the engine OFF, this request should still return 200."
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Promote Integration A only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Promotion completed', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.match(/promotion completed/i);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [],\n    \"integrations\": [{ \"operation\": \"add\", \"id\": \"{{integration_a_id}}\" }],\n    \"kvdbs\": [],\n    \"decoders\": [],\n    \"filters\": [],\n    \"rules\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "Brings Integration A to TEST so subsequent rule/decoder/kvdb promotions have their parent in target. Engine is still skipped — this changeset has no decoders/kvdbs."
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Promote Rule A only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Promotion completed', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.match(/promotion completed/i);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [],\n    \"integrations\": [],\n    \"kvdbs\": [],\n    \"decoders\": [],\n    \"filters\": [],\n    \"rules\": [{ \"operation\": \"add\", \"id\": \"{{rule_a_id}}\" }]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "Rules aren't part of the engine payload, so this promotion should succeed without engine.promote() being called."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Promote Policy UPDATE only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Promotion completed', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.match(/promotion completed/i);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [{ \"operation\": \"update\", \"id\": \"policy\" }],\n    \"integrations\": [],\n    \"kvdbs\": [],\n    \"decoders\": [],\n    \"filters\": [],\n    \"rules\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "A policy-only UPDATE has no decoder/kvdb activity, so the engine call is gated off. The handler resolves the source policy by space, not by id, so 'policy' is a placeholder."
+          },
+          "response": []
+        }
+      ],
+      "description": "Each promotion in this folder lacks decoders and kvdbs in the changeset. With the gating fix in place, engine.promote() is never invoked and these requests succeed even when the engine is down."
+    },
+    {
+      "name": "2. Engine INVOKED (decoders or kvdbs present)",
+      "item": [
+        {
+          "name": "2.1 Promote Decoder A only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 (engine reachable) or 500 (engine down)', function () {",
+                  "    pm.expect([200, 500]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Promotion completed', function () {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body.message).to.match(/promotion completed/i);",
+                  "    });",
+                  "} else {",
+                  "    console.log('Engine appears unreachable — confirms gating still routes decoder changes through engine.promote().');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [],\n    \"integrations\": [],\n    \"kvdbs\": [],\n    \"decoders\": [{ \"operation\": \"add\", \"id\": \"{{decoder_a_id}}\" }],\n    \"filters\": [],\n    \"rules\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "Decoders are part of the engine payload — the gating condition forwards the changeset to engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Promote KVDB A only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 (engine reachable) or 500 (engine down)', function () {",
+                  "    pm.expect([200, 500]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Promotion completed', function () {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body.message).to.match(/promotion completed/i);",
+                  "    });",
+                  "} else {",
+                  "    console.log('Engine appears unreachable — confirms gating still routes kvdb changes through engine.promote().');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [],\n    \"integrations\": [],\n    \"kvdbs\": [{ \"operation\": \"add\", \"id\": \"{{kvdb_a_id}}\" }],\n    \"decoders\": [],\n    \"filters\": [],\n    \"rules\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "KVDBs are part of the engine payload — gating still routes this through engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
+          },
+          "response": []
+        }
+      ],
+      "description": "Each promotion in this folder includes a decoder or kvdb. The gating condition leaves the engine call in place, so the outcome depends on engine reachability."
+    }
+  ],
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{cm_username}}", "type": "string" },
+      { "key": "password", "value": "{{cm_password}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:9200",
+      "description": "OpenSearch base URL (no trailing slash)"
+    },
+    { "key": "cm_username", "value": "admin" },
+    { "key": "cm_password", "value": "admin" },
+    { "key": "integration_a_id", "value": "", "description": "Auto-captured from 0.1" },
+    { "key": "integration_b_id", "value": "", "description": "Auto-captured from 0.2" },
+    { "key": "decoder_a_id", "value": "", "description": "Auto-captured from 0.3" },
+    { "key": "kvdb_a_id", "value": "", "description": "Auto-captured from 0.4" },
+    { "key": "rule_a_id", "value": "", "description": "Auto-captured from 0.5" }
+  ]
+}

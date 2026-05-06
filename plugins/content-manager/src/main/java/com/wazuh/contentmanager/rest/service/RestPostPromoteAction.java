@@ -171,8 +171,9 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 2. Gathering Phase - Build the engine payload
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
-            // 3. Validation Phase - Invoke engine validation only for test promotions
-            if (spaceDiff.getSpace().promote() == Space.TEST) {
+            // 3. Validation Phase - Invoke engine validation only for test promotions that
+            // touch engine-related resources (decoders or kvdbs).
+            if (spaceDiff.getSpace().promote() == Space.TEST && hasEngineRelatedChanges(context)) {
                 RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
                 // Check if engine validation was successful
@@ -216,6 +217,21 @@ public class RestPostPromoteAction extends BaseRestHandler {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
+    }
+
+    /**
+     * Indicates whether the promotion involves resources that require engine validation. Only
+     * decoders and kvdbs are processed by the engine, so promotions limited to other resource types
+     * (integrations, filters, rules, policy) can skip the engine call entirely.
+     *
+     * @param context The gathered promotion context.
+     * @return {@code true} if any decoder or kvdb is being applied or deleted.
+     */
+    private boolean hasEngineRelatedChanges(PromotionContext context) {
+        return !context.decodersToApply.isEmpty()
+                || !context.kvdbsToApply.isEmpty()
+                || !context.decodersToDelete.isEmpty()
+                || !context.kvdbsToDelete.isEmpty();
     }
 
     /**
