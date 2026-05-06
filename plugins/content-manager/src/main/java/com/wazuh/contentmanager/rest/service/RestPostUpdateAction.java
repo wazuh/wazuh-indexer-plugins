@@ -37,8 +37,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <p>Triggers a CTI content update operation.
  *
- * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 404 Not
- * Found: No access token stored; POST subscription must be called first. - 409 Conflict: A content
+ * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 409 Conflict: A content
  * update is already in progress. - 500 Internal Server Error: Unexpected error during processing.
  */
 public class RestPostUpdateAction extends BaseRestHandler {
@@ -90,16 +89,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            // 1. Check if access token exists (404 Not Found)
-            if (PluginSettings.getInstance().getAccessToken() == null) {
-                RestResponse error =
-                        new RestResponse(
-                                "Token not found. Please create a subscription before attempting to update.",
-                                RestStatus.NOT_FOUND.getStatus());
-                return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
-            }
-
-            // 2. Conflict check, reject if a sync is already running (409 Conflict)
+            // 1. Conflict check, reject if a sync is already running (409 Conflict)
             if (this.catalogSyncJob.isRunning()) {
                 RestResponse error =
                         new RestResponse(
@@ -107,7 +97,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 return new BytesRestResponse(RestStatus.CONFLICT, error.toXContent());
             }
 
-            // 3. Trigger the catalog sync and return 202 Accepted
+            // 2. Trigger the catalog sync and return 202 Accepted
             this.catalogSyncJob.trigger();
             RestResponse response =
                     new RestResponse(
