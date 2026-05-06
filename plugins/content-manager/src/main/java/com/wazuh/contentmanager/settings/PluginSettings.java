@@ -244,6 +244,7 @@ public class PluginSettings {
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
     private volatile boolean isTelemetryEnabled;
+    private volatile String accessToken;
     private String version;
 
     /**
@@ -301,6 +302,24 @@ public class PluginSettings {
 
     public void setTelemetryEnabled(boolean isTelemetryEnabled) {
         this.isTelemetryEnabled = isTelemetryEnabled;
+    }
+
+    /**
+     * Sets the CTI access token.
+     *
+     * @param accessToken the access token string, or null to clear it.
+     */
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    /**
+     * Retrieves the CTI access token.
+     *
+     * @return the access token string, or null if not set.
+     */
+    public String getAccessToken() {
+        return this.accessToken;
     }
 
     /**
