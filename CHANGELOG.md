@@ -97,6 +97,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Set custom user-agent header for CTI API communications [(#1074)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1074)
 - Implement wazuh.event.id WCS field [(#1097)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1097)
 - YAML support for ruleset resources [(#1100)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1100)
+- Implement token exchange service [(#1130)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1130)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
