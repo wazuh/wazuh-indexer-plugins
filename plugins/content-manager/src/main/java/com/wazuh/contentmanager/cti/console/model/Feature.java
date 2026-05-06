@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,78 +18,67 @@ package com.wazuh.contentmanager.cti.console.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-/** Represents a specific Product within a CTI Plan. */
+/**
+ * Represents a feature within a CTI catalog plan. Each feature describes a specific content stream
+ * (e.g., vulnerability data, IOC intelligence) available through the CTI API.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Product {
-    private String identifier;
-    private String type;
+public class Feature {
     private String name;
     private String description;
     private String resource;
+    private String type;
 
     /** Default no-argument constructor. */
-    public Product() {}
+    public Feature() {}
 
     /**
-     * Retrieves the unique identifier of the product.
+     * Retrieves the display name of the feature.
      *
-     * @return the product identifier string.
-     */
-    public String getIdentifier() {
-        return this.identifier;
-    }
-
-    /**
-     * Retrieves the type or category of the product.
-     *
-     * @return the product type.
-     */
-    public String getType() {
-        return this.type;
-    }
-
-    /**
-     * Retrieves the display name of the product.
-     *
-     * @return the product name.
+     * @return the feature name.
      */
     public String getName() {
         return this.name;
     }
 
     /**
-     * Retrieves the description of the product.
+     * Retrieves the description of the feature.
      *
-     * @return the product description.
+     * @return the feature description.
      */
     public String getDescription() {
         return this.description;
     }
 
     /**
-     * Retrieves the resource location for this product.
+     * Retrieves the resource URL for this feature. This URL points to the CTI catalog endpoint that
+     * serves the feature's content.
      *
-     * @return a string representing the resource URI or path.
+     * @return a string representing the resource URI.
      */
     public String getResource() {
         return this.resource;
     }
 
     /**
-     * Returns a string representation of the Product.
+     * Retrieves the type of the feature. Known types include {@code
+     * cti:catalog:consumer:vulnerabilities} and {@code cti:catalog:consumer:iocs}.
      *
-     * @return a string containing the identifier, type, name, description, and resource.
+     * @return the feature type string.
+     */
+    public String getType() {
+        return this.type;
+    }
+
+    /**
+     * Returns a string representation of the Feature.
+     *
+     * @return a string containing the name, description, resource, and type.
      */
     @Override
     public String toString() {
-        return "Product{"
-                + "identifier='"
-                + this.identifier
-                + '\''
-                + ", type='"
-                + this.type
-                + '\''
-                + ", name='"
+        return "Feature{"
+                + "name='"
                 + this.name
                 + '\''
                 + ", description='"
@@ -97,6 +86,9 @@ public class Product {
                 + '\''
                 + ", resource='"
                 + this.resource
+                + '\''
+                + ", type='"
+                + this.type
                 + '\''
                 + '}';
     }
