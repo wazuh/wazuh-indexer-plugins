@@ -214,10 +214,10 @@ public class PlansServiceTests extends OpenSearchTestCase {
         Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(testToken);
 
         if (plan != null) {
-            System.out.println("PLAN: " + plan.getName());
+            logger.info("PLAN: {}", plan.getName());
             plan.getFeatures()
                     .forEach(
-                            f -> System.out.println(" - FEATURE: " + f.getName() + " (" + f.getType() + ")"));
+                            f -> logger.info(" - FEATURE: {} ({})", f.getName(), f.getType()));
         }
 
         Assert.assertNotNull(plan);
