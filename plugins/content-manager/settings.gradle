@@ -16,3 +16,7 @@
 */
 
 rootProject.name = 'wazuh-indexer-content-manager'
+
+include ':wazuh-indexer-setup'
+project(':wazuh-indexer-setup').projectDir = file('../setup')
+

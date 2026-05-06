@@ -100,7 +100,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
      * uuid, current_version, last_check_date, and release fields.
      */
     public void testHandleRequest200() throws Exception {
-        Environment env = createEnvironmentWithVersion("5.0.0");
+        Environment env = this.createEnvironmentWithVersion("5.0.0");
         this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         // spotless:off
@@ -136,7 +136,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
      * each category.
      */
     public void testHandleRequest200EmptyArrays() throws Exception {
-        Environment env = createEnvironmentWithVersion("5.0.0");
+        Environment env = this.createEnvironmentWithVersion("5.0.0");
         this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         String ctiResponseBody = "{\"data\":{\"major\":[],\"minor\":[],\"patch\":[]}}";
@@ -154,7 +154,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
 
     /** Test when VERSION.json is missing. Expected: 500 with version not found message. */
     public void testHandleRequestVersionNotFound() throws Exception {
-        Environment env = createEnvironmentWithVersion(null);
+        Environment env = this.createEnvironmentWithVersion(null);
         this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         BytesRestResponse response = this.action.handleRequest();
@@ -166,7 +166,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
 
     /** Test when the CTI API returns an error. Expected: error status forwarded. */
     public void testHandleRequestCtiError() throws Exception {
-        Environment env = createEnvironmentWithVersion("5.0.0");
+        Environment env = this.createEnvironmentWithVersion("5.0.0");
         this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         String errorBody = "{\"errors\":{\"tag\":[\"is invalid\"]}}";
@@ -180,7 +180,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
 
     /** Test when the API client throws an exception. Expected: 500. */
     public void testHandleRequestException() throws Exception {
-        Environment env = createEnvironmentWithVersion("5.0.0");
+        Environment env = this.createEnvironmentWithVersion("5.0.0");
         this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         when(this.apiClient.getReleaseUpdates(anyString()))
@@ -196,7 +196,7 @@ public class RestGetVersionCheckActionTests extends OpenSearchTestCase {
      * with the last release from the array.
      */
     public void testHandleRequestReturnsLastRelease() throws Exception {
-        Environment env = createEnvironmentWithVersion("5.0.0");
+        Environment env = this.createEnvironmentWithVersion("5.0.0");
         this.action = new RestGetVersionCheckAction(env, this.clusterService, this.apiClient);
 
         // spotless:off
