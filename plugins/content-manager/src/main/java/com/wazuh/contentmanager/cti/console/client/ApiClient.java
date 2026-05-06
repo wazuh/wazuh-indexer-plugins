@@ -149,6 +149,7 @@ public class ApiClient {
                         "&",
                         List.of(
                                 "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
+                                "subject_token=" + permanentToken.getAccessToken(),
                                 "subject_token_type=urn:ietf:params:oauth:token-type:access_token",
                                 "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
                                 "resource=" + resource));
