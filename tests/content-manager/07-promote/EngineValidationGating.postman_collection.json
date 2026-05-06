@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "9f3a25c1-8e2c-4bd9-a4d7-2b1f7c0e9012",
     "name": "Engine Validation Gating on Promotion — Validation",
-    "description": "Validates that the Content Manager only forwards a promotion payload to the local Wazuh Engine when the changeset touches engine-related resources.\n\nBackground:\n  RestPostPromoteAction#handleRequest used to call engine.promote() for every DRAFT→TEST promotion, including promotions that only modify integrations, rules, filters, or the policy — none of which are processed by the engine. The new condition skips the engine call unless decoders or kvdbs are part of the changeset (apply or delete).\n\nExpected behavior under test:\n  - DRAFT→TEST promotions whose changes contain only integrations, rules, or policy succeed without consulting the engine.\n  - DRAFT→TEST promotions whose changes contain decoders or kvdbs still go through engine validation.\n\nHow to use:\n  1. Import this collection.\n  2. Set `baseUrl`, `cm_username`, `cm_password` in the collection variables (defaults: https://localhost:9200, admin/admin).\n  3. Run folders 0 → 2 in order. Resource IDs are auto-captured.\n\nValidating the gating with the engine OFF (recommended):\n  After running folder 0 (bootstrap), stop the wazuh-engine service and re-run a fresh execution from folder 0. With the engine down:\n    - Folder 1 requests should still return 200 (engine call was skipped — the new behavior).\n    - Folder 2 requests should return 500 (engine call attempted, engine unreachable).\n  Without the fix, every folder 1 request would also fail with 500.\n\nNotes:\n  - Each test issues a single POST /_plugins/_content_manager/promote with a hand-crafted payload, scoped to a specific resource type so the gating condition is exercised in isolation.\n  - Resources used per test are distinct so that ADD operations do not collide with previously promoted entries.",
+    "description": "Validates that the Content Manager only forwards a promotion payload to the local Wazuh Engine when the changeset touches engine-related resources.\n\nBackground:\n  RestPostPromoteAction#handleRequest used to call engine.promote() for every DRAFT→TEST promotion, including promotions that only modify integrations, rules, or the policy — none of which are processed by the engine. The new condition skips the engine call unless decoders, kvdbs, or filters are part of the changeset (apply or delete).\n\nExpected behavior under test:\n  - DRAFT→TEST promotions whose changes contain only integrations, rules, or policy succeed without consulting the engine.\n  - DRAFT→TEST promotions whose changes contain decoders, kvdbs, or filters still go through engine validation.\n\nHow to use:\n  1. Import this collection.\n  2. Set `baseUrl`, `cm_username`, `cm_password` in the collection variables (defaults: https://localhost:9200, admin/admin).\n  3. Run folders 0 → 2 in order. Resource IDs are auto-captured.\n\nValidating the gating with the engine OFF (recommended):\n  After running folder 0 (bootstrap), stop the wazuh-engine service and re-run a fresh execution from folder 0. With the engine down:\n    - Folder 1 requests should still return 200 (engine call was skipped — the new behavior).\n    - Folder 2 requests should return 500 (engine call attempted, engine unreachable).\n  Without the fix, every folder 1 request would also fail with 500.\n\nNotes:\n  - Each test issues a single POST /_plugins/_content_manager/promote with a hand-crafted payload, scoped to a specific resource type so the gating condition is exercised in isolation.\n  - Resources used per test are distinct so that ADD operations do not collide with previously promoted entries.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -223,12 +223,55 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "0.6 Create Filter A (DRAFT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Filter A created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const body = pm.response.json();",
+                  "if (body && body.message) {",
+                  "    pm.collectionVariables.set('filter_a_id', body.message);",
+                  "    console.log('filter_a_id:', body.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"resource\": {\n    \"name\": \"filter/engine-gating-a/0\",\n    \"metadata\": {\n      \"title\": \"Engine gating filter\",\n      \"author\": \"Wazuh Inc.\",\n      \"description\": \"Filter used by engine gating tests.\",\n      \"references\": [\"https://wazuh.com\"]\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/filters",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "filters"]
+            }
+          },
+          "response": []
         }
       ],
       "description": "Creates one resource per type in DRAFT. Each test in folders 1 and 2 promotes a distinct subset so ADD operations don't collide."
     },
     {
-      "name": "1. Engine SKIPPED (no decoders/kvdbs in changeset)",
+      "name": "1. Engine SKIPPED (no decoders/kvdbs/filters in changeset)",
       "item": [
         {
           "name": "1.1 Promote Integration B only (DRAFT→TEST)",
@@ -403,10 +446,10 @@
           "response": []
         }
       ],
-      "description": "Each promotion in this folder lacks decoders and kvdbs in the changeset. With the gating fix in place, engine.promote() is never invoked and these requests succeed even when the engine is down."
+      "description": "Each promotion in this folder lacks decoders, kvdbs, and filters in the changeset. With the gating fix in place, engine.promote() is never invoked and these requests succeed even when the engine is down."
     },
     {
-      "name": "2. Engine INVOKED (decoders or kvdbs present)",
+      "name": "2. Engine INVOKED (decoders, kvdbs, or filters present)",
       "item": [
         {
           "name": "2.1 Promote Decoder A only (DRAFT→TEST)",
@@ -505,9 +548,58 @@
             "description": "KVDBs are part of the engine payload — gating still routes this through engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
           },
           "response": []
+        },
+        {
+          "name": "2.3 Promote Filter A only (DRAFT→TEST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 (engine reachable) or 500 (engine down)', function () {",
+                  "    pm.expect([200, 500]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Promotion completed', function () {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body.message).to.match(/promotion completed/i);",
+                  "    });",
+                  "} else {",
+                  "    console.log('Engine appears unreachable — confirms gating still routes filter changes through engine.promote().');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": \"draft\",\n  \"changes\": {\n    \"policy\": [],\n    \"integrations\": [],\n    \"kvdbs\": [],\n    \"decoders\": [],\n    \"filters\": [{ \"operation\": \"add\", \"id\": \"{{filter_a_id}}\" }],\n    \"rules\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/_plugins/_content_manager/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["_plugins", "_content_manager", "promote"]
+            },
+            "description": "Filters are part of the engine payload — gating still routes this through engine.promote(). Expected: 200 with engine reachable, 500 with engine down."
+          },
+          "response": []
         }
       ],
-      "description": "Each promotion in this folder includes a decoder or kvdb. The gating condition leaves the engine call in place, so the outcome depends on engine reachability."
+      "description": "Each promotion in this folder includes a decoder, kvdb, or filter. The gating condition leaves the engine call in place, so the outcome depends on engine reachability."
     }
   ],
   "auth": {
@@ -529,6 +621,7 @@
     { "key": "integration_b_id", "value": "", "description": "Auto-captured from 0.2" },
     { "key": "decoder_a_id", "value": "", "description": "Auto-captured from 0.3" },
     { "key": "kvdb_a_id", "value": "", "description": "Auto-captured from 0.4" },
-    { "key": "rule_a_id", "value": "", "description": "Auto-captured from 0.5" }
+    { "key": "rule_a_id", "value": "", "description": "Auto-captured from 0.5" },
+    { "key": "filter_a_id", "value": "", "description": "Auto-captured from 0.6" }
   ]
 }

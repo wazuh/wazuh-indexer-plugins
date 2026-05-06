@@ -616,7 +616,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * DRAFT→TEST promotion of a rule alone must not trigger engine validation. The engine only
      * processes decoders and kvdbs, so other resource types skip the engine call entirely.
      */
-    public void testEngineGating_ruleOnlyAddSkipsEngine() {
+    public void testEngineGating_ruleOnlyAddSkipsEngine() throws IOException {
         // Override default mock: rule source doc must carry space "draft" (default already does)
         // and rule-1 must NOT exist in the target space (test) for ADD validation
         when(this.spaceService.getDocument(eq(Constants.INDEX_RULES), eq("test"), eq("rule-1")))
@@ -646,11 +646,15 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * DRAFT→TEST promotion of a filter alone must not trigger engine validation. Filters are part of
-     * the engine payload but are not in the gating set; the user-facing change limits the gate to
-     * decoders and kvdbs.
+     * DRAFT→TEST promotion with a filter ADD must invoke engine validation — filters are part of the
+     * engine payload alongside decoders and kvdbs.
      */
-    public void testEngineGating_filterOnlyAddSkipsEngine() {
+    public void testEngineGating_filterAddInvokesEngine() throws IOException {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
         when(this.spaceService.getDocument(eq(Constants.INDEX_FILTERS), eq("test"), eq("filter-1")))
                 .thenReturn(null);
 
@@ -674,7 +678,37 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         Assert.assertEquals(200, actualResponse.getStatus());
-        verify(this.engine, never()).promote(any(JsonNode.class));
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /** A filter REMOVE alone must still invoke engine validation. */
+    public void testEngineGating_filterRemoveInvokesEngine() {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": [{"operation": "remove", "id": "filter-1"}]
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
     }
 
     /** DRAFT→TEST promotion with all change lists empty must not trigger engine validation. */
@@ -706,7 +740,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * DRAFT→TEST promotion with a decoder ADD must invoke engine validation, even if no other
      * resource type is in the changeset.
      */
-    public void testEngineGating_decoderAddInvokesEngine() {
+    public void testEngineGating_decoderAddInvokesEngine() throws IOException {
         RestResponse engineResponse = new RestResponse();
         engineResponse.setStatus(200);
         engineResponse.setMessage("OK");
@@ -742,7 +776,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * DRAFT→TEST promotion with a kvdb ADD must invoke engine validation, even if no other resource
      * type is in the changeset.
      */
-    public void testEngineGating_kvdbAddInvokesEngine() {
+    public void testEngineGating_kvdbAddInvokesEngine() throws IOException {
         RestResponse engineResponse = new RestResponse();
         engineResponse.setStatus(200);
         engineResponse.setMessage("OK");
