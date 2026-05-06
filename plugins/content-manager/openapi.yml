@@ -53,15 +53,13 @@ security:
 
 paths:
   /subscription:
-    description: CTI registration & CTI credentials retrieval
+    description: CTI credentials management
     post:
-      summary: Register CTI Subscription
+      summary: Store CTI Credentials
       description: |
-        Register a new Cyber Threat Intelligence subscription using device code authentication flow.
-        This endpoint initiates the subscription process and must be called with valid device code
-        credentials obtained from the CTI provider. The registration process is asynchronous and
-        may take several seconds to complete.
-      operationId: registerSubscription
+        Stores the provided CTI access token used to authenticate against the CTI API.
+        The token is persisted in a hidden internal index and loaded into memory.
+      operationId: storeCredentials
       tags:
         - Subscription Management
       requestBody:
@@ -72,54 +70,14 @@ paths:
               $ref: "#/components/schemas/SubscriptionPostRequest"
             examples:
               registration:
-                summary: Example subscription registration
+                summary: Example credential storage
                 value:
-                  device_code: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
-                  client_id: "a17c21ed"
-                  expires_in: 1800
-                  interval: 5
+                  access_token: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
       responses:
         "201":
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    get:
-      summary: Retrieve CTI Credentials
-      description: |
-        Retrieve the access token and credentials for an active CTI subscription.
-        The access token should be used as a Bearer token for subsequent API calls to CTI services.
-      operationId: getCredentials
-      tags:
-        - Subscription Management
-      responses:
-        "200":
-          $ref: "#/components/responses/GetCredentialsSuccess"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-    delete:
-      summary: Delete CTI Subscription
-      description: |
-        Delete an existing CTI subscription and revoke all associated credentials.
-        This operation is irreversible and will immediately terminate access to threat intelligence feeds.
-      operationId: deleteSubscription
-      tags:
-        - Subscription Management
-      responses:
-        "200":
-          $ref: "#/components/responses/SubscriptionDeleted"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -128,27 +86,21 @@ paths:
     post:
       summary: Initiate On-Demand Content Update
       description: |
-        Trigger an immediate update of threat intelligence content from subscribed CTI feeds.
-        This operation is asynchronous and returns immediately with a task identifier.
+        Trigger an immediate update of the registered consumers.
+        This operation is asynchronous and returns immediately.
         The update process runs in the background and may take several minutes to complete
         depending on the volume of new threat intelligence data.
-
-        **Rate Limiting**: This endpoint is rate-limited to prevent excessive API calls.
-        The default limit is 10 requests per hour.
+        If a content update is already in progress, the request is rejected with a 409 response.
       operationId: updateContent
       tags:
         - Content Updates
       responses:
         "202":
           $ref: "#/components/responses/UpdateAccepted"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1260,45 +1212,14 @@ components:
   schemas:
     SubscriptionPostRequest:
       type: object
-      description: Input parameters for registering a CTI subscription.
-      properties:
-        device_code:
-          type: string
-          description: The device code for registration.
-          example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
-        client_id:
-          type: string
-          description: The client ID.
-          example: "a17c21ed"
-        expires_in:
-          type: integer
-          description: Expiration time in seconds.
-          example: 1800
-        interval:
-          type: integer
-          description: Polling interval in seconds.
-          example: 5
+      description: Request body for storing CTI access credentials.
       required:
-        - device_code
-        - client_id
-        - expires_in
-        - interval
-
-    SubscriptionGetResponse:
-      type: object
-      description: Response schema for retrieving CTI credentials.
+        - access_token
       properties:
         access_token:
           type: string
-          description: Access token for authentication.
-          example: "AYjcyMzY3ZDhiNmJkNTY"
-        token_type:
-          type: string
-          description: Type of the token.
-          example: "Bearer"
-      required:
-        - access_token
-        - token_type
+          description: The CTI access token used to authenticate against the CTI API.
+          example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
 
     # Version check response models
     VersionCheckData:
@@ -2309,42 +2230,30 @@ components:
   responses:
     # --- Success Responses ---
     SubscriptionCreated:
-      description: Created - Subscription registered successfully.
-
-    GetCredentialsSuccess:
-      description: OK - Credentials retrieved successfully.
+      description: Created - Credentials stored successfully.
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/SubscriptionGetResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
-            credentials:
-              summary: Valid credentials response
+            success:
+              summary: Credentials stored
               value:
-                access_token: "AYjcyMzY3ZDhiNmJkNTY"
-                token_type: "Bearer"
-
-    SubscriptionDeleted:
-      description: OK - Subscription deleted successfully.
+                message: "Credentials received"
+                status: 201
 
     UpdateAccepted:
       description: Accepted - The update request has been accepted for processing.
-      headers:
-        X-RateLimit-Limit:
-          description: The maximum number of requests allowed per hour.
+      content:
+        application/json:
           schema:
-            type: integer
-            example: 10
-        X-RateLimit-Remaining:
-          description: The number of requests remaining in the current window.
-          schema:
-            type: integer
-            example: 7
-        X-RateLimit-Reset:
-          description: The time at which the current rate limit window resets (Unix timestamp).
-          schema:
-            type: integer
-            example: 1699963200
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            accepted:
+              summary: Update accepted
+              value:
+                message: "The update request has been accepted for processing."
+                status: 202
 
     OkResponse:
       description: |
@@ -2418,9 +2327,6 @@ components:
                 message: "Cannot remove decoder [82e215c4-988a-4f64-8d15-b98b2fc03a4f] as it is set as root decoder."
                 status: 400
 
-    Unauthorized:
-      description: Unauthorized - Authentication failed or credentials are invalid.
-
     ResourceDeleted:
       description: OK - Resource deleted successfully.
       content:
@@ -2470,40 +2376,8 @@ components:
             undergoing_update:
               summary: Content update in progress
               value:
-                error: "A content update is already in progress."
-
-    TooManyRequests:
-      description: Too Many Requests - Rate limit exceeded.
-      headers:
-        X-RateLimit-Limit:
-          description: The maximum number of requests allowed per hour.
-          schema:
-            type: integer
-            example: 10
-        X-RateLimit-Remaining:
-          description: The number of requests remaining (will be 0).
-          schema:
-            type: integer
-            example: 0
-        X-RateLimit-Reset:
-          description: The time at which the current rate limit window resets (Unix timestamp).
-          schema:
-            type: integer
-            example: 1699963200
-        Retry-After:
-          description: Number of seconds to wait before retrying.
-          schema:
-            type: integer
-            example: 3600
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/RestResponse"
-          examples:
-            rate_limit_exceeded:
-              summary: Rate limit exceeded
-              value:
-                error: "Too many update requests. Please try again later."
+                message: "A content update is already in progress."
+                status: 409
 
     InternalServerError:
       description: |
