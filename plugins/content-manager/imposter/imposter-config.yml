@@ -15,7 +15,7 @@ resources:
       scriptFile: scripts/tokenResponse.groovy
 
   # Token exchange endpoint - conditional responses based on Authorization header
-  - path: /api/v1/instances/token/exchange
+  - path: /api/v1/platform/environments/token/exchange
     method: POST
     response:
       scriptFile: scripts/tokenExchangeResponse.groovy

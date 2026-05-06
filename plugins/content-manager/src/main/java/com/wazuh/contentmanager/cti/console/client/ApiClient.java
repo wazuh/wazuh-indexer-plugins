@@ -53,7 +53,7 @@ public class ApiClient {
     private static final String API_PREFIX = "/api/v1";
     private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
-    private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/instances/token/exchange";
+    private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
     private static final String CATALOG_PLANS_PATH = "/catalog/plans";
 
     protected CloseableHttpAsyncClient client;
@@ -150,6 +150,7 @@ public class ApiClient {
                         "&",
                         List.of(
                                 "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
+                                "subject_token=" + permanentToken.getAccessToken(),
                                 "subject_token_type=urn:ietf:params:oauth:token-type:access_token",
                                 "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
                                 "resource=" + resource));
