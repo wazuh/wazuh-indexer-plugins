@@ -131,6 +131,7 @@ The Content Manager uses the following system indices:
 | Index                         | Description                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
 | `.wazuh-cti-consumers`              | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs)   |
+| `.wazuh-cti-credentials`            | Persisted CTI access token (hidden, single document)                                |
 | `wazuh-threatintel-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
 | `wazuh-threatintel-decoders`               | Log decoders                                                                        |
 | `wazuh-threatintel-integrations`           | Integration definitions                                                             |
@@ -143,10 +144,10 @@ The Content Manager uses the following system indices:
 
 ## CTI Subscription
 
-To synchronize content from the CTI API, the Wazuh Indexer requires a valid subscription token. The subscription is managed through the REST API:
+To synchronize content from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
 
-1. **Register** a subscription with a device code obtained from the Wazuh CTI Console.
-2. The Content Manager stores the token and uses it for all CTI API requests.
-3. Without a valid subscription, sync operations return a `Token not found` error.
+1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-cti-credentials` hidden index and loaded into memory.
+2. The Content Manager uses the in-memory token for all CTI API requests.
+3. Without a registered token, sync operations return a `404 Token not found` error.
 
-See [Subscription Management](api.md#get-cti-subscription) in the API Reference.
+See [Subscription Management](api.md#store-cti-credentials) in the API Reference.
