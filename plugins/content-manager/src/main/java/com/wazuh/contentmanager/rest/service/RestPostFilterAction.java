@@ -93,6 +93,11 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
     }
 
     @Override
+    protected boolean supportsYamlField() {
+        return true;
+    }
+
+    @Override
     protected String getIndexName() {
         return Constants.INDEX_FILTERS;
     }

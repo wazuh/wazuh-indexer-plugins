@@ -4,6 +4,66 @@ The Content Manager plugin exposes a REST API under `/_plugins/_content_manager/
 
 ---
 
+## YAML Content-Type Support
+
+The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
+
+### Envelope structure
+
+Both JSON and YAML requests use the same envelope:
+
+**JSON example:**
+
+```json
+{
+  "integration": "<uuid>",
+  "resource": {
+    "metadata": { "title": "My Decoder", "author": "Wazuh" },
+    "name": "decoder/my-decoder/0",
+    "enabled": true
+  }
+}
+```
+
+**Equivalent YAML example:**
+
+```yaml
+---
+integration: <uuid>
+resource:
+  metadata:
+    title: "My Decoder"
+    author: "Wazuh"
+  name: decoder/my-decoder/0
+  enabled: true
+```
+
+For resource types that do not require an `integration` field (e.g., Filters, which use `space` instead), the corresponding field appears at the top level of the envelope in both formats.
+
+### YAML field in responses
+
+When a Decoder, KVDB, or Filter is created or updated, a `yaml` field is stored alongside the `document` in the indexed record. This field contains a YAML representation of the resource content:
+
+- **YAML requests**: The `yaml` field is generated from the `resource` subtree of the parsed envelope.
+- **JSON requests**: The `yaml` field is auto-generated from the resource content.
+
+### Type fidelity
+
+YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` are stored as `5.0` in both the `yaml` field and the `document` field — they are not coerced to integers.
+
+### Supported endpoints
+
+| Endpoint | Methods | YAML supported |
+| --- | --- | :---: |
+| `/_plugins/_content_manager/decoders` | POST, PUT | ✅ |
+| `/_plugins/_content_manager/kvdbs` | POST, PUT | ✅ |
+| `/_plugins/_content_manager/filters` | POST, PUT | ✅ |
+| `/_plugins/_content_manager/integrations` | POST, PUT | ❌ |
+| `/_plugins/_content_manager/rules` | POST, PUT | ❌ |
+| `/_plugins/_content_manager/policy/{space}` | PUT | ❌ |
+
+---
+
 ## Subscription Management
 
 ### Get CTI Subscription
@@ -1057,6 +1117,38 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created decoder (prefixed with `d_`).
 
+**Example Request (YAML)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/decoders" \
+  -H 'Content-Type: application/yaml' \
+  --data-binary '---
+integration: 0aa4fc6f-1cfd-4a7c-b30b-643f32950f1f
+resource:
+  enabled: true
+  metadata:
+    author:
+      name: "Wazuh, Inc."
+    compatibility: "All wazuh events."
+    description: "Base decoder to process Wazuh message format."
+    module: wazuh
+    references:
+      - "https://documentation.wazuh.com/"
+    title: "Wazuh message decoder"
+    versions:
+      - "Wazuh 5.*"
+  name: decoder/core-wazuh-message/0
+  check:
+    - tmp_json.event.action: "string_equal(\"netflow_flow\")"
+  normalize:
+    - map:
+        - "@timestamp": "get_date()"
+'
+```
+
+> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
+
 **Status Codes**
 
 | Code | Description                                                                               |
@@ -1250,6 +1342,30 @@ curl -sk -u admin:admin -X POST \
 ```
 
 The `message` field contains the UUID of the created filter (prefixed with `f_`).
+
+**Example Request (YAML)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/filters" \
+  -H 'Content-Type: application/yaml' \
+  --data-binary '---
+space: draft
+resource:
+  name: filter/prefilter/0
+  enabled: true
+  metadata:
+    description: "Default filter to allow all events (for default ruleset)"
+    author:
+      email: info@wazuh.com
+      name: "Wazuh, Inc."
+      url: "https://wazuh.com"
+  check: "$host.os.platform == '\''ubuntu'\''"
+  type: pre-filter
+'
+```
+
+> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
 
 **Status Codes**
 
@@ -1670,6 +1786,41 @@ curl -sk -u admin:admin -X POST \
 ```
 
 The `message` field contains the UUID of the created KVDB.
+
+**Example Request (YAML)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/kvdbs" \
+  -H 'Content-Type: application/yaml' \
+  --data-binary '---
+integration: f16f33ec-a5ea-4dc4-bf33-616b1562323a
+resource:
+  metadata:
+    title: non_standard_timezones
+    author: "Wazuh Inc."
+    description: ""
+    documentation: ""
+    references:
+      - "https://wazuh.com"
+  name: non_standard_timezones
+  enabled: true
+  content:
+    non_standard_timezones:
+      AEST: Australia/Sydney
+      CEST: Europe/Berlin
+      CST: America/Chicago
+      EDT: America/New_York
+      EST: America/New_York
+      IST: Asia/Kolkata
+      MST: America/Denver
+      PKT: Asia/Karachi
+      SST: Asia/Singapore
+      WEST: Europe/London
+'
+```
+
+> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
 
 **Status Codes**
 

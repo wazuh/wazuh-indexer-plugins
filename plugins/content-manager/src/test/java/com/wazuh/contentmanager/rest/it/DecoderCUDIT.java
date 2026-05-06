@@ -84,6 +84,11 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
         this.assertSpaceName(source);
         this.assertHashPresent(source, "Decoder");
 
+        // Verify yaml field is populated
+        assertFalse(
+                "Decoder should have a non-empty yaml field",
+                source.path(Constants.KEY_YAML).asText("").isEmpty());
+
         // Verify decoder is in integration's decoders list
         this.assertResourceInIntegrationList(integrationId, Constants.KEY_DECODERS, decoderId);
 

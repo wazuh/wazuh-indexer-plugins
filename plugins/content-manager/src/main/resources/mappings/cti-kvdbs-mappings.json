@@ -55,6 +55,9 @@
     "offset": {
       "type": "unsigned_long"
     },
+    "yaml": {
+      "type": "text"
+    },
     "space": {
       "type": "object",
       "properties": {
