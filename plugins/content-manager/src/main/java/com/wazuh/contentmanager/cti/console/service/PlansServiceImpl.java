@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.console.model.CatalogPlansResponse;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 
@@ -66,6 +67,36 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             log.error("Couldn't obtain plans from CTI: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse plans: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public Plan getPlan() {
+        return getPublicPlan();
+    }
+
+    private Plan getPublicPlan() {
+        try {
+            SimpleHttpResponse response = this.client.getCatalogPlans();
+
+            if (response.getCode() == 200) {
+                CatalogPlansResponse parsedResponse =
+                        this.mapper.readValue(response.getBodyText(), CatalogPlansResponse.class);
+
+                if (parsedResponse.getPlans() != null) {
+                    return parsedResponse.getPlans().stream().filter(Plan::isPublic).findFirst().orElse(null);
+                }
+            } else {
+                log.warn(
+                        "Failed to fetch catalog plans: status={}, body={}",
+                        response.getCode(),
+                        response.getBodyText());
+            }
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            log.error("Couldn't obtain catalog plans from CTI: {}", e.getMessage());
+        } catch (IOException e) {
+            log.error("Failed to parse catalog plans response: {}", e.getMessage());
         }
         return null;
     }
