@@ -43,8 +43,10 @@ public class ContentManagerPluginIT extends OpenSearchIntegTestCase {
     }
 
     @After
-    public void clearFieldData() {
-        client().admin().indices().prepareClearCache().setFieldDataCache(true).get();
+    public void clearFieldData() throws Exception {
+        assertBusy(() -> {
+            client().admin().indices().prepareClearCache().setFieldDataCache(true).setRequestCache(true).get();
+        });
     }
 
     /**
