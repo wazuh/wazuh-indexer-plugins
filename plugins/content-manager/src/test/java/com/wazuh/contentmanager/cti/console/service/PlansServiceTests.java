@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
+import com.wazuh.contentmanager.cti.console.model.Feature;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -37,6 +38,8 @@ import org.mockito.Mock;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -163,5 +166,90 @@ public class PlansServiceTests extends OpenSearchTestCase {
         when(this.mockClient.getPlans(any(Token.class))).thenThrow(ExecutionException.class);
         plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
         Assert.assertNull(plans);
+    }
+
+    /**
+     * Test getMyPlan successful retrieval. On success: - plan must not be null - plan name must match
+     * the expected value - plan features must be correctly parsed
+     *
+     * @throws ExecutionException ignored
+     * @throws InterruptedException ignored
+     * @throws TimeoutException ignored
+     */
+    public void testGetMyPlanSuccess()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        // Mock client response for the /platform/environments/me endpoint
+        // This endpoint returns a plan list directly under the "plans" key
+        // spotless:off
+        String response = """
+        {
+          "name": "environment-01",
+          "organization": {
+            "name": "Acme Corp"
+          },
+          "plans": [
+            {
+              "name": "Free Plan",
+              "is_public": true,
+              "features": [
+                {
+                  "name": "Vulnerability CVE Stream",
+                  "description": "Delta updates for vulnerability entries in the Wazuh CTI catalog.",
+                  "resource": "https://cti.dev.cloud.wazuh.com/api/v1/catalog/contexts/vulnerabilities_vdp/consumers/vdp_v1",
+                  "type": "cti:catalog:consumer:vulnerabilities"
+                }
+              ]
+            }
+          ]
+        }""";
+        // spotless:on
+
+        // Mock the call to the ApiClient method
+        when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Token testToken = new Token("anyToken", "Bearer");
+        Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(testToken);
+
+        if (plan != null) {
+            System.out.println("PLAN: " + plan.getName());
+            plan.getFeatures()
+                    .forEach(
+                            f -> System.out.println(" - FEATURE: " + f.getName() + " (" + f.getType() + ")"));
+        }
+
+        Assert.assertNotNull(plan);
+
+        Assert.assertNotNull("El plan no debería ser nulo", plan);
+        Assert.assertEquals("Free Plan", plan.getName());
+        Assert.assertTrue("El campo is_public debería ser true", plan.isPublic());
+
+        Assert.assertFalse("La lista de features no debería estar vacía", plan.getFeatures().isEmpty());
+        Feature vdp = plan.getFeature("cti:catalog:consumer:vulnerabilities");
+        Assert.assertNotNull("Debería encontrar la feature de vulnerabilidades", vdp);
+        Assert.assertEquals("Vulnerability CVE Stream", vdp.getName());
+        Assert.assertEquals(
+                "https://cti.dev.cloud.wazuh.com/api/v1/catalog/contexts/vulnerabilities_vdp/consumers/vdp_v1",
+                vdp.getResource());
+
+        // Verify the client was called with the correct token
+        verify(this.mockClient, times(1)).getEnvironmentMe(testToken);
+    }
+
+    /** Test getMyPlan failure when API returns an error code. */
+    public void testGetMyPlanFailure()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        String errorResponse = "{\"errors\": {\"detail\": \"Unauthorized\"}}";
+
+        when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                401, errorResponse.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("anyToken", "Bearer"));
+
+        Assert.assertNull("Should return null on API error code", plan);
     }
 }
