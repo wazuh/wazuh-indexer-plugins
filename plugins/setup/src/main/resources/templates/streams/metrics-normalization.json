@@ -21,7 +21,8 @@
         ],
         "refresh_interval": "5s"
       },
-      "plugins.index_state_management.rollover_alias": "wazuh-metrics-normalization"
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-normalization",
+      "mapping.total_fields.limit": 500
     },
     "mappings": {
       "date_detection": false,
