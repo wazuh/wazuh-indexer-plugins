@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -71,35 +71,6 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
             log.error("Couldn't obtain permanent token from CTI: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse permanent token: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    /**
-     * Obtains a temporary HMAC-signed URL token for the given resource from CTI Console.
-     *
-     * @param permanentToken permanent token for the instance.
-     * @param resource resource to request the access token to.
-     * @return resource access token
-     */
-    @Override
-    public Token getResourceToken(Token permanentToken, String resource) {
-        try {
-            // Perform request
-            SimpleHttpResponse response = this.client.getResourceToken(permanentToken, resource);
-            if (response.getCode() == 200) {
-                // Parse response
-                return this.mapper.readValue(response.getBodyText(), Token.class);
-            } else {
-                log.warn(
-                        "Operation to fetch a resource token failed: { \"status_code\": {}, \"message\": {}",
-                        response.getCode(),
-                        response.getBodyText());
-            }
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error("Couldn't obtain resource token from CTI: {}", e.getMessage());
-        } catch (IOException e) {
-            log.error("Failed to parse resource token: {}", e.getMessage());
         }
         return null;
     }

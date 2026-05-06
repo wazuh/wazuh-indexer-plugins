@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.console.model.CatalogPlansResponse;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 
@@ -38,6 +39,51 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
     /** Default constructor. */
     public PlansServiceImpl() {
         super();
+    }
+
+    /**
+     * Obtains the specific plan for the registered environment. Communicates with GET
+     * /platform/environments/me.
+     *
+     * @return the environment's active plan.
+     */
+    public Plan getMyPlan(Token token) {
+        try {
+
+            if (token == null) {
+                log.warn("Cannot fetch environment plan: Token is null. Instance might not be registered.");
+                return null;
+            }
+
+            // Perform request to the environment-specific endpoint
+            SimpleHttpResponse response = this.client.getEnvironmentMe(token);
+
+            log.info("CTI Response Status: {}", response.getCode());
+            log.info("CTI Response Body: {}", response.getBodyText());
+
+            if (response.getCode() == 401) {
+                log.error("Authentication failed: The environment token is invalid or missing.");
+            } else if (response.getCode() == 200) {
+                // The API returns a list of plans, but for this endpoint
+                // it contains only ONE active plan for the environment.
+                JsonNode root = this.mapper.readTree(response.getBodyText()).get("plans");
+
+                List<Plan> plans =
+                        this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
+
+                return (plans != null && !plans.isEmpty()) ? plans.get(0) : null;
+            } else {
+                log.warn(
+                        "Operation to fetch environment plan failed: { \"status_code\": {}, \"message\": {}",
+                        response.getCode(),
+                        response.getBodyText());
+            }
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            log.error("Couldn't obtain environment plan from CTI: {}", e.getMessage());
+        } catch (IOException e) {
+            log.error("Failed to parse environment plan: {}", e.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -66,6 +112,36 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             log.error("Couldn't obtain plans from CTI: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse plans: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public Plan getPlan() {
+        return getPublicPlan();
+    }
+
+    private Plan getPublicPlan() {
+        try {
+            SimpleHttpResponse response = this.client.getCatalogPlans();
+
+            if (response.getCode() == 200) {
+                CatalogPlansResponse parsedResponse =
+                        this.mapper.readValue(response.getBodyText(), CatalogPlansResponse.class);
+
+                if (parsedResponse.getPlans() != null) {
+                    return parsedResponse.getPlans().stream().filter(Plan::isPublic).findFirst().orElse(null);
+                }
+            } else {
+                log.warn(
+                        "Failed to fetch catalog plans: status={}, body={}",
+                        response.getCode(),
+                        response.getBodyText());
+            }
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            log.error("Couldn't obtain catalog plans from CTI: {}", e.getMessage());
+        } catch (IOException e) {
+            log.error("Failed to parse catalog plans response: {}", e.getMessage());
         }
         return null;
     }
