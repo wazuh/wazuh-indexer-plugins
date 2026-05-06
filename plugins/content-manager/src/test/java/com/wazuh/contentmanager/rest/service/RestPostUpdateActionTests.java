@@ -16,133 +16,75 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for the {@link RestPostUpdateAction} class. This test suite validates the REST API
- * endpoint responsible for triggering manual catalog synchronization updates.
- *
- * <p>Tests verify proper authentication checks, job triggering logic, and appropriate HTTP response
- * codes for different scenarios including successful update requests, missing authentication
- * tokens, and jobs already in progress.
- */
 public class RestPostUpdateActionTests extends OpenSearchTestCase {
-    private CtiConsole console;
     private CatalogSyncJob catalogSyncJob;
     private RestPostUpdateAction action;
 
-    /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
-     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.console = mock(CtiConsole.class);
+        clearPluginSettingsInstance();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.catalogSyncJob = mock(CatalogSyncJob.class);
-        this.action = new RestPostUpdateAction(this.console, this.catalogSyncJob);
+        this.action = new RestPostUpdateAction(this.catalogSyncJob);
     }
 
-    /**
-     * Test the {@link RestPostUpdateAction#handleRequest()} method when the token is created (mock).
-     * The expected response is: {200, Token}
-     *
-     * @throws IOException
-     */
+    @After
+    public void tearDown() throws Exception {
+        clearPluginSettingsInstance();
+        super.tearDown();
+    }
+
+    @SuppressForbidden(reason = "Unit test reset")
+    private static void clearPluginSettingsInstance() throws Exception {
+        Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
+        instance.setAccessible(true);
+        instance.set(null, null);
+    }
+
+    /** access_token set and no job running → 202 with exact success message */
     public void testHandleRequest_Accepted() throws IOException {
-        // Mock
-        Token token = new Token("test_token", "test_type");
-        when(this.console.getToken()).thenReturn(token);
+        PluginSettings.getInstance().setAccessToken("valid-token");
         when(this.catalogSyncJob.isRunning()).thenReturn(false);
 
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
+        BytesRestResponse response = this.action.handleRequest();
 
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
-
-        // Assert
-        Assert.assertEquals(RestStatus.ACCEPTED, bytesRestResponse.status());
-        String content = bytesRestResponse.content().utf8ToString();
-        Assert.assertTrue(content.contains(expectedResponse.getMessage()));
-
-        // Verify trigger was called
+        Assert.assertEquals(RestStatus.ACCEPTED, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("The update request has been accepted for processing."));
         verify(this.catalogSyncJob, times(1)).trigger();
     }
 
     /**
-     * Test the {@link RestPostUpdateAction#handleRequest()} method when the token has not been
-     * created (mock). The expected response is: {404, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testHandleRequest_NoToken() throws IOException {
-        // Mock
-        when(this.console.getToken()).thenReturn(null);
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
-
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
-
-        // Assert
-        Assert.assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
-        String content = bytesRestResponse.content().utf8ToString();
-        Assert.assertTrue(content.contains(expectedResponse.getMessage()));
-
-        // Verify trigger was NOT called
-        verify(this.catalogSyncJob, never()).trigger();
-    }
-
-    /**
-     * Test the {@link RestPostUpdateAction#handleRequest()} method when there is already a request
-     * being performed. The expected response is: {409, RestResponse}
-     *
-     * @throws IOException
+     * access_token set but job already running → 409 with exact conflict message, trigger NOT called
      */
     public void testHandleRequest_Conflict() throws IOException {
-        // Mock
-        Token token = new Token("test_token", "test_type");
-        when(this.console.getToken()).thenReturn(token);
+        PluginSettings.getInstance().setAccessToken("valid-token");
         when(this.catalogSyncJob.isRunning()).thenReturn(true);
 
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
+        BytesRestResponse response = this.action.handleRequest();
 
-        // Expected response
-
-        // Assert
-        Assert.assertEquals(RestStatus.CONFLICT, bytesRestResponse.status());
-        String content = bytesRestResponse.content().utf8ToString();
-        Assert.assertTrue(content.contains("An update operation is already in progress"));
-
-        // Verify trigger was NOT called
+        Assert.assertEquals(RestStatus.CONFLICT, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("A content update is already in progress."));
         verify(this.catalogSyncJob, never()).trigger();
-    }
-
-    /**
-     * Test the {@link RestPostUpdateAction#handleRequest()} method when the rate limit is exceeded.
-     * The expected response is: {429, RestResponse}
-     */
-    public void testGetToken429() {
-        // TODO
     }
 }

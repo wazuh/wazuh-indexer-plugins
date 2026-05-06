@@ -18,28 +18,21 @@ The Wazuh Engine is not running or the Unix socket is not accessible.
 
 ### "Token not found"
 
-No CTI subscription has been registered. The Content Manager cannot sync content without a valid subscription token.
+No CTI access token has been registered. The Content Manager cannot sync content without a valid token.
 
 **Resolution:**
 
-1. Check the current subscription status:
-   ```bash
-   curl -sk -u admin:admin \
-     "https://192.168.56.6:9200/_plugins/_content_manager/subscription"
-   ```
+Register credentials by posting the CTI access token:
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "access_token": "<your-cti-access-token>"
+  }'
+```
 
-2. If the response is `{"message":"Token not found","status":404}`, register a subscription using a device code from the Wazuh CTI Console:
-   ```bash
-   curl -sk -u admin:admin -X POST \
-     "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
-     -H 'Content-Type: application/json' \
-     -d '{
-       "device_code": "<your-device-code>",
-       "client_id": "<your-client-id>",
-       "expires_in": 900,
-       "interval": 5
-     }'
-   ```
+A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-cti-credentials` and loaded into memory immediately.
 
 ### Sync Not Running
 

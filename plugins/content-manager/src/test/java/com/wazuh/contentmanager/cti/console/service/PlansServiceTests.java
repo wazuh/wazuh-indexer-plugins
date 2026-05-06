@@ -164,4 +164,119 @@ public class PlansServiceTests extends OpenSearchTestCase {
         plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
         Assert.assertNull(plans);
     }
+
+    /**
+     * getPlan() must return the plan with is_public=true when the endpoint responds 200.
+     *
+     * <p>TODO: update when #4745 adds the registered branch to getPlan()
+     *
+     * @throws ExecutionException ignored
+     * @throws InterruptedException ignored
+     * @throws TimeoutException ignored
+     */
+    public void testGetPlanPublicSuccess()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        // spotless:off
+        String response = """
+            {
+              "plans": [
+                {
+                  "name": "Paid Plan",
+                  "is_public": false,
+                  "features": []
+                },
+                {
+                  "name": "Free Plan",
+                  "is_public": true,
+                  "features": [
+                    {
+                      "name": "Vulnerability CVE Stream",
+                      "description": "Delta updates for vulnerability entries in the Wazuh CTI catalog.",
+                      "resource": "https://cti.dev.cloud.wazuh.com/api/v1/catalog/contexts/vulnerabilities_vdp/consumers/vdp_v1",
+                      "type": "cti:catalog:consumer:vulnerabilities"
+                    }
+                  ]
+                }
+              ]
+            }""";
+        // spotless:on
+        when(this.mockClient.getCatalogPlans())
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Plan plan = this.plansService.getPlan();
+
+        Assert.assertNotNull(plan);
+        Assert.assertTrue(plan.isPublic());
+        Assert.assertFalse(plan.getFeatures().isEmpty());
+    }
+
+    /**
+     * getPlan() must return null when no plan has is_public=true.
+     *
+     * @throws ExecutionException ignored
+     * @throws InterruptedException ignored
+     * @throws TimeoutException ignored
+     */
+    public void testGetPlanNoPublicPlan()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        // spotless:off
+        String response = """
+            {
+              "plans": [
+                {
+                  "name": "Paid Plan",
+                  "is_public": false,
+                  "features": []
+                }
+              ]
+            }""";
+        // spotless:on
+        when(this.mockClient.getCatalogPlans())
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Plan plan = this.plansService.getPlan();
+
+        Assert.assertNull(plan);
+    }
+
+    /**
+     * getPlan() must return null when the endpoint responds with an error code.
+     *
+     * @throws ExecutionException ignored
+     * @throws InterruptedException ignored
+     * @throws TimeoutException ignored
+     */
+    public void testGetPlanHttpError()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        String response = "{\"error\": \"internal_server_error\"}";
+
+        when(this.mockClient.getCatalogPlans())
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Plan plan = this.plansService.getPlan();
+
+        Assert.assertNull(plan);
+    }
+
+    /**
+     * getPlan() must return null and not propagate exceptions on network failure.
+     *
+     * @throws ExecutionException ignored
+     * @throws InterruptedException ignored
+     * @throws TimeoutException ignored
+     */
+    public void testGetPlanNetworkError()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        when(this.mockClient.getCatalogPlans()).thenThrow(ExecutionException.class);
+
+        Plan plan = this.plansService.getPlan();
+
+        Assert.assertNull(plan);
+    }
 }
