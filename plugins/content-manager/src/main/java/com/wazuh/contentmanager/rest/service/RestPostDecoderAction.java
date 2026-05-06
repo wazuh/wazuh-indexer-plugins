@@ -87,6 +87,11 @@ public class RestPostDecoderAction extends AbstractCreateAction {
     }
 
     @Override
+    protected boolean supportsYamlField() {
+        return true;
+    }
+
+    @Override
     protected String getIndexName() {
         return Constants.INDEX_DECODERS;
     }

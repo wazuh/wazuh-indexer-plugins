@@ -102,6 +102,10 @@
               "type": "keyword"
             }
           }
+        },
+        "yaml": {
+          "norms": false,
+          "type": "text"
         }
       }
     }

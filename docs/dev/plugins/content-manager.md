@@ -220,6 +220,67 @@ Returns `200 OK` with the resource UUID on success.
 
 ---
 
+## YAML Content-Type Support
+
+Decoders, KVDBs, and Filters accept `Content-Type: application/yaml` requests in addition to JSON. This is implemented through an opt-in pattern in the abstract handler hierarchy.
+
+### Architecture
+
+The YAML support is built on three mechanisms in `AbstractContentAction`:
+
+1. **`isYamlRequest(RestRequest)`** — Detects YAML content type via `XContentType.YAML.equals(request.getMediaType())`. Returns `false` on any exception (e.g., test mocks that don't stub `getMediaType()`).
+
+2. **`supportsYamlField()`** — Returns `false` by default. Overridden to `true` in concrete handlers that support YAML field storage: `RestPostDecoderAction`, `RestPutDecoderAction`, `RestPostKvdbAction`, `RestPutKvdbAction`, `RestPostFilterAction`, `RestPutFilterAction`.
+
+3. **YAML/JSON branching in `executeRequest()`** — Both `AbstractCreateAction` and `AbstractUpdateAction` (and their `*Spaces` variants) branch on `isYamlRequest()` and `supportsYamlField()`:
+   - **YAML path**: Parses the body via `YamlUtils.fromYaml()`, then validates the envelope structure with the same `validateResourcePayload()` call as the JSON path. The `rawYaml` for the `yaml` field is generated from the `resource` subtree via `YamlUtils.toYaml()`.
+   - **JSON path**: Unchanged — parses via Jackson `ObjectMapper.readTree()`.
+
+Both paths converge after parsing: resource-specific validation, ID generation, external sync, and indexing are identical regardless of content type.
+
+### Envelope structure
+
+YAML requests use the **same envelope** as JSON. The `integration` (or `space` for filters) and `resource` keys appear at the top level of the YAML document:
+
+```yaml
+---
+integration: <uuid>
+resource:
+  metadata:
+    title: "My Resource"
+  content: { ... }
+```
+
+This is parsed into a `JsonNode` tree identical to what the JSON path produces.
+
+### YAML field storage
+
+When `supportsYamlField()` returns `true`, the handler populates a `yaml` field on the CTI wrapper before indexing:
+
+- **YAML requests**: `rawYaml` is generated from the parsed `resource` subtree (not the raw request body, which includes the envelope).
+- **JSON requests**: `YamlUtils.toYaml(resourceNode)` auto-generates the YAML representation.
+
+The `yaml` field is stored as `text` in the index mappings (see `cti-decoders-mappings.json`, `cti-kvdbs-mappings.json`, `engine-filters-mappings.json`).
+
+### Type fidelity
+
+`YamlUtils` is configured with `DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS` to preserve floating-point precision. A post-parse `fixDecimalScale()` step ensures values like `5.0` retain scale 1 in their `BigDecimal` representation, preventing coercion to integer `5` during serialization.
+
+The `ContentIndex.create()` method skips `processPayload()` when it receives a fully-formed CTI wrapper (with `document`, `space`, and `hash` keys), avoiding a lossy `valueToTree()` round-trip that would strip `BigDecimal` scale.
+
+### Key classes
+
+| Class | Role |
+| --- | --- |
+| `YamlUtils` | YAML - JSON conversion with `USE_BIG_DECIMAL_FOR_FLOATS`, `fixDecimalScale()` |
+| `Decoder` | Model with `yaml` field, `fromPayload()` generates YAML from document |
+| `Kvdb` | Model with `yaml` field, same pattern as Decoder |
+| `Filter` | Model with `yaml` field, same pattern as Decoder |
+| `AbstractContentAction` | `isYamlRequest()`, `supportsYamlField()` base methods |
+| `ContentIndex` | `create()` skips `processPayload()` for pre-built wrappers |
+
+---
+
 ## Engine Communication
 
 The plugin communicates with the Wazuh Engine via a **Unix Domain Socket** for validation and promotion of content.
