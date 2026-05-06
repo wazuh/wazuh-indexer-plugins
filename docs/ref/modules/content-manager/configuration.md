@@ -60,6 +60,23 @@ To point to a different CTI API (e.g., production):
 plugins.content_manager.cti.api: "https://cti.wazuh.com/api/v1"
 ```
 
+### Custom Catalog Consumer URLs
+
+To override default consumers, provide full HTTP(S) consumer URLs:
+
+```yaml
+# opensearch.yml
+plugins.content_manager.catalog.ruleset: "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5"
+plugins.content_manager.catalog.iocs: "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
+plugins.content_manager.catalog.vulnerabilities: "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+```
+
+Behavior:
+
+- If a setting is non-empty, Content Manager attempts remote snapshot initialization first.
+- If remote initialization fails, it falls back to the local packaged snapshot when available.
+- If a setting is empty, initialization uses the local packaged snapshot directly.
+
 ### Tune Bulk Operations
 
 For environments with limited resources, reduce the bulk operation concurrency:
@@ -121,6 +138,6 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 ## Notes
 
 - Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
-- The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid CTI consumer endpoints.
+- The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.
