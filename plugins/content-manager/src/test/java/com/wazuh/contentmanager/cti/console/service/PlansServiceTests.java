@@ -215,9 +215,7 @@ public class PlansServiceTests extends OpenSearchTestCase {
 
         if (plan != null) {
             logger.info("PLAN: {}", plan.getName());
-            plan.getFeatures()
-                    .forEach(
-                            f -> logger.info(" - FEATURE: {} ({})", f.getName(), f.getType()));
+            plan.getFeatures().forEach(f -> logger.info(" - FEATURE: {} ({})", f.getName(), f.getType()));
         }
 
         Assert.assertNotNull(plan);

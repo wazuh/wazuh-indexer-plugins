@@ -53,11 +53,11 @@ public class ApiClient {
     private static final String API_PREFIX = "/api/v1";
     private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
-    private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
+    private static final String RESOURCE_URI =
+            BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
     private static final String CATALOG_PLANS_PATH = "/catalog/plans";
     private static final String ENVIRONMENTS_ME_URI =
-            BASE_URI + API_PREFIX + "/platform/environments/me"
-
+            BASE_URI + API_PREFIX + "/platform/environments/me";
 
     protected CloseableHttpAsyncClient client;
 
@@ -228,6 +228,32 @@ public class ApiClient {
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .build();
+
+        final Future<SimpleHttpResponse> future =
+                this.client.execute(
+                        SimpleRequestProducer.create(request),
+                        SimpleResponseConsumer.create(),
+                        new HttpResponseCallback(request, "Outgoing request failed"));
+        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Perform an HTTP GET request to the public CTI catalog plans endpoint. No authentication
+     * required.
+     *
+     * @return HTTP response.
+     * @throws ExecutionException request failed.
+     * @throws InterruptedException request failed / interrupted.
+     * @throws TimeoutException request timed out.
+     */
+    public SimpleHttpResponse getCatalogPlans()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        String url = PluginSettings.getInstance().getCtiBaseUrl() + CATALOG_PLANS_PATH;
+
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(url)
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .build();
 
         final Future<SimpleHttpResponse> future =
