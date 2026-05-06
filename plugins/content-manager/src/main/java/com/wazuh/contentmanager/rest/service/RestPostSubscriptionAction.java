@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.service;
 
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -26,35 +27,36 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Subscription;
+import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * POST /_plugins/content-manager/subscription
+ * POST /_plugins/_content_manager/subscription
  *
- * <p>Creates or updates the CTI subscription.
+ * <p>Stores the provided CTI access token in the credentials index and in the plugin-wide
+ * PluginSettings variable.
  *
- * <p>Possible HTTP responses: - 201 Created: Subscription successfully created or updated - 400 Bad
- * Request: Missing required parameters (device_code, client_id, expires_in, interval) - 401
- * Unauthorized: The endpoint is being accessed by a different user, the expected user is
- * wazuh-dashboard - 500 Internal Server Error: Unexpected error during processing
+ * <p>Possible HTTP responses: - 201 Created: Credentials stored successfully. - 400 Bad Request:
+ * Missing or empty access_token field. - 500 Internal Server Error: Unexpected error during
+ * processing.
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
-    private final CtiConsole ctiConsole;
+    private static final String ACCESS_TOKEN_FIELD = "access_token";
+
+    private final CredentialsIndex credentialsIndex;
 
     /**
-     * Construct the REST handler.
+     * Constructs the REST handler.
      *
-     * @param console the CTI console used to handle subscription requests
+     * @param credentialsIndex the index used to persist the access token
      */
-    public RestPostSubscriptionAction(CtiConsole console) {
-        this.ctiConsole = console;
+    public RestPostSubscriptionAction(CredentialsIndex credentialsIndex) {
+        this.credentialsIndex = credentialsIndex;
     }
 
     /**
@@ -83,43 +85,54 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Prepare the request by parsing the incoming subscription payload and returning a consumer that
-     * forwards the parsed DTO to {@link #handleRequest}.
+     * Prepares the request for execution.
      *
-     * @param request the incoming REST request containing the subscription payload
-     * @param client the node client (unused)
-     * @return a RestChannelConsumer that processes the request and sends the response
+     * @param request the incoming REST request
+     * @param client the node client
+     * @return a RestChannelConsumer to handle the request
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> {
-            // Parse subscription details and create a new instance of Subscription DTO.
-            Subscription subscription = Subscription.parse(request.contentParser());
-
-            // Send response from handleRequest method which process the request.
-            channel.sendResponse(this.handleRequest(subscription));
-        };
+        return channel -> channel.sendResponse(this.handleRequest(request));
     }
 
     /**
-     * Handle the subscription creation/update.
+     * Parses the request payload, validates the access_token field, persists it, and updates the
+     * plugin-wide variable.
      *
-     * @param subscription the parsed subscription DTO
+     * @param request the incoming REST request
      * @return a BytesRestResponse representing the operation result
      * @throws IOException if an I/O error occurs while building the response
      */
-    public BytesRestResponse handleRequest(Subscription subscription) throws IOException {
-        try {
-            // Notify CTI Console about a registration request
-            this.ctiConsole.onPostSubscriptionRequest(subscription);
+    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
+        String accessToken = null;
+        try (XContentParser parser = request.contentParser()) {
+            XContentParser.Token token;
+            while ((token = parser.nextToken()) != null) {
+                if (token == XContentParser.Token.FIELD_NAME
+                        && ACCESS_TOKEN_FIELD.equals(parser.currentName())) {
+                    parser.nextToken();
+                    accessToken = parser.text();
+                } else if (token == XContentParser.Token.END_OBJECT) {
+                    break;
+                }
+            }
+        }
 
-            // Return success
-            RestResponse response =
-                    new RestResponse("Subscription created successfully", RestStatus.CREATED.getStatus());
-            return new BytesRestResponse(RestStatus.CREATED, response.toXContent());
-        } catch (IllegalArgumentException e) {
-            RestResponse error = new RestResponse(e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        if (accessToken == null || accessToken.isBlank()) {
+            RestResponse error =
+                    new RestResponse(
+                            "Missing [" + ACCESS_TOKEN_FIELD + "] field.", RestStatus.BAD_REQUEST.getStatus());
             return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+        }
+
+        try {
+            this.credentialsIndex.storeCredentials(accessToken);
+            PluginSettings.getInstance().setAccessToken(accessToken);
+
+            RestResponse response =
+                    new RestResponse("Credentials received", RestStatus.CREATED.getStatus());
+            return new BytesRestResponse(RestStatus.CREATED, response.toXContent());
         } catch (Exception e) {
             RestResponse error =
                     new RestResponse(

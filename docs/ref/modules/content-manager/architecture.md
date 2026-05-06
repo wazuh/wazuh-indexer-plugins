@@ -7,7 +7,7 @@ The Content Manager plugin operates within the Wazuh Indexer environment. It is 
 ### REST Layer
 
 Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
-- Subscription management (register, get, delete CTI tokens)
+- Subscription management (store CTI access token)
 - Manual content sync trigger
 - CUD operations on rules, decoders, integrations, and KVDBs
 - Policy management
@@ -15,11 +15,11 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 - Logtest execution
 - Content validation and promotion
 
-### CTI Console
+### Credentials Store
 
-Manages authentication with the Wazuh CTI API. Stores subscription tokens used for all CTI requests. Without a valid token, sync operations are rejected.
+Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-cti-credentials` hidden index, and cached in `PluginSettings.accessToken` (a `volatile String` field). On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
 
-All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client.
+All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Catalog API client, Snapshot client, and Telemetry client.
 
 ### Job Scheduler (CatalogSyncJob)
 
