@@ -53,7 +53,7 @@ public class ApiClient {
     private static final String API_PREFIX = "/api/v1";
     private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
-    private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/instances/token/exchange";
+    private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
 
     protected CloseableHttpAsyncClient client;
 

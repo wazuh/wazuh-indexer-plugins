@@ -104,7 +104,7 @@ paths:
         '400':
           $ref: '#/components/responses/TokenError'
 
-  /api/v1/instances/token/exchange:
+  /api/v1/platform/environments/token/exchange:
     post:
       summary: Token Exchange Request
       description: |
@@ -136,8 +136,6 @@ paths:
           $ref: '#/components/responses/TokenExchangeSuccess'
         '400':
           $ref: '#/components/responses/TokenExchangeError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/instances/me:
     get:
@@ -847,6 +845,11 @@ components:
               value:
                 error: invalid_target
                 error_description: The resource parameter refers to an invalid endpoint
+            unauthorized_client:
+              summary: Invalid or expired token
+              value:
+                error: unauthorized_client
+                error_description: The provided token is invalid or expired
 
     Unauthorized:
       description: Unauthorized - Authentication failed or token is invalid.
