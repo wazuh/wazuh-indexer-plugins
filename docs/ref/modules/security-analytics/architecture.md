@@ -73,6 +73,18 @@ Index requests are accumulated in a `ConcurrentLinkedQueue<IndexRequest>`. Two f
 
 Before assembling an enriched document, the service reads `wazuh.integration.category` from the triggering event. If the field is absent or its value is not one of the recognized `LOG_CATEGORY` values, enrichment is skipped for that finding and a `WARN` log entry is emitted.
 
+### Document layout
+
+`buildAndIndex` starts from a shallow copy of the triggering event source and overlays the following fields:
+
+| Field         | Source                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| `@timestamp`  | Finding timestamp                                                           |
+| `event.*`     | Pre-existing `event` fields plus `doc_id`, `index`, `ingested`              |
+| `wazuh.rule`  | Sigma rule metadata (`id`, `title`, `tags`, `sigma_id`, and any of `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
+
+Rule metadata is nested under `wazuh.rule`. Because the event's `wazuh` map (which carries `wazuh.integration.*`) is shared with the shallow copy, the service defensively copies it before adding `rule`, so the original event source is never mutated.
+
 ## Technical parameters
 
 | Parameter            | Value                            | Description                                                     |
