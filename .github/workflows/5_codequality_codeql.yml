@@ -11,7 +11,7 @@ on:
 
 jobs:
   branches:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
       common_utils_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
@@ -36,7 +36,7 @@ jobs:
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
 
   get-version:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: branches
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -51,7 +51,7 @@ jobs:
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
   publish-common-utils:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [branches, get-version]
     steps:
       - name: Restore Maven Local Cache
@@ -77,7 +77,7 @@ jobs:
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
   
   publish-alerting:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [branches, get-version, publish-common-utils]
     if: inputs.plugin == 'content-manager'
     steps:
@@ -114,7 +114,7 @@ jobs:
           key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
 
   publish-security-analytics:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [branches, get-version, publish-common-utils, publish-alerting]
     steps:
       - name: Restore Maven Local Cache
@@ -155,7 +155,7 @@ jobs:
     #   - https://gh.io/using-larger-runners
     # Consider using larger runners for possible analysis time improvements.
     needs: [branches, get-version, publish-security-analytics]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       actions: read

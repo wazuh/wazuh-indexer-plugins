@@ -53,7 +53,7 @@ on:
 
 jobs:
   branches:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
       common_utils_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
@@ -67,7 +67,7 @@ jobs:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
   get-version:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: branches
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -82,7 +82,7 @@ jobs:
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
   publish-common-utils:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [branches, get-version]
     steps:
       - name: Publish to Maven Local
@@ -98,7 +98,7 @@ jobs:
           key: ${{ github.run_id }}-common-utils
 
   publish-alerting:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [branches, get-version, publish-common-utils]
     if: inputs.plugin == 'content-manager'
     steps:
@@ -120,7 +120,7 @@ jobs:
           key: ${{ github.run_id }}-alerting
 
   publish-security-analytics:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [branches, get-version, publish-common-utils, publish-alerting]
     if: inputs.plugin == 'content-manager'
     steps:
@@ -143,7 +143,7 @@ jobs:
 
   build:
     needs: [branches, get-version, publish-common-utils, publish-security-analytics]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: read
     if: |

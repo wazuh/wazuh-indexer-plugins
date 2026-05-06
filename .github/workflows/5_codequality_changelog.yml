@@ -7,7 +7,7 @@ jobs:
   # Enforces the update of a changelog file on every pull request
   verify-changelog:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
