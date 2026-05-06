@@ -29,6 +29,7 @@ import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.cti.console.service.TokenExchangeService;
 
 /** CTI Console main class. Contains and manages CTI Console internal state and services. */
 public class CtiConsole implements TokenListener {
@@ -40,6 +41,9 @@ public class CtiConsole implements TokenListener {
 
     /** CTI Console plans service. */
     private PlansService plansService;
+
+    /** CTI Console token exchange service. */
+    private TokenExchangeService tokenExchangeService;
 
     /** Permanent token of this instance to authenticate to the CTI Console. */
     private volatile Token token;
@@ -72,6 +76,18 @@ public class CtiConsole implements TokenListener {
             this.plansService.close();
         }
         this.plansService = plansService;
+    }
+
+    /**
+     * Sets the token exchange service for this CTI Console instance.
+     *
+     * @param tokenExchangeService token exchange service implementation.
+     */
+    public void setTokenExchangeService(TokenExchangeService tokenExchangeService) {
+        if (this.tokenExchangeService != null) {
+            this.tokenExchangeService.close();
+        }
+        this.tokenExchangeService = tokenExchangeService;
     }
 
     /**

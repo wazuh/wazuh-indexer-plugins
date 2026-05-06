@@ -36,15 +36,6 @@ public interface AuthService extends ClosableHttpClient {
     Token getToken(Subscription subscription);
 
     /**
-     * Exchanges a permanent token for a resource-specific token.
-     *
-     * @param token The permanent authentication token.
-     * @param resource The identifier of the resource to access.
-     * @return A resource-specific {@link Token}, or null if retrieval fails.
-     */
-    Token getResourceToken(Token token, String resource);
-
-    /**
      * Registers a listener to receive updates when the token changes.
      *
      * @param listener The {@link TokenListener} to add.
