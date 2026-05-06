@@ -20,12 +20,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
+/** Response model for the {@code GET /catalog/plans} CTI Console API endpoint. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CatalogPlansResponse {
     private List<Plan> plans;
 
+    /** Default no-argument constructor. */
     public CatalogPlansResponse() {}
 
+    /**
+     * Retrieves the list of catalog plans.
+     *
+     * @return a {@link List} of {@link Plan} objects, or {@code null} if none are set.
+     */
     public List<Plan> getPlans() {
         return this.plans;
     }
