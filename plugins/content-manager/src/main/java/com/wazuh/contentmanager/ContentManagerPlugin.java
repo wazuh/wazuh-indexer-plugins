@@ -680,6 +680,14 @@ public class ContentManagerPlugin extends Plugin
      *     'version' field is missing/empty.
      */
     public static String getVersion(Environment env) {
+        if (ContentManagerPlugin.isTestEnvironment()) {
+            String configuredVersion = System.getProperty(VERSION_SYSTEM_PROPERTY);
+            if (configuredVersion != null && !configuredVersion.isBlank()) {
+                return configuredVersion;
+            }
+            return "9.99.9";
+        }
+
         String pathHome = env.settings().get("path.home", "/usr/share/wazuh-indexer");
         Path versionFilePath = Path.of(pathHome, VERSION_FILE_NAME);
         try {
@@ -707,5 +715,16 @@ public class ContentManagerPlugin extends Plugin
         }
 
         return null;
+    }
+
+    /**
+     * Returns whether the plugin is running in a test environment. This is determined by the presence
+     * of the "INDEXER_TEST_ENV" system property set to "true". When true, certain behaviors (like
+     * version retrieval) are adjusted to facilitate testing without relying on external files.
+     *
+     * @return true if running in a test environment, false otherwise.
+     */
+    public static boolean isTestEnvironment() {
+        return "true".equals(System.getProperty("INDEXER_TEST_ENV"));
     }
 }
