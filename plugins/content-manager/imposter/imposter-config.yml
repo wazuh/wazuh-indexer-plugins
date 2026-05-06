@@ -38,6 +38,12 @@ resources:
     response:
       scriptFile: scripts/catalogResponse.groovy
 
+  # Catalog plans endpoint - returns public and non-public plans, no auth required
+  - path: /api/v1/catalog/plans
+    method: GET
+    response:
+      scriptFile: scripts/catalogPlansResponse.groovy
+
   # Ping endpoint - returns available version updates
   - path: /api/v1/ping
     method: GET

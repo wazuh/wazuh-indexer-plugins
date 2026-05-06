@@ -74,6 +74,58 @@ paths:
                 errors:
                   tag: ["is invalid"]
 
+  /api/v1/catalog/plans:
+    get:
+      summary: Get Catalog Plans
+      description: |
+        Returns the list of available CTI catalog plans, including public and non-public ones.
+        No authentication required.
+      operationId: getCatalogPlans
+      tags:
+        - CTI Console
+      responses:
+        '200':
+          description: OK - Catalog plans retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogPlansResponse'
+              examples:
+                success:
+                  summary: Plans list with one public and one non-public plan
+                  value:
+                    plans:
+                      - name: "Free"
+                        is_public: true
+                        features:
+                          - name: "public-vulnerabilities-5"
+                            type: "cti:catalog:consumer:vulnerabilities"
+                            description: "Free vulnerabilities feed"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+                          - name: "public-iocs-5"
+                            type: "cti:catalog:consumer:iocs"
+                            description: "Free iocs"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
+                          - name: "public-ruleset-5"
+                            type: "cti:catalog:consumer:ruleset"
+                            description: "Free ruleset 5"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5"
+                      - name: "Pro Plan"
+                        is_public: false
+                        features:
+                          - name: "t0-private-vulnerabilities"
+                            type: "cti:catalog:consumer:vulnerabilities"
+                            description: "Tier 0 paid vulnerabilities"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t0-vulnerabilities-5/consumers/private-vulnerabilities-5"
+                          - name: "t0-private-iocs"
+                            type: "cti:catalog:consumer:iocs"
+                            description: "Tier 0 private IOCs"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t0-iocs-5/consumers/private-iocs-5"
+                          - name: "t0-private-ruleset-5"
+                            type: "cti:catalog:consumer:ruleset"
+                            description: "Private ruleset 5"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t0-ruleset-5/consumers/private-ruleset-5"
+
   /api/v1/instances/token:
     post:
       summary: Token Request
@@ -472,6 +524,66 @@ components:
                 $ref: '#/components/schemas/Plan'
       required:
         - data
+
+    CatalogPlansResponse:
+      type: object
+      description: Response containing the list of catalog plans.
+      properties:
+        plans:
+          type: array
+          description: List of available plans.
+          items:
+            $ref: '#/components/schemas/CatalogPlan'
+      required:
+        - plans
+
+    CatalogPlan:
+      type: object
+      description: A CTI catalog plan.
+      properties:
+        name:
+          type: string
+          description: Plan name.
+          example: "Free"
+        is_public:
+          type: boolean
+          description: Whether the plan is publicly accessible without registration.
+          example: true
+        features:
+          type: array
+          description: List of features included in the plan.
+          items:
+            $ref: '#/components/schemas/CatalogFeature'
+      required:
+        - name
+        - is_public
+        - features
+
+    CatalogFeature:
+      type: object
+      description: A feature included in a catalog plan.
+      properties:
+        name:
+          type: string
+          description: Feature name.
+          example: "public-vulnerabilities-5"
+        type:
+          type: string
+          description: Feature type identifier.
+          example: "cti:catalog:consumer:vulnerabilities"
+        description:
+          type: string
+          description: Feature description.
+          example: "Free vulnerabilities feed"
+        resource:
+          type: string
+          format: uri
+          description: Resource URL for the feature.
+          example: "https://localhost:8443/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+      required:
+        - name
+        - type
+        - resource
 
     Plan:
       type: object
