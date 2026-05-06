@@ -147,16 +147,13 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
     }
 
     @After
-    public void clearFieldData() throws Exception {
-        assertBusy(() -> {
-            OpenSearchIntegTestCase.client()
-                    .admin()
-                    .indices()
-                    .prepareClearCache()
-                    .setFieldDataCache(true)
-                    .setRequestCache(true)
-                    .get();
-        });
+    public void clearFieldData() {
+        OpenSearchIntegTestCase.client()
+                .admin()
+                .indices()
+                .prepareClearCache()
+                .setFieldDataCache(true)
+                .get();
     }
 
     /** Creates all content indices required by the post-sync workflow with their proper mappings. */

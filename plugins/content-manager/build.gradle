@@ -172,6 +172,7 @@ testClusters.integTest {
   systemProperty "wazuh.version", "${wazuh_version}"
   setting 'plugins.content_manager.catalog.update_on_start', 'false'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
+  setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
   setting 'plugins.content_manager.engine.mock', 'true'
 
