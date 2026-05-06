@@ -1,9 +1,5 @@
 ---
 - name: rule
-  reusable:
-    top_level: true
-    expected:
-      - { at: wazuh, as: rule }
   title: Rule
   description: >
     Fields related to the detection rule that generated the finding.

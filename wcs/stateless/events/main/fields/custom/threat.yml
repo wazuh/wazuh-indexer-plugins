@@ -1,9 +1,5 @@
 ---
 - name: threat
-  reusable:
-    top_level: true
-    expected:
-      - { at: wazuh, as: threat }
   title: Threat
   group: 2
   short: Fields to classify and describe threats.
