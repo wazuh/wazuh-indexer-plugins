@@ -9,6 +9,7 @@
     expected:
       - check
       - rule
+      - wazuh.rule
   fields:
     - name: gdpr
       type: keyword

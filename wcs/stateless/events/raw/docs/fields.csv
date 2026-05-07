@@ -76,6 +76,16 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.rule.author,keyword,extended,array,"[""Star-Lord""]",Rule author
 9.1.0,true,wazuh,wazuh.rule.category,keyword,extended,,Attempted Information Leak,Rule category
+9.1.0,true,wazuh,wazuh.rule.compliance.cmmc,keyword,custom,array,"[""AC.1.001"", ""AU.L2-3.3.1""]",CMMC requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.fedramp,keyword,custom,array,"[""AC-2"", ""SC-7""]",FedRAMP requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.gdpr,keyword,custom,array,"[""Art. 32"", ""Art. 25""]",GDPR requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.hipaa,keyword,custom,array,"[""164.312(a)(1)"", ""164.308(a)(5)(ii)(C)""]",HIPAA requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.iso_27001,keyword,custom,array,"[""A.9.4.1"", ""A.8.8""]",ISO 27001 requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.nis2,keyword,custom,array,"[""Art. 21"", ""Art. 23""]",NIS2 requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.nist_800_171,keyword,custom,array,"[""3.1.1"", ""3.3.1""]",NIST 800-171 requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.nist_800_53,keyword,custom,array,"[""AC-3"", ""AU-2""]",NIST 800-53 requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.pci_dss,keyword,custom,array,"[""2.2.1"", ""6.3.3""]",PCI DSS requirements.
+9.1.0,true,wazuh,wazuh.rule.compliance.tsc,keyword,custom,array,"[""CC6.1"", ""CC7.1""]",TSC requirements.
 9.1.0,true,wazuh,wazuh.rule.description,keyword,extended,,Block requests to public DNS over HTTPS / TLS protocols,Rule description
 9.1.0,true,wazuh,wazuh.rule.id,keyword,extended,,101,Rule ID
 9.1.0,true,wazuh,wazuh.rule.level,keyword,custom,,high,Severity level of the rule.
