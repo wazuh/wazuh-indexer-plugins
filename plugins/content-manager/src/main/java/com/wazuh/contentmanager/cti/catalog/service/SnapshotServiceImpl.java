@@ -440,7 +440,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     this.readManifestBoolean(
                             manifestConsumer,
                             Constants.KEY_IS_PUBLIC,
-                            current != null ? current.isPublic() : false);
+                            current != null ? current.isPublic() : true);
             if (current == null) {
                 current =
                         new LocalConsumer(

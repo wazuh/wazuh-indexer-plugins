@@ -207,10 +207,6 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         return this.isPublic;
     }
 
-    /** Helper to infer whether a consumer is public from its name. */
-    public static boolean isPublicConsumer(String consumerName) {
-        return consumerName != null && consumerName.startsWith("public-");
-    }
 
     @Override
     public String toString() {

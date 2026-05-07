@@ -122,7 +122,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
                         this.consumer,
                         this.consumerType,
                         this.consumerUri,
-                        LocalConsumer.isPublicConsumer(this.consumer));
+                        true);
 
         try {
             IndexResponse response = this.consumerIndex.setConsumer(consumer);

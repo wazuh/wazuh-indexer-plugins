@@ -213,22 +213,24 @@ public abstract class AbstractConsumerService {
         String catalogUri = this.getCatalogUri();
         try {
             GetResponse getResponse = this.consumersIndex.getConsumer(consumerType);
+            boolean hasCurrent = getResponse != null && getResponse.isExists();
             LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
+                    hasCurrent
                             ? new ObjectMapper().readValue(getResponse.getSourceAsString(), LocalConsumer.class)
                             : new LocalConsumer(
                                     context,
                                     consumer,
                                     consumerType,
                                     catalogUri,
-                                    LocalConsumer.isPublicConsumer(consumer));
+                                    true);
+            boolean effectiveIsPublic = hasCurrent ? current.isPublic() : true;
             LocalConsumer updated =
                     new LocalConsumer(
                             context,
                             consumer,
                             consumerType,
                             catalogUri,
-                            LocalConsumer.isPublicConsumer(consumer),
+                            effectiveIsPublic,
                             status,
                             current.getLocalOffset(),
                             current.getRemoteOffset());

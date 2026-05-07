@@ -147,7 +147,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             this.consumer,
                             this.consumerType,
                             this.consumerUri,
-                            LocalConsumer.isPublicConsumer(this.consumer));
+                            true);
 
             // Properly handle the GetResponse to check if the document exists before parsing
             GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
@@ -162,7 +162,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             this.consumer,
                             this.consumerType,
                             this.consumerUri,
-                            LocalConsumer.isPublicConsumer(this.consumer),
+                            current.isPublic(),
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
                             lastAppliedOffset,
                             toOffset);
@@ -281,13 +281,23 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void resetConsumer() {
         log.info("Resetting consumer [{}] offset to 0 due to update failure.", this.consumer);
         try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
+            boolean effectiveIsPublic =
+                    getResponse != null
+                            && getResponse.isExists()
+                            && this.mapper
+                                    .readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                                    .isPublic();
+            if (getResponse == null || !getResponse.isExists()) {
+                effectiveIsPublic = true;
+            }
             LocalConsumer reset =
                     new LocalConsumer(
                             this.context,
                             this.consumer,
                             this.consumerType,
                             this.consumerUri,
-                            LocalConsumer.isPublicConsumer(this.consumer),
+                            effectiveIsPublic,
                             0,
                             0);
             this.consumersIndex.setConsumer(reset);
