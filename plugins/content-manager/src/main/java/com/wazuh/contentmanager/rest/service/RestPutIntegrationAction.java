@@ -158,9 +158,6 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
                         resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
         if (metadataValidation != null) return metadataValidation;
 
-        RestResponse detectorValidation = this.documentValidations.validateDetector(resource);
-        if (detectorValidation != null) return detectorValidation;
-
         String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
         String id = resource.get(Constants.KEY_ID).asText();
 

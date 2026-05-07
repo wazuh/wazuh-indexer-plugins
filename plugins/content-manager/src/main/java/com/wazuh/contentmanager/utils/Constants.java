@@ -150,14 +150,6 @@ public class Constants {
             "Invalid enrichment type '%s'. Allowed values are: %s";
     public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
 
-    // Detector validation errors
-    public static final String E_400_INVALID_DETECTOR_SOURCE =
-            "Invalid detector source '%s'. Allowed values are: %s";
-    public static final String E_400_INVALID_DETECTOR_INTERVAL =
-            "detector.interval must be a positive integer.";
-    public static final String E_400_MISSING_DETECTOR_FIELDS =
-            "When 'detector' is present, all of its fields (source, interval, enabled) are required.";
-
     // API request content fields
     public static final String KEY_TYPE = "type";
     public static final String KEY_RESOURCE = "resource";
