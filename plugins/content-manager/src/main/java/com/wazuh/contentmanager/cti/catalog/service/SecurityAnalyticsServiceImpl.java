@@ -412,7 +412,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
         List<String> sourceIndices = new ArrayList<>();
         int interval = 2;
-        boolean enabled = true;
+        boolean enabled = false;
 
         if (doc.has(Constants.KEY_DETECTOR) && doc.get(Constants.KEY_DETECTOR).isObject()) {
             JsonNode detectorNode = doc.get(Constants.KEY_DETECTOR);
