@@ -8726,6 +8726,22 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
+                "mitre": {
+                  "properties": {
+                    "subtechnique": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "tactic": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "technique": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
                 "name": {
                   "ignore_above": 1024,
                   "type": "keyword"
