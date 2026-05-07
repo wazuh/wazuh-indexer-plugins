@@ -71,6 +71,8 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
@@ -107,6 +109,7 @@ public class ContentManagerPlugin extends Plugin
     private Environment environment;
     private ClusterService clusterService;
     private LogtestService logtestService;
+    private PlansService plansService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -147,6 +150,7 @@ public class ContentManagerPlugin extends Plugin
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client);
+        this.plansService = new PlansServiceImpl();
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
@@ -244,6 +248,8 @@ public class ContentManagerPlugin extends Plugin
         return List.of(
                 // CTI subscription endpoints
                 new RestPostSubscriptionAction(this.credentialsIndex),
+                new RestGetSubscriptionAction(this.plansService),
+                new RestDeleteSubscriptionAction(this.credentialsIndex),
                 new RestPostUpdateAction(this.catalogSyncJob),
                 // Version check endpoint
                 new RestGetVersionCheckAction(this.environment, this.clusterService),

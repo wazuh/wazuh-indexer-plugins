@@ -110,6 +110,93 @@ curl -sk -u admin:admin -X POST \
 
 ---
 
+### Get CTI Subscription Status
+
+Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
+
+**Request**
+- Method: `GET`
+- Path: `/_plugins/_content_manager/subscription`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X GET \
+  "https://localhost:9200/_plugins/_content_manager/subscription"
+```
+
+**Example Response (registered)**
+
+```json
+{
+  "message": {
+    "plan": {
+      "name": "Premium Plan",
+      "is_public": false
+    },
+    "is_registered": true
+  },
+  "status": 200
+}
+```
+
+**Example Response (unregistered)**
+
+```json
+{
+  "message": {
+    "plan": {
+      "name": "Free",
+      "is_public": true
+    },
+    "is_registered": false
+  },
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 200  | Subscription status returned successfully       |
+| 500  | Internal error                                  |
+
+---
+
+### Delete CTI Credentials
+
+Removes the stored CTI access token from the credentials index and clears the in-memory token. After this operation the instance is unregistered.
+
+**Request**
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/subscription`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X DELETE \
+  "https://localhost:9200/_plugins/_content_manager/subscription"
+```
+
+**Example Response**
+
+```json
+{
+  "message": "Credentials removed",
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 200  | Credentials removed successfully                |
+| 500  | Internal error                                  |
+
+---
+
 ## Content Updates
 
 ### Trigger Manual Sync

@@ -31,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.console.model.CatalogPlansResponse;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Implementation of the PlansService interface. */
 public class PlansServiceImpl extends AbstractService implements PlansService {
@@ -118,6 +119,10 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
 
     @Override
     public Plan getPlan() {
+        String accessToken = PluginSettings.getInstance().getAccessToken();
+        if (accessToken != null) {
+            return getMyPlan(new Token(accessToken, "Bearer"));
+        }
         return getPublicPlan();
     }
 
