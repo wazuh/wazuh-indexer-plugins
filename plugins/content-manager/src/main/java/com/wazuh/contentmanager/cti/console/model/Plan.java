@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -17,15 +17,19 @@
 package com.wazuh.contentmanager.cti.console.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-/** Represents a CTI plan. */
+/** Represents a CTI catalog plan. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Plan {
     private String name;
-    private String description;
-    private List<Product> products;
+
+    @JsonProperty("is_public")
+    private boolean isPublic;
+
+    private List<Feature> features;
 
     /** Default no-argument constructor. */
     public Plan() {}
@@ -40,28 +44,44 @@ public class Plan {
     }
 
     /**
-     * Retrieves the description of the plan.
+     * Returns whether this plan is publicly accessible without environment registration or
+     * authentication.
      *
-     * @return the plan description.
+     * @return {@code true} if the plan is public, {@code false} otherwise.
      */
-    public String getDescription() {
-        return this.description;
+    public boolean isPublic() {
+        return this.isPublic;
     }
 
     /**
-     * Retrieves the list of products associated with this plan.
+     * Retrieves the list of features associated with this plan.
      *
-     * @return a {@link List} of {@link Product} objects, or {@code null} if none are set.
+     * @return a {@link List} of {@link Feature} objects, or {@code null} if none are set.
      */
-    public List<Product> getProducts() {
-        return this.products;
+    public List<Feature> getFeatures() {
+        return this.features;
+    }
+
+    /**
+     * Finds a feature by its type.
+     *
+     * @param type the feature type string to search for (e.g., {@code
+     *     "cti:catalog:consumer:vulnerabilities"}).
+     * @return the matching {@link Feature}, or {@code null} if no feature with the given type is
+     *     found.
+     */
+    public Feature getFeature(String type) {
+        if (this.features == null || type == null) {
+            return null;
+        }
+        return this.features.stream().filter(f -> type.equals(f.getType())).findFirst().orElse(null);
     }
 
     /**
      * Returns a string representation of the Plan object.
      *
-     * @return a string containing the name, description, and the string representation of the
-     *     associated products.
+     * @return a string containing the name, isPublic flag, and the string representation of the
+     *     associated features.
      */
     @Override
     public String toString() {
@@ -69,11 +89,10 @@ public class Plan {
                 + "name='"
                 + this.name
                 + '\''
-                + ", description='"
-                + this.description
-                + '\''
-                + ", products="
-                + this.products
+                + ", isPublic="
+                + this.isPublic
+                + ", features="
+                + this.features
                 + '}';
     }
 }

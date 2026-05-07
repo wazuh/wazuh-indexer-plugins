@@ -122,4 +122,33 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         pluginSettings.setVersion("5.0.0");
         Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
     }
+
+    /** Tests that accessToken is null by default. */
+    public void testAccessTokenIsNullByDefault() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertNull(pluginSettings.getAccessToken());
+    }
+
+    /** Tests that setAccessToken persists the value and getAccessToken returns it. */
+    public void testSetAndGetAccessToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("test-token-abc");
+        Assert.assertEquals("test-token-abc", pluginSettings.getAccessToken());
+    }
+
+    /** Tests that setAccessToken can be updated and the latest value is returned. */
+    public void testAccessTokenUpdates() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("first-token");
+        pluginSettings.setAccessToken("second-token");
+        Assert.assertEquals("second-token", pluginSettings.getAccessToken());
+    }
+
+    /** Tests that setAccessToken(null) clears the token. */
+    public void testAccessTokenCanBeCleared() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("a-token");
+        pluginSettings.setAccessToken(null);
+        Assert.assertNull(pluginSettings.getAccessToken());
+    }
 }

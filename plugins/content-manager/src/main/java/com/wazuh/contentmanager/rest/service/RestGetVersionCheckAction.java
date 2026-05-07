@@ -157,9 +157,9 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
             JsonNode root = this.mapper.readTree(ctiResponse.getBodyText());
             JsonNode data = root.get("data");
 
-            Release lastMajor = getLastRelease(data, "major");
-            Release lastMinor = getLastRelease(data, "minor");
-            Release lastPatch = getLastRelease(data, "patch");
+            Release lastMajor = this.getLastRelease(data, "major");
+            Release lastMinor = this.getLastRelease(data, "minor");
+            Release lastPatch = this.getLastRelease(data, "patch");
 
             String uuid = this.clusterService.state().metadata().clusterUUID();
             String lastCheckDate =
@@ -195,7 +195,7 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
         try {
             List<Release> releases =
                     this.mapper.readValue(array.toString(), new TypeReference<List<Release>>() {});
-            return releases.get(releases.size() - 1);
+            return releases.getLast();
         } catch (Exception e) {
             log.warn("Failed to parse {} releases: {}", category, e.getMessage());
             return null;
