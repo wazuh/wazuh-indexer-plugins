@@ -18,12 +18,14 @@ package com.wazuh.contentmanager;
 
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
@@ -31,6 +33,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -59,6 +62,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private CatalogSyncJob catalogSyncJob;
     @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private ConsumersIndex consumersIndex;
+    @Mock private CredentialsIndex credentialsIndex;
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -83,6 +87,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
         this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
+        this.injectField(this.plugin, "credentialsIndex", this.credentialsIndex);
 
         ContentManagerPluginTests.clearInstance();
     }
@@ -240,6 +245,90 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
+    /**
+     * When the credentials index already has a token, the keystore seed must be ignored even if
+     * pre-registered mode is on.
+     */
+    public void testTryLoadAccessTokenIndexWinsOverKeystore() throws Exception {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString("plugins.content_manager.cti.token", "keystore-token");
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.preregistered", true)
+                        .setSecureSettings(secureSettings)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.credentialsIndex.exists()).thenReturn(true);
+        when(this.credentialsIndex.getAccessToken()).thenReturn("index-token");
+
+        this.invokePrivateBoolMethod("tryLoadAccessToken", true);
+
+        Assert.assertEquals("index-token", PluginSettings.getInstance().getAccessToken());
+        verify(this.credentialsIndex, never()).storeCredentials(anyString());
+    }
+
+    /**
+     * When the credentials index is empty, pre-registered is true, the keystore seed is set, and the
+     * caller may persist, the seed must be written to the index and loaded into memory.
+     */
+    public void testTryLoadAccessTokenSeedsFromKeystoreOnClusterManager() throws Exception {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString("plugins.content_manager.cti.token", "keystore-token");
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.preregistered", true)
+                        .setSecureSettings(secureSettings)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.credentialsIndex.exists()).thenReturn(true);
+        when(this.credentialsIndex.getAccessToken()).thenReturn(null);
+
+        this.invokePrivateBoolMethod("tryLoadAccessToken", true);
+
+        verify(this.credentialsIndex).storeCredentials("keystore-token");
+        Assert.assertEquals("keystore-token", PluginSettings.getInstance().getAccessToken());
+    }
+
+    /** A non-cluster-manager caller must never write the keystore seed to the index. */
+    public void testTryLoadAccessTokenSeedNotPersistedOnNonClusterManager() throws Exception {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString("plugins.content_manager.cti.token", "keystore-token");
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.preregistered", true)
+                        .setSecureSettings(secureSettings)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        when(this.credentialsIndex.exists()).thenReturn(true);
+        when(this.credentialsIndex.getAccessToken()).thenReturn(null);
+
+        this.invokePrivateBoolMethod("tryLoadAccessToken", false);
+
+        verify(this.credentialsIndex, never()).storeCredentials(anyString());
+        Assert.assertEquals("keystore-token", PluginSettings.getInstance().getAccessToken());
+    }
+
+    /**
+     * When pre-registered is enabled but no keystore seed is present, no token must be loaded and
+     * nothing is written.
+     */
+    public void testTryLoadAccessTokenPreregisteredMissingKeystore() throws Exception {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.preregistered", true).build();
+        PluginSettings.getInstance(settings);
+
+        when(this.credentialsIndex.exists()).thenReturn(true);
+        when(this.credentialsIndex.getAccessToken()).thenReturn(null);
+
+        this.invokePrivateBoolMethod("tryLoadAccessToken", true);
+
+        verify(this.credentialsIndex, never()).storeCredentials(anyString());
+        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
+    }
+
     /** Helper to inject private fields via reflection. */
     @SuppressForbidden(reason = "Unit test injection")
     private void injectField(Object target, String fieldName, Object value) throws Exception {
@@ -252,6 +341,14 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @SuppressForbidden(reason = "Unit test reflection")
     private void invokePrivateIntMethod(String methodName, int value) throws Exception {
         Method method = ContentManagerPlugin.class.getDeclaredMethod(methodName, int.class);
+        method.setAccessible(true);
+        method.invoke(this.plugin, value);
+    }
+
+    /** Helper to invoke a private {@code void method(boolean)} on the plugin via reflection. */
+    @SuppressForbidden(reason = "Unit test reflection")
+    private void invokePrivateBoolMethod(String methodName, boolean value) throws Exception {
+        Method method = ContentManagerPlugin.class.getDeclaredMethod(methodName, boolean.class);
         method.setAccessible(true);
         method.invoke(this.plugin, value);
     }

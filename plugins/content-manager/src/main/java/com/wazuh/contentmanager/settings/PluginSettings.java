@@ -18,8 +18,10 @@ package com.wazuh.contentmanager.settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.settings.SecureString;
 
 import com.wazuh.contentmanager.utils.Constants;
 import org.jspecify.annotations.NonNull;
@@ -227,6 +229,25 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
+    /**
+     * Pre-registered deployment toggle. When {@code true} and {@link #CTI_TOKEN} is set in the
+     * keystore, the permanent CTI token is seeded into the credentials index on cluster manager
+     * startup if it is not already present.
+     */
+    public static final Setting<Boolean> PREREGISTERED =
+            Setting.boolSetting(
+                    "plugins.content_manager.preregistered",
+                    false,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /**
+     * Permanent CTI access token for pre-registered deployments. Sourced from the OpenSearch
+     * keystore. Used only as a seed; the credentials index remains the runtime source of truth.
+     */
+    public static final Setting<SecureString> CTI_TOKEN =
+            SecureSetting.secureString("plugins.content_manager.cti.token", null);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final int maximumConcurrentBulks;
@@ -243,6 +264,8 @@ public class PluginSettings {
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
+    private final boolean preregistered;
+    private final String keystoreSeedToken;
     private volatile boolean isTelemetryEnabled;
     private volatile String accessToken;
     private String version;
@@ -270,7 +293,27 @@ public class PluginSettings {
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
+        this.preregistered = PREREGISTERED.get(settings);
+        this.keystoreSeedToken = readKeystoreSeedToken(settings);
         log.debug("Settings.loaded: {}", this.toString());
+    }
+
+    /**
+     * Reads the CTI token from the OpenSearch keystore and returns it as a String. The {@link
+     * SecureString} is closed (and its backing char array zeroed) before returning. The keystore is
+     * closed by OpenSearch shortly after {@code createComponents()}, so this MUST run during {@link
+     * PluginSettings} construction.
+     *
+     * @param settings node settings used to access the keystore.
+     * @return the token, or {@code null} if the key is unset or empty.
+     */
+    private static String readKeystoreSeedToken(@NonNull final Settings settings) {
+        try (SecureString secure = CTI_TOKEN.get(settings)) {
+            if (secure == null || secure.length() == 0) {
+                return null;
+            }
+            return secure.toString();
+        }
     }
 
     /**
@@ -320,6 +363,25 @@ public class PluginSettings {
      */
     public String getAccessToken() {
         return this.accessToken;
+    }
+
+    /**
+     * Retrieves the value of the pre-registered deployment toggle.
+     *
+     * @return {@code true} when the deployment is pre-registered.
+     */
+    public boolean isPreregistered() {
+        return this.preregistered;
+    }
+
+    /**
+     * Retrieves the CTI token read from the OpenSearch keystore at construction time. Used as a
+     * one-time seed for the credentials index when {@link #isPreregistered()} is {@code true}.
+     *
+     * @return the keystore-sourced token, or {@code null} if unset.
+     */
+    public String getKeystoreSeedToken() {
+        return this.keystoreSeedToken;
     }
 
     /**

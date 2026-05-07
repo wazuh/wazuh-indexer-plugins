@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.settings;
 
 import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
@@ -150,5 +151,40 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         pluginSettings.setAccessToken("a-token");
         pluginSettings.setAccessToken(null);
         Assert.assertNull(pluginSettings.getAccessToken());
+    }
+
+    /** Tests that preregistered defaults to false and the keystore seed token defaults to null. */
+    public void testPreregisteredDefaults() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertFalse(pluginSettings.isPreregistered());
+        Assert.assertNull(pluginSettings.getKeystoreSeedToken());
+    }
+
+    /** Tests that the preregistered toggle is read from settings when set. */
+    public void testPreregisteredEnabled() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.preregistered", true).build();
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+        Assert.assertTrue(pluginSettings.isPreregistered());
+    }
+
+    /** Tests that the keystore-backed CTI token is read into the seed field at construction. */
+    public void testKeystoreSeedTokenIsLoaded() {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString("plugins.content_manager.cti.token", "keystore-token-xyz");
+        Settings settings = Settings.builder().setSecureSettings(secureSettings).build();
+
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+        Assert.assertEquals("keystore-token-xyz", pluginSettings.getKeystoreSeedToken());
+    }
+
+    /** Tests that an empty keystore value is treated as absent. */
+    public void testKeystoreSeedTokenEmptyIsNull() {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString("plugins.content_manager.cti.token", "");
+        Settings settings = Settings.builder().setSecureSettings(secureSettings).build();
+
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+        Assert.assertNull(pluginSettings.getKeystoreSeedToken());
     }
 }

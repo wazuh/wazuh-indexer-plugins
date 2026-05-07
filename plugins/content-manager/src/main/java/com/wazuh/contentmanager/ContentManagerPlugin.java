@@ -215,8 +215,9 @@ public class ContentManagerPlugin extends Plugin
                         this.scheduleTelemetryPingJob();
                     });
         } else {
-            // Non-CM nodes load credentials asynchronously on startup.
-            this.threadPool.generic().execute(this::tryLoadAccessToken);
+            // Non-CM nodes load credentials asynchronously on startup. They never persist the
+            // keystore seed — only the cluster manager writes to .wazuh-cti-credentials.
+            this.threadPool.generic().execute(() -> this.tryLoadAccessToken(false));
         }
     }
 
@@ -325,7 +326,7 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
-                                    this.tryLoadAccessToken();
+                                    this.tryLoadAccessToken(true);
                                 } finally {
                                     onComplete.run();
                                 }
@@ -337,29 +338,67 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Attempts to load the CTI access token from the credentials index into memory.
+     * Attempts to load the CTI access token from the credentials index into memory. When the
+     * deployment is pre-registered and the credentials index has no token yet, falls back to the
+     * token read from the OpenSearch keystore at plugin startup, persists it to the credentials index
+     * (cluster manager only), and loads it into memory.
      *
      * <p>NOTE: The in-memory token is only updated on the node that handles the POST /subscription
      * request. Other nodes in the cluster will not see the new token until they are restarted. A
      * cluster-wide propagation mechanism (e.g. cluster state metadata or an internal transport
      * action) may be needed in the future to keep all nodes in sync without restart.
+     *
+     * @param canPersistSeed whether this caller is allowed to write the keystore seed to the
+     *     credentials index. Only the cluster manager node should pass {@code true}.
      */
-    private void tryLoadAccessToken() {
+    private void tryLoadAccessToken(boolean canPersistSeed) {
         try {
             if (this.credentialsIndex.exists()) {
                 String token = this.credentialsIndex.getAccessToken();
                 if (token != null) {
                     PluginSettings.getInstance().setAccessToken(token);
                     log.info("CTI access token loaded from credentials index.");
-                } else {
-                    log.debug("Credentials index exists but no access token is stored.");
+                    return;
                 }
+                log.debug("Credentials index exists but no access token is stored.");
             } else {
                 log.debug("Credentials index does not exist yet; access token not loaded.");
             }
+
+            this.trySeedAccessTokenFromKeystore(canPersistSeed);
         } catch (Exception e) {
             log.warn("Could not load CTI access token from credentials index: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Seeds the credentials index and in-memory token from the OpenSearch keystore, when the
+     * deployment is configured as pre-registered. No-op when the toggle is off.
+     *
+     * @param canPersistSeed when {@code true}, writes the seed to the credentials index. Set this
+     *     only on the cluster manager node.
+     */
+    private void trySeedAccessTokenFromKeystore(boolean canPersistSeed) {
+        PluginSettings settings = PluginSettings.getInstance();
+        if (!settings.isPreregistered()) {
+            return;
+        }
+        String seed = settings.getKeystoreSeedToken();
+        if (seed == null) {
+            log.warn(
+                    "Pre-registered mode is enabled but no '{}' keystore entry was found.",
+                    PluginSettings.CTI_TOKEN.getKey());
+            return;
+        }
+        if (canPersistSeed) {
+            try {
+                this.credentialsIndex.storeCredentials(seed);
+                log.info("CTI access token seeded from keystore into credentials index.");
+            } catch (Exception e) {
+                log.warn("Failed to persist keystore-seeded CTI access token: {}", e.getMessage());
+            }
+        }
+        settings.setAccessToken(seed);
     }
 
     /** Check if the index exists; if not, create it with specific settings. */
@@ -632,7 +671,9 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CVE_CONSUMER,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
-                PluginSettings.CREATE_DETECTORS);
+                PluginSettings.CREATE_DETECTORS,
+                PluginSettings.PREREGISTERED,
+                PluginSettings.CTI_TOKEN);
     }
 
     /**

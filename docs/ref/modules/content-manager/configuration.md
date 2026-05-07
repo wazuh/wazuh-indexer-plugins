@@ -21,6 +21,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.cve.content.consumer`       | String  | `public-vulnerabilities-5`               | CVE content consumer identifier                                                 |
 | `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
 | `plugins.content_manager.telemetry.enabled`          | Boolean | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
+| `plugins.content_manager.preregistered`              | Boolean | `false`                                  | Mark the deployment as pre-registered. When `true`, the permanent CTI token is read from the keystore key `plugins.content_manager.cti.token` and seeded into the credentials index on first start. |
 
 ## Configuration Examples
 
@@ -73,6 +74,25 @@ plugins.content_manager.max_items_per_bulk: 10
 plugins.content_manager.max_concurrent_bulks: 2
 plugins.content_manager.client.timeout: 30
 ```
+
+### Pre-registered Deployments
+
+Cloud and other pre-provisioned deployments may ship with a permanent CTI token already issued. In this mode, the device-code subscription flow (`POST /_plugins/_content_manager/subscription`) is not required on first boot — the token is seeded from the OpenSearch keystore.
+
+1. Add the token to the keystore on every node:
+
+   ```bash
+   bin/opensearch-keystore add plugins.content_manager.cti.token
+   ```
+
+2. Enable the toggle in `opensearch.yml`:
+
+   ```yaml
+   # opensearch.yml
+   plugins.content_manager.preregistered: true
+   ```
+
+On the cluster manager node, the token is written to `.wazuh-cti-credentials` and loaded into memory before the initial catalog sync runs. The credentials index remains the runtime source of truth — once seeded, the keystore value is not re-read on subsequent restarts. The `POST /subscription` endpoint stays available and can be used to overwrite the token at any time.
 
 ### Disable Security Analytics Detector Creation
 
