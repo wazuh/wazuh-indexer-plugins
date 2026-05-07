@@ -315,22 +315,6 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
-                                    try {
-                                        CreateIndexResponse credentialsResponse = this.credentialsIndex.createIndex();
-                                        if (credentialsResponse != null && credentialsResponse.isAcknowledged()) {
-                                            log.info(
-                                                    "Index created: {} acknowledged={}",
-                                                    credentialsResponse.index(),
-                                                    credentialsResponse.isAcknowledged());
-                                        }
-                                    } catch (Exception e) {
-                                        log.error(
-                                                "Failed to create {} index, due to: {}",
-                                                CredentialsIndex.INDEX_NAME,
-                                                e.getMessage(),
-                                                e);
-                                    }
-
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();

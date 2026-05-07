@@ -35,8 +35,8 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 /**
  * DELETE /_plugins/_content_manager/subscription
  *
- * <p>Removes the stored CTI credentials: deletes the document from {@code .wazuh-cti-credentials}
- * and clears the in-memory token in {@link PluginSettings}.
+ * <p>Removes the stored CTI credentials: deletes the index {@code .wazuh-cti-credentials} and
+ * clears the in-memory token in {@link PluginSettings}.
  *
  * <p>Possible HTTP responses:
  *
