@@ -35,11 +35,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
+import com.wazuh.contentmanager.cti.catalog.client.IdentityUrlResolver;
+import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
+import com.wazuh.contentmanager.cti.catalog.client.SignedUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -228,6 +232,17 @@ public abstract class AbstractConsumerService {
         String context = this.getContext();
         String consumer = this.getConsumer();
 
+        // Build URL resolver based on registration status
+        ResourceUrlResolver urlResolver;
+        if (PluginSettings.getInstance().isRegistered()) {
+            urlResolver =
+                    new SignedUrlResolver(
+                            new TokenExchangeServiceImpl(),
+                            PluginSettings.getInstance().getAccessToken());
+        } else {
+            urlResolver = new IdentityUrlResolver();
+        }
+
         ConsumerService consumerService =
                 new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
@@ -292,7 +307,7 @@ public abstract class AbstractConsumerService {
                 log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
                 SnapshotServiceImpl snapshotService =
                         new SnapshotServiceImpl(
-                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+                                context, consumer, indicesMap, this.consumersIndex, this.environment, urlResolver);
 
                 boolean localSuccess = snapshotService.initialize(localSnapshot);
                 if (localSuccess) {
@@ -339,7 +354,7 @@ public abstract class AbstractConsumerService {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
+                            context, consumer, indicesMap, this.consumersIndex, this.environment, urlResolver);
 
             boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
             if (snapshotSuccess) {
@@ -360,7 +375,7 @@ public abstract class AbstractConsumerService {
 
             UpdateServiceImpl updateService =
                     new UpdateServiceImpl(
-                            context, consumer, new ApiClient(), this.consumersIndex, indicesMap);
+                            context, consumer, new ApiClient(urlResolver), this.consumersIndex, indicesMap);
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
             updated = true;

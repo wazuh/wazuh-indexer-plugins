@@ -52,13 +52,24 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class ApiClient {
 
     private final String baseUri;
+    private final ResourceUrlResolver urlResolver;
     private CloseableHttpAsyncClient client;
 
-    /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
-    public ApiClient() {
-        // Retrieve base URI from PluginSettings
+    /**
+     * Constructs an ApiClient instance with a URL resolver and initializes the underlying HTTP
+     * client.
+     *
+     * @param urlResolver the resolver used to transform resource URLs before making HTTP requests.
+     */
+    public ApiClient(ResourceUrlResolver urlResolver) {
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
+        this.urlResolver = urlResolver;
         this.buildClient();
+    }
+
+    /** Constructs an ApiClient instance with an identity URL resolver. */
+    public ApiClient() {
+        this(new IdentityUrlResolver());
     }
 
     /**
@@ -126,8 +137,8 @@ public class ApiClient {
      */
     public SimpleHttpResponse getConsumer(String context, String consumer)
             throws ExecutionException, InterruptedException, TimeoutException {
-        SimpleHttpRequest request =
-                SimpleRequestBuilder.get(this.buildConsumerURI(context, consumer)).build();
+        String uri = this.urlResolver.resolve(this.buildConsumerURI(context, consumer));
+        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
@@ -154,11 +165,12 @@ public class ApiClient {
             String context, String consumer, long fromOffset, long toOffset)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri =
-                this.buildConsumerURI(context, consumer)
-                        + "/changes?from_offset="
-                        + fromOffset
-                        + "&to_offset="
-                        + toOffset;
+                this.urlResolver.resolve(
+                        this.buildConsumerURI(context, consumer)
+                                + "/changes?from_offset="
+                                + fromOffset
+                                + "&to_offset="
+                                + toOffset);
 
         SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
@@ -192,7 +204,8 @@ public class ApiClient {
      */
     public SimpleHttpResponse getReleaseUpdates(String tag)
             throws ExecutionException, InterruptedException, TimeoutException {
-        SimpleHttpRequest request = SimpleRequestBuilder.get(this.buildReleasesUpdatesURI(tag)).build();
+        String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
+        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(

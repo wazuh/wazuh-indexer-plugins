@@ -37,6 +37,8 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.client.IdentityUrlResolver;
+import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -74,13 +76,15 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
+     * @param urlResolver The resolver used to transform resource URLs before making HTTP requests.
      */
     public SnapshotServiceImpl(
             String context,
             String consumer,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
-            Environment environment) {
+            Environment environment,
+            ResourceUrlResolver urlResolver) {
         this.context = context;
         this.consumer = consumer;
         this.indicesMap = indicesMap;
@@ -89,7 +93,25 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.pluginSettings = PluginSettings.getInstance();
         this.mapper = new ObjectMapper();
 
-        this.snapshotClient = new SnapshotClient(this.environment);
+        this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
+    }
+
+    /**
+     * Constructs a new SnapshotServiceImpl with an identity URL resolver.
+     *
+     * @param context The context of the snapshot.
+     * @param consumer The consumer identifier.
+     * @param indicesMap A map of content types to their corresponding ContentIndex.
+     * @param consumersIndex The consumers index to update consumer state.
+     * @param environment The OpenSearch environment.
+     */
+    public SnapshotServiceImpl(
+            String context,
+            String consumer,
+            Map<String, ContentIndex> indicesMap,
+            ConsumersIndex consumersIndex,
+            Environment environment) {
+        this(context, consumer, indicesMap, consumersIndex, environment, new IdentityUrlResolver());
     }
 
     /**
