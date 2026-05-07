@@ -117,12 +117,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      */
     public LocalConsumer setConsumer() {
         LocalConsumer consumer =
-                new LocalConsumer(
-                        this.context,
-                        this.consumer,
-                        this.consumerType,
-                        this.consumerUri,
-                        true);
+                new LocalConsumer(this.context, this.consumer, this.consumerType, this.consumerUri, true);
 
         try {
             IndexResponse response = this.consumerIndex.setConsumer(consumer);

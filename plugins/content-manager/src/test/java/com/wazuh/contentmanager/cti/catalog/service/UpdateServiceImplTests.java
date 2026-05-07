@@ -152,11 +152,11 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString())
                 .thenReturn(
-                        "{\"type\":\"cti:catalog:consumer:ruleset\","
-                                + "\"resource\":\""
-                                + CONSUMER_URI
-                                + "\",\"is_public\":false,"
-                                + "\"local_offset\": 9, \"remote_offset\": 100}");
+                        "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
+                                + "\"type\":\"cti:catalog:consumer:ruleset\","
+                                + "\"resource\":\"https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
+                                + "\"is_public\":false,"
+                                + "\"local_offset\":9,\"remote_offset\":100}");
 
         // Act
         this.updateService.update(9, 12);
@@ -178,7 +178,68 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         LocalConsumer updated = consumerCaptor.getValue();
         Assert.assertEquals(12, updated.getLocalOffset());
         Assert.assertEquals(12, updated.getRemoteOffset());
-        Assert.assertEquals(CONSUMER, updated.getName());
+        Assert.assertEquals("public-ruleset-5", updated.getName());
+        Assert.assertEquals("t1-ruleset-5", updated.getContext());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
+                updated.getResource());
+    }
+
+    /**
+     * Tests that consumer identity fields are preserved during reset after an update exception.
+     *
+     * @throws Exception
+     */
+    public void testUpdate_ExceptionResetPreservesExistingIdentityFields() throws Exception {
+        // Response
+        // spotless:off
+        String changesJson =
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 30,
+                      "resource": "rule-bad",
+                      "type": "CREATE",
+                      "payload": { "type": "rule" }
+                    }
+                  ]
+                }""";
+        // spotless:on
+
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        doThrow(new RuntimeException("Simulated Indexing Failure"))
+                .when(this.ruleIndex)
+                .create(anyString(), any(JsonNode.class));
+
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
+                                + "\"type\":\"cti:catalog:consumer:ruleset\","
+                                + "\"resource\":\"https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
+                                + "\"is_public\":true,"
+                                + "\"local_offset\":29,\"remote_offset\":100}");
+
+        // Act
+        this.updateService.update(29, 30);
+
+        // Assert
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+
+        LocalConsumer resetConsumer = consumerCaptor.getValue();
+        Assert.assertEquals(0, resetConsumer.getLocalOffset());
+        Assert.assertEquals("public-ruleset-5", resetConsumer.getName());
+        Assert.assertEquals("t1-ruleset-5", resetConsumer.getContext());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
+                resetConsumer.getResource());
     }
 
     /**

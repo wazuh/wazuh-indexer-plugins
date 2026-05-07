@@ -142,12 +142,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             }
             // Update consumer state
             LocalConsumer consumer =
-                    new LocalConsumer(
-                            this.context,
-                            this.consumer,
-                            this.consumerType,
-                            this.consumerUri,
-                            true);
+                    new LocalConsumer(this.context, this.consumer, this.consumerType, this.consumerUri, true);
 
             // Properly handle the GetResponse to check if the document exists before parsing
             GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
@@ -158,10 +153,10 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
             LocalConsumer updated =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
-                            this.consumerType,
-                            this.consumerUri,
+                            this.firstNonBlank(current.getContext(), this.context),
+                            this.firstNonBlank(current.getName(), this.consumer),
+                            this.firstNonBlank(current.getType(), this.consumerType),
+                            this.firstNonBlank(current.getResource(), this.consumerUri),
                             current.isPublic(),
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
                             lastAppliedOffset,
@@ -282,21 +277,17 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         log.info("Resetting consumer [{}] offset to 0 due to update failure.", this.consumer);
         try {
             GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
-            boolean effectiveIsPublic =
-                    getResponse != null
-                            && getResponse.isExists()
-                            && this.mapper
-                                    .readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                                    .isPublic();
-            if (getResponse == null || !getResponse.isExists()) {
-                effectiveIsPublic = true;
-            }
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : null;
+            boolean effectiveIsPublic = current != null ? current.isPublic() : true;
             LocalConsumer reset =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
-                            this.consumerType,
-                            this.consumerUri,
+                            this.firstNonBlank(current != null ? current.getContext() : null, this.context),
+                            this.firstNonBlank(current != null ? current.getName() : null, this.consumer),
+                            this.firstNonBlank(current != null ? current.getType() : null, this.consumerType),
+                            this.firstNonBlank(current != null ? current.getResource() : null, this.consumerUri),
                             effectiveIsPublic,
                             0,
                             0);
@@ -304,5 +295,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         } catch (Exception e) {
             log.error("Failed to reset consumer: {}", e.getMessage());
         }
+    }
+
+    private String firstNonBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

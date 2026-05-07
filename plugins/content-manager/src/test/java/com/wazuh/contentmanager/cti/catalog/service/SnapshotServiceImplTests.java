@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -53,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -536,21 +538,88 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 this.snapshotService.getMaxOffsetSeen());
     }
 
-    /** Tests that local initialization uses consumer metadata found in manifest.json. */
+    /** Tests that local initialization uses consumer metadata from the external manifest entry. */
     public void testInitializeFromPath_UsesManifestConsumerMetadata() throws Exception {
         // spotless:off
-        String manifestJson =
+        // The external manifest.json (in snapshots dir) is keyed by snapshot filename
+        String manifestEntryJson =
             """
                 {
-                  "consumer": {
-                    "name": "public-iocs-5",
-                    "context": "t1-iocs-5",
-                    "type": "cti:catalog:consumer:iocs",
-                    "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
-                    "is_public": true,
-                    "local_offset": 222,
-                    "remote_offset": 222
-                  }
+                  "name": "public-iocs-5",
+                  "context": "t1-iocs-5",
+                  "type": "cti:catalog:consumer:iocs",
+                  "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                  "is_public": true,
+                  "remote_offset": 222
+                }
+                """;
+        String dataJson =
+            """
+                {"name":"ioc-1","offset":1,"payload":{"type":"ioc","document":{"id":"ioc-1"}}}
+                """;
+        // spotless:on
+
+        // Create zip with only data (no manifest inside)
+        Map<String, String> entries = new LinkedHashMap<>();
+        entries.put("data.json", dataJson);
+        Path localZip = this.createZipFileWithEntries(entries);
+
+        // Parse the manifest entry as JsonNode
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode manifestEntry = mapper.readTree(manifestEntryJson);
+
+        // Initialize with the external manifest entry
+        boolean initialized = this.snapshotService.initialize(localZip, manifestEntry);
+        Assert.assertTrue(initialized);
+
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
+
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals("Manifest name should be used", "public-iocs-5", persisted.getName());
+        Assert.assertEquals("Manifest context should be used", "t1-iocs-5", persisted.getContext());
+        Assert.assertEquals(
+                "Manifest type should be used", "cti:catalog:consumer:iocs", persisted.getType());
+        Assert.assertEquals(
+                "Manifest resource should be used",
+                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                persisted.getResource());
+        Assert.assertTrue("Manifest is_public should be used", persisted.isPublic());
+        Assert.assertEquals(
+                "Manifest remote_offset should be used for both local and remote offset",
+                222L,
+                persisted.getLocalOffset());
+        Assert.assertEquals(
+                "Manifest remote_offset should be used for both local and remote offset",
+                222L,
+                persisted.getRemoteOffset());
+    }
+
+    /** Tests that manifest is_public overrides existing consumer visibility on local fallback. */
+    public void testInitializeFromPath_ManifestIsPublicOverridesExisting() throws Exception {
+        // spotless:off
+        String manifestEntryJson =
+            """
+                {
+                  "name": "public-iocs-5",
+                  "context": "t1-iocs-5",
+                  "type": "cti:catalog:consumer:iocs",
+                  "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                  "is_public": false,
+                  "remote_offset": 222
+                }
+                """;
+        String existingConsumerJson =
+            """
+                {
+                  "name": "existing-consumer",
+                  "context": "existing-context",
+                  "type": "cti:catalog:consumer:iocs",
+                  "resource": "https://existing.example/resource",
+                  "is_public": true,
+                  "status": "idle",
+                  "local_offset": 100,
+                  "remote_offset": 100
                 }
                 """;
         String dataJson =
@@ -560,26 +629,85 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // spotless:on
 
         Map<String, String> entries = new LinkedHashMap<>();
-        entries.put("manifest.json", manifestJson);
         entries.put("data.json", dataJson);
         Path localZip = this.createZipFileWithEntries(entries);
 
-        boolean initialized = this.snapshotService.initialize(localZip);
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode manifestEntry = mapper.readTree(manifestEntryJson);
+
+        org.opensearch.action.get.GetResponse existingGetResponse =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(existingGetResponse.isExists()).thenReturn(true);
+        when(existingGetResponse.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:iocs"))
+                .thenReturn(existingGetResponse);
+
+        boolean initialized = this.snapshotService.initialize(localZip, manifestEntry);
         Assert.assertTrue(initialized);
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
 
         LocalConsumer persisted = consumerCaptor.getValue();
-        Assert.assertEquals("public-iocs-5", persisted.getName());
-        Assert.assertEquals("t1-iocs-5", persisted.getContext());
-        Assert.assertEquals("cti:catalog:consumer:iocs", persisted.getType());
-        Assert.assertEquals(
-                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
-                persisted.getResource());
-        Assert.assertTrue(persisted.isPublic());
-        Assert.assertEquals(222L, persisted.getLocalOffset());
-        Assert.assertEquals(222L, persisted.getRemoteOffset());
+        Assert.assertFalse("Manifest is_public should override existing value", persisted.isPublic());
+    }
+
+    /** Tests that existing is_public is preserved when manifest entry omits the field. */
+    public void testInitializeFromPath_PreservesExistingIsPublicWhenManifestOmitsIt()
+            throws Exception {
+        // spotless:off
+        String manifestEntryJson =
+            """
+                {
+                  "name": "public-iocs-5",
+                  "context": "t1-iocs-5",
+                  "type": "cti:catalog:consumer:iocs",
+                  "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                  "remote_offset": 222
+                }
+                """;
+        String existingConsumerJson =
+            """
+                {
+                  "name": "existing-consumer",
+                  "context": "existing-context",
+                  "type": "cti:catalog:consumer:iocs",
+                  "resource": "https://existing.example/resource",
+                  "is_public": false,
+                  "status": "idle",
+                  "local_offset": 100,
+                  "remote_offset": 100
+                }
+                """;
+        String dataJson =
+            """
+                {"name":"ioc-1","offset":1,"payload":{"type":"ioc","document":{"id":"ioc-1"}}}
+                """;
+        // spotless:on
+
+        Map<String, String> entries = new LinkedHashMap<>();
+        entries.put("data.json", dataJson);
+        Path localZip = this.createZipFileWithEntries(entries);
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode manifestEntry = mapper.readTree(manifestEntryJson);
+
+        org.opensearch.action.get.GetResponse existingGetResponse =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(existingGetResponse.isExists()).thenReturn(true);
+        when(existingGetResponse.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:iocs"))
+                .thenReturn(existingGetResponse);
+
+        boolean initialized = this.snapshotService.initialize(localZip, manifestEntry);
+        Assert.assertTrue(initialized);
+
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
+
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertFalse(
+                "Existing is_public should be preserved when manifest omits it", persisted.isPublic());
     }
 
     /**

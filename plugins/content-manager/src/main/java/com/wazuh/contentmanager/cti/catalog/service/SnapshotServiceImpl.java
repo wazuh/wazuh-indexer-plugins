@@ -343,16 +343,33 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Initializes content from a pre-packaged local snapshot zip file. Unlike {@link
-     * #initialize(RemoteConsumer)}, this method reads directly from a local file path instead of
-     * downloading from a remote URL. After successful processing, the source zip file is permanently
-     * deleted.
+     * Initializes content from a pre-packaged local snapshot zip file. Delegates to {@link
+     * #initialize(Path, JsonNode)} with no external manifest entry, relying on service defaults.
      *
      * @param localZip Path to the local snapshot zip file.
      * @return true if initialization was fully successful, false on failures.
      */
     @Override
     public boolean initialize(Path localZip) {
+        return this.initialize(localZip, null);
+    }
+
+    /**
+     * Initializes content from a pre-packaged local snapshot zip file using consumer metadata from
+     * the external {@code manifest.json} located in the snapshots directory.
+     *
+     * <p>The {@code manifestEntry} is the JSON object keyed by the snapshot filename in the shared
+     * manifest (e.g., the value for {@code "ruleset.zip"}). When {@code null}, field defaults are
+     * taken from the service's constructor arguments.
+     *
+     * <p>After successful processing, the source zip file is permanently deleted.
+     *
+     * @param localZip The path to the local snapshot zip file.
+     * @param manifestEntry The consumer metadata node from the external manifest, or {@code null}.
+     * @return true if initialization was fully successful, false on failures.
+     */
+    @Override
+    public boolean initialize(Path localZip, JsonNode manifestEntry) {
         log.info(
                 "Starting local snapshot initialization for context [{}] consumer [{}] from [{}]",
                 this.context,
@@ -361,7 +378,6 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         Path outputDir = null;
         this.maxOffsetSeen = 0;
-        JsonNode manifestConsumer = null;
 
         try {
             // 1. Prepare output directory
@@ -376,17 +392,12 @@ public class SnapshotServiceImpl implements SnapshotService {
                         return null;
                     });
 
-            manifestConsumer = this.loadManifestConsumer(outputDir);
-
             // 3. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
             // 4. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
                 for (Path entry : stream) {
-                    if (Constants.MANIFEST_FILENAME.equals(entry.getFileName().toString())) {
-                        continue;
-                    }
                     this.processSnapshotFile(entry);
                 }
             }
@@ -417,30 +428,48 @@ public class SnapshotServiceImpl implements SnapshotService {
             log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
         }
 
-        // 6. Update Consumer State in .wazuh-cti-consumers
+        // 6. Update Consumer State in .wazuh-cti-consumers using the external manifest entry.
+        //    The manifest only provides remote_offset (the snapshot offset); local_offset is set
+        //    to the same value since the snapshot has just been fully loaded.
         try {
+            log.info("Loading consumer metadata from manifest entry for snapshot initialization...");
             String effectiveType =
-                    this.readManifestString(manifestConsumer, Constants.KEY_TYPE, this.consumerType);
-            String effectiveContext = this.readManifestString(manifestConsumer, "context", this.context);
+                    this.readManifestString(manifestEntry, Constants.KEY_TYPE, this.consumerType);
+            String effectiveContext = this.readManifestString(manifestEntry, "context", this.context);
             String effectiveName =
-                    this.readManifestString(manifestConsumer, Constants.KEY_NAME, this.consumer);
+                    this.readManifestString(manifestEntry, Constants.KEY_NAME, this.consumer);
             String effectiveResource =
-                    this.readManifestString(manifestConsumer, Constants.KEY_RESOURCE, this.consumerResource);
-            long manifestLocalOffset =
-                    this.readManifestLong(manifestConsumer, "local_offset", this.maxOffsetSeen);
-            long manifestRemoteOffset =
-                    this.readManifestLong(manifestConsumer, "remote_offset", manifestLocalOffset);
+                    this.readManifestString(manifestEntry, Constants.KEY_RESOURCE, this.consumerResource);
+            long snapshotOffset =
+                    this.readManifestLong(manifestEntry, "remote_offset", this.maxOffsetSeen);
+
+            log.debug(
+                    "Manifest resolved: type={}, context={}, name={}, resource={}, remote_offset={}",
+                    effectiveType,
+                    effectiveContext,
+                    effectiveName,
+                    effectiveResource,
+                    snapshotOffset);
 
             GetResponse getResponse = this.consumersIndex.getConsumer(effectiveType);
             LocalConsumer current =
                     (getResponse != null && getResponse.isExists())
                             ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
                             : null;
+            boolean hasManifestIsPublic =
+                    manifestEntry != null
+                            && manifestEntry.has(Constants.KEY_IS_PUBLIC)
+                            && !manifestEntry.get(Constants.KEY_IS_PUBLIC).isNull();
+            // On local fallback initialization, manifest is_public is authoritative when provided.
+            // If omitted, preserve existing value, otherwise default to true.
             boolean effectiveIsPublic =
-                    this.readManifestBoolean(
-                            manifestConsumer,
-                            Constants.KEY_IS_PUBLIC,
-                            current != null ? current.isPublic() : true);
+                    hasManifestIsPublic
+                            ? this.readManifestBoolean(manifestEntry, Constants.KEY_IS_PUBLIC, true)
+                            : (current != null ? current.isPublic() : true);
+            log.debug(
+                    "Consumer is_public determined: effective={} (from {})",
+                    effectiveIsPublic,
+                    hasManifestIsPublic ? "manifest" : (current != null ? "existing record" : "default"));
             if (current == null) {
                 current =
                         new LocalConsumer(
@@ -458,8 +487,16 @@ public class SnapshotServiceImpl implements SnapshotService {
                             effectiveResource,
                             effectiveIsPublic,
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
-                            manifestLocalOffset,
-                            manifestRemoteOffset);
+                            snapshotOffset,
+                            snapshotOffset);
+            log.info(
+                    "Persisting consumer to .wazuh-cti-consumers: type={}, name={}, context={}, resource={}, is_public={}, offset={}",
+                    updatedConsumer.getType(),
+                    updatedConsumer.getName(),
+                    updatedConsumer.getContext(),
+                    updatedConsumer.getResource(),
+                    updatedConsumer.isPublic(),
+                    snapshotOffset);
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
@@ -489,33 +526,6 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
         } catch (IOException e) {
             log.warn("Error during cleanup: {}", e.getMessage());
-        }
-    }
-
-    /** Loads the consumer metadata section from an extracted snapshot manifest if present. */
-    private JsonNode loadManifestConsumer(Path outputDir) {
-        if (outputDir == null) {
-            return null;
-        }
-
-        Path manifestPath = outputDir.resolve(Constants.MANIFEST_FILENAME);
-        if (!Files.exists(manifestPath)) {
-            return null;
-        }
-
-        try {
-            JsonNode manifestRoot = this.mapper.readTree(Files.readAllBytes(manifestPath));
-            JsonNode node = manifestRoot;
-            if (node.has("data") && node.get("data").isObject()) {
-                node = node.get("data");
-            }
-            if (node.has("consumer") && node.get("consumer").isObject()) {
-                node = node.get("consumer");
-            }
-            return node;
-        } catch (Exception e) {
-            log.warn("Failed to parse snapshot manifest [{}]: {}", manifestPath, e.getMessage());
-            return null;
         }
     }
 

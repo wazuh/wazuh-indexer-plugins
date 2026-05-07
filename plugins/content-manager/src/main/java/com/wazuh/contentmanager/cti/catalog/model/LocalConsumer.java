@@ -207,7 +207,6 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         return this.isPublic;
     }
 
-
     @Override
     public String toString() {
         return "LocalConsumer{"

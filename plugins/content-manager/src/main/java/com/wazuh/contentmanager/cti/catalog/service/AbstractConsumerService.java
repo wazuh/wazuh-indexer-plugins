@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
@@ -217,19 +218,18 @@ public abstract class AbstractConsumerService {
             LocalConsumer current =
                     hasCurrent
                             ? new ObjectMapper().readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(
-                                    context,
-                                    consumer,
-                                    consumerType,
-                                    catalogUri,
-                                    true);
+                            : new LocalConsumer(context, consumer, consumerType, catalogUri, true);
+            String effectiveContext = this.firstNonBlank(current.getContext(), context);
+            String effectiveName = this.firstNonBlank(current.getName(), consumer);
+            String effectiveType = this.firstNonBlank(current.getType(), consumerType);
+            String effectiveResource = this.firstNonBlank(current.getResource(), catalogUri);
             boolean effectiveIsPublic = hasCurrent ? current.isPublic() : true;
             LocalConsumer updated =
                     new LocalConsumer(
-                            context,
-                            consumer,
-                            consumerType,
-                            catalogUri,
+                            effectiveContext,
+                            effectiveName,
+                            effectiveType,
+                            effectiveResource,
                             effectiveIsPublic,
                             status,
                             current.getLocalOffset(),
@@ -340,12 +340,15 @@ public abstract class AbstractConsumerService {
         }
 
         if (currentOffset == 0) {
-            Path localSnapshot =
+            Path snapshotsDir =
                     this.environment
                             .pluginsDir()
                             .resolve(Constants.PLUGIN_DIR_NAME)
-                            .resolve(Constants.CTI_SNAPSHOTS_DIR)
-                            .resolve(this.getSnapshotFilename());
+                            .resolve(Constants.CTI_SNAPSHOTS_DIR);
+            Path localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+
+            // Load the external manifest entry for this snapshot (keyed by snapshot filename).
+            JsonNode manifestEntry = this.loadExternalManifestEntry(snapshotsDir);
 
             boolean snapshotExists;
             try {
@@ -394,9 +397,9 @@ public abstract class AbstractConsumerService {
                             "Remote snapshot initialization failed for consumer [{}]. Falling back to local snapshot [{}].",
                             consumer,
                             localSnapshot);
-                    boolean localSuccess = snapshotService.initialize(localSnapshot);
+                    boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
                     if (localSuccess) {
-                        currentOffset = snapshotService.getMaxOffsetSeen();
+                        currentOffset = this.resolveLocalOffset(snapshotService, manifestEntry);
                         updated = true;
                     } else {
                         log.warn("Local snapshot fallback failed for consumer [{}].", consumer);
@@ -413,9 +416,9 @@ public abstract class AbstractConsumerService {
                 SnapshotServiceImpl snapshotService =
                         this.createSnapshotService(context, consumer, consumerType, catalogUri, indicesMap);
 
-                boolean localSuccess = snapshotService.initialize(localSnapshot);
+                boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
                 if (localSuccess) {
-                    currentOffset = snapshotService.getMaxOffsetSeen();
+                    currentOffset = this.resolveLocalOffset(snapshotService, manifestEntry);
                     updated = true;
                 } else {
                     log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
@@ -463,5 +466,83 @@ public abstract class AbstractConsumerService {
         } catch (Exception e) {
             log.warn("Failed to delete local snapshot [{}]: {}", localSnapshot, e.getMessage());
         }
+    }
+
+    /**
+     * Loads the external {@code manifest.json} from the snapshots directory and returns the metadata
+     * entry for this consumer's snapshot file. The manifest is a JSON object keyed by snapshot
+     * filename (e.g., {@code "ruleset.zip"}).
+     *
+     * @param snapshotsDir The directory that contains the snapshot zip files and the manifest.
+     * @return The {@link JsonNode} for this consumer's snapshot, or {@code null} if the manifest does
+     *     not exist or the entry is missing.
+     */
+    private JsonNode loadExternalManifestEntry(Path snapshotsDir) {
+        Path manifestPath = snapshotsDir.resolve(Constants.MANIFEST_FILENAME);
+        try {
+            boolean exists = AccessController.doPrivilegedChecked(() -> Files.exists(manifestPath));
+            if (!exists) {
+                log.warn(
+                        "External manifest not found at [{}]. Using service defaults for consumer [{}].",
+                        manifestPath,
+                        this.getConsumer());
+                return null;
+            }
+
+            byte[] bytes = AccessController.doPrivilegedChecked(() -> Files.readAllBytes(manifestPath));
+            JsonNode root = new ObjectMapper().readTree(bytes);
+            String snapshotFilename = this.getSnapshotFilename();
+            JsonNode entry = root.get(snapshotFilename);
+            if (entry == null || entry.isNull()) {
+                log.warn(
+                        "External manifest [{}] has no entry for snapshot [{}]. Using service defaults for consumer [{}].",
+                        manifestPath,
+                        snapshotFilename,
+                        this.getConsumer());
+                return null;
+            }
+            log.info(
+                    "Loaded manifest entry for snapshot [{}] from [{}]. Entry content: {}",
+                    snapshotFilename,
+                    manifestPath,
+                    entry.toString());
+            return entry;
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to load external manifest from [{}]: {}. Using service defaults for consumer [{}].",
+                    manifestPath,
+                    e.getMessage(),
+                    this.getConsumer());
+            return null;
+        }
+    }
+
+    /**
+     * Resolves the local offset to use after a local snapshot has been initialised. Prefers the
+     * {@code remote_offset} value from the external manifest entry (the authoritative snapshot
+     * offset), and falls back to the maximum offset seen while processing the snapshot files.
+     *
+     * @param snapshotService The snapshot service that just finished processing.
+     * @param manifestEntry The external manifest entry for this consumer, or {@code null}.
+     * @return The resolved offset.
+     */
+    private long resolveLocalOffset(SnapshotServiceImpl snapshotService, JsonNode manifestEntry) {
+        if (manifestEntry != null
+                && manifestEntry.has("remote_offset")
+                && !manifestEntry.get("remote_offset").isNull()) {
+            long remoteOffset = manifestEntry.get("remote_offset").asLong();
+            log.debug(
+                    "Resolved offset from manifest remote_offset: {} (snapshotMaxOffsetSeen={})",
+                    remoteOffset,
+                    snapshotService.getMaxOffsetSeen());
+            return remoteOffset;
+        }
+        long maxOffsetSeen = snapshotService.getMaxOffsetSeen();
+        log.debug("Resolved offset from snapshot max offset seen: {}", maxOffsetSeen);
+        return maxOffsetSeen;
+    }
+
+    private String firstNonBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

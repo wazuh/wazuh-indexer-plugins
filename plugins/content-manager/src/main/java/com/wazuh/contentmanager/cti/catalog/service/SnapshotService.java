@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.nio.file.Path;
 
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
@@ -41,4 +43,16 @@ public interface SnapshotService {
      * @return true if the local snapshot was processed and initialized successfully; false otherwise.
      */
     boolean initialize(Path localZip);
+
+    /**
+     * Initializes a consumer from a pre-packaged local snapshot zip file using an externally-provided
+     * manifest entry. The {@code manifestEntry} is the JSON object from the shared {@code
+     * manifest.json} file in the snapshots directory, keyed by the snapshot filename.
+     *
+     * @param localZip The path to the local snapshot zip file.
+     * @param manifestEntry The consumer metadata node from the external manifest, or {@code null} to
+     *     fall back to defaults.
+     * @return true if the local snapshot was processed and initialized successfully; false otherwise.
+     */
+    boolean initialize(Path localZip, JsonNode manifestEntry);
 }

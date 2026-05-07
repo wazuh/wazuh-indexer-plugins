@@ -197,8 +197,8 @@ public class Constants {
     public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";
     public static final String CTI_SNAPSHOTS_DIR = "snapshots";
     public static final String CONTENT_SNAPSHOT_FILENAME = "ruleset.zip";
-    public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
-    public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
+    public static final String IOC_SNAPSHOT_FILENAME = "iocs.zip";
+    public static final String CVE_SNAPSHOT_FILENAME = "vulnerabilities.zip";
     public static final String MANIFEST_FILENAME = "manifest.json";
 
     // HTTP headers
