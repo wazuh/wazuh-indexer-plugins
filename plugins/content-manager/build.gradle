@@ -207,6 +207,14 @@ run {
   useCluster testClusters.integTest
 }
 
+// When this build is rooted at content-manager, an unqualified `./gradlew run`
+// would also fire the included :wazuh-indexer-setup project's own `run` task,
+// which boots a separate cluster on the same default port and shadows ours.
+// Disable it so only this project's `run` is invoked.
+project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
+  setupProject.tasks.named('run').configure { enabled = false }
+}
+
 // updateVersion: Task to auto update version to the next development iteration
 task updateVersion {
   onlyIf { System.getProperty('newVersion') }
