@@ -1,0 +1,108 @@
+{
+  "index_patterns": [
+    "wazuh-threatintel-kvdbs"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "auto_expand_replicas": "0-1",
+        "max_docvalue_fields_search": 50,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "document.id",
+          "document.metadata.title",
+          "document.metadata.description",
+          "document.metadata.author",
+          "hash.sha256",
+          "space.name"
+        ],
+        "refresh_interval": "5s"
+      },
+      "mapping.nested_fields.limit": 10,
+      "mapping.total_fields.limit": 500
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "true",
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "document": {
+          "properties": {
+            "content": {
+              "enabled": false,
+              "type": "object"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "id": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "metadata": {
+              "properties": {
+                "author": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "date": {
+                  "type": "date"
+                },
+                "description": {
+                  "norms": false,
+                  "type": "text"
+                },
+                "documentation": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "modified": {
+                  "type": "date"
+                },
+                "references": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "supports": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "title": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        },
+        "hash": {
+          "properties": {
+            "sha256": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "offset": {
+          "type": "unsigned_long"
+        },
+        "space": {
+          "properties": {
+            "name": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "yaml": {
+          "norms": false,
+          "type": "text"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,offset,unsigned_long,custom,,1000,The CTI offset value at which this document was last synchronized.
+9.1.0,true,base,yaml,text,custom,,,The YAML representation of the KVDB configuration.
+9.1.0,true,document,document.content,object,custom,,,KVDB content data (stored but not indexed).
+9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the KVDB is enabled.
+9.1.0,true,document,document.id,keyword,custom,,kvdb-12345,Unique identifier of the KVDB document.
+9.1.0,true,document,document.metadata.author,keyword,custom,,"Wazuh, Inc.",Author of the KVDB.
+9.1.0,true,document,document.metadata.date,date,custom,,2024-01-15T08:30:00.000Z,Creation date of the KVDB.
+9.1.0,true,document,document.metadata.description,text,custom,,Maps IP addresses to geographic locations.,Human-readable description of the KVDB.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/kvdbs.html,Documentation link for the KVDB.
+9.1.0,true,document,document.metadata.modified,date,custom,,2024-02-20T14:45:00.000Z,Last modification date of the KVDB.
+9.1.0,true,document,document.metadata.references,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/kvdbs.html,References or links related to the KVDB.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,linux,Supported platforms or operating systems.
+9.1.0,true,document,document.metadata.title,keyword,custom,,GeoIP Database,Title of the KVDB.
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the KVDB document.
+9.1.0,true,space,space.name,keyword,custom,,default,The name of the space where the KVDB is defined.

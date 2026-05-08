@@ -1,0 +1,9 @@
+---
+name: vulnerabilities
+fields:
+  base:
+    fields:
+      "@timestamp": { }
+  vulnerability:
+    fields: "*"
+

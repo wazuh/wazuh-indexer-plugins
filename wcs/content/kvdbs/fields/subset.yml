@@ -1,0 +1,9 @@
+---
+name: kvdbs
+fields:
+  base:
+    fields:
+      "@timestamp": { }
+  kvdb:
+    fields: "*"
+

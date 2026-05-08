@@ -1,0 +1,123 @@
+---
+- name: policy
+  root: true
+  title: Policy
+  group: 1
+  description: >
+    Wazuh Threat Intel policies document custom fields
+  type: group
+  fields:
+    - name: document.id
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Unique identifier of the policy document."
+      example: "policy-12345"
+    - name: document.root_decoder
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Name of the root decoder associated with this policy."
+      example: "wazuh-decoder"
+    - name: document.metadata.title
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Title of the policy."
+      example: "Default Security Policy"
+    - name: document.metadata.author
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Author of the policy."
+      example: "Wazuh, Inc."
+    - name: document.metadata.date
+      level: custom
+      type: date
+      description: "Creation date of the policy."
+      example: "2024-01-15T08:30:00.000Z"
+    - name: document.metadata.modified
+      level: custom
+      type: date
+      description: "Last modification date of the policy."
+      example: "2024-02-20T14:45:00.000Z"
+    - name: document.metadata.description
+      level: custom
+      type: text
+      description: "Human-readable description of the policy."
+      example: "Applies the standard Wazuh ruleset for endpoint monitoring."
+    - name: document.metadata.references
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "References or links related to the policy."
+      example: "https://documentation.wazuh.com/current/user-manual/ruleset/policies.html"
+    - name: document.metadata.documentation
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Documentation link for the policy."
+      example: "https://documentation.wazuh.com/current/user-manual/ruleset/policies.html"
+    - name: document.metadata.compatibility
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Compatibility information for the policy."
+      example: "wazuh >= 4.0"
+    - name: document.integrations
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "List of integration names associated with this policy."
+      example: "wazuh-linux"
+    - name: document.filters
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "List of filter names applied by this policy."
+      example: "syslog-filter"
+    - name: document.enrichments
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "List of enrichment names used by this policy."
+      example: "geo-enrichment"
+    - name: document.enabled
+      level: custom
+      type: boolean
+      description: "Whether the policy is enabled."
+      example: true
+    - name: document.index_unclassified_events
+      level: custom
+      type: boolean
+      description: "Whether unclassified events should be indexed under this policy."
+      example: false
+    - name: document.index_discarded_events
+      level: custom
+      type: boolean
+      description: "Whether discarded events should be indexed under this policy."
+      example: false
+    - name: hash.sha256
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "The SHA-256 hash of the policy document."
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    - name: offset
+      level: custom
+      type: unsigned_long
+      description: "The CTI offset value at which this document was last synchronized."
+      example: 1000
+    - name: space.name
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "The name of the space where the policy is defined."
+      example: "default"
+    - name: space.hash.sha256
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "The SHA-256 hash of the space containing this policy."
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+

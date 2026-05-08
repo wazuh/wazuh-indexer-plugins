@@ -1,0 +1,9 @@
+---
+name: decoders
+fields:
+  base:
+    fields:
+      "@timestamp": { }
+  decoder:
+    fields: "*"
+

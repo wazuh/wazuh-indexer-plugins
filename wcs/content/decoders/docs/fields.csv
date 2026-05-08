@@ -1,0 +1,24 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,offset,unsigned_long,custom,,1000,The CTI offset value at which this document was last synchronized.
+9.1.0,true,base,yaml,text,custom,,,The YAML representation of the decoder configuration.
+9.1.0,true,document,document.check,object,custom,,,Check conditions for the decoder (stored but not indexed).
+9.1.0,true,document,document.definitions,object,custom,,,Internal decoder definitions (stored but not indexed).
+9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the decoder is enabled.
+9.1.0,true,document,document.id,keyword,custom,,decoder-12345,Unique identifier of the decoder document.
+9.1.0,true,document,document.metadata.author,keyword,custom,,"Wazuh, Inc.",Author of the decoder.
+9.1.0,true,document,document.metadata.compatibility,keyword,custom,,wazuh >= 4.0,Compatibility information for the decoder.
+9.1.0,true,document,document.metadata.date,date,custom,,2024-01-15T08:30:00.000Z,Creation date of the decoder.
+9.1.0,true,document,document.metadata.description,text,custom,,Parses standard syslog messages.,Human-readable description of the decoder.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/decoders.html,Documentation link for the decoder.
+9.1.0,true,document,document.metadata.modified,date,custom,,2024-02-20T14:45:00.000Z,Last modification date of the decoder.
+9.1.0,true,document,document.metadata.module,keyword,custom,,wazuh-core,Module that this decoder belongs to.
+9.1.0,true,document,document.metadata.references,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/decoders.html,References or links related to the decoder.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,linux,Supported platforms or operating systems.
+9.1.0,true,document,document.metadata.title,keyword,custom,,Syslog Decoder,Title of the decoder.
+9.1.0,true,document,document.metadata.versions,keyword,custom,,"4.0, 4.1",Supported versions for this decoder.
+9.1.0,true,document,document.name,keyword,custom,,syslog-decoder,Human-readable name of the decoder.
+9.1.0,true,document,document.normalize,object,custom,,,Normalization rules for the decoder (stored but not indexed).
+9.1.0,true,document,document.parents,keyword,custom,,wazuh-core-decoder,List of parent decoder names.
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the decoder document.
+9.1.0,true,space,space.name,keyword,custom,,default,The name of the space where the decoder is defined.

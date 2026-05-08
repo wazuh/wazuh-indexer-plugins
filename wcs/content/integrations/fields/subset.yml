@@ -1,0 +1,9 @@
+---
+name: integrations
+fields:
+  base:
+    fields:
+      "@timestamp": { }
+  integration:
+    fields: "*"
+

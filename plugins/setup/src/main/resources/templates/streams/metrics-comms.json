@@ -17,7 +17,8 @@
         ],
         "refresh_interval": "5s"
       },
-      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms"
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms",
+      "mapping.total_fields.limit": 500
     },
     "mappings": {
       "date_detection": false,

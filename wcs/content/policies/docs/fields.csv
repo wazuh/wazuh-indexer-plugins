@@ -1,0 +1,22 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,offset,unsigned_long,custom,,1000,The CTI offset value at which this document was last synchronized.
+9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the policy is enabled.
+9.1.0,true,document,document.enrichments,keyword,custom,,geo-enrichment,List of enrichment names used by this policy.
+9.1.0,true,document,document.filters,keyword,custom,,syslog-filter,List of filter names applied by this policy.
+9.1.0,true,document,document.id,keyword,custom,,policy-12345,Unique identifier of the policy document.
+9.1.0,true,document,document.index_discarded_events,boolean,custom,,False,Whether discarded events should be indexed under this policy.
+9.1.0,true,document,document.index_unclassified_events,boolean,custom,,False,Whether unclassified events should be indexed under this policy.
+9.1.0,true,document,document.integrations,keyword,custom,,wazuh-linux,List of integration names associated with this policy.
+9.1.0,true,document,document.metadata.author,keyword,custom,,"Wazuh, Inc.",Author of the policy.
+9.1.0,true,document,document.metadata.compatibility,keyword,custom,,wazuh >= 4.0,Compatibility information for the policy.
+9.1.0,true,document,document.metadata.date,date,custom,,2024-01-15T08:30:00.000Z,Creation date of the policy.
+9.1.0,true,document,document.metadata.description,text,custom,,Applies the standard Wazuh ruleset for endpoint monitoring.,Human-readable description of the policy.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/policies.html,Documentation link for the policy.
+9.1.0,true,document,document.metadata.modified,date,custom,,2024-02-20T14:45:00.000Z,Last modification date of the policy.
+9.1.0,true,document,document.metadata.references,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/policies.html,References or links related to the policy.
+9.1.0,true,document,document.metadata.title,keyword,custom,,Default Security Policy,Title of the policy.
+9.1.0,true,document,document.root_decoder,keyword,custom,,wazuh-decoder,Name of the root decoder associated with this policy.
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the policy document.
+9.1.0,true,space,space.hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the space containing this policy.
+9.1.0,true,space,space.name,keyword,custom,,default,The name of the space where the policy is defined.

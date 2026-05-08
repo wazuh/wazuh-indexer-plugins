@@ -1,0 +1,20 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,offset,unsigned_long,custom,,1000,The CTI offset value at which this document was last synchronized.
+9.1.0,true,document,document.category,keyword,custom,,system-activity,"Category of the integration (e.g., network-activity, system-activity)."
+9.1.0,true,document,document.decoders,keyword,custom,,syslog-decoder,List of decoder names included in this integration.
+9.1.0,true,document,document.default_parent,keyword,custom,,wazuh-core,Name of the default parent integration.
+9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the integration is enabled.
+9.1.0,true,document,document.id,keyword,custom,,integration-12345,Unique identifier of the integration document.
+9.1.0,true,document,document.kvdbs,keyword,custom,,geoip-kvdb,List of key-value database names included in this integration.
+9.1.0,true,document,document.metadata.author,keyword,custom,,"Wazuh, Inc.",Author of the integration.
+9.1.0,true,document,document.metadata.date,date,custom,,2024-01-15T08:30:00.000Z,Creation date of the integration.
+9.1.0,true,document,document.metadata.description,text,custom,,Collects and processes Linux system events.,Human-readable description of the integration.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/integrations.html,Documentation link for the integration.
+9.1.0,true,document,document.metadata.modified,date,custom,,2024-02-20T14:45:00.000Z,Last modification date of the integration.
+9.1.0,true,document,document.metadata.references,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/integrations.html,References or links related to the integration.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,linux,Supported platforms or operating systems.
+9.1.0,true,document,document.metadata.title,keyword,custom,,Linux System Integration,Title of the integration.
+9.1.0,true,document,document.rules,keyword,custom,,linux-auth-rules,List of rule names included in this integration.
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the integration document.
+9.1.0,true,space,space.name,keyword,custom,,default,The name of the space where the integration is defined.
