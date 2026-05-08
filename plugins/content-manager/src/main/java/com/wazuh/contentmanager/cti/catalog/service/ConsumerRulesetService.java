@@ -178,9 +178,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
                 }
             }
+        }
 
-            // Reload STANDARD space, as it was updated.
-            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+        // Reconcile the STANDARD space hash on every sync. calculateAndUpdate is idempotent:
+        // it only flags the space as changed when the recomputed hash differs from the stored
+        // one (or the stored one is missing), so a previously-correct hash is a cheap no-op,
+        // and a missing hash (e.g., from snapshot import that did not include space.hash) is
+        // healed on the next sync.
+        Set<String> changedSpaces =
+                this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+        if (changedSpaces.contains(Space.STANDARD.toString())) {
             this.loadStandardSpaceIntoEngine();
         }
     }

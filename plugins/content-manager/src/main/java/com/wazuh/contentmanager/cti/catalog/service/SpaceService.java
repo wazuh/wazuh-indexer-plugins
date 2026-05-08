@@ -728,7 +728,7 @@ public class SpaceService {
             }
 
             SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(5);
+            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(10_000);
             SearchResponse response = this.client.search(searchRequest).actionGet();
 
             BulkRequest bulkUpdateRequest = new BulkRequest();

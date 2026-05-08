@@ -199,6 +199,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
 - Fix Telemetry Ping Job not running immediately after registration [(#1052)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1052)
 - Fix missing wazuh-threatintel-filters index [(#1143)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1143)
+- Fix missing `space.hash` on the standard space policy by reconciling the hash on every sync completion
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
