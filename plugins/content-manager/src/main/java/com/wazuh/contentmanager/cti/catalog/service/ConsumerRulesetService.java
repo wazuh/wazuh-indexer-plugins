@@ -153,7 +153,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_DECODERS,
                     Constants.INDEX_KVDBS,
                     Constants.INDEX_INTEGRATIONS,
-                    Constants.INDEX_FILTERS,
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations
