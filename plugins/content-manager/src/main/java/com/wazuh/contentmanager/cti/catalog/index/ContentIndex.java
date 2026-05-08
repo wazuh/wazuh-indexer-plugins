@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -143,8 +144,7 @@ public class ContentIndex {
             return null;
         }
 
-        Settings.Builder settingsBuilder =
-                Settings.builder().put("index.number_of_replicas", 0);
+        Settings.Builder settingsBuilder = Settings.builder().put("index.number_of_replicas", 0);
         if (Constants.INDEX_CVES.equals(this.indexName)) {
             settingsBuilder.put("index.hidden", true);
         }
@@ -432,21 +432,24 @@ public class ContentIndex {
         this.semaphore.release(permits);
     }
 
-    /** Deletes all documents in the index by deleting and recreating it. */
+    /**
+     * Clears all documents from the index by deleting and recreating it.
+     *
+     * <p>No explicit mappings are applied on recreation — the setup plugin's index template is
+     * automatically matched and applied by OpenSearch.
+     */
     public void clear() {
-        if (this.mappingsPath == null) {
-            log.error("Cannot clear index [{}]: mappings path not set.", this.indexName);
-            return;
-        }
         try {
             boolean exists = this.client.admin().indices().prepareExists(this.indexName).get().isExists();
             if (exists) {
-                this.client.admin().indices().prepareDelete(this.indexName).get();
+                this.client.admin().indices().delete(new DeleteIndexRequest(this.indexName)).actionGet();
             }
-            this.createIndex();
-            log.debug("[{}] wiped and recreated", this.indexName);
+            // Recreate without explicit mappings; the setup plugin's index template is applied
+            // automatically.
+            this.client.admin().indices().create(new CreateIndexRequest(this.indexName)).actionGet();
+            log.debug("[{}] wiped and recreated via template", this.indexName);
         } catch (Exception e) {
-            log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
+            log.error("[{}] clear() failed: {}", this.indexName, e.getMessage());
         }
     }
 

@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -31,8 +30,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -237,23 +234,9 @@ public abstract class AbstractConsumerService {
 
         for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
             String indexName = this.getIndexName(entry.getKey());
-            String alias = this.getAliases().get(entry.getKey());
-            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
+            // Index templates and index creation are managed by the setup plugin.
+            ContentIndex index = new ContentIndex(this.client, indexName);
             indicesMap.put(entry.getKey(), index);
-
-            // Check if index exists to avoid creation exception
-            boolean indexExists = this.client.admin().indices().prepareExists(indexName).get().isExists();
-
-            if (!indexExists) {
-                try {
-                    CreateIndexResponse response = index.createIndex();
-                    if (response.isAcknowledged()) {
-                        log.info("Index [{}] created successfully", response.index());
-                    }
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
-                }
-            }
         }
 
         boolean updated = false;

@@ -111,7 +111,8 @@ public class ConsumerIocService extends AbstractConsumerService {
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(Constants.KEY_IOCS, "/mappings/cti-ioc-mappings.json");
+        // Values are intentionally unused. Setup plugin owns mappings/templates.
+        mappings.put(Constants.KEY_IOCS, Constants.KEY_IOCS);
         return mappings;
     }
 

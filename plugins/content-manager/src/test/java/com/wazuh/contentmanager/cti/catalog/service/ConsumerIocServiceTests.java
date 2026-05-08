@@ -321,7 +321,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         assertNotNull(mappings);
         assertEquals(1, mappings.size());
-        assertEquals("/mappings/cti-ioc-mappings.json", mappings.get(Constants.KEY_IOCS));
+        assertEquals(Constants.KEY_IOCS, mappings.get(Constants.KEY_IOCS));
     }
 
     /** Tests that getAliases returns an empty map. */

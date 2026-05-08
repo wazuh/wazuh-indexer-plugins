@@ -67,7 +67,8 @@ public class ConsumerCveService extends AbstractConsumerService {
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(Constants.KEY_CVES, "/mappings/cti-cve-mappings.json");
+        // Values are intentionally unused. Setup plugin owns mappings/templates.
+        mappings.put(Constants.KEY_CVES, Constants.KEY_CVES);
         return mappings;
     }
 
