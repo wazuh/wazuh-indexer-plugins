@@ -160,7 +160,7 @@ testClusters.integTest {
   // Enable memory tracking to diagnose OOM errors.
   jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
   jvmArgs '-XX:NativeMemoryTracking=summary'
-  jvmArgs '-Xms1g', '-Xmx1g'
+  jvmArgs '-Xms2g', '-Xmx2g'
   jvmArgs '-Xss2m'
 
   // The plugin's REST handlers use blocking actionGet() calls on transport threads.
