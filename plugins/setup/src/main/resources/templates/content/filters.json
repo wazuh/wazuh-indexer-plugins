@@ -74,6 +74,10 @@
                 "description": {
                   "norms": false,
                   "type": "text"
+                },
+                "title": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
                 }
               }
             },

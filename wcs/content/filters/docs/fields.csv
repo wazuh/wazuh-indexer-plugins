@@ -10,6 +10,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,document,document.metadata.author.name,keyword,custom,,SecOps Team,Name of the filter author.
 9.1.0,true,document,document.metadata.author.url,keyword,custom,,https://example.com/filters,URL associated with the filter author or documentation.
 9.1.0,true,document,document.metadata.description,text,custom,,Detects failed logins from new locations.,Description of the filter purpose or behavior.
+9.1.0,true,document,document.metadata.title,keyword,custom,,Suspicious Login Filter,Title of the filter.
 9.1.0,true,document,document.name,keyword,custom,,Block suspicious login,Human-readable name of the filter.
 9.1.0,true,document,document.type,keyword,custom,,event,Filter type or category.
 9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the filter document.
