@@ -301,6 +301,14 @@ public class ContentManagerPlugin extends Plugin
                                                     consumersResponse.index(),
                                                     consumersResponse.isAcknowledged());
                                         }
+                                        if (!ClusterInfo.indexStatusCheck(
+                                                this.client,
+                                                ConsumersIndex.INDEX_NAME,
+                                                PluginSettings.getInstance().getClientTimeout())) {
+                                            log.warn(
+                                                    "Index [{}] not ready after creation, sync may encounter errors.",
+                                                    ConsumersIndex.INDEX_NAME);
+                                        }
                                     } catch (Exception e) {
                                         log.error(
                                                 "Failed to create {} index, due to: {}",
