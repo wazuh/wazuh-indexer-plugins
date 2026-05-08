@@ -35,8 +35,9 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 /**
  * DELETE /_plugins/_content_manager/subscription
  *
- * <p>Removes the stored CTI credentials: deletes the document from {@code .wazuh-cti-credentials}
- * and clears the in-memory token in {@link PluginSettings}.
+ * <p>Removes the stored CTI credentials: clears the credentials document inside {@code
+ * .wazuh-cti-credentials} and clears the in-memory token in {@link PluginSettings}. The index
+ * itself is preserved.
  *
  * <p>Possible HTTP responses:
  *
@@ -80,14 +81,14 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Deletes the credentials index and clears the in-memory access token.
+     * Deletes the credentials document and clears the in-memory access token.
      *
      * @return a {@link BytesRestResponse} representing the operation result
      * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            this.credentialsIndex.deleteIndex();
+            this.credentialsIndex.deleteDocument();
             PluginSettings.getInstance().setAccessToken(null);
             RestResponse response = new RestResponse("Credentials removed", RestStatus.OK.getStatus());
             return new BytesRestResponse(RestStatus.OK, response.toXContent());

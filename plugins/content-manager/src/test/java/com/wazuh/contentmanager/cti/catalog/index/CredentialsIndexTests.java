@@ -16,15 +16,13 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
-import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -132,26 +130,20 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
         Assert.assertEquals("my-token", idx.getAccessToken());
     }
 
-    /**
-     * deleteIndex() calls client.admin().indices().delete() and returns the acknowledged response.
-     */
+    /** deleteDocument() calls client.delete() and returns the delete response. */
     @SuppressWarnings("unchecked")
-    public void testDeleteIndex() throws Exception {
+    public void testDeleteDocument() throws Exception {
         Client client = mock(Client.class);
-        AdminClient admin = mock(AdminClient.class);
-        IndicesAdminClient indicesAdmin = mock(IndicesAdminClient.class);
-        ActionFuture<AcknowledgedResponse> future = mock(ActionFuture.class);
-        AcknowledgedResponse ackResponse = mock(AcknowledgedResponse.class);
+        ActionFuture<DeleteResponse> future = mock(ActionFuture.class);
+        DeleteResponse deleteResponse = mock(DeleteResponse.class);
 
-        when(client.admin()).thenReturn(admin);
-        when(admin.indices()).thenReturn(indicesAdmin);
-        when(indicesAdmin.delete(any())).thenReturn(future);
-        when(future.get(anyLong(), any())).thenReturn(ackResponse);
+        when(client.delete(any())).thenReturn(future);
+        when(future.get(anyLong(), any())).thenReturn(deleteResponse);
 
         CredentialsIndex idx = new CredentialsIndex(client);
-        AcknowledgedResponse result = idx.deleteIndex();
+        DeleteResponse result = idx.deleteDocument();
 
         Assert.assertNotNull(result);
-        verify(indicesAdmin, times(1)).delete(any());
+        verify(client, times(1)).delete(any());
     }
 }

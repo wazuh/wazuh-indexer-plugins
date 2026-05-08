@@ -74,16 +74,16 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
         Assert.assertTrue(body.contains("Credentials removed"));
         Assert.assertTrue(body.contains("200"));
         Assert.assertNull(PluginSettings.getInstance().getAccessToken());
-        verify(this.credentialsIndex, times(1)).deleteIndex();
+        verify(this.credentialsIndex, times(1)).deleteDocument();
     }
 
-    /** When deleteIndex() throws, returns 500 with the error message. */
+    /** When deleteDocument() throws, returns 500 with the error message. */
     public void testDeleteCredentials500() throws Exception {
-        doThrow(new RuntimeException("Index not ready")).when(this.credentialsIndex).deleteIndex();
+        doThrow(new RuntimeException("Delete failed")).when(this.credentialsIndex).deleteDocument();
 
         BytesRestResponse response = this.action.handleRequest();
 
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
-        Assert.assertTrue(response.content().utf8ToString().contains("Index not ready"));
+        Assert.assertTrue(response.content().utf8ToString().contains("Delete failed"));
     }
 }

@@ -166,7 +166,7 @@ curl -sk -u admin:admin -X GET \
 
 ### Delete CTI Credentials
 
-Removes the stored CTI access token from the credentials index and clears the in-memory token. After this operation the instance is unregistered.
+Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered.
 
 **Request**
 - Method: `DELETE`

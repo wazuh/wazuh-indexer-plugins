@@ -22,12 +22,12 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.transport.client.Client;
@@ -117,19 +117,17 @@ public class CredentialsIndex {
     }
 
     /**
-     * Deletes the credentials index entirely.
+     * Deletes the credentials document from the index, preserving the index itself.
      *
-     * @return the AcknowledgedResponse from the operation.
+     * @return the DeleteResponse from the operation.
      * @throws ExecutionException if the client failed to execute the request.
      * @throws InterruptedException if the current thread was interrupted.
      * @throws TimeoutException if the operation exceeded the configured timeout.
      */
-    public AcknowledgedResponse deleteIndex()
+    public DeleteResponse deleteDocument()
             throws ExecutionException, InterruptedException, TimeoutException {
-        DeleteIndexRequest request = new DeleteIndexRequest(INDEX_NAME);
+        DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);
         return this.client
-                .admin()
-                .indices()
                 .delete(request)
                 .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }

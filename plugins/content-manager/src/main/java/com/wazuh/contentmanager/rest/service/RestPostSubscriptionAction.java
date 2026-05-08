@@ -127,9 +127,6 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         }
 
         try {
-            if (!this.credentialsIndex.exists()) {
-                this.credentialsIndex.createIndex();
-            }
             this.credentialsIndex.storeCredentials(accessToken);
             PluginSettings.getInstance().setAccessToken(accessToken);
 

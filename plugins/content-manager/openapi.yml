@@ -99,8 +99,9 @@ paths:
     delete:
       summary: Delete CTI Credentials
       description: |
-        Removes the stored CTI access token from the credentials index and clears
-        the in-memory plugin variable. After this operation the instance is unregistered.
+        Clears the stored CTI access token document from the credentials index and clears
+        the in-memory plugin variable. The index itself is preserved. After this operation
+        the instance is unregistered.
       operationId: deleteSubscription
       tags:
         - Subscription Management
