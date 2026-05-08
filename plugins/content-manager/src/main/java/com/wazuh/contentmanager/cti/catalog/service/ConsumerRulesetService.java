@@ -180,15 +180,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
         }
 
-        // Reconcile the STANDARD space hash on every sync. calculateAndUpdate is idempotent:
-        // it only flags the space as changed when the recomputed hash differs from the stored
-        // one (or the stored one is missing), so a previously-correct hash is a cheap no-op,
-        // and a missing hash (e.g., from snapshot import that did not include space.hash) is
-        // healed on the next sync.
-        Set<String> changedSpaces =
-                this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
-        if (changedSpaces.contains(Space.STANDARD.toString())) {
-            this.loadStandardSpaceIntoEngine();
+        // Reconcile the STANDARD space hash. The recompute fans out to every referenced
+        // integration and its sub-resources (decoders, kvdbs, rules, filters), so we avoid
+        // running it on every idle sync. Trigger it only when there is real work to do:
+        //  - the sync brought updates, OR
+        //  - the standard policy is missing space.hash (heal path for races during initial
+        //    snapshot load — see standardSpaceMissingHash for the cheap probe).
+        if (isUpdated || this.spaceService.standardSpaceMissingHash()) {
+            Set<String> changedSpaces =
+                    this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            if (changedSpaces.contains(Space.STANDARD.toString())) {
+                this.loadStandardSpaceIntoEngine();
+            }
         }
     }
 

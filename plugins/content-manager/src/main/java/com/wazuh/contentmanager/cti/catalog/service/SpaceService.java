@@ -711,6 +711,51 @@ public class SpaceService {
     }
 
     /**
+     * Cheap pre-check: returns {@code true} when the standard space policy exists in {@link
+     * Constants#INDEX_POLICIES} but is missing the {@code space.hash.sha256} field. Used to gate the
+     * full {@link #calculateAndUpdate(List)} pipeline so the expensive recompute only runs when
+     * needed (initial seeding or self-healing after a race), not on every idle sync.
+     *
+     * <p>Returns {@code false} on any error or when the policies index does not exist yet — callers
+     * should treat that as "no heal needed" rather than escalating.
+     *
+     * @return true if a heal pass over the standard space is required.
+     */
+    public boolean standardSpaceMissingHash() {
+        try {
+            if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
+                return false;
+            }
+            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+            searchRequest
+                    .source()
+                    .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.STANDARD.toString()))
+                    .size(1)
+                    .fetchSource(new String[] {Constants.KEY_SPACE}, null);
+            SearchResponse response = this.client.search(searchRequest).actionGet();
+            SearchHit[] hits = response.getHits().getHits();
+            if (hits.length == 0) {
+                return false;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> space =
+                    (Map<String, Object>) hits[0].getSourceAsMap().get(Constants.KEY_SPACE);
+            if (space == null) {
+                return true;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> hash = (Map<String, Object>) space.get(Constants.KEY_HASH);
+            return hash == null
+                    || hash.isEmpty()
+                    || hash.get(Constants.KEY_SHA256) == null
+                    || ((String) hash.get(Constants.KEY_SHA256)).isEmpty();
+        } catch (Exception e) {
+            log.warn("Failed to check standard space hash presence: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Calculates and updates the aggregate hash for all policies in the given consumer context. This
      * method was merged from SpaceService.
      *
