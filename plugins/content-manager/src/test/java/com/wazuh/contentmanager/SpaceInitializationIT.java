@@ -84,6 +84,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * space: draft, test, custom), regardless of how many times the workflow runs.
      */
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
+        this.ensureGreen();
 
         // Create all content indices required by onSyncComplete
         this.createContentIndices();
