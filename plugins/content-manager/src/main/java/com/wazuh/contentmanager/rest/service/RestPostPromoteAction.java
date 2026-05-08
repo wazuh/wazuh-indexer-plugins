@@ -171,9 +171,15 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // 2. Gathering Phase - Build the engine payload
             PromotionContext context = this.gatherPromotionData(spaceDiff);
 
-            // 3. Validation Phase - Invoke engine validation only for test promotions that
-            // touch engine-related resources (decoders, kvdbs or filters).
-            if (spaceDiff.getSpace().promote() == Space.TEST && hasEngineRelatedChanges(context)) {
+            // 3. Validation Phase - Invoke engine validation when the resulting destination space
+            // will contain engine-related resources (decoders, kvdbs or filters). This covers two
+            // cases: the changeset itself adds/removes engine resources, OR the destination already
+            // holds engine resources from prior promotions (integration/rule-only changesets still
+            // require engine validation when engine resources are already present in the target).
+            Space targetSpace = spaceDiff.getSpace().promote();
+            if (targetSpace == Space.TEST
+                    && (hasEngineRelatedChanges(context)
+                            || this.spaceService.hasEngineResources(targetSpace))) {
                 RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
                 // Check if engine validation was successful
@@ -183,16 +189,14 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     log.error(mapper.writeValueAsString(context.enginePayload));
                     return engineResponse;
                 }
-                log.info(
-                        "Engine validation for space [{}] completed successfully.",
-                        spaceDiff.getSpace().promote());
+                log.info("Engine validation for space [{}] completed successfully.", targetSpace);
             }
 
             // 4. Consolidation Phase - Apply changes to target space
             this.consolidateChanges(context);
 
             // After successful promotion, recalculate policy hashes for the promoted space
-            this.spaceService.calculateAndUpdate(List.of(spaceDiff.getSpace().promote().toString()));
+            this.spaceService.calculateAndUpdate(List.of(targetSpace.toString()));
 
             // 5. Response Phase - Reply with success
             return new RestResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK.getStatus());
