@@ -22,6 +22,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -84,7 +85,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * space: draft, test, custom), regardless of how many times the workflow runs.
      */
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
-        this.ensureGreen();
+        this.ensureGreen(TimeValue.timeValueSeconds(120));
 
         // Create all content indices required by onSyncComplete
         this.createContentIndices();
