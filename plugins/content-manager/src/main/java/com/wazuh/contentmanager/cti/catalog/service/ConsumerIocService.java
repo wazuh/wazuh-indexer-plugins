@@ -67,12 +67,6 @@ public class ConsumerIocService extends AbstractConsumerService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int SEARCH_PAGE_SIZE = 10_000;
 
-    /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getInstance().getIocContext();
-
-    /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getInstance().getIocConsumer();
-
     /** The engine service for notifying the Engine about IOC updates. */
     private final EngineService engineService;
 
@@ -94,13 +88,13 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     @Override
-    protected String getContext() {
-        return this.CONTEXT;
+    protected String getConsumerType() {
+        return "cti:catalog:consumer:iocs";
     }
 
     @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogIocs();
     }
 
     @Override
@@ -114,12 +108,6 @@ public class ConsumerIocService extends AbstractConsumerService {
         // Values are intentionally unused. Setup plugin owns mappings/templates.
         mappings.put(Constants.KEY_IOCS, Constants.KEY_IOCS);
         return mappings;
-    }
-
-    @Override
-    protected Map<String, String> getAliases() {
-        // We use the alias names as the actual index names, so we do not create separate aliases.
-        return Collections.emptyMap();
     }
 
     @Override

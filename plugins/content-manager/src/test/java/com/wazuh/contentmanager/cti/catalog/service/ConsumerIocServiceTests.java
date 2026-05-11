@@ -305,16 +305,6 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
-    /** Tests that getContext returns the expected IOC context. */
-    public void testGetContextReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getIocContext(), this.service.getContext());
-    }
-
-    /** Tests that getConsumer returns the expected IOC consumer. */
-    public void testGetConsumerReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getIocConsumer(), this.service.getConsumer());
-    }
-
     /** Tests that getMappings returns the IOC mappings. */
     public void testGetMappingsReturnsExpectedMappings() {
         Map<String, String> mappings = this.service.getMappings();
@@ -322,14 +312,6 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertNotNull(mappings);
         assertEquals(1, mappings.size());
         assertEquals(Constants.KEY_IOCS, mappings.get(Constants.KEY_IOCS));
-    }
-
-    /** Tests that getAliases returns an empty map. */
-    public void testGetAliasesReturnsEmpty() {
-        Map<String, String> aliases = this.service.getAliases();
-
-        assertNotNull(aliases);
-        assertTrue(aliases.isEmpty());
     }
 
     /** Tests that when no documents exist, an empty type_hashes document is stored. */

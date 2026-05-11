@@ -130,10 +130,9 @@ public class CatalogSyncJob implements JobExecutor {
                 .execute(
                         () -> {
                             try {
-                                log.info("Executing Manually Triggered Consumer Sync Job");
                                 this.performSynchronization();
                             } catch (Exception e) {
-                                log.error("Error executing Manual Consumer Sync Job: {}", e.getMessage(), e);
+                                log.error("Error running CatalogSyncJob: {}", e.getMessage(), e);
                             } finally {
                                 this.semaphore.release();
                             }

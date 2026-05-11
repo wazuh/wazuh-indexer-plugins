@@ -86,8 +86,7 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that setConsumer constructs the correct ID (context_name) and performs the index
-     * operation.
+     * Tests that setConsumer uses the consumer type as document ID and performs the index operation.
      *
      * @throws Exception
      */
@@ -112,7 +111,14 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
 
         // Act
         LocalConsumer consumer =
-                new LocalConsumer("test_context", "test_consumer", 100L, 200L, "http://snapshot");
+                new LocalConsumer(
+                        "test_context",
+                        "test_consumer",
+                        "cti:catalog:consumer:iocs",
+                        "https://cti/iocs",
+                        true,
+                        100L,
+                        200L);
         this.consumersIndex.setConsumer(consumer);
 
         // Assert
@@ -121,7 +127,7 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
-        Assert.assertEquals("test_context_test_consumer", request.id());
+        Assert.assertEquals("cti:catalog:consumer:iocs", request.id());
     }
 
     /** Tests that setConsumer throws a RuntimeException if the cluster status is RED. */
@@ -139,7 +145,9 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                 .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.RED);
 
-        LocalConsumer consumer = new LocalConsumer("ctx", "name");
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        "ctx", "name", "cti:catalog:consumer:ruleset", "https://cti/rules", false);
 
         // Act and Assert
         RuntimeException ex =
@@ -149,7 +157,7 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests getConsumer retrieves the correct document ID based on context and consumer name.
+     * Tests getConsumer retrieves the correct document ID based on type.
      *
      * @throws Exception
      */
@@ -173,7 +181,7 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         when(this.client.get(any(GetRequest.class))).thenReturn(future);
 
         // Act
-        this.consumersIndex.getConsumer("my_context", "my_consumer");
+        this.consumersIndex.getConsumer("cti:catalog:consumer:iocs");
 
         // Assert
         ArgumentCaptor<GetRequest> captor = ArgumentCaptor.forClass(GetRequest.class);
@@ -181,7 +189,7 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
 
         GetRequest request = captor.getValue();
         Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
-        Assert.assertEquals("my_context_my_consumer", request.id());
+        Assert.assertEquals("cti:catalog:consumer:iocs", request.id());
     }
 
     /** Tests exists() delegates correctly to the IndicesExistsRequest. */
@@ -256,7 +264,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         // Act and Assert
         RuntimeException ex =
                 Assert.assertThrows(
-                        RuntimeException.class, () -> this.consumersIndex.getConsumer("ctx", "name"));
+                        RuntimeException.class,
+                        () -> this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset"));
         Assert.assertEquals("Index not ready", ex.getMessage());
     }
 }

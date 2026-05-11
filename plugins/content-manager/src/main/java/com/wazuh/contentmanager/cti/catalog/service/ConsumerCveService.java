@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,11 +31,6 @@ import com.wazuh.contentmanager.utils.Constants;
  * operations.
  */
 public class ConsumerCveService extends AbstractConsumerService {
-    /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getInstance().getCveContext();
-
-    /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getInstance().getCveConsumer();
 
     /**
      * Constructs a new ConsumerCveService.
@@ -50,13 +44,13 @@ public class ConsumerCveService extends AbstractConsumerService {
     }
 
     @Override
-    protected String getContext() {
-        return this.CONTEXT;
+    protected String getConsumerType() {
+        return "cti:catalog:consumer:vulnerabilities";
     }
 
     @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogVulnerabilities();
     }
 
     @Override
@@ -70,12 +64,6 @@ public class ConsumerCveService extends AbstractConsumerService {
         // Values are intentionally unused. Setup plugin owns mappings/templates.
         mappings.put(Constants.KEY_CVES, Constants.KEY_CVES);
         return mappings;
-    }
-
-    @Override
-    protected Map<String, String> getAliases() {
-        // We use the alias names as the actual index names, so we do not create separate aliases.
-        return Collections.emptyMap();
     }
 
     @Override
