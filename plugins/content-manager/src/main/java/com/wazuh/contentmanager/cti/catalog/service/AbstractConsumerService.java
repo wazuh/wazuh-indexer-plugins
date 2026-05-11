@@ -43,8 +43,8 @@ import com.wazuh.contentmanager.utils.Constants;
 /**
  * Base class for consumer synchronization logic. Provides common functionality for synchronizing
  * content between a remote CTI (Cyber Threat Intelligence) catalog and local OpenSearch indices.
- * Handles index creation with proper mappings and aliases, snapshot initialization for first-time
- * synchronization, and incremental updates based on offset tracking.
+ * Handles snapshot initialization for first-time synchronization and incremental updates based on
+ * offset tracking.
  *
  * <p>Subclasses must implement the abstract methods to define the specific context, consumer name,
  * mappings, aliases, and post-synchronization behavior.
@@ -214,9 +214,8 @@ public abstract class AbstractConsumerService {
 
     /**
      * Performs the core synchronization logic for consumer services. Retrieves local and remote
-     * consumer state, creates any missing indices with their mappings and aliases, initializes from
-     * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
-     * remote offset is ahead.
+     * consumer state, initializes from snapshot if this is a first-time sync (offset = 0), and
+     * applies incremental updates if the remote offset is ahead.
      *
      * @return True if any updates were applied (snapshot or incremental), false if already up to
      *     date.
@@ -234,9 +233,15 @@ public abstract class AbstractConsumerService {
 
         for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
             String indexName = this.getIndexName(entry.getKey());
-            // Index templates and index creation are managed by the setup plugin.
             ContentIndex index = new ContentIndex(this.client, indexName);
             indicesMap.put(entry.getKey(), index);
+
+            boolean indexExists = this.client.admin().indices().prepareExists(indexName).get().isExists();
+            if (!indexExists) {
+                log.warn(
+                        "Index [{}] does not exist. Ensure the Setup plugin initializes threat intel content indices before content-manager synchronization.",
+                        indexName);
+            }
         }
 
         boolean updated = false;

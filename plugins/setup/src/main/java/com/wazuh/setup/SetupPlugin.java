@@ -153,6 +153,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
 
         // Threat intel content indices
+        this.indices.add(new StateIndex("wazuh-threatintel-enrichments", "templates/content/ioc"));
         this.indices.add(new StateIndex("wazuh-threatintel-filters", "templates/content/filters"));
         this.indices.add(new StateIndex("wazuh-threatintel-policies", "templates/content/policies"));
         this.indices.add(new StateIndex("wazuh-threatintel-integrations", "templates/content/integrations"));

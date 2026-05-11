@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.client.ResponseException;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
@@ -40,9 +38,44 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
     private static final String IOC_INDEX = Constants.INDEX_IOCS;
     private static final String HASH_DOC_ID = Constants.IOC_TYPE_HASHES_ID;
 
+    // strict_allow_templates keeps root strict while allowing dynamic entries under type_hashes.
+    private static final String IOC_MAPPINGS =
+            """
+            {
+              "dynamic": "strict_allow_templates",
+              "date_detection": false,
+              "properties": {
+                "document": {
+                  "properties": {
+                    "type": {"type": "keyword", "ignore_above": 1024},
+                    "name": {"type": "keyword", "ignore_above": 1024},
+                    "id": {"type": "keyword", "ignore_above": 1024},
+                    "provider": {"type": "keyword", "ignore_above": 1024},
+                    "confidence": {"type": "integer"},
+                    "feed": {
+                      "properties": {
+                        "name": {"type": "keyword", "ignore_above": 1024}
+                      }
+                    },
+                    "tags": {"type": "keyword", "ignore_above": 1024}
+                  }
+                },
+                "hash": {
+                  "properties": {
+                    "sha256": {"type": "keyword", "ignore_above": 1024}
+                  }
+                },
+                "type_hashes": {
+                  "type": "object",
+                  "dynamic": true
+                }
+              }
+            }
+            """;
+
     /**
-     * Recreates the IOC index with the strict mapping from the plugin resources, replacing the
-     * dynamic mapping created by the base class.
+     * Recreates the IOC index with a strict mapping, replacing the dynamic mapping created by the
+     * base class.
      */
     private void recreateIocIndexWithStrictMapping() throws IOException {
         // Delete the index created by the base class (dynamic mapping)
@@ -55,13 +88,6 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
             }
         }
 
-        // Read the strict mapping from the plugin resources
-        String mapping;
-        try (InputStream is = getClass().getResourceAsStream("/mappings/cti-ioc-mappings.json")) {
-            assertNotNull("IOC mapping resource should exist", is);
-            mapping = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-
         // Create the index with strict mapping
         // spotless:off
         String indexBody = String.format(Locale.ROOT, """
@@ -69,7 +95,7 @@ public class IocTypeHashesIT extends ContentManagerRestTestCase {
                     "settings": {"index": {"hidden": true, "number_of_replicas": 0}},
                     "mappings": %s
                 }
-                """, mapping);
+                """, IOC_MAPPINGS);
         // spotless:on
         this.makeRequest("PUT", IOC_INDEX, indexBody);
     }
