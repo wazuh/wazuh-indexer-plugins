@@ -72,7 +72,6 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
-import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
