@@ -423,11 +423,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             }
 
             if (detectorNode.has(Constants.KEY_INTERVAL)) {
-                interval = detectorNode.path(Constants.KEY_INTERVAL).asInt(2);
+                interval = detectorNode.path(Constants.KEY_INTERVAL).asInt(interval);
             }
 
             if (detectorNode.has(Constants.KEY_ENABLED)) {
-                enabled = detectorNode.path(Constants.KEY_ENABLED).asBoolean(true);
+                enabled = detectorNode.path(Constants.KEY_ENABLED).asBoolean(enabled);
             }
         }
 

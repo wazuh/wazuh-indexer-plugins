@@ -327,9 +327,9 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
 
         assertNotNull("Request should not be null even without detector config", request);
-        // Validates internal fallback logic (defaults: 2m, enabled, empty sources)
+        // Validates internal fallback logic (defaults: 2m, disabled, empty sources)
         assertEquals("Should fallback to default interval (2m)", 2, request.getInterval());
-        assertTrue("Should be enabled by default", request.isEnabled());
+        assertFalse("Should be disabled by default", request.isEnabled());
         assertTrue("Sources should be empty to trigger SAP legacy pattern fallback", request.getSources().isEmpty());
     }
 
@@ -351,7 +351,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
         assertNotNull("Request should be created despite invalid field types", request);
         assertEquals("Should use default interval when CTI value is invalid", 2, request.getInterval());
-        assertTrue("Should default to enabled when CTI boolean is malformed", request.isEnabled());
+        assertFalse("Should default to disabled when CTI boolean is malformed", request.isEnabled());
     }
 
     // ── extractSapErrorMessage tests ─────────────────────────────────────────
