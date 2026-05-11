@@ -49,7 +49,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 /** CTI Console API client. */
 public class ApiClient {
 
-    private static final String BASE_URI = "https://localhost:8443";
+    private static final String BASE_URI = "https://api.pre.cloud.wazuh.com";
     private static final String API_PREFIX = "/api/v1";
     private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";

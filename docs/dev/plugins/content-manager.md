@@ -93,11 +93,13 @@ Runtime toggle behavior:
 
 ### REST Handlers
 
-The plugin registers 24 REST handlers, grouped by domain:
+The plugin registers 26 REST handlers, grouped by domain:
 
 | Domain           | Handler                        | Method | URI                                            |
 | ---------------- | ------------------------------ | ------ | ---------------------------------------------- |
 | **Subscription** | `RestPostSubscriptionAction`   | POST   | `/_plugins/_content_manager/subscription`      |
+|                  | `RestGetSubscriptionAction`    | GET    | `/_plugins/_content_manager/subscription`      |
+|                  | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription`      |
 | **Update**       | `RestPostUpdateAction`         | POST   | `/_plugins/_content_manager/update`            |
 | **Logtest**      | `RestPostLogtestAction`        | POST   | `/_plugins/_content_manager/logtest`           |
 | **Policy**       | `RestPutPolicyAction`          | PUT    | `/_plugins/_content_manager/policy/{space}`    |

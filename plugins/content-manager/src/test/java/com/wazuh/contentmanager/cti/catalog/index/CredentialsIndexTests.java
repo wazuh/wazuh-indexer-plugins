@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
@@ -127,5 +128,54 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
                 };
 
         Assert.assertEquals("my-token", idx.getAccessToken());
+    }
+
+    /** deleteDocument() calls client.delete() and returns the delete response when index exists. */
+    @SuppressWarnings("unchecked")
+    public void testDeleteDocument() throws Exception {
+        Client client = mock(Client.class);
+        ActionFuture<DeleteResponse> future = mock(ActionFuture.class);
+        DeleteResponse deleteResponse = mock(DeleteResponse.class);
+
+        when(client.delete(any())).thenReturn(future);
+        when(future.get(anyLong(), any())).thenReturn(deleteResponse);
+
+        CredentialsIndex idx = spy(new CredentialsIndex(client));
+        doReturn(true).when(idx).exists();
+        DeleteResponse result = idx.deleteDocument();
+
+        Assert.assertNotNull(result);
+        verify(client, times(1)).delete(any());
+    }
+
+    /** deleteDocument() returns null without calling the client when the index does not exist. */
+    public void testDeleteDocument_NoOp_WhenIndexMissing() throws Exception {
+        Client client = mock(Client.class);
+
+        CredentialsIndex idx = spy(new CredentialsIndex(client));
+        doReturn(false).when(idx).exists();
+
+        DeleteResponse result = idx.deleteDocument();
+
+        Assert.assertNull(result);
+        verify(client, never()).delete(any());
+    }
+
+    /** storeCredentials() calls createIndex() before writing when the index does not exist. */
+    @SuppressWarnings("unchecked")
+    public void testStoreCredentials_RecreatesIndex_WhenMissing() throws Exception {
+        Client client = mock(Client.class);
+
+        CredentialsIndex idx = spy(new CredentialsIndex(client));
+        doReturn(false).when(idx).exists();
+        doReturn(null).when(idx).createIndex();
+
+        try {
+            idx.storeCredentials("my-token");
+        } catch (RuntimeException ignored) {
+            // ClusterInfo.indexStatusCheck is unavailable in unit tests (expected)
+        }
+
+        verify(idx, times(1)).createIndex();
     }
 }
