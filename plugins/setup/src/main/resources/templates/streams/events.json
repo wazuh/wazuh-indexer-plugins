@@ -23,7 +23,7 @@
         "refresh_interval": "2s"
       },
       "mapping.nested_fields.limit": 50,
-      "mapping.total_fields.limit": 2500,
+      "mapping.total_fields.limit": 500,
       "plugins.index_state_management.rollover_alias": "wazuh-events-v5"
     },
     "mappings": {
@@ -9398,6 +9398,15 @@
           }
         },
         {
+          "wcs_rule_level": {
+            "path_match": "rule.level",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_rule_license": {
             "path_match": "rule.license",
             "mapping": {
@@ -9454,6 +9463,42 @@
         {
           "wcs_rule_ruleset": {
             "path_match": "rule.ruleset",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_sigma_id": {
+            "path_match": "rule.sigma_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_status": {
+            "path_match": "rule.status",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_tags": {
+            "path_match": "rule.tags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_title": {
+            "path_match": "rule.title",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -16474,6 +16519,3570 @@
               "type": "keyword"
             }
           }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_as_number": {
+            "path_match": "wazuh.threat.enrichments.indicator.as.number",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_as_organization_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.as.organization.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_confidence": {
+            "path_match": "wazuh.threat.enrichments.indicator.confidence",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_description": {
+            "path_match": "wazuh.threat.enrichments.indicator.description",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_email_address": {
+            "path_match": "wazuh.threat.enrichments.indicator.email.address",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_feed_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.feed.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_accessed": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.accessed",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_attributes": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.attributes",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_digest_algorithm": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.digest_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_exists": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.exists",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_flags": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.flags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_signing_id": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.signing_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_status": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.status",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_subject_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.subject_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_team_id": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.team_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_thumbprint_sha256": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.thumbprint_sha256",
+            "mapping": {
+              "ignore_above": 64,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_timestamp": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.timestamp",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_trusted": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.trusted",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_code_signature_valid": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.code_signature.valid",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_created": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.created",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_ctime": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.ctime",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_device": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.device",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_directory": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.directory",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_drive_letter": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.drive_letter",
+            "mapping": {
+              "ignore_above": 1,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_architecture": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.architecture",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_byte_order": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.byte_order",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_cpu_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.cpu_type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_creation_date": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.creation_date",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_exports": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.exports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_go_import_hash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.go_import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_go_imports": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.go_imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_go_imports_names_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.go_imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_go_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.go_imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_go_stripped": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.go_stripped",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_abi_version": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.abi_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_class": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.class",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_data": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.data",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_entrypoint": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.entrypoint",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_object_version": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.object_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_os_abi": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.os_abi",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_header_version": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.header.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_import_hash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_imports": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_imports_names_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_chi2": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.chi2",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_flags": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.flags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_physical_offset": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.physical_offset",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_physical_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.physical_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_var_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_virtual_address": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.virtual_address",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_sections_virtual_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.sections.virtual_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_segments_sections": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.segments.sections",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_segments_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.segments.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_shared_libraries": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.shared_libraries",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_elf_telfhash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.elf.telfhash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_extension": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.extension",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_fork_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.fork_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_gid": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.gid",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_group": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.group",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_cdhash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.cdhash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_md5": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.md5",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_sha1": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.sha1",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_sha256": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.sha256",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_sha384": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.sha384",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_sha512": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.sha512",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_ssdeep": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.ssdeep",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_hash_tlsh": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.hash.tlsh",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_inode": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.inode",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_mime_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.mime_type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_mode": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.mode",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_mtime": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.mtime",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_origin_referrer_url": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.origin_referrer_url",
+            "mapping": {
+              "ignore_above": 8192,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_origin_url": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.origin_url",
+            "mapping": {
+              "ignore_above": 8192,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_owner": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.owner",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_path": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.path",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_architecture": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.architecture",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_company": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.company",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_description": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.description",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_file_version": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.file_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_go_import_hash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.go_import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_go_imports": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.go_imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_go_imports_names_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.go_imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_go_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.go_imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_go_stripped": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.go_stripped",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_imphash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.imphash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_import_hash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_imports": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_imports_names_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_original_file_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.original_file_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_pehash": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.pehash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_product": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.product",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_sections_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.sections.entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_sections_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.sections.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_sections_physical_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.sections.physical_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_sections_var_entropy": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.sections.var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_pe_sections_virtual_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.pe.sections.virtual_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_target_path": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.target_path",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_uid": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.uid",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_alternative_names": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.alternative_names",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_common_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_country": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_distinguished_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_locality": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_organization": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_organizational_unit": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_issuer_state_or_province": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.issuer.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_not_after": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.not_after",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_not_before": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.not_before",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_public_key_algorithm": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.public_key_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_public_key_curve": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.public_key_curve",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_public_key_exponent": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.public_key_exponent",
+            "mapping": {
+              "doc_values": false,
+              "index": false,
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_public_key_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.public_key_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_serial_number": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.serial_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_signature_algorithm": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.signature_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_common_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_country": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_distinguished_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_locality": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_organization": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_organizational_unit": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_subject_state_or_province": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.subject.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_file_x509_version_number": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.x509.version_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_first_seen": {
+            "path_match": "wazuh.threat.enrichments.indicator.first_seen",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_city_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.city_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_continent_code": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.continent_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_continent_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.continent_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_country_iso_code": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.country_iso_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_country_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.country_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_location": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.location",
+            "mapping": {
+              "type": "geo_point"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_postal_code": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.postal_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_region_iso_code": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.region_iso_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_region_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.region_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_geo_timezone": {
+            "path_match": "wazuh.threat.enrichments.indicator.geo.timezone",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_id": {
+            "path_match": "wazuh.threat.enrichments.indicator.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_ip": {
+            "path_match": "wazuh.threat.enrichments.indicator.ip",
+            "mapping": {
+              "type": "ip"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_last_seen": {
+            "path_match": "wazuh.threat.enrichments.indicator.last_seen",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_marking_tlp": {
+            "path_match": "wazuh.threat.enrichments.indicator.marking.tlp",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_marking_tlp_version": {
+            "path_match": "wazuh.threat.enrichments.indicator.marking.tlp_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_modified_at": {
+            "path_match": "wazuh.threat.enrichments.indicator.modified_at",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_port": {
+            "path_match": "wazuh.threat.enrichments.indicator.port",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_provider": {
+            "path_match": "wazuh.threat.enrichments.indicator.provider",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_reference": {
+            "path_match": "wazuh.threat.enrichments.indicator.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_data_bytes": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.data.bytes",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_data_strings": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.data.strings",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_data_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.data.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_hive": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.hive",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_key": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.key",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_path": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.path",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_registry_value": {
+            "path_match": "wazuh.threat.enrichments.indicator.registry.value",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_scanner_stats": {
+            "path_match": "wazuh.threat.enrichments.indicator.scanner_stats",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_sightings": {
+            "path_match": "wazuh.threat.enrichments.indicator.sightings",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_software_alias": {
+            "path_match": "wazuh.threat.enrichments.indicator.software.alias",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_software_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.software.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_software_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.software.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_tags": {
+            "path_match": "wazuh.threat.enrichments.indicator.tags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_type": {
+            "path_match": "wazuh.threat.enrichments.indicator.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_alternative_names": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.alternative_names",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_common_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_country": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_distinguished_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_locality": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_organization": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_organizational_unit": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_issuer_state_or_province": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.issuer.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_not_after": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.not_after",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_not_before": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.not_before",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_public_key_algorithm": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.public_key_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_public_key_curve": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.public_key_curve",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_public_key_exponent": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.public_key_exponent",
+            "mapping": {
+              "doc_values": false,
+              "index": false,
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_public_key_size": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.public_key_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_serial_number": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.serial_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_signature_algorithm": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.signature_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_common_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_country": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_distinguished_name": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_locality": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_organization": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_organizational_unit": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_subject_state_or_province": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.subject.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_indicator_x509_version_number": {
+            "path_match": "wazuh.threat.enrichments.indicator.x509.version_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_matched_atomic": {
+            "path_match": "wazuh.threat.enrichments.matched.atomic",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_matched_field": {
+            "path_match": "wazuh.threat.enrichments.matched.field",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_matched_id": {
+            "path_match": "wazuh.threat.enrichments.matched.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_matched_index": {
+            "path_match": "wazuh.threat.enrichments.matched.index",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_matched_occurred": {
+            "path_match": "wazuh.threat.enrichments.matched.occurred",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_enrichments_matched_type": {
+            "path_match": "wazuh.threat.enrichments.matched.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_feed_dashboard_id": {
+            "path_match": "wazuh.threat.feed.dashboard_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_feed_description": {
+            "path_match": "wazuh.threat.feed.description",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_feed_name": {
+            "path_match": "wazuh.threat.feed.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_feed_reference": {
+            "path_match": "wazuh.threat.feed.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_framework": {
+            "path_match": "wazuh.threat.framework",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_group_alias": {
+            "path_match": "wazuh.threat.group.alias",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_group_id": {
+            "path_match": "wazuh.threat.group.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_group_name": {
+            "path_match": "wazuh.threat.group.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_group_reference": {
+            "path_match": "wazuh.threat.group.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_as_number": {
+            "path_match": "wazuh.threat.indicator.as.number",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_as_organization_name": {
+            "path_match": "wazuh.threat.indicator.as.organization.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_confidence": {
+            "path_match": "wazuh.threat.indicator.confidence",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_description": {
+            "path_match": "wazuh.threat.indicator.description",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_email_address": {
+            "path_match": "wazuh.threat.indicator.email.address",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_accessed": {
+            "path_match": "wazuh.threat.indicator.file.accessed",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_attributes": {
+            "path_match": "wazuh.threat.indicator.file.attributes",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_digest_algorithm": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.digest_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_exists": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.exists",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_flags": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.flags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_signing_id": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.signing_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_status": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.status",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_subject_name": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.subject_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_team_id": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.team_id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_thumbprint_sha256": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.thumbprint_sha256",
+            "mapping": {
+              "ignore_above": 64,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_timestamp": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.timestamp",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_trusted": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.trusted",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_code_signature_valid": {
+            "path_match": "wazuh.threat.indicator.file.code_signature.valid",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_created": {
+            "path_match": "wazuh.threat.indicator.file.created",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_ctime": {
+            "path_match": "wazuh.threat.indicator.file.ctime",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_device": {
+            "path_match": "wazuh.threat.indicator.file.device",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_directory": {
+            "path_match": "wazuh.threat.indicator.file.directory",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_drive_letter": {
+            "path_match": "wazuh.threat.indicator.file.drive_letter",
+            "mapping": {
+              "ignore_above": 1,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_architecture": {
+            "path_match": "wazuh.threat.indicator.file.elf.architecture",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_byte_order": {
+            "path_match": "wazuh.threat.indicator.file.elf.byte_order",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_cpu_type": {
+            "path_match": "wazuh.threat.indicator.file.elf.cpu_type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_creation_date": {
+            "path_match": "wazuh.threat.indicator.file.elf.creation_date",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_exports": {
+            "path_match": "wazuh.threat.indicator.file.elf.exports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_go_import_hash": {
+            "path_match": "wazuh.threat.indicator.file.elf.go_import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_go_imports": {
+            "path_match": "wazuh.threat.indicator.file.elf.go_imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_go_imports_names_entropy": {
+            "path_match": "wazuh.threat.indicator.file.elf.go_imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_go_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.indicator.file.elf.go_imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_go_stripped": {
+            "path_match": "wazuh.threat.indicator.file.elf.go_stripped",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_abi_version": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.abi_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_class": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.class",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_data": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.data",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_entrypoint": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.entrypoint",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_object_version": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.object_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_os_abi": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.os_abi",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_type": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_header_version": {
+            "path_match": "wazuh.threat.indicator.file.elf.header.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_import_hash": {
+            "path_match": "wazuh.threat.indicator.file.elf.import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_imports": {
+            "path_match": "wazuh.threat.indicator.file.elf.imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_imports_names_entropy": {
+            "path_match": "wazuh.threat.indicator.file.elf.imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.indicator.file.elf.imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_chi2": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.chi2",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_entropy": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_flags": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.flags",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_name": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_physical_offset": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.physical_offset",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_physical_size": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.physical_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_type": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_var_entropy": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_virtual_address": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.virtual_address",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_sections_virtual_size": {
+            "path_match": "wazuh.threat.indicator.file.elf.sections.virtual_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_segments_sections": {
+            "path_match": "wazuh.threat.indicator.file.elf.segments.sections",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_segments_type": {
+            "path_match": "wazuh.threat.indicator.file.elf.segments.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_shared_libraries": {
+            "path_match": "wazuh.threat.indicator.file.elf.shared_libraries",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_elf_telfhash": {
+            "path_match": "wazuh.threat.indicator.file.elf.telfhash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_extension": {
+            "path_match": "wazuh.threat.indicator.file.extension",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_fork_name": {
+            "path_match": "wazuh.threat.indicator.file.fork_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_gid": {
+            "path_match": "wazuh.threat.indicator.file.gid",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_group": {
+            "path_match": "wazuh.threat.indicator.file.group",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_cdhash": {
+            "path_match": "wazuh.threat.indicator.file.hash.cdhash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_md5": {
+            "path_match": "wazuh.threat.indicator.file.hash.md5",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_sha1": {
+            "path_match": "wazuh.threat.indicator.file.hash.sha1",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_sha256": {
+            "path_match": "wazuh.threat.indicator.file.hash.sha256",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_sha384": {
+            "path_match": "wazuh.threat.indicator.file.hash.sha384",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_sha512": {
+            "path_match": "wazuh.threat.indicator.file.hash.sha512",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_ssdeep": {
+            "path_match": "wazuh.threat.indicator.file.hash.ssdeep",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_hash_tlsh": {
+            "path_match": "wazuh.threat.indicator.file.hash.tlsh",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_inode": {
+            "path_match": "wazuh.threat.indicator.file.inode",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_mime_type": {
+            "path_match": "wazuh.threat.indicator.file.mime_type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_mode": {
+            "path_match": "wazuh.threat.indicator.file.mode",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_mtime": {
+            "path_match": "wazuh.threat.indicator.file.mtime",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_name": {
+            "path_match": "wazuh.threat.indicator.file.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_origin_referrer_url": {
+            "path_match": "wazuh.threat.indicator.file.origin_referrer_url",
+            "mapping": {
+              "ignore_above": 8192,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_origin_url": {
+            "path_match": "wazuh.threat.indicator.file.origin_url",
+            "mapping": {
+              "ignore_above": 8192,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_owner": {
+            "path_match": "wazuh.threat.indicator.file.owner",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_path": {
+            "path_match": "wazuh.threat.indicator.file.path",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_architecture": {
+            "path_match": "wazuh.threat.indicator.file.pe.architecture",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_company": {
+            "path_match": "wazuh.threat.indicator.file.pe.company",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_description": {
+            "path_match": "wazuh.threat.indicator.file.pe.description",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_file_version": {
+            "path_match": "wazuh.threat.indicator.file.pe.file_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_go_import_hash": {
+            "path_match": "wazuh.threat.indicator.file.pe.go_import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_go_imports": {
+            "path_match": "wazuh.threat.indicator.file.pe.go_imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_go_imports_names_entropy": {
+            "path_match": "wazuh.threat.indicator.file.pe.go_imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_go_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.indicator.file.pe.go_imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_go_stripped": {
+            "path_match": "wazuh.threat.indicator.file.pe.go_stripped",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_imphash": {
+            "path_match": "wazuh.threat.indicator.file.pe.imphash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_import_hash": {
+            "path_match": "wazuh.threat.indicator.file.pe.import_hash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_imports": {
+            "path_match": "wazuh.threat.indicator.file.pe.imports",
+            "mapping": {
+              "type": "flat_object"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_imports_names_entropy": {
+            "path_match": "wazuh.threat.indicator.file.pe.imports_names_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_imports_names_var_entropy": {
+            "path_match": "wazuh.threat.indicator.file.pe.imports_names_var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_original_file_name": {
+            "path_match": "wazuh.threat.indicator.file.pe.original_file_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_pehash": {
+            "path_match": "wazuh.threat.indicator.file.pe.pehash",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_product": {
+            "path_match": "wazuh.threat.indicator.file.pe.product",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_sections_entropy": {
+            "path_match": "wazuh.threat.indicator.file.pe.sections.entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_sections_name": {
+            "path_match": "wazuh.threat.indicator.file.pe.sections.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_sections_physical_size": {
+            "path_match": "wazuh.threat.indicator.file.pe.sections.physical_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_sections_var_entropy": {
+            "path_match": "wazuh.threat.indicator.file.pe.sections.var_entropy",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_pe_sections_virtual_size": {
+            "path_match": "wazuh.threat.indicator.file.pe.sections.virtual_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_size": {
+            "path_match": "wazuh.threat.indicator.file.size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_target_path": {
+            "path_match": "wazuh.threat.indicator.file.target_path",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_type": {
+            "path_match": "wazuh.threat.indicator.file.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_uid": {
+            "path_match": "wazuh.threat.indicator.file.uid",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_alternative_names": {
+            "path_match": "wazuh.threat.indicator.file.x509.alternative_names",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_common_name": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_country": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_distinguished_name": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_locality": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_organization": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_organizational_unit": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_issuer_state_or_province": {
+            "path_match": "wazuh.threat.indicator.file.x509.issuer.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_not_after": {
+            "path_match": "wazuh.threat.indicator.file.x509.not_after",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_not_before": {
+            "path_match": "wazuh.threat.indicator.file.x509.not_before",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_public_key_algorithm": {
+            "path_match": "wazuh.threat.indicator.file.x509.public_key_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_public_key_curve": {
+            "path_match": "wazuh.threat.indicator.file.x509.public_key_curve",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_public_key_exponent": {
+            "path_match": "wazuh.threat.indicator.file.x509.public_key_exponent",
+            "mapping": {
+              "doc_values": false,
+              "index": false,
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_public_key_size": {
+            "path_match": "wazuh.threat.indicator.file.x509.public_key_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_serial_number": {
+            "path_match": "wazuh.threat.indicator.file.x509.serial_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_signature_algorithm": {
+            "path_match": "wazuh.threat.indicator.file.x509.signature_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_common_name": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_country": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_distinguished_name": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_locality": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_organization": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_organizational_unit": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_subject_state_or_province": {
+            "path_match": "wazuh.threat.indicator.file.x509.subject.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_x509_version_number": {
+            "path_match": "wazuh.threat.indicator.file.x509.version_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_first_seen": {
+            "path_match": "wazuh.threat.indicator.first_seen",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_city_name": {
+            "path_match": "wazuh.threat.indicator.geo.city_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_continent_code": {
+            "path_match": "wazuh.threat.indicator.geo.continent_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_continent_name": {
+            "path_match": "wazuh.threat.indicator.geo.continent_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_country_iso_code": {
+            "path_match": "wazuh.threat.indicator.geo.country_iso_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_country_name": {
+            "path_match": "wazuh.threat.indicator.geo.country_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_location": {
+            "path_match": "wazuh.threat.indicator.geo.location",
+            "mapping": {
+              "type": "geo_point"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_name": {
+            "path_match": "wazuh.threat.indicator.geo.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_postal_code": {
+            "path_match": "wazuh.threat.indicator.geo.postal_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_region_iso_code": {
+            "path_match": "wazuh.threat.indicator.geo.region_iso_code",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_region_name": {
+            "path_match": "wazuh.threat.indicator.geo.region_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_geo_timezone": {
+            "path_match": "wazuh.threat.indicator.geo.timezone",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_id": {
+            "path_match": "wazuh.threat.indicator.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_ip": {
+            "path_match": "wazuh.threat.indicator.ip",
+            "mapping": {
+              "type": "ip"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_last_seen": {
+            "path_match": "wazuh.threat.indicator.last_seen",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_marking_tlp": {
+            "path_match": "wazuh.threat.indicator.marking.tlp",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_marking_tlp_version": {
+            "path_match": "wazuh.threat.indicator.marking.tlp_version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_modified_at": {
+            "path_match": "wazuh.threat.indicator.modified_at",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_name": {
+            "path_match": "wazuh.threat.indicator.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_port": {
+            "path_match": "wazuh.threat.indicator.port",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_provider": {
+            "path_match": "wazuh.threat.indicator.provider",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_reference": {
+            "path_match": "wazuh.threat.indicator.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_data_bytes": {
+            "path_match": "wazuh.threat.indicator.registry.data.bytes",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_data_strings": {
+            "path_match": "wazuh.threat.indicator.registry.data.strings",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_data_type": {
+            "path_match": "wazuh.threat.indicator.registry.data.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_hive": {
+            "path_match": "wazuh.threat.indicator.registry.hive",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_key": {
+            "path_match": "wazuh.threat.indicator.registry.key",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_path": {
+            "path_match": "wazuh.threat.indicator.registry.path",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_registry_value": {
+            "path_match": "wazuh.threat.indicator.registry.value",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_scanner_stats": {
+            "path_match": "wazuh.threat.indicator.scanner_stats",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_sightings": {
+            "path_match": "wazuh.threat.indicator.sightings",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_type": {
+            "path_match": "wazuh.threat.indicator.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_alternative_names": {
+            "path_match": "wazuh.threat.indicator.x509.alternative_names",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_common_name": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_country": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_distinguished_name": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_locality": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_organization": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_organizational_unit": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_issuer_state_or_province": {
+            "path_match": "wazuh.threat.indicator.x509.issuer.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_not_after": {
+            "path_match": "wazuh.threat.indicator.x509.not_after",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_not_before": {
+            "path_match": "wazuh.threat.indicator.x509.not_before",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_public_key_algorithm": {
+            "path_match": "wazuh.threat.indicator.x509.public_key_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_public_key_curve": {
+            "path_match": "wazuh.threat.indicator.x509.public_key_curve",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_public_key_exponent": {
+            "path_match": "wazuh.threat.indicator.x509.public_key_exponent",
+            "mapping": {
+              "doc_values": false,
+              "index": false,
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_public_key_size": {
+            "path_match": "wazuh.threat.indicator.x509.public_key_size",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_serial_number": {
+            "path_match": "wazuh.threat.indicator.x509.serial_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_signature_algorithm": {
+            "path_match": "wazuh.threat.indicator.x509.signature_algorithm",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_common_name": {
+            "path_match": "wazuh.threat.indicator.x509.subject.common_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_country": {
+            "path_match": "wazuh.threat.indicator.x509.subject.country",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_distinguished_name": {
+            "path_match": "wazuh.threat.indicator.x509.subject.distinguished_name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_locality": {
+            "path_match": "wazuh.threat.indicator.x509.subject.locality",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_organization": {
+            "path_match": "wazuh.threat.indicator.x509.subject.organization",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_organizational_unit": {
+            "path_match": "wazuh.threat.indicator.x509.subject.organizational_unit",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_subject_state_or_province": {
+            "path_match": "wazuh.threat.indicator.x509.subject.state_or_province",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_x509_version_number": {
+            "path_match": "wazuh.threat.indicator.x509.version_number",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_software_alias": {
+            "path_match": "wazuh.threat.software.alias",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_software_id": {
+            "path_match": "wazuh.threat.software.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_software_name": {
+            "path_match": "wazuh.threat.software.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_software_platforms": {
+            "path_match": "wazuh.threat.software.platforms",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_software_reference": {
+            "path_match": "wazuh.threat.software.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_software_type": {
+            "path_match": "wazuh.threat.software.type",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_tactic_id": {
+            "path_match": "wazuh.threat.tactic.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_tactic_name": {
+            "path_match": "wazuh.threat.tactic.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_tactic_reference": {
+            "path_match": "wazuh.threat.tactic.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_technique_id": {
+            "path_match": "wazuh.threat.technique.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_technique_name": {
+            "path_match": "wazuh.threat.technique.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_technique_reference": {
+            "path_match": "wazuh.threat.technique.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_technique_subtechnique_id": {
+            "path_match": "wazuh.threat.technique.subtechnique.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_technique_subtechnique_name": {
+            "path_match": "wazuh.threat.technique.subtechnique.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_technique_subtechnique_reference": {
+            "path_match": "wazuh.threat.technique.subtechnique.reference",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
         }
       ],
       "properties": {
@@ -17739,6 +21348,196 @@
             },
             "space": {
               "properties": {}
+            },
+            "threat": {
+              "properties": {
+                "enrichments": {
+                  "properties": {
+                    "indicator": {
+                      "properties": {
+                        "as": {
+                          "properties": {
+                            "organization": {
+                              "properties": {}
+                            }
+                          }
+                        },
+                        "email": {
+                          "properties": {}
+                        },
+                        "feed": {
+                          "properties": {}
+                        },
+                        "file": {
+                          "properties": {
+                            "code_signature": {
+                              "properties": {}
+                            },
+                            "elf": {
+                              "properties": {
+                                "header": {
+                                  "properties": {}
+                                },
+                                "sections": {
+                                  "properties": {}
+                                },
+                                "segments": {
+                                  "properties": {}
+                                }
+                              }
+                            },
+                            "hash": {
+                              "properties": {}
+                            },
+                            "pe": {
+                              "properties": {
+                                "sections": {
+                                  "properties": {}
+                                }
+                              }
+                            },
+                            "x509": {
+                              "properties": {
+                                "issuer": {
+                                  "properties": {}
+                                },
+                                "subject": {
+                                  "properties": {}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "geo": {
+                          "properties": {}
+                        },
+                        "marking": {
+                          "properties": {}
+                        },
+                        "registry": {
+                          "properties": {
+                            "data": {
+                              "properties": {}
+                            }
+                          }
+                        },
+                        "software": {
+                          "properties": {}
+                        },
+                        "x509": {
+                          "properties": {
+                            "issuer": {
+                              "properties": {}
+                            },
+                            "subject": {
+                              "properties": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "matched": {
+                      "properties": {}
+                    }
+                  }
+                },
+                "feed": {
+                  "properties": {}
+                },
+                "group": {
+                  "properties": {}
+                },
+                "indicator": {
+                  "properties": {
+                    "as": {
+                      "properties": {
+                        "organization": {
+                          "properties": {}
+                        }
+                      }
+                    },
+                    "email": {
+                      "properties": {}
+                    },
+                    "file": {
+                      "properties": {
+                        "code_signature": {
+                          "properties": {}
+                        },
+                        "elf": {
+                          "properties": {
+                            "header": {
+                              "properties": {}
+                            },
+                            "sections": {
+                              "properties": {}
+                            },
+                            "segments": {
+                              "properties": {}
+                            }
+                          }
+                        },
+                        "hash": {
+                          "properties": {}
+                        },
+                        "pe": {
+                          "properties": {
+                            "sections": {
+                              "properties": {}
+                            }
+                          }
+                        },
+                        "x509": {
+                          "properties": {
+                            "issuer": {
+                              "properties": {}
+                            },
+                            "subject": {
+                              "properties": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "geo": {
+                      "properties": {}
+                    },
+                    "marking": {
+                      "properties": {}
+                    },
+                    "registry": {
+                      "properties": {
+                        "data": {
+                          "properties": {}
+                        }
+                      }
+                    },
+                    "x509": {
+                      "properties": {
+                        "issuer": {
+                          "properties": {}
+                        },
+                        "subject": {
+                          "properties": {}
+                        }
+                      }
+                    }
+                  }
+                },
+                "software": {
+                  "properties": {}
+                },
+                "tactic": {
+                  "properties": {}
+                },
+                "technique": {
+                  "properties": {
+                    "subtechnique": {
+                      "properties": {}
+                    }
+                  }
+                }
+              }
             }
           }
         },

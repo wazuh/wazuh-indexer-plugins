@@ -40,7 +40,9 @@ Raw findings contain only identifiers — they do not embed the triggering event
 An **enriched finding** is an augmented version of a raw SAP finding. Because the Wazuh Dashboard needs the full event payload and rule context to render alert details, `WazuhEnrichedFindingService` enriches each finding with:
 
 - The **full triggering event source** (fetched from the source index by document ID)
-- **Rule metadata**: name, severity level, compliance mappings, MITRE ATT&CK tags
+- **Rule metadata** under `wazuh.rule`: name, severity level, compliance mappings, MITRE ATT&CK tags
+
+Rule metadata is merged into the event's existing `wazuh` object, so `wazuh.integration.*` from the triggering event sits alongside `wazuh.rule.*` in the enriched document.
 
 Enriched findings are written to `wazuh-findings-v5-{category}*`, where `{category}` is derived from the `wazuh.integration.category` field in the triggering event.
 
