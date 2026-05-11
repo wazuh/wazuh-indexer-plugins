@@ -194,6 +194,28 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Returns the {@code resource} value from the existing consumer document, or {@code null} when
+     * the document is absent / unreadable / has no resource. Used as a fallback catalog URL when the
+     * configured setting is empty.
+     */
+    private String readExistingConsumerResource(String consumerType) {
+        try {
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                return null;
+            }
+            LocalConsumer current =
+                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
+            String resource = current.getResource();
+            return (resource != null && !resource.isBlank()) ? resource : null;
+        } catch (Exception e) {
+            log.debug(
+                    "Could not read existing consumer resource for [{}]: {}", consumerType, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Persists the initial (t0) consumer state to the {@code .wazuh-cti-consumers} index before
      * snapshot loading begins. Identity fields come from the remote response when a custom URL is
      * configured, otherwise from the manifest entry. {@code local_offset} is set to 0 (no data loaded
@@ -324,9 +346,49 @@ public abstract class AbstractConsumerService {
      */
     private boolean syncConsumerServices() {
         String consumerType = this.getConsumerType();
-        String catalogUri = this.getCustomCatalogUri();
-        // Derive context/consumer from the custom catalog URI when configured. On the local-only
-        // path these are empty strings; the manifest entry is the source of truth for identity.
+
+        // Resolve the snapshots directory and load the external manifest entry once up front. The
+        // manifest doubles as a source of identity and as a fallback catalog URL when no setting /
+        // no existing doc is available. Resolution is defensive: a missing pluginsDir (e.g. in
+        // tests with a minimally-stubbed Environment) is treated as "no snapshots / no manifest".
+        Path snapshotsDir = null;
+        Path localSnapshot = null;
+        JsonNode manifestEntry = null;
+        try {
+            Path pluginsDir = this.environment.pluginsDir();
+            if (pluginsDir != null) {
+                snapshotsDir =
+                        pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
+                localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+                manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+            }
+        } catch (Exception e) {
+            log.debug("Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
+        }
+
+        // The effective catalog URI prefers, in order:
+        //   1. the configured setting `plugins.content_manager.catalog.<type>`,
+        //   2. the existing consumer doc's `resource` (auto-recovery on second+ runs),
+        //   3. the manifest entry's `resource` (auto-recovery on the first sync after the local
+        //      snapshot was consumed/deleted, when no doc exists yet).
+        String settingCatalogUri = this.getCustomCatalogUri();
+        String existingResource = this.readExistingConsumerResource(consumerType);
+        String manifestResource =
+                (manifestEntry != null
+                                && manifestEntry.has(Constants.KEY_RESOURCE)
+                                && !manifestEntry.get(Constants.KEY_RESOURCE).isNull())
+                        ? manifestEntry.get(Constants.KEY_RESOURCE).asText("")
+                        : "";
+        String catalogUri;
+        if (settingCatalogUri != null && !settingCatalogUri.isBlank()) {
+            catalogUri = settingCatalogUri;
+        } else if (existingResource != null && !existingResource.isBlank()) {
+            catalogUri = existingResource;
+        } else if (!manifestResource.isBlank()) {
+            catalogUri = manifestResource;
+        } else {
+            catalogUri = null;
+        }
         String context = PluginSettings.getContextFromCatalogUri(catalogUri);
         String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
 
@@ -377,30 +439,27 @@ public abstract class AbstractConsumerService {
         }
 
         if (currentOffset == 0) {
-            Path snapshotsDir =
-                    this.environment
-                            .pluginsDir()
-                            .resolve(Constants.PLUGIN_DIR_NAME)
-                            .resolve(Constants.CTI_SNAPSHOTS_DIR);
-            Path localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
-
-            // Load the external manifest entry for this snapshot (keyed by snapshot filename).
-            JsonNode manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
-
+            final Path localSnapshotPath = localSnapshot;
             boolean snapshotExists;
-            try {
-                snapshotExists = AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshot));
-            } catch (Exception e) {
-                log.warn("Failed to check local snapshot at [{}]: {}", localSnapshot, e.getMessage());
+            if (localSnapshotPath == null) {
                 snapshotExists = false;
+            } else {
+                try {
+                    snapshotExists =
+                            AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshotPath));
+                } catch (Exception e) {
+                    log.warn("Failed to check local snapshot at [{}]: {}", localSnapshotPath, e.getMessage());
+                    snapshotExists = false;
+                }
             }
 
-            boolean hasCustomCatalog = catalogUri != null && !catalogUri.isBlank();
+            boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
 
             // t0: persist the initial consumer state (status=updating, local_offset=0,
             // remote_offset=<latest known>) before snapshot loading begins, so external observers
             // can see the in-progress state. Identity fields come from the remote response when a
-            // custom URL is configured, otherwise from the manifest entry.
+            // catalog URL is available (either setting or existing doc's resource), otherwise from
+            // the manifest entry.
             this.writeInitialConsumer(remoteConsumer, manifestEntry, catalogUri, consumerType);
 
             SnapshotServiceImpl snapshotService =
@@ -409,8 +468,12 @@ public abstract class AbstractConsumerService {
                             : new SnapshotServiceImpl(
                                     consumerType, indicesMap, this.consumersIndex, this.environment);
 
-            // For custom URLs, prefer remote initialization and fallback to local snapshot on failure.
-            if (hasCustomCatalog && remoteConsumer != null && remoteConsumer.getSnapshotLink() != null) {
+            // When a catalog URL is available, prefer remote initialization and fall back to local
+            // snapshot on failure. The catalog URL comes from the configured setting, or from a
+            // previous run's persisted `resource` when the setting is empty.
+            if (hasEffectiveCatalog
+                    && remoteConsumer != null
+                    && remoteConsumer.getSnapshotLink() != null) {
                 // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
                 // clear indices.
                 if (this.isRulesetConsumer()) {
@@ -469,7 +532,7 @@ public abstract class AbstractConsumerService {
                 } else {
                     log.error("Local snapshot initialization failed for consumer [{}].", consumerType);
                 }
-            } else if (hasCustomCatalog) {
+            } else if (hasEffectiveCatalog) {
                 log.fatal(
                         "No local snapshot found at [{}] and custom consumer initialization could not be completed for [{}].",
                         localSnapshot,
