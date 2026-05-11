@@ -59,7 +59,8 @@ public class PluginSettings {
     private static final boolean DEFAULT_CREATE_DETECTORS = true;
 
     // Default values for catalog consumer URLs
-    private static final String DEFAULT_CATALOG_RULESET = "";
+    private static final String DEFAULT_CATALOG_RULESET =
+            "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5";
     private static final String DEFAULT_CATALOG_IOCS = "";
     private static final String DEFAULT_CATALOG_VULNERABILITIES = "";
 
