@@ -68,7 +68,7 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 ### Store CTI Credentials
 
-Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory.
+Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
 **Request**
 - Method: `POST`
@@ -106,6 +106,95 @@ curl -sk -u admin:admin -X POST \
 | ---- | ----------------------------------------------- |
 | 201  | Credentials stored successfully                 |
 | 400  | Missing or empty `access_token` field           |
+| 500  | Internal error                                  |
+
+---
+
+### Get CTI Subscription Status
+
+Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
+
+> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public free plan as if the instance were unregistered.
+
+**Request**
+- Method: `GET`
+- Path: `/_plugins/_content_manager/subscription`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X GET \
+  "https://localhost:9200/_plugins/_content_manager/subscription"
+```
+
+**Example Response (registered)**
+
+```json
+{
+  "message": {
+    "plan": {
+      "name": "Premium Plan",
+      "is_public": false
+    },
+    "is_registered": true
+  },
+  "status": 200
+}
+```
+
+**Example Response (unregistered)**
+
+```json
+{
+  "message": {
+    "plan": {
+      "name": "Free",
+      "is_public": true
+    },
+    "is_registered": false
+  },
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 200  | Subscription status returned successfully       |
+| 500  | Internal error                                  |
+
+---
+
+### Delete CTI Credentials
+
+Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered. If the credentials index does not exist the operation succeeds without error.
+
+**Request**
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/subscription`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X DELETE \
+  "https://localhost:9200/_plugins/_content_manager/subscription"
+```
+
+**Example Response**
+
+```json
+{
+  "message": "Credentials removed",
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 200  | Credentials removed successfully                |
 | 500  | Internal error                                  |
 
 ---
@@ -1955,6 +2044,8 @@ The response lists changes grouped by content type. Each change includes:
 ### Execute Promotion
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
+
+For Draft → Test promotions, the changeset is forwarded to the local Wazuh Engine for validation only when it includes decoders, kvdbs, or filters. Promotions limited to integrations, rules, or the policy skip the engine call entirely. Test → Custom promotions never invoke the engine.
 
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics Plugin (SAP). For each promoted resource, a new SAP document is created in the target space with:
 - A newly generated UUID as the SAP document primary ID.
