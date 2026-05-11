@@ -157,17 +157,19 @@ public class Resource {
     private void populateSpaceObject(Resource resource, JsonNode payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
+        Map<String, String> hashMap = new HashMap<>();
+        hashMap.put(Constants.KEY_SHA256, "");
         if (payload.has("space") && payload.get("space").isObject()) {
             JsonNode spaceObj = payload.get("space");
             if (spaceObj.has("name")) {
                 spaceName = spaceObj.get("name").asText();
             }
             if (spaceObj.has("hash") && spaceObj.get("hash").isObject()) {
-                Map<String, String> hashMap = MAPPER.convertValue(spaceObj.get("hash"), Map.class);
-                spaceMap.put("hash", hashMap);
+                hashMap = MAPPER.convertValue(spaceObj.get("hash"), Map.class);
             }
         }
         spaceMap.put("name", spaceName);
+        spaceMap.put("hash", hashMap);
         resource.setSpace(spaceMap);
     }
 
