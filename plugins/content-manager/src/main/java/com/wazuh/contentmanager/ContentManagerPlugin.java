@@ -72,7 +72,6 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
-import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -101,7 +100,6 @@ public class ContentManagerPlugin extends Plugin
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
     private ThreadPool threadPool;
-    private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
     private TelemetryPingJob telemetryPingJob;
@@ -158,7 +156,6 @@ public class ContentManagerPlugin extends Plugin
                 new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
 
         // Content Manager 5.0
-        this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
 
         // Initialize Engine service
@@ -634,13 +631,10 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
-                PluginSettings.CONTENT_CONTEXT,
-                PluginSettings.CONTENT_CONSUMER,
-                PluginSettings.IOC_CONTEXT,
-                PluginSettings.IOC_CONSUMER,
+                PluginSettings.CATALOG_RULESET,
+                PluginSettings.CATALOG_IOCS,
+                PluginSettings.CATALOG_VULNERABILITIES,
                 PluginSettings.TELEMETRY_ENABLED,
-                PluginSettings.CVE_CONTEXT,
-                PluginSettings.CVE_CONSUMER,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS);

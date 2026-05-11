@@ -54,8 +54,7 @@ import com.wazuh.contentmanager.utils.Constants;
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
 
-    private final String context;
-    private final String consumer;
+    private final String consumerType;
     protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
@@ -69,20 +68,17 @@ public class SnapshotServiceImpl implements SnapshotService {
     /**
      * Constructs a new SnapshotServiceImpl.
      *
-     * @param context The context of the snapshot.
-     * @param consumer The consumer identifier.
+     * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
      */
     public SnapshotServiceImpl(
-            String context,
-            String consumer,
+            String consumerType,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
-        this.context = context;
-        this.consumer = consumer;
+        this.consumerType = consumerType;
         this.indicesMap = indicesMap;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
@@ -118,10 +114,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             return false;
         }
 
-        log.info(
-                "Starting snapshot initialization for context [{}] consumer [{}]",
-                this.context,
-                this.consumer);
+        log.info("Starting snapshot initialization for [{}]", this.consumerType);
         Path snapshotZip = null;
         Path outputDir = null;
 
@@ -161,28 +154,10 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip, outputDir);
         }
 
-        // 6. Update Consumer State in .wazuh-cti-consumers
-        try {
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
-            LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(this.context, this.consumer);
-            LocalConsumer updatedConsumer =
-                    new LocalConsumer(
-                            this.context,
-                            this.consumer,
-                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
-                            consumer.getSnapshotOffset(),
-                            consumer.getOffset(),
-                            snapshotUrl);
-            this.consumersIndex.setConsumer(updatedConsumer);
-            return true;
-        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
-            return false;
-        }
+        // 5. Partial update of consumer state: bump local_offset to the snapshot offset and keep
+        // the remote_offset (set at t0 from RemoteConsumer.last_offset) so the incremental update
+        // path can close the gap. Identity fields and status are preserved from the t0 write.
+        return this.updateLocalOffset(consumer.getSnapshotOffset());
     }
 
     /**
@@ -309,21 +284,25 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Initializes content from a pre-packaged local snapshot zip file. Unlike {@link
-     * #initialize(RemoteConsumer)}, this method reads directly from a local file path instead of
-     * downloading from a remote URL. After successful processing, the source zip file is permanently
-     * deleted.
+     * Initializes content from a pre-packaged local snapshot zip file using consumer metadata from
+     * the external {@code manifest.json} located in the snapshots' directory.
      *
-     * @param localZip Path to the local snapshot zip file.
+     * <p>The {@code manifestEntry} is the JSON object keyed by the snapshot filename in the shared
+     * manifest (e.g., the value for {@code "ruleset.zip"}). When {@code null}, field defaults are
+     * taken from the service's constructor arguments.
+     *
+     * <p>After successful processing, the source zip file is permanently deleted.
+     *
+     * @param localZip The path to the local snapshot zip file.
+     * @param manifestEntry The consumer metadata node from the external manifest, or {@code null}.
      * @return true if initialization was fully successful, false on failures.
      */
     @Override
-    public boolean initialize(Path localZip) {
+    public boolean initialize(Path localZip, JsonNode manifestEntry) {
         log.info(
-                "Starting local snapshot initialization for context [{}] consumer [{}] from [{}]",
-                this.context,
-                this.consumer,
-                localZip);
+                "Starting local snapshot initialization for [{}] from [{}]",
+                this.consumerType,
+                localZip.getFileName());
 
         Path outputDir = null;
         this.maxOffsetSeen = 0;
@@ -358,7 +337,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
         } catch (Exception e) {
-            log.error("Error processing local snapshot: {}", e.getMessage());
+            log.fatal("Error processing local snapshot: {}", e.getMessage());
             return false;
         } finally {
             // Cleanup temporary extraction directory only
@@ -366,38 +345,65 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
 
         // 5. Delete source zip file
-        try {
-            AccessController.doPrivilegedChecked(
-                    () -> {
-                        Files.deleteIfExists(localZip);
-                        return null;
-                    });
-            log.info("Deleted local snapshot file [{}]", localZip);
-        } catch (Exception e) {
-            log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
-        }
+        SnapshotServiceImpl.deleteSnapshot(localZip);
 
-        // 6. Update Consumer State in .wazuh-cti-consumers
+        // 6. Partial update of consumer state: bump local_offset to the highest offset observed
+        // while indexing. Identity fields, is_public, status and remote_offset are owned by the
+        // t0 write performed by AbstractConsumerService.writeInitialConsumer.
+        return this.updateLocalOffset(this.maxOffsetSeen);
+    }
+
+    /**
+     * Reads the existing consumer document and persists it back with only {@code local_offset}
+     * mutated. All other fields (identity, {@code is_public}, {@code status}, {@code remote_offset})
+     * are preserved. Returns {@code false} and logs a warning if no document exists — the t0 write in
+     * {@link AbstractConsumerService} is expected to create it before this method runs.
+     */
+    private boolean updateLocalOffset(long newLocalOffset) {
         try {
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
+            if (getResponse == null || !getResponse.isExists()) {
+                log.warn(
+                        "Consumer [{}] doc not present after snapshot load; skipping local_offset update.",
+                        this.consumerType);
+                return false;
+            }
             LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(this.context, this.consumer);
+                    this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
+                            current.getContext(),
+                            current.getName(),
+                            current.getType(),
+                            current.getResource(),
+                            current.isPublic(),
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
-                            this.maxOffsetSeen,
-                            0,
-                            localZip.toString());
+                            newLocalOffset,
+                            current.getRemoteOffset());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Deletes a local snapshot zip file. Logs success at info level and failures at warn level. Safe
+     * to call when the file does not exist. Only files under the plugin's local snapshots directory
+     * should be passed in — remote snapshots are managed by the CTI service.
+     *
+     * @param snapshot The path to the local snapshot file to delete.
+     */
+    public static void deleteSnapshot(Path snapshot) {
+        try {
+            boolean deleted = AccessController.doPrivilegedChecked(() -> Files.deleteIfExists(snapshot));
+            if (deleted) {
+                log.info("Deleted local snapshot file [{}]", snapshot);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete local snapshot file [{}]: {}", snapshot, e.getMessage());
         }
     }
 

@@ -37,11 +37,11 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 ### Consumer Service
 
-Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
+Orchestrates synchronization for each catalog consumer type (ruleset, iocs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
 
 ### Snapshot Service
 
-Handles initial content loading. Downloads a ZIP snapshot from the CTI API, extracts it, and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
+Handles initial content loading. Initializes from either a remote CTI snapshot (when a custom consumer URL is configured) or a local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
 
 ### Update Service
 
@@ -50,6 +50,8 @@ Handles incremental updates. Fetches change batches from the CTI API based on of
 ### Security Analytics Service
 
 Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
+
+**Dynamic Configuration**: Instead of using hardcoded defaults, the service extracts `enabled`, `interval`, and `source` (index patterns) directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
 
 **Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
 - `document.id` — the UUID of the original CTI document in the Content Manager.
@@ -74,10 +76,12 @@ Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-i
 ```
 Job Scheduler triggers
   → Consumer Service checks .wazuh-cti-consumers (offset = 0)
-  → Snapshot Service downloads ZIP from CTI API
+  → If custom catalog URL is configured: try remote snapshot first
+  → If remote init fails: fallback to local packaged snapshot
+  → If no custom catalog URL: initialize from local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
-  → Security Analytics Service creates detectors (max 100 rules per detector)
+  → Security Analytics Service creates detectors using dynamic CTI configuration (max 100 rules per detector)
 ```
 
 ### CTI Sync (Incremental)
@@ -221,19 +225,21 @@ Example document structure in `wazuh-threatintel-rules`:
 }
 ```
 
-The `.wazuh-cti-consumers` index stores one document per context/consumer pair:
+The `.wazuh-cti-consumers` index stores one document per consumer type:
 
 ```json
 {
   "_index": ".wazuh-cti-consumers",
-  "_id": "beta-2-ruleset-5_public-ruleset-5",
+  "_id": "cti:catalog:consumer:ruleset",
   "_source": {
     "name": "public-ruleset-5",
     "context": "beta-2-ruleset-5",
+    "type": "cti:catalog:consumer:ruleset",
+    "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+    "is_public": true,
     "status": "idle",
     "local_offset": 3932,
-    "remote_offset": 3932,
-    "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/beta-2-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+    "remote_offset": 3932
   }
 }
 ```

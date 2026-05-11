@@ -13,7 +13,7 @@ The Wazuh Engine is not running or the Unix socket is not accessible.
    ```bash
    ls -la /usr/share/wazuh-indexer/engine/sockets/engine-api.sock
    ```
-   
+
 2. Ensure the Wazuh Indexer process has permission to access the socket file.
 
 ### "Token not found"
@@ -97,14 +97,16 @@ Example output:
   "hits": {
     "hits": [
       {
-        "_id": "beta-2-ruleset-5_public-ruleset-5",
+        "_id": "cti:catalog:consumer:ruleset",
         "_source": {
           "name": "public-ruleset-5",
           "context": "beta-2-ruleset-5",
+          "type": "cti:catalog:consumer:ruleset",
+          "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+          "is_public": true,
           "status": "idle",
           "local_offset": 3932,
-          "remote_offset": 3932,
-          "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/beta-2-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+          "remote_offset": 3932
         }
       }
     ]
