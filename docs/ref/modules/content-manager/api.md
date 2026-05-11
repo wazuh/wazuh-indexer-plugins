@@ -68,7 +68,7 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 ### Store CTI Credentials
 
-Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory.
+Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
 **Request**
 - Method: `POST`
@@ -113,6 +113,8 @@ curl -sk -u admin:admin -X POST \
 ### Get CTI Subscription Status
 
 Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
+
+> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public free plan as if the instance were unregistered.
 
 **Request**
 - Method: `GET`
@@ -166,7 +168,7 @@ curl -sk -u admin:admin -X GET \
 
 ### Delete CTI Credentials
 
-Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered.
+Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered. If the credentials index does not exist the operation succeeds without error.
 
 **Request**
 - Method: `DELETE`
