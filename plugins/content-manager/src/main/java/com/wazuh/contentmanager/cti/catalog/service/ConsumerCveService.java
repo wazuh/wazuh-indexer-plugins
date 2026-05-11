@@ -32,16 +32,6 @@ import com.wazuh.contentmanager.utils.Constants;
  * operations.
  */
 public class ConsumerCveService extends AbstractConsumerService {
-    private static final String CONSUMER_TYPE = "cti:catalog:consumer:vulnerabilities";
-
-    /** Full CTI catalog consumer URL for vulnerabilities. */
-    private final String CATALOG_URI = PluginSettings.getInstance().getCatalogVulnerabilities();
-
-    /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getContextFromCatalogUri(this.CATALOG_URI);
-
-    /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getConsumerFromCatalogUri(this.CATALOG_URI);
 
     /**
      * Constructs a new ConsumerCveService.
@@ -55,23 +45,13 @@ public class ConsumerCveService extends AbstractConsumerService {
     }
 
     @Override
-    protected String getContext() {
-        return this.CONTEXT;
-    }
-
-    @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
-    }
-
-    @Override
     protected String getConsumerType() {
-        return CONSUMER_TYPE;
+        return "cti:catalog:consumer:vulnerabilities";
     }
 
     @Override
-    protected String getCatalogUri() {
-        return this.CATALOG_URI;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogVulnerabilities();
     }
 
     @Override
@@ -84,12 +64,6 @@ public class ConsumerCveService extends AbstractConsumerService {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(Constants.KEY_CVES, "/mappings/cti-cve-mappings.json");
         return mappings;
-    }
-
-    @Override
-    protected Map<String, String> getAliases() {
-        // We use the alias names as the actual index names, so we do not create separate aliases.
-        return Collections.emptyMap();
     }
 
     @Override

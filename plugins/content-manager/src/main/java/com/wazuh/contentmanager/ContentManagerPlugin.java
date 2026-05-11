@@ -97,7 +97,6 @@ public class ContentManagerPlugin extends Plugin
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
     private ThreadPool threadPool;
-    private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
     private TelemetryPingJob telemetryPingJob;
@@ -149,7 +148,6 @@ public class ContentManagerPlugin extends Plugin
         this.credentialsIndex = new CredentialsIndex(client);
 
         // Content Manager 5.0
-        this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
 
         // Initialize Engine service

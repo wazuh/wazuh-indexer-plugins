@@ -431,7 +431,7 @@ public class PluginSettings {
      * @return context value, or an empty string when the URL does not match the expected format.
      */
     public static String getContextFromCatalogUri(String catalogUri) {
-        return getCatalogUriPart(catalogUri, 1);
+        return PluginSettings.getCatalogUriPart(catalogUri, 1);
     }
 
     /**
@@ -441,7 +441,7 @@ public class PluginSettings {
      * @return consumer value, or an empty string when the URL does not match the expected format.
      */
     public static String getConsumerFromCatalogUri(String catalogUri) {
-        return getCatalogUriPart(catalogUri, 2);
+        return PluginSettings.getCatalogUriPart(catalogUri, 2);
     }
 
     private static String getCatalogUriPart(String catalogUri, int group) {

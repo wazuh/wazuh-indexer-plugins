@@ -66,16 +66,6 @@ public class ConsumerIocService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerIocService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int SEARCH_PAGE_SIZE = 10_000;
-    private static final String CONSUMER_TYPE = "cti:catalog:consumer:iocs";
-
-    /** Full CTI catalog consumer URL for IoCs. */
-    private final String CATALOG_URI = PluginSettings.getInstance().getCatalogIocs();
-
-    /** The unified context identifier. */
-    private final String CONTEXT = PluginSettings.getContextFromCatalogUri(this.CATALOG_URI);
-
-    /** The unified consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getConsumerFromCatalogUri(this.CATALOG_URI);
 
     /** The engine service for notifying the Engine about IOC updates. */
     private final EngineService engineService;
@@ -98,23 +88,13 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     @Override
-    protected String getContext() {
-        return this.CONTEXT;
-    }
-
-    @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
-    }
-
-    @Override
     protected String getConsumerType() {
-        return CONSUMER_TYPE;
+        return "cti:catalog:consumer:iocs";
     }
 
     @Override
-    protected String getCatalogUri() {
-        return this.CATALOG_URI;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogIocs();
     }
 
     @Override
@@ -127,12 +107,6 @@ public class ConsumerIocService extends AbstractConsumerService {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(Constants.KEY_IOCS, "/mappings/cti-ioc-mappings.json");
         return mappings;
-    }
-
-    @Override
-    protected Map<String, String> getAliases() {
-        // We use the alias names as the actual index names, so we do not create separate aliases.
-        return Collections.emptyMap();
     }
 
     @Override

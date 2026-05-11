@@ -41,7 +41,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     private final String context;
     private final String consumer;
     private final String consumerType;
-    private final String consumerUri;
+    private final String resource;
     private final ConsumersIndex consumerIndex;
 
     /**
@@ -50,19 +50,19 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      * @param context The context identifier.
      * @param consumer The consumer identifier.
      * @param consumerType The consumer type identifier used as local document id.
-     * @param consumerUri The full catalog consumer URL used for remote requests.
+     * @param resource The full catalog consumer URL used for remote requests.
      * @param consumerIndex The index service for storing consumer metadata.
      */
     public ConsumerServiceImpl(
             String context,
             String consumer,
             String consumerType,
-            String consumerUri,
+            String resource,
             ConsumersIndex consumerIndex) {
         this.context = context;
         this.consumer = consumer;
         this.consumerType = consumerType;
-        this.consumerUri = consumerUri;
+        this.resource = resource;
         this.consumerIndex = consumerIndex;
     }
 
@@ -97,7 +97,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     public RemoteConsumer getRemoteConsumer() {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getConsumer(this.consumerUri);
+            SimpleHttpResponse response = this.client.getConsumer(this.resource);
 
             if (response.getCode() == 200) {
                 return this.mapper.readValue(response.getBodyText(), RemoteConsumer.class);
@@ -117,7 +117,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      */
     public LocalConsumer setConsumer() {
         LocalConsumer consumer =
-                new LocalConsumer(this.context, this.consumer, this.consumerType, this.consumerUri, true);
+                new LocalConsumer(this.context, this.consumer, this.consumerType, this.resource, true);
 
         try {
             IndexResponse response = this.consumerIndex.setConsumer(consumer);

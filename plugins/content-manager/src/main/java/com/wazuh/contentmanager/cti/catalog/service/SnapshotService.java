@@ -37,14 +37,6 @@ public interface SnapshotService {
     boolean initialize(RemoteConsumer consumer);
 
     /**
-     * Initializes a consumer from a pre-packaged local snapshot zip file.
-     *
-     * @param localZip Path to the local snapshot zip file.
-     * @return true if the local snapshot was processed and initialized successfully; false otherwise.
-     */
-    boolean initialize(Path localZip);
-
-    /**
      * Initializes a consumer from a pre-packaged local snapshot zip file using an externally-provided
      * manifest entry. The {@code manifestEntry} is the JSON object from the shared {@code
      * manifest.json} file in the snapshots directory, keyed by the snapshot filename.

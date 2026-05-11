@@ -492,7 +492,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertTrue("Zip file should exist before init", Files.exists(localZip));
 
         // Act
-        boolean result = this.snapshotService.initialize(localZip);
+        boolean result = this.snapshotService.initialize(localZip, null);
 
         // Assert
         Assert.assertTrue("initialize should return true", result);
@@ -530,7 +530,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // spotless:on
         Path localZip = this.createZipFileWithContent("data.json", jsonContent);
 
-        this.snapshotService.initialize(localZip);
+        this.snapshotService.initialize(localZip, null);
 
         Assert.assertEquals(
                 "maxOffsetSeen should be the highest offset in the file",
@@ -716,7 +716,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitializeFromPath_NonExistentFile() throws IOException, URISyntaxException {
         Path nonExistentPath = this.tempDir.resolve("does_not_exist.zip");
 
-        boolean result = this.snapshotService.initialize(nonExistentPath);
+        boolean result = this.snapshotService.initialize(nonExistentPath, null);
 
         Assert.assertFalse("initialize should return false for missing file", result);
         verify(this.snapshotClient, never()).downloadFile(anyString());

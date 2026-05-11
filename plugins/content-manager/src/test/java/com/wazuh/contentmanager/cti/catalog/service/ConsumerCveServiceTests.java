@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.CreatePitAction;
@@ -122,7 +123,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        clearPluginSettings();
+        ConsumerCveServiceTests.clearPluginSettings();
         PluginSettings.getInstance(Settings.EMPTY);
         this.service = new ConsumerCveService(this.client, this.consumersIndex, this.environment);
     }
@@ -133,7 +134,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
-        clearPluginSettings();
+        ConsumerCveServiceTests.clearPluginSettings();
         super.tearDown();
     }
 
@@ -208,21 +209,13 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         assertEquals("/mappings/cti-cve-mappings.json", mappings.get(Constants.KEY_CVES));
     }
 
-    /** Tests that getAliases returns an empty map. */
-    public void testGetAliasesReturnsEmpty() {
-        Map<String, String> aliases = this.service.getAliases();
-
-        assertNotNull(aliases);
-        assertTrue(aliases.isEmpty());
-    }
-
     /**
      * Tests fallback to the local snapshot when a custom catalog URL is configured but remote
      * retrieval fails.
      */
     public void testSynchronizeFallsBackToLocalSnapshotWhenRemoteConsumerIsUnavailable()
             throws Exception {
-        Path pluginsDir = createTempDir();
+        Path pluginsDir = LuceneTestCase.createTempDir();
         Path localSnapshot =
                 pluginsDir
                         .resolve(Constants.PLUGIN_DIR_NAME)
@@ -231,7 +224,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         Files.createDirectories(localSnapshot.getParent());
         Files.writeString(localSnapshot, "placeholder");
 
-        clearPluginSettings();
+        ConsumerCveServiceTests.clearPluginSettings();
         PluginSettings.getInstance(
                 Settings.builder()
                         .put(
@@ -268,7 +261,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
     /** Tests fallback to the local snapshot when remote snapshot initialization fails. */
     public void testSynchronizeFallsBackToLocalSnapshotWhenRemoteSnapshotInitializationFails()
             throws Exception {
-        Path pluginsDir = createTempDir();
+        Path pluginsDir = LuceneTestCase.createTempDir();
         Path localSnapshot =
                 pluginsDir
                         .resolve(Constants.PLUGIN_DIR_NAME)
@@ -277,7 +270,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         Files.createDirectories(localSnapshot.getParent());
         Files.writeString(localSnapshot, "placeholder");
 
-        clearPluginSettings();
+        ConsumerCveServiceTests.clearPluginSettings();
         PluginSettings.getInstance(
                 Settings.builder()
                         .put(
@@ -321,7 +314,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
     /** Tests that a successful remote initialization removes the packaged local snapshot. */
     public void testSynchronizeDeletesLocalSnapshotAfterSuccessfulRemoteInitialization()
             throws Exception {
-        Path pluginsDir = createTempDir();
+        Path pluginsDir = LuceneTestCase.createTempDir();
         Path localSnapshot =
                 pluginsDir
                         .resolve(Constants.PLUGIN_DIR_NAME)
@@ -330,7 +323,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         Files.createDirectories(localSnapshot.getParent());
         Files.writeString(localSnapshot, "placeholder");
 
-        clearPluginSettings();
+        ConsumerCveServiceTests.clearPluginSettings();
         PluginSettings.getInstance(
                 Settings.builder()
                         .put(

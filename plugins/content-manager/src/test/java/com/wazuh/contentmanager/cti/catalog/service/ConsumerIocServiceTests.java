@@ -328,14 +328,6 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         assertEquals("/mappings/cti-ioc-mappings.json", mappings.get(Constants.KEY_IOCS));
     }
 
-    /** Tests that getAliases returns an empty map. */
-    public void testGetAliasesReturnsEmpty() {
-        Map<String, String> aliases = this.service.getAliases();
-
-        assertNotNull(aliases);
-        assertTrue(aliases.isEmpty());
-    }
-
     /** Tests that when no documents exist, an empty type_hashes document is stored. */
     /** Tests that onSyncComplete(true) calls engineService.loadIocs after export. */
     @SuppressWarnings("unchecked")

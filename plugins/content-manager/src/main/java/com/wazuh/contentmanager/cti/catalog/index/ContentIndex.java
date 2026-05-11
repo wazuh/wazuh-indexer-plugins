@@ -73,8 +73,6 @@ public class ContentIndex {
     private final Semaphore semaphore;
     private final String indexName;
     private final String mappingsPath;
-    private final String alias;
-
     private final ObjectMapper mapper;
 
     /**
@@ -84,7 +82,7 @@ public class ContentIndex {
      * @param indexName The name of the index.
      */
     public ContentIndex(Client client, String indexName) {
-        this(client, indexName, null, null);
+        this(client, indexName, null);
     }
 
     /**
@@ -95,24 +93,11 @@ public class ContentIndex {
      * @param mappingsPath The classpath resource path to the JSON mapping file.
      */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
-        this(client, indexName, mappingsPath, null);
-    }
-
-    /**
-     * Constructs a new ContentIndex manager with an alias.
-     *
-     * @param client The OpenSearch client used to communicate with the cluster.
-     * @param indexName The name of the index to manage.
-     * @param mappingsPath The classpath resource path to the JSON mapping file.
-     * @param alias The alias to associate with the index (can be null).
-     */
-    public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
         this.pluginSettings = PluginSettings.getInstance();
         this.semaphore = new Semaphore(this.pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
-        this.alias = alias;
         this.mapper = new ObjectMapper();
         this.mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
@@ -165,10 +150,6 @@ public class ContentIndex {
 
         CreateIndexRequest request =
                 new CreateIndexRequest().index(this.indexName).mapping(mappings).settings(settings);
-
-        if (this.alias != null && !this.alias.isEmpty()) {
-            request.alias(new Alias(this.alias));
-        }
 
         return this.client
                 .admin()

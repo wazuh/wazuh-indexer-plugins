@@ -49,14 +49,8 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class ConsumerRulesetService extends AbstractConsumerService {
 
-    private static final String CONSUMER_TYPE = "cti:catalog:consumer:ruleset";
-
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
     private final ObjectMapper mapper;
-
-    private final String CATALOG_URI = PluginSettings.getInstance().getCatalogRuleset();
-    private final String CONTEXT = PluginSettings.getContextFromCatalogUri(this.CATALOG_URI);
-    private final String CONSUMER = PluginSettings.getConsumerFromCatalogUri(this.CATALOG_URI);
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final SpaceService spaceService;
@@ -88,34 +82,14 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
     }
 
-    /**
-     * Retrieves the context name for this synchronizer.
-     *
-     * @return The context string.
-     */
-    @Override
-    protected String getContext() {
-        return this.CONTEXT;
-    }
-
-    /**
-     * Retrieves the consumer name for this synchronizer.
-     *
-     * @return The consumer string.
-     */
-    @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
-    }
-
     @Override
     protected String getConsumerType() {
-        return CONSUMER_TYPE;
+        return "cti:catalog:consumer:ruleset";
     }
 
     @Override
-    protected String getCatalogUri() {
-        return this.CATALOG_URI;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogRuleset();
     }
 
     @Override
@@ -142,17 +116,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
         mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
-    }
-
-    /**
-     * Returns the aliases configuration for the indices.
-     *
-     * @return An empty map as indices are accessed by their names directly.
-     */
-    @Override
-    protected Map<String, String> getAliases() {
-        // Not needed. We use the actual data stream names instead.
-        return Collections.emptyMap();
     }
 
     /**

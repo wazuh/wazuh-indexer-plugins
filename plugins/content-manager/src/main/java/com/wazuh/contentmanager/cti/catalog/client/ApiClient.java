@@ -117,8 +117,8 @@ public class ApiClient {
             return "";
         }
         String uri = consumerUri.trim();
-        if (!(uri.startsWith("https://") || uri.startsWith("http://"))) {
-            throw new IllegalArgumentException("Consumer URI must start with http:// or https://");
+        if (! uri.startsWith("https://")) {
+            throw new IllegalArgumentException("Consumer URI must start with https://");
         }
 
         URI parsedUri;
@@ -129,6 +129,10 @@ public class ApiClient {
         }
         if (parsedUri.getHost() == null || parsedUri.getHost().isBlank()) {
             throw new IllegalArgumentException("Consumer URI must include a valid host: " + uri);
+        }
+        String baseUri = PluginSettings.getInstance().getCtiBaseUrl();
+        if (!parsedUri.getHost().startsWith(baseUri)) {
+            throw new IllegalArgumentException("Consumer URI must start by [" + baseUri + "]");
         }
 
         while (uri.endsWith("/")) {

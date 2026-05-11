@@ -95,13 +95,6 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
     }
 
-    /** Tests that getAliases returns empty map as aliases are used as names. */
-    public void testGetAliasesReturnsEmpty() {
-        Map<String, String> aliases = this.synchronizer.getAliases();
-        Assert.assertNotNull(aliases);
-        Assert.assertTrue(aliases.isEmpty());
-    }
-
     /** Tests that getIndexName returns the correct unified name. */
     public void testGetIndexNameFormatsCorrectly() {
         Assert.assertEquals("wazuh-threatintel-rules", this.synchronizer.getIndexName("rule"));

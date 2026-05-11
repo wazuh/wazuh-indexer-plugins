@@ -343,20 +343,8 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Initializes content from a pre-packaged local snapshot zip file. Delegates to {@link
-     * #initialize(Path, JsonNode)} with no external manifest entry, relying on service defaults.
-     *
-     * @param localZip Path to the local snapshot zip file.
-     * @return true if initialization was fully successful, false on failures.
-     */
-    @Override
-    public boolean initialize(Path localZip) {
-        return this.initialize(localZip, null);
-    }
-
-    /**
      * Initializes content from a pre-packaged local snapshot zip file using consumer metadata from
-     * the external {@code manifest.json} located in the snapshots directory.
+     * the external {@code manifest.json} located in the snapshots' directory.
      *
      * <p>The {@code manifestEntry} is the JSON object keyed by the snapshot filename in the shared
      * manifest (e.g., the value for {@code "ruleset.zip"}). When {@code null}, field defaults are
@@ -371,10 +359,9 @@ public class SnapshotServiceImpl implements SnapshotService {
     @Override
     public boolean initialize(Path localZip, JsonNode manifestEntry) {
         log.info(
-                "Starting local snapshot initialization for context [{}] consumer [{}] from [{}]",
-                this.context,
-                this.consumer,
-                localZip);
+                "Starting local snapshot initialization for [{}] from [{}]",
+                this.consumersIndex,
+                localZip.getFileName());
 
         Path outputDir = null;
         this.maxOffsetSeen = 0;
@@ -409,7 +396,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
         } catch (Exception e) {
-            log.error("Error processing local snapshot: {}", e.getMessage());
+            log.fatal("Error processing local snapshot: {}", e.getMessage());
             return false;
         } finally {
             // Cleanup temporary extraction directory only
@@ -423,7 +410,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         Files.deleteIfExists(localZip);
                         return null;
                     });
-            log.info("Deleted local snapshot file [{}]", localZip);
+            log.info("Deleted local snapshot file [{}]", localZip.getFileName());
         } catch (Exception e) {
             log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
         }
@@ -465,7 +452,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             boolean effectiveIsPublic =
                     hasManifestIsPublic
                             ? this.readManifestBoolean(manifestEntry, Constants.KEY_IS_PUBLIC, true)
-                            : (current != null ? current.isPublic() : true);
+                            : (current == null || current.isPublic());
             log.debug(
                     "Consumer is_public determined: effective={} (from {})",
                     effectiveIsPublic,

@@ -55,7 +55,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
         @JsonCreator
         public static Status fromValue(String value) {
-            for (Status s : values()) {
+            for (Status s : Status.values()) {
                 if (s.value.equalsIgnoreCase(value)) {
                     return s;
                 }
