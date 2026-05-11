@@ -12,22 +12,22 @@ Update check components are:
 
 ## CTI Synchronization
 
-The Content Manager periodically synchronizes content from the Wazuh CTI API. Three content contexts are managed:
+The Content Manager periodically synchronizes content from the Wazuh CTI API. Three catalog consumers are managed:
 
 - **Catalog context**: Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
 - **IoC context**: Contains Indicators of Compromise for threat detection.
 - **CVE context**: Contains Common Vulnerabilities and Exposures data, stored in `wazuh-threatintel-vulnerabilities`. CVE documents do not have a space and are not subject to removals from CTI.
 
-Each context has an associated **consumer** that tracks synchronization state (current offset, snapshot URL) in the `.wazuh-cti-consumers` index.
+Each catalog type has an associated consumer state document in `.wazuh-cti-consumers`, keyed by consumer type (for example, `cti:catalog:consumer:ruleset`).
 
 ### Snapshot Initialization
 
-On first run (when the local offset is `0`), the Content Manager performs a full snapshot initialization:
+On first run (when the local offset is `0`), the Content Manager performs snapshot initialization:
 
-1. Fetches the latest snapshot URL from the CTI API.
-2. Downloads and extracts the ZIP archive.
-3. Indexes the content into the appropriate system indices using bulk operations.
-4. Records the snapshot offset in `.wazuh-cti-consumers`.
+1. If a custom catalog URL is configured, it first attempts remote snapshot initialization using that consumer.
+2. If remote initialization fails, it falls back to the local packaged snapshot when available.
+3. If no custom catalog URL is configured, it initializes from the local packaged snapshot.
+4. It indexes content into the appropriate system indices using bulk operations and updates `.wazuh-cti-consumers` offsets.
 
 ### Incremental Updates
 
@@ -130,7 +130,7 @@ The Content Manager uses the following system indices:
 
 | Index                         | Description                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
-| `.wazuh-cti-consumers`              | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs)   |
+| `.wazuh-cti-consumers`              | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status)   |
 | `.wazuh-cti-credentials`            | Persisted CTI access token (hidden, single document)                                |
 | `wazuh-threatintel-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
 | `wazuh-threatintel-decoders`               | Log decoders                                                                        |

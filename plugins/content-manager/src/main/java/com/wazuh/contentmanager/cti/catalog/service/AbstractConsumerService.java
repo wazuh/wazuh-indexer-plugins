@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -68,6 +68,12 @@ public abstract class AbstractConsumerService {
     /** The OpenSearch environment configuration. */
     protected final Environment environment;
 
+    /** Optional override for the consumer service, used by tests to inject mocks. */
+    private ConsumerService consumerServiceOverride;
+
+    /** Optional override for the snapshot service, used by tests to inject mocks. */
+    private SnapshotServiceImpl snapshotServiceOverride;
+
     /**
      * Constructs a new AbstractConsumerService.
      *
@@ -82,21 +88,19 @@ public abstract class AbstractConsumerService {
         this.environment = environment;
     }
 
-    /**
-     * Returns the context name for this synchronizer. The context is used as part of the index naming
-     * convention: .context-consumer-type
-     *
-     * @return The context name (e.g., "wazuh").
-     */
-    protected abstract String getContext();
+    /** Returns the consumer type used as document id in `.wazuh-cti-consumers`. */
+    protected abstract String getConsumerType();
+
+    /** Returns the full CTI catalog consumer URL for this synchronizer. */
+    protected abstract String getCustomCatalogUri();
 
     /**
-     * Returns the consumer name for this synchronizer. The consumer identifies the type of content
-     * being synchronized (e.g., "Constants.KEY_RULEs", "Constants.KEY_DECODERs").
-     *
-     * @return The consumer name.
+     * Indicates whether this consumer manages ruleset resources that require Security Analytics
+     * cleanup on snapshot initialization.
      */
-    protected abstract String getConsumer();
+    protected boolean isRulesetConsumer() {
+        return false;
+    }
 
     /**
      * Returns the index mappings for this consumer. The map keys are type identifiers (used in index
@@ -105,14 +109,6 @@ public abstract class AbstractConsumerService {
      * @return A map of type to mapping definition.
      */
     protected abstract Map<String, String> getMappings();
-
-    /**
-     * Returns the index aliases for this consumer. The map keys are type identifiers (matching those
-     * in getMappings()), and values are the alias names to create for each index.
-     *
-     * @return A map of type to alias name.
-     */
-    protected abstract Map<String, String> getAliases();
 
     /**
      * Called after synchronization completes. Subclasses should implement this to perform any
@@ -131,6 +127,16 @@ public abstract class AbstractConsumerService {
      */
     protected abstract String getSnapshotFilename();
 
+    /** Injects a {@link ConsumerService} instance, used by tests to provide a mock. */
+    public void setConsumerService(ConsumerService consumerService) {
+        this.consumerServiceOverride = consumerService;
+    }
+
+    /** Injects a {@link SnapshotServiceImpl} instance, used by tests to provide a mock. */
+    public void setSnapshotService(SnapshotServiceImpl snapshotService) {
+        this.snapshotServiceOverride = snapshotService;
+    }
+
     /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
@@ -143,38 +149,152 @@ public abstract class AbstractConsumerService {
         this.setConsumerStatus(LocalConsumer.Status.UPDATING);
         boolean isUpdated = this.syncConsumerServices();
         log.info(
-                "Synchronization completed for consumer [{}]. Updated: {}", this.getConsumer(), isUpdated);
+                "Synchronization completed for consumer [{}]. Updated: {}",
+                this.getConsumerType(),
+                isUpdated);
         this.onSyncComplete(isUpdated);
         this.setConsumerStatus(LocalConsumer.Status.IDLE);
     }
 
     /**
-     * Updates the consumer status in the {@code .wazuh-cti-consumers} index.
+     * Updates the consumer status in the {@code .wazuh-cti-consumers} index. This is a partial
+     * update: it preserves all identity fields and offsets, mutating only {@code status}. When the
+     * consumer document does not yet exist (i.e., t0 has not run), the call is a no-op since identity
+     * fields would not be derivable.
      *
      * @param status The new {@link LocalConsumer.Status} to persist.
      */
     private void setConsumerStatus(LocalConsumer.Status status) {
-        String context = this.getContext();
-        String consumer = this.getConsumer();
+        String consumerType = this.getConsumerType();
         try {
-            GetResponse getResponse = this.consumersIndex.getConsumer(context, consumer);
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                log.debug(
+                        "Consumer [{}] doc not present; skipping status update to [{}]", consumerType, status);
+                return;
+            }
             LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? new ObjectMapper().readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(context, consumer);
+                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updated =
                     new LocalConsumer(
-                            context,
-                            consumer,
+                            current.getContext(),
+                            current.getName(),
+                            current.getType(),
+                            current.getResource(),
+                            current.isPublic(),
                             status,
                             current.getLocalOffset(),
-                            current.getRemoteOffset(),
-                            current.getSnapshotLink());
+                            current.getRemoteOffset());
             this.consumersIndex.setConsumer(updated);
-            log.debug("Consumer [{}] status set to [{}]", consumer, status);
+            log.debug("Consumer [{}] status set to [{}]", consumerType, status);
         } catch (Exception e) {
-            log.warn("Failed to set consumer [{}] status to [{}]: {}", consumer, status, e.getMessage());
+            log.warn(
+                    "Failed to set consumer [{}] status to [{}]: {}", consumerType, status, e.getMessage());
         }
+    }
+
+    /**
+     * Returns the {@code resource} value from the existing consumer document, or {@code null} when
+     * the document is absent / unreadable / has no resource. Used as a fallback catalog URL when the
+     * configured setting is empty.
+     */
+    private String readExistingConsumerResource(String consumerType) {
+        try {
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                return null;
+            }
+            LocalConsumer current =
+                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
+            String resource = current.getResource();
+            return (resource != null && !resource.isBlank()) ? resource : null;
+        } catch (Exception e) {
+            log.debug(
+                    "Could not read existing consumer resource for [{}]: {}", consumerType, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Persists the initial (t0) consumer state to the {@code .wazuh-cti-consumers} index before
+     * snapshot loading begins. Identity fields come from the remote response when a custom URL is
+     * configured, otherwise from the manifest entry. {@code local_offset} is set to 0 (no data loaded
+     * yet); {@code remote_offset} is the latest offset known upstream (so the post-load incremental
+     * update can close the gap).
+     *
+     * <p>If neither the remote consumer nor the manifest entry is available, the write is skipped;
+     * the existing fatal log branches in {@code syncConsumerServices} apply.
+     */
+    private void writeInitialConsumer(
+            RemoteConsumer remoteConsumer,
+            JsonNode manifestEntry,
+            String catalogUri,
+            String consumerType) {
+        try {
+            LocalConsumer t0;
+            if (remoteConsumer != null) {
+                t0 =
+                        new LocalConsumer(
+                                remoteConsumer.getContext(),
+                                remoteConsumer.getName(),
+                                consumerType,
+                                catalogUri,
+                                remoteConsumer.isPublic(),
+                                LocalConsumer.Status.UPDATING,
+                                0,
+                                remoteConsumer.getOffset());
+            } else if (manifestEntry != null) {
+                String mName = this.readManifestString(manifestEntry, Constants.KEY_NAME, "");
+                String mContext = this.readManifestString(manifestEntry, Constants.KEY_CONTEXT, "");
+                String mType = this.readManifestString(manifestEntry, Constants.KEY_TYPE, consumerType);
+                String mResource = this.readManifestString(manifestEntry, Constants.KEY_RESOURCE, "");
+                boolean mIsPublic = this.readManifestBoolean(manifestEntry, Constants.KEY_IS_PUBLIC, true);
+                long mRemoteOffset = this.readManifestLong(manifestEntry, Constants.KEY_REMOTE_OFFSET, 0);
+                t0 =
+                        new LocalConsumer(
+                                mContext,
+                                mName,
+                                mType,
+                                mResource,
+                                mIsPublic,
+                                LocalConsumer.Status.UPDATING,
+                                0,
+                                mRemoteOffset);
+            } else {
+                return;
+            }
+            this.consumersIndex.setConsumer(t0);
+            log.debug(
+                    "Consumer [{}] t0 written: status=UPDATING, local_offset=0, remote_offset={}",
+                    consumerType,
+                    t0.getRemoteOffset());
+        } catch (Exception e) {
+            log.warn("Failed to write initial consumer state for [{}]: {}", consumerType, e.getMessage());
+        }
+    }
+
+    private String readManifestString(JsonNode node, String field, String defaultValue) {
+        if (node != null && node.has(field) && !node.get(field).isNull()) {
+            String value = node.get(field).asText(defaultValue);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return defaultValue;
+    }
+
+    private long readManifestLong(JsonNode node, String field, long defaultValue) {
+        if (node != null && node.has(field) && !node.get(field).isNull()) {
+            return node.get(field).asLong(defaultValue);
+        }
+        return defaultValue;
+    }
+
+    private boolean readManifestBoolean(JsonNode node, String field, boolean defaultValue) {
+        if (node != null && node.has(field) && !node.get(field).isNull()) {
+            return node.get(field).asBoolean(defaultValue);
+        }
+        return defaultValue;
     }
 
     /**
@@ -225,20 +345,67 @@ public abstract class AbstractConsumerService {
      *     date.
      */
     private boolean syncConsumerServices() {
-        String context = this.getContext();
-        String consumer = this.getConsumer();
+        String consumerType = this.getConsumerType();
+
+        // Resolve the snapshots directory and load the external manifest entry once up front. The
+        // manifest doubles as a source of identity and as a fallback catalog URL when no setting /
+        // no existing doc is available. Resolution is defensive: a missing pluginsDir (e.g. in
+        // tests with a minimally-stubbed Environment) is treated as "no snapshots / no manifest".
+        Path snapshotsDir = null;
+        Path localSnapshot = null;
+        JsonNode manifestEntry = null;
+        try {
+            Path pluginsDir = this.environment.pluginsDir();
+            if (pluginsDir != null) {
+                snapshotsDir =
+                        pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
+                localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+                manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+            }
+        } catch (Exception e) {
+            log.debug("Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
+        }
+
+        // The effective catalog URI prefers, in order:
+        //   1. the configured setting `plugins.content_manager.catalog.<type>`,
+        //   2. the existing consumer doc's `resource` (auto-recovery on second+ runs),
+        //   3. the manifest entry's `resource` (auto-recovery on the first sync after the local
+        //      snapshot was consumed/deleted, when no doc exists yet).
+        String settingCatalogUri = this.getCustomCatalogUri();
+        String existingResource = this.readExistingConsumerResource(consumerType);
+        String manifestResource =
+                (manifestEntry != null
+                                && manifestEntry.has(Constants.KEY_RESOURCE)
+                                && !manifestEntry.get(Constants.KEY_RESOURCE).isNull())
+                        ? manifestEntry.get(Constants.KEY_RESOURCE).asText("")
+                        : "";
+        String catalogUri;
+        if (settingCatalogUri != null && !settingCatalogUri.isBlank()) {
+            catalogUri = settingCatalogUri;
+        } else if (existingResource != null && !existingResource.isBlank()) {
+            catalogUri = existingResource;
+        } else if (!manifestResource.isBlank()) {
+            catalogUri = manifestResource;
+        } else {
+            catalogUri = null;
+        }
+        String context = PluginSettings.getContextFromCatalogUri(catalogUri);
+        String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
 
         ConsumerService consumerService =
-                new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+                this.consumerServiceOverride != null
+                        ? this.consumerServiceOverride
+                        : new ConsumerServiceImpl(
+                                context, consumer, consumerType, catalogUri, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
-        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
+        RemoteConsumer remoteConsumer =
+                (catalogUri != null && !catalogUri.isBlank()) ? consumerService.getRemoteConsumer() : null;
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
 
         for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
             String indexName = this.getIndexName(entry.getKey());
-            String alias = this.getAliases().get(entry.getKey());
-            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
+            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
             indicesMap.put(entry.getKey(), index);
 
             // Check if index exists to avoid creation exception
@@ -266,105 +433,193 @@ public abstract class AbstractConsumerService {
                         "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.",
                         currentOffset,
                         remoteConsumer.getOffset(),
-                        consumer);
+                        consumerType);
                 currentOffset = 0;
             }
         }
 
-        // Local Snapshot Initialization (takes precedence over remote download)
         if (currentOffset == 0) {
-            Path localSnapshot =
-                    this.environment
-                            .pluginsDir()
-                            .resolve(Constants.PLUGIN_DIR_NAME)
-                            .resolve(Constants.CTI_SNAPSHOTS_DIR)
-                            .resolve(this.getSnapshotFilename());
-
+            final Path localSnapshotPath = localSnapshot;
             boolean snapshotExists;
-            try {
-                snapshotExists = AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshot));
-            } catch (Exception e) {
-                log.warn("Failed to check local snapshot at [{}]: {}", localSnapshot, e.getMessage());
+            if (localSnapshotPath == null) {
                 snapshotExists = false;
+            } else {
+                try {
+                    snapshotExists =
+                            AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshotPath));
+                } catch (Exception e) {
+                    log.warn("Failed to check local snapshot at [{}]: {}", localSnapshotPath, e.getMessage());
+                    snapshotExists = false;
+                }
             }
 
-            if (snapshotExists) {
-                log.info("Local snapshot found at [{}] for consumer [{}]", localSnapshot, consumer);
-                SnapshotServiceImpl snapshotService =
-                        new SnapshotServiceImpl(
-                                context, consumer, indicesMap, this.consumersIndex, this.environment);
+            boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
 
-                boolean localSuccess = snapshotService.initialize(localSnapshot);
+            // t0: persist the initial consumer state (status=updating, local_offset=0,
+            // remote_offset=<latest known>) before snapshot loading begins, so external observers
+            // can see the in-progress state. Identity fields come from the remote response when a
+            // catalog URL is available (either setting or existing doc's resource), otherwise from
+            // the manifest entry.
+            this.writeInitialConsumer(remoteConsumer, manifestEntry, catalogUri, consumerType);
+
+            SnapshotServiceImpl snapshotService =
+                    this.snapshotServiceOverride != null
+                            ? this.snapshotServiceOverride
+                            : new SnapshotServiceImpl(
+                                    consumerType, indicesMap, this.consumersIndex, this.environment);
+
+            // When a catalog URL is available, prefer remote initialization and fall back to local
+            // snapshot on failure. The catalog URL comes from the configured setting, or from a
+            // previous run's persisted `resource` when the setting is empty.
+            if (hasEffectiveCatalog
+                    && remoteConsumer != null
+                    && remoteConsumer.getSnapshotLink() != null) {
+                // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
+                // clear indices.
+                if (this.isRulesetConsumer()) {
+                    try {
+                        SecurityAnalyticsService securityAnalyticsService =
+                                new SecurityAnalyticsServiceImpl(this.client);
+                        securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
+                        SpaceService spaceService = new SpaceService(this.client);
+                        spaceService.deleteSpaceResources(Space.STANDARD);
+                    } catch (Exception e) {
+                        log.error(
+                                "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}",
+                                consumerType,
+                                e.getMessage());
+                    }
+                } else {
+                    indicesMap.values().forEach(ContentIndex::clear);
+                }
+
+                log.info("Initializing snapshot from custom consumer URL: {}", catalogUri);
+                boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
+                if (remoteSuccess) {
+                    currentOffset = remoteConsumer.getSnapshotOffset();
+                    updated = true;
+                    if (snapshotExists) {
+                        SnapshotServiceImpl.deleteSnapshot(localSnapshot);
+                    }
+                } else if (snapshotExists) {
+                    log.warn(
+                            "Remote snapshot initialization failed for consumer [{}]. Falling back to local snapshot [{}].",
+                            consumerType,
+                            localSnapshot);
+                    boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                    if (localSuccess) {
+                        currentOffset = snapshotService.getMaxOffsetSeen();
+                        updated = true;
+                    } else {
+                        log.warn("Local snapshot fallback failed for consumer [{}].", consumerType);
+                    }
+                } else {
+                    log.warn(
+                            "Remote snapshot initialization failed for consumer [{}] and no local snapshot was found at [{}].",
+                            consumerType,
+                            localSnapshot);
+                }
+            } else if (snapshotExists) {
+                if (hasEffectiveCatalog) {
+                    // Catalog URL was set but the remote attempt did not yield a usable response
+                    // (invalid URL, network failure, missing snapshot link). Fall back to the
+                    // packaged local snapshot.
+                    log.warn(
+                            "Could not reach catalog URL [{}] for consumer [{}]. Falling back to local snapshot [{}].",
+                            catalogUri,
+                            consumerType,
+                            localSnapshot.getFileName());
+                } else {
+                    log.info(
+                            "Initializing consumer [{}] from local snapshot [{}]",
+                            consumerType,
+                            localSnapshot.getFileName());
+                }
+                boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
                 if (localSuccess) {
                     currentOffset = snapshotService.getMaxOffsetSeen();
-                    log.info(
-                            "Initialized consumer [{}] from local snapshot, offset [{}]",
-                            consumer,
-                            currentOffset);
                     updated = true;
                 } else {
-                    log.warn("Local snapshot initialization failed for consumer [{}].", consumer);
+                    log.error("Local snapshot initialization failed for consumer [{}].", consumerType);
                 }
-            } else {
-                log.info(
-                        "No local snapshot at [{}] for consumer [{}], will use remote.",
+            } else if (hasEffectiveCatalog) {
+                log.fatal(
+                        "No local snapshot found at [{}] and custom consumer initialization could not be completed for [{}].",
                         localSnapshot,
-                        consumer);
-            }
-        }
-
-        // Remote Snapshot Initialization (fallback when local snapshot is absent or failed)
-        if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
-            if (Objects.equals(
-                    this.getConsumer(), PluginSettings.CONTENT_CONSUMER.get(this.environment.settings()))) {
-                try {
-                    // Note: space is always STANDARD.
-                    // 1. Remove resources belonging to the space in Security Analytics.
-                    SecurityAnalyticsService securityAnalyticsService =
-                            new SecurityAnalyticsServiceImpl(this.client);
-                    securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
-                    // 2. Remove resources belonging to space in the wazuh-threatintel-* indices.
-                    SpaceService spaceService = new SpaceService(this.client);
-                    spaceService.deleteSpaceResources(Space.STANDARD);
-                } catch (Exception e) {
-                    log.error(
-                            "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}",
-                            consumer,
-                            e.getMessage());
-                }
+                        consumerType);
             } else {
-                indicesMap.values().forEach(ContentIndex::clear);
+                log.fatal(
+                        "No local snapshot at [{}] for consumer [{}] and no custom consumer URL is configured.",
+                        localSnapshot,
+                        consumerType);
             }
-
-            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            SnapshotServiceImpl snapshotService =
-                    new SnapshotServiceImpl(
-                            context, consumer, indicesMap, this.consumersIndex, this.environment);
-
-            boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
-            if (snapshotSuccess) {
-                currentOffset = remoteConsumer.getSnapshotOffset();
-            } else {
-                log.warn("Snapshot initialization failed. Falling back to offset update from 0.");
-            }
-            updated = true;
         }
 
         // Incremental Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
             log.info(
                     "Performing update for consumer [{}] from offset [{}] to [{}]",
-                    consumer,
+                    consumerType,
                     currentOffset,
                     remoteConsumer.getOffset());
 
             UpdateServiceImpl updateService =
                     new UpdateServiceImpl(
-                            context, consumer, new ApiClient(), this.consumersIndex, indicesMap);
+                            context,
+                            consumer,
+                            consumerType,
+                            catalogUri,
+                            new ApiClient(),
+                            this.consumersIndex,
+                            indicesMap);
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
             updated = true;
         }
         return updated;
+    }
+
+    /**
+     * Loads the external {@code manifest.json} from the snapshots directory and returns the metadata
+     * entry for this consumer's snapshot file. The manifest is a JSON object keyed by snapshot
+     * filename (e.g., {@code "ruleset.zip"}).
+     *
+     * @param snapshotsDir The directory that contains the snapshot zip files and the manifest.
+     * @return The {@link JsonNode} for this consumer's snapshot, or {@code null} if the manifest does
+     *     not exist or the entry is missing.
+     */
+    private JsonNode loadSnapshotsManifest(Path snapshotsDir) {
+        Path manifestPath = snapshotsDir.resolve(Constants.MANIFEST_FILENAME);
+        try {
+            boolean exists = AccessController.doPrivilegedChecked(() -> Files.exists(manifestPath));
+            if (!exists) {
+                log.fatal(
+                        "Snapshots manifest not found at [{}]. Consumer won't be initialized.", manifestPath);
+                return null;
+            }
+
+            byte[] bytes = AccessController.doPrivilegedChecked(() -> Files.readAllBytes(manifestPath));
+            JsonNode root = new ObjectMapper().readTree(bytes);
+            String snapshotFilename = this.getSnapshotFilename();
+            JsonNode entry = root.get(snapshotFilename);
+            if (entry == null || entry.isNull()) {
+                log.fatal(
+                        "No entry for [{}] in [{}]. Consumer won't be initialized.",
+                        snapshotFilename,
+                        manifestPath.getFileName());
+                return null;
+            }
+            log.info(
+                    "Snapshot details for [{}] loaded from [{}].",
+                    snapshotFilename,
+                    manifestPath.getFileName());
+            return entry;
+        } catch (Exception e) {
+            log.fatal(
+                    "Failed to load snapshots manifest from [{}]: {}. Consumer won't be initialized.",
+                    manifestPath,
+                    e.getMessage());
+            return null;
+        }
     }
 }

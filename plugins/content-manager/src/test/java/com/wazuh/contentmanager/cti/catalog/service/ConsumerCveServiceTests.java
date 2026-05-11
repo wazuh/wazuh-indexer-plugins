@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.CreatePitAction;
@@ -35,18 +36,26 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +67,18 @@ import static org.mockito.Mockito.when;
  */
 public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
+    private static class TestableConsumerCveService extends ConsumerCveService {
+        TestableConsumerCveService(
+                Client client, ConsumersIndex consumersIndex, Environment environment) {
+            super(client, consumersIndex, environment);
+        }
+
+        @Override
+        public void onSyncComplete(boolean isUpdated) {
+            // No-op for fallback-path unit testing.
+        }
+    }
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private ConsumerCveService service;
@@ -68,12 +89,16 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
+    @Mock private ConsumerService consumerService;
+    @Mock private SnapshotServiceImpl snapshotService;
+    @Mock private org.opensearch.action.get.GetResponse getResponse;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        ConsumerCveServiceTests.clearPluginSettings();
         PluginSettings.getInstance(Settings.EMPTY);
         this.service = new ConsumerCveService(this.client, this.consumersIndex, this.environment);
     }
@@ -84,7 +109,12 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
+        ConsumerCveServiceTests.clearPluginSettings();
         super.tearDown();
+    }
+
+    private static void clearPluginSettings() {
+        PluginSettings.resetForTesting();
     }
 
     /**
@@ -129,16 +159,6 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         verify(this.client, never()).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
     }
 
-    /** Tests that getContext returns the expected CVE context. */
-    public void testGetContextReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getCveContext(), this.service.getContext());
-    }
-
-    /** Tests that getConsumer returns the expected CVE consumer. */
-    public void testGetConsumerReturnsExpectedValue() {
-        assertEquals(PluginSettings.getInstance().getCveConsumer(), this.service.getConsumer());
-    }
-
     /** Tests that getMappings returns the CVE mappings. */
     public void testGetMappingsReturnsExpectedMappings() {
         Map<String, String> mappings = this.service.getMappings();
@@ -148,11 +168,194 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         assertEquals("/mappings/cti-cve-mappings.json", mappings.get(Constants.KEY_CVES));
     }
 
-    /** Tests that getAliases returns an empty map. */
-    public void testGetAliasesReturnsEmpty() {
-        Map<String, String> aliases = this.service.getAliases();
+    /**
+     * Tests fallback to the local snapshot when a custom catalog URL is configured but remote
+     * retrieval fails.
+     */
+    public void testSynchronizeFallsBackToLocalSnapshotWhenRemoteConsumerIsUnavailable()
+            throws Exception {
+        Path pluginsDir = LuceneTestCase.createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
 
-        assertNotNull(aliases);
-        assertTrue(aliases.isEmpty());
+        ConsumerCveServiceTests.clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer()).thenReturn(null);
+        when(this.consumerService.getRemoteConsumer()).thenReturn(null);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(localSnapshot), any())).thenReturn(true);
+        when(this.snapshotService.getMaxOffsetSeen()).thenReturn(222L);
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
+
+        fallbackService.synchronize();
+
+        verify(this.snapshotService).initialize(eq(localSnapshot), any());
+        verify(this.snapshotService, never())
+                .initialize(any(com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer.class));
+    }
+
+    /** Tests fallback to the local snapshot when remote snapshot initialization fails. */
+    public void testSynchronizeFallsBackToLocalSnapshotWhenRemoteSnapshotInitializationFails()
+            throws Exception {
+        Path pluginsDir = LuceneTestCase.createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
+
+        ConsumerCveServiceTests.clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+
+        when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer()).thenReturn(null);
+        when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+        when(remoteConsumer.getSnapshotLink())
+                .thenReturn("https://cti.example/store/vulnerabilities.zip");
+        when(remoteConsumer.getSnapshotOffset()).thenReturn(222L);
+        when(remoteConsumer.getOffset()).thenReturn(222L);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(remoteConsumer))).thenReturn(false);
+        when(this.snapshotService.initialize(eq(localSnapshot), any())).thenReturn(true);
+        when(this.snapshotService.getMaxOffsetSeen()).thenReturn(222L);
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
+
+        fallbackService.synchronize();
+
+        InOrder inOrder = inOrder(this.snapshotService);
+        inOrder.verify(this.snapshotService).initialize(eq(remoteConsumer));
+        inOrder.verify(this.snapshotService).initialize(eq(localSnapshot), any());
+    }
+
+    /** Tests that a successful remote initialization removes the packaged local snapshot. */
+    public void testSynchronizeDeletesLocalSnapshotAfterSuccessfulRemoteInitialization()
+            throws Exception {
+        Path pluginsDir = LuceneTestCase.createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
+
+        ConsumerCveServiceTests.clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+
+        when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer()).thenReturn(null);
+        when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+        when(remoteConsumer.getSnapshotLink())
+                .thenReturn("https://cti.example/store/vulnerabilities.zip");
+        when(remoteConsumer.getSnapshotOffset()).thenReturn(333L);
+        when(remoteConsumer.getOffset()).thenReturn(333L);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(remoteConsumer))).thenReturn(true);
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
+
+        fallbackService.synchronize();
+
+        verify(this.snapshotService).initialize(eq(remoteConsumer));
+        verify(this.snapshotService, never()).initialize(eq(localSnapshot), any());
+        assertFalse(Files.exists(localSnapshot));
+    }
+
+    /**
+     * Tests that status updates during synchronize preserve existing manifest-derived identity
+     * fields.
+     */
+    public void testSynchronizePreservesExistingManifestIdentityFieldsInStatusUpdates()
+            throws Exception {
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "manifest-context",
+                                "manifest-name",
+                                "cti:catalog:consumer:vulnerabilities",
+                                "https://manifest.example/resource",
+                                true,
+                                10,
+                                10));
+        when(this.consumerService.getRemoteConsumer()).thenReturn(null);
+
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"name\":\"manifest-name\",\"context\":\"manifest-context\","
+                                + "\"type\":\"cti:catalog:consumer:vulnerabilities\","
+                                + "\"resource\":\"https://manifest.example/resource\","
+                                + "\"is_public\":true,\"local_offset\":10,\"remote_offset\":10}");
+
+        TestableConsumerCveService fallbackService =
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
+
+        fallbackService.synchronize();
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, org.mockito.Mockito.atLeast(2)).setConsumer(captor.capture());
+        for (LocalConsumer persisted : captor.getAllValues()) {
+            assertEquals("manifest-name", persisted.getName());
+            assertEquals("manifest-context", persisted.getContext());
+            assertEquals("https://manifest.example/resource", persisted.getResource());
+            assertEquals("cti:catalog:consumer:vulnerabilities", persisted.getType());
+        }
     }
 }

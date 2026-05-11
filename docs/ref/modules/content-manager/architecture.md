@@ -37,11 +37,11 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 ### Consumer Service
 
-Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
+Orchestrates synchronization for each catalog consumer type (ruleset, iocs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
 
 ### Snapshot Service
 
-Handles initial content loading. Downloads a ZIP snapshot from the CTI API, extracts it, and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
+Handles initial content loading. Initializes from either a remote CTI snapshot (when a custom consumer URL is configured) or a local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
 
 ### Update Service
 
@@ -74,7 +74,9 @@ Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-i
 ```
 Job Scheduler triggers
   → Consumer Service checks .wazuh-cti-consumers (offset = 0)
-  → Snapshot Service downloads ZIP from CTI API
+  → If custom catalog URL is configured: try remote snapshot first
+  → If remote init fails: fallback to local packaged snapshot
+  → If no custom catalog URL: initialize from local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
   → Security Analytics Service creates detectors (max 100 rules per detector)
@@ -221,19 +223,21 @@ Example document structure in `wazuh-threatintel-rules`:
 }
 ```
 
-The `.wazuh-cti-consumers` index stores one document per context/consumer pair:
+The `.wazuh-cti-consumers` index stores one document per consumer type:
 
 ```json
 {
   "_index": ".wazuh-cti-consumers",
-  "_id": "beta-2-ruleset-5_public-ruleset-5",
+  "_id": "cti:catalog:consumer:ruleset",
   "_source": {
     "name": "public-ruleset-5",
     "context": "beta-2-ruleset-5",
+    "type": "cti:catalog:consumer:ruleset",
+    "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+    "is_public": true,
     "status": "idle",
     "local_offset": 3932,
-    "remote_offset": 3932,
-    "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/beta-2-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+    "remote_offset": 3932
   }
 }
 ```
