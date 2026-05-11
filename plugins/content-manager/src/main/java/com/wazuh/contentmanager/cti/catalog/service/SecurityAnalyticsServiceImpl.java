@@ -411,7 +411,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
 
         List<String> sourceIndices = new ArrayList<>();
-        int interval = 2;
+        int DEFAULT_INTERVAL = 2;
+        int interval = DEFAULT_INTERVAL;
         boolean enabled = false;
 
         if (doc.has(Constants.KEY_DETECTOR) && doc.get(Constants.KEY_DETECTOR).isObject()) {
@@ -423,7 +424,20 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             }
 
             if (detectorNode.has(Constants.KEY_INTERVAL)) {
-                interval = detectorNode.path(Constants.KEY_INTERVAL).asInt(interval);
+                interval = detectorNode.path(Constants.KEY_INTERVAL).asInt();
+
+                int MIN = 1;
+                int MAX = 10080; // 60*24*7
+                if (interval < MIN || interval > MAX) {
+                    log.warn(
+                            "Interval for detector [{}] is out of bounds ([{},{}], got: {}). Falling back to default value of {} minutes.",
+                            id,
+                            MIN,
+                            MAX,
+                            interval,
+                            DEFAULT_INTERVAL);
+                    interval = DEFAULT_INTERVAL;
+                }
             }
 
             if (detectorNode.has(Constants.KEY_ENABLED)) {
