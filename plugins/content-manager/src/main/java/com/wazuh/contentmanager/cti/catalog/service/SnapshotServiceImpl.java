@@ -122,10 +122,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             return false;
         }
 
-        log.info(
-                "Starting snapshot initialization for context [{}] consumer [{}]",
-                this.context,
-                this.consumer);
+        log.info("Starting snapshot initialization for [{}]", this.consumerType);
         Path snapshotZip = null;
         Path outputDir = null;
 
@@ -312,7 +309,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     public boolean initialize(Path localZip, JsonNode manifestEntry) {
         log.info(
                 "Starting local snapshot initialization for [{}] from [{}]",
-                this.consumersIndex,
+                this.consumerType,
                 localZip.getFileName());
 
         Path outputDir = null;
