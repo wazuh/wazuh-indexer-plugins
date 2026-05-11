@@ -452,6 +452,22 @@ public class ContentIndex {
                 case Constants.INDEX_FILTERS:
                     resource = Filter.fromPayload(payload);
                     break;
+                case Constants.INDEX_POLICIES:
+                    resource = Resource.fromPayload(payload);
+                    if (payload.has(Constants.KEY_DOCUMENT)) {
+                        // Re-parse the document through the Policy model so optional fields
+                        // (enabled, index_unclassified_events, index_discarded_events) are
+                        // always present in the indexed document, and recompute the document
+                        // hash to match the normalized payload.
+                        Policy policy = Policy.fromPayload(payload.get(Constants.KEY_DOCUMENT));
+                        ObjectNode policyNode = this.mapper.valueToTree(policy);
+                        Resource.nestMetadataFields(policyNode);
+                        resource.setDocument(policyNode);
+                        java.util.Map<String, String> hashMap = new java.util.HashMap<>();
+                        hashMap.put(Constants.KEY_SHA256, Resource.computeSha256(policyNode.toString()));
+                        resource.setHash(hashMap);
+                    }
+                    break;
                 case Constants.INDEX_CVES:
                     Cve cve = Cve.fromPayload(payload);
                     return this.mapper.valueToTree(cve);

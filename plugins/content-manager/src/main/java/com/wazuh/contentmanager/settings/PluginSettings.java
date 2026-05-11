@@ -123,7 +123,7 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.catalog.sync_interval",
                     DEFAULT_CATALOG_SYNC_INTERVAL,
-                    1,
+                    10,
                     1440,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
