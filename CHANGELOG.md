@@ -163,6 +163,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update ruleset feed for 5.0.0 beta2 [(#1073)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1073)
 - Normalize space values in CM and SAP integration [(#1091)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1091)
 - Initialization from snapshots rework [(#1139)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1139)
+- CTI subscription API update [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145)
 
 ### Deprecated
 -
