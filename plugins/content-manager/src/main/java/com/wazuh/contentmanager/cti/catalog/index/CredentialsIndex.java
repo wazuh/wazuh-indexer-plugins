@@ -78,6 +78,7 @@ public class CredentialsIndex {
     public IndexResponse storeCredentials(String accessToken)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
         if (!this.exists()) {
+            log.info("Index [{}] not found. Recreating before storing credentials.", INDEX_NAME);
             this.createIndex();
         }
         if (!ClusterInfo.indexStatusCheck(
@@ -130,6 +131,7 @@ public class CredentialsIndex {
     public DeleteResponse deleteDocument()
             throws ExecutionException, InterruptedException, TimeoutException {
         if (!this.exists()) {
+            log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
             return null;
         }
         DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);

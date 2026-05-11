@@ -81,8 +81,8 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Token present but getMyPlan() returns null (invalid token) → deletes credentials
-     * document, clears in-memory token, and falls back to the public plan.
+     * Token present but getMyPlan() returns null (invalid token) → deletes credentials document,
+     * clears in-memory token, and falls back to the public plan.
      */
     public void testGetPlan_InvalidToken_FallsBackToPublicPlan() throws Exception {
         PluginSettings.getInstance().setAccessToken("bad-token");

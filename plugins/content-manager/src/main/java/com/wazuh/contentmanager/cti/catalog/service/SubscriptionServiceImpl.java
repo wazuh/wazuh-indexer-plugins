@@ -51,6 +51,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             if (plan != null) {
                 return plan;
             }
+            log.info(
+                    "Access token is invalid or expired. Clearing credentials and falling back to public plan.");
             try {
                 this.credentialsIndex.deleteDocument();
             } catch (Exception e) {
@@ -65,11 +67,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public void register(String accessToken) throws Exception {
         this.credentialsIndex.storeCredentials(accessToken);
         PluginSettings.getInstance().setAccessToken(accessToken);
+        log.info(
+                "Access token stored successfully. Registration will be confirmed on next plan retrieval.");
     }
 
     @Override
     public void unregister() throws Exception {
         this.credentialsIndex.deleteDocument();
         PluginSettings.getInstance().setAccessToken(null);
+        log.info("Access token removed successfully. Environment is now unregistered.");
     }
 }

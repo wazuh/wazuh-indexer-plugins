@@ -59,9 +59,6 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             // Perform request to the environment-specific endpoint
             SimpleHttpResponse response = this.client.getEnvironmentMe(token);
 
-            log.info("CTI Response Status: {}", response.getCode());
-            log.info("CTI Response Body: {}", response.getBodyText());
-
             if (response.getCode() == 401) {
                 log.error("Authentication failed: The environment token is invalid or missing.");
             } else if (response.getCode() == 200) {
@@ -72,7 +69,14 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                 List<Plan> plans =
                         this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
 
-                return (plans != null && !plans.isEmpty()) ? plans.get(0) : null;
+                if (plans != null && !plans.isEmpty()) {
+                    log.info(
+                            "Active plan for registered environment retrieved successfully from CTI"
+                                    + " Console. Active plan is: {}.",
+                            plans.get(0).getName());
+                    return plans.get(0);
+                }
+                return null;
             } else {
                 log.warn(
                         "Operation to fetch environment plan failed: { \"status_code\": {}, \"message\": {}",
@@ -135,7 +139,14 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                         this.mapper.readValue(response.getBodyText(), CatalogPlansResponse.class);
 
                 if (parsedResponse.getPlans() != null) {
-                    return parsedResponse.getPlans().stream().filter(Plan::isPublic).findFirst().orElse(null);
+                    Plan publicPlan =
+                            parsedResponse.getPlans().stream().filter(Plan::isPublic).findFirst().orElse(null);
+                    if (publicPlan != null) {
+                        log.info(
+                                "Public plan retrieved successfully from CTI Console. Active plan" + " is: {}.",
+                                publicPlan.getName());
+                    }
+                    return publicPlan;
                 }
             } else {
                 log.warn(

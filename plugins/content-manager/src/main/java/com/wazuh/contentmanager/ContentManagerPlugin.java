@@ -154,7 +154,8 @@ public class ContentManagerPlugin extends Plugin
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client);
         this.plansService = new PlansServiceImpl();
-        this.subscriptionService = new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
+        this.subscriptionService =
+                new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
