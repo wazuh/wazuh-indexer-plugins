@@ -111,6 +111,11 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
             log.error("Couldn't obtain consumer from CTI: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse remote consumer: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            // Thrown by ApiClient.buildConsumerURI when the resource URL is malformed or its host
+            // does not match the configured CTI base. Returning null lets the caller fall back to
+            // the local snapshot.
+            log.error("Invalid CTI consumer URI [{}]: {}", this.resource, e.getMessage());
         }
         return null;
     }
