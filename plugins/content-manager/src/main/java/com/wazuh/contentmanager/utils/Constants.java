@@ -47,7 +47,9 @@ public class Constants {
     public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
     public static final String E_400_RESOURCE_SPACE_MISMATCH =
             "Invalid space value. Must be one of: %s.";
-    public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
+    public static final String E_400_INVALID_ENRICHMENT =
+            "Invalid enrichment type '%s'. Allowed values are: %s";
+    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
     public static final String E_400_INTEGRATION_HAS_RESOURCES =
             "Cannot delete integration because it has %s attached.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
@@ -104,6 +106,7 @@ public class Constants {
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
+
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -133,7 +136,6 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_STATUS = "status";
-    public static final String KEY_IS_PUBLIC = "is_public";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";
 
@@ -143,10 +145,11 @@ public class Constants {
     public static final String KEY_COMPATIBILITY = "compatibility";
     public static final String KEY_SUPPORTS = "supports";
 
-    // Enrichment types allowed in policy
-    public static final String E_400_INVALID_ENRICHMENT =
-            "Invalid enrichment type '%s'. Allowed values are: %s";
-    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
+    // Consumer's metadata
+    public static final String KEY_IS_PUBLIC = "is_public";
+    public static final String KEY_CONTEXT = "context";
+    public static final String KEY_LOCAL_OFFSET = "local_offset";
+    public static final String KEY_REMOTE_OFFSET = "remote_offset";
 
     // API request content fields
     public static final String KEY_TYPE = "type";

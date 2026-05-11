@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -100,7 +102,10 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
             SimpleHttpResponse response = this.client.getConsumer(this.resource);
 
             if (response.getCode() == 200) {
-                return this.mapper.readValue(response.getBodyText(), RemoteConsumer.class);
+                // The API response wraps the consumer payload in a "data" object and does not
+                // include the consumer type or its resource URL — those are caller-side identities.
+                JsonNode root = this.mapper.readTree(response.getBodyText());
+                return new RemoteConsumer(root.get("data"), this.consumerType, this.resource);
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             log.error("Couldn't obtain consumer from CTI: {}", e.getMessage());

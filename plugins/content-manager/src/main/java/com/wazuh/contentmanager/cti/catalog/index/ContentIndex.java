@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequest;
@@ -128,8 +127,7 @@ public class ContentIndex {
             return null;
         }
 
-        Settings.Builder settingsBuilder =
-                Settings.builder().put("index.number_of_replicas", 0);
+        Settings.Builder settingsBuilder = Settings.builder().put("index.number_of_replicas", 0);
         if (Constants.INDEX_CVES.equals(this.indexName)) {
             settingsBuilder.put("index.hidden", true);
         }

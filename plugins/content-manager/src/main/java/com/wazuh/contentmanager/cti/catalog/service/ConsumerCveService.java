@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 

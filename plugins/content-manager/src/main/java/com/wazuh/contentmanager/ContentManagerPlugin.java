@@ -70,7 +70,6 @@ import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;

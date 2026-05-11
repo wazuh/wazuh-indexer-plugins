@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /** CTI Consumer DTO. */
@@ -31,19 +30,24 @@ public class RemoteConsumer extends AbstractConsumer {
     private final boolean isPublic;
 
     /**
-     * Default constructor
+     * Builds a RemoteConsumer from the {@code data} object returned by the CTI consumer endpoint. The
+     * response payload does not carry {@code type} or {@code resource}; those identities are injected
+     * by the caller from its own context (consumer type identifier and configured catalog URL).
      *
-     * @param data The JSON node containing consumer data.
+     * @param data The JSON node containing consumer data (the value of the response's {@code data}
+     *     field).
+     * @param type The consumer type identifier (e.g., {@code "cti:catalog:consumer:ruleset"}).
+     * @param resource The full catalog consumer URL used to fetch this consumer.
      */
-    public RemoteConsumer(@JsonProperty("data") JsonNode data) {
+    public RemoteConsumer(JsonNode data, String type, String resource) {
         this.name = data.get("name").asText("");
         this.context = data.get("context").asText("");
         this.offset = data.get("last_offset").asLong(0);
         this.snapshotLink = data.get("last_snapshot_link").asText("");
         this.snapshotOffset = data.get("last_snapshot_offset").asLong(0);
-        this.type = data.get("type").asText("");
-        this.resource = data.get("resource").asText("");
         this.isPublic = data.get("is_public").asBoolean(false);
+        this.type = type;
+        this.resource = resource;
     }
 
     /**

@@ -117,7 +117,7 @@ public class ApiClient {
             return "";
         }
         String uri = consumerUri.trim();
-        if (! uri.startsWith("https://")) {
+        if (!uri.startsWith("https://")) {
             throw new IllegalArgumentException("Consumer URI must start with https://");
         }
 
@@ -131,8 +131,20 @@ public class ApiClient {
             throw new IllegalArgumentException("Consumer URI must include a valid host: " + uri);
         }
         String baseUri = PluginSettings.getInstance().getCtiBaseUrl();
-        if (!parsedUri.getHost().startsWith(baseUri)) {
-            throw new IllegalArgumentException("Consumer URI must start by [" + baseUri + "]");
+        URI parsedBaseUri;
+        try {
+            parsedBaseUri = URI.create(baseUri);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("CTI base URL is not a valid absolute URL: " + baseUri, e);
+        }
+        if (parsedBaseUri.getHost() == null
+                || !parsedUri.getHost().equalsIgnoreCase(parsedBaseUri.getHost())) {
+            throw new IllegalArgumentException(
+                    "Consumer URI host ["
+                            + parsedUri.getHost()
+                            + "] does not match the CTI base host ["
+                            + parsedBaseUri.getHost()
+                            + "]");
         }
 
         while (uri.endsWith("/")) {

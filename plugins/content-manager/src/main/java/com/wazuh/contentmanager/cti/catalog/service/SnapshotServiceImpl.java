@@ -57,7 +57,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final String context;
     private final String consumer;
     private final String consumerType;
-    private final String consumerResource;
     protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
@@ -74,7 +73,6 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param context The context of the snapshot.
      * @param consumer The consumer identifier.
      * @param consumerType The consumer type identifier used as local document id.
-     * @param consumerResource The full CTI consumer URL.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
@@ -83,14 +81,12 @@ public class SnapshotServiceImpl implements SnapshotService {
             String context,
             String consumer,
             String consumerType,
-            String consumerResource,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
         this.context = context;
         this.consumer = consumer;
         this.consumerType = consumerType;
-        this.consumerResource = consumerResource;
         this.indicesMap = indicesMap;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
@@ -169,54 +165,10 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip, outputDir);
         }
 
-        // 6. Update Consumer State in .wazuh-cti-consumers
-        try {
-            String effectiveType =
-                    (consumer.getType() == null || consumer.getType().isBlank())
-                            ? this.consumerType
-                            : consumer.getType();
-            String effectiveContext =
-                    (consumer.getContext() == null || consumer.getContext().isBlank())
-                            ? this.context
-                            : consumer.getContext();
-            String effectiveName =
-                    (consumer.getName() == null || consumer.getName().isBlank())
-                            ? this.consumer
-                            : consumer.getName();
-            String effectiveResource =
-                    (consumer.getResource() == null || consumer.getResource().isBlank())
-                            ? this.consumerResource
-                            : consumer.getResource();
-            // Preserve explicit remote visibility value; do not infer from consumer name here.
-            boolean effectiveIsPublic = consumer.isPublic();
-
-            GetResponse getResponse = this.consumersIndex.getConsumer(effectiveType);
-            LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : new LocalConsumer(
-                                    effectiveContext,
-                                    effectiveName,
-                                    effectiveType,
-                                    effectiveResource,
-                                    effectiveIsPublic);
-            LocalConsumer updatedConsumer =
-                    new LocalConsumer(
-                            effectiveContext,
-                            effectiveName,
-                            effectiveType,
-                            effectiveResource,
-                            effectiveIsPublic,
-                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
-                            consumer.getSnapshotOffset(),
-                            consumer.getOffset());
-            this.consumersIndex.setConsumer(updatedConsumer);
-            return true;
-        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
-            return false;
-        }
+        // 5. Partial update of consumer state: bump local_offset to the snapshot offset and keep
+        // the remote_offset (set at t0 from RemoteConsumer.last_offset) so the incremental update
+        // path can close the gap. Identity fields and status are preserved from the t0 write.
+        return this.updateLocalOffset(consumer.getSnapshotOffset());
     }
 
     /**
@@ -404,92 +356,65 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
 
         // 5. Delete source zip file
+        SnapshotServiceImpl.deleteSnapshot(localZip);
+
+        // 6. Partial update of consumer state: bump local_offset to the highest offset observed
+        // while indexing. Identity fields, is_public, status and remote_offset are owned by the
+        // t0 write performed by AbstractConsumerService.writeInitialConsumer.
+        return this.updateLocalOffset(this.maxOffsetSeen);
+    }
+
+    /**
+     * Reads the existing consumer document and persists it back with only {@code local_offset}
+     * mutated. All other fields (identity, {@code is_public}, {@code status}, {@code remote_offset})
+     * are preserved. Returns {@code false} and logs a warning if no document exists — the t0 write in
+     * {@link AbstractConsumerService} is expected to create it before this method runs.
+     */
+    private boolean updateLocalOffset(long newLocalOffset) {
         try {
-            AccessController.doPrivilegedChecked(
-                    () -> {
-                        Files.deleteIfExists(localZip);
-                        return null;
-                    });
-            log.info("Deleted local snapshot file [{}]", localZip.getFileName());
-        } catch (Exception e) {
-            log.warn("Failed to delete local snapshot file [{}]: {}", localZip, e.getMessage());
-        }
-
-        // 6. Update Consumer State in .wazuh-cti-consumers using the external manifest entry.
-        //    The manifest only provides remote_offset (the snapshot offset); local_offset is set
-        //    to the same value since the snapshot has just been fully loaded.
-        try {
-            log.info("Loading consumer metadata from manifest entry for snapshot initialization...");
-            String effectiveType =
-                    this.readManifestString(manifestEntry, Constants.KEY_TYPE, this.consumerType);
-            String effectiveContext = this.readManifestString(manifestEntry, "context", this.context);
-            String effectiveName =
-                    this.readManifestString(manifestEntry, Constants.KEY_NAME, this.consumer);
-            String effectiveResource =
-                    this.readManifestString(manifestEntry, Constants.KEY_RESOURCE, this.consumerResource);
-            long snapshotOffset =
-                    this.readManifestLong(manifestEntry, "remote_offset", this.maxOffsetSeen);
-
-            log.debug(
-                    "Manifest resolved: type={}, context={}, name={}, resource={}, remote_offset={}",
-                    effectiveType,
-                    effectiveContext,
-                    effectiveName,
-                    effectiveResource,
-                    snapshotOffset);
-
-            GetResponse getResponse = this.consumersIndex.getConsumer(effectiveType);
-            LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : null;
-            boolean hasManifestIsPublic =
-                    manifestEntry != null
-                            && manifestEntry.has(Constants.KEY_IS_PUBLIC)
-                            && !manifestEntry.get(Constants.KEY_IS_PUBLIC).isNull();
-            // On local fallback initialization, manifest is_public is authoritative when provided.
-            // If omitted, preserve existing value, otherwise default to true.
-            boolean effectiveIsPublic =
-                    hasManifestIsPublic
-                            ? this.readManifestBoolean(manifestEntry, Constants.KEY_IS_PUBLIC, true)
-                            : (current == null || current.isPublic());
-            log.debug(
-                    "Consumer is_public determined: effective={} (from {})",
-                    effectiveIsPublic,
-                    hasManifestIsPublic ? "manifest" : (current != null ? "existing record" : "default"));
-            if (current == null) {
-                current =
-                        new LocalConsumer(
-                                effectiveContext,
-                                effectiveName,
-                                effectiveType,
-                                effectiveResource,
-                                effectiveIsPublic);
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
+            if (getResponse == null || !getResponse.isExists()) {
+                log.warn(
+                        "Consumer [{}] doc not present after snapshot load; skipping local_offset update.",
+                        this.consumerType);
+                return false;
             }
+            LocalConsumer current =
+                    this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updatedConsumer =
                     new LocalConsumer(
-                            effectiveContext,
-                            effectiveName,
-                            effectiveType,
-                            effectiveResource,
-                            effectiveIsPublic,
+                            current.getContext(),
+                            current.getName(),
+                            current.getType(),
+                            current.getResource(),
+                            current.isPublic(),
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
-                            snapshotOffset,
-                            snapshotOffset);
-            log.info(
-                    "Persisting consumer to .wazuh-cti-consumers: type={}, name={}, context={}, resource={}, is_public={}, offset={}",
-                    updatedConsumer.getType(),
-                    updatedConsumer.getName(),
-                    updatedConsumer.getContext(),
-                    updatedConsumer.getResource(),
-                    updatedConsumer.isPublic(),
-                    snapshotOffset);
+                            newLocalOffset,
+                            current.getRemoteOffset());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Deletes a local snapshot zip file. Logs success at info level and failures at warn level. Safe
+     * to call when the file does not exist. Only files under the plugin's local snapshots directory
+     * should be passed in — remote snapshots are managed by the CTI service.
+     *
+     * @param snapshot The path to the local snapshot file to delete.
+     */
+    public static void deleteSnapshot(Path snapshot) {
+        try {
+            boolean deleted = AccessController.doPrivilegedChecked(() -> Files.deleteIfExists(snapshot));
+            if (deleted) {
+                log.info("Deleted local snapshot file [{}]", snapshot);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete local snapshot file [{}]: {}", snapshot, e.getMessage());
         }
     }
 
@@ -514,29 +439,5 @@ public class SnapshotServiceImpl implements SnapshotService {
         } catch (IOException e) {
             log.warn("Error during cleanup: {}", e.getMessage());
         }
-    }
-
-    private String readManifestString(JsonNode node, String field, String defaultValue) {
-        if (node != null && node.has(field) && !node.get(field).isNull()) {
-            String value = node.get(field).asText(defaultValue);
-            if (value != null && !value.isBlank()) {
-                return value;
-            }
-        }
-        return defaultValue;
-    }
-
-    private long readManifestLong(JsonNode node, String field, long defaultValue) {
-        if (node != null && node.has(field) && !node.get(field).isNull()) {
-            return node.get(field).asLong(defaultValue);
-        }
-        return defaultValue;
-    }
-
-    private boolean readManifestBoolean(JsonNode node, String field, boolean defaultValue) {
-        if (node != null && node.has(field) && !node.get(field).isNull()) {
-            return node.get(field).asBoolean(defaultValue);
-        }
-        return defaultValue;
     }
 }

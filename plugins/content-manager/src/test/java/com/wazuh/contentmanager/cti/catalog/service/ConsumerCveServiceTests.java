@@ -68,34 +68,9 @@ import static org.mockito.Mockito.when;
 public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
     private static class TestableConsumerCveService extends ConsumerCveService {
-        private final ConsumerService consumerService;
-        private final SnapshotServiceImpl snapshotService;
-
         TestableConsumerCveService(
-                Client client,
-                ConsumersIndex consumersIndex,
-                Environment environment,
-                ConsumerService consumerService,
-                SnapshotServiceImpl snapshotService) {
+                Client client, ConsumersIndex consumersIndex, Environment environment) {
             super(client, consumersIndex, environment);
-            this.consumerService = consumerService;
-            this.snapshotService = snapshotService;
-        }
-
-        @Override
-        protected ConsumerService createConsumerService(
-                String context, String consumer, String consumerType, String catalogUri) {
-            return this.consumerService;
-        }
-
-        @Override
-        protected SnapshotServiceImpl createSnapshotService(
-                String context,
-                String consumer,
-                String consumerType,
-                String catalogUri,
-                Map<String, com.wazuh.contentmanager.cti.catalog.index.ContentIndex> indicesMap) {
-            return this.snapshotService;
         }
 
         @Override
@@ -184,22 +159,6 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         verify(this.client, never()).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
     }
 
-    /** Tests that getContext returns the expected CVE context. */
-    public void testGetContextReturnsExpectedValue() {
-        assertEquals(
-                PluginSettings.getContextFromCatalogUri(
-                        PluginSettings.getInstance().getCatalogVulnerabilities()),
-                this.service.getContext());
-    }
-
-    /** Tests that getConsumer returns the expected CVE consumer. */
-    public void testGetConsumerReturnsExpectedValue() {
-        assertEquals(
-                PluginSettings.getConsumerFromCatalogUri(
-                        PluginSettings.getInstance().getCatalogVulnerabilities()),
-                this.service.getConsumer());
-    }
-
     /** Tests that getMappings returns the CVE mappings. */
     public void testGetMappingsReturnsExpectedMappings() {
         Map<String, String> mappings = this.service.getMappings();
@@ -244,12 +203,9 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         when(this.snapshotService.getMaxOffsetSeen()).thenReturn(222L);
 
         TestableConsumerCveService fallbackService =
-                new TestableConsumerCveService(
-                        this.client,
-                        this.consumersIndex,
-                        this.environment,
-                        this.consumerService,
-                        this.snapshotService);
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
 
         fallbackService.synchronize();
 
@@ -297,12 +253,9 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         when(this.snapshotService.getMaxOffsetSeen()).thenReturn(222L);
 
         TestableConsumerCveService fallbackService =
-                new TestableConsumerCveService(
-                        this.client,
-                        this.consumersIndex,
-                        this.environment,
-                        this.consumerService,
-                        this.snapshotService);
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
 
         fallbackService.synchronize();
 
@@ -348,12 +301,9 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         when(this.snapshotService.initialize(eq(remoteConsumer))).thenReturn(true);
 
         TestableConsumerCveService fallbackService =
-                new TestableConsumerCveService(
-                        this.client,
-                        this.consumersIndex,
-                        this.environment,
-                        this.consumerService,
-                        this.snapshotService);
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
 
         fallbackService.synchronize();
 
@@ -393,12 +343,9 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
                                 + "\"is_public\":true,\"local_offset\":10,\"remote_offset\":10}");
 
         TestableConsumerCveService fallbackService =
-                new TestableConsumerCveService(
-                        this.client,
-                        this.consumersIndex,
-                        this.environment,
-                        this.consumerService,
-                        this.snapshotService);
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        fallbackService.setConsumerService(this.consumerService);
+        fallbackService.setSnapshotService(this.snapshotService);
 
         fallbackService.synchronize();
 

@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -111,7 +110,6 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         context,
                         consumer,
                         "cti:catalog:consumer:ruleset",
-                        "https://cti.example/catalog/contexts/test-context/consumers/test-consumer",
                         indicesMap,
                         this.consumersIndex,
                         this.environment);
@@ -187,6 +185,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getOffset()).thenReturn(offset);
         when(this.remoteConsumer.getSnapshotOffset()).thenReturn(offset);
 
+        // Pre-existing t0 consumer doc (written by AbstractConsumerService.writeInitialConsumer
+        // before initialize runs). SnapshotServiceImpl reads this back to perform a partial update
+        // of local_offset.
+        String existingConsumerJson =
+                "{\"name\":\"test-consumer\",\"context\":\"test-context\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
+                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":100}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+
         Path zipPath =
                 this.createZipFileWithContent(
                         "data.json",
@@ -212,9 +224,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Verify waiting for pending updates
         verify(this.contentIndexMock).waitForPendingUpdates();
 
+        // After load, only local_offset is updated; identity fields and remote_offset are
+        // preserved from the pre-existing (t0-written) document.
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        Assert.assertEquals(offset, consumerCaptor.getValue().getLocalOffset());
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals(offset, persisted.getLocalOffset());
+        Assert.assertEquals(100L, persisted.getRemoteOffset());
+        Assert.assertEquals("test-consumer", persisted.getName());
+        Assert.assertEquals("test-context", persisted.getContext());
+        Assert.assertEquals("cti:catalog:consumer:ruleset", persisted.getType());
+        Assert.assertTrue(persisted.isPublic());
+        Assert.assertEquals(LocalConsumer.Status.UPDATING, persisted.getStatus());
     }
 
     /**
@@ -422,7 +443,6 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         "test-context",
                         "test-consumer",
                         "cti:catalog:consumer:vulnerabilities",
-                        "https://cti.example/catalog/contexts/test-context/consumers/test-consumer",
                         cveOnlyMap,
                         this.consumersIndex,
                         this.environment);
@@ -491,6 +511,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Path localZip = this.createZipFileWithContent("data.json", jsonContent);
         Assert.assertTrue("Zip file should exist before init", Files.exists(localZip));
 
+        // Pre-existing t0 consumer doc; SnapshotServiceImpl reads it to perform a partial update.
+        String existingConsumerJson =
+                "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
+                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":75}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+
         // Act
         boolean result = this.snapshotService.initialize(localZip, null);
 
@@ -508,10 +540,14 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
         verify(this.contentIndexMock).waitForPendingUpdates();
 
-        // Consumer state should be updated with maxOffsetSeen
+        // Consumer state should be updated with maxOffsetSeen on local_offset; identity and
+        // remote_offset are preserved from the t0 doc.
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        Assert.assertEquals(75L, consumerCaptor.getValue().getLocalOffset());
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals(75L, persisted.getLocalOffset());
+        Assert.assertEquals(75L, persisted.getRemoteOffset());
+        Assert.assertEquals("public-ruleset-5", persisted.getName());
 
         // Source zip should be deleted
         Assert.assertFalse("Source zip should be deleted after init", Files.exists(localZip));
@@ -538,176 +574,76 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 this.snapshotService.getMaxOffsetSeen());
     }
 
-    /** Tests that local initialization uses consumer metadata from the external manifest entry. */
-    public void testInitializeFromPath_UsesManifestConsumerMetadata() throws Exception {
+    /**
+     * Local-path initialization preserves all identity fields from the existing (t0-written) consumer
+     * document and only mutates {@code local_offset}. Identity, {@code is_public}, {@code status} and
+     * {@code remote_offset} are owned by the t0 write in {@code AbstractConsumerService}, not by
+     * {@code SnapshotServiceImpl}.
+     */
+    public void testInitializeFromPath_PreservesT0FieldsAndOnlyUpdatesLocalOffset() throws Exception {
         // spotless:off
-        // The external manifest.json (in snapshots dir) is keyed by snapshot filename
-        String manifestEntryJson =
-            """
-                {
-                  "name": "public-iocs-5",
-                  "context": "t1-iocs-5",
-                  "type": "cti:catalog:consumer:iocs",
-                  "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
-                  "is_public": true,
-                  "remote_offset": 222
-                }
-                """;
         String dataJson =
             """
-                {"name":"ioc-1","offset":1,"payload":{"type":"ioc","document":{"id":"ioc-1"}}}
+                {"name":"kvdb-1","offset":42,"payload":{"type":"kvdb","document":{"id":"kvdb-1"}}}
                 """;
         // spotless:on
 
-        // Create zip with only data (no manifest inside)
         Map<String, String> entries = new LinkedHashMap<>();
         entries.put("data.json", dataJson);
         Path localZip = this.createZipFileWithEntries(entries);
 
-        // Parse the manifest entry as JsonNode
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode manifestEntry = mapper.readTree(manifestEntryJson);
+        String existingConsumerJson =
+                "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
+                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":42}";
 
-        // Initialize with the external manifest entry
-        boolean initialized = this.snapshotService.initialize(localZip, manifestEntry);
+        org.opensearch.action.get.GetResponse existingGetResponse =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(existingGetResponse.isExists()).thenReturn(true);
+        when(existingGetResponse.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset"))
+                .thenReturn(existingGetResponse);
+
+        boolean initialized = this.snapshotService.initialize(localZip, null);
         Assert.assertTrue(initialized);
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
 
         LocalConsumer persisted = consumerCaptor.getValue();
-        Assert.assertEquals("Manifest name should be used", "public-iocs-5", persisted.getName());
-        Assert.assertEquals("Manifest context should be used", "t1-iocs-5", persisted.getContext());
+        Assert.assertEquals("public-ruleset-5", persisted.getName());
+        Assert.assertEquals("t1-ruleset-5", persisted.getContext());
+        Assert.assertEquals("cti:catalog:consumer:ruleset", persisted.getType());
         Assert.assertEquals(
-                "Manifest type should be used", "cti:catalog:consumer:iocs", persisted.getType());
-        Assert.assertEquals(
-                "Manifest resource should be used",
-                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
+                "https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
                 persisted.getResource());
-        Assert.assertTrue("Manifest is_public should be used", persisted.isPublic());
-        Assert.assertEquals(
-                "Manifest remote_offset should be used for both local and remote offset",
-                222L,
-                persisted.getLocalOffset());
-        Assert.assertEquals(
-                "Manifest remote_offset should be used for both local and remote offset",
-                222L,
-                persisted.getRemoteOffset());
+        Assert.assertTrue(persisted.isPublic());
+        Assert.assertEquals(LocalConsumer.Status.UPDATING, persisted.getStatus());
+        Assert.assertEquals(42L, persisted.getLocalOffset());
+        Assert.assertEquals(42L, persisted.getRemoteOffset());
     }
 
-    /** Tests that manifest is_public overrides existing consumer visibility on local fallback. */
-    public void testInitializeFromPath_ManifestIsPublicOverridesExisting() throws Exception {
-        // spotless:off
-        String manifestEntryJson =
-            """
-                {
-                  "name": "public-iocs-5",
-                  "context": "t1-iocs-5",
-                  "type": "cti:catalog:consumer:iocs",
-                  "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
-                  "is_public": false,
-                  "remote_offset": 222
-                }
-                """;
-        String existingConsumerJson =
-            """
-                {
-                  "name": "existing-consumer",
-                  "context": "existing-context",
-                  "type": "cti:catalog:consumer:iocs",
-                  "resource": "https://existing.example/resource",
-                  "is_public": true,
-                  "status": "idle",
-                  "local_offset": 100,
-                  "remote_offset": 100
-                }
-                """;
+    /**
+     * When no t0 document exists, the partial local_offset update is skipped (returning false). The
+     * snapshot data is still indexed, but no consumer document is written by {@code
+     * SnapshotServiceImpl}.
+     */
+    public void testInitializeFromPath_SkipsConsumerUpdateWhenNoT0Doc() throws Exception {
         String dataJson =
-            """
-                {"name":"ioc-1","offset":1,"payload":{"type":"ioc","document":{"id":"ioc-1"}}}
-                """;
-        // spotless:on
-
+                "{\"name\":\"kvdb-1\",\"offset\":42,\"payload\":{\"type\":\"kvdb\",\"document\":{\"id\":\"kvdb-1\"}}}";
         Map<String, String> entries = new LinkedHashMap<>();
         entries.put("data.json", dataJson);
         Path localZip = this.createZipFileWithEntries(entries);
 
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode manifestEntry = mapper.readTree(manifestEntryJson);
-
-        org.opensearch.action.get.GetResponse existingGetResponse =
+        org.opensearch.action.get.GetResponse absent =
                 mock(org.opensearch.action.get.GetResponse.class);
-        when(existingGetResponse.isExists()).thenReturn(true);
-        when(existingGetResponse.getSourceAsString()).thenReturn(existingConsumerJson);
-        when(this.consumersIndex.getConsumer("cti:catalog:consumer:iocs"))
-                .thenReturn(existingGetResponse);
+        when(absent.isExists()).thenReturn(false);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(absent);
 
-        boolean initialized = this.snapshotService.initialize(localZip, manifestEntry);
-        Assert.assertTrue(initialized);
-
-        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
-
-        LocalConsumer persisted = consumerCaptor.getValue();
-        Assert.assertFalse("Manifest is_public should override existing value", persisted.isPublic());
-    }
-
-    /** Tests that existing is_public is preserved when manifest entry omits the field. */
-    public void testInitializeFromPath_PreservesExistingIsPublicWhenManifestOmitsIt()
-            throws Exception {
-        // spotless:off
-        String manifestEntryJson =
-            """
-                {
-                  "name": "public-iocs-5",
-                  "context": "t1-iocs-5",
-                  "type": "cti:catalog:consumer:iocs",
-                  "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5",
-                  "remote_offset": 222
-                }
-                """;
-        String existingConsumerJson =
-            """
-                {
-                  "name": "existing-consumer",
-                  "context": "existing-context",
-                  "type": "cti:catalog:consumer:iocs",
-                  "resource": "https://existing.example/resource",
-                  "is_public": false,
-                  "status": "idle",
-                  "local_offset": 100,
-                  "remote_offset": 100
-                }
-                """;
-        String dataJson =
-            """
-                {"name":"ioc-1","offset":1,"payload":{"type":"ioc","document":{"id":"ioc-1"}}}
-                """;
-        // spotless:on
-
-        Map<String, String> entries = new LinkedHashMap<>();
-        entries.put("data.json", dataJson);
-        Path localZip = this.createZipFileWithEntries(entries);
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode manifestEntry = mapper.readTree(manifestEntryJson);
-
-        org.opensearch.action.get.GetResponse existingGetResponse =
-                mock(org.opensearch.action.get.GetResponse.class);
-        when(existingGetResponse.isExists()).thenReturn(true);
-        when(existingGetResponse.getSourceAsString()).thenReturn(existingConsumerJson);
-        when(this.consumersIndex.getConsumer("cti:catalog:consumer:iocs"))
-                .thenReturn(existingGetResponse);
-
-        boolean initialized = this.snapshotService.initialize(localZip, manifestEntry);
-        Assert.assertTrue(initialized);
-
-        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
-
-        LocalConsumer persisted = consumerCaptor.getValue();
-        Assert.assertFalse(
-                "Existing is_public should be preserved when manifest omits it", persisted.isPublic());
+        boolean initialized = this.snapshotService.initialize(localZip, null);
+        Assert.assertFalse(initialized);
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
     }
 
     /**
