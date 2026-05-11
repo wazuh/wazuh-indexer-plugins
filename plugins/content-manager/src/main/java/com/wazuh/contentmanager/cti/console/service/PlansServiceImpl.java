@@ -60,7 +60,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             SimpleHttpResponse response = this.client.getEnvironmentMe(token);
 
             if (response.getCode() == 401) {
-                log.error("Authentication failed: The environment token is invalid or missing.");
+                log.warn("Authentication failed: The environment token is invalid or missing.");
             } else if (response.getCode() == 200) {
                 // The API returns a list of plans, but for this endpoint
                 // it contains only ONE active plan for the environment.
