@@ -520,11 +520,21 @@ public abstract class AbstractConsumerService {
                             localSnapshot);
                 }
             } else if (snapshotExists) {
-                // No custom URL configured: initialize from local snapshot only.
-                log.info(
-                        "Initializing consumer [{}] from local snapshot [{}]",
-                        consumerType,
-                        localSnapshot.getFileName());
+                if (hasEffectiveCatalog) {
+                    // Catalog URL was set but the remote attempt did not yield a usable response
+                    // (invalid URL, network failure, missing snapshot link). Fall back to the
+                    // packaged local snapshot.
+                    log.warn(
+                            "Could not reach catalog URL [{}] for consumer [{}]. Falling back to local snapshot [{}].",
+                            catalogUri,
+                            consumerType,
+                            localSnapshot.getFileName());
+                } else {
+                    log.info(
+                            "Initializing consumer [{}] from local snapshot [{}]",
+                            consumerType,
+                            localSnapshot.getFileName());
+                }
                 boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
                 if (localSuccess) {
                     currentOffset = snapshotService.getMaxOffsetSeen();
