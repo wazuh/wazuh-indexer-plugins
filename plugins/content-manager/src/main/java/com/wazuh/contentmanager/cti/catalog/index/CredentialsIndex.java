@@ -77,6 +77,9 @@ public class CredentialsIndex {
      */
     public IndexResponse storeCredentials(String accessToken)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!this.exists()) {
+            this.createIndex();
+        }
         if (!ClusterInfo.indexStatusCheck(
                 this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready: " + INDEX_NAME);
@@ -126,6 +129,9 @@ public class CredentialsIndex {
      */
     public DeleteResponse deleteDocument()
             throws ExecutionException, InterruptedException, TimeoutException {
+        if (!this.exists()) {
+            return null;
+        }
         DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);
         return this.client
                 .delete(request)

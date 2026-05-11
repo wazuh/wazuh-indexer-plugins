@@ -26,7 +26,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -35,9 +35,9 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 /**
  * DELETE /_plugins/_content_manager/subscription
  *
- * <p>Removes the stored CTI credentials: clears the credentials document inside {@code
- * .wazuh-cti-credentials} and clears the in-memory token in {@link PluginSettings}. The index
- * itself is preserved.
+ * <p>Removes stored CTI credentials by delegating to {@link SubscriptionService#unregister()},
+ * which clears both the credentials document in {@code .wazuh-cti-credentials} and the in-memory
+ * token in {@link PluginSettings}.
  *
  * <p>Possible HTTP responses:
  *
@@ -49,22 +49,28 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_delete";
-    private final CredentialsIndex credentialsIndex;
+    private final SubscriptionService subscriptionService;
 
     /**
      * Create a new REST action.
      *
-     * @param credentialsIndex the index used to persist and delete the access token
+     * @param subscriptionService the service used to remove stored credentials
      */
-    public RestDeleteSubscriptionAction(CredentialsIndex credentialsIndex) {
-        this.credentialsIndex = credentialsIndex;
+    public RestDeleteSubscriptionAction(SubscriptionService subscriptionService) {
+        this.subscriptionService = subscriptionService;
     }
 
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for the DELETE endpoint
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -75,21 +81,27 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
                         .build());
     }
 
+    /**
+     * Handles incoming requests by delegating to {@link #handleRequest()}.
+     *
+     * @param request the incoming REST request
+     * @param client the node client
+     * @return a consumer that sends the credential removal response
+     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> channel.sendResponse(this.handleRequest());
     }
 
     /**
-     * Deletes the credentials document and clears the in-memory access token.
+     * Delegates to {@link SubscriptionService#unregister()} and returns the appropriate response.
      *
      * @return a {@link BytesRestResponse} representing the operation result
      * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            this.credentialsIndex.deleteDocument();
-            PluginSettings.getInstance().setAccessToken(null);
+            this.subscriptionService.unregister();
             RestResponse response = new RestResponse("Credentials removed", RestStatus.OK.getStatus());
             return new BytesRestResponse(RestStatus.OK, response.toXContent());
         } catch (Exception e) {

@@ -27,7 +27,7 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -36,34 +36,34 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /**
  * POST /_plugins/_content_manager/subscription
  *
- * <p>Stores the provided CTI access token in the credentials index and in the plugin-wide
- * PluginSettings variable.
+ * <p>Stores the provided CTI access token by delegating to {@link
+ * SubscriptionService#register(String)}.
  *
- * <p>Possible HTTP responses: - 201 Created: Credentials stored successfully. - 400 Bad Request:
- * Missing or empty access_token field. - 500 Internal Server Error: Unexpected error during
- * processing.
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>201 Created: Credentials stored successfully.
+ *   <li>400 Bad Request: Missing or empty access_token field.
+ *   <li>500 Internal Server Error: Unexpected error during processing.
+ * </ul>
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
 
-    private final CredentialsIndex credentialsIndex;
+    private final SubscriptionService subscriptionService;
 
     /**
      * Constructs the REST handler.
      *
-     * @param credentialsIndex the index used to persist the access token
+     * @param subscriptionService the service used to register credentials
      */
-    public RestPostSubscriptionAction(CredentialsIndex credentialsIndex) {
-        this.credentialsIndex = credentialsIndex;
+    public RestPostSubscriptionAction(SubscriptionService subscriptionService) {
+        this.subscriptionService = subscriptionService;
     }
 
-    /**
-     * Return a short name identifying this handler.
-     *
-     * @return a short name identifying this handler
-     */
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
@@ -72,7 +72,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     /**
      * Return the route configuration for this handler.
      *
-     * @return route configuration for POST subscription
+     * @return route configuration for the POST endpoint
      */
     @Override
     public List<Route> routes() {
@@ -85,11 +85,11 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Prepares the request for execution.
+     * Handles incoming requests by delegating to {@link #handleRequest(RestRequest)}.
      *
      * @param request the incoming REST request
      * @param client the node client
-     * @return a RestChannelConsumer to handle the request
+     * @return a consumer that sends the subscription registration response
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
@@ -97,8 +97,8 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Parses the request payload, validates the access_token field, persists it, and updates the
-     * plugin-wide variable.
+     * Parses the request payload, validates the access_token field, and delegates to {@link
+     * SubscriptionService#register(String)}.
      *
      * @param request the incoming REST request
      * @return a BytesRestResponse representing the operation result
@@ -127,8 +127,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         }
 
         try {
-            this.credentialsIndex.storeCredentials(accessToken);
-            PluginSettings.getInstance().setAccessToken(accessToken);
+            this.subscriptionService.register(accessToken);
 
             RestResponse response =
                     new RestResponse("Credentials received", RestStatus.CREATED.getStatus());

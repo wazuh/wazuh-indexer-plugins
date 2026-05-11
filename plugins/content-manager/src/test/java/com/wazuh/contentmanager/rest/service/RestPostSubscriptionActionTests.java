@@ -32,13 +32,13 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 
-import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.Mockito.*;
 
 public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
-    private CredentialsIndex credentialsIndex;
+    private SubscriptionService subscriptionService;
     private RestPostSubscriptionAction action;
 
     @Before
@@ -47,8 +47,8 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
         super.setUp();
         clearPluginSettingsInstance();
         PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
-        this.credentialsIndex = mock(CredentialsIndex.class);
-        this.action = new RestPostSubscriptionAction(this.credentialsIndex);
+        this.subscriptionService = mock(SubscriptionService.class);
+        this.action = new RestPostSubscriptionAction(this.subscriptionService);
     }
 
     @After
@@ -70,8 +70,8 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
                 .build();
     }
 
-    /** Valid access_token → 201 with "Credentials received" */
-    public void testPostCredentials201() throws Exception {
+    /** Valid access_token → 201 with "Credentials received" and delegates to register(). */
+    public void testPostSubscription201() throws Exception {
         RestRequest request = buildRequest("{\"access_token\": \"my-token-abc\"}");
 
         BytesRestResponse response = this.action.handleRequest(request);
@@ -80,13 +80,11 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
         String body = response.content().utf8ToString();
         Assert.assertTrue(body.contains("Credentials received"));
         Assert.assertTrue(body.contains(String.valueOf(RestStatus.CREATED.getStatus())));
-
-        verify(this.credentialsIndex, times(1)).storeCredentials("my-token-abc");
-        Assert.assertEquals("my-token-abc", PluginSettings.getInstance().getAccessToken());
+        verify(this.subscriptionService, times(1)).register("my-token-abc");
     }
 
     /** Missing access_token field → 400 with "Missing [access_token] field." */
-    public void testPostCredentials400_MissingField() throws IOException {
+    public void testPostSubscription400_MissingField() throws IOException {
         RestRequest request = buildRequest("{}");
 
         BytesRestResponse response = this.action.handleRequest(request);
@@ -97,7 +95,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     }
 
     /** access_token present but empty → 400 */
-    public void testPostCredentials400_EmptyToken() throws IOException {
+    public void testPostSubscription400_EmptyToken() throws IOException {
         RestRequest request = buildRequest("{\"access_token\": \"\"}");
 
         BytesRestResponse response = this.action.handleRequest(request);
@@ -108,7 +106,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     }
 
     /** access_token present but blank (whitespace) → 400 */
-    public void testPostCredentials400_BlankToken() throws IOException {
+    public void testPostSubscription400_BlankToken() throws IOException {
         RestRequest request = buildRequest("{\"access_token\": \"   \"}");
 
         BytesRestResponse response = this.action.handleRequest(request);
@@ -116,12 +114,10 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
     }
 
-    /** Index throws → 500 */
-    public void testPostCredentials500_IndexError() throws Exception {
+    /** register() throws → 500 */
+    public void testPostSubscription500_IndexError() throws Exception {
         RestRequest request = buildRequest("{\"access_token\": \"tok\"}");
-        doThrow(new RuntimeException("Index not ready"))
-                .when(this.credentialsIndex)
-                .storeCredentials("tok");
+        doThrow(new RuntimeException("Index not ready")).when(this.subscriptionService).register("tok");
 
         BytesRestResponse response = this.action.handleRequest(request);
 

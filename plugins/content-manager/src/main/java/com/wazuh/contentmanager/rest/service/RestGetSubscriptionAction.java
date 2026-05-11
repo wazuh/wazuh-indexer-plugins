@@ -28,8 +28,8 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.console.model.Plan;
-import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -38,9 +38,11 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 /**
  * GET /_plugins/_content_manager/subscription
  *
- * <p>Returns the subscription status and active plan. Delegates to {@link PlansService#getPlan()},
- * which routes to the authenticated or public CTI endpoint based on whether an access token is
- * present in {@link PluginSettings}.
+ * <p>Returns the subscription status and active plan. Delegates to {@link
+ * SubscriptionService#getPlan()}, which routes to the authenticated or public CTI endpoint based on
+ * whether an access token is present in {@link PluginSettings}. The registration state is read
+ * after {@code getPlan()} returns so that any token invalidation performed inside the service is
+ * reflected in the response.
  *
  * <p>Possible HTTP responses:
  *
@@ -52,22 +54,28 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 public class RestGetSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_get";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_get";
-    private final PlansService plansService;
+    private final SubscriptionService subscriptionService;
 
     /**
      * Construct the REST handler.
      *
-     * @param plansService the service used to retrieve the active plan
+     * @param subscriptionService the service used to retrieve the active plan
      */
-    public RestGetSubscriptionAction(PlansService plansService) {
-        this.plansService = plansService;
+    public RestGetSubscriptionAction(SubscriptionService subscriptionService) {
+        this.subscriptionService = subscriptionService;
     }
 
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for the GET endpoint
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -78,6 +86,13 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
                         .build());
     }
 
+    /**
+     * Handles incoming requests by delegating to {@link #handleRequest()}.
+     *
+     * @param request the incoming REST request
+     * @param client the node client
+     * @return a consumer that sends the subscription status response
+     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> channel.sendResponse(this.handleRequest());
@@ -91,8 +106,8 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
+            Plan plan = this.subscriptionService.getPlan();
             boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
-            Plan plan = this.plansService.getPlan();
 
             XContentBuilder builder =
                     XContentFactory.jsonBuilder()

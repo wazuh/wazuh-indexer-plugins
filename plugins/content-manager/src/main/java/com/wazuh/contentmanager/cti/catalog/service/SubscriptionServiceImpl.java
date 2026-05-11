@@ -1,0 +1,75 @@
+/*
+ * Copyright (C) 2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.wazuh.contentmanager.cti.catalog.service;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
+/** Centralizes CTI subscription logic: get status, register, and unregister. */
+public class SubscriptionServiceImpl implements SubscriptionService {
+    private static final Logger log = LogManager.getLogger(SubscriptionServiceImpl.class);
+
+    private final PlansService plansService;
+    private final CredentialsIndex credentialsIndex;
+
+    /**
+     * Constructs a new SubscriptionServiceImpl.
+     *
+     * @param plansService the service used to fetch CTI plans from the console API.
+     * @param credentialsIndex the index used to persist and remove the access token.
+     */
+    public SubscriptionServiceImpl(PlansService plansService, CredentialsIndex credentialsIndex) {
+        this.plansService = plansService;
+        this.credentialsIndex = credentialsIndex;
+    }
+
+    @Override
+    public Plan getPlan() {
+        String accessToken = PluginSettings.getInstance().getAccessToken();
+        if (accessToken != null) {
+            Plan plan = this.plansService.getMyPlan(new Token(accessToken, "Bearer"));
+            if (plan != null) {
+                return plan;
+            }
+            try {
+                this.credentialsIndex.deleteDocument();
+            } catch (Exception e) {
+                log.warn("Failed to delete invalid credentials document: {}", e.getMessage());
+            }
+            PluginSettings.getInstance().setAccessToken(null);
+        }
+        return this.plansService.getPlan();
+    }
+
+    @Override
+    public void register(String accessToken) throws Exception {
+        this.credentialsIndex.storeCredentials(accessToken);
+        PluginSettings.getInstance().setAccessToken(accessToken);
+    }
+
+    @Override
+    public void unregister() throws Exception {
+        this.credentialsIndex.deleteDocument();
+        PluginSettings.getInstance().setAccessToken(null);
+    }
+}
