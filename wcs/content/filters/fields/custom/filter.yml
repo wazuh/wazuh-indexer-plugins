@@ -29,42 +29,54 @@
       description: >
           Whether the filter is enabled.
       example: true
+    - name: document.metadata.title
+      type: keyword
+      level: custom
+      description: >
+          Title of the filter.
+      example: "Suspicious Login Filter"
     - name: document.metadata.description
       type: text
       level: custom
       description: >
           Description of the filter purpose or behavior.
       example: "Detects failed logins from new locations."
-    - name: document.metadata.author.email
+    - name: document.metadata.author
       type: keyword
       level: custom
       description: >
-          Email of the filter author.
-      example: "security@example.com"
-    - name: document.metadata.author.name
-      type: keyword
-      level: custom
-      description: >
-          Name of the filter author.
-      example: "SecOps Team"
-    - name: document.metadata.author.url
-      type: keyword
-      level: custom
-      description: >
-          URL associated with the filter author or documentation.
-      example: "https://example.com/filters"
-    - name: document.metadata.author.date
+          Author of the filter.
+      example: "Wazuh, Inc."
+    - name: document.metadata.date
       type: date
       level: custom
       description: >
-          Creation date of the filter metadata.
+          Creation date of the filter.
       example: "2024-01-15T08:30:00.000Z"
-    - name: document.metadata.author.modified
+    - name: document.metadata.modified
       type: date
       level: custom
       description: >
-          Last modification date of the filter metadata.
+          Last modification date of the filter.
       example: "2024-02-20T14:45:00.000Z"
+    - name: document.metadata.references
+      type: keyword
+      level: custom
+      description: >
+          References or links related to the filter.
+      example: "https://documentation.wazuh.com/current/user-manual/ruleset/filters.html"
+    - name: document.metadata.documentation
+      type: keyword
+      level: custom
+      description: >
+          Documentation link for the filter.
+      example: "https://documentation.wazuh.com/current/user-manual/ruleset/filters.html"
+    - name: document.metadata.supports
+      type: keyword
+      level: custom
+      description: >
+          Supported platforms or components for the filter.
+      example: "linux"
     - name: document.check
       type: object
       enabled: false

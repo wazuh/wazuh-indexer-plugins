@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -34,15 +34,6 @@ public interface AuthService extends ClosableHttpClient {
      * @return The permanent {@link Token}, or null if retrieval fails.
      */
     Token getToken(Subscription subscription);
-
-    /**
-     * Exchanges a permanent token for a resource-specific token.
-     *
-     * @param token The permanent authentication token.
-     * @param resource The identifier of the resource to access.
-     * @return A resource-specific {@link Token}, or null if retrieval fails.
-     */
-    Token getResourceToken(Token token, String resource);
 
     /**
      * Registers a listener to receive updates when the token changes.

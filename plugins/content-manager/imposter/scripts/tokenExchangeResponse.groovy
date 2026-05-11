@@ -11,14 +11,18 @@ def resource = context.request.formParams.resource?.toString()
 // Check for missing Authorization header
 if (!authHeader) {
     respond()
-        .withStatusCode(401)
+        .withStatusCode(400)
+        .withHeader("Cache-Control", "no-store")
+        .withHeader("Pragma", "no-cache")
         .withHeader("Content-Type", "application/json")
         .withContent('{"error": "unauthorized_client", "error_description": "The provided token is invalid or expired"}')
 }
 // Check for invalid token
 else if (authHeader == "Bearer invalid_token" || authHeader == "Bearer expired_token") {
     respond()
-        .withStatusCode(401)
+        .withStatusCode(400)
+        .withHeader("Cache-Control", "no-store")
+        .withHeader("Pragma", "no-cache")
         .withHeader("Content-Type", "application/json")
         .withContent('{"error": "unauthorized_client", "error_description": "The provided token is invalid or expired"}')
 }
