@@ -407,12 +407,7 @@ public abstract class AbstractConsumerService {
                     this.snapshotServiceOverride != null
                             ? this.snapshotServiceOverride
                             : new SnapshotServiceImpl(
-                                    context,
-                                    consumer,
-                                    consumerType,
-                                    indicesMap,
-                                    this.consumersIndex,
-                                    this.environment);
+                                    consumerType, indicesMap, this.consumersIndex, this.environment);
 
             // For custom URLs, prefer remote initialization and fallback to local snapshot on failure.
             if (hasCustomCatalog && remoteConsumer != null && remoteConsumer.getSnapshotLink() != null) {

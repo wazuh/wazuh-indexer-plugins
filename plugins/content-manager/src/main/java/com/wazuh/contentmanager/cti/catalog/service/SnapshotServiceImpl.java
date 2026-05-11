@@ -54,8 +54,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
 
-    private final String context;
-    private final String consumer;
     private final String consumerType;
     protected final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
@@ -70,22 +68,16 @@ public class SnapshotServiceImpl implements SnapshotService {
     /**
      * Constructs a new SnapshotServiceImpl.
      *
-     * @param context The context of the snapshot.
-     * @param consumer The consumer identifier.
      * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
      */
     public SnapshotServiceImpl(
-            String context,
-            String consumer,
             String consumerType,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
-        this.context = context;
-        this.consumer = consumer;
         this.consumerType = consumerType;
         this.indicesMap = indicesMap;
         this.consumersIndex = consumersIndex;

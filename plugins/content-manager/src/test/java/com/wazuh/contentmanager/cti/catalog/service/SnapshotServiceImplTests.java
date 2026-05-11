@@ -102,17 +102,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         indicesMap.put("rule", this.contentIndexMock);
         indicesMap.put("reputation", this.contentIndexMock);
 
-        String context = "test-context";
-        String consumer = "test-consumer";
-
         this.snapshotService =
                 new SnapshotServiceImpl(
-                        context,
-                        consumer,
-                        "cti:catalog:consumer:ruleset",
-                        indicesMap,
-                        this.consumersIndex,
-                        this.environment);
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         // Updated matchers to use JsonNode instead of JsonObject
@@ -440,8 +432,6 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         SnapshotServiceImpl cveSnapshotService =
                 new SnapshotServiceImpl(
-                        "test-context",
-                        "test-consumer",
                         "cti:catalog:consumer:vulnerabilities",
                         cveOnlyMap,
                         this.consumersIndex,
