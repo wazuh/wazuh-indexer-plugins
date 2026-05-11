@@ -41,4 +41,13 @@ public interface PlansService extends ClosableHttpClient {
      * @return the applicable {@link Plan}, or {@code null} on error.
      */
     Plan getPlan();
+
+    /**
+     * Retrieves the plan for the registered environment using the provided token.
+     *
+     * @param token the authentication {@link Token}.
+     * @return the environment's active {@link Plan}, or {@code null} if the token is invalid or the
+     *     request fails.
+     */
+    Plan getMyPlan(Token token);
 }
