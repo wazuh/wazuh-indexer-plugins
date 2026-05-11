@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -28,38 +29,39 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
-import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
- * POST /_plugins/_content_manager/subscription
+ * GET /_plugins/_content_manager/subscription
  *
- * <p>Stores the provided CTI access token by delegating to {@link
- * SubscriptionService#register(String)}.
+ * <p>Returns the subscription status and active plan. Delegates to {@link
+ * SubscriptionService#getPlan()}, which routes to the authenticated or public CTI endpoint based on
+ * whether an access token is present in {@link PluginSettings}. The registration state is read
+ * after {@code getPlan()} returns so that any token invalidation performed inside the service is
+ * reflected in the response.
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
- *   <li>201 Created: Credentials stored successfully.
- *   <li>400 Bad Request: Missing or empty access_token field.
+ *   <li>200 OK: Returns plan name, is_public flag, and is_registered state.
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
  */
-public class RestPostSubscriptionAction extends BaseRestHandler {
-    private static final String ENDPOINT_NAME = "content_manager_subscription_post";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
-    private static final String ACCESS_TOKEN_FIELD = "access_token";
-
+public class RestGetSubscriptionAction extends BaseRestHandler {
+    private static final String ENDPOINT_NAME = "content_manager_subscription_get";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_get";
     private final SubscriptionService subscriptionService;
 
     /**
-     * Constructs the REST handler.
+     * Construct the REST handler.
      *
-     * @param subscriptionService the service used to register credentials
+     * @param subscriptionService the service used to retrieve the active plan
      */
-    public RestPostSubscriptionAction(SubscriptionService subscriptionService) {
+    public RestGetSubscriptionAction(SubscriptionService subscriptionService) {
         this.subscriptionService = subscriptionService;
     }
 
@@ -72,66 +74,55 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     /**
      * Return the route configuration for this handler.
      *
-     * @return route configuration for the POST endpoint
+     * @return route configuration for the GET endpoint
      */
     @Override
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
                         .path(PluginSettings.SUBSCRIPTION_URI)
-                        .method(POST)
+                        .method(GET)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
     }
 
     /**
-     * Handles incoming requests by delegating to {@link #handleRequest(RestRequest)}.
+     * Handles incoming requests by delegating to {@link #handleRequest()}.
      *
      * @param request the incoming REST request
      * @param client the node client
-     * @return a consumer that sends the subscription registration response
+     * @return a consumer that sends the subscription status response
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+        return channel -> channel.sendResponse(this.handleRequest());
     }
 
     /**
-     * Parses the request payload, validates the access_token field, and delegates to {@link
-     * SubscriptionService#register(String)}.
+     * Builds the subscription status response.
      *
-     * @param request the incoming REST request
-     * @return a BytesRestResponse representing the operation result
+     * @return a {@link BytesRestResponse} with the nested plan and registration state
      * @throws IOException if an I/O error occurs while building the response
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
-        String accessToken = null;
-        try (XContentParser parser = request.contentParser()) {
-            XContentParser.Token token;
-            while ((token = parser.nextToken()) != null) {
-                if (token == XContentParser.Token.FIELD_NAME
-                        && ACCESS_TOKEN_FIELD.equals(parser.currentName())) {
-                    parser.nextToken();
-                    accessToken = parser.text();
-                } else if (token == XContentParser.Token.END_OBJECT) {
-                    break;
-                }
-            }
-        }
-
-        if (accessToken == null || accessToken.isBlank()) {
-            RestResponse error =
-                    new RestResponse(
-                            "Missing [" + ACCESS_TOKEN_FIELD + "] field.", RestStatus.BAD_REQUEST.getStatus());
-            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
-        }
-
+    public BytesRestResponse handleRequest() throws IOException {
         try {
-            this.subscriptionService.register(accessToken);
+            Plan plan = this.subscriptionService.getPlan();
+            boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
 
-            RestResponse response =
-                    new RestResponse("Credentials received", RestStatus.CREATED.getStatus());
-            return new BytesRestResponse(RestStatus.CREATED, response.toXContent());
+            XContentBuilder builder =
+                    XContentFactory.jsonBuilder()
+                            .startObject()
+                            .startObject("message")
+                            .startObject("plan")
+                            .field("name", plan != null ? plan.getName() : null)
+                            .field("is_public", plan != null && plan.isPublic())
+                            .endObject()
+                            .field("is_registered", isRegistered)
+                            .endObject()
+                            .field("status", RestStatus.OK.getStatus())
+                            .endObject();
+
+            return new BytesRestResponse(RestStatus.OK, builder);
         } catch (Exception e) {
             RestResponse error =
                     new RestResponse(
