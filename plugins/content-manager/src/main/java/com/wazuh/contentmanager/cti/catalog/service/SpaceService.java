@@ -169,7 +169,7 @@ public class SpaceService {
             policy.setTitle(title);
             policy.setDescription(title);
             policy.setAuthor("Custom");
-            policy.setRootDecoder("");
+            policy.setRootDecoder(null);
             policy.setDocumentation("");
             policy.setIntegrations(Collections.emptyList());
             policy.setFilters(Collections.emptyList());

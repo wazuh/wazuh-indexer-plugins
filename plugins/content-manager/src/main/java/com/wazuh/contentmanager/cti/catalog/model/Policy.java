@@ -310,12 +310,12 @@ public class Policy {
     }
 
     /**
-     * Sets the root decoder identifier.
+     * Sets the root decoder identifier. Nullable.
      *
-     * @param rootDecoder The root decoder identifier to set. If null, defaults to empty string.
+     * @param rootDecoder The root decoder identifier to set.
      */
     public void setRootDecoder(String rootDecoder) {
-        this.rootDecoder = rootDecoder != null ? rootDecoder : "";
+        this.rootDecoder = rootDecoder;
     }
 
     /**
