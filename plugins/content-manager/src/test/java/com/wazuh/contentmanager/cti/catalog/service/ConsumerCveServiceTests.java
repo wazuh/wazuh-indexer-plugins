@@ -165,7 +165,7 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
         assertNotNull(mappings);
         assertEquals(1, mappings.size());
-        assertEquals("/mappings/cti-cve-mappings.json", mappings.get(Constants.KEY_CVES));
+        assertEquals(Constants.KEY_CVES, mappings.get(Constants.KEY_CVES));
     }
 
     /**

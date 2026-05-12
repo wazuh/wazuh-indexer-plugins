@@ -1,0 +1,99 @@
+{
+  "index_patterns": [
+    ".wazuh-threatintel-vulnerabilities"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "auto_expand_replicas": "0-1",
+        "max_docvalue_fields_search": 50,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "type"
+        ],
+        "refresh_interval": "5s"
+      },
+      "mapping.nested_fields.limit": 10,
+      "mapping.total_fields.limit": 500
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict_allow_templates",
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "category": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "classification": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "description": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "document": {
+          "enabled": false,
+          "type": "object"
+        },
+        "enumeration": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "id": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "offset": {
+          "type": "unsigned_long"
+        },
+        "reference": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "report_id": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "scanner": {
+          "properties": {
+            "vendor": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "score": {
+          "properties": {
+            "base": {
+              "type": "float"
+            },
+            "environmental": {
+              "type": "float"
+            },
+            "temporal": {
+              "type": "float"
+            },
+            "version": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "severity": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "type": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

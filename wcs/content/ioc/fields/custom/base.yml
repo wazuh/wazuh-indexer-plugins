@@ -14,6 +14,11 @@
       type: keyword
       example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       description: "The SHA-256 hash of the IoC document."
+    - name: offset
+      level: custom
+      type: unsigned_long
+      description: "The CTI offset value at which this document was last synchronized."
+      example: 1000
     - name: type_hashes
       level: custom
       type: object

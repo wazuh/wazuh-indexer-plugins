@@ -28,11 +28,9 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -52,13 +50,13 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
     private static final String Q_SPACE_NAME = "space.name";
     private static final String[] SPACE_NAMES = {"draft", "test", "custom"};
 
-    private static final Map<String, String> INDEX_MAPPINGS =
-            Map.of(
-                    "wazuh-threatintel-rules", "/mappings/cti-rules-mappings.json",
-                    "wazuh-threatintel-decoders", "/mappings/cti-decoders-mappings.json",
-                    "wazuh-threatintel-kvdbs", "/mappings/cti-kvdbs-mappings.json",
-                    "wazuh-threatintel-integrations", "/mappings/cti-integrations-mappings.json",
-                    "wazuh-threatintel-policies", "/mappings/cti-policies-mappings.json");
+    private static final List<String> CONTENT_INDEX_NAMES =
+            List.of(
+                    "wazuh-threatintel-rules",
+                    "wazuh-threatintel-decoders",
+                    "wazuh-threatintel-kvdbs",
+                    "wazuh-threatintel-integrations",
+                    "wazuh-threatintel-policies");
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -156,26 +154,17 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                 .get();
     }
 
-    /** Creates all content indices required by the post-sync workflow with their proper mappings. */
-    private void createContentIndices() throws Exception {
+    /** Creates all content indices required by the post-sync workflow. */
+    private void createContentIndices() {
         Settings indexSettings =
                 Settings.builder()
                         .put("index.number_of_replicas", 0)
                         .put("index.number_of_shards", 1)
                         .build();
 
-        for (Map.Entry<String, String> entry : INDEX_MAPPINGS.entrySet()) {
-            String indexName = entry.getKey();
-            String mappingPath = entry.getValue();
-
-            String mapping;
-            try (InputStream is = this.getClass().getResourceAsStream(mappingPath)) {
-                assertNotNull("Could not find mapping resource: " + mappingPath, is);
-                mapping = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            }
-
+        for (String indexName : CONTENT_INDEX_NAMES) {
             CreateIndexRequest request =
-                    new CreateIndexRequest().index(indexName).mapping(mapping).settings(indexSettings);
+                    new CreateIndexRequest().index(indexName).settings(indexSettings);
 
             assertTrue(
                     "Failed to create index " + indexName,

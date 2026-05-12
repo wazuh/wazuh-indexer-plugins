@@ -86,6 +86,9 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
             log.error("Couldn't obtain consumer from internal index: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse local consumer: {}", e.getMessage());
+        } catch (RuntimeException e) {
+            log.error(
+                    "Consumer index [{}] is not available: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
         }
         return null;
     }

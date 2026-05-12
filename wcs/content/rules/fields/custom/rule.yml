@@ -1,0 +1,196 @@
+---
+- name: rule
+  root: true
+  title: Rule
+  group: 1
+  description: >
+    Wazuh Threat Intel rules document custom fields
+  type: group
+  fields:
+    - name: document.id
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Unique identifier of the rule document."
+      example: "rule-12345"
+    - name: document.name
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Human-readable name of the rule."
+      example: "Suspicious Login Attempt"
+    - name: document.level
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Severity level of the rule (e.g., low, medium, high, critical)."
+      example: "high"
+    - name: document.license
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "License under which the rule is distributed."
+      example: "Apache-2.0"
+    - name: document.scope
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Scope or applicability of the rule."
+      example: "endpoint"
+    - name: document.sigma_id
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Sigma rule identifier if the rule originates from a Sigma definition."
+      example: "sigma-abc123"
+    - name: document.status
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Publication status of the rule (e.g., stable, test, experimental)."
+      example: "stable"
+    - name: document.tags
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Tags or labels associated with the rule."
+      example: "attack.credential_access"
+    - name: document.taxonomy
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Taxonomy classification for the rule."
+      example: "MITRE ATT&CK"
+    - name: document.falsepositives
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Known false positive scenarios for this rule."
+      example: "Legitimate administrative tools"
+    - name: document.fields
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Log fields inspected or used by this rule."
+      example: "event.action"
+    - name: document.metadata.title
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Title of the rule."
+      example: "Suspicious Login Attempt"
+    - name: document.metadata.author
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Author of the rule."
+      example: "Wazuh, Inc."
+    - name: document.metadata.date
+      level: custom
+      type: date
+      description: "Creation date of the rule."
+      example: "2024-01-15T08:30:00.000Z"
+    - name: document.metadata.modified
+      level: custom
+      type: date
+      description: "Last modification date of the rule."
+      example: "2024-02-20T14:45:00.000Z"
+    - name: document.metadata.description
+      level: custom
+      type: text
+      description: "Human-readable description of the rule."
+      example: "Detects suspicious login attempts from unusual locations."
+    - name: document.metadata.references
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "References or links related to the rule."
+      example: "https://documentation.wazuh.com/current/user-manual/ruleset/rules.html"
+    - name: document.metadata.documentation
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Documentation link for the rule."
+      example: "https://documentation.wazuh.com/current/user-manual/ruleset/rules.html"
+    - name: document.metadata.supports
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Supported platforms or operating systems."
+      example: "linux"
+    - name: document.detection
+      level: custom
+      type: object
+      enabled: false
+      description: "Detection logic for the rule (stored but not indexed)."
+    - name: document.enabled
+      level: custom
+      type: boolean
+      description: "Whether the rule is enabled."
+      example: true
+    - name: document.logsource.category
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Log source category for this rule."
+      example: "process_creation"
+    - name: document.logsource.definition
+      level: custom
+      type: text
+      description: "Definition or description of the log source."
+      example: "Monitors process creation events."
+    - name: document.logsource.product
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Product that generates the log source."
+      example: "windows"
+    - name: document.logsource.service
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Service that generates the log source."
+      example: "security"
+    - name: document.related
+      level: custom
+      type: nested
+      description: "Related rules or threat intelligence items."
+    - name: document.related.id
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Identifier of the related item."
+      example: "rule-related-99"
+    - name: document.related.type
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "Type of the related item."
+      example: "rule"
+    - name: hash.sha256
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "The SHA-256 hash of the rule document."
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    - name: offset
+      level: custom
+      type: unsigned_long
+      description: "The CTI offset value at which this document was last synchronized."
+      example: 1000
+    - name: space.name
+      level: custom
+      type: keyword
+      ignore_above: 1024
+      description: "The name of the space where the rule is defined."
+      example: "default"
+    - name: type
+      level: custom
+      type: text
+      description: "Type or category of the rule document."
+      example: "sigma"
+      multi_fields:
+        - name: keyword
+          type: keyword
+          ignore_above: 256
+

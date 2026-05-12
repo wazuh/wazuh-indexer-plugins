@@ -1,0 +1,45 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,author,keyword,extended,array,"[""Star-Lord""]",Rule author
+9.1.0,true,base,category,keyword,extended,,Attempted Information Leak,Rule category
+9.1.0,true,base,description,keyword,extended,,Block requests to public DNS over HTTPS / TLS protocols,Rule description
+9.1.0,true,base,id,keyword,extended,,101,Rule ID
+9.1.0,true,base,license,keyword,extended,,Apache 2.0,Rule license
+9.1.0,true,base,name,keyword,extended,,BLOCK_DNS_over_TLS,Rule name
+9.1.0,true,base,offset,unsigned_long,custom,,1000,The CTI offset value at which this document was last synchronized.
+9.1.0,true,base,reference,keyword,extended,,https://en.wikipedia.org/wiki/DNS_over_TLS,Rule reference URL
+9.1.0,true,base,ruleset,keyword,extended,,Standard_Protocol_Filters,Rule ruleset
+9.1.0,true,base,type,text,custom,,sigma,Type or category of the rule document.
+9.1.0,true,base,type.keyword,keyword,custom,,sigma,Type or category of the rule document.
+9.1.0,true,base,uuid,keyword,extended,,1100110011,Rule UUID
+9.1.0,true,base,version,keyword,extended,,1.1,Rule version
+9.1.0,true,document,document.detection,object,custom,,,Detection logic for the rule (stored but not indexed).
+9.1.0,true,document,document.enabled,boolean,custom,,True,Whether the rule is enabled.
+9.1.0,true,document,document.falsepositives,keyword,custom,,Legitimate administrative tools,Known false positive scenarios for this rule.
+9.1.0,true,document,document.fields,keyword,custom,,event.action,Log fields inspected or used by this rule.
+9.1.0,true,document,document.id,keyword,custom,,rule-12345,Unique identifier of the rule document.
+9.1.0,true,document,document.level,keyword,custom,,high,"Severity level of the rule (e.g., low, medium, high, critical)."
+9.1.0,true,document,document.license,keyword,custom,,Apache-2.0,License under which the rule is distributed.
+9.1.0,true,document,document.logsource.category,keyword,custom,,process_creation,Log source category for this rule.
+9.1.0,true,document,document.logsource.definition,text,custom,,Monitors process creation events.,Definition or description of the log source.
+9.1.0,true,document,document.logsource.product,keyword,custom,,windows,Product that generates the log source.
+9.1.0,true,document,document.logsource.service,keyword,custom,,security,Service that generates the log source.
+9.1.0,true,document,document.metadata.author,keyword,custom,,"Wazuh, Inc.",Author of the rule.
+9.1.0,true,document,document.metadata.date,date,custom,,2024-01-15T08:30:00.000Z,Creation date of the rule.
+9.1.0,true,document,document.metadata.description,text,custom,,Detects suspicious login attempts from unusual locations.,Human-readable description of the rule.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/rules.html,Documentation link for the rule.
+9.1.0,true,document,document.metadata.modified,date,custom,,2024-02-20T14:45:00.000Z,Last modification date of the rule.
+9.1.0,true,document,document.metadata.references,keyword,custom,,https://documentation.wazuh.com/current/user-manual/ruleset/rules.html,References or links related to the rule.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,linux,Supported platforms or operating systems.
+9.1.0,true,document,document.metadata.title,keyword,custom,,Suspicious Login Attempt,Title of the rule.
+9.1.0,true,document,document.name,keyword,custom,,Suspicious Login Attempt,Human-readable name of the rule.
+9.1.0,true,document,document.related,nested,custom,,,Related rules or threat intelligence items.
+9.1.0,true,document,document.related.id,keyword,custom,,rule-related-99,Identifier of the related item.
+9.1.0,true,document,document.related.type,keyword,custom,,rule,Type of the related item.
+9.1.0,true,document,document.scope,keyword,custom,,endpoint,Scope or applicability of the rule.
+9.1.0,true,document,document.sigma_id,keyword,custom,,sigma-abc123,Sigma rule identifier if the rule originates from a Sigma definition.
+9.1.0,true,document,document.status,keyword,custom,,stable,"Publication status of the rule (e.g., stable, test, experimental)."
+9.1.0,true,document,document.tags,keyword,custom,,attack.credential_access,Tags or labels associated with the rule.
+9.1.0,true,document,document.taxonomy,keyword,custom,,MITRE ATT&CK,Taxonomy classification for the rule.
+9.1.0,true,hash,hash.sha256,keyword,custom,,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,The SHA-256 hash of the rule document.
+9.1.0,true,space,space.name,keyword,custom,,default,The name of the space where the rule is defined.

@@ -30,6 +30,7 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -70,11 +71,11 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
         Assert.assertNotNull(mappings);
         Assert.assertEquals(5, mappings.size());
-        Assert.assertEquals("/mappings/cti-rules-mappings.json", mappings.get("rule"));
-        Assert.assertEquals("/mappings/cti-decoders-mappings.json", mappings.get("decoder"));
-        Assert.assertEquals("/mappings/cti-kvdbs-mappings.json", mappings.get("kvdb"));
-        Assert.assertEquals("/mappings/cti-integrations-mappings.json", mappings.get("integration"));
-        Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
+        Assert.assertEquals(Constants.KEY_RULE, mappings.get(Constants.KEY_RULE));
+        Assert.assertEquals(Constants.KEY_DECODER, mappings.get(Constants.KEY_DECODER));
+        Assert.assertEquals(Constants.KEY_KVDB, mappings.get(Constants.KEY_KVDB));
+        Assert.assertEquals(Constants.KEY_INTEGRATION, mappings.get(Constants.KEY_INTEGRATION));
+        Assert.assertEquals(Constants.KEY_POLICY, mappings.get(Constants.KEY_POLICY));
     }
 
     /** Tests that getIndexName returns the correct unified name. */

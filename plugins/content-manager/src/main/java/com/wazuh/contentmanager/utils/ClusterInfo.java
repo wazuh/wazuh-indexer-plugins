@@ -30,8 +30,9 @@ import org.opensearch.transport.client.Client;
 public class ClusterInfo {
 
     /**
-     * Checks if a given index is ready for operations. Blocks until at least one active shard is
-     * available or the timeout expires.
+     * Checks if a given index is ready for operations. Returns false immediately if the index does
+     * not exist, otherwise blocks until at least one active shard is available or the timeout
+     * expires.
      *
      * @param client OpenSearch client.
      * @param index index name to check.
@@ -39,6 +40,9 @@ public class ClusterInfo {
      * @return true if the index is ready, false otherwise.
      */
     public static boolean indexStatusCheck(Client client, String index, long timeoutSeconds) {
+        if (!indexExists(client, index)) {
+            return false;
+        }
         ClusterHealthResponse response =
                 client
                         .admin()

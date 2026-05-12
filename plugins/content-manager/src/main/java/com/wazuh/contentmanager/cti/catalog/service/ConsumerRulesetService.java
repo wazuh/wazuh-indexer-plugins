@@ -109,12 +109,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     @Override
     protected Map<String, String> getMappings() {
+        // TODO: Refactor AbstractConsumerService to expose content types directly and drop placeholder
+        // map values.
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(Constants.KEY_RULE, "/mappings/cti-rules-mappings.json");
-        mappings.put(Constants.KEY_DECODER, "/mappings/cti-decoders-mappings.json");
-        mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
-        mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
-        mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
+        // Values are intentionally unused. Setup plugin owns mappings/templates.
+        mappings.put(Constants.KEY_RULE, Constants.KEY_RULE);
+        mappings.put(Constants.KEY_DECODER, Constants.KEY_DECODER);
+        mappings.put(Constants.KEY_KVDB, Constants.KEY_KVDB);
+        mappings.put(Constants.KEY_INTEGRATION, Constants.KEY_INTEGRATION);
+        mappings.put(Constants.KEY_POLICY, Constants.KEY_POLICY);
         return mappings;
     }
 

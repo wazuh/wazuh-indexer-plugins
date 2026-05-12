@@ -1,0 +1,15 @@
+{
+  "dynamic": "true",
+  "date_detection": false,
+  "dynamic_templates": [
+    {
+      "parse_fields": {
+        "match": ["parse|*"],
+        "mapping": {
+          "type": "keyword"
+        }
+      }
+    }
+  ]
+}
+

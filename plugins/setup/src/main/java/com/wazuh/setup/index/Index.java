@@ -46,6 +46,8 @@ import com.wazuh.setup.utils.JsonUtils;
 public abstract class Index implements IndexInitializer {
     private static final Logger log = LogManager.getLogger(Index.class);
 
+    private static final String INDEX_HIDDEN_SETTING = "index.hidden";
+
     // Dependencies.
     Client client;
     ClusterService clusterService;
@@ -54,6 +56,7 @@ public abstract class Index implements IndexInitializer {
     // Properties.
     protected String index;
     protected String template;
+    protected boolean hidden;
 
     boolean retry_index_creation;
     boolean retry_template_creation;
@@ -65,8 +68,20 @@ public abstract class Index implements IndexInitializer {
      * @param template index template name.
      */
     Index(String index, String template) {
+        this(index, template, false);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     * @param hidden whether the index should be created as hidden.
+     */
+    Index(String index, String template, boolean hidden) {
         this.index = index;
         this.template = template;
+        this.hidden = hidden;
 
         this.retry_index_creation = true;
         this.retry_template_creation = true;
@@ -130,6 +145,9 @@ public abstract class Index implements IndexInitializer {
         try {
             if (!this.indexExists(index)) {
                 CreateIndexRequest request = new CreateIndexRequest(index);
+                if (this.hidden) {
+                    request.settings(Settings.builder().put(INDEX_HIDDEN_SETTING, true));
+                }
                 CreateIndexResponse createIndexResponse =
                         this.client
                                 .admin()

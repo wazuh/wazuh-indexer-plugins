@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -302,37 +301,10 @@ public class ContentManagerPlugin extends Plugin
                             () -> {
                                 try {
                                     try {
-                                        CreateIndexResponse consumersResponse = this.consumersIndex.createIndex();
-                                        if (consumersResponse != null && consumersResponse.isAcknowledged()) {
-                                            log.info(
-                                                    "Index created: {} acknowledged={}",
-                                                    consumersResponse.index(),
-                                                    consumersResponse.isAcknowledged());
-                                        }
+                                        this.consumersIndex.createIndex();
                                     } catch (Exception e) {
-                                        log.error(
-                                                "Failed to create {} index, due to: {}",
-                                                ConsumersIndex.INDEX_NAME,
-                                                e.getMessage(),
-                                                e);
+                                        log.warn("Could not create consumers index: {}", e.getMessage(), e);
                                     }
-
-                                    try {
-                                        CreateIndexResponse credentialsResponse = this.credentialsIndex.createIndex();
-                                        if (credentialsResponse != null && credentialsResponse.isAcknowledged()) {
-                                            log.info(
-                                                    "Index created: {} acknowledged={}",
-                                                    credentialsResponse.index(),
-                                                    credentialsResponse.isAcknowledged());
-                                        }
-                                    } catch (Exception e) {
-                                        log.error(
-                                                "Failed to create {} index, due to: {}",
-                                                CredentialsIndex.INDEX_NAME,
-                                                e.getMessage(),
-                                                e);
-                                    }
-
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();

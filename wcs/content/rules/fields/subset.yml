@@ -1,0 +1,9 @@
+---
+name: rules
+fields:
+  base:
+    fields:
+      "@timestamp": { }
+  rule:
+    fields: "*"
+

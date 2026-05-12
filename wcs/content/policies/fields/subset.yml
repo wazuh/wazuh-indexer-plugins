@@ -1,0 +1,9 @@
+---
+name: policies
+fields:
+  base:
+    fields:
+      "@timestamp": { }
+  policy:
+    fields: "*"
+

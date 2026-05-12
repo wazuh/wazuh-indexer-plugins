@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -27,5 +27,16 @@ public abstract class WazuhIndex extends Index {
      */
     WazuhIndex(String index, String template) {
         super(index, template);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     * @param hidden whether the index should be created as hidden.
+     */
+    WazuhIndex(String index, String template, boolean hidden) {
+        super(index, template, hidden);
     }
 }

@@ -26,6 +26,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -411,21 +413,35 @@ public class ContentIndex {
         this.semaphore.release(permits);
     }
 
-    /** Deletes all documents in the index by deleting and recreating it. */
+    /**
+     * Clears all documents from the index by deleting and recreating it.
+     *
+     * <p>No explicit mappings are applied on recreation — the setup plugin's index template is
+     * automatically matched and applied by OpenSearch.
+     */
     public void clear() {
-        if (this.mappingsPath == null) {
-            log.error("Cannot clear index [{}]: mappings path not set.", this.indexName);
-            return;
-        }
         try {
             boolean exists = this.client.admin().indices().prepareExists(this.indexName).get().isExists();
+            boolean isHidden = false;
+
             if (exists) {
-                this.client.admin().indices().prepareDelete(this.indexName).get();
+                GetSettingsResponse settingsResponse =
+                        this.client.admin().indices().prepareGetSettings(this.indexName).get();
+                String hiddenSetting = settingsResponse.getSetting(this.indexName, "index.hidden");
+                isHidden = Boolean.parseBoolean(hiddenSetting);
+
+                this.client.admin().indices().delete(new DeleteIndexRequest(this.indexName)).actionGet();
             }
-            this.createIndex();
-            log.debug("[{}] wiped and recreated", this.indexName);
+
+            // Recreate without explicit mappings; the setup plugin's index template is applied
+            // automatically.
+            CreateIndexRequest createRequest = new CreateIndexRequest(this.indexName);
+            createRequest.settings(Settings.builder().put("index.hidden", isHidden));
+            this.client.admin().indices().create(createRequest).actionGet();
+            log.debug(
+                    "[{}] wiped and recreated via template (index.hidden={})", this.indexName, isHidden);
         } catch (Exception e) {
-            log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
+            log.error("[{}] clear() failed: {}", this.indexName, e.getMessage());
         }
     }
 

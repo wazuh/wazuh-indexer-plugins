@@ -131,10 +131,50 @@ function map_engine_filter_module() {
 }
 
 # ====
-# Map CVE module
+# Map Policies module
 # ====
-function map_cve_module() {
-  local module_name="cve"
+function map_policies_module() {
+  local module_name="content/policies"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
+# Map Integrations module
+# ====
+function map_integrations_module() {
+  local module_name="content/integrations"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
+# Map Decoders module
+# ====
+function map_decoders_module() {
+  local module_name="content/decoders"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
+# Map Rules module
+# ====
+function map_rules_module() {
+  local module_name="content/rules"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
+# Map Kvdbs module
+# ====
+function map_kvdbs_module() {
+  local module_name="content/kvdbs"
+  all_modules["$module_name"]="templates/${module_name}.json"
+}
+
+# ====
+# Map Vulnerabilities module
+# ====
+function map_vulnerabilities_module() {
+  local module_name="content/vulnerabilities"
   all_modules["$module_name"]="templates/${module_name}.json"
 }
 
@@ -179,9 +219,34 @@ function sort_and_output_modules() {
     echo "  [content/ioc]=${all_modules[content/ioc]}" >>"$output_file"
   fi
 
-  if [[ -n "${all_modules[cve]}" ]]; then
-    echo "  # CVE module" >>"$output_file"
-    echo "  [cve]=${all_modules[cve]}" >>"$output_file"
+  if [[ -n "${all_modules[content/policies]}" ]]; then
+    echo "  # Policies module" >>"$output_file"
+    echo "  [content/policies]=${all_modules[content/policies]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[content/integrations]}" ]]; then
+    echo "  # Integrations module" >>"$output_file"
+    echo "  [content/integrations]=${all_modules[content/integrations]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[content/decoders]}" ]]; then
+    echo "  # Decoders module" >>"$output_file"
+    echo "  [content/decoders]=${all_modules[content/decoders]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[content/rules]}" ]]; then
+    echo "  # Rules module" >>"$output_file"
+    echo "  [content/rules]=${all_modules[content/rules]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[content/kvdbs]}" ]]; then
+    echo "  # Kvdbs module" >>"$output_file"
+    echo "  [content/kvdbs]=${all_modules[content/kvdbs]}" >>"$output_file"
+  fi
+
+  if [[ -n "${all_modules[content/vulnerabilities]}" ]]; then
+    echo "  # Vulnerabilities module" >>"$output_file"
+    echo "  [content/vulnerabilities]=${all_modules[content/vulnerabilities]}" >>"$output_file"
   fi
 
   echo ")" >>"$output_file"
@@ -209,7 +274,17 @@ function main() {
 
   map_engine_filter_module
 
-  map_cve_module
+  map_policies_module
+
+  map_integrations_module
+
+  map_decoders_module
+
+  map_rules_module
+
+  map_kvdbs_module
+
+  map_vulnerabilities_module
 
   # Sort and output
   sort_and_output_modules "$output_file"

@@ -33,6 +33,16 @@ module_to_file=(
   [content/filters]=templates/content/filters.json
   # IoC module
   [content/ioc]=templates/content/ioc.json
-  # CVE module
-  [cve]=templates/cve.json
+  # Policies module
+  [content/policies]=templates/content/policies.json
+  # Integrations module
+  [content/integrations]=templates/content/integrations.json
+  # Decoders module
+  [content/decoders]=templates/content/decoders.json
+  # Rules module
+  [content/rules]=templates/content/rules.json
+  # Kvdbs module
+  [content/kvdbs]=templates/content/kvdbs.json
+  # Vulnerabilities module
+  [content/vulnerabilities]=templates/content/vulnerabilities.json
 )

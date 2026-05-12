@@ -1,0 +1,18 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,category,keyword,extended,array,"[""Firewall""]",Category of a vulnerability.
+9.1.0,true,base,classification,keyword,extended,,CVSS,Classification of the vulnerability.
+9.1.0,true,base,description,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.
+9.1.0,true,base,document,object,custom,,,Full CVE document payload (stored but not indexed).
+9.1.0,true,base,enumeration,keyword,extended,,CVE,Identifier of the vulnerability.
+9.1.0,true,base,id,keyword,extended,,CVE-2019-00001,ID of the vulnerability.
+9.1.0,true,base,offset,unsigned_long,custom,,1000,The CTI offset value at which this document was last synchronized.
+9.1.0,true,base,reference,keyword,extended,,https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-6111,Reference of the vulnerability.
+9.1.0,true,base,report_id,keyword,extended,,20191018.0001,Scan identification number.
+9.1.0,true,base,severity,keyword,extended,,Critical,Severity of the vulnerability.
+9.1.0,true,base,type,keyword,custom,,cve,"Type of the vulnerability entry (e.g., cve, adp, cna)."
+9.1.0,true,scanner,scanner.vendor,keyword,extended,,Tenable,Name of the scanner vendor.
+9.1.0,true,score,score.base,float,extended,,5.5,Vulnerability Base score.
+9.1.0,true,score,score.environmental,float,extended,,5.5,Vulnerability Environmental score.
+9.1.0,true,score,score.temporal,float,extended,,,Vulnerability Temporal score.
+9.1.0,true,score,score.version,keyword,extended,,2.0,CVSS version.
