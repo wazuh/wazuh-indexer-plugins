@@ -22,19 +22,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
-
-import org.opensearch.action.delete.DeleteResponse;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
@@ -426,13 +424,16 @@ public abstract class AbstractConsumerService {
         // Build URL resolver based on registration status
         ResourceUrlResolver urlResolver;
         if (PluginSettings.getInstance().isRegistered()) {
-            log.debug("Registered environment detected for consumer [{}]. Using signed URL resolver.", consumerType);
+            log.debug(
+                    "Registered environment detected for consumer [{}]. Using signed URL resolver.",
+                    consumerType);
             urlResolver =
                     new SignedUrlResolver(
-                            new TokenExchangeServiceImpl(),
-                            PluginSettings.getInstance().getAccessToken());
+                            new TokenExchangeServiceImpl(), PluginSettings.getInstance().getAccessToken());
         } else {
-            log.debug("Non-registered environment for consumer [{}]. Using regular URL resolver.", consumerType);
+            log.debug(
+                    "Non-registered environment for consumer [{}]. Using regular URL resolver.",
+                    consumerType);
             urlResolver = new RegularUrlResolver();
         }
 
@@ -440,7 +441,11 @@ public abstract class AbstractConsumerService {
                 this.consumerServiceOverride != null
                         ? this.consumerServiceOverride
                         : new ConsumerServiceImpl(
-                                context, consumer, consumerType, catalogUri, this.consumersIndex,
+                                context,
+                                consumer,
+                                consumerType,
+                                catalogUri,
+                                this.consumersIndex,
                                 new ApiClient(urlResolver));
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer =
@@ -673,7 +678,8 @@ public abstract class AbstractConsumerService {
      * For registered environments, the plan is fetched from the CTI Console API and the feature
      * matching the consumer type is used to get the resource URL.
      *
-     * @param consumerType the consumer type to look up (e.g., {@code "cti:catalog:consumer:ruleset"}).
+     * @param consumerType the consumer type to look up (e.g., {@code
+     *     "cti:catalog:consumer:ruleset"}).
      * @return the feature's resource URL, or {@code null} if not registered or no matching feature.
      */
     private String resolvePlanResource(String consumerType) {
@@ -692,7 +698,10 @@ public abstract class AbstractConsumerService {
                 }
                 Feature feature = plan.getFeature(consumerType);
                 if (feature == null) {
-                    log.debug("No feature found for consumer type [{}] in plan [{}].", consumerType, plan.getName());
+                    log.debug(
+                            "No feature found for consumer type [{}] in plan [{}].",
+                            consumerType,
+                            plan.getName());
                     return null;
                 }
                 log.info(
@@ -705,30 +714,30 @@ public abstract class AbstractConsumerService {
                 plansService.close();
             }
         } catch (Exception e) {
-            log.warn("Failed to resolve plan resource for consumer [{}]: {}", consumerType, e.getMessage());
+            log.warn(
+                    "Failed to resolve plan resource for consumer [{}]: {}", consumerType, e.getMessage());
             return null;
         }
     }
 
     /**
      * Resets the persisted consumer state by deleting its document from the consumers index. This
-     * forces a full re-initialization on the next sync cycle (snapshot download + incremental update).
+     * forces a full re-initialization on the next sync cycle (snapshot download + incremental
+     * update).
      *
      * @param consumerType the consumer type identifier to reset.
      */
     private void resetConsumer(String consumerType) {
         try {
             DeleteResponse response =
-                    this.client
-                            .prepareDelete(ConsumersIndex.INDEX_NAME, consumerType)
-                            .execute()
-                            .actionGet();
+                    this.client.prepareDelete(ConsumersIndex.INDEX_NAME, consumerType).execute().actionGet();
             log.info(
                     "Consumer [{}] document deleted for re-initialization. Result: {}",
                     consumerType,
                     response.getResult());
         } catch (Exception e) {
-            log.warn("Failed to delete consumer [{}] for re-initialization: {}", consumerType, e.getMessage());
+            log.warn(
+                    "Failed to delete consumer [{}] for re-initialization: {}", consumerType, e.getMessage());
         }
     }
 }

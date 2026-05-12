@@ -110,9 +110,7 @@ public class SignedUrlResolverTests extends OpenSearchTestCase {
         verify(this.mockTokenExchangeService).getResourceToken(ORIGINAL_URL, ACCESS_TOKEN);
     }
 
-    /**
-     * Tests that multiple consecutive calls each invoke the token exchange service independently.
-     */
+    /** Tests that multiple consecutive calls each invoke the token exchange service independently. */
     public void testResolveCalledMultipleTimes() {
         String url1 = "https://cti.wazuh.com/resource/1";
         String url2 = "https://cti.wazuh.com/resource/2";
@@ -133,8 +131,7 @@ public class SignedUrlResolverTests extends OpenSearchTestCase {
      * Tests that after one failure clears the token, a subsequent resolve still falls back correctly.
      */
     public void testResolveAfterTokenCleared() {
-        when(this.mockTokenExchangeService.getResourceToken(anyString(), anyString()))
-                .thenReturn(null);
+        when(this.mockTokenExchangeService.getResourceToken(anyString(), anyString())).thenReturn(null);
 
         SignedUrlResolver resolver = new SignedUrlResolver(this.mockTokenExchangeService, ACCESS_TOKEN);
 
