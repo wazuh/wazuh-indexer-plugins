@@ -27,11 +27,14 @@ import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
 
+import org.opensearch.action.delete.DeleteResponse;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
@@ -43,6 +46,10 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.console.model.Feature;
+import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -372,10 +379,12 @@ public abstract class AbstractConsumerService {
 
         // The effective catalog URI prefers, in order:
         //   1. the configured setting `plugins.content_manager.catalog.<type>`,
-        //   2. the existing consumer doc's `resource` (auto-recovery on second+ runs),
-        //   3. the manifest entry's `resource` (auto-recovery on the first sync after the local
+        //   2. the plan's feature resource (registered environments only),
+        //   3. the existing consumer doc's `resource` (auto-recovery on second+ runs),
+        //   4. the manifest entry's `resource` (auto-recovery on the first sync after the local
         //      snapshot was consumed/deleted, when no doc exists yet).
         String settingCatalogUri = this.getCustomCatalogUri();
+        String planResource = this.resolvePlanResource(consumerType);
         String existingResource = this.readExistingConsumerResource(consumerType);
         String manifestResource =
                 (manifestEntry != null
@@ -386,12 +395,30 @@ public abstract class AbstractConsumerService {
         String catalogUri;
         if (settingCatalogUri != null && !settingCatalogUri.isBlank()) {
             catalogUri = settingCatalogUri;
+        } else if (planResource != null && !planResource.isBlank()) {
+            catalogUri = planResource;
         } else if (existingResource != null && !existingResource.isBlank()) {
             catalogUri = existingResource;
         } else if (!manifestResource.isBlank()) {
             catalogUri = manifestResource;
         } else {
             catalogUri = null;
+        }
+
+        // When the plan provides a different resource than the existing consumer, force
+        // re-initialization by resetting the persisted consumer state. This handles plan
+        // upgrades (free → pro) and downgrades (pro → free) where the consumer URL changes.
+        if (planResource != null
+                && !planResource.isBlank()
+                && existingResource != null
+                && !existingResource.isBlank()
+                && !planResource.equals(existingResource)) {
+            log.info(
+                    "Consumer [{}] resource changed from [{}] to [{}]. Resetting consumer for re-initialization.",
+                    consumerType,
+                    existingResource,
+                    planResource);
+            this.resetConsumer(consumerType);
         }
         String context = PluginSettings.getContextFromCatalogUri(catalogUri);
         String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
@@ -638,6 +665,70 @@ public abstract class AbstractConsumerService {
                     manifestPath,
                     e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Resolves the catalog resource URL from the active plan's features for the given consumer type.
+     * For registered environments, the plan is fetched from the CTI Console API and the feature
+     * matching the consumer type is used to get the resource URL.
+     *
+     * @param consumerType the consumer type to look up (e.g., {@code "cti:catalog:consumer:ruleset"}).
+     * @return the feature's resource URL, or {@code null} if not registered or no matching feature.
+     */
+    private String resolvePlanResource(String consumerType) {
+        if (!PluginSettings.getInstance().isRegistered()) {
+            return null;
+        }
+        try {
+            PlansServiceImpl plansService = new PlansServiceImpl();
+            try {
+                Plan plan =
+                        plansService.getMyPlan(
+                                new Token(PluginSettings.getInstance().getAccessToken(), "Bearer"));
+                if (plan == null) {
+                    log.debug("No plan returned for registered environment.");
+                    return null;
+                }
+                Feature feature = plan.getFeature(consumerType);
+                if (feature == null) {
+                    log.debug("No feature found for consumer type [{}] in plan [{}].", consumerType, plan.getName());
+                    return null;
+                }
+                log.info(
+                        "Plan [{}] provides resource [{}] for consumer [{}].",
+                        plan.getName(),
+                        feature.getResource(),
+                        consumerType);
+                return feature.getResource();
+            } finally {
+                plansService.close();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve plan resource for consumer [{}]: {}", consumerType, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Resets the persisted consumer state by deleting its document from the consumers index. This
+     * forces a full re-initialization on the next sync cycle (snapshot download + incremental update).
+     *
+     * @param consumerType the consumer type identifier to reset.
+     */
+    private void resetConsumer(String consumerType) {
+        try {
+            DeleteResponse response =
+                    this.client
+                            .prepareDelete(ConsumersIndex.INDEX_NAME, consumerType)
+                            .execute()
+                            .actionGet();
+            log.info(
+                    "Consumer [{}] document deleted for re-initialization. Result: {}",
+                    consumerType,
+                    response.getResult());
+        } catch (Exception e) {
+            log.warn("Failed to delete consumer [{}] for re-initialization: {}", consumerType, e.getMessage());
         }
     }
 }
