@@ -45,7 +45,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public Plan getPlan() {
-        String accessToken = PluginSettings.getInstance().getAccessToken();
+        String accessToken = this.getAccessToken();
         if (accessToken != null) {
             Plan plan = this.plansService.getMyPlan(new Token(accessToken, "Bearer"));
             if (plan != null) {
@@ -61,6 +61,33 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             PluginSettings.getInstance().setAccessToken(null);
         }
         return this.plansService.getPlan();
+    }
+
+    /**
+     * Retrieves the access token. The method ensures the in-memory access token is populated. If the
+     * token is already loaded, returns it immediately. Otherwise, attempts a single read from the
+     * credentials index.
+     *
+     * @return the access token, or null if no token is stored.
+     */
+    private String getAccessToken() {
+        String accessToken = PluginSettings.getInstance().getAccessToken();
+        if (accessToken != null) {
+            return accessToken;
+        }
+        try {
+            if (this.credentialsIndex.exists()) {
+                String token = this.credentialsIndex.getAccessToken();
+                if (token != null) {
+                    PluginSettings.getInstance().setAccessToken(token);
+                    log.info("CTI access token loaded from credentials index.");
+                    return token;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load CTI access token from credentials index: {}", e.getMessage());
+        }
+        return null;
     }
 
     @Override

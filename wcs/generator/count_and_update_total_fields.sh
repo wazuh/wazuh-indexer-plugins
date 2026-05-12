@@ -108,6 +108,10 @@ process_module() {
 
   # compute next multiple of 500 for total fields
   PROPOSED_TOTAL=$((((TOTAL_FIELDS + 499) / 500) * 500))
+  # Cap at minimum of 1000
+  if [[ $PROPOSED_TOTAL -lt 1000 ]]; then
+    PROPOSED_TOTAL=1000
+  fi
 
   # compute next multiple of 50 for nested fields (smaller increment due to lower typical counts)
   PROPOSED_NESTED=$((((NESTED_FIELDS + 49) / 50) * 50))
