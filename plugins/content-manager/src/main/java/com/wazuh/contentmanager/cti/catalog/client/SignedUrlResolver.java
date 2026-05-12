@@ -48,8 +48,10 @@ public class SignedUrlResolver implements ResourceUrlResolver {
 
     @Override
     public String resolve(String originalUrl) {
+        log.info("Resolving signed URL for resource [{}]", originalUrl);
         String signedUrl = this.tokenExchangeService.getResourceToken(originalUrl, this.accessToken);
         if (signedUrl != null) {
+            log.info("Successfully obtained signed URL for resource [{}]", originalUrl);
             return signedUrl;
         }
 

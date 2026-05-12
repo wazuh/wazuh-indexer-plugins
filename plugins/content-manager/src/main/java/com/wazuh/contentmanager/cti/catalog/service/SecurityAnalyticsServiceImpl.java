@@ -451,7 +451,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 title,
                 category,
                 rules,
-                WriteRequest.RefreshPolicy.IMMEDIATE);
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                sourceIndices,
+                interval,
+                enabled);
     }
 
     /**

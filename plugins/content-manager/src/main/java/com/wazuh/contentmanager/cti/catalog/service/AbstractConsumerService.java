@@ -399,11 +399,13 @@ public abstract class AbstractConsumerService {
         // Build URL resolver based on registration status
         ResourceUrlResolver urlResolver;
         if (PluginSettings.getInstance().isRegistered()) {
+            log.debug("Registered environment detected for consumer [{}]. Using signed URL resolver.", consumerType);
             urlResolver =
                     new SignedUrlResolver(
                             new TokenExchangeServiceImpl(),
                             PluginSettings.getInstance().getAccessToken());
         } else {
+            log.debug("Non-registered environment for consumer [{}]. Using identity URL resolver.", consumerType);
             urlResolver = new IdentityUrlResolver();
         }
 
@@ -411,7 +413,8 @@ public abstract class AbstractConsumerService {
                 this.consumerServiceOverride != null
                         ? this.consumerServiceOverride
                         : new ConsumerServiceImpl(
-                                context, consumer, consumerType, catalogUri, this.consumersIndex);
+                                context, consumer, consumerType, catalogUri, this.consumersIndex,
+                                new ApiClient(urlResolver));
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer =
                 (catalogUri != null && !catalogUri.isBlank()) ? consumerService.getRemoteConsumer() : null;
