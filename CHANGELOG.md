@@ -169,6 +169,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Skip engine validation for engine-unrelated resources promotion [(#1133)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1133)
 - CTI subscription API update [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145)
 - Update ruleset consumer to beta-2 [(#1161)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1161)
+- Encode credentials in base64 [(#1163)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1163)
 
 ### Deprecated
 -

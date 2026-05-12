@@ -29,6 +29,8 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -94,22 +96,28 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
                         GetResponse r = client.get(null).get(10L, java.util.concurrent.TimeUnit.SECONDS);
                         if (!r.isExists()) return null;
                         Map<String, Object> src = r.getSourceAsMap();
-                        return src != null ? (String) src.get(ACCESS_TOKEN_FIELD) : null;
+                        if (src == null) return null;
+                        String stored = (String) src.get(ACCESS_TOKEN_FIELD);
+                        return stored != null
+                                ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
+                                : null;
                     }
                 };
 
         Assert.assertNull(idx.getAccessToken());
     }
 
-    /** getAccessToken returns the stored token when the document exists. */
+    /** getAccessToken returns the stored token, decoded from its base64 form. */
     @SuppressWarnings("unchecked")
     public void testGetAccessToken_Found() throws Exception {
         Client client = mock(Client.class);
 
+        String encoded =
+                Base64.getEncoder().encodeToString("my-token".getBytes(StandardCharsets.UTF_8));
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(true);
         when(getResponse.getSourceAsMap())
-                .thenReturn(Map.of(CredentialsIndex.ACCESS_TOKEN_FIELD, "my-token"));
+                .thenReturn(Map.of(CredentialsIndex.ACCESS_TOKEN_FIELD, encoded));
 
         ActionFuture<GetResponse> future = mock(ActionFuture.class);
         when(future.get(anyLong(), any())).thenReturn(getResponse);
@@ -123,7 +131,11 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
                         GetResponse r = client.get(null).get(10L, java.util.concurrent.TimeUnit.SECONDS);
                         if (!r.isExists()) return null;
                         Map<String, Object> src = r.getSourceAsMap();
-                        return src != null ? (String) src.get(ACCESS_TOKEN_FIELD) : null;
+                        if (src == null) return null;
+                        String stored = (String) src.get(ACCESS_TOKEN_FIELD);
+                        return stored != null
+                                ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
+                                : null;
                     }
                 };
 

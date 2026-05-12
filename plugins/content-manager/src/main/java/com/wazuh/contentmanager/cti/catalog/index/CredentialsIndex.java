@@ -35,6 +35,7 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -66,9 +67,10 @@ public class CredentialsIndex {
     }
 
     /**
-     * Stores the access token in the credentials index. Overwrites any previously stored value.
+     * Stores the access token in the credentials index, base64-encoded at rest. Overwrites any
+     * previously stored value.
      *
-     * @param accessToken the CTI access token to persist.
+     * @param accessToken the CTI access token to persist (plaintext).
      * @return the IndexResponse from the operation.
      * @throws ExecutionException if the client failed to execute the request.
      * @throws InterruptedException if the current thread was interrupted.
@@ -85,6 +87,8 @@ public class CredentialsIndex {
                 this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready: " + INDEX_NAME);
         }
+        String encoded =
+                Base64.getEncoder().encodeToString(accessToken.getBytes(StandardCharsets.UTF_8));
         IndexRequest request =
                 new IndexRequest()
                         .index(INDEX_NAME)
@@ -92,15 +96,15 @@ public class CredentialsIndex {
                         .source(
                                 XContentFactory.jsonBuilder()
                                         .startObject()
-                                        .field(ACCESS_TOKEN_FIELD, accessToken)
+                                        .field(ACCESS_TOKEN_FIELD, encoded)
                                         .endObject());
         return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
-     * Retrieves the stored access token from the index.
+     * Retrieves the stored access token from the index, decoded from its base64 form.
      *
-     * @return the access token string, or null if not found.
+     * @return the plaintext access token, or null if not found.
      * @throws ExecutionException if the client failed to execute the request.
      * @throws InterruptedException if the current thread was interrupted.
      * @throws TimeoutException if the operation exceeded the configured timeout.
@@ -117,7 +121,13 @@ public class CredentialsIndex {
             return null;
         }
         Map<String, Object> source = response.getSourceAsMap();
-        return source != null ? (String) source.get(ACCESS_TOKEN_FIELD) : null;
+        if (source == null) {
+            return null;
+        }
+        String stored = (String) source.get(ACCESS_TOKEN_FIELD);
+        return stored != null
+                ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
+                : null;
     }
 
     /**
