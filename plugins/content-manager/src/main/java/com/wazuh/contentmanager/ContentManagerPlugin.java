@@ -300,7 +300,14 @@ public class ContentManagerPlugin extends Plugin
                     .execute(
                             () -> {
                                 try {
-                                    // Setup plugin owns index creation and mappings.
+                                    try {
+                                        this.consumersIndex.createIndex();
+                                    } catch (Exception e) {
+                                        log.warn(
+                                                "Could not create consumers index: {}",
+                                                e.getMessage(),
+                                                e);
+                                    }
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
