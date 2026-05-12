@@ -5,7 +5,6 @@
   "order": 1,
   "settings": {
     "plugins.index_state_management.rollover_alias": "wazuh-events-raw-v5",
-    
     "mapping.nested_fields.limit": 10,
     "index": {
       "number_of_shards": "3",
@@ -19,6 +18,7 @@
         "wazuh.space.name"
       ],
       "max_docvalue_fields_search": 100
-    }
+    },
+    "mapping.total_fields.limit": 1000
   }
 }

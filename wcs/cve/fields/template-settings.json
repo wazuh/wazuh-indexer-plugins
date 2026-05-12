@@ -12,7 +12,8 @@
         "query.default_field": [
           "name"
         ]
-      }
+      },
+      "mapping.total_fields.limit": 1000
     }
   }
 }

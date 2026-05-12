@@ -12,7 +12,8 @@
           "name"
         ],
         "refresh_interval": "5s"
-      }
+      },
+      "mapping.total_fields.limit": 1000
     },
     "mappings": {
       "date_detection": false,
