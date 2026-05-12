@@ -24,8 +24,7 @@
         ],
         "refresh_interval": "5s"
       },
-      "mapping.nested_fields.limit": 10,
-      "mapping.total_fields.limit": 500
+      "mapping.nested_fields.limit": 10
     },
     "mappings": {
       "date_detection": false,
