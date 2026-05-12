@@ -22,6 +22,8 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -75,6 +77,10 @@ public class CredentialsIndex {
      */
     public IndexResponse storeCredentials(String accessToken)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!this.exists()) {
+            log.info("Index [{}] not found. Recreating before storing credentials.", INDEX_NAME);
+            this.createIndex();
+        }
         if (!ClusterInfo.indexStatusCheck(
                 this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready: " + INDEX_NAME);
@@ -112,6 +118,26 @@ public class CredentialsIndex {
         }
         Map<String, Object> source = response.getSourceAsMap();
         return source != null ? (String) source.get(ACCESS_TOKEN_FIELD) : null;
+    }
+
+    /**
+     * Deletes the credentials document from the index, preserving the index itself.
+     *
+     * @return the DeleteResponse from the operation.
+     * @throws ExecutionException if the client failed to execute the request.
+     * @throws InterruptedException if the current thread was interrupted.
+     * @throws TimeoutException if the operation exceeded the configured timeout.
+     */
+    public DeleteResponse deleteDocument()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        if (!this.exists()) {
+            log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
+            return null;
+        }
+        DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);
+        return this.client
+                .delete(request)
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**

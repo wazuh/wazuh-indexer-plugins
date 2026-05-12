@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequest;
@@ -73,8 +72,6 @@ public class ContentIndex {
     private final Semaphore semaphore;
     private final String indexName;
     private final String mappingsPath;
-    private final String alias;
-
     private final ObjectMapper mapper;
 
     /**
@@ -84,7 +81,7 @@ public class ContentIndex {
      * @param indexName The name of the index.
      */
     public ContentIndex(Client client, String indexName) {
-        this(client, indexName, null, null);
+        this(client, indexName, null);
     }
 
     /**
@@ -95,24 +92,11 @@ public class ContentIndex {
      * @param mappingsPath The classpath resource path to the JSON mapping file.
      */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
-        this(client, indexName, mappingsPath, null);
-    }
-
-    /**
-     * Constructs a new ContentIndex manager with an alias.
-     *
-     * @param client The OpenSearch client used to communicate with the cluster.
-     * @param indexName The name of the index to manage.
-     * @param mappingsPath The classpath resource path to the JSON mapping file.
-     * @param alias The alias to associate with the index (can be null).
-     */
-    public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
         this.pluginSettings = PluginSettings.getInstance();
         this.semaphore = new Semaphore(this.pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
-        this.alias = alias;
         this.mapper = new ObjectMapper();
         this.mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
@@ -143,8 +127,7 @@ public class ContentIndex {
             return null;
         }
 
-        Settings.Builder settingsBuilder =
-                Settings.builder().put("index.number_of_replicas", 0);
+        Settings.Builder settingsBuilder = Settings.builder().put("index.number_of_replicas", 0);
         if (Constants.INDEX_CVES.equals(this.indexName)) {
             settingsBuilder.put("index.hidden", true);
         }
@@ -165,10 +148,6 @@ public class ContentIndex {
 
         CreateIndexRequest request =
                 new CreateIndexRequest().index(this.indexName).mapping(mappings).settings(settings);
-
-        if (this.alias != null && !this.alias.isEmpty()) {
-            request.alias(new Alias(this.alias));
-        }
 
         return this.client
                 .admin()
@@ -472,6 +451,22 @@ public class ContentIndex {
                     break;
                 case Constants.INDEX_FILTERS:
                     resource = Filter.fromPayload(payload);
+                    break;
+                case Constants.INDEX_POLICIES:
+                    resource = Resource.fromPayload(payload);
+                    if (payload.has(Constants.KEY_DOCUMENT)) {
+                        // Re-parse the document through the Policy model so optional fields
+                        // (enabled, index_unclassified_events, index_discarded_events) are
+                        // always present in the indexed document, and recompute the document
+                        // hash to match the normalized payload.
+                        Policy policy = Policy.fromPayload(payload.get(Constants.KEY_DOCUMENT));
+                        ObjectNode policyNode = this.mapper.valueToTree(policy);
+                        Resource.nestMetadataFields(policyNode);
+                        resource.setDocument(policyNode);
+                        java.util.Map<String, String> hashMap = new java.util.HashMap<>();
+                        hashMap.put(Constants.KEY_SHA256, Resource.computeSha256(policyNode.toString()));
+                        resource.setHash(hashMap);
+                    }
                     break;
                 case Constants.INDEX_CVES:
                     Cve cve = Cve.fromPayload(payload);

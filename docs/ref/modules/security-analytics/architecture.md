@@ -44,6 +44,23 @@ sequenceDiagram
     WS->>WS: Release semaphore permit
 ```
 
+## Detector Provisioning
+
+Threat detectors for Wazuh integrations are created dynamically based on CTI content. The system has moved away from hardcoded configurations to a request-driven model via `WIndexDetectorRequest`.
+
+### Dynamic Detector Factory
+
+The `DetectorFactory` class is responsible for assembling the `Detector` object. Instead of using fixed values, it now consumes parameters provided by the Content Manager:
+
+- **Enabled Status**: Controlled by CTI to activate or deactivate detectors globally.
+- **Scan Interval**: Customizable per integration (e.g., critical integrations can have shorter intervals).
+- **Source Indices**: Defines the target indices or index patterns the detector will monitor.
+
+#### Fallback Logic
+To ensure system stability, the `DetectorFactory` implements a fallback mechanism for source indices:
+- If the `sources` list is provided and not empty, it is used as the detector's input.
+- If `sources` is null or empty, the factory defaults to the legacy pattern: `wazuh-events-v5-{category}`.
+
 ## Implementation details
 
 ### Fire-and-forget execution
@@ -72,6 +89,21 @@ Index requests are accumulated in a `ConcurrentLinkedQueue<IndexRequest>`. Two f
 ### Category resolution
 
 Before assembling an enriched document, the service reads `wazuh.integration.category` from the triggering event. If the field is absent or its value is not one of the recognized `LOG_CATEGORY` values, enrichment is skipped for that finding and a `WARN` log entry is emitted.
+
+### Document layout
+
+`buildAndIndex` starts from a shallow copy of the triggering event source and overlays the following fields:
+
+| Field         | Source                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| `@timestamp`  | Finding timestamp                                                           |
+| `event.*`     | Pre-existing `event` fields plus `doc_id`, `index`, `ingested`              |
+| `wazuh.rule`  | Sigma rule metadata (`id`, `title`, `tags`, `sigma_id`, and any of `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
+
+Rule metadata is nested under `wazuh.rule`. Because the event's `wazuh` map (which carries `wazuh.integration.*`) is shared with the shallow copy, the service defensively copies it before adding `rule`, so the original event source is never mutated.
+
+### Dynamic Configuration Injection
+The `WTransportIndexDetectorAction` serves as the entry point for detector creation. It extracts the `enabled`, `interval`, and `sources` fields from the `WIndexDetectorRequest` and injects them into the factory method. This ensures that any change in the CTI catalog is reflected in the Security Analytics engine without requiring code changes or restarts.
 
 ## Technical parameters
 

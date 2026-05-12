@@ -160,7 +160,7 @@ testClusters.integTest {
   // Enable memory tracking to diagnose OOM errors.
   jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
   jvmArgs '-XX:NativeMemoryTracking=summary'
-  jvmArgs '-Xms1g', '-Xmx1g'
+  jvmArgs '-Xms2g', '-Xmx2g'
   jvmArgs '-Xss2m'
 
   // The plugin's REST handlers use blocking actionGet() calls on transport threads.
@@ -170,7 +170,7 @@ testClusters.integTest {
   jvmArgs '-da:org.opensearch.transport.Transports'
   systemProperty "INDEXER_TEST_ENV", "true"
   systemProperty "wazuh.version", "${wazuh_version}"
-  setting 'plugins.content_manager.catalog.update_on_start', 'true'
+  setting 'plugins.content_manager.catalog.update_on_start', 'false'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
   setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
@@ -205,6 +205,14 @@ project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
 
 run {
   useCluster testClusters.integTest
+}
+
+// When this build is rooted at content-manager, an unqualified `./gradlew run`
+// would also fire the included :wazuh-indexer-setup project's own `run` task,
+// which boots a separate cluster on the same default port and shadows ours.
+// Disable it so only this project's `run` is invoked.
+project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
+  setupProject.tasks.named('run').configure { enabled = false }
 }
 
 // updateVersion: Task to auto update version to the next development iteration

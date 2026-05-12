@@ -96,6 +96,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add ruletesting extended endpoints [(#1040)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1040)
 - Set custom user-agent header for CTI API communications [(#1074)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1074)
 - Implement wazuh.event.id WCS field [(#1097)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1097)
+- Add detector properties to CTI integration mapping and request builder [(#1047)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1047)
 - YAML support for ruleset resources [(#1100)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1100)
 - Implement GET /platform/environments/me API service [(#1134)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1134)
 - Implement token exchange service [(#1130)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1130)
@@ -162,6 +163,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change check object in filters template to object[(#1062)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1062)
 - Update ruleset feed for 5.0.0 beta2 [(#1073)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1073)
 - Normalize space values in CM and SAP integration [(#1091)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1091)
+- Nest threat and rule under wazuh object [(#1137)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1137)
+- Initialization from snapshots rework [(#1139)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1139)
+- Skip engine validation for engine-unrelated resources promotion [(#1133)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1133)
+- CTI subscription API update [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145)
+- Update ruleset consumer to beta-2 [(#1161)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1161)
 
 ### Deprecated
 -
@@ -198,6 +204,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix CodeQL maven caching [(#1007)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1007)
 - Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
 - Fix Telemetry Ping Job not running immediately after registration [(#1052)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1052)
+- Fix missing wazuh-threatintel-filters index [(#1143)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1143)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

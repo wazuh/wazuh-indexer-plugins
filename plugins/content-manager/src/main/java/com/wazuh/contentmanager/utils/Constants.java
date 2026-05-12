@@ -47,7 +47,9 @@ public class Constants {
     public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
     public static final String E_400_RESOURCE_SPACE_MISMATCH =
             "Invalid space value. Must be one of: %s.";
-    public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
+    public static final String E_400_INVALID_ENRICHMENT =
+            "Invalid enrichment type '%s'. Allowed values are: %s";
+    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
     public static final String E_400_INTEGRATION_HAS_RESOURCES =
             "Cannot delete integration because it has %s attached.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
@@ -104,6 +106,7 @@ public class Constants {
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
+
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -128,6 +131,9 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_DETECTOR = "detector";
+    public static final String KEY_SOURCE = "source";
+    public static final String KEY_INTERVAL = "interval";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
@@ -142,10 +148,11 @@ public class Constants {
     public static final String KEY_COMPATIBILITY = "compatibility";
     public static final String KEY_SUPPORTS = "supports";
 
-    // Enrichment types allowed in policy
-    public static final String E_400_INVALID_ENRICHMENT =
-            "Invalid enrichment type '%s'. Allowed values are: %s";
-    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
+    // Consumer's metadata
+    public static final String KEY_IS_PUBLIC = "is_public";
+    public static final String KEY_CONTEXT = "context";
+    public static final String KEY_LOCAL_OFFSET = "local_offset";
+    public static final String KEY_REMOTE_OFFSET = "remote_offset";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -196,8 +203,9 @@ public class Constants {
     public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";
     public static final String CTI_SNAPSHOTS_DIR = "snapshots";
     public static final String CONTENT_SNAPSHOT_FILENAME = "ruleset.zip";
-    public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
-    public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
+    public static final String IOC_SNAPSHOT_FILENAME = "iocs.zip";
+    public static final String CVE_SNAPSHOT_FILENAME = "vulnerabilities.zip";
+    public static final String MANIFEST_FILENAME = "manifest.json";
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";

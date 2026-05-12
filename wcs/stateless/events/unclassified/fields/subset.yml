@@ -8,4 +8,20 @@ fields:
     fields:
       original: {}
   wazuh:
-    fields: "*"
+    fields:
+      agent:
+        fields: "*"
+      cluster:
+        fields: "*"
+      event:
+        fields: "*"
+      integration:
+        fields: "*"
+      protocol:
+        fields: "*"
+      schema:
+        fields: "*"
+      space:
+        fields: "*"
+      threat:
+        fields: "*"

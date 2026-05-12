@@ -81,6 +81,36 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+    get:
+      summary: Get CTI Subscription Status
+      description: |
+        Returns the subscription status and active plan. For registered instances,
+        the plan is fetched from the authenticated CTI endpoint. Otherwise, the
+        public free plan is returned.
+      operationId: getSubscription
+      tags:
+        - Subscription Management
+      responses:
+        "200":
+          $ref: "#/components/responses/SubscriptionStatus"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete CTI Credentials
+      description: |
+        Clears the stored CTI access token document from the credentials index and clears
+        the in-memory plugin variable. The index itself is preserved. After this operation
+        the instance is unregistered.
+      operationId: deleteSubscription
+      tags:
+        - Subscription Management
+      responses:
+        "200":
+          $ref: "#/components/responses/CredentialsRemoved"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /update:
     description: On demand content update
     post:
@@ -2241,6 +2271,60 @@ components:
               value:
                 message: "Credentials received"
                 status: 201
+
+    SubscriptionStatus:
+      description: OK - Subscription status and active plan details.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: object
+                properties:
+                  plan:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      is_public:
+                        type: boolean
+                  is_registered:
+                    type: boolean
+              status:
+                type: integer
+          examples:
+            registered:
+              summary: Registered instance
+              value:
+                message:
+                  plan:
+                    name: "Premium Plan"
+                    is_public: false
+                  is_registered: true
+                status: 200
+            unregistered:
+              summary: Unregistered instance
+              value:
+                message:
+                  plan:
+                    name: "Free"
+                    is_public: true
+                  is_registered: false
+                status: 200
+
+    CredentialsRemoved:
+      description: OK - Credentials removed successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            success:
+              summary: Credentials removed
+              value:
+                message: "Credentials removed"
+                status: 200
 
     UpdateAccepted:
       description: Accepted - The update request has been accepted for processing.

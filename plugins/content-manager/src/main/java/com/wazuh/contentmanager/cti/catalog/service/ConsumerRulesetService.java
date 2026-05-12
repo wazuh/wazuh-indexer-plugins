@@ -52,9 +52,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
     private final ObjectMapper mapper;
 
-    private final String CONTEXT = PluginSettings.getInstance().getContentContext();
-    private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
-
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final SpaceService spaceService;
     private final EngineService engineService;
@@ -85,24 +82,19 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
     }
 
-    /**
-     * Retrieves the context name for this synchronizer.
-     *
-     * @return The context string.
-     */
     @Override
-    protected String getContext() {
-        return this.CONTEXT;
+    protected String getConsumerType() {
+        return "cti:catalog:consumer:ruleset";
     }
 
-    /**
-     * Retrieves the consumer name for this synchronizer.
-     *
-     * @return The consumer string.
-     */
     @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogRuleset();
+    }
+
+    @Override
+    protected boolean isRulesetConsumer() {
+        return true;
     }
 
     @Override
@@ -127,17 +119,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Returns the aliases configuration for the indices.
-     *
-     * @return An empty map as indices are accessed by their names directly.
-     */
-    @Override
-    protected Map<String, String> getAliases() {
-        // Not needed. We use the actual data stream names instead.
-        return Collections.emptyMap();
-    }
-
-    /**
      * Triggered when the primary synchronization is finished. Refreshes indices, initializes spaces,
      * and synchronizes SAP resources.
      *
@@ -153,7 +134,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_DECODERS,
                     Constants.INDEX_KVDBS,
                     Constants.INDEX_INTEGRATIONS,
-                    Constants.INDEX_FILTERS,
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations

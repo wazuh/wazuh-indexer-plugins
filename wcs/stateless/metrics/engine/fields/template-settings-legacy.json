@@ -20,6 +20,7 @@
         "wazuh.space.name",
         "wazuh.schema.version"
       ]
-    }
+    },
+    "mapping.total_fields.limit": 500
   }
 }

@@ -74,6 +74,11 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // Verify default values
         Assert.assertTrue(pluginSettings.isUpdateOnStart());
         Assert.assertTrue(pluginSettings.isUpdateOnSchedule());
+        Assert.assertEquals(
+                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+                pluginSettings.getCatalogRuleset());
+        Assert.assertEquals("", pluginSettings.getCatalogIocs());
+        Assert.assertEquals("", pluginSettings.getCatalogVulnerabilities());
     }
 
     /**
@@ -86,6 +91,15 @@ public class PluginSettingsTests extends OpenSearchTestCase {
                 Settings.builder()
                         .put("plugins.content_manager.catalog.update_on_start", false)
                         .put("plugins.content_manager.catalog.update_on_schedule", false)
+                        .put(
+                                "plugins.content_manager.catalog.ruleset",
+                                "https://cti.example/api/v1/catalog/contexts/c1/consumers/rules")
+                        .put(
+                                "plugins.content_manager.catalog.iocs",
+                                "https://cti.example/api/v1/catalog/contexts/c2/consumers/iocs")
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/c3/consumers/vulns")
                         .build();
 
         PluginSettings pluginSettings = PluginSettings.getInstance(settings);
@@ -93,6 +107,15 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // Verify custom values
         Assert.assertFalse(pluginSettings.isUpdateOnStart());
         Assert.assertFalse(pluginSettings.isUpdateOnSchedule());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/c1/consumers/rules",
+                pluginSettings.getCatalogRuleset());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/c2/consumers/iocs",
+                pluginSettings.getCatalogIocs());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/c3/consumers/vulns",
+                pluginSettings.getCatalogVulnerabilities());
     }
 
     /** Tests that getUserAgent returns the fallback value when no version has been set. */
@@ -121,6 +144,16 @@ public class PluginSettingsTests extends OpenSearchTestCase {
 
         pluginSettings.setVersion("5.0.0");
         Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
+    }
+
+    /** Tests extraction of context and consumer values from a CTI catalog consumer URL. */
+    public void testCatalogUriPartsExtraction() {
+        String uri = "https://cti.example/api/v1/catalog/contexts/my-context/consumers/my-consumer";
+
+        Assert.assertEquals("my-context", PluginSettings.getContextFromCatalogUri(uri));
+        Assert.assertEquals("my-consumer", PluginSettings.getConsumerFromCatalogUri(uri));
+        Assert.assertEquals("", PluginSettings.getContextFromCatalogUri(""));
+        Assert.assertEquals("", PluginSettings.getConsumerFromCatalogUri("invalid-uri"));
     }
 
     /** Tests that accessToken is null by default. */

@@ -55,7 +55,7 @@ public class Unzip {
                 zipInputStream.closeEntry();
             }
         }
-        log.info("[{}] unzipped to [{}]", source.toString(), destination.toString());
+        log.info("[{}] unzipped to [{}]", source.getFileName().toString(), destination.toString());
     }
 
     /**

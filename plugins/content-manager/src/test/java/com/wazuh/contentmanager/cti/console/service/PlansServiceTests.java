@@ -18,12 +18,14 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -54,22 +56,20 @@ public class PlansServiceTests extends OpenSearchTestCase {
     private PlansService plansService;
     @Mock private ApiClient mockClient;
 
+    @SuppressForbidden(reason = "Unit test reset")
+    private static void clearPluginSettingsInstance() throws Exception {
+        Field f = PluginSettings.class.getDeclaredField("INSTANCE");
+        f.setAccessible(true);
+        f.set(null, null);
+    }
+
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-
-        try {
-            PluginSettings.getInstance(Settings.EMPTY);
-        } catch (IllegalStateException e) {
-            // Already initialized
-        }
-
-        // Mock CTI Console API Client
+        clearPluginSettingsInstance();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.mockClient = mock(ApiClient.class);
-
-        // Create service and replace its client with the mock
-        // Note: This creates a real ApiClient internally first, which needs to be closed
         this.plansService = new PlansServiceImpl();
         this.plansService.setClient(this.mockClient);
     }
@@ -77,11 +77,11 @@ public class PlansServiceTests extends OpenSearchTestCase {
     @Override
     @After
     public void tearDown() throws Exception {
-        super.tearDown();
-        // Close the service to properly shut down the HTTP client
         if (this.plansService != null) {
             this.plansService.close();
         }
+        clearPluginSettingsInstance();
+        super.tearDown();
     }
 
     /**
@@ -249,5 +249,59 @@ public class PlansServiceTests extends OpenSearchTestCase {
         Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("anyToken", "Bearer"));
 
         Assert.assertNull("Should return null on API error code", plan);
+    }
+
+    /** getPlan() when accessToken is set must delegate to getMyPlan(). */
+    public void testGetPlanWhenRegistered()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        PluginSettings.getInstance().setAccessToken("test-bearer-token");
+
+        // spotless:off
+        String response = """
+            {
+              "name": "env-01",
+              "organization": { "name": "Acme" },
+              "plans": [
+                { "name": "Premium Plan", "is_public": false, "features": [] }
+              ]
+            }""";
+        // spotless:on
+        when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Plan plan = this.plansService.getPlan();
+
+        Assert.assertNotNull(plan);
+        Assert.assertEquals("Premium Plan", plan.getName());
+        verify(this.mockClient, times(1)).getEnvironmentMe(any(Token.class));
+        verify(this.mockClient, times(0)).getCatalogPlans();
+    }
+
+    /** getPlan() when accessToken is null must delegate to getPublicPlan(). */
+    public void testGetPlanWhenUnregistered()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        // accessToken is null by default after setUp()
+
+        // spotless:off
+        String response = """
+            {
+              "plans": [
+                { "name": "Free", "is_public": true, "features": [] }
+              ]
+            }""";
+        // spotless:on
+        when(this.mockClient.getCatalogPlans())
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        Plan plan = this.plansService.getPlan();
+
+        Assert.assertNotNull(plan);
+        Assert.assertTrue(plan.isPublic());
+        verify(this.mockClient, times(1)).getCatalogPlans();
+        verify(this.mockClient, times(0)).getEnvironmentMe(any(Token.class));
     }
 }

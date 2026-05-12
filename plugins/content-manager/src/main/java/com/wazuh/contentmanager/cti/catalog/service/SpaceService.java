@@ -169,7 +169,7 @@ public class SpaceService {
             policy.setTitle(title);
             policy.setDescription(title);
             policy.setAuthor("Custom");
-            policy.setRootDecoder("");
+            policy.setRootDecoder(null);
             policy.setDocumentation("");
             policy.setIntegrations(Collections.emptyList());
             policy.setFilters(Collections.emptyList());
@@ -728,7 +728,7 @@ public class SpaceService {
             }
 
             SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(5);
+            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(10000);
             SearchResponse response = this.client.search(searchRequest).actionGet();
 
             BulkRequest bulkUpdateRequest = new BulkRequest();
@@ -922,5 +922,46 @@ public class SpaceService {
             log.error("Failed to retrieve valid enrichment types from IOC index: {}", e.getMessage());
         }
         return knownEnrichmentTypes;
+    }
+
+    /**
+     * Returns {@code true} when the given space already contains at least one document in any of the
+     * engine-related indices (decoders, kvdbs, filters).
+     *
+     * <p>Used by the promote action to determine whether the engine must be invoked even when the
+     * promotion changeset carries no engine resources — because the resulting destination space will
+     * still contain engine resources from prior promotions.
+     *
+     * <p>Each index is queried with a single-hit term search (size=1) so the cost is at most three
+     * cheap reads regardless of the number of documents in the space.
+     *
+     * @param space The target space to check.
+     * @return true if the space holds at least one decoder, kvdb, or filter.
+     */
+    public boolean hasEngineResources(Space space) {
+        for (String index :
+                List.of(Constants.INDEX_DECODERS, Constants.INDEX_KVDBS, Constants.INDEX_FILTERS)) {
+            try {
+                if (!this.client.admin().indices().prepareExists(index).get().isExists()) {
+                    continue;
+                }
+                SearchRequest searchRequest = new SearchRequest(index);
+                searchRequest
+                        .source()
+                        .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()))
+                        .size(1);
+                SearchResponse response = this.client.search(searchRequest).actionGet();
+                if (response.getHits().getTotalHits().value() > 0) {
+                    return true;
+                }
+            } catch (Exception e) {
+                log.warn(
+                        "Failed to check engine resources in space [{}] index [{}]: {}",
+                        space,
+                        index,
+                        e.getMessage());
+            }
+        }
+        return false;
     }
 }

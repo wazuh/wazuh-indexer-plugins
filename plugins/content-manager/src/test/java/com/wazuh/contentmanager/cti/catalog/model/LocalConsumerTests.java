@@ -27,30 +27,48 @@ public class LocalConsumerTests extends OpenSearchTestCase {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /** Tests that the two-arg constructor sets status to IDLE by default. */
+    /** Tests that the metadata constructor sets status to IDLE by default. */
     public void testDefaultStatusIsIdle() {
-        LocalConsumer consumer = new LocalConsumer("ctx", "name");
+        LocalConsumer consumer =
+                new LocalConsumer("ctx", "name", "cti:catalog:consumer:ruleset", "https://cti/rules", true);
         Assert.assertEquals(LocalConsumer.Status.IDLE, consumer.getStatus());
     }
 
-    /** Tests that the five-arg constructor sets status to IDLE by default. */
-    public void testFiveArgConstructorDefaultStatusIsIdle() {
-        LocalConsumer consumer = new LocalConsumer("ctx", "name", 10L, 20L, "http://snapshot");
-        Assert.assertEquals(LocalConsumer.Status.IDLE, consumer.getStatus());
-    }
-
-    /** Tests that the six-arg constructor sets the provided status. */
-    public void testSixArgConstructorSetsStatus() {
+    /** Tests that the offsets constructor sets status to IDLE by default. */
+    public void testOffsetsConstructorDefaultStatusIsIdle() {
         LocalConsumer consumer =
                 new LocalConsumer(
-                        "ctx", "name", LocalConsumer.Status.UPDATING, 10L, 20L, "http://snapshot");
+                        "ctx", "name", "cti:catalog:consumer:ruleset", "https://cti/rules", false, 10L, 20L);
+        Assert.assertEquals(LocalConsumer.Status.IDLE, consumer.getStatus());
+    }
+
+    /** Tests that the status constructor sets the provided status. */
+    public void testStatusConstructorSetsStatus() {
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        "ctx",
+                        "name",
+                        "cti:catalog:consumer:ruleset",
+                        "https://cti/rules",
+                        true,
+                        LocalConsumer.Status.UPDATING,
+                        10L,
+                        20L);
         Assert.assertEquals(LocalConsumer.Status.UPDATING, consumer.getStatus());
     }
 
     /** Tests that toXContent serializes the status field. */
     public void testToXContentIncludesStatus() throws Exception {
         LocalConsumer consumer =
-                new LocalConsumer("ctx", "name", LocalConsumer.Status.UPDATING, 5L, 10L, "http://snap");
+                new LocalConsumer(
+                        "ctx",
+                        "name",
+                        "cti:catalog:consumer:ruleset",
+                        "https://cti/rules",
+                        true,
+                        LocalConsumer.Status.UPDATING,
+                        5L,
+                        10L);
         XContentBuilder builder = consumer.toXContent();
         String json = builder.toString();
 
@@ -63,7 +81,9 @@ public class LocalConsumerTests extends OpenSearchTestCase {
     public void testStatusDeserializationIdle() throws Exception {
         String json =
                 "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"idle\","
-                        + "\"local_offset\":0,\"remote_offset\":0,\"snapshot_link\":\"\"}";
+                        + "\"type\":\"cti:catalog:consumer:iocs\","
+                        + "\"resource\":\"https://cti/iocs\",\"is_public\":true,"
+                        + "\"local_offset\":0,\"remote_offset\":0}";
         LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
         Assert.assertEquals(LocalConsumer.Status.IDLE, consumer.getStatus());
     }
@@ -72,7 +92,9 @@ public class LocalConsumerTests extends OpenSearchTestCase {
     public void testStatusDeserializationUpdating() throws Exception {
         String json =
                 "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"updating\","
-                        + "\"local_offset\":0,\"remote_offset\":0,\"snapshot_link\":\"\"}";
+                        + "\"type\":\"cti:catalog:consumer:iocs\","
+                        + "\"resource\":\"https://cti/iocs\",\"is_public\":true,"
+                        + "\"local_offset\":0,\"remote_offset\":0}";
         LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
         Assert.assertEquals(LocalConsumer.Status.UPDATING, consumer.getStatus());
     }
@@ -81,7 +103,9 @@ public class LocalConsumerTests extends OpenSearchTestCase {
     public void testLegacyDocumentWithoutStatusDeserializesSuccessfully() throws Exception {
         String json =
                 "{\"name\":\"name\",\"context\":\"ctx\","
-                        + "\"local_offset\":5,\"remote_offset\":10,\"snapshot_link\":\"http://snap\"}";
+                        + "\"type\":\"cti:catalog:consumer:iocs\","
+                        + "\"resource\":\"https://cti/iocs\",\"is_public\":true,"
+                        + "\"local_offset\":5,\"remote_offset\":10}";
         LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
         Assert.assertNull(
                 "status should be null for legacy documents without the field", consumer.getStatus());
