@@ -92,6 +92,10 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
      */
     public void testSetConsumer_Success() throws Exception {
         // Mock
+        when(this.client.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
+                .thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+
         when(this.client
                         .admin()
                         .cluster()
@@ -133,6 +137,10 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
     /** Tests that setConsumer throws a RuntimeException if the cluster status is RED. */
     public void testSetConsumer_IndexNotReady() {
         // Mock
+        when(this.client.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
+                .thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+
         when(this.client
                         .admin()
                         .cluster()
@@ -163,6 +171,10 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
      */
     public void testGetConsumer_Success() throws Exception {
         // Mock
+        when(this.client.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
+                .thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+
         when(this.client
                         .admin()
                         .cluster()
@@ -248,6 +260,10 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
      */
     public void testGetConsumer_IndexNotReady_TimedOut() {
         // Mock
+        when(this.client.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
+                .thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+
         when(this.client
                         .admin()
                         .cluster()

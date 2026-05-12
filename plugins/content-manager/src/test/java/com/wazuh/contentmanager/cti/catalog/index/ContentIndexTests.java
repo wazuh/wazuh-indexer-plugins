@@ -497,4 +497,28 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(INDEX_NAME, createRequest.index());
         Assert.assertTrue(createRequest.settings().getAsBoolean("index.hidden", false));
     }
+
+    /** Test clear() preserves a non-hidden index setting when index is recreated. */
+    public void testClear_PreservesNonHiddenSettingOnRecreate() {
+        when(this.client.admin().indices().prepareExists(INDEX_NAME).get().isExists()).thenReturn(true);
+        when(this.client
+                        .admin()
+                        .indices()
+                        .prepareGetSettings(INDEX_NAME)
+                        .get()
+                        .getSetting(INDEX_NAME, "index.hidden"))
+                .thenReturn("false");
+
+        this.contentIndex.clear();
+
+        verify(this.client.admin().indices()).delete(any(DeleteIndexRequest.class));
+
+        ArgumentCaptor<CreateIndexRequest> createCaptor =
+                ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.client.admin().indices()).create(createCaptor.capture());
+
+        CreateIndexRequest createRequest = createCaptor.getValue();
+        Assert.assertEquals(INDEX_NAME, createRequest.index());
+        Assert.assertFalse(createRequest.settings().getAsBoolean("index.hidden", true));
+    }
 }
