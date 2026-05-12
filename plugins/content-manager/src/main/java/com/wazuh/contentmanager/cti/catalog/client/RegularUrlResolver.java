@@ -20,10 +20,10 @@ package com.wazuh.contentmanager.cti.catalog.client;
  * A no-op URL resolver that returns the original URL unchanged. Used for non-registered
  * environments where CTI content is accessed via regular HTTP requests without authentication.
  */
-public class IdentityUrlResolver implements ResourceUrlResolver {
+public class RegularUrlResolver implements ResourceUrlResolver {
 
     /** Default constructor. */
-    public IdentityUrlResolver() {}
+    public RegularUrlResolver() {}
 
     @Override
     public String resolve(String originalUrl) {

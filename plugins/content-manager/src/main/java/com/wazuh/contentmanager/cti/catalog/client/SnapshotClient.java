@@ -59,12 +59,12 @@ public class SnapshotClient {
     }
 
     /**
-     * Constructs a SnapshotClient with an identity URL resolver.
+     * Constructs a SnapshotClient with an regular URL resolver.
      *
      * @param env node's environment.
      */
     public SnapshotClient(Environment env) {
-        this(env, new IdentityUrlResolver());
+        this(env, new RegularUrlResolver());
     }
 
     /***

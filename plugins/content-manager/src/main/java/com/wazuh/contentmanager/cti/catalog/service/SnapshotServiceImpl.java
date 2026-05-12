@@ -37,7 +37,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.cti.catalog.client.IdentityUrlResolver;
+import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -93,7 +93,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Constructs a new SnapshotServiceImpl with an identity URL resolver.
+     * Constructs a new SnapshotServiceImpl with an regular URL resolver.
      *
      * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
@@ -105,7 +105,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
-        this(consumerType, indicesMap, consumersIndex, environment, new IdentityUrlResolver());
+        this(consumerType, indicesMap, consumersIndex, environment, new RegularUrlResolver());
     }
 
     /**

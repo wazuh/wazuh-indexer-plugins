@@ -68,9 +68,9 @@ public class ApiClient {
         this.buildClient();
     }
 
-    /** Constructs an ApiClient instance with an identity URL resolver. */
+    /** Constructs an ApiClient instance with an regular URL resolver. */
     public ApiClient() {
-        this(new IdentityUrlResolver());
+        this(new RegularUrlResolver());
     }
 
     /**

@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
-import com.wazuh.contentmanager.cti.catalog.client.IdentityUrlResolver;
+import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SignedUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -432,8 +432,8 @@ public abstract class AbstractConsumerService {
                             new TokenExchangeServiceImpl(),
                             PluginSettings.getInstance().getAccessToken());
         } else {
-            log.debug("Non-registered environment for consumer [{}]. Using identity URL resolver.", consumerType);
-            urlResolver = new IdentityUrlResolver();
+            log.debug("Non-registered environment for consumer [{}]. Using regular URL resolver.", consumerType);
+            urlResolver = new RegularUrlResolver();
         }
 
         ConsumerService consumerService =

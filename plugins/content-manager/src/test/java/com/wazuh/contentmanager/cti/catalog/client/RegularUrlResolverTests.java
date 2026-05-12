@@ -20,14 +20,14 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 
 /**
- * Unit tests for {@link IdentityUrlResolver}. Verifies that the resolver returns the original URL
+ * Unit tests for {@link RegularUrlResolver}. Verifies that the resolver returns the original URL
  * unchanged.
  */
-public class IdentityUrlResolverTests extends OpenSearchTestCase {
+public class RegularUrlResolverTests extends OpenSearchTestCase {
 
     /** Tests that resolve returns the exact same URL that was passed in. */
     public void testResolveReturnsOriginalUrl() {
-        IdentityUrlResolver resolver = new IdentityUrlResolver();
+        RegularUrlResolver resolver = new RegularUrlResolver();
         String url = "https://cti.wazuh.com/catalog/contexts/wazuh/consumers/ruleset";
 
         Assert.assertEquals(url, resolver.resolve(url));
@@ -35,7 +35,7 @@ public class IdentityUrlResolverTests extends OpenSearchTestCase {
 
     /** Tests that resolve handles a URL with query parameters. */
     public void testResolvePreservesQueryParameters() {
-        IdentityUrlResolver resolver = new IdentityUrlResolver();
+        RegularUrlResolver resolver = new RegularUrlResolver();
         String url =
                 "https://cti.wazuh.com/catalog/contexts/wazuh/consumers/ruleset/changes?from_offset=0&to_offset=100";
 
@@ -44,7 +44,7 @@ public class IdentityUrlResolverTests extends OpenSearchTestCase {
 
     /** Tests that resolve handles null input without transformation. */
     public void testResolveWithNull() {
-        IdentityUrlResolver resolver = new IdentityUrlResolver();
+        RegularUrlResolver resolver = new RegularUrlResolver();
 
         Assert.assertNull(resolver.resolve(null));
     }
