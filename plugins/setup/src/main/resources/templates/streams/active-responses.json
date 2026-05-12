@@ -1012,8 +1012,7 @@
                       }
                     },
                     "confidence": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      "type": "short"
                     },
                     "description": {
                       "ignore_above": 1024,
