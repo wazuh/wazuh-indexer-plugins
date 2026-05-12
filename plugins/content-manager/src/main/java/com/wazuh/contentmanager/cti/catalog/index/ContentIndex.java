@@ -438,7 +438,8 @@ public class ContentIndex {
             CreateIndexRequest createRequest = new CreateIndexRequest(this.indexName);
             createRequest.settings(Settings.builder().put("index.hidden", isHidden));
             this.client.admin().indices().create(createRequest).actionGet();
-            log.debug("[{}] wiped and recreated via template (index.hidden={})", this.indexName, isHidden);
+            log.debug(
+                    "[{}] wiped and recreated via template (index.hidden={})", this.indexName, isHidden);
         } catch (Exception e) {
             log.error("[{}] clear() failed: {}", this.indexName, e.getMessage());
         }
