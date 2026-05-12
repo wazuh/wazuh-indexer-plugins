@@ -160,7 +160,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-threatintel-decoders", "templates/content/decoders"));
         this.indices.add(new StateIndex("wazuh-threatintel-rules", "templates/content/rules"));
         this.indices.add(new StateIndex("wazuh-threatintel-kvdbs", "templates/content/kvdbs"));
-        this.indices.add(new StateIndex(".wazuh-threatintel-vulnerabilities", "templates/content/vulnerabilities"));
+        this.indices.add(new StateIndex(".wazuh-threatintel-vulnerabilities", "templates/content/vulnerabilities", true));
 
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");

@@ -30,9 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
