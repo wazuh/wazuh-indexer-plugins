@@ -18,7 +18,7 @@
           "wazuh.schema.version"
         ]
       },
-      "mapping.total_fields.limit": 500
+      "mapping.total_fields.limit": 1000
     }
   }
 }

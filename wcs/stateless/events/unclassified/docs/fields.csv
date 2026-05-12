@@ -291,7 +291,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.group.reference,keyword,extended,,https://attack.mitre.org/groups/G0037/,Reference URL of the group.
 9.1.0,true,wazuh,wazuh.threat.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,wazuh,wazuh.threat.indicator.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,wazuh,wazuh.threat.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
+9.1.0,true,wazuh,wazuh.threat.indicator.confidence,short,custom,,Medium,Indicator confidence rating
 9.1.0,true,wazuh,wazuh.threat.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
 9.1.0,true,wazuh,wazuh.threat.indicator.email.address,keyword,extended,,phish@example.com,Indicator email address
 9.1.0,true,wazuh,wazuh.threat.indicator.file.accessed,date,extended,,,Last time the file was accessed.

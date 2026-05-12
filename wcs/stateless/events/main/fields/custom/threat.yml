@@ -11,6 +11,11 @@
     Fields to classify and describe threats.
   type: group
   fields:
+    - name: indicator.confidence
+      type: short
+      level: custom
+      description: >
+        Indicator confidence rating.
     - name: enrichments
       type: nested
       level: extended
