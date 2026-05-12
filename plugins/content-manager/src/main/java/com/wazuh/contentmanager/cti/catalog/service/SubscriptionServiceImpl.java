@@ -45,7 +45,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public Plan getPlan() {
-        String accessToken = this.getAccessTokenLoaded();
+        String accessToken = this.getAccessToken();
         if (accessToken != null) {
             Plan plan = this.plansService.getMyPlan(new Token(accessToken, "Bearer"));
             if (plan != null) {
@@ -64,12 +64,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     /**
-     * Ensures the in-memory access token is populated. If the token is already loaded, returns it
-     * immediately. Otherwise, attempts a single read from the credentials index.
+     * Retrieves the access token. The method ensures the in-memory access token is populated. If the
+     * token is already loaded, returns it immediately. Otherwise, attempts a single read from the
+     * credentials index.
      *
      * @return the access token, or null if no token is stored.
      */
-    private String getAccessTokenLoaded() {
+    private String getAccessToken() {
         String accessToken = PluginSettings.getInstance().getAccessToken();
         if (accessToken != null) {
             return accessToken;
