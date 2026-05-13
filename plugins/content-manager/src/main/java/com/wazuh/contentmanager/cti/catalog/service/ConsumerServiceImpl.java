@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
@@ -54,18 +55,24 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      * @param consumerType The consumer type identifier used as local document id.
      * @param resource The full catalog consumer URL used for remote requests.
      * @param consumerIndex The index service for storing consumer metadata.
+     * @param client The API client to use for remote requests.
      */
     public ConsumerServiceImpl(
             String context,
             String consumer,
             String consumerType,
             String resource,
-            ConsumersIndex consumerIndex) {
+            ConsumersIndex consumerIndex,
+            ApiClient client) {
         this.context = context;
         this.consumer = consumer;
         this.consumerType = consumerType;
         this.resource = resource;
         this.consumerIndex = consumerIndex;
+        if (this.client != null) {
+            this.client.close();
+        }
+        this.client = client;
     }
 
     /**

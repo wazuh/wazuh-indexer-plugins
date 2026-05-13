@@ -45,14 +45,26 @@ public class SnapshotClient {
 
     private static final Logger log = LogManager.getLogger(SnapshotClient.class);
     private final Environment env;
+    private final ResourceUrlResolver urlResolver;
 
     /**
-     * Default constructor.
+     * Constructs a SnapshotClient with a URL resolver.
      *
-     * @param env node's environment
+     * @param env node's environment.
+     * @param urlResolver the resolver used to transform resource URLs before making HTTP requests.
+     */
+    public SnapshotClient(Environment env, ResourceUrlResolver urlResolver) {
+        this.env = env;
+        this.urlResolver = urlResolver;
+    }
+
+    /**
+     * Constructs a SnapshotClient with an regular URL resolver.
+     *
+     * @param env node's environment.
      */
     public SnapshotClient(Environment env) {
-        this.env = env;
+        this(env, new RegularUrlResolver());
     }
 
     /***
@@ -70,7 +82,7 @@ public class SnapshotClient {
         try (CloseableHttpClient client =
                 HttpClients.custom().setDefaultHeaders(defaultHeaders).build()) {
             // Setup
-            final URI uri = new URI(snapshotURI);
+            final URI uri = new URI(this.urlResolver.resolve(snapshotURI));
             final HttpGet request = new HttpGet(uri);
             final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
             final Path path = this.env.tmpDir().resolve(filename);

@@ -184,4 +184,39 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         pluginSettings.setAccessToken(null);
         Assert.assertNull(pluginSettings.getAccessToken());
     }
+
+    /** Tests that isRegistered returns false when no token is set. */
+    public void testIsRegisteredReturnsFalseByDefault() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns true when a valid token is set. */
+    public void testIsRegisteredReturnsTrueWithToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("some-token");
+        Assert.assertTrue(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns false after the token is cleared. */
+    public void testIsRegisteredReturnsFalseAfterClear() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("some-token");
+        pluginSettings.setAccessToken(null);
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns false when the token is blank. */
+    public void testIsRegisteredReturnsFalseWithBlankToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("   ");
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns false when the token is an empty string. */
+    public void testIsRegisteredReturnsFalseWithEmptyToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("");
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
 }

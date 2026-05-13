@@ -302,6 +302,16 @@ public class PluginSettings {
     }
 
     /**
+     * Returns whether this instance is registered in the Wazuh CTI Platform. A registered instance
+     * has a non-null, non-blank access token.
+     *
+     * @return true if the instance is registered, false otherwise.
+     */
+    public boolean isRegistered() {
+        return this.accessToken != null && !this.accessToken.isBlank();
+    }
+
+    /**
      * Sets the version of Wazuh. Should be called once during plugin initialization.
      *
      * @param version the Wazuh version string (e.g., "5.0.0").
