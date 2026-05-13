@@ -98,6 +98,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     @Override
+    protected boolean hasUserContent() {
+        return true;
+    }
+
+    @Override
     protected String getSnapshotFilename() {
         return Constants.CONTENT_SNAPSHOT_FILENAME;
     }
@@ -115,6 +120,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
         mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
         mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
+        mappings.put(Constants.KEY_FILTER, "/mappings/cti-filters-mappings.json");
         return mappings;
     }
 
