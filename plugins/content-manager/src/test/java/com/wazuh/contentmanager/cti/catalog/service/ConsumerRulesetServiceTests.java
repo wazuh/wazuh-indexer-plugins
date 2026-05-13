@@ -69,7 +69,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         Map<String, String> mappings = this.synchronizer.getMappings();
 
         Assert.assertNotNull(mappings);
-        Assert.assertEquals(5, mappings.size());
+        Assert.assertEquals(6, mappings.size());
         Assert.assertEquals("/mappings/cti-rules-mappings.json", mappings.get("rule"));
         Assert.assertEquals("/mappings/cti-decoders-mappings.json", mappings.get("decoder"));
         Assert.assertEquals("/mappings/cti-kvdbs-mappings.json", mappings.get("kvdb"));
