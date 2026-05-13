@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequest;
@@ -67,53 +68,110 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
+    /** The first physical suffix used when creating alias-backed indices. */
+    public static final String SUFFIX_A = "-a";
+
+    /** The second physical suffix, used as the shadow slot during blue/green swaps. */
+    public static final String SUFFIX_B = "-b";
+
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
+
+    /**
+     * The public alias name (e.g., {@code "wazuh-threatintel-rules"}). All read operations use this
+     * name so they transparently resolve through the alias.
+     */
     private final String indexName;
+
+    /**
+     * The physical index name targeted by write operations (e.g., {@code
+     * "wazuh-threatintel-rules-a"}). For normal (non-shadow) instances this is {@code indexName +
+     * SUFFIX_A}; for shadow instances it is the alternate suffix.
+     */
+    private final String physicalName;
+
     private final String mappingsPath;
     private final ObjectMapper mapper;
 
     /**
-     * Constructor for existing indices where mapping path isn't immediately required.
+     * Constructor for existing indices where mapping path isn't immediately required. Reads and
+     * writes go through the alias name.
      *
      * @param client The OpenSearch client.
-     * @param indexName The name of the index.
+     * @param indexName The public alias name of the index.
      */
     public ContentIndex(Client client, String indexName) {
         this(client, indexName, null);
     }
 
     /**
-     * Constructs a new ContentIndex manager.
+     * Constructs a new ContentIndex manager. The physical index defaults to {@code indexName +
+     * SUFFIX_A}.
      *
      * @param client The OpenSearch client used to communicate with the cluster.
-     * @param indexName The name of the index to manage.
+     * @param indexName The public alias name of the index.
      * @param mappingsPath The classpath resource path to the JSON mapping file.
      */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
+        this(client, indexName, indexName + SUFFIX_A, mappingsPath);
+    }
+
+    /**
+     * Constructs a ContentIndex targeting a specific physical index name. Used during blue/green
+     * swaps to write into shadow indices.
+     *
+     * @param client The OpenSearch client.
+     * @param indexName The public alias name (used for reads and payload processing).
+     * @param physicalName The concrete physical index name (used for writes and index creation).
+     * @param mappingsPath The classpath resource path to the JSON mapping file.
+     */
+    public ContentIndex(Client client, String indexName, String physicalName, String mappingsPath) {
         this.pluginSettings = PluginSettings.getInstance();
         this.semaphore = new Semaphore(this.pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
         this.indexName = indexName;
+        this.physicalName = physicalName;
         this.mappingsPath = mappingsPath;
         this.mapper = new ObjectMapper();
         this.mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
 
     /**
-     * Returns the name of the index managed by this instance.
+     * Returns the public alias name of the index managed by this instance.
      *
-     * @return The index name.
+     * @return The alias name.
      */
     public String getIndexName() {
         return this.indexName;
     }
 
     /**
+     * Returns the physical index name targeted by write operations.
+     *
+     * @return The physical index name (e.g., {@code "wazuh-threatintel-rules-a"}).
+     */
+    public String getPhysicalName() {
+        return this.physicalName;
+    }
+
+    /**
      * Creates the index in OpenSearch using the configured mappings and settings.
      *
      * <p>Applies specific settings (replicas=0) and registers an alias if one is defined.
+     *
+     * @return The response from the create index operation, or null if mappings could not be read.
+     * @throws ExecutionException If the client execution fails.
+     * @throws InterruptedException If the thread is interrupted while waiting.
+     * @throws TimeoutException If the operation exceeds the client timeout setting.
+     */
+    /**
+     * Creates the physical index in OpenSearch with the configured mappings and settings, and assigns
+     * the public alias to it.
+     *
+     * <p>The physical index is created using {@link #physicalName} (e.g., {@code
+     * "wazuh-threatintel-rules-a"}) and the alias {@link #indexName} (e.g., {@code
+     * "wazuh-threatintel-rules"}) is pointed at it with {@code is_write_index: true}.
      *
      * @return The response from the create index operation, or null if mappings could not be read.
      * @throws ExecutionException If the client execution fails.
@@ -133,27 +191,103 @@ public class ContentIndex {
         }
         Settings settings = settingsBuilder.build();
 
-        String mappings;
+        String mappings = this.readMappings();
+        if (mappings == null) {
+            return null;
+        }
+
+        CreateIndexRequest request =
+                new CreateIndexRequest().index(this.physicalName).mapping(mappings).settings(settings);
+
+        CreateIndexResponse response =
+                this.client
+                        .admin()
+                        .indices()
+                        .create(request)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+        // Assign the public alias to the newly created physical index.
+        if (response.isAcknowledged()) {
+            IndicesAliasesRequest aliasRequest =
+                    new IndicesAliasesRequest()
+                            .addAliasAction(
+                                    IndicesAliasesRequest.AliasActions.add()
+                                            .index(this.physicalName)
+                                            .alias(this.indexName)
+                                            .writeIndex(true));
+            this.client
+                    .admin()
+                    .indices()
+                    .aliases(aliasRequest)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            log.info(
+                    "Index [{}] created with alias [{}] (write_index=true)",
+                    this.physicalName,
+                    this.indexName);
+        }
+
+        return response;
+    }
+
+    /**
+     * Creates a hidden shadow physical index without an alias. Used during blue/green swaps to
+     * prepare the staging slot. The index is hidden so its partial contents are not exposed via
+     * {@code _cat/indices}, Dashboards, or wildcard queries during the rebuild window.
+     *
+     * @return The response from the create index operation, or null if mappings could not be read.
+     * @throws ExecutionException If the client execution fails.
+     * @throws InterruptedException If the thread is interrupted while waiting.
+     * @throws TimeoutException If the operation exceeds the client timeout setting.
+     */
+    public CreateIndexResponse createShadowIndex()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        if (this.mappingsPath == null) {
+            log.error("Cannot create shadow index [{}]: Mappings path not provided.", this.physicalName);
+            return null;
+        }
+
+        Settings settings =
+                Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
+
+        String mappings = this.readMappings();
+        if (mappings == null) {
+            return null;
+        }
+
+        CreateIndexRequest request =
+                new CreateIndexRequest().index(this.physicalName).mapping(mappings).settings(settings);
+
+        CreateIndexResponse response =
+                this.client
+                        .admin()
+                        .indices()
+                        .create(request)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+        if (response.isAcknowledged()) {
+            log.info("Shadow index [{}] created (hidden, no alias)", this.physicalName);
+        }
+
+        return response;
+    }
+
+    /**
+     * Reads the JSON mappings from the classpath resource.
+     *
+     * @return The mappings string, or null if the file could not be read.
+     */
+    private String readMappings() {
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
             if (is == null) {
                 log.error(
                         "Could not find mappings file [{}] for index [{}]", this.mappingsPath, this.indexName);
                 return null;
             }
-            mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("Could not read mappings for index [{}]: {}", this.indexName, e.getMessage());
             return null;
         }
-
-        CreateIndexRequest request =
-                new CreateIndexRequest().index(this.indexName).mapping(mappings).settings(settings);
-
-        return this.client
-                .admin()
-                .indices()
-                .create(request)
-                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
@@ -411,19 +545,23 @@ public class ContentIndex {
         this.semaphore.release(permits);
     }
 
-    /** Deletes all documents in the index by deleting and recreating it. */
+    /**
+     * Deletes all documents in the index by deleting the physical index and recreating it with the
+     * alias.
+     */
     public void clear() {
         if (this.mappingsPath == null) {
             log.error("Cannot clear index [{}]: mappings path not set.", this.indexName);
             return;
         }
         try {
-            boolean exists = this.client.admin().indices().prepareExists(this.indexName).get().isExists();
+            boolean exists =
+                    this.client.admin().indices().prepareExists(this.physicalName).get().isExists();
             if (exists) {
-                this.client.admin().indices().prepareDelete(this.indexName).get();
+                this.client.admin().indices().prepareDelete(this.physicalName).get();
             }
             this.createIndex();
-            log.debug("[{}] wiped and recreated", this.indexName);
+            log.debug("[{}] wiped and recreated (physical: [{}])", this.indexName, this.physicalName);
         } catch (Exception e) {
             log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
         }
