@@ -101,6 +101,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement GET /platform/environments/me API service [(#1134)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1134)
 - Implement token exchange service [(#1130)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1130)
 - Implement catalog plans service [(#1135)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1135)
+- Add index swap mechanism [(#1165)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1165)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
