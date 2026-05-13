@@ -356,6 +356,20 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(INDEX_NAME, indexName);
     }
 
+    /** Test that the default constructor sets physicalName to indexName + SUFFIX_A. */
+    public void testDefaultPhysicalName() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias", idx.getIndexName());
+        Assert.assertEquals("test-alias" + ContentIndex.SUFFIX_A, idx.getPhysicalName());
+    }
+
+    /** Test that the 4-arg constructor allows targeting a specific physical name. */
+    public void testCustomPhysicalName() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", "test-alias-b", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias", idx.getIndexName());
+        Assert.assertEquals("test-alias-b", idx.getPhysicalName());
+    }
+
     /**
      * Test that creating a resource produces the expected JSON schema. Validates that the indexed
      * document contains the required keys: document, hash, and space.
