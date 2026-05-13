@@ -141,35 +141,21 @@ public class Resource {
             Resource.nestMetadataFields(rawDoc);
 
             resource.setDocument(rawDoc);
-
-            // 2. Calculate Hash
-            String hashStr = Resource.computeSha256(rawDoc.toString());
-            if (!hashStr.isEmpty()) {
-                Map<String, String> hashMap = new HashMap<>();
-                hashMap.put("sha256", hashStr);
-                resource.setHash(hashMap);
-            }
         }
-        // 3. Set Space if not present in resource payload
+        // 2. Set Space if not present in resource payload
         this.populateSpaceObject(resource, payload);
     }
 
     private void populateSpaceObject(Resource resource, JsonNode payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
-        Map<String, String> hashMap = new HashMap<>();
-        hashMap.put(Constants.KEY_SHA256, "");
         if (payload.has("space") && payload.get("space").isObject()) {
             JsonNode spaceObj = payload.get("space");
             if (spaceObj.has("name")) {
                 spaceName = spaceObj.get("name").asText();
             }
-            if (spaceObj.has("hash") && spaceObj.get("hash").isObject()) {
-                hashMap = MAPPER.convertValue(spaceObj.get("hash"), Map.class);
-            }
         }
         spaceMap.put("name", spaceName);
-        spaceMap.put("hash", hashMap);
         resource.setSpace(spaceMap);
     }
 
