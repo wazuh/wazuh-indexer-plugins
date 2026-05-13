@@ -206,15 +206,40 @@ Consolidation fails at step N
   → Return 500 with error message
 ```
 
+## Plan Change Handling (Blue/Green Swap)
+
+When a subscription plan changes (e.g., free → pro, or vice versa), all downloaded content must be replaced with the content matching the new plan. The Content Manager uses a **blue/green index swap** to perform this replacement without any user-visible downtime.
+
+### How it works
+
+1. **Detection.** During each sync cycle, the Content Manager compares the plan-provided catalog URL against the one stored locally. If they differ, a plan change is detected.
+2. **Shadow download.** New content is downloaded into hidden staging indices. These shadow indices are invisible to users, dashboards, and REST queries during the rebuild.
+3. **User content preservation.** Any user-created content (draft rules, test decoders, custom integrations, etc.) is copied from the live indices into the shadow indices.
+4. **Atomic switch.** Once the shadow indices are fully ready, all index aliases are swapped in a single atomic operation. Users see either the entire old content or the entire new content — never a mix or an empty state.
+5. **Cleanup.** The old indices are deleted, freeing the temporary disk space.
+
+### Failure behavior
+
+If the new content cannot be downloaded or processed (network error, source unavailable, etc.), the swap is abandoned cleanly: the staging indices are discarded, users continue to see the old content, and the system retries on the next scheduled sync. A failed swap is invisible to the end user.
+
+
 ## Index Structure
 
-Each content index (e.g., `wazuh-threatintel-rules`) stores documents from all three spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
+Each content index (e.g., `wazuh-threatintel-rules`) is backed by an **alias**. The public alias name is the stable identifier used by all queries, dashboards, and REST APIs. The actual data lives in a physical index suffixed with `-a` or `-b`:
+
+| Public alias (stable name) | Physical index (actual storage) |
+|---|---|
+| `wazuh-threatintel-rules` | `wazuh-threatintel-rules-a` or `wazuh-threatintel-rules-b` |
+
+Only one physical index is live at a time. The other is reserved as the staging slot for the next plan-change swap. Administrators and users should always address indices by their alias name — the physical suffix is an internal implementation detail.
+
+Each content index stores documents from all spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
 
 Example document structure in `wazuh-threatintel-rules`:
 
 ```json
 {
-  "_index": "wazuh-threatintel-rules",
+  "_index": "wazuh-threatintel-rules-a",
   "_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "_source": {
     "title": "SSH brute force attempt",
