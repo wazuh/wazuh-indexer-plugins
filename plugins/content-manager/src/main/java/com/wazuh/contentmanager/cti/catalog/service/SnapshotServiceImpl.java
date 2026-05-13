@@ -254,11 +254,11 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     ObjectNode processedPayload = indexHandler.processPayload(payload);
-                    String indexName = indexHandler.getIndexName();
+                    String writeIndex = indexHandler.getWriteIndex();
 
                     // Create Index Request
                     IndexRequest indexRequest =
-                            new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
+                            new IndexRequest(writeIndex).source(processedPayload.toString(), XContentType.JSON);
 
                     // Determine ID from resource/name key.
                     if (resourceName != null) {

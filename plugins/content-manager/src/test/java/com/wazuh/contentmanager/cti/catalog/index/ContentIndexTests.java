@@ -370,6 +370,18 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals("test-alias-b", idx.getPhysicalName());
     }
 
+    /** Test that getWriteIndex returns the alias for normal (default) instances. */
+    public void testGetWriteIndex_Normal() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias", idx.getWriteIndex());
+    }
+
+    /** Test that getWriteIndex returns the physical name for shadow instances. */
+    public void testGetWriteIndex_Shadow() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", "test-alias-b", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias-b", idx.getWriteIndex());
+    }
+
     /**
      * Test that creating a resource produces the expected JSON schema. Validates that the indexed
      * document contains the required keys: document, hash, and space.

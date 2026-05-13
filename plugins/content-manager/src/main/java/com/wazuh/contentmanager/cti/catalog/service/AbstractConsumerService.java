@@ -415,18 +415,44 @@ public abstract class AbstractConsumerService {
         // When the plan provides a different resource than the existing consumer, trigger a
         // blue/green swap instead of wiping live indices. The shadow path downloads into hidden
         // staging indices and atomically swaps aliases once ready.
+        //
+        // Two cases trigger a swap:
+        //   1. Upgrade: planResource is non-null and differs from existingResource.
+        //   2. Downgrade: environment is unregistered (planResource is null), but
+        //      existingResource differs from the manifest resource (free/default).
+        //      This means we were on a paid plan and need to swap back to free content.
         boolean shadowSwapRequired = false;
+        String swapTargetResource = null;
         if (planResource != null
                 && !planResource.isBlank()
                 && existingResource != null
                 && !existingResource.isBlank()
                 && !planResource.equals(existingResource)) {
+            // Case 1: Plan upgrade or cross-plan change.
             log.info(
                     "Consumer [{}] resource changed from [{}] to [{}]. Scheduling blue/green swap.",
                     consumerType,
                     existingResource,
                     planResource);
             shadowSwapRequired = true;
+            swapTargetResource = planResource;
+            catalogUri = planResource;
+        } else if ((planResource == null || planResource.isBlank())
+                && existingResource != null
+                && !existingResource.isBlank()
+                && !manifestResource.isBlank()
+                && !existingResource.equals(manifestResource)) {
+            // Case 2: Downgrade to free — existing resource is a paid URL, manifest has the
+            // free/default URL. Swap to the manifest content.
+            log.info(
+                    "Consumer [{}] downgrade detected: existing resource [{}] differs from manifest [{}]. "
+                            + "Scheduling blue/green swap to free content.",
+                    consumerType,
+                    existingResource,
+                    manifestResource);
+            shadowSwapRequired = true;
+            swapTargetResource = manifestResource;
+            catalogUri = manifestResource;
         }
         String context = PluginSettings.getContextFromCatalogUri(catalogUri);
         String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
@@ -487,7 +513,7 @@ public abstract class AbstractConsumerService {
         // swap aliases. This avoids any window where users see empty/partial data.
         if (shadowSwapRequired) {
             return this.performShadowSwap(
-                    consumerType, catalogUri, planResource, indicesMap, remoteConsumer, urlResolver);
+                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver);
         }
 
         boolean updated = false;

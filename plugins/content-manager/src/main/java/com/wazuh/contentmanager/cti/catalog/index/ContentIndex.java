@@ -156,6 +156,24 @@ public class ContentIndex {
     }
 
     /**
+     * Returns the index name to use for write operations (create, update, delete, bulk). For normal
+     * instances this is the alias name (writes through the alias resolve to the live physical index).
+     * For shadow instances (where the alias still points at the old live index) this is the physical
+     * name, so writes go directly to the shadow index.
+     *
+     * @return The index name to target for writes.
+     */
+    public String getWriteIndex() {
+        // When physicalName matches the default convention (alias + SUFFIX_A), this is a normal
+        // instance and we write through the alias. Otherwise it's a shadow instance and we must
+        // write directly to the physical name since the alias points elsewhere.
+        if (this.physicalName.equals(this.indexName + SUFFIX_A)) {
+            return this.indexName;
+        }
+        return this.physicalName;
+    }
+
+    /**
      * Creates the index in OpenSearch using the configured mappings and settings.
      *
      * <p>Applies specific settings (replicas=0) and registers an alias if one is defined.
@@ -343,7 +361,7 @@ public class ContentIndex {
         }
 
         IndexRequest request =
-                new IndexRequest(this.indexName)
+                new IndexRequest(this.getWriteIndex())
                         .id(id)
                         .source(processedPayload.toString(), XContentType.JSON)
                         .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
@@ -411,7 +429,9 @@ public class ContentIndex {
 
         // 4. Index
         IndexRequest request =
-                new IndexRequest(this.indexName).id(id).source(processedDoc.toString(), XContentType.JSON);
+                new IndexRequest(this.getWriteIndex())
+                        .id(id)
+                        .source(processedDoc.toString(), XContentType.JSON);
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
@@ -422,7 +442,7 @@ public class ContentIndex {
      */
     public void delete(String id) {
         this.client.delete(
-                new DeleteRequest(this.indexName, id)
+                new DeleteRequest(this.getWriteIndex(), id)
                         .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
                 new ActionListener<>() {
                     @Override
