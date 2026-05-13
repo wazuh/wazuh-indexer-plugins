@@ -152,9 +152,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
 
-        // Filters index is created by the content-manager plugin (alias-backed for blue/green swap).
-        // The composable template (templates/content/filters) is still registered by this plugin.
-
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
         this.indices.add(this.settingsIndex);
