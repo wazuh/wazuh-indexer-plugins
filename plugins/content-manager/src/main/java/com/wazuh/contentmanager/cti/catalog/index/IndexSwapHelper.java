@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.query.QueryBuilders;
@@ -134,7 +135,11 @@ public final class IndexSwapHelper {
             String shadowPhysical = resolveShadowName(client, aliasName);
 
             ContentIndex shadowIndex = new ContentIndex(client, aliasName, shadowPhysical, mappingsPath);
-            shadowIndex.createShadowIndex();
+            CreateIndexResponse response = shadowIndex.createShadowIndex();
+            if (response == null || !response.isAcknowledged()) {
+                throw new IllegalStateException(
+                        "Shadow index creation for [" + shadowPhysical + "] was not acknowledged");
+            }
             shadowMap.put(type, shadowIndex);
             log.info("Created shadow index [{}] for alias [{}]", shadowPhysical, aliasName);
         }
