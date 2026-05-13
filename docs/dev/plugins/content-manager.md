@@ -36,8 +36,6 @@ The plugin manages the following indices. All 8 content indices use an **alias-b
 | `.wazuh-threatintel-vulnerabilities`   | CVE vulnerability data               | yes    | Content Manager   |
 | `.wazuh-content-manager-jobs`          | Job scheduler metadata               | yes    | Content Manager   |
 
-> **Note:** The filters index was previously created by the Setup plugin. It is now created by the Content Manager plugin to support the alias-backed blue/green scheme. The Setup plugin still registers the composable index template (`wazuh-threatintel-filters*`).
-
 ---
 
 ## Index Alias Convention

@@ -483,7 +483,6 @@ public abstract class AbstractConsumerService {
             }
         }
 
-        // --- Blue/green shadow swap path ---
         // When a plan change is detected, download into hidden shadow indices and atomically
         // swap aliases. This avoids any window where users see empty/partial data.
         if (shadowSwapRequired) {

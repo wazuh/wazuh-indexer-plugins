@@ -218,17 +218,10 @@ When a subscription plan changes (e.g., free → pro, or vice versa), all downlo
 4. **Atomic switch.** Once the shadow indices are fully ready, all index aliases are swapped in a single atomic operation. Users see either the entire old content or the entire new content — never a mix or an empty state.
 5. **Cleanup.** The old indices are deleted, freeing the temporary disk space.
 
-### Disk usage
-
-During the swap, both the old and new content exist simultaneously. The peak temporary overhead is approximately **820 MB**, dominated by the vulnerability dataset (~740 MB). This space is fully recovered once the swap completes and the old indices are deleted.
-
 ### Failure behavior
 
 If the new content cannot be downloaded or processed (network error, source unavailable, etc.), the swap is abandoned cleanly: the staging indices are discarded, users continue to see the old content, and the system retries on the next scheduled sync. A failed swap is invisible to the end user.
 
-### What is not affected
-
-Regular daily content updates (which are small and incremental) continue to work exactly as before. The blue/green swap only applies when a subscription plan change is detected.
 
 ## Index Structure
 
