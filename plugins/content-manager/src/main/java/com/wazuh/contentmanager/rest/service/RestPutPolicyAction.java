@@ -380,8 +380,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
         mergedPolicy.setIndexUnclassifiedEvents(incomingPolicy.getIndexUnclassifiedEvents());
         mergedPolicy.setIndexDiscardedEvents(incomingPolicy.getIndexDiscardedEvents());
 
-        // Convert to JsonNode and persist
-        JsonNode policyNode = mapper.valueToTree(mergedPolicy);
+        // Convert to JsonNode and persist.
+        // Ensure metadata fields are stored only under document.metadata.
+        ObjectNode policyNode = mapper.valueToTree(mergedPolicy);
+        Resource.nestMetadataFields(policyNode);
 
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
         try {
@@ -469,8 +471,12 @@ public class RestPutPolicyAction extends BaseRestHandler {
         policy.setDate(docCreationDate);
         policy.setModified(docModificationDate);
 
-        // Convert Policy to JsonNode
-        JsonNode policyNode = mapper.valueToTree(policy);
+        // Convert Policy to JsonNode.
+        // nestMetadataFields removes root-level duplicate fields (title, author, date, etc.)
+        // that Jackson emits from the public delegate getters in Policy, keeping them only
+        // inside the nested "metadata" object — consistent with how initializeSpace() works.
+        ObjectNode policyNode = mapper.valueToTree(policy);
+        Resource.nestMetadataFields(policyNode);
 
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
         try {
