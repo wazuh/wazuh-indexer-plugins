@@ -1169,13 +1169,16 @@ paths:
 
         **Draft space**: All policy fields are accepted. The `integrations` and `filters`
         arrays allow reordering but do not allow adding or removing entries.
-        Fields `author`, `description`, `documentation`, and `references` are required
-        in addition to the boolean fields.
+        Fields `metadata.author`, `metadata.description`, `metadata.documentation`,
+        and `metadata.references` are required in addition to the boolean fields.
 
         **Standard space**: Only `enrichments`, `filters`, `enabled`,
         `index_unclassified_events`, and `index_discarded_events` can be modified.
         All other fields are preserved from the existing standard policy document.
         The `filters` array allows reordering but not addition or removal.
+
+        **Stored document format**: Policy metadata is stored only under
+        `document.metadata` in the indexed document.
       operationId: policy_update
       parameters:
         - name: space
@@ -1218,7 +1221,8 @@ paths:
           description: The name of the user space to reset.
           schema:
             type: string
-            enum: [ draft ]
+            enum:
+              - draft
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"

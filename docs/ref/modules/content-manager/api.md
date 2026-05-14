@@ -684,6 +684,8 @@ curl -sk -u admin:admin -X POST \
 Updates the routing policy in the specified space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
 
 > **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints.
+>
+> **Stored document format**: after update, policy metadata is stored only under `document.metadata` in the indexed document (not duplicated at `document` root level).
 
 **Space-specific behavior**
 
@@ -1061,7 +1063,7 @@ Fields within `metadata`:
 | Field           | Type   | Description                          |
 | --------------- | ------ | ------------------------------------ |
 | `title`         | String | Human-readable decoder title         |
-| `description`   | String | Decoder description                  |
+| `description`   | String | Decoder description                   |
 | `module`        | String | Module name                          |
 | `compatibility` | String | Compatibility description            |
 | `author`        | Object | Author info (`name`, `email`, `url`) |
@@ -1239,9 +1241,9 @@ A decoder cannot be deleted if it is currently set as the root decoder in the dr
 
 **Parameters**
 
-| Name | In   | Type   | Required | Description         |
-| ---- | ---- | ------ | -------- | ------------------- |
-| `id` | Path | String | Yes      | Decoder document ID |
+| Name | In   | Type          | Required | Description         |
+| ---- | ---- | ------------- | -------- | ------------------- |
+| `id` | Path | String (UUID) | Yes      | Decoder document ID |
 
 **Example Request**
 
@@ -1393,9 +1395,9 @@ Updates an existing filter in the draft or standard space. The filter is re-vali
 
 **Parameters**
 
-| Name | In   | Type   | Required | Description        |
-| ---- | ---- | ------ | -------- | ------------------ |
-| `id` | Path | String | Yes      | Filter document ID |
+| Name | In   | Type          | Required | Description        |
+| ---- | ---- | ------------- | -------- | ------------------ |
+| `id` | Path | String (UUID) | Yes      | Filter document ID |
 
 **Request Body**
 
@@ -1459,9 +1461,9 @@ Deletes a filter from the draft or standard space. The filter is also removed fr
 
 **Parameters**
 
-| Name | In   | Type   | Required | Description        |
-| ---- | ---- | ------ | -------- | ------------------ |
-| `id` | Path | String | Yes      | Filter document ID |
+| Name | In   | Type          | Required | Description        |
+| ---- | ---- | ------------- | -------- | ------------------ |
+| `id` | Path | String (UUID) | Yes      | Filter document ID |
 
 **Example Request**
 
@@ -1495,7 +1497,7 @@ curl -sk -u admin:admin -X DELETE \
 
 Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered in the Security Analytics Plugin.
 
-The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in the `source` field (e.g., "Draft") for cross-reference.
+The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
 **Request**
 - Method: `POST`
