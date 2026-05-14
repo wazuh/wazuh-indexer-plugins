@@ -141,8 +141,16 @@ public class Resource {
             Resource.nestMetadataFields(rawDoc);
 
             resource.setDocument(rawDoc);
+
+            // 2. Calculate Hash
+            String hashStr = Resource.computeSha256(rawDoc.toString());
+            if (!hashStr.isEmpty()) {
+                Map<String, String> hashMap = new HashMap<>();
+                hashMap.put("sha256", hashStr);
+                resource.setHash(hashMap);
+            }
         }
-        // 2. Set Space if not present in resource payload
+        // 3. Set Space if not present in resource payload
         this.populateSpaceObject(resource, payload);
     }
 
