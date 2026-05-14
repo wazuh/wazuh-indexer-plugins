@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
@@ -134,5 +135,62 @@ public class SpaceServiceTests extends OpenSearchTestCase {
 
         // Should not throw any exception - it should be caught internally
         this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+    }
+
+    /**
+     * Tests that initializeSpace sets enabled=true only for the draft space and enabled=false for
+     * other spaces (test, custom, standard).
+     */
+    public void testInitializeSpace_DraftPolicyEnabledTrue() {
+        // Arrange
+        org.mockito.ArgumentCaptor<IndexRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
+        org.opensearch.action.index.IndexResponse mockResponse =
+                org.mockito.Mockito.mock(org.opensearch.action.index.IndexResponse.class);
+        org.opensearch.common.action.ActionFuture<org.opensearch.action.index.IndexResponse>
+                mockFuture = org.mockito.Mockito.mock(org.opensearch.common.action.ActionFuture.class);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(mockFuture);
+        when(mockFuture.actionGet()).thenReturn(mockResponse);
+
+        // Act: Initialize draft space
+        this.policyHashService.initializeSpace("draft", "test-doc-id");
+
+        // Verify the IndexRequest contains enabled=true for draft space
+        verify(this.client).index(captor.capture());
+        IndexRequest request = captor.getValue();
+        String sourceJson = request.source().utf8ToString();
+        assertTrue(
+                "Draft policy should contain enabled: true", sourceJson.contains("\"enabled\":true"));
+    }
+
+    /**
+     * Tests that initializeSpace sets enabled=false for non-draft spaces (test, custom, standard).
+     */
+    public void testInitializeSpace_NonDraftPoliciesEnabledFalse() {
+        // Test for all non-draft spaces
+        for (String spaceName : new String[] {"test", "custom", "standard"}) {
+            // Reinitialize mocks for each space
+            org.mockito.Mockito.reset(this.client);
+
+            org.mockito.ArgumentCaptor<IndexRequest> captor =
+                    org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
+            org.opensearch.action.index.IndexResponse mockResponse =
+                    org.mockito.Mockito.mock(org.opensearch.action.index.IndexResponse.class);
+            org.opensearch.common.action.ActionFuture<org.opensearch.action.index.IndexResponse>
+                    mockFuture = org.mockito.Mockito.mock(org.opensearch.common.action.ActionFuture.class);
+            when(this.client.index(any(IndexRequest.class))).thenReturn(mockFuture);
+            when(mockFuture.actionGet()).thenReturn(mockResponse);
+
+            // Act: Initialize non-draft space
+            this.policyHashService.initializeSpace(spaceName, "test-doc-id");
+
+            // Verify the IndexRequest contains enabled=false for non-draft spaces
+            verify(this.client).index(captor.capture());
+            IndexRequest request = captor.getValue();
+            String sourceJson = request.source().utf8ToString();
+            assertTrue(
+                    "Policy for space '" + spaceName + "' should contain enabled: false",
+                    sourceJson.contains("\"enabled\":false"));
+        }
     }
 }
