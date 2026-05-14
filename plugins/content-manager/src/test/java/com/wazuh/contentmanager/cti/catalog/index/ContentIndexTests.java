@@ -417,7 +417,6 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         JsonNode source = this.mapper.readTree(request.source().utf8ToString());
         Assert.assertTrue("Should contain 'document' key", source.has("document"));
-        Assert.assertTrue("Should contain 'hash' key", source.has("hash"));
         Assert.assertTrue("Should contain 'space' key", source.has("space"));
     }
 

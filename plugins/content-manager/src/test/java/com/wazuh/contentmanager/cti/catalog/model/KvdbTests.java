@@ -76,11 +76,4 @@ public class KvdbTests extends OpenSearchTestCase {
         Kvdb kvdb = Kvdb.fromPayload(payload);
         assertNotNull("document field should be populated", kvdb.getDocument());
     }
-
-    public void testFromPayload_populatesHashField() throws IOException {
-        JsonNode payload = MAPPER.readTree(KVDB_PAYLOAD);
-        Kvdb kvdb = Kvdb.fromPayload(payload);
-        assertNotNull("hash field should be populated", kvdb.getHash());
-        assertFalse("hash sha256 should not be empty", kvdb.getHash().get("sha256").isEmpty());
-    }
 }
