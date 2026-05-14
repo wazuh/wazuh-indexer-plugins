@@ -30,8 +30,7 @@ import org.opensearch.transport.client.Client;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -41,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SignedUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.IndexSwapHelper;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -108,6 +108,15 @@ public abstract class AbstractConsumerService {
      * cleanup on snapshot initialization.
      */
     protected boolean isRulesetConsumer() {
+        return false;
+    }
+
+    /**
+     * Indicates whether this consumer manages indices with user-edited content (draft, test, custom
+     * spaces) that must be preserved across blue/green swaps. Subclasses that manage ruleset content
+     * should override this to return {@code true}.
+     */
+    protected boolean hasUserContent() {
         return false;
     }
 
@@ -323,7 +332,7 @@ public abstract class AbstractConsumerService {
             case Constants.KEY_KVDB -> Constants.INDEX_KVDBS;
             case Constants.KEY_INTEGRATION -> Constants.INDEX_INTEGRATIONS;
             case Constants.KEY_POLICY -> Constants.INDEX_POLICIES;
-            case Constants.KEY_FILTERS -> Constants.INDEX_FILTERS;
+            case Constants.KEY_FILTER -> Constants.INDEX_FILTERS;
             case Constants.KEY_IOCS -> Constants.INDEX_IOCS;
             case Constants.KEY_CVES -> Constants.INDEX_CVES;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
@@ -403,20 +412,47 @@ public abstract class AbstractConsumerService {
             catalogUri = null;
         }
 
-        // When the plan provides a different resource than the existing consumer, force
-        // re-initialization by resetting the persisted consumer state. This handles plan
-        // upgrades (free → pro) and downgrades (pro → free) where the consumer URL changes.
+        // When the plan provides a different resource than the existing consumer, trigger a
+        // blue/green swap instead of wiping live indices. The shadow path downloads into hidden
+        // staging indices and atomically swaps aliases once ready.
+        //
+        // Two cases trigger a swap:
+        //   1. Upgrade: planResource is non-null and differs from existingResource.
+        //   2. Downgrade: environment is unregistered (planResource is null), but
+        //      existingResource differs from the manifest resource (free/default).
+        //      This means we were on a paid plan and need to swap back to free content.
+        boolean shadowSwapRequired = false;
+        String swapTargetResource = null;
         if (planResource != null
                 && !planResource.isBlank()
                 && existingResource != null
                 && !existingResource.isBlank()
                 && !planResource.equals(existingResource)) {
+            // Case 1: Plan upgrade or cross-plan change.
             log.info(
-                    "Consumer [{}] resource changed from [{}] to [{}]. Resetting consumer for re-initialization.",
+                    "Consumer [{}] resource changed from [{}] to [{}]. Scheduling blue/green swap.",
                     consumerType,
                     existingResource,
                     planResource);
-            this.resetConsumer(consumerType);
+            shadowSwapRequired = true;
+            swapTargetResource = planResource;
+            catalogUri = planResource;
+        } else if ((planResource == null || planResource.isBlank())
+                && existingResource != null
+                && !existingResource.isBlank()
+                && !manifestResource.isBlank()
+                && !existingResource.equals(manifestResource)) {
+            // Case 2: Downgrade to free — existing resource is a paid URL, manifest has the
+            // free/default URL. Swap to the manifest content.
+            log.info(
+                    "Consumer [{}] downgrade detected: existing resource [{}] differs from manifest [{}]. "
+                            + "Scheduling blue/green swap to free content.",
+                    consumerType,
+                    existingResource,
+                    manifestResource);
+            shadowSwapRequired = true;
+            swapTargetResource = manifestResource;
+            catalogUri = manifestResource;
         }
         String context = PluginSettings.getContextFromCatalogUri(catalogUri);
         String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
@@ -471,6 +507,13 @@ public abstract class AbstractConsumerService {
                     log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
                 }
             }
+        }
+
+        // When a plan change is detected, download into hidden shadow indices and atomically
+        // swap aliases. This avoids any window where users see empty/partial data.
+        if (shadowSwapRequired) {
+            return this.performShadowSwap(
+                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver);
         }
 
         boolean updated = false;
@@ -718,6 +761,158 @@ public abstract class AbstractConsumerService {
                     "Failed to resolve plan resource for consumer [{}]: {}", consumerType, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Performs the blue/green shadow swap for a plan change. Downloads new content into hidden shadow
+     * indices, reindexes user content (draft/test/custom) from the live indices, atomically swaps all
+     * aliases, rewrites the consumer document, and deletes the old physical indices.
+     *
+     * <p>On any failure before the alias swap, shadow indices are cleaned up and the system remains
+     * on the old content. The next scheduled sync will re-detect the plan change and retry.
+     *
+     * @param consumerType The consumer type identifier.
+     * @param catalogUri The effective catalog URI (from the new plan).
+     * @param planResource The plan-provided resource URL.
+     * @param liveIndicesMap The current live ContentIndex instances (keyed by type).
+     * @param remoteConsumer The remote consumer metadata (with snapshot link and offset).
+     * @param urlResolver The URL resolver for downloading content.
+     * @return {@code true} if the swap completed successfully, {@code false} on failure.
+     */
+    private boolean performShadowSwap(
+            String consumerType,
+            String catalogUri,
+            String planResource,
+            Map<String, ContentIndex> liveIndicesMap,
+            RemoteConsumer remoteConsumer,
+            ResourceUrlResolver urlResolver) {
+
+        if (remoteConsumer == null || remoteConsumer.getSnapshotLink() == null) {
+            log.error(
+                    "Cannot perform shadow swap for consumer [{}]: remote consumer or snapshot link unavailable.",
+                    consumerType);
+            return false;
+        }
+
+        long timeoutSeconds = PluginSettings.getInstance().getClientTimeout();
+        Map<String, ContentIndex> shadowIndicesMap = null;
+        List<String> shadowPhysicalNames = new ArrayList<>();
+
+        // Track alias → old physical and alias → new physical for the atomic swap.
+        Map<String, String> aliasToOldPhysical = new HashMap<>();
+        Map<String, String> aliasToNewPhysical = new HashMap<>();
+
+        try {
+            // Step 1-2: Resolve shadow names and create hidden shadow indices.
+            log.info("Creating shadow indices for consumer [{}] plan change swap.", consumerType);
+            shadowIndicesMap =
+                    IndexSwapHelper.createShadowIndices(this.client, this.getMappings(), this::getIndexName);
+
+            for (Map.Entry<String, ContentIndex> entry : shadowIndicesMap.entrySet()) {
+                String type = entry.getKey();
+                ContentIndex shadowIndex = entry.getValue();
+                String aliasName = shadowIndex.getIndexName();
+                String shadowPhysical = shadowIndex.getPhysicalName();
+
+                shadowPhysicalNames.add(shadowPhysical);
+                aliasToNewPhysical.put(aliasName, shadowPhysical);
+                aliasToOldPhysical.put(
+                        aliasName, IndexSwapHelper.resolveLivePhysicalName(this.client, aliasName));
+            }
+
+            // Step 3-4: Download snapshot into shadow indices.
+            log.info(
+                    "Downloading snapshot into shadow indices for consumer [{}] from [{}].",
+                    consumerType,
+                    catalogUri);
+            SnapshotServiceImpl snapshotService =
+                    this.snapshotServiceOverride != null
+                            ? this.snapshotServiceOverride
+                            : new SnapshotServiceImpl(
+                                    consumerType,
+                                    shadowIndicesMap,
+                                    this.consumersIndex,
+                                    this.environment,
+                                    urlResolver);
+            boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
+            if (!snapshotSuccess) {
+                log.error(
+                        "Shadow snapshot download failed for consumer [{}]. Aborting swap.", consumerType);
+                IndexSwapHelper.deleteIndices(this.client, shadowPhysicalNames);
+                return false;
+            }
+
+            // Step 5: Reindex user content (draft/test/custom) from live → shadow for ruleset
+            // indices.
+            if (this.hasUserContent()) {
+                Map<String, String> liveToShadow = new LinkedHashMap<>();
+                for (Map.Entry<String, String> entry : aliasToNewPhysical.entrySet()) {
+                    String aliasName = entry.getKey();
+                    liveToShadow.put(aliasToOldPhysical.get(aliasName), entry.getValue());
+                }
+                log.info("Reindexing user content for consumer [{}] plan change swap.", consumerType);
+                IndexSwapHelper.reindexUserContent(this.client, liveToShadow, timeoutSeconds);
+            }
+
+            // Step 6-7: Unhide + atomic alias swap.
+            log.info("Performing atomic alias swap for consumer [{}].", consumerType);
+            IndexSwapHelper.atomicSwap(
+                    this.client, aliasToNewPhysical, aliasToOldPhysical, timeoutSeconds);
+
+        } catch (Exception e) {
+            log.error(
+                    "Shadow swap failed for consumer [{}] before alias swap: {}. Cleaning up.",
+                    consumerType,
+                    e.getMessage(),
+                    e);
+            IndexSwapHelper.deleteIndices(this.client, shadowPhysicalNames);
+            return false;
+        }
+
+        // --- Post-swap steps (alias has been swapped, point of no return) ---
+
+        // Step 8: Rewrite consumer document with new plan resource.
+        try {
+            String newContext = PluginSettings.getContextFromCatalogUri(planResource);
+            String newConsumerName = PluginSettings.getConsumerFromCatalogUri(planResource);
+            long snapshotOffset = remoteConsumer.getSnapshotOffset();
+
+            LocalConsumer newConsumer =
+                    new LocalConsumer(
+                            newContext,
+                            newConsumerName,
+                            consumerType,
+                            planResource,
+                            remoteConsumer.isPublic(),
+                            LocalConsumer.Status.UPDATING,
+                            snapshotOffset,
+                            remoteConsumer.getOffset());
+            this.consumersIndex.setConsumer(newConsumer);
+            log.info(
+                    "Consumer [{}] document rewritten for new plan resource [{}], offset={}",
+                    consumerType,
+                    planResource,
+                    snapshotOffset);
+        } catch (Exception e) {
+            log.error(
+                    "Failed to rewrite consumer [{}] document after alias swap: {}. "
+                            + "Next sync will re-detect the plan change and retry.",
+                    consumerType,
+                    e.getMessage());
+        }
+
+        // Step 10: Delete old physical indices.
+        try {
+            IndexSwapHelper.deleteIndices(this.client, aliasToOldPhysical.values());
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to delete old physical indices for consumer [{}]: {}",
+                    consumerType,
+                    e.getMessage());
+        }
+
+        log.info("Blue/green swap completed successfully for consumer [{}].", consumerType);
+        return true;
     }
 
     /**

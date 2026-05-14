@@ -110,7 +110,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Updated matchers to use JsonNode instead of JsonObject
         when(this.contentIndexMock.processPayload(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-kvdb");
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
     }
 
     @After
@@ -240,7 +240,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Mock
         String url = "http://example.com/policy.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
-        when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-policy");
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-policy");
 
         Path zipPath =
                 this.createZipFileWithContent(
@@ -438,7 +438,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         this.environment);
         cveSnapshotService.setSnapshotClient(this.snapshotClient);
 
-        when(this.contentIndexMock.getIndexName()).thenReturn(".wazuh-threatintel-vulnerabilities");
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
 
         Path zipPath =
                 this.createZipFileWithContent(

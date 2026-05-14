@@ -21,19 +21,68 @@ The Content Manager plugin handles:
 
 ## System Indices
 
-The plugin manages the following indices:
+The plugin manages the following indices. All 8 content indices use an **alias-backed blue/green storage** scheme (see [Index Alias Convention](#index-alias-convention) below).
 
-| Index                         | Purpose                              |
-| ----------------------------- | ------------------------------------ |
-| `.wazuh-cti-consumers`              | Sync state (status, offsets, snapshot links) |
-| `wazuh-threatintel-policies`               | Policy documents                     |
-| `wazuh-threatintel-integrations`           | Integration definitions              |
-| `wazuh-threatintel-rules`                  | Detection rules                      |
-| `wazuh-threatintel-decoders`               | Decoder definitions                  |
-| `wazuh-threatintel-kvdbs`                  | Key-value databases                  |
-| `wazuh-threatintel-enrichments`                   | Indicators of Compromise             |
-| `wazuh-threatintel-filters`             | Engine filter rules                  |
-| `.wazuh-content-manager-jobs` | Job scheduler metadata               |
+| Alias (public name)                    | Purpose                              | Hidden | Created by        |
+| -------------------------------------- | ------------------------------------ | ------ | ----------------- |
+| `.wazuh-cti-consumers`                 | Sync state (status, offsets)         | yes    | Content Manager   |
+| `wazuh-threatintel-policies`           | Policy documents                     | no     | Content Manager   |
+| `wazuh-threatintel-integrations`       | Integration definitions              | no     | Content Manager   |
+| `wazuh-threatintel-rules`              | Detection rules                      | no     | Content Manager   |
+| `wazuh-threatintel-decoders`           | Decoder definitions                  | no     | Content Manager   |
+| `wazuh-threatintel-kvdbs`              | Key-value databases                  | no     | Content Manager   |
+| `wazuh-threatintel-filters`            | Engine filter rules                  | no     | Content Manager   |
+| `wazuh-threatintel-enrichments`        | Indicators of Compromise             | no     | Content Manager   |
+| `.wazuh-threatintel-vulnerabilities`   | CVE vulnerability data               | yes    | Content Manager   |
+| `.wazuh-content-manager-jobs`          | Job scheduler metadata               | yes    | Content Manager   |
+
+---
+
+## Index Alias Convention
+
+Each content index uses an alias-backed **blue/green** storage scheme to enable zero-downtime content replacement during subscription plan changes.
+
+### Naming
+
+- **Alias (public name):** The stable name used by all readers, REST handlers, and dashboards. Example: `wazuh-threatintel-rules`.
+- **Physical index:** The actual index storing data, suffixed with `-a` or `-b`. Example: `wazuh-threatintel-rules-a`.
+
+Only one physical index is live at a time. The alias points to it with `is_write_index: true`. The other suffix is reserved as the shadow (staging) slot for the next plan-change swap.
+
+### Key classes
+
+| Class | Location | Responsibility |
+|---|---|---|
+| `ContentIndex` | `cti/catalog/index/ContentIndex.java` | Creates alias-backed physical indices. Has a 4-arg constructor for targeting shadow physical names directly. `createIndex()` creates the physical index and assigns the alias. `createShadowIndex()` creates a hidden physical index without an alias. |
+| `IndexSwapHelper` | `cti/catalog/index/IndexSwapHelper.java` | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`. |
+| `AbstractConsumerService` | `cti/catalog/service/AbstractConsumerService.java` | Detects plan changes and delegates to `performShadowSwap()` instead of the old `resetConsumer()` wipe-and-reload path. |
+
+### Shadow swap flow (plan change)
+
+When `AbstractConsumerService.syncConsumerServices()` detects a plan change (the plan-provided `resource` URL differs from the persisted one), it runs the shadow swap path:
+
+```
+1. Resolve shadow physical names (the -a/-b suffix not currently live)
+2. Create hidden shadow physical indices (index.hidden=true, no alias)
+3. Download snapshot into shadow indices (reuse SnapshotServiceImpl)
+4. Reindex user content (space.name != "standard") from live → shadow
+   (only for consumer types with hasUserContent()=true, i.e., ruleset)
+5. Unhide non-CVE shadow indices (set index.hidden=false)
+6. Atomic alias swap (single IndicesAliasesRequest for all 8 aliases)
+7. Rewrite consumer document in .wazuh-cti-consumers
+8. Run post-sync cascade (onSyncComplete: SAP sync, engine promote, etc.)
+9. Delete old physical indices
+```
+
+**Error handling:**
+- Failure before step 6: shadow indices are deleted, alias and consumer doc unchanged. Next sync retries.
+- Failure between steps 6–7: alias is swapped but consumer doc still says old resource. Next sync re-detects the plan change and re-runs the shadow path (at most one wasted rebuild, no user-visible corruption).
+
+**Concurrency:** The `CatalogSyncJob` semaphore spans the entire `synchronize()` call, which includes the shadow swap. No additional locking is needed.
+
+### Normal incremental syncs
+
+Regular incremental updates (no plan change) write through the alias to the live physical index. They are completely unaware of the `-a`/`-b` scheme.
 
 ---
 
