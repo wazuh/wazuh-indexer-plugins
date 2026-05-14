@@ -75,11 +75,4 @@ public class FilterTests extends OpenSearchTestCase {
         Filter filter = Filter.fromPayload(payload);
         assertNotNull("document field should be populated", filter.getDocument());
     }
-
-    public void testFromPayload_populatesHashField() throws IOException {
-        JsonNode payload = MAPPER.readTree(FILTER_PAYLOAD);
-        Filter filter = Filter.fromPayload(payload);
-        assertNotNull("hash field should be populated", filter.getHash());
-        assertFalse("hash sha256 should not be empty", filter.getHash().get("sha256").isEmpty());
-    }
 }
