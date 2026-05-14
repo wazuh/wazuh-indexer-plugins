@@ -177,7 +177,8 @@ public class SpaceService {
             policy.setReferences(Collections.emptyList());
             policy.setDate(date);
             policy.setModified(date);
-            policy.setEnabled(false);
+            // Enable the policy by default for the draft space only
+            policy.setEnabled(Space.DRAFT.toString().equals(spaceName));
             policy.setIndexUnclassifiedEvents(false);
             policy.setIndexDiscardedEvents(false);
 
