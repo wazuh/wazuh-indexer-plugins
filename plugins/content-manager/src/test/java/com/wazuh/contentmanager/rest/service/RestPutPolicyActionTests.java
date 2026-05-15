@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
@@ -52,6 +55,7 @@ import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -1758,8 +1762,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
                         .withContent(new BytesArray(policyJson), XContentType.JSON)
                         .build();
 
-        org.mockito.ArgumentCaptor<IndexRequest> indexCaptor =
-                org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
+        ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
@@ -1771,10 +1774,9 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         // Capture the IndexRequest submitted to the client and inspect the stored document
         verify(this.client).index(indexCaptor.capture());
         String indexedJson = indexCaptor.getValue().source().utf8ToString();
-        com.fasterxml.jackson.databind.ObjectMapper om =
-                new com.fasterxml.jackson.databind.ObjectMapper();
-        com.fasterxml.jackson.databind.JsonNode root = om.readTree(indexedJson);
-        com.fasterxml.jackson.databind.JsonNode docNode = root.path(Constants.KEY_DOCUMENT);
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(indexedJson);
+        JsonNode docNode = root.path(Constants.KEY_DOCUMENT);
 
         // Metadata fields must NOT appear at document root level
         String[] duplicateFields = {
@@ -1787,7 +1789,7 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
         }
 
         // They must still be present inside document.metadata
-        com.fasterxml.jackson.databind.JsonNode metadataNode = docNode.path("metadata");
+        JsonNode metadataNode = docNode.path("metadata");
         Assert.assertFalse("document.metadata must be present", metadataNode.isMissingNode());
         Assert.assertFalse(
                 "document.metadata.title must be present", metadataNode.path("title").isMissingNode());
