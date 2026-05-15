@@ -368,6 +368,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 (List<String>) (refObj != null ? refObj : Collections.emptyList());
         mergedPolicy.setReferences(existingReferences);
 
+        Object compatObj = existingMetadata.get(Constants.KEY_COMPATIBILITY);
+        if (compatObj == null) compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        @SuppressWarnings("unchecked")
+        List<String> existingCompatibility =
+                (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
+        mergedPolicy.getMetadata().setCompatibility(existingCompatibility);
+
         mergedPolicy.setRootDecoder((String) currentPolicyDoc.getOrDefault("root_decoder", ""));
         mergedPolicy.setIntegrations(
                 (List<String>)
@@ -470,6 +477,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
         policy.setId(docId);
         policy.setDate(docCreationDate);
         policy.setModified(docModificationDate);
+
+        Object compatObj = existingMeta.get(Constants.KEY_COMPATIBILITY);
+        if (compatObj == null) compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        @SuppressWarnings("unchecked")
+        List<String> existingCompatibility =
+                (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
+        policy.getMetadata().setCompatibility(existingCompatibility);
 
         // Convert Policy to JsonNode.
         // nestMetadataFields removes root-level duplicate fields (title, author, date, etc.)
