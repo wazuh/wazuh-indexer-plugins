@@ -684,8 +684,6 @@ curl -sk -u admin:admin -X POST \
 Updates the routing policy in the specified space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
 
 > **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints.
->
-> **Stored document format**: after update, policy metadata is stored only under `document.metadata` in the indexed document (not duplicated at `document` root level).
 
 **Space-specific behavior**
 
