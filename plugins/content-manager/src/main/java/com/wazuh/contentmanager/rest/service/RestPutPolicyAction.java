@@ -369,7 +369,9 @@ public class RestPutPolicyAction extends BaseRestHandler {
         mergedPolicy.setReferences(existingReferences);
 
         Object compatObj = existingMetadata.get(Constants.KEY_COMPATIBILITY);
-        if (compatObj == null) compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        if (compatObj == null) {
+            compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        }
         @SuppressWarnings("unchecked")
         List<String> existingCompatibility =
                 (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
@@ -479,7 +481,9 @@ public class RestPutPolicyAction extends BaseRestHandler {
         policy.setModified(docModificationDate);
 
         Object compatObj = existingMeta.get(Constants.KEY_COMPATIBILITY);
-        if (compatObj == null) compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        if (compatObj == null) {
+            compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        }
         @SuppressWarnings("unchecked")
         List<String> existingCompatibility =
                 (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
