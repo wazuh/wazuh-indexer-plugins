@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
@@ -52,6 +55,7 @@ import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -1714,5 +1718,80 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         verify(this.engineService, never()).promote(any());
+    }
+
+    /**
+     * Regression test: updating the draft policy must NOT duplicate metadata fields (title, author,
+     * date, description, documentation, references, modified) at the document root. They must only
+     * appear nested inside {@code document.metadata}.
+     *
+     * <p>Root cause: {@code mapper.valueToTree(policy)} serialises the public delegate getters in
+     * {@link com.wazuh.contentmanager.cti.catalog.model.Policy} (e.g. {@code getTitle()}) as
+     * root-level fields in addition to the nested {@code metadata} object. {@code
+     * Resource.nestMetadataFields()} must be called immediately afterwards to remove those
+     * duplicates, exactly as {@code SpaceService.initializeSpace()} does.
+     */
+    public void testPutDraftPolicy_DocumentRootHasNoMetadataDuplication() throws Exception {
+        when(this.service.calculateAndUpdate(anyList())).thenReturn(Collections.emptySet());
+
+        String policyJson =
+                "{"
+                        + "\"resource\": {"
+                        + "\"title\": \"Test Policy\","
+                        + "\"root_decoder\": \"decoder/integrations/0\","
+                        + "\"integrations\": [\"integration-1\"],"
+                        + "\"filters\": [],"
+                        + "\"enrichments\": [],"
+                        + "\"enabled\": true,"
+                        + "\"index_unclassified_events\": false,"
+                        + "\"index_discarded_events\": false,"
+                        + "\"author\": \"Wazuh Inc.\","
+                        + "\"description\": \"Test policy\","
+                        + "\"documentation\": \"Test documentation\","
+                        + "\"references\": [\"Test references\"]"
+                        + "}"
+                        + "}";
+
+        Map<String, String> params = new HashMap<>();
+        params.put("space", "draft");
+        RestRequest request =
+                new FakeRestRequest.Builder(this.xContentRegistry())
+                        .withMethod(RestRequest.Method.PUT)
+                        .withPath(PluginSettings.POLICY_URI)
+                        .withParams(params)
+                        .withContent(new BytesArray(policyJson), XContentType.JSON)
+                        .build();
+
+        ArgumentCaptor<IndexRequest> indexCaptor = ArgumentCaptor.forClass(IndexRequest.class);
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        when(this.indexResponse.getId()).thenReturn("test-policy-id");
+
+        RestResponse response = this.action.handleRequest(request);
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+
+        // Capture the IndexRequest submitted to the client and inspect the stored document
+        verify(this.client).index(indexCaptor.capture());
+        String indexedJson = indexCaptor.getValue().source().utf8ToString();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(indexedJson);
+        JsonNode docNode = root.path(Constants.KEY_DOCUMENT);
+
+        // Metadata fields must NOT appear at document root level
+        String[] duplicateFields = {
+            "title", "author", "description", "documentation", "references", "date", "modified"
+        };
+        for (String field : duplicateFields) {
+            Assert.assertFalse(
+                    "Metadata field '" + field + "' must not be duplicated at document root",
+                    docNode.has(field));
+        }
+
+        // They must still be present inside document.metadata
+        JsonNode metadataNode = docNode.path("metadata");
+        Assert.assertFalse("document.metadata must be present", metadataNode.isMissingNode());
+        Assert.assertFalse(
+                "document.metadata.title must be present", metadataNode.path("title").isMissingNode());
     }
 }
