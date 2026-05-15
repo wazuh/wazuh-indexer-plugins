@@ -95,7 +95,8 @@ public class CredentialsIndex {
      */
     public IndexResponse storeCredentials(String accessToken)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index access.
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             if (!this.exists()) {
                 log.info("Index [{}] not found. Recreating before storing credentials.", INDEX_NAME);
@@ -131,7 +132,8 @@ public class CredentialsIndex {
      * @throws TimeoutException if the operation exceeded the configured timeout.
      */
     public String getAccessToken() throws ExecutionException, InterruptedException, TimeoutException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index access.
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             if (!ClusterInfo.indexStatusCheck(
                     this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
@@ -164,7 +166,8 @@ public class CredentialsIndex {
      */
     public DeleteResponse deleteDocument()
             throws ExecutionException, InterruptedException, TimeoutException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index access.
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             if (!this.exists()) {
                 log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
@@ -183,7 +186,8 @@ public class CredentialsIndex {
      * @return true if the index exists, false otherwise.
      */
     public boolean exists() {
-        // Stash the caller's security context so the client runs as the plugin, which has system index access.
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             return ClusterInfo.indexExists(this.client, INDEX_NAME);
         }
@@ -199,13 +203,11 @@ public class CredentialsIndex {
      */
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index access.
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             Settings settings =
-                    Settings.builder()
-                            .put("index.number_of_replicas", 0)
-                            .put("index.hidden", true)
-                            .build();
+                    Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
 
             String mappings;
             try {

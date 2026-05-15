@@ -152,21 +152,26 @@ public class ContentManagerPlugin extends Plugin
         this.client = client;
         this.threadPool = threadPool;
 
-        // Guard: refuse to operate if the credentials index is not a system index
-        Settings nodeSettings = environment.settings();
-        boolean systemIndicesEnabled =
-                nodeSettings.getAsBoolean("plugins.security.system_indices.enabled", false);
-        List<String> systemIndices =
-                nodeSettings.getAsList("plugins.security.system_indices.indices", Collections.emptyList());
-        if (!systemIndicesEnabled || !systemIndices.contains(CredentialsIndex.INDEX_NAME)) {
-            log.error(
-                    "Content Manager plugin DISABLED: credentials index [{}] is not configured as a "
-                            + "system index. Add it to plugins.security.system_indices.indices in "
-                            + "opensearch.yml and ensure plugins.security.system_indices.enabled is true, "
-                            + "then restart.",
-                    CredentialsIndex.INDEX_NAME);
-            this.pluginDisabled = true;
-            return Collections.emptyList();
+        // Guard: refuse to operate if the credentials index is not a system index.
+        // Skipped in test environments where the security plugin is not installed.
+        if (!ContentManagerPlugin.isTestEnvironment()) {
+            Settings nodeSettings = environment.settings();
+            boolean systemIndicesEnabled =
+                    nodeSettings.getAsBoolean("plugins.security.system_indices.enabled", false);
+            List<String> systemIndices =
+                    nodeSettings.getAsList(
+                            "plugins.security.system_indices.indices", Collections.emptyList());
+            if (!systemIndicesEnabled || !systemIndices.contains(CredentialsIndex.INDEX_NAME)) {
+                log.error(
+                        "Content Manager plugin DISABLED: credentials index [{}] is not configured "
+                                + "as a system index. Add it to "
+                                + "plugins.security.system_indices.indices in opensearch.yml and "
+                                + "ensure plugins.security.system_indices.enabled is true, "
+                                + "then restart.",
+                        CredentialsIndex.INDEX_NAME);
+                this.pluginDisabled = true;
+                return Collections.emptyList();
+            }
         }
 
         this.consumersIndex = new ConsumersIndex(client);
