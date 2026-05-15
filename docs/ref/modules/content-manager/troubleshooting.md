@@ -32,7 +32,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-cti-credentials` and loaded into memory immediately.
+A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
 
 ### Sync Not Running
 

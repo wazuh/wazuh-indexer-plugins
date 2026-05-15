@@ -36,7 +36,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  * DELETE /_plugins/_content_manager/subscription
  *
  * <p>Removes stored CTI credentials by delegating to {@link SubscriptionService#unregister()},
- * which clears both the credentials document in {@code .wazuh-cti-credentials} and the in-memory
+ * which clears both the credentials document in {@code .wazuh-internal-state} and the in-memory
  * token in {@link PluginSettings}.
  *
  * <p>Possible HTTP responses:
