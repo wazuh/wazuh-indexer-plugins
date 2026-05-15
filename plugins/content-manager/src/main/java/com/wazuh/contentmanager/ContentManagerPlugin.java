@@ -98,7 +98,7 @@ public class ContentManagerPlugin extends Plugin
     private static final String VERSION_FILE_NAME = "VERSION.json";
     private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
-    private boolean pluginDisabled = false;
+    private boolean credentialsProtected = true;
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
     private ThreadPool threadPool;
@@ -152,8 +152,9 @@ public class ContentManagerPlugin extends Plugin
         this.client = client;
         this.threadPool = threadPool;
 
-        // Guard: refuse to operate if the credentials index is not a system index.
-        // Skipped in test environments where the security plugin is not installed.
+        // Check whether the credentials index is declared as a system index.
+        // When not protected, registration is blocked and any stored token is wiped on startup.
+        this.credentialsProtected = true;
         if (!ContentManagerPlugin.isTestEnvironment()) {
             Settings nodeSettings = environment.settings();
             boolean systemIndicesEnabled =
@@ -162,15 +163,15 @@ public class ContentManagerPlugin extends Plugin
                     nodeSettings.getAsList(
                             "plugins.security.system_indices.indices", Collections.emptyList());
             if (!systemIndicesEnabled || !systemIndices.contains(CredentialsIndex.INDEX_NAME)) {
-                log.error(
-                        "Content Manager plugin DISABLED: credentials index [{}] is not configured "
-                                + "as a system index. Add it to "
+                log.warn(
+                        "Credentials index [{}] is not configured as a system index. "
+                                + "Registration will be disabled and any stored token will be "
+                                + "removed on startup. Add it to "
                                 + "plugins.security.system_indices.indices in opensearch.yml and "
                                 + "ensure plugins.security.system_indices.enabled is true, "
                                 + "then restart.",
                         CredentialsIndex.INDEX_NAME);
-                this.pluginDisabled = true;
-                return Collections.emptyList();
+                this.credentialsProtected = false;
             }
         }
 
@@ -178,7 +179,8 @@ public class ContentManagerPlugin extends Plugin
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
-                new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
+                new SubscriptionServiceImpl(
+                        this.plansService, this.credentialsIndex, this.credentialsProtected);
 
         // Content Manager 5.0
         ContentJobRunner runner = ContentJobRunner.getInstance();
@@ -234,9 +236,6 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (this.pluginDisabled) {
-            return;
-        }
         if (localNode.isClusterManagerNode()) {
             this.start(
                     () -> {
@@ -288,9 +287,6 @@ public class ContentManagerPlugin extends Plugin
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        if (this.pluginDisabled) {
-            return Collections.emptyList();
-        }
         return List.of(
                 // CTI subscription endpoints
                 new RestPostSubscriptionAction(this.subscriptionService),
@@ -398,6 +394,18 @@ public class ContentManagerPlugin extends Plugin
      */
     private void tryLoadAccessToken() {
         try {
+            if (!this.credentialsProtected) {
+                // Credentials index is not a system index — wipe any stored token to prevent
+                // unprotected access and ensure the environment falls back to unregistered mode.
+                if (this.credentialsIndex.exists()) {
+                    this.credentialsIndex.deleteDocument();
+                    log.warn(
+                            "Deleted stored access token because the credentials index is not "
+                                    + "configured as a system index.");
+                }
+                PluginSettings.getInstance().setAccessToken(null);
+                return;
+            }
             if (this.credentialsIndex.exists()) {
                 String token = this.credentialsIndex.getAccessToken();
                 if (token != null) {
@@ -409,12 +417,6 @@ public class ContentManagerPlugin extends Plugin
             } else {
                 log.debug("Credentials index does not exist yet; access token not loaded.");
             }
-        } catch (IllegalStateException e) {
-            log.error(
-                    "Refusing to load CTI access token: {}. "
-                            + "Registered content operations will be disabled until the "
-                            + "configuration is fixed and the node is restarted.",
-                    e.getMessage());
         } catch (Exception e) {
             log.warn("Could not load CTI access token from credentials index: {}", e.getMessage());
         }

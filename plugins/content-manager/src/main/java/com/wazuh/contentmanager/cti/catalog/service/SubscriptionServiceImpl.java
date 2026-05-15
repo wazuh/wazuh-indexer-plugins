@@ -31,16 +31,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final PlansService plansService;
     private final CredentialsIndex credentialsIndex;
+    private final boolean credentialsProtected;
 
     /**
      * Constructs a new SubscriptionServiceImpl.
      *
      * @param plansService the service used to fetch CTI plans from the console API.
      * @param credentialsIndex the index used to persist and remove the access token.
+     * @param credentialsProtected whether the credentials index is declared as a system index. When
+     *     false, registration is blocked and any stored token is wiped on first access.
      */
-    public SubscriptionServiceImpl(PlansService plansService, CredentialsIndex credentialsIndex) {
+    public SubscriptionServiceImpl(
+            PlansService plansService,
+            CredentialsIndex credentialsIndex,
+            boolean credentialsProtected) {
         this.plansService = plansService;
         this.credentialsIndex = credentialsIndex;
+        this.credentialsProtected = credentialsProtected;
     }
 
     @Override
@@ -92,6 +99,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public void register(String accessToken) throws Exception {
+        if (!this.credentialsProtected) {
+            throw new IllegalStateException(
+                    "Registration is disabled because the credentials index is not configured "
+                            + "as a system index. Add it to "
+                            + "plugins.security.system_indices.indices in opensearch.yml and restart.");
+        }
         this.credentialsIndex.storeCredentials(accessToken);
         PluginSettings.getInstance().setAccessToken(accessToken);
         log.info(
