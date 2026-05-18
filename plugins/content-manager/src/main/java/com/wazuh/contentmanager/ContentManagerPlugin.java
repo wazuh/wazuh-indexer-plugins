@@ -254,7 +254,7 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Registers the credentials index as a plugin-owned system index. This grants the plugin's
+     * Registers the internal state index as a plugin-owned system index. This grants the plugin's
      * internal transport client read/write/delete access to the index, while the security plugin
      * blocks all external REST API access from users.
      *
@@ -263,7 +263,7 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
-        return List.of(new SystemIndexDescriptor(CredentialsIndex.INDEX_NAME, "Wazuh CTI credentials"));
+        return List.of(new SystemIndexDescriptor(CredentialsIndex.INDEX_NAME, "Wazuh Internal State"));
     }
 
     /**
