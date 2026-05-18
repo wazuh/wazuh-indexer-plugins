@@ -404,7 +404,6 @@ public class ContentManagerPlugin extends Plugin
                                     + "configured as a system index.");
                 }
                 PluginSettings.getInstance().setAccessToken(null);
-                return;
             }
             if (this.credentialsIndex.exists()) {
                 String token = this.credentialsIndex.getAccessToken();
