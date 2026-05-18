@@ -77,6 +77,42 @@
                 }
               }
             },
+            "agent": {
+              "properties": {
+                "build": {
+                  "properties": {
+                    "original": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "ephemeral_id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "groups": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "type": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
             "cluster": {
               "properties": {
                 "name": {
@@ -89,8 +125,58 @@
                 }
               }
             },
+            "event": {
+              "properties": {
+                "id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "integration": {
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "decoders": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "rules": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "protocol": {
+              "properties": {
+                "location": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "queue": {
+                  "type": "byte"
+                }
+              }
+            },
+            "schema": {
+              "properties": {
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
             "space": {
               "properties": {
+                "event_discarded": {
+                  "type": "boolean"
+                },
                 "name": {
                   "ignore_above": 1024,
                   "type": "keyword"
