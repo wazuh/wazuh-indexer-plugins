@@ -10,3 +10,4 @@ fields:
       doc_id: {}
   wazuh:
     fields: "*"
+
