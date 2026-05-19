@@ -36,13 +36,14 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
-import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -89,7 +90,7 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, JobSchedulerExtension, ActionPlugin {
+        implements ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
@@ -97,6 +98,7 @@ public class ContentManagerPlugin extends Plugin
     private static final String VERSION_FILE_NAME = "VERSION.json";
     private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
+    private boolean credentialsProtected = true;
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
     private ThreadPool threadPool;
@@ -149,11 +151,36 @@ public class ContentManagerPlugin extends Plugin
         this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
+
+        // Check whether the credentials index is declared as a system index.
+        // When not protected, registration is blocked and any stored token is wiped on startup.
+        this.credentialsProtected = true;
+        if (!ContentManagerPlugin.isTestEnvironment()) {
+            Settings nodeSettings = environment.settings();
+            boolean systemIndicesEnabled =
+                    nodeSettings.getAsBoolean("plugins.security.system_indices.enabled", false);
+            List<String> systemIndices =
+                    nodeSettings.getAsList(
+                            "plugins.security.system_indices.indices", Collections.emptyList());
+            if (!systemIndicesEnabled || !systemIndices.contains(CredentialsIndex.INDEX_NAME)) {
+                log.warn(
+                        "Credentials index [{}] is not configured as a system index. "
+                                + "Registration will be disabled and any stored token will be "
+                                + "removed on startup. Add it to "
+                                + "plugins.security.system_indices.indices in opensearch.yml and "
+                                + "ensure plugins.security.system_indices.enabled is true, "
+                                + "then restart.",
+                        CredentialsIndex.INDEX_NAME);
+                this.credentialsProtected = false;
+            }
+        }
+
         this.consumersIndex = new ConsumersIndex(client);
-        this.credentialsIndex = new CredentialsIndex(client);
+        this.credentialsIndex = new CredentialsIndex(client, threadPool);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
-                new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
+                new SubscriptionServiceImpl(
+                        this.plansService, this.credentialsIndex, this.credentialsProtected);
 
         // Content Manager 5.0
         ContentJobRunner runner = ContentJobRunner.getInstance();
@@ -224,6 +251,19 @@ public class ContentManagerPlugin extends Plugin
             // Non-CM nodes load credentials asynchronously on startup.
             this.threadPool.generic().execute(this::tryLoadAccessToken);
         }
+    }
+
+    /**
+     * Registers the internal state index as a plugin-owned system index. This grants the plugin's
+     * internal transport client read/write/delete access to the index, while the security plugin
+     * blocks all external REST API access from users.
+     *
+     * @param settings the node settings.
+     * @return the system index descriptors owned by this plugin.
+     */
+    @Override
+    public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
+        return List.of(new SystemIndexDescriptor(CredentialsIndex.INDEX_NAME, "Wazuh Internal State"));
     }
 
     /**
@@ -354,6 +394,18 @@ public class ContentManagerPlugin extends Plugin
      */
     private void tryLoadAccessToken() {
         try {
+            if (!this.credentialsProtected) {
+                // Credentials index is not a system index — wipe any stored token to prevent
+                // unprotected access and ensure the environment falls back to unregistered mode.
+                if (this.credentialsIndex.exists()) {
+                    this.credentialsIndex.deleteDocument();
+                    log.warn(
+                            "Deleted stored access token because the credentials index is not "
+                                    + "configured as a system index.");
+                }
+                PluginSettings.getInstance().setAccessToken(null);
+                return;
+            }
             if (this.credentialsIndex.exists()) {
                 String token = this.credentialsIndex.getAccessToken();
                 if (token != null) {

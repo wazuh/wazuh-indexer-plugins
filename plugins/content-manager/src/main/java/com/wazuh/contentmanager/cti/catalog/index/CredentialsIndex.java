@@ -29,7 +29,9 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -44,26 +46,40 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 
-/** Manages the hidden .wazuh-cti-credentials index used to persist the CTI access token. */
+/** Manages the hidden .wazuh-internal-state index used to persist the CTI access token. */
 public class CredentialsIndex {
     private static final Logger log = LogManager.getLogger(CredentialsIndex.class);
 
-    public static final String INDEX_NAME = ".wazuh-cti-credentials";
+    public static final String INDEX_NAME = ".wazuh-internal-state";
     private static final String MAPPING_PATH = "/mappings/credentials-mapping.json";
     private static final String DOCUMENT_ID = "credentials";
     static final String ACCESS_TOKEN_FIELD = "access_token";
 
     private final Client client;
+    private final ThreadPool threadPool;
     private final PluginSettings pluginSettings;
 
     /**
      * Constructor.
      *
      * @param client OpenSearch client used for index operations.
+     * @param threadPool Thread pool used to stash security context for system index access.
      */
-    public CredentialsIndex(Client client) {
+    public CredentialsIndex(Client client, ThreadPool threadPool) {
         this.client = client;
+        this.threadPool = threadPool;
         this.pluginSettings = PluginSettings.getInstance();
+    }
+
+    /**
+     * Stashes the current thread context (removing the caller's security identity) so that subsequent
+     * client operations run as the plugin itself, which has system index access.
+     *
+     * @return a {@link ThreadContext.StoredContext} that must be closed to restore the original
+     *     context (use in try-with-resources).
+     */
+    private ThreadContext.StoredContext stashContext() {
+        return this.threadPool.getThreadContext().stashContext();
     }
 
     /**
@@ -79,26 +95,32 @@ public class CredentialsIndex {
      */
     public IndexResponse storeCredentials(String accessToken)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
-        if (!this.exists()) {
-            log.info("Index [{}] not found. Recreating before storing credentials.", INDEX_NAME);
-            this.createIndex();
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
+        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
+            if (!this.exists()) {
+                log.info("Index [{}] not found. Recreating before storing credentials.", INDEX_NAME);
+                this.createIndex();
+            }
+            if (!ClusterInfo.indexStatusCheck(
+                    this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+                throw new RuntimeException("Index not ready: " + INDEX_NAME);
+            }
+            String encoded =
+                    Base64.getEncoder().encodeToString(accessToken.getBytes(StandardCharsets.UTF_8));
+            IndexRequest request =
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .id(DOCUMENT_ID)
+                            .source(
+                                    XContentFactory.jsonBuilder()
+                                            .startObject()
+                                            .field(ACCESS_TOKEN_FIELD, encoded)
+                                            .endObject());
+            return this.client
+                    .index(request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         }
-        if (!ClusterInfo.indexStatusCheck(
-                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
-            throw new RuntimeException("Index not ready: " + INDEX_NAME);
-        }
-        String encoded =
-                Base64.getEncoder().encodeToString(accessToken.getBytes(StandardCharsets.UTF_8));
-        IndexRequest request =
-                new IndexRequest()
-                        .index(INDEX_NAME)
-                        .id(DOCUMENT_ID)
-                        .source(
-                                XContentFactory.jsonBuilder()
-                                        .startObject()
-                                        .field(ACCESS_TOKEN_FIELD, encoded)
-                                        .endObject());
-        return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
@@ -110,24 +132,28 @@ public class CredentialsIndex {
      * @throws TimeoutException if the operation exceeded the configured timeout.
      */
     public String getAccessToken() throws ExecutionException, InterruptedException, TimeoutException {
-        if (!ClusterInfo.indexStatusCheck(
-                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
-            throw new RuntimeException("Index not ready: " + INDEX_NAME);
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
+        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
+            if (!ClusterInfo.indexStatusCheck(
+                    this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+                throw new RuntimeException("Index not ready: " + INDEX_NAME);
+            }
+            GetRequest request = new GetRequest().index(INDEX_NAME).id(DOCUMENT_ID).preference("_local");
+            GetResponse response =
+                    this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            if (!response.isExists()) {
+                return null;
+            }
+            Map<String, Object> source = response.getSourceAsMap();
+            if (source == null) {
+                return null;
+            }
+            String stored = (String) source.get(ACCESS_TOKEN_FIELD);
+            return stored != null
+                    ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
+                    : null;
         }
-        GetRequest request = new GetRequest().index(INDEX_NAME).id(DOCUMENT_ID).preference("_local");
-        GetResponse response =
-                this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        if (!response.isExists()) {
-            return null;
-        }
-        Map<String, Object> source = response.getSourceAsMap();
-        if (source == null) {
-            return null;
-        }
-        String stored = (String) source.get(ACCESS_TOKEN_FIELD);
-        return stored != null
-                ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
-                : null;
     }
 
     /**
@@ -140,14 +166,18 @@ public class CredentialsIndex {
      */
     public DeleteResponse deleteDocument()
             throws ExecutionException, InterruptedException, TimeoutException {
-        if (!this.exists()) {
-            log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
-            return null;
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
+        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
+            if (!this.exists()) {
+                log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
+                return null;
+            }
+            DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);
+            return this.client
+                    .delete(request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         }
-        DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);
-        return this.client
-                .delete(request)
-                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
@@ -156,7 +186,11 @@ public class CredentialsIndex {
      * @return true if the index exists, false otherwise.
      */
     public boolean exists() {
-        return ClusterInfo.indexExists(this.client, INDEX_NAME);
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
+        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
+            return ClusterInfo.indexExists(this.client, INDEX_NAME);
+        }
     }
 
     /**
@@ -169,36 +203,40 @@ public class CredentialsIndex {
      */
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
-        Settings settings =
-                Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
+        // Stash the caller's security context so the client runs as the plugin, which has system index
+        // access.
+        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
+            Settings settings =
+                    Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
 
-        String mappings;
-        try {
-            mappings = this.loadMappingFromResources();
-        } catch (IOException e) {
-            log.error("Could not read mappings for index [{}]", INDEX_NAME);
-            return null;
-        }
-
-        CreateIndexRequest request =
-                new CreateIndexRequest().index(INDEX_NAME).mapping(mappings).settings(settings);
-
-        try {
-            return this.client
-                    .admin()
-                    .indices()
-                    .create(request)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (ExecutionException | TimeoutException e) {
-            boolean alreadyExists =
-                    e instanceof ExecutionException
-                            ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
-                            : this.exists();
-            if (alreadyExists) {
-                log.debug("Index [{}] already exists, skipping creation.", INDEX_NAME);
+            String mappings;
+            try {
+                mappings = this.loadMappingFromResources();
+            } catch (IOException e) {
+                log.error("Could not read mappings for index [{}]", INDEX_NAME);
                 return null;
             }
-            throw e;
+
+            CreateIndexRequest request =
+                    new CreateIndexRequest().index(INDEX_NAME).mapping(mappings).settings(settings);
+
+            try {
+                return this.client
+                        .admin()
+                        .indices()
+                        .create(request)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            } catch (ExecutionException | TimeoutException e) {
+                boolean alreadyExists =
+                        e instanceof ExecutionException
+                                ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
+                                : this.exists();
+                if (alreadyExists) {
+                    log.debug("Index [{}] already exists, skipping creation.", INDEX_NAME);
+                    return null;
+                }
+                throw e;
+            }
         }
     }
 
