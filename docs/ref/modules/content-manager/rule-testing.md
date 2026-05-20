@@ -16,7 +16,7 @@ Draft → Test → Custom
 
 Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Security Analytics Plugin (SAP) evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
 
-Logtest supports both the `test` and `standard` spaces. Use `test` for validating draft content, and `standard` for testing against production rules.
+Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for validating draft content, `standard` for testing against production rules, and `custom` for validating content promoted to production
 
 ---
 

@@ -560,8 +560,17 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Assert.assertTrue(actualResponse.getMessage().contains("expected source space"));
     }
 
-    /** If the promotion is from TEST to CUSTOM, the engine should not be called. */
-    public void testPostPromoteToCustomSkipsEngine() throws IOException {
+    /**
+     * If the promotion is from TEST to CUSTOM and the changeset carries engine resources, the engine
+     * must be invoked so the CUSTOM space is loaded for logtest consumption.
+     */
+    public void testPostPromoteToCustomInvokesEngine() throws IOException {
+        // Mock engine to return success (200 OK)
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
         // Mock spaces
         Map<String, String> mockSpaceTest = new HashMap<>();
         mockSpaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
@@ -607,9 +616,9 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Invoke method to test
         RestResponse actualResponse = this.action.handleRequest(request);
 
-        // Verify - promotion succeeds and engine is never called
+        // Verify - promotion succeeds and engine was called once
         Assert.assertEquals(200, actualResponse.getStatus());
-        verify(this.engine, never()).promote(any(JsonNode.class));
+        verify(this.engine).promote(any(JsonNode.class));
     }
 
     /**
