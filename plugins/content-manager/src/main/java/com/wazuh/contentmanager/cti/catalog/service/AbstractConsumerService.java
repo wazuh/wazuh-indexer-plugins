@@ -51,6 +51,7 @@ import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.UrlUtils;
 
 /**
  * Base class for consumer synchronization logic. Provides common functionality for synchronizing
@@ -427,7 +428,7 @@ public abstract class AbstractConsumerService {
                 && !planResource.isBlank()
                 && existingResource != null
                 && !existingResource.isBlank()
-                && !planResource.equals(existingResource)) {
+                && !UrlUtils.sameResource(planResource, existingResource)) {
             // Case 1: Plan upgrade or cross-plan change.
             log.info(
                     "Consumer [{}] resource changed from [{}] to [{}]. Scheduling blue/green swap.",
@@ -441,7 +442,7 @@ public abstract class AbstractConsumerService {
                 && existingResource != null
                 && !existingResource.isBlank()
                 && !manifestResource.isBlank()
-                && !existingResource.equals(manifestResource)) {
+                && !UrlUtils.sameResource(existingResource, manifestResource)) {
             // Case 2: Downgrade to free — existing resource is a paid URL, manifest has the
             // free/default URL. Swap to the manifest content.
             log.info(
