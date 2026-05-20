@@ -177,7 +177,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
             // holds engine resources from prior promotions (integration/rule-only changesets still
             // require engine validation when engine resources are already present in the target).
             Space targetSpace = spaceDiff.getSpace().promote();
-            if (targetSpace == Space.TEST
+            if ((targetSpace == Space.TEST || targetSpace == Space.CUSTOM)
                     && (hasEngineRelatedChanges(context)
                             || this.spaceService.hasEngineResources(targetSpace))) {
                 RestResponse engineResponse = this.engine.promote(context.enginePayload);
