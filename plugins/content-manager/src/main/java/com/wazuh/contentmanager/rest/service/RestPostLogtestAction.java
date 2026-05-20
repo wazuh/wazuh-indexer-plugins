@@ -144,7 +144,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
                     String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
                     RestStatus.BAD_REQUEST.getStatus());
         }
-        if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
+        if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD && spaceEnum != Space.CUSTOM) {
             return new RestResponse(
                     String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
                     RestStatus.BAD_REQUEST.getStatus());
