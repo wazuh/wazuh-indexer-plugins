@@ -167,6 +167,16 @@ public class Policy {
         if (policy.enrichments != null) {
             policy.enrichments.removeIf(java.util.Objects::isNull);
         }
+        // Default optional boolean flags so they are always present in the indexed document
+        if (policy.enabled == null) {
+            policy.enabled = false;
+        }
+        if (policy.indexUnclassifiedEvents == null) {
+            policy.indexUnclassifiedEvents = false;
+        }
+        if (policy.indexDiscardedEvents == null) {
+            policy.indexDiscardedEvents = false;
+        }
         return policy;
     }
 
@@ -300,12 +310,12 @@ public class Policy {
     }
 
     /**
-     * Sets the root decoder identifier.
+     * Sets the root decoder identifier. Nullable.
      *
-     * @param rootDecoder The root decoder identifier to set. If null, defaults to empty string.
+     * @param rootDecoder The root decoder identifier to set.
      */
     public void setRootDecoder(String rootDecoder) {
-        this.rootDecoder = rootDecoder != null ? rootDecoder : "";
+        this.rootDecoder = rootDecoder;
     }
 
     /**

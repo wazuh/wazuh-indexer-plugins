@@ -442,7 +442,10 @@ public class PolicyTests extends OpenSearchTestCase {
         Assert.assertEquals(Boolean.TRUE, testPolicy.getIndexDiscardedEvents());
     }
 
-    /** Test fromPayload when boolean fields are absent — they must all be null. */
+    /**
+     * Test fromPayload when boolean fields are absent — they must default to {@code false} so that
+     * the indexed policy document always carries them.
+     */
     public void testFromPayload_BooleanFieldsAbsent() {
         // Arrange - payload has no boolean keys
         ObjectNode payload = this.getPayload();
@@ -451,9 +454,9 @@ public class PolicyTests extends OpenSearchTestCase {
         Policy testPolicy = Policy.fromPayload(payload);
 
         // Assert
-        Assert.assertNull(testPolicy.getEnabled());
-        Assert.assertNull(testPolicy.getIndexUnclassifiedEvents());
-        Assert.assertNull(testPolicy.getIndexDiscardedEvents());
+        Assert.assertEquals(Boolean.FALSE, testPolicy.getEnabled());
+        Assert.assertEquals(Boolean.FALSE, testPolicy.getIndexUnclassifiedEvents());
+        Assert.assertEquals(Boolean.FALSE, testPolicy.getIndexDiscardedEvents());
     }
 
     /** Test that non-null boolean fields are serialized by toJson. */

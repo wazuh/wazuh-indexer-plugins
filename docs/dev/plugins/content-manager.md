@@ -8,7 +8,7 @@ This document describes the architecture, components, and extension points of th
 
 The Content Manager plugin handles:
 
-- **CTI Subscription:** Manages subscriptions and tokens with the CTI Console.
+- **CTI Credentials:** Stores the CTI access token in `.wazuh-cti-credentials` and caches it in `PluginSettings.accessToken` for REST handler use.
 - **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
 - **Update Check Service:** Sends a daily heartbeat to CTI so Wazuh can notify users when a newer version is available.
 - **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
@@ -21,19 +21,68 @@ The Content Manager plugin handles:
 
 ## System Indices
 
-The plugin manages the following indices:
+The plugin manages the following indices. All 8 content indices use an **alias-backed blue/green storage** scheme (see [Index Alias Convention](#index-alias-convention) below).
 
-| Index                         | Purpose                              |
-| ----------------------------- | ------------------------------------ |
-| `.wazuh-cti-consumers`              | Sync state (status, offsets, snapshot links) |
-| `wazuh-threatintel-policies`               | Policy documents                     |
-| `wazuh-threatintel-integrations`           | Integration definitions              |
-| `wazuh-threatintel-rules`                  | Detection rules                      |
-| `wazuh-threatintel-decoders`               | Decoder definitions                  |
-| `wazuh-threatintel-kvdbs`                  | Key-value databases                  |
-| `wazuh-threatintel-enrichments`                   | Indicators of Compromise             |
-| `wazuh-threatintel-filters`             | Engine filter rules                  |
-| `.wazuh-content-manager-jobs` | Job scheduler metadata               |
+| Alias (public name)                    | Purpose                              | Hidden | Created by        |
+| -------------------------------------- | ------------------------------------ | ------ | ----------------- |
+| `.wazuh-cti-consumers`                 | Sync state (status, offsets)         | yes    | Content Manager   |
+| `wazuh-threatintel-policies`           | Policy documents                     | no     | Content Manager   |
+| `wazuh-threatintel-integrations`       | Integration definitions              | no     | Content Manager   |
+| `wazuh-threatintel-rules`              | Detection rules                      | no     | Content Manager   |
+| `wazuh-threatintel-decoders`           | Decoder definitions                  | no     | Content Manager   |
+| `wazuh-threatintel-kvdbs`              | Key-value databases                  | no     | Content Manager   |
+| `wazuh-threatintel-filters`            | Engine filter rules                  | no     | Content Manager   |
+| `wazuh-threatintel-enrichments`        | Indicators of Compromise             | no     | Content Manager   |
+| `.wazuh-threatintel-vulnerabilities`   | CVE vulnerability data               | yes    | Content Manager   |
+| `.wazuh-content-manager-jobs`          | Job scheduler metadata               | yes    | Content Manager   |
+
+---
+
+## Index Alias Convention
+
+Each content index uses an alias-backed **blue/green** storage scheme to enable zero-downtime content replacement during subscription plan changes.
+
+### Naming
+
+- **Alias (public name):** The stable name used by all readers, REST handlers, and dashboards. Example: `wazuh-threatintel-rules`.
+- **Physical index:** The actual index storing data, suffixed with `-a` or `-b`. Example: `wazuh-threatintel-rules-a`.
+
+Only one physical index is live at a time. The alias points to it with `is_write_index: true`. The other suffix is reserved as the shadow (staging) slot for the next plan-change swap.
+
+### Key classes
+
+| Class | Location | Responsibility |
+|---|---|---|
+| `ContentIndex` | `cti/catalog/index/ContentIndex.java` | Creates alias-backed physical indices. Has a 4-arg constructor for targeting shadow physical names directly. `createIndex()` creates the physical index and assigns the alias. `createShadowIndex()` creates a hidden physical index without an alias. |
+| `IndexSwapHelper` | `cti/catalog/index/IndexSwapHelper.java` | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`. |
+| `AbstractConsumerService` | `cti/catalog/service/AbstractConsumerService.java` | Detects plan changes and delegates to `performShadowSwap()` instead of the old `resetConsumer()` wipe-and-reload path. |
+
+### Shadow swap flow (plan change)
+
+When `AbstractConsumerService.syncConsumerServices()` detects a plan change (the plan-provided `resource` URL differs from the persisted one), it runs the shadow swap path:
+
+```
+1. Resolve shadow physical names (the -a/-b suffix not currently live)
+2. Create hidden shadow physical indices (index.hidden=true, no alias)
+3. Download snapshot into shadow indices (reuse SnapshotServiceImpl)
+4. Reindex user content (space.name != "standard") from live → shadow
+   (only for consumer types with hasUserContent()=true, i.e., ruleset)
+5. Unhide non-CVE shadow indices (set index.hidden=false)
+6. Atomic alias swap (single IndicesAliasesRequest for all 8 aliases)
+7. Rewrite consumer document in .wazuh-cti-consumers
+8. Run post-sync cascade (onSyncComplete: SAP sync, engine promote, etc.)
+9. Delete old physical indices
+```
+
+**Error handling:**
+- Failure before step 6: shadow indices are deleted, alias and consumer doc unchanged. Next sync retries.
+- Failure between steps 6–7: alias is swapped but consumer doc still says old resource. Next sync re-detects the plan change and re-runs the shadow path (at most one wasted rebuild, no user-visible corruption).
+
+**Concurrency:** The `CatalogSyncJob` semaphore spans the entire `synchronize()` call, which includes the shadow swap. No additional locking is needed.
+
+### Normal incremental syncs
+
+Regular incremental updates (no plan change) write through the alias to the live physical index. They are completely unaware of the `-a`/`-b` scheme.
 
 ---
 
@@ -43,9 +92,9 @@ The plugin manages the following indices:
 
 **`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `ActionPlugin`. On startup it:
 
-1. Initializes `PluginSettings`, `ConsumersIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
+1. Initializes `PluginSettings`, `ConsumersIndex`, `CredentialsIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
 2. Registers all REST handlers via `getRestHandlers()`.
-3. Creates the `.wazuh-cti-consumers` index on cluster manager nodes.
+3. Creates the `.wazuh-cti-consumers` and `.wazuh-cti-credentials` indices on cluster manager nodes.
 4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
 5. Optionally triggers an immediate sync on start.
 6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.
@@ -60,19 +109,35 @@ The update check flow is split into two classes:
   - Reads cluster UUID from `ClusterService` metadata.
   - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
   - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
+  - Exposes a `trigger()` method for immediate invocation, used by `ContentManagerPlugin` to fire the first ping as soon as the job document is indexed.
 
 - **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
   - Sends an asynchronous GET request to CTI `/ping`.
   - Headers sent:
     - `wazuh-uid`: cluster UUID
     - `wazuh-tag`: `v<version>`
-    - `user-agent`: `Wazuh Indexer <version>`
   - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
+
+### CTI HTTP Client User-Agent
+
+All HTTP clients that communicate with CTI services include a custom `User-Agent` header set as a **default header on the HTTP client builder**:
+
+```
+User-Agent: Wazuh Indexer <version>
+```
+
+The version is read from `VERSION.json` at plugin startup and stored in `PluginSettings`. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
+
+Affected clients:
+- **Console `ApiClient`** (`cti/console/client/ApiClient.java`) — async HTTP client for CTI Console authentication and plans.
+- **Catalog `ApiClient`** (`cti/catalog/client/ApiClient.java`) — async HTTP client for CTI Catalog consumer and changes.
+- **`SnapshotClient`** (`cti/catalog/client/SnapshotClient.java`) — sync HTTP client for downloading CTI snapshots.
+- **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`) — inherits from Console `ApiClient`.
 
 Runtime toggle behavior:
 
 - `plugins.content_manager.telemetry.enabled` is a **dynamic** setting.
-- Enabling it schedules the job and triggers an immediate ping.
+- Enabling it schedules the job; the immediate first ping is fired from within `scheduleTelemetryPingJob()` only after the job document has been successfully indexed, guaranteeing the ping only runs when the scheduled job is correctly registered.
 - Disabling it removes the telemetry job document from `.wazuh-content-manager-jobs`.
 
 ### REST Handlers
@@ -81,8 +146,8 @@ The plugin registers 26 REST handlers, grouped by domain:
 
 | Domain           | Handler                        | Method | URI                                            |
 | ---------------- | ------------------------------ | ------ | ---------------------------------------------- |
-| **Subscription** | `RestGetSubscriptionAction`    | GET    | `/_plugins/_content_manager/subscription`      |
-|                  | `RestPostSubscriptionAction`   | POST   | `/_plugins/_content_manager/subscription`      |
+| **Subscription** | `RestPostSubscriptionAction`   | POST   | `/_plugins/_content_manager/subscription`      |
+|                  | `RestGetSubscriptionAction`    | GET    | `/_plugins/_content_manager/subscription`      |
 |                  | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription`      |
 | **Update**       | `RestPostUpdateAction`         | POST   | `/_plugins/_content_manager/update`            |
 | **Logtest**      | `RestPostLogtestAction`        | POST   | `/_plugins/_content_manager/logtest`           |
@@ -138,9 +203,7 @@ BaseRestHandler
 │       └── RestDeleteFilterAction
 ├── RestPutPolicyAction
 ├── RestDeleteSpaceAction
-├── RestGetSubscriptionAction
 ├── RestPostSubscriptionAction
-├── RestDeleteSubscriptionAction
 ├── RestPostUpdateAction
 ├── RestPostLogtestAction
 ├── RestPostPromoteAction
@@ -205,6 +268,67 @@ The `executeRequest()` workflow:
 7. **Update hash** — recalculates the Draft space hash.
 
 Returns `200 OK` with the resource UUID on success.
+
+---
+
+## YAML Content-Type Support
+
+Decoders, KVDBs, and Filters accept `Content-Type: application/yaml` requests in addition to JSON. This is implemented through an opt-in pattern in the abstract handler hierarchy.
+
+### Architecture
+
+The YAML support is built on three mechanisms in `AbstractContentAction`:
+
+1. **`isYamlRequest(RestRequest)`** — Detects YAML content type via `XContentType.YAML.equals(request.getMediaType())`. Returns `false` on any exception (e.g., test mocks that don't stub `getMediaType()`).
+
+2. **`supportsYamlField()`** — Returns `false` by default. Overridden to `true` in concrete handlers that support YAML field storage: `RestPostDecoderAction`, `RestPutDecoderAction`, `RestPostKvdbAction`, `RestPutKvdbAction`, `RestPostFilterAction`, `RestPutFilterAction`.
+
+3. **YAML/JSON branching in `executeRequest()`** — Both `AbstractCreateAction` and `AbstractUpdateAction` (and their `*Spaces` variants) branch on `isYamlRequest()` and `supportsYamlField()`:
+   - **YAML path**: Parses the body via `YamlUtils.fromYaml()`, then validates the envelope structure with the same `validateResourcePayload()` call as the JSON path. The `rawYaml` for the `yaml` field is generated from the `resource` subtree via `YamlUtils.toYaml()`.
+   - **JSON path**: Unchanged — parses via Jackson `ObjectMapper.readTree()`.
+
+Both paths converge after parsing: resource-specific validation, ID generation, external sync, and indexing are identical regardless of content type.
+
+### Envelope structure
+
+YAML requests use the **same envelope** as JSON. The `integration` (or `space` for filters) and `resource` keys appear at the top level of the YAML document:
+
+```yaml
+---
+integration: <uuid>
+resource:
+  metadata:
+    title: "My Resource"
+  content: { ... }
+```
+
+This is parsed into a `JsonNode` tree identical to what the JSON path produces.
+
+### YAML field storage
+
+When `supportsYamlField()` returns `true`, the handler populates a `yaml` field on the CTI wrapper before indexing:
+
+- **YAML requests**: `rawYaml` is generated from the parsed `resource` subtree (not the raw request body, which includes the envelope).
+- **JSON requests**: `YamlUtils.toYaml(resourceNode)` auto-generates the YAML representation.
+
+The `yaml` field is stored as `text` in the index mappings (see `cti-decoders-mappings.json`, `cti-kvdbs-mappings.json`, `engine-filters-mappings.json`).
+
+### Type fidelity
+
+`YamlUtils` is configured with `DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS` to preserve floating-point precision. A post-parse `fixDecimalScale()` step ensures values like `5.0` retain scale 1 in their `BigDecimal` representation, preventing coercion to integer `5` during serialization.
+
+The `ContentIndex.create()` method skips `processPayload()` when it receives a fully-formed CTI wrapper (with `document`, `space`, and `hash` keys), avoiding a lossy `valueToTree()` round-trip that would strip `BigDecimal` scale.
+
+### Key classes
+
+| Class | Role |
+| --- | --- |
+| `YamlUtils` | YAML - JSON conversion with `USE_BIG_DECIMAL_FOR_FLOATS`, `fixDecimalScale()` |
+| `Decoder` | Model with `yaml` field, `fromPayload()` generates YAML from document |
+| `Kvdb` | Model with `yaml` field, same pattern as Decoder |
+| `Filter` | Model with `yaml` field, same pattern as Decoder |
+| `AbstractContentAction` | `isYamlRequest()`, `supportsYamlField()` base methods |
+| `ContentIndex` | `create()` skips `processPayload()` for pre-built wrappers |
 
 ---
 

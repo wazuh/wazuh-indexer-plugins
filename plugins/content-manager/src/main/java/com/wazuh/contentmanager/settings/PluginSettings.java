@@ -21,7 +21,11 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
-import reactor.util.annotation.NonNull;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.wazuh.contentmanager.utils.Constants;
+import org.jspecify.annotations.NonNull;
 
 /** This class encapsulates configuration settings and constants for the Content Manager plugin. */
 public class PluginSettings {
@@ -54,20 +58,17 @@ public class PluginSettings {
     private static final boolean DEFAULT_UPDATE_ON_SCHEDULE = true;
     private static final boolean DEFAULT_CREATE_DETECTORS = true;
 
-    // Default values for Context and Consumer
-    private static final String DEFAULT_CONTENT_CONTEXT = "t1-ruleset-5";
-    private static final String DEFAULT_CONTENT_CONSUMER = "public-ruleset-5";
-
-    // Default values for IOC Context and Consumer
-    private static final String DEFAULT_IOC_CONTEXT = "t1-iocs-5";
-    private static final String DEFAULT_IOC_CONSUMER = "public-iocs-5";
-
-    // Default values for CVE Context and Consumer
-    private static final String DEFAULT_CVE_CONTEXT = "t1-vulnerabilities-5";
-    private static final String DEFAULT_CVE_CONSUMER = "public-vulnerabilities-5";
+    // Default values for catalog consumer URLs
+    private static final String DEFAULT_CATALOG_RULESET =
+            "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5";
+    private static final String DEFAULT_CATALOG_IOCS = "";
+    private static final String DEFAULT_CATALOG_VULNERABILITIES = "";
 
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
+
+    private static final Pattern CATALOG_URI_PATTERN =
+            Pattern.compile(".*/catalog/contexts/([^/]+)/consumers/([^/?#]+)(?:[/?#].*)?$");
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -123,7 +124,7 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.catalog.sync_interval",
                     DEFAULT_CATALOG_SYNC_INTERVAL,
-                    1,
+                    10,
                     1440,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
@@ -152,51 +153,27 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Unified Context for Content. */
-    public static final Setting<String> CONTENT_CONTEXT =
+    /** Full ruleset catalog consumer URL. */
+    public static final Setting<String> CATALOG_RULESET =
             Setting.simpleString(
-                    "plugins.content_manager.catalog.content.context",
-                    DEFAULT_CONTENT_CONTEXT,
+                    "plugins.content_manager.catalog.ruleset",
+                    DEFAULT_CATALOG_RULESET,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Unified Consumer for Content. */
-    public static final Setting<String> CONTENT_CONSUMER =
+    /** Full IoCs catalog consumer URL. */
+    public static final Setting<String> CATALOG_IOCS =
             Setting.simpleString(
-                    "plugins.content_manager.catalog.content.consumer",
-                    DEFAULT_CONTENT_CONSUMER,
+                    "plugins.content_manager.catalog.iocs",
+                    DEFAULT_CATALOG_IOCS,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Context for IoC Content. */
-    public static final Setting<String> IOC_CONTEXT =
+    /** Full vulnerabilities catalog consumer URL. */
+    public static final Setting<String> CATALOG_VULNERABILITIES =
             Setting.simpleString(
-                    "plugins.content_manager.ioc.content.context",
-                    DEFAULT_IOC_CONTEXT,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
-    /** Consumer for IoC Content. */
-    public static final Setting<String> IOC_CONSUMER =
-            Setting.simpleString(
-                    "plugins.content_manager.ioc.content.consumer",
-                    DEFAULT_IOC_CONSUMER,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
-    /** Context for CVE Content. */
-    public static final Setting<String> CVE_CONTEXT =
-            Setting.simpleString(
-                    "plugins.content_manager.cve.content.context",
-                    DEFAULT_CVE_CONTEXT,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
-    /** Consumer for CVE Content. */
-    public static final Setting<String> CVE_CONSUMER =
-            Setting.simpleString(
-                    "plugins.content_manager.cve.content.consumer",
-                    DEFAULT_CVE_CONSUMER,
+                    "plugins.content_manager.catalog.vulnerabilities",
+                    DEFAULT_CATALOG_VULNERABILITIES,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -233,16 +210,15 @@ public class PluginSettings {
     private final int catalogSyncInterval;
     private final boolean updateOnStart;
     private final boolean updateOnSchedule;
-    private final String contentContext;
-    private final String contentConsumer;
-    private final String iocContext;
-    private final String iocConsumer;
-    private final String cveContext;
-    private final String cveConsumer;
+    private final String catalogRuleset;
+    private final String catalogIocs;
+    private final String catalogVulnerabilities;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
     private volatile boolean isTelemetryEnabled;
+    private volatile String accessToken;
+    private String version;
 
     /**
      * Private default constructor
@@ -257,12 +233,9 @@ public class PluginSettings {
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
         this.updateOnStart = UPDATE_ON_START.get(settings);
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
-        this.contentContext = CONTENT_CONTEXT.get(settings);
-        this.contentConsumer = CONTENT_CONSUMER.get(settings);
-        this.iocContext = IOC_CONTEXT.get(settings);
-        this.iocConsumer = IOC_CONSUMER.get(settings);
-        this.cveContext = CVE_CONTEXT.get(settings);
-        this.cveConsumer = CVE_CONSUMER.get(settings);
+        this.catalogRuleset = CATALOG_RULESET.get(settings);
+        this.catalogIocs = CATALOG_IOCS.get(settings);
+        this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
@@ -297,8 +270,73 @@ public class PluginSettings {
         return INSTANCE;
     }
 
+    /**
+     * Resets the singleton instance. Intended for use in unit tests only.
+     *
+     * <p><strong>WARNING:</strong> Do not call this method in production code.
+     */
+    public static synchronized void resetForTesting() {
+        INSTANCE = null;
+    }
+
     public void setTelemetryEnabled(boolean isTelemetryEnabled) {
         this.isTelemetryEnabled = isTelemetryEnabled;
+    }
+
+    /**
+     * Sets the CTI access token.
+     *
+     * @param accessToken the access token string, or null to clear it.
+     */
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    /**
+     * Retrieves the CTI access token.
+     *
+     * @return the access token string, or null if not set.
+     */
+    public String getAccessToken() {
+        return this.accessToken;
+    }
+
+    /**
+     * Returns whether this instance is registered in the Wazuh CTI Platform. A registered instance
+     * has a non-null, non-blank access token.
+     *
+     * @return true if the instance is registered, false otherwise.
+     */
+    public boolean isRegistered() {
+        return this.accessToken != null && !this.accessToken.isBlank();
+    }
+
+    /**
+     * Sets the version of Wazuh. Should be called once during plugin initialization.
+     *
+     * @param version the Wazuh version string (e.g., "5.0.0").
+     */
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    /**
+     * Retrieves the version of Wazuh.
+     *
+     * @return the Wazuh version string, or null if not set.
+     */
+    public String getVersion() {
+        return this.version;
+    }
+
+    /**
+     * Builds the custom user-agent string for CTI API communications.
+     *
+     * @return the user-agent string in the format "Wazuh Indexer {version}".
+     */
+    public String getUserAgent() {
+        String version = this.version != null ? this.version : "unknown";
+        return Constants.USER_AGENT_PREFIX + version;
     }
 
     /**
@@ -373,22 +411,9 @@ public class PluginSettings {
         return this.isTelemetryEnabled;
     }
 
-    /**
-     * Retrieves the Content Context.
-     *
-     * @return the context string.
-     */
-    public String getContentContext() {
-        return this.contentContext;
-    }
-
-    /**
-     * Retrieves the Content Consumer.
-     *
-     * @return the consumer string.
-     */
-    public String getContentConsumer() {
-        return this.contentConsumer;
+    /** Retrieves the full ruleset catalog consumer URL. */
+    public String getCatalogRuleset() {
+        return this.catalogRuleset;
     }
 
     /**
@@ -400,40 +425,47 @@ public class PluginSettings {
         return this.createDetectors;
     }
 
-    /**
-     * Retrieves the IOC Context.
-     *
-     * @return the context string.
-     */
-    public String getIocContext() {
-        return this.iocContext;
+    /** Retrieves the full IoCs catalog consumer URL. */
+    public String getCatalogIocs() {
+        return this.catalogIocs;
+    }
+
+    /** Retrieves the full vulnerabilities catalog consumer URL. */
+    public String getCatalogVulnerabilities() {
+        return this.catalogVulnerabilities;
     }
 
     /**
-     * Retrieves the IOC Consumer.
+     * Extracts the context segment from a consumer URL.
      *
-     * @return the consumer string.
+     * @param catalogUri full consumer URL.
+     * @return context value, or an empty string when the URL does not match the expected format.
      */
-    public String getIocConsumer() {
-        return this.iocConsumer;
+    public static String getContextFromCatalogUri(String catalogUri) {
+        return PluginSettings.getCatalogUriPart(catalogUri, 1);
     }
 
     /**
-     * Retrieves the CVE Context.
+     * Extracts the consumer segment from a consumer URL.
      *
-     * @return the context string.
+     * @param catalogUri full consumer URL.
+     * @return consumer value, or an empty string when the URL does not match the expected format.
      */
-    public String getCveContext() {
-        return this.cveContext;
+    public static String getConsumerFromCatalogUri(String catalogUri) {
+        return PluginSettings.getCatalogUriPart(catalogUri, 2);
     }
 
-    /**
-     * Retrieves the CVE Consumer.
-     *
-     * @return the consumer string.
-     */
-    public String getCveConsumer() {
-        return this.cveConsumer;
+    private static String getCatalogUriPart(String catalogUri, int group) {
+        if (catalogUri == null || catalogUri.isBlank()) {
+            return "";
+        }
+
+        Matcher matcher = CATALOG_URI_PATTERN.matcher(catalogUri);
+        if (matcher.matches()) {
+            return matcher.group(group);
+        }
+
+        return "";
     }
 
     /**
@@ -478,11 +510,14 @@ public class PluginSettings {
                 + "updateOnSchedule="
                 + this.updateOnSchedule
                 + ", "
-                + "contentContext="
-                + this.contentContext
-                + ", "
-                + "contentConsumer="
-                + this.contentConsumer
-                + "}";
+                + "catalogRuleset='"
+                + this.catalogRuleset
+                + "', "
+                + "catalogIocs='"
+                + this.catalogIocs
+                + "', "
+                + "catalogVulnerabilities='"
+                + this.catalogVulnerabilities
+                + "'}";
     }
 }

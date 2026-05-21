@@ -52,9 +52,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
     private final ObjectMapper mapper;
 
-    private final String CONTEXT = PluginSettings.getInstance().getContentContext();
-    private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
-
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final SpaceService spaceService;
     private final EngineService engineService;
@@ -85,24 +82,24 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
     }
 
-    /**
-     * Retrieves the context name for this synchronizer.
-     *
-     * @return The context string.
-     */
     @Override
-    protected String getContext() {
-        return this.CONTEXT;
+    protected String getConsumerType() {
+        return "cti:catalog:consumer:ruleset";
     }
 
-    /**
-     * Retrieves the consumer name for this synchronizer.
-     *
-     * @return The consumer string.
-     */
     @Override
-    protected String getConsumer() {
-        return this.CONSUMER;
+    protected String getCustomCatalogUri() {
+        return PluginSettings.getInstance().getCatalogRuleset();
+    }
+
+    @Override
+    protected boolean isRulesetConsumer() {
+        return true;
+    }
+
+    @Override
+    protected boolean hasUserContent() {
+        return true;
     }
 
     @Override
@@ -122,20 +119,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         mappings.put(Constants.KEY_DECODER, "/mappings/cti-decoders-mappings.json");
         mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
         mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
-        mappings.put(Constants.KEY_FILTERS, "/mappings/engine-filters-mappings.json");
         mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
+        mappings.put(Constants.KEY_FILTER, "/mappings/cti-filters-mappings.json");
         return mappings;
-    }
-
-    /**
-     * Returns the aliases configuration for the indices.
-     *
-     * @return An empty map as indices are accessed by their names directly.
-     */
-    @Override
-    protected Map<String, String> getAliases() {
-        // Not needed. We use the actual data stream names instead.
-        return Collections.emptyMap();
     }
 
     /**
@@ -154,7 +140,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_DECODERS,
                     Constants.INDEX_KVDBS,
                     Constants.INDEX_INTEGRATIONS,
-                    Constants.INDEX_FILTERS,
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations

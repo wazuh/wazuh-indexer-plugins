@@ -30,6 +30,7 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -60,14 +61,19 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
@@ -77,6 +83,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
@@ -91,8 +98,8 @@ public class ContentManagerPlugin extends Plugin
     private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
     private ConsumersIndex consumersIndex;
+    private CredentialsIndex credentialsIndex;
     private ThreadPool threadPool;
-    private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
     private TelemetryPingJob telemetryPingJob;
@@ -102,6 +109,8 @@ public class ContentManagerPlugin extends Plugin
     private Environment environment;
     private ClusterService clusterService;
     private LogtestService logtestService;
+    private PlansService plansService;
+    private SubscriptionService subscriptionService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -135,14 +144,18 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
+        PluginSettings.getInstance().setVersion(ContentManagerPlugin.getVersion(environment));
         this.environment = environment;
         this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
         this.consumersIndex = new ConsumersIndex(client);
+        this.credentialsIndex = new CredentialsIndex(client);
+        this.plansService = new PlansServiceImpl();
+        this.subscriptionService =
+                new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
 
         // Content Manager 5.0
-        this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
 
         // Initialize Engine service
@@ -196,22 +209,20 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        // Only cluster managers are responsible for initialization and the startup sync trigger.
         if (localNode.isClusterManagerNode()) {
             this.start(
                     () -> {
-                        // Trigger update on start if enabled
                         if (PluginSettings.getInstance().isUpdateOnStart()) {
                             this.catalogSyncJob.trigger();
                         } else {
                             log.info("Skipping catalog sync job trigger");
                         }
-
-                        // Schedule the periodic sync job via OpenSearch Job Scheduler (all nodes)
                         this.scheduleCatalogSyncJob();
-                        // Schedule the telemetry ping job
                         this.scheduleTelemetryPingJob();
                     });
+        } else {
+            // Non-CM nodes load credentials asynchronously on startup.
+            this.threadPool.generic().execute(this::tryLoadAccessToken);
         }
     }
 
@@ -238,10 +249,10 @@ public class ContentManagerPlugin extends Plugin
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
-                new RestGetSubscriptionAction(this.ctiConsole),
-                new RestPostSubscriptionAction(this.ctiConsole),
-                new RestDeleteSubscriptionAction(this.ctiConsole),
-                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
+                new RestPostSubscriptionAction(this.subscriptionService),
+                new RestGetSubscriptionAction(this.subscriptionService),
+                new RestDeleteSubscriptionAction(this.subscriptionService),
+                new RestPostUpdateAction(this.catalogSyncJob),
                 // Version check endpoint
                 new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints
@@ -290,27 +301,72 @@ public class ContentManagerPlugin extends Plugin
                     .execute(
                             () -> {
                                 try {
-                                    CreateIndexResponse response = this.consumersIndex.createIndex();
-
-                                    if (response != null && response.isAcknowledged()) {
-                                        log.info(
-                                                "Index created: {} acknowledged={}",
-                                                response.index(),
-                                                response.isAcknowledged());
+                                    try {
+                                        CreateIndexResponse consumersResponse = this.consumersIndex.createIndex();
+                                        if (consumersResponse != null && consumersResponse.isAcknowledged()) {
+                                            log.info(
+                                                    "Index created: {} acknowledged={}",
+                                                    consumersResponse.index(),
+                                                    consumersResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Failed to create {} index, due to: {}",
+                                                ConsumersIndex.INDEX_NAME,
+                                                e.getMessage(),
+                                                e);
                                     }
-                                } catch (Exception e) {
-                                    log.error(
-                                            "Failed to create {} index, due to: {}",
-                                            ConsumersIndex.INDEX_NAME,
-                                            e.getMessage(),
-                                            e);
+
+                                    try {
+                                        CreateIndexResponse credentialsResponse = this.credentialsIndex.createIndex();
+                                        if (credentialsResponse != null && credentialsResponse.isAcknowledged()) {
+                                            log.info(
+                                                    "Index created: {} acknowledged={}",
+                                                    credentialsResponse.index(),
+                                                    credentialsResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Failed to create {} index, due to: {}",
+                                                CredentialsIndex.INDEX_NAME,
+                                                e.getMessage(),
+                                                e);
+                                    }
+
+                                    this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
                                 }
                             });
         } catch (Exception e) {
-            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+            log.error("Error during plugin initialization: {}", e.getMessage(), e);
             onComplete.run();
+        }
+    }
+
+    /**
+     * Attempts to load the CTI access token from the credentials index into memory.
+     *
+     * <p>NOTE: The in-memory token is only updated on the node that handles the POST /subscription
+     * request. Other nodes in the cluster will not see the new token until they are restarted. A
+     * cluster-wide propagation mechanism (e.g. cluster state metadata or an internal transport
+     * action) may be needed in the future to keep all nodes in sync without restart.
+     */
+    private void tryLoadAccessToken() {
+        try {
+            if (this.credentialsIndex.exists()) {
+                String token = this.credentialsIndex.getAccessToken();
+                if (token != null) {
+                    PluginSettings.getInstance().setAccessToken(token);
+                    log.info("CTI access token loaded from credentials index.");
+                } else {
+                    log.debug("Credentials index exists but no access token is stored.");
+                }
+            } else {
+                log.debug("Credentials index does not exist yet; access token not loaded.");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load CTI access token from credentials index: {}", e.getMessage());
         }
     }
 
@@ -355,8 +411,15 @@ public class ContentManagerPlugin extends Plugin
      *
      * <p>If either is missing, it creates them. The job is configured to run based on the interval
      * defined in PluginSettings.
+     *
+     * <p>On startup the jobs index may not be ready yet; this method retries with a linear backoff up
+     * to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
      */
     private void scheduleCatalogSyncJob() {
+        this.scheduleCatalogSyncJob(0);
+    }
+
+    private void scheduleCatalogSyncJob(int attempt) {
         this.threadPool
                 .generic()
                 .execute(
@@ -391,17 +454,56 @@ public class ContentManagerPlugin extends Plugin
                                     log.info("Catalog Sync Job scheduled successfully.");
                                 }
                             } catch (Exception e) {
-                                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                                log.info("Failed to schedule Catalog Sync Job: {}, retrying", e.getMessage());
+                                this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
     }
 
     /**
-     * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler. * This method ensures
-     * that the telemetry heartbeat is registered in the internal job index. If the job document does
-     * not exist, it creates a new one with a 24-hour interval.
+     * Reschedules a failed job-registration attempt on the generic thread pool with a linear backoff.
+     * Stops after {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
+     *
+     * @param jobName human-readable name used in log messages.
+     * @param attempt zero-based attempt counter of the call that just failed.
+     * @param retryAction callback that re-runs the scheduling logic with the given attempt index.
+     */
+    private void retryJobScheduling(String jobName, int attempt, IntConsumer retryAction) {
+        int nextAttempt = attempt + 1;
+        if (nextAttempt > Constants.MAX_JOB_SCHEDULE_RETRIES) {
+            log.error(
+                    "Giving up scheduling {} after {} attempts.",
+                    jobName,
+                    Constants.MAX_JOB_SCHEDULE_RETRIES);
+            return;
+        }
+        long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        log.info(
+                "Retrying {} (attempt {}/{}) in {}s.",
+                jobName,
+                nextAttempt,
+                Constants.MAX_JOB_SCHEDULE_RETRIES,
+                delaySeconds);
+        this.threadPool.schedule(
+                () -> retryAction.accept(nextAttempt),
+                TimeValue.timeValueSeconds(delaySeconds),
+                ThreadPool.Names.GENERIC);
+    }
+
+    /**
+     * Schedules the Telemetry Ping Job within the OpenSearch Job Scheduler. This method ensures that
+     * the telemetry heartbeat is registered in the internal job index. If the job document does not
+     * exist, it creates a new one with a 24-hour interval and fires an immediate ping once
+     * registration succeeds. If the document already exists, the scheduler owns subsequent fires.
+     *
+     * <p>On startup the jobs index or the cluster may not be ready yet; this method retries with a
+     * linear backoff up to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
      */
     private void scheduleTelemetryPingJob() {
+        this.scheduleTelemetryPingJob(0);
+    }
+
+    private void scheduleTelemetryPingJob(int attempt) {
         boolean isEnabled = PluginSettings.getInstance().isTelemetryEnabled();
         if (!isEnabled) {
             log.info("Telemetry job is disabled via settings. Skipping registration.");
@@ -425,7 +527,7 @@ public class ContentManagerPlugin extends Plugin
                                                 .get()
                                                 .getStatus();
                                 if (status == ClusterHealthStatus.RED) {
-                                    log.info("Telemetry job is enabled, but cluster is RED. Skipping registration.");
+                                    throw new RuntimeException("Cluster is RED; telemetry registration deferred.");
                                 }
 
                                 boolean jobExists =
@@ -451,9 +553,17 @@ public class ContentManagerPlugin extends Plugin
 
                                     this.client.index(request).actionGet();
                                     log.info("Telemetry Ping Job scheduled successfully (Interval: 1d).");
+
+                                    // Run the first ping immediately; subsequent fires are owned by
+                                    // the Job Scheduler on the 1-day interval.
+                                    if (this.telemetryPingJob != null) {
+                                        this.telemetryPingJob.trigger();
+                                    }
                                 }
                             } catch (Exception e) {
-                                log.error("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                                log.info("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                                this.retryJobScheduling(
+                                        "Telemetry Ping Job", attempt, this::scheduleTelemetryPingJob);
                             }
                         });
     }
@@ -465,9 +575,6 @@ public class ContentManagerPlugin extends Plugin
             log.info(
                     "Telemetry setting dynamically enabled. Scheduling job and triggering initial run...");
             this.scheduleTelemetryPingJob();
-            if (this.telemetryPingJob != null) {
-                this.telemetryPingJob.trigger();
-            }
         } else {
             log.info("Telemetry setting dynamically disabled. Removing job...");
             this.removeTelemetryPingJob();
@@ -524,13 +631,10 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
-                PluginSettings.CONTENT_CONTEXT,
-                PluginSettings.CONTENT_CONSUMER,
-                PluginSettings.IOC_CONTEXT,
-                PluginSettings.IOC_CONSUMER,
+                PluginSettings.CATALOG_RULESET,
+                PluginSettings.CATALOG_IOCS,
+                PluginSettings.CATALOG_VULNERABILITIES,
                 PluginSettings.TELEMETRY_ENABLED,
-                PluginSettings.CVE_CONTEXT,
-                PluginSettings.CVE_CONSUMER,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS);
@@ -581,6 +685,14 @@ public class ContentManagerPlugin extends Plugin
      *     'version' field is missing/empty.
      */
     public static String getVersion(Environment env) {
+        if (ContentManagerPlugin.isTestEnvironment()) {
+            String configuredVersion = System.getProperty(VERSION_SYSTEM_PROPERTY);
+            if (configuredVersion != null && !configuredVersion.isBlank()) {
+                return configuredVersion;
+            }
+            return "9.99.9";
+        }
+
         String pathHome = env.settings().get("path.home", "/usr/share/wazuh-indexer");
         Path versionFilePath = Path.of(pathHome, VERSION_FILE_NAME);
         try {
@@ -608,5 +720,16 @@ public class ContentManagerPlugin extends Plugin
         }
 
         return null;
+    }
+
+    /**
+     * Returns whether the plugin is running in a test environment. This is determined by the presence
+     * of the "INDEXER_TEST_ENV" system property set to "true". When true, certain behaviors (like
+     * version retrieval) are adjusted to facilitate testing without relying on external files.
+     *
+     * @return true if running in a test environment, false otherwise.
+     */
+    public static boolean isTestEnvironment() {
+        return "true".equals(System.getProperty("INDEXER_TEST_ENV"));
     }
 }

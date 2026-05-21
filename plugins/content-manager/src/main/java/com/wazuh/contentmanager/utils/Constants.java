@@ -47,7 +47,9 @@ public class Constants {
     public static final String E_400_RESOURCE_SPACE_INVALID = "Invalid space value.";
     public static final String E_400_RESOURCE_SPACE_MISMATCH =
             "Invalid space value. Must be one of: %s.";
-    public static final String E_400_INVALID_UUID = "'%s' is not a valid UUID.";
+    public static final String E_400_INVALID_ENRICHMENT =
+            "Invalid enrichment type '%s'. Allowed values are: %s";
+    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
     public static final String E_400_INTEGRATION_HAS_RESOURCES =
             "Cannot delete integration because it has %s attached.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
@@ -61,12 +63,13 @@ public class Constants {
     public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
             "Cannot remove decoder [%s] as it is set as root decoder.";
     public static final String E_400_INVALID_SPACE =
-            "Logtest is only supported for the 'test' and 'standard' spaces. Received space: '%s'.";
+            "Logtest is only supported for the 'test', 'custom' and 'standard' spaces. Received space: '%s'.";
     public static final String E_400_INTEGRATION_NOT_FOUND =
             "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
-    public static final String E_500_SECURITY_ANALYTICS_ERROR = "Error in Security Analytics.";
+    public static final String E_SECURITY_ANALYTICS_ERROR =
+            "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
@@ -101,8 +104,9 @@ public class Constants {
     public static final String INDEX_KVDBS = "wazuh-threatintel-kvdbs";
     public static final String INDEX_DECODERS = "wazuh-threatintel-decoders";
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
-    public static final String INDEX_CVES = "wazuh-threatintel-vulnerabilities";
+    public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
+
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -127,12 +131,16 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_DETECTOR = "detector";
+    public static final String KEY_SOURCE = "source";
+    public static final String KEY_INTERVAL = "interval";
     public static final String KEY_TITLE = "title";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
+    public static final String KEY_YAML = "yaml";
 
     // Newly added keys for ResourceMetadata
     public static final String KEY_REFERENCES = "references";
@@ -140,10 +148,11 @@ public class Constants {
     public static final String KEY_COMPATIBILITY = "compatibility";
     public static final String KEY_SUPPORTS = "supports";
 
-    // Enrichment types allowed in policy
-    public static final String E_400_INVALID_ENRICHMENT =
-            "Invalid enrichment type '%s'. Allowed values are: %s";
-    public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
+    // Consumer's metadata
+    public static final String KEY_IS_PUBLIC = "is_public";
+    public static final String KEY_CONTEXT = "context";
+    public static final String KEY_LOCAL_OFFSET = "local_offset";
+    public static final String KEY_REMOTE_OFFSET = "remote_offset";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -194,8 +203,12 @@ public class Constants {
     public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";
     public static final String CTI_SNAPSHOTS_DIR = "snapshots";
     public static final String CONTENT_SNAPSHOT_FILENAME = "ruleset.zip";
-    public static final String IOC_SNAPSHOT_FILENAME = "ioc.zip";
-    public static final String CVE_SNAPSHOT_FILENAME = "cve.zip";
+    public static final String IOC_SNAPSHOT_FILENAME = "iocs.zip";
+    public static final String CVE_SNAPSHOT_FILENAME = "vulnerabilities.zip";
+    public static final String MANIFEST_FILENAME = "manifest.json";
+
+    // HTTP headers
+    public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
@@ -229,4 +242,8 @@ public class Constants {
     public static final String OP_ADD = "add";
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
+
+    // Job Scheduler registration retries
+    public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
+    public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
 }

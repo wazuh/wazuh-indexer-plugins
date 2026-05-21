@@ -45,12 +45,17 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private final Map<String, ContentIndex> indices;
     private final String context;
     private final String consumer;
+    private final String consumerType;
+    private final String consumerUri;
+    private final boolean cveCatalog;
 
     /**
      * Constructs a new UpdateServiceImpl.
      *
      * @param context The context string (e.g., catalog ID) for the consumer.
      * @param consumer The name of the consumer entity.
+     * @param consumerType The consumer type identifier used as local document id.
+     * @param consumerUri The full CTI consumer URL used to fetch remote changes.
      * @param client The API client used to fetch changes.
      * @param consumersIndex The index responsible for storing consumer state (offsets).
      * @param indices A map of content type to {@link ContentIndex} managers.
@@ -58,6 +63,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     public UpdateServiceImpl(
             String context,
             String consumer,
+            String consumerType,
+            String consumerUri,
             ApiClient client,
             ConsumersIndex consumersIndex,
             Map<String, ContentIndex> indices) {
@@ -70,6 +77,10 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.indices = indices;
         this.context = context;
         this.consumer = consumer;
+        this.consumerType = consumerType;
+        this.consumerUri = consumerUri;
+        // Optimization: fast-path to skip individual ID checks during DELETE if updating CVEs only.
+        this.cveCatalog = indices.size() == 1 && indices.containsKey(Constants.KEY_CVES);
     }
 
     /**
@@ -100,7 +111,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 currentFromOffset + PluginSettings.getInstance().getMaxItemsPerBulk(), toOffset);
 
                 SimpleHttpResponse response =
-                        this.client.getChanges(this.context, this.consumer, currentFromOffset, currentToOffset);
+                        this.client.getChanges(this.consumerUri, currentFromOffset, currentToOffset);
                 if (response.getCode() != 200) {
                     log.error("Failed to fetch changes: {} {}", response.getCode(), response.getBodyText());
                     if (lastAppliedOffset == fromOffset) {
@@ -130,10 +141,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 currentFromOffset = currentToOffset;
             }
             // Update consumer state
-            LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
+            LocalConsumer consumer =
+                    new LocalConsumer(this.context, this.consumer, this.consumerType, this.consumerUri, true);
 
             // Properly handle the GetResponse to check if the document exists before parsing
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
             LocalConsumer current =
                     (getResponse != null && getResponse.isExists())
                             ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
@@ -141,12 +153,14 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
             LocalConsumer updated =
                     new LocalConsumer(
-                            this.context,
-                            this.consumer,
+                            this.firstNonBlank(current.getContext(), this.context),
+                            this.firstNonBlank(current.getName(), this.consumer),
+                            this.firstNonBlank(current.getType(), this.consumerType),
+                            this.firstNonBlank(current.getResource(), this.consumerUri),
+                            current.isPublic(),
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
                             lastAppliedOffset,
-                            toOffset,
-                            current.getSnapshotLink());
+                            toOffset);
             this.consumersIndex.setConsumer(updated);
 
             log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
@@ -228,7 +242,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         if (Cve.deriveType(id) != null) {
             return true;
         }
-        return this.consumer.equals(PluginSettings.getInstance().getCveConsumer());
+        return this.cveCatalog;
     }
 
     /**
@@ -262,10 +276,28 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void resetConsumer() {
         log.info("Resetting consumer [{}] offset to 0 due to update failure.", this.consumer);
         try {
-            LocalConsumer reset = new LocalConsumer(this.context, this.consumer, 0, 0, "");
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : null;
+            boolean effectiveIsPublic = current != null ? current.isPublic() : true;
+            LocalConsumer reset =
+                    new LocalConsumer(
+                            this.firstNonBlank(current != null ? current.getContext() : null, this.context),
+                            this.firstNonBlank(current != null ? current.getName() : null, this.consumer),
+                            this.firstNonBlank(current != null ? current.getType() : null, this.consumerType),
+                            this.firstNonBlank(current != null ? current.getResource() : null, this.consumerUri),
+                            effectiveIsPublic,
+                            0,
+                            0);
             this.consumersIndex.setConsumer(reset);
         } catch (Exception e) {
             log.error("Failed to reset consumer: {}", e.getMessage());
         }
+    }
+
+    private String firstNonBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

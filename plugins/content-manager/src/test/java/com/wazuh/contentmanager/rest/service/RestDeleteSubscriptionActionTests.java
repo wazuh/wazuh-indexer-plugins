@@ -16,98 +16,71 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import java.io.IOException;
+import java.lang.reflect.Field;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the {@link RestDeleteSubscriptionAction} class. This test suite validates the REST
- * API endpoint responsible for deleting CTI subscription tokens.
+ * Unit tests for {@link RestDeleteSubscriptionAction}.
  *
- * <p>Tests verify token deletion requests, proper cleanup of authentication state, and appropriate
- * HTTP response codes for successful deletions and missing token scenarios.
+ * <p>Validates credential removal and error handling via a mocked {@link SubscriptionService}.
  */
 public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
-    private CtiConsole console;
+    private SubscriptionService subscriptionService;
     private RestDeleteSubscriptionAction action;
 
-    /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
-     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.console = mock(CtiConsole.class);
-        this.action = new RestDeleteSubscriptionAction(this.console);
+        clearPluginSettingsInstance();
+        PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
+        this.subscriptionService = mock(SubscriptionService.class);
+        this.action = new RestDeleteSubscriptionAction(this.subscriptionService);
     }
 
-    /**
-     * Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token is created
-     * (mock). The expected response is: {200, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testDeleteToken200() throws IOException {
-        // Mock
-        Token token = new Token("test_token", "test_type");
-        when(this.console.getToken()).thenReturn(token);
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
-
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
-
-        // Assert
-        Assert.assertTrue(
-                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        Assert.assertTrue(
-                bytesRestResponse
-                        .content()
-                        .utf8ToString()
-                        .contains(String.valueOf(expectedResponse.getStatus())));
-        Assert.assertEquals(RestStatus.OK, bytesRestResponse.status());
+    @After
+    public void tearDown() throws Exception {
+        clearPluginSettingsInstance();
+        super.tearDown();
     }
 
-    /**
-     * Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token has not
-     * been created (mock). The expected response is: {404, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testDeleteToken404() throws IOException {
-        // Mock
-        when(this.console.getToken()).thenReturn(null);
+    @SuppressForbidden(reason = "Unit test reset")
+    private static void clearPluginSettingsInstance() throws Exception {
+        Field f = PluginSettings.class.getDeclaredField("INSTANCE");
+        f.setAccessible(true);
+        f.set(null, null);
+    }
 
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
+    /** Successful deletion returns 200 "Credentials removed" and delegates to unregister(). */
+    public void testDeleteSubscription200() throws Exception {
+        BytesRestResponse response = this.action.handleRequest();
 
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
+        Assert.assertEquals(RestStatus.OK, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("Credentials removed"));
+        Assert.assertTrue(body.contains("200"));
+        verify(this.subscriptionService, times(1)).unregister();
+    }
 
-        // Assert
-        Assert.assertTrue(
-                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        Assert.assertTrue(
-                bytesRestResponse
-                        .content()
-                        .utf8ToString()
-                        .contains(String.valueOf(expectedResponse.getStatus())));
-        Assert.assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
+    /** When unregister() throws, returns 500 with the error message. */
+    public void testDeleteSubscription500() throws Exception {
+        doThrow(new RuntimeException("Delete failed")).when(this.subscriptionService).unregister();
+
+        BytesRestResponse response = this.action.handleRequest();
+
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        Assert.assertTrue(response.content().utf8ToString().contains("Delete failed"));
     }
 }

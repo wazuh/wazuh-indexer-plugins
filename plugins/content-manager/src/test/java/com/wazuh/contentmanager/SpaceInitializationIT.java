@@ -58,7 +58,6 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                     "wazuh-threatintel-decoders", "/mappings/cti-decoders-mappings.json",
                     "wazuh-threatintel-kvdbs", "/mappings/cti-kvdbs-mappings.json",
                     "wazuh-threatintel-integrations", "/mappings/cti-integrations-mappings.json",
-                    "wazuh-threatintel-filters", "/mappings/engine-filters-mappings.json",
                     "wazuh-threatintel-policies", "/mappings/cti-policies-mappings.json");
 
     @Override

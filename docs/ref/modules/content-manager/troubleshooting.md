@@ -13,33 +13,26 @@ The Wazuh Engine is not running or the Unix socket is not accessible.
    ```bash
    ls -la /usr/share/wazuh-indexer/engine/sockets/engine-api.sock
    ```
-   
+
 2. Ensure the Wazuh Indexer process has permission to access the socket file.
 
 ### "Token not found"
 
-No CTI subscription has been registered. The Content Manager cannot sync content without a valid subscription token.
+No CTI access token has been registered. The Content Manager cannot sync content without a valid token.
 
 **Resolution:**
 
-1. Check the current subscription status:
-   ```bash
-   curl -sk -u admin:admin \
-     "https://192.168.56.6:9200/_plugins/_content_manager/subscription"
-   ```
+Register credentials by posting the CTI access token:
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "access_token": "<your-cti-access-token>"
+  }'
+```
 
-2. If the response is `{"message":"Token not found","status":404}`, register a subscription using a device code from the Wazuh CTI Console:
-   ```bash
-   curl -sk -u admin:admin -X POST \
-     "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
-     -H 'Content-Type: application/json' \
-     -d '{
-       "device_code": "<your-device-code>",
-       "client_id": "<your-client-id>",
-       "expires_in": 900,
-       "interval": 5
-     }'
-   ```
+A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-cti-credentials` and loaded into memory immediately.
 
 ### Sync Not Running
 
@@ -104,14 +97,16 @@ Example output:
   "hits": {
     "hits": [
       {
-        "_id": "t1-ruleset-5_public-ruleset-5",
+        "_id": "cti:catalog:consumer:ruleset",
         "_source": {
           "name": "public-ruleset-5",
-          "context": "t1-ruleset-5",
+          "context": "beta-2-ruleset-5",
+          "type": "cti:catalog:consumer:ruleset",
+          "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+          "is_public": true,
           "status": "idle",
           "local_offset": 3932,
-          "remote_offset": 3932,
-          "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/t1-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+          "remote_offset": 3932
         }
       }
     ]
@@ -154,6 +149,19 @@ curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-kvdbs/_coun
 # IoCs
 curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-enrichments/_count?pretty"
 ```
+
+## Job Scheduling on Startup
+
+During node startup, `scheduleCatalogSyncJob` and `scheduleTelemetryPingJob` both require the `.wazuh-content-manager-jobs` index to reach yellow status with at least one active shard before they can register their job documents. On a freshly initialized or resource-constrained cluster this can time out, producing entries like:
+
+```
+INFO   ... Failed to schedule Telemetry Ping Job: Index .wazuh-content-manager-jobs not ready
+INFO   ... Retrying Telemetry Ping Job (attempt 1/3) in 15s.
+```
+
+The plugin automatically retries each registration up to 3 times with a linear backoff (15 s, 30 s, 45 s). Each attempt logs the failure reason and the scheduled retry delay at `INFO` — these are expected during startup and do not require action.
+
+If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after 3 attempts.` and the job will only be retried on the next node start. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
 
 ## Log Monitoring
 

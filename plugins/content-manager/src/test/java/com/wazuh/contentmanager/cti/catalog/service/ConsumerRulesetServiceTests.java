@@ -64,20 +64,6 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /** Tests that getContext returns the expected context value. */
-    public void testGetContextReturnsExpectedValue() {
-        String context = this.synchronizer.getContext();
-
-        Assert.assertEquals(PluginSettings.getInstance().getContentContext(), context);
-    }
-
-    /** Tests that getConsumer returns the expected consumer value. */
-    public void testGetConsumerReturnsExpectedValue() {
-        String consumer = this.synchronizer.getConsumer();
-
-        Assert.assertEquals(PluginSettings.getInstance().getContentConsumer(), consumer);
-    }
-
     /** Tests that getMappings returns the expected index mappings. */
     public void testGetMappingsReturnsExpectedMappings() {
         Map<String, String> mappings = this.synchronizer.getMappings();
@@ -89,14 +75,6 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         Assert.assertEquals("/mappings/cti-kvdbs-mappings.json", mappings.get("kvdb"));
         Assert.assertEquals("/mappings/cti-integrations-mappings.json", mappings.get("integration"));
         Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
-        Assert.assertEquals("/mappings/engine-filters-mappings.json", mappings.get("filters"));
-    }
-
-    /** Tests that getAliases returns empty map as aliases are used as names. */
-    public void testGetAliasesReturnsEmpty() {
-        Map<String, String> aliases = this.synchronizer.getAliases();
-        Assert.assertNotNull(aliases);
-        Assert.assertTrue(aliases.isEmpty());
     }
 
     /** Tests that getIndexName returns the correct unified name. */

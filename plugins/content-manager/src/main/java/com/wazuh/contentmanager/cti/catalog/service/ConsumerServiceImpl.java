@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +29,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
@@ -40,6 +43,8 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
 
     private final String context;
     private final String consumer;
+    private final String consumerType;
+    private final String resource;
     private final ConsumersIndex consumerIndex;
 
     /**
@@ -47,12 +52,27 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      *
      * @param context The context identifier.
      * @param consumer The consumer identifier.
+     * @param consumerType The consumer type identifier used as local document id.
+     * @param resource The full catalog consumer URL used for remote requests.
      * @param consumerIndex The index service for storing consumer metadata.
+     * @param client The API client to use for remote requests.
      */
-    public ConsumerServiceImpl(String context, String consumer, ConsumersIndex consumerIndex) {
+    public ConsumerServiceImpl(
+            String context,
+            String consumer,
+            String consumerType,
+            String resource,
+            ConsumersIndex consumerIndex,
+            ApiClient client) {
         this.context = context;
         this.consumer = consumer;
+        this.consumerType = consumerType;
+        this.resource = resource;
         this.consumerIndex = consumerIndex;
+        if (this.client != null) {
+            this.client.close();
+        }
+        this.client = client;
     }
 
     /**
@@ -64,7 +84,7 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     @Override
     public LocalConsumer getLocalConsumer() {
         try {
-            GetResponse response = this.consumerIndex.getConsumer(this.context, this.consumer);
+            GetResponse response = this.consumerIndex.getConsumer(this.consumerType);
 
             return response.isExists()
                     ? this.mapper.readValue(response.getSourceAsString(), LocalConsumer.class)
@@ -86,15 +106,23 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     public RemoteConsumer getRemoteConsumer() {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getConsumer(this.context, this.consumer);
+            SimpleHttpResponse response = this.client.getConsumer(this.resource);
 
             if (response.getCode() == 200) {
-                return this.mapper.readValue(response.getBodyText(), RemoteConsumer.class);
+                // The API response wraps the consumer payload in a "data" object and does not
+                // include the consumer type or its resource URL — those are caller-side identities.
+                JsonNode root = this.mapper.readTree(response.getBodyText());
+                return new RemoteConsumer(root.get("data"), this.consumerType, this.resource);
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             log.error("Couldn't obtain consumer from CTI: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse remote consumer: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            // Thrown by ApiClient.buildConsumerURI when the resource URL is malformed or its host
+            // does not match the configured CTI base. Returning null lets the caller fall back to
+            // the local snapshot.
+            log.error("Invalid CTI consumer URI [{}]: {}", this.resource, e.getMessage());
         }
         return null;
     }
@@ -105,7 +133,8 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      * @return The initialized {@link LocalConsumer}, or null if persistence fails.
      */
     public LocalConsumer setConsumer() {
-        LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
+        LocalConsumer consumer =
+                new LocalConsumer(this.context, this.consumer, this.consumerType, this.resource, true);
 
         try {
             IndexResponse response = this.consumerIndex.setConsumer(consumer);

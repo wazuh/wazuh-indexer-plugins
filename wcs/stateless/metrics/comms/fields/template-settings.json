@@ -17,7 +17,8 @@
           "wazuh.cluster.node",
           "wazuh.schema.version"
         ]
-      }
+      },
+      "mapping.total_fields.limit": 1000
     }
   }
 }

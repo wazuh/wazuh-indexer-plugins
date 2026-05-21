@@ -1,0 +1,26 @@
+{
+  "index_patterns": [
+    "wazuh-metrics-normalization*"
+  ],
+  "order": 1,
+  "data_stream": {},
+  "settings": {
+    "plugins.index_state_management.rollover_alias": "wazuh-metrics-normalization",
+    "index": {
+      "number_of_shards": "1",
+      "number_of_replicas": "0",
+      "refresh_interval": "5s",
+      "query.default_field": [
+        "event.module",
+        "event.kind",
+        "metric.name",
+        "metric.type",
+        "wazuh.cluster.name",
+        "wazuh.cluster.node",
+        "wazuh.space.name",
+        "wazuh.schema.version"
+      ]
+    },
+    "mapping.total_fields.limit": 1000
+  }
+}

@@ -25,6 +25,8 @@ import org.junit.Before;
 
 import java.lang.reflect.Field;
 
+import com.wazuh.contentmanager.utils.Constants;
+
 public class PluginSettingsTests extends OpenSearchTestCase {
 
     /**
@@ -72,6 +74,11 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // Verify default values
         Assert.assertTrue(pluginSettings.isUpdateOnStart());
         Assert.assertTrue(pluginSettings.isUpdateOnSchedule());
+        Assert.assertEquals(
+                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+                pluginSettings.getCatalogRuleset());
+        Assert.assertEquals("", pluginSettings.getCatalogIocs());
+        Assert.assertEquals("", pluginSettings.getCatalogVulnerabilities());
     }
 
     /**
@@ -84,6 +91,15 @@ public class PluginSettingsTests extends OpenSearchTestCase {
                 Settings.builder()
                         .put("plugins.content_manager.catalog.update_on_start", false)
                         .put("plugins.content_manager.catalog.update_on_schedule", false)
+                        .put(
+                                "plugins.content_manager.catalog.ruleset",
+                                "https://cti.example/api/v1/catalog/contexts/c1/consumers/rules")
+                        .put(
+                                "plugins.content_manager.catalog.iocs",
+                                "https://cti.example/api/v1/catalog/contexts/c2/consumers/iocs")
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/c3/consumers/vulns")
                         .build();
 
         PluginSettings pluginSettings = PluginSettings.getInstance(settings);
@@ -91,5 +107,116 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // Verify custom values
         Assert.assertFalse(pluginSettings.isUpdateOnStart());
         Assert.assertFalse(pluginSettings.isUpdateOnSchedule());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/c1/consumers/rules",
+                pluginSettings.getCatalogRuleset());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/c2/consumers/iocs",
+                pluginSettings.getCatalogIocs());
+        Assert.assertEquals(
+                "https://cti.example/api/v1/catalog/contexts/c3/consumers/vulns",
+                pluginSettings.getCatalogVulnerabilities());
+    }
+
+    /** Tests that getUserAgent returns the fallback value when no version has been set. */
+    public void testGetUserAgentDefaultsToUnknown() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+
+        Assert.assertNull(pluginSettings.getVersion());
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "unknown", pluginSettings.getUserAgent());
+    }
+
+    /** Tests that getUserAgent returns the correct value after setWazuhVersion is called. */
+    public void testGetUserAgentWithVersion() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setVersion("5.0.0");
+
+        Assert.assertEquals("5.0.0", pluginSettings.getVersion());
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
+    }
+
+    /** Tests that setWazuhVersion can be updated and getUserAgent reflects the latest value. */
+    public void testSetWazuhVersionUpdatesUserAgent() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setVersion("4.9.0");
+
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "4.9.0", pluginSettings.getUserAgent());
+
+        pluginSettings.setVersion("5.0.0");
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
+    }
+
+    /** Tests extraction of context and consumer values from a CTI catalog consumer URL. */
+    public void testCatalogUriPartsExtraction() {
+        String uri = "https://cti.example/api/v1/catalog/contexts/my-context/consumers/my-consumer";
+
+        Assert.assertEquals("my-context", PluginSettings.getContextFromCatalogUri(uri));
+        Assert.assertEquals("my-consumer", PluginSettings.getConsumerFromCatalogUri(uri));
+        Assert.assertEquals("", PluginSettings.getContextFromCatalogUri(""));
+        Assert.assertEquals("", PluginSettings.getConsumerFromCatalogUri("invalid-uri"));
+    }
+
+    /** Tests that accessToken is null by default. */
+    public void testAccessTokenIsNullByDefault() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertNull(pluginSettings.getAccessToken());
+    }
+
+    /** Tests that setAccessToken persists the value and getAccessToken returns it. */
+    public void testSetAndGetAccessToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("test-token-abc");
+        Assert.assertEquals("test-token-abc", pluginSettings.getAccessToken());
+    }
+
+    /** Tests that setAccessToken can be updated and the latest value is returned. */
+    public void testAccessTokenUpdates() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("first-token");
+        pluginSettings.setAccessToken("second-token");
+        Assert.assertEquals("second-token", pluginSettings.getAccessToken());
+    }
+
+    /** Tests that setAccessToken(null) clears the token. */
+    public void testAccessTokenCanBeCleared() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("a-token");
+        pluginSettings.setAccessToken(null);
+        Assert.assertNull(pluginSettings.getAccessToken());
+    }
+
+    /** Tests that isRegistered returns false when no token is set. */
+    public void testIsRegisteredReturnsFalseByDefault() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns true when a valid token is set. */
+    public void testIsRegisteredReturnsTrueWithToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("some-token");
+        Assert.assertTrue(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns false after the token is cleared. */
+    public void testIsRegisteredReturnsFalseAfterClear() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("some-token");
+        pluginSettings.setAccessToken(null);
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns false when the token is blank. */
+    public void testIsRegisteredReturnsFalseWithBlankToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("   ");
+        Assert.assertFalse(pluginSettings.isRegistered());
+    }
+
+    /** Tests that isRegistered returns false when the token is an empty string. */
+    public void testIsRegisteredReturnsFalseWithEmptyToken() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setAccessToken("");
+        Assert.assertFalse(pluginSettings.isRegistered());
     }
 }

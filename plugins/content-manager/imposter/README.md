@@ -23,6 +23,7 @@ imposter/
     ├── tokenResponse.groovy            # Token request logic
     ├── tokenExchangeResponse.groovy    # Token exchange logic
     ├── instanceMeResponse.groovy       # Instance me logic
+    ├── releasesUpdatesResponse.groovy  # Release updates logic
     └── catalogResponse.groovy          # Catalog endpoint logic
 ```
 
@@ -105,7 +106,7 @@ Note that as it follows the real implementation, it returns the "pending" state 
 Exchange an access token for a signed URL:
 
 ```bash
-curl -k -X POST https://localhost:8443/api/v1/instances/token/exchange \
+curl -k -X POST https://localhost:8443/api/v1/platform/environments/token/exchange \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -H "Authorization: Bearer AYjcyMzY3ZDhiNmJkNTY" \
   -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
@@ -117,10 +118,9 @@ curl -k -X POST https://localhost:8443/api/v1/instances/token/exchange \
 **Expected Response (200 OK):**
 ```json
 {
-  "issued_token_type": "urn:wazuh:params:oauth:token-type:signed_url",
   "access_token": "https://localhost:8443/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF",
-  "token_type": "N_A",
-  "expires_in": 3600
+  "issued_token_type": "urn:wazuh:params:oauth:token-type:signed_url",
+  "expires_in": 300
 }
 ```
 
@@ -290,17 +290,17 @@ curl -k -X POST https://localhost:8443/api/v1/instances/token \
 ### Invalid Token Exchange
 
 ```bash
-curl -k -X POST https://localhost:8443/api/v1/instances/token/exchange \
+curl -k -X POST https://localhost:8443/api/v1/platform/environments/token/exchange \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -H "Authorization: Bearer invalid_token" \
   -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange"
 ```
 
-**Expected Response (401 Unauthorized):**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "error": "invalid_token",
-  "error_description": "The access token is invalid or expired"
+  "error": "unauthorized_client",
+  "error_description": "The provided token is invalid or expired"
 }
 ```
 
@@ -326,6 +326,23 @@ To stop the server, use the helper script:
 ```bash
 ./imposter.sh stop    # Stop containers without removing them
 ./imposter.sh down    # Stop and remove containers
+```
+
+## Observability
+
+All Groovy response scripts log the incoming `User-Agent` header for every request. This is useful for verifying that the Content Manager plugin sends the expected custom user-agent (`Wazuh Indexer <version>`) instead of the default Apache HttpClient one.
+
+To inspect the logs:
+
+```bash
+cd images/
+docker compose logs -f
+```
+
+Log lines follow the format:
+```
+[tokenRequest] User-Agent: Wazuh Indexer 5.0.0
+[catalogResponse] User-Agent: Wazuh Indexer 5.0.0
 ```
 
 ## Customization

@@ -166,8 +166,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
-        Assert.assertTrue("Should contain 'decoder' field", source.has("decoder"));
-        String yaml = source.get("decoder").asText();
+        Assert.assertTrue("Should contain 'yaml' field", source.has(Constants.KEY_YAML));
+        String yaml = source.get(Constants.KEY_YAML).asText();
         Assert.assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
         Assert.assertTrue(
                 yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
@@ -356,6 +356,43 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(INDEX_NAME, indexName);
     }
 
+    /** Test that the default constructor sets physicalName to indexName + SUFFIX_A. */
+    public void testDefaultPhysicalName() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias", idx.getIndexName());
+        Assert.assertEquals("test-alias" + ContentIndex.SUFFIX_A, idx.getPhysicalName());
+    }
+
+    /** Test that the 4-arg constructor allows targeting a specific physical name. */
+    public void testCustomPhysicalName() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", "test-alias-b", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias", idx.getIndexName());
+        Assert.assertEquals("test-alias-b", idx.getPhysicalName());
+    }
+
+    /** Test that getWriteIndex returns the alias for normal (default) instances. */
+    public void testGetWriteIndex_Normal() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias", idx.getWriteIndex());
+    }
+
+    /** Test that getWriteIndex returns the physical name for shadow instances. */
+    public void testGetWriteIndex_Shadow() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", "test-alias-b", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias-b", idx.getWriteIndex());
+    }
+
+    /**
+     * Regression: when a shadow swap targets the {@code -a} suffix (i.e., the live alias currently
+     * points at {@code -b}), the shadow instance must still write to its physical name. Inferring
+     * shadow-vs-normal from the suffix alone would incorrectly route writes through the alias and
+     * land them in the old live index.
+     */
+    public void testGetWriteIndex_Shadow_TargetingSuffixA() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", "test-alias-a", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias-a", idx.getWriteIndex());
+    }
+
     /**
      * Test that creating a resource produces the expected JSON schema. Validates that the indexed
      * document contains the required keys: document, hash, and space.
@@ -391,7 +428,6 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         JsonNode source = this.mapper.readTree(request.source().utf8ToString());
         Assert.assertTrue("Should contain 'document' key", source.has("document"));
-        Assert.assertTrue("Should contain 'hash' key", source.has("hash"));
         Assert.assertTrue("Should contain 'space' key", source.has("space"));
     }
 

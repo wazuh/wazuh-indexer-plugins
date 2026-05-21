@@ -16,7 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -26,42 +28,44 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
- * GET /_plugins/content-manager/subscription
+ * GET /_plugins/_content_manager/subscription
  *
- * <p>Retrieves the current CTI subscription token.
+ * <p>Returns the subscription status and active plan. Delegates to {@link
+ * SubscriptionService#getPlan()}, which routes to the authenticated or public CTI endpoint based on
+ * whether an access token is present in {@link PluginSettings}. The registration state is read
+ * after {@code getPlan()} returns so that any token invalidation performed inside the service is
+ * reflected in the response.
  *
- * <p>Possible HTTP responses: - 200 OK: Subscription found, returns access token and token type -
- * 404 Not Found: The token does not exist - 401 Unauthorized: The endpoint is being accessed by a
- * different user, the expected user is wazuh-server - 500 Internal Server Error: Unexpected error
- * during processing
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Returns plan name, is_public flag, and is_registered state.
+ *   <li>500 Internal Server Error: Unexpected error during processing.
+ * </ul>
  */
 public class RestGetSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_get";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_get";
-    private final CtiConsole ctiConsole;
+    private final SubscriptionService subscriptionService;
 
     /**
      * Construct the REST handler.
      *
-     * @param console the CTI console used to retrieve the token
+     * @param subscriptionService the service used to retrieve the active plan
      */
-    public RestGetSubscriptionAction(CtiConsole console) {
-        this.ctiConsole = console;
+    public RestGetSubscriptionAction(SubscriptionService subscriptionService) {
+        this.subscriptionService = subscriptionService;
     }
 
-    /**
-     * Return a short name identifying this handler.
-     *
-     * @return a short name identifying this handler
-     */
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
@@ -70,7 +74,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     /**
      * Return the route configuration for this handler.
      *
-     * @return the route configuration for this handler
+     * @return route configuration for the GET endpoint
      */
     @Override
     public List<Route> routes() {
@@ -83,12 +87,11 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Prepare the request by returning a consumer that executes the lookup and sends the appropriate
-     * response. Query parameters and request body are ignored for this endpoint.
+     * Handles incoming requests by delegating to {@link #handleRequest()}.
      *
      * @param request the incoming REST request
-     * @param client the node client (unused)
-     * @return a RestChannelConsumer that produces the response
+     * @param client the node client
+     * @return a consumer that sends the subscription status response
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
@@ -96,19 +99,30 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Execute the get-subscription operation.
+     * Builds the subscription status response.
      *
-     * @return a BytesRestResponse containing the token information or error
+     * @return a {@link BytesRestResponse} with the nested plan and registration state
      * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            Token token = this.ctiConsole.getToken();
-            if (token == null) {
-                RestResponse error = new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
-                return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
-            }
-            return new BytesRestResponse(RestStatus.OK, token.toXContent());
+            Plan plan = this.subscriptionService.getPlan();
+            boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
+
+            XContentBuilder builder =
+                    XContentFactory.jsonBuilder()
+                            .startObject()
+                            .startObject("message")
+                            .startObject("plan")
+                            .field("name", plan != null ? plan.getName() : null)
+                            .field("is_public", plan != null && plan.isPublic())
+                            .endObject()
+                            .field("is_registered", isRegistered)
+                            .endObject()
+                            .field("status", RestStatus.OK.getStatus())
+                            .endObject();
+
+            return new BytesRestResponse(RestStatus.OK, builder);
         } catch (Exception e) {
             RestResponse error =
                     new RestResponse(

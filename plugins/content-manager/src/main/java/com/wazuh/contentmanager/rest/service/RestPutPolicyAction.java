@@ -213,6 +213,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Normalize empty root_decoder to null so it is omitted from serialization
+            if (policy.getRootDecoder() != null && policy.getRootDecoder().isEmpty()) {
+                policy.setRootDecoder(null);
+            }
+
             // Validate required Policy fields
             List<String> missingFields = new ArrayList<>();
             if (policy.getEnabled() == null) {
@@ -368,7 +373,20 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 (List<String>) (refObj != null ? refObj : Collections.emptyList());
         mergedPolicy.setReferences(existingReferences);
 
-        mergedPolicy.setRootDecoder((String) currentPolicyDoc.getOrDefault("root_decoder", ""));
+        Object compatObj = existingMetadata.get(Constants.KEY_COMPATIBILITY);
+        if (compatObj == null) {
+            compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        }
+        @SuppressWarnings("unchecked")
+        List<String> existingCompatibility =
+                (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
+        mergedPolicy.getMetadata().setCompatibility(existingCompatibility);
+
+        Object existingRootDecoder = currentPolicyDoc.get("root_decoder");
+        String rootDecoderValue =
+                existingRootDecoder != null ? existingRootDecoder.toString() : null;
+        mergedPolicy.setRootDecoder(
+                rootDecoderValue != null && !rootDecoderValue.isEmpty() ? rootDecoderValue : null);
         mergedPolicy.setIntegrations(
                 (List<String>)
                         currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList()));
@@ -380,8 +398,10 @@ public class RestPutPolicyAction extends BaseRestHandler {
         mergedPolicy.setIndexUnclassifiedEvents(incomingPolicy.getIndexUnclassifiedEvents());
         mergedPolicy.setIndexDiscardedEvents(incomingPolicy.getIndexDiscardedEvents());
 
-        // Convert to JsonNode and persist
-        JsonNode policyNode = mapper.valueToTree(mergedPolicy);
+        // Convert to JsonNode and persist.
+        // Ensure metadata fields are stored only under document.metadata.
+        ObjectNode policyNode = mapper.valueToTree(mergedPolicy);
+        Resource.nestMetadataFields(policyNode);
 
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
         try {
@@ -469,8 +489,21 @@ public class RestPutPolicyAction extends BaseRestHandler {
         policy.setDate(docCreationDate);
         policy.setModified(docModificationDate);
 
-        // Convert Policy to JsonNode
-        JsonNode policyNode = mapper.valueToTree(policy);
+        Object compatObj = existingMeta.get(Constants.KEY_COMPATIBILITY);
+        if (compatObj == null) {
+            compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
+        }
+        @SuppressWarnings("unchecked")
+        List<String> existingCompatibility =
+                (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
+        policy.getMetadata().setCompatibility(existingCompatibility);
+
+        // Convert Policy to JsonNode.
+        // nestMetadataFields removes root-level duplicate fields (title, author, date, etc.)
+        // that Jackson emits from the public delegate getters in Policy, keeping them only
+        // inside the nested "metadata" object — consistent with how initializeSpace() works.
+        ObjectNode policyNode = mapper.valueToTree(policy);
+        Resource.nestMetadataFields(policyNode);
 
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
         try {

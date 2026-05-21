@@ -339,12 +339,6 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * the target space and {@code PUT} method.
      */
     public void testSapSync_integrationUpsertCalledOnAdd() throws IOException {
-        // Mock engine to return success (draft → test requires engine validation)
-        RestResponse engineResponse = new RestResponse();
-        engineResponse.setStatus(200);
-        engineResponse.setMessage("OK");
-        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
-
         // integration-1 must NOT exist in the target space (test) for ADD → POST
         when(this.spaceService.getDocument(
                         eq(Constants.INDEX_INTEGRATIONS), eq("test"), eq("integration-1")))
@@ -370,6 +364,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         Assert.assertEquals(200, actualResponse.getStatus());
+        // Integration-only changeset must not reach the engine.
+        verify(this.engine, never()).promote(any(JsonNode.class));
         verify(this.securityAnalyticsService)
                 .upsertIntegration(any(JsonNode.class), eq(Space.TEST), eq(RestRequest.Method.POST));
     }
@@ -379,12 +375,6 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * the integration id and target space.
      */
     public void testSapSync_integrationDeleteCalledOnRemove() {
-        // Mock engine to return success (draft → test requires engine validation)
-        RestResponse engineResponse = new RestResponse();
-        engineResponse.setStatus(200);
-        engineResponse.setMessage("OK");
-        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
-
         // spotless:off
         String payload = """
                 {
@@ -405,6 +395,8 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         RestResponse actualResponse = this.action.handleRequest(request);
 
         Assert.assertEquals(200, actualResponse.getStatus());
+        // Integration-only changeset must not reach the engine.
+        verify(this.engine, never()).promote(any(JsonNode.class));
         verify(this.securityAnalyticsService).deleteIntegration(eq("integration-1"), eq(Space.TEST));
     }
 
@@ -412,7 +404,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
      * When a rule is promoted via ADD, {@code upsertRule} must be called on SAP with the target space
      * and {@code PUT} method.
      */
-    public void testSapSync_ruleUpsertCalledOnAdd() throws IOException {
+    public void testSapSync_ruleUpsertCalledOnAdd() throws Exception {
         // Override default mock: rule source doc must carry space "test" for ADD validation to pass
         Map<String, String> spaceTest = new HashMap<>();
         spaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
@@ -568,8 +560,17 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         Assert.assertTrue(actualResponse.getMessage().contains("expected source space"));
     }
 
-    /** If the promotion is from TEST to CUSTOM, the engine should not be called. */
-    public void testPostPromoteToCustomSkipsEngine() throws IOException {
+    /**
+     * If the promotion is from TEST to CUSTOM and the changeset carries engine resources, the engine
+     * must be invoked so the CUSTOM space is loaded for logtest consumption.
+     */
+    public void testPostPromoteToCustomInvokesEngine() throws IOException {
+        // Mock engine to return success (200 OK)
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
         // Mock spaces
         Map<String, String> mockSpaceTest = new HashMap<>();
         mockSpaceTest.put(Constants.KEY_NAME, Space.TEST.toString());
@@ -615,9 +616,267 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
         // Invoke method to test
         RestResponse actualResponse = this.action.handleRequest(request);
 
-        // Verify - promotion succeeds and engine is never called
+        // Verify - promotion succeeds and engine was called once
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /**
+     * DRAFT→TEST promotion of a rule alone must not trigger engine validation. The engine only
+     * processes decoders and kvdbs, so other resource types skip the engine call entirely.
+     */
+    public void testEngineGating_ruleOnlyAddSkipsEngine() throws IOException {
+        // Override default mock: rule source doc must carry space "draft" (default already does)
+        // and rule-1 must NOT exist in the target space (test) for ADD validation
+        when(this.spaceService.getDocument(eq(Constants.INDEX_RULES), eq("test"), eq("rule-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [{"operation": "add", "id": "rule-1"}],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
         Assert.assertEquals(200, actualResponse.getStatus());
         verify(this.engine, never()).promote(any(JsonNode.class));
+    }
+
+    /**
+     * DRAFT→TEST promotion with a filter ADD must invoke engine validation — filters are part of the
+     * engine payload alongside decoders and kvdbs.
+     */
+    public void testEngineGating_filterAddInvokesEngine() throws IOException {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        when(this.spaceService.getDocument(eq(Constants.INDEX_FILTERS), eq("test"), eq("filter-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": [{"operation": "add", "id": "filter-1"}]
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /** A filter REMOVE alone must still invoke engine validation. */
+    public void testEngineGating_filterRemoveInvokesEngine() {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": [{"operation": "remove", "id": "filter-1"}]
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /** DRAFT→TEST promotion with all change lists empty must not trigger engine validation. */
+    public void testEngineGating_emptyChangesSkipsEngine() {
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine, never()).promote(any(JsonNode.class));
+    }
+
+    /**
+     * DRAFT→TEST promotion with a decoder ADD must invoke engine validation, even if no other
+     * resource type is in the changeset.
+     */
+    public void testEngineGating_decoderAddInvokesEngine() throws IOException {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        when(this.spaceService.getDocument(eq(Constants.INDEX_DECODERS), eq("test"), eq("decoder-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [{"operation": "add", "id": "decoder-1"}],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /**
+     * DRAFT→TEST promotion with a kvdb ADD must invoke engine validation, even if no other resource
+     * type is in the changeset.
+     */
+    public void testEngineGating_kvdbAddInvokesEngine() throws IOException {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        when(this.spaceService.getDocument(eq(Constants.INDEX_KVDBS), eq("test"), eq("kvdb-1")))
+                .thenReturn(null);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [{"operation": "add", "id": "kvdb-1"}],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /**
+     * A decoder REMOVE alone must still invoke engine validation — deletes also affect the engine.
+     */
+    public void testEngineGating_decoderRemoveInvokesEngine() {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [],
+                    "rules": [],
+                    "decoders": [{"operation": "remove", "id": "decoder-1"}],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
+    }
+
+    /** A kvdb REMOVE alone must still invoke engine validation. */
+    public void testEngineGating_kvdbRemoveInvokesEngine() {
+        RestResponse engineResponse = new RestResponse();
+        engineResponse.setStatus(200);
+        engineResponse.setMessage("OK");
+        when(this.engine.promote(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // spotless:off
+        String payload = """
+                {
+                  "space": "draft",
+                  "changes": {
+                    "policy": [],
+                    "integrations": [],
+                    "kvdbs": [{"operation": "remove", "id": "kvdb-1"}],
+                    "rules": [],
+                    "decoders": [],
+                    "filters": []
+                  }
+                }
+                """;
+        // spotless:on
+        RestRequest request = this.createRestRequest(payload);
+
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        Assert.assertEquals(200, actualResponse.getStatus());
+        verify(this.engine).promote(any(JsonNode.class));
     }
 
     /**
