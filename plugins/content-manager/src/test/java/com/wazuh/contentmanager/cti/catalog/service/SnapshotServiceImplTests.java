@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -52,6 +53,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -100,18 +102,15 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         indicesMap.put("rule", this.contentIndexMock);
         indicesMap.put("reputation", this.contentIndexMock);
 
-        String context = "test-context";
-        String consumer = "test-consumer";
-
         this.snapshotService =
                 new SnapshotServiceImpl(
-                        context, consumer, indicesMap, this.consumersIndex, this.environment);
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         // Updated matchers to use JsonNode instead of JsonObject
         when(this.contentIndexMock.processPayload(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-kvdb");
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
     }
 
     @After
@@ -178,6 +177,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getOffset()).thenReturn(offset);
         when(this.remoteConsumer.getSnapshotOffset()).thenReturn(offset);
 
+        // Pre-existing t0 consumer doc (written by AbstractConsumerService.writeInitialConsumer
+        // before initialize runs). SnapshotServiceImpl reads this back to perform a partial update
+        // of local_offset.
+        String existingConsumerJson =
+                "{\"name\":\"test-consumer\",\"context\":\"test-context\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
+                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":100}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+
         Path zipPath =
                 this.createZipFileWithContent(
                         "data.json",
@@ -203,9 +216,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Verify waiting for pending updates
         verify(this.contentIndexMock).waitForPendingUpdates();
 
+        // After load, only local_offset is updated; identity fields and remote_offset are
+        // preserved from the pre-existing (t0-written) document.
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        Assert.assertEquals(offset, consumerCaptor.getValue().getLocalOffset());
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals(offset, persisted.getLocalOffset());
+        Assert.assertEquals(100L, persisted.getRemoteOffset());
+        Assert.assertEquals("test-consumer", persisted.getName());
+        Assert.assertEquals("test-context", persisted.getContext());
+        Assert.assertEquals("cti:catalog:consumer:ruleset", persisted.getType());
+        Assert.assertTrue(persisted.isPublic());
+        Assert.assertEquals(LocalConsumer.Status.UPDATING, persisted.getStatus());
     }
 
     /**
@@ -218,7 +240,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Mock
         String url = "http://example.com/policy.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
-        when(this.contentIndexMock.getIndexName()).thenReturn(".test-context-test-consumer-policy");
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-policy");
 
         Path zipPath =
                 this.createZipFileWithContent(
@@ -410,10 +432,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         SnapshotServiceImpl cveSnapshotService =
                 new SnapshotServiceImpl(
-                        "test-context", "test-consumer", cveOnlyMap, this.consumersIndex, this.environment);
+                        "cti:catalog:consumer:vulnerabilities",
+                        cveOnlyMap,
+                        this.consumersIndex,
+                        this.environment);
         cveSnapshotService.setSnapshotClient(this.snapshotClient);
 
-        when(this.contentIndexMock.getIndexName()).thenReturn("wazuh-threatintel-vulnerabilities");
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
 
         Path zipPath =
                 this.createZipFileWithContent(
@@ -427,7 +452,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
-        Assert.assertEquals("wazuh-threatintel-vulnerabilities", request.index());
+        Assert.assertEquals(".wazuh-threatintel-vulnerabilities", request.index());
         Assert.assertEquals("TID-123", request.id());
     }
 
@@ -439,6 +464,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
             zos.putNextEntry(entry);
             zos.write(content.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
+        }
+        return zipPath;
+    }
+
+    /** Helper to create a temporary ZIP file containing multiple files with specific content. */
+    private Path createZipFileWithEntries(Map<String, String> entries) throws IOException {
+        Path zipPath = this.tempDir.resolve("test_multi_" + System.nanoTime() + ".zip");
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+            for (Map.Entry<String, String> entryData : entries.entrySet()) {
+                ZipEntry entry = new ZipEntry(entryData.getKey());
+                zos.putNextEntry(entry);
+                zos.write(entryData.getValue().getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
         }
         return zipPath;
     }
@@ -462,8 +501,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Path localZip = this.createZipFileWithContent("data.json", jsonContent);
         Assert.assertTrue("Zip file should exist before init", Files.exists(localZip));
 
+        // Pre-existing t0 consumer doc; SnapshotServiceImpl reads it to perform a partial update.
+        String existingConsumerJson =
+                "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
+                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":75}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+
         // Act
-        boolean result = this.snapshotService.initialize(localZip);
+        boolean result = this.snapshotService.initialize(localZip, null);
 
         // Assert
         Assert.assertTrue("initialize should return true", result);
@@ -479,10 +530,14 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
         verify(this.contentIndexMock).waitForPendingUpdates();
 
-        // Consumer state should be updated with maxOffsetSeen
+        // Consumer state should be updated with maxOffsetSeen on local_offset; identity and
+        // remote_offset are preserved from the t0 doc.
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        Assert.assertEquals(75L, consumerCaptor.getValue().getLocalOffset());
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals(75L, persisted.getLocalOffset());
+        Assert.assertEquals(75L, persisted.getRemoteOffset());
+        Assert.assertEquals("public-ruleset-5", persisted.getName());
 
         // Source zip should be deleted
         Assert.assertFalse("Source zip should be deleted after init", Files.exists(localZip));
@@ -501,7 +556,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // spotless:on
         Path localZip = this.createZipFileWithContent("data.json", jsonContent);
 
-        this.snapshotService.initialize(localZip);
+        this.snapshotService.initialize(localZip, null);
 
         Assert.assertEquals(
                 "maxOffsetSeen should be the highest offset in the file",
@@ -510,12 +565,84 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
+     * Local-path initialization preserves all identity fields from the existing (t0-written) consumer
+     * document and only mutates {@code local_offset}. Identity, {@code is_public}, {@code status} and
+     * {@code remote_offset} are owned by the t0 write in {@code AbstractConsumerService}, not by
+     * {@code SnapshotServiceImpl}.
+     */
+    public void testInitializeFromPath_PreservesT0FieldsAndOnlyUpdatesLocalOffset() throws Exception {
+        // spotless:off
+        String dataJson =
+            """
+                {"name":"kvdb-1","offset":42,"payload":{"type":"kvdb","document":{"id":"kvdb-1"}}}
+                """;
+        // spotless:on
+
+        Map<String, String> entries = new LinkedHashMap<>();
+        entries.put("data.json", dataJson);
+        Path localZip = this.createZipFileWithEntries(entries);
+
+        String existingConsumerJson =
+                "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
+                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":42}";
+
+        org.opensearch.action.get.GetResponse existingGetResponse =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(existingGetResponse.isExists()).thenReturn(true);
+        when(existingGetResponse.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset"))
+                .thenReturn(existingGetResponse);
+
+        boolean initialized = this.snapshotService.initialize(localZip, null);
+        Assert.assertTrue(initialized);
+
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, atLeastOnce()).setConsumer(consumerCaptor.capture());
+
+        LocalConsumer persisted = consumerCaptor.getValue();
+        Assert.assertEquals("public-ruleset-5", persisted.getName());
+        Assert.assertEquals("t1-ruleset-5", persisted.getContext());
+        Assert.assertEquals("cti:catalog:consumer:ruleset", persisted.getType());
+        Assert.assertEquals(
+                "https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
+                persisted.getResource());
+        Assert.assertTrue(persisted.isPublic());
+        Assert.assertEquals(LocalConsumer.Status.UPDATING, persisted.getStatus());
+        Assert.assertEquals(42L, persisted.getLocalOffset());
+        Assert.assertEquals(42L, persisted.getRemoteOffset());
+    }
+
+    /**
+     * When no t0 document exists, the partial local_offset update is skipped (returning false). The
+     * snapshot data is still indexed, but no consumer document is written by {@code
+     * SnapshotServiceImpl}.
+     */
+    public void testInitializeFromPath_SkipsConsumerUpdateWhenNoT0Doc() throws Exception {
+        String dataJson =
+                "{\"name\":\"kvdb-1\",\"offset\":42,\"payload\":{\"type\":\"kvdb\",\"document\":{\"id\":\"kvdb-1\"}}}";
+        Map<String, String> entries = new LinkedHashMap<>();
+        entries.put("data.json", dataJson);
+        Path localZip = this.createZipFileWithEntries(entries);
+
+        org.opensearch.action.get.GetResponse absent =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(absent.isExists()).thenReturn(false);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(absent);
+
+        boolean initialized = this.snapshotService.initialize(localZip, null);
+        Assert.assertFalse(initialized);
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
      * Tests that initializeFromLocal returns false when the zip file does not exist or is corrupted.
      */
     public void testInitializeFromPath_NonExistentFile() throws IOException, URISyntaxException {
         Path nonExistentPath = this.tempDir.resolve("does_not_exist.zip");
 
-        boolean result = this.snapshotService.initialize(nonExistentPath);
+        boolean result = this.snapshotService.initialize(nonExistentPath, null);
 
         Assert.assertFalse("initialize should return false for missing file", result);
         verify(this.snapshotClient, never()).downloadFile(anyString());

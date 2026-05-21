@@ -130,6 +130,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // Metrics data streams
         this.indices.add(new StreamIndex("wazuh-metrics-agents", "templates/streams/metrics-agents"));
         this.indices.add(new StreamIndex("wazuh-metrics-comms", "templates/streams/metrics-comms"));
+        this.indices.add(new StreamIndex("wazuh-metrics-normalization", "templates/streams/metrics-normalization"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
@@ -173,31 +174,35 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Initialize the indices only if this node is the cluster manager node.
         if (localNode.isClusterManagerNode()) {
+            this.threadPool
+                    .generic()
+                    .execute(
+                            () -> {
+                                // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
+                                try {
+                                    String defaultNumberOfReplicas =
+                                            this.clusterService.getSettings().get(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS);
+                                    if (defaultNumberOfReplicas != null) {
+                                        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+                                        request.persistentSettings(
+                                                Settings.builder()
+                                                        .put(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS, defaultNumberOfReplicas)
+                                                        .build());
+                                        this.client
+                                                .admin()
+                                                .cluster()
+                                                .updateSettings(request)
+                                                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+                                        log.info(
+                                                "Successfully updated cluster.default_number_of_replicas to {}",
+                                                defaultNumberOfReplicas);
+                                    }
+                                } catch (Exception e) {
+                                    log.error("Failed to update cluster.default_number_of_replicas", e);
+                                }
 
-            // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
-            try {
-                String defaultNumberOfReplicas =
-                        this.clusterService.getSettings().get(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS);
-                if (defaultNumberOfReplicas != null) {
-                    ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
-                    request.persistentSettings(
-                            Settings.builder()
-                                    .put(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS, defaultNumberOfReplicas)
-                                    .build());
-                    this.client
-                            .admin()
-                            .cluster()
-                            .updateSettings(request)
-                            .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-                    log.info(
-                            "Successfully updated cluster.default_number_of_replicas to {}",
-                            defaultNumberOfReplicas);
-                }
-            } catch (Exception e) {
-                log.error("Failed to update cluster.default_number_of_replicas", e);
-            }
-
-            this.indices.forEach(Index::initialize);
+                                this.indices.forEach(Index::initialize);
+                            });
         }
     }
 

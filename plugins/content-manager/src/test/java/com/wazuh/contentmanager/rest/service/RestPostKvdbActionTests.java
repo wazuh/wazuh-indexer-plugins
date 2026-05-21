@@ -284,6 +284,42 @@ public class RestPostKvdbActionTests extends OpenSearchTestCase {
         }
     }
 
+    /**
+     * Test the {@link RestPostKvdbAction#executeRequest(RestRequest, Client)} method when the request
+     * uses {@code Content-Type: application/yaml}. The YAML body uses the same envelope as JSON
+     * ({@code integration} + {@code resource}). The expected response is: {201, RestResponse}
+     *
+     * @throws Exception if an error occurs during the test
+     */
+    public void testPostKvdb_yamlContentType_success() throws Exception {
+        // spotless:off
+        String yamlBody =
+                "integration: integration-1\n"
+                        + "resource:\n"
+                        + "  name: kvdb/example/yaml/0\n"
+                        + "  enabled: true\n"
+                        + "  metadata:\n"
+                        + "    title: YAML KVDB\n"
+                        + "    author: Wazuh\n"
+                        + "  content:\n"
+                        + "    key1: value1\n";
+        // spotless:on
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(yamlBody), XContentType.YAML)
+                        .build();
+
+        RestResponse engineResponse = new RestResponse("OK", 200);
+        when(this.service.validateResource(eq(Constants.KEY_KVDB), any(JsonNode.class)))
+                .thenReturn(engineResponse);
+        this.mockDependencySuccess();
+
+        RestResponse actualResponse = this.action.executeRequest(request, this.client);
+
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), actualResponse.getStatus());
+        Assert.assertNotNull(actualResponse.getMessage());
+    }
+
     private RestRequest buildRequest(String payload) {
         return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                 .withContent(new BytesArray(payload), XContentType.JSON)

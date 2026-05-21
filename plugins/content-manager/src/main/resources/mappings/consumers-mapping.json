@@ -6,6 +6,15 @@
     "name": {
       "type": "keyword"
     },
+    "type": {
+      "type": "keyword"
+    },
+    "resource": {
+      "type": "keyword"
+    },
+    "is_public": {
+      "type": "boolean"
+    },
     "status": {
       "type": "keyword"
     },
@@ -14,9 +23,6 @@
     },
     "remote_offset": {
       "type": "long"
-    },
-    "snapshot_link": {
-      "type": "keyword"
     }
   }
 }

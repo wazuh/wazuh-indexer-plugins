@@ -22,7 +22,9 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -42,15 +44,20 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** CTI Console API client. */
 public class ApiClient {
 
-    private static final String BASE_URI = "https://localhost:8443";
+    private static final String BASE_URI = "https://api.pre.cloud.wazuh.com";
     private static final String API_PREFIX = "/api/v1";
     private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
     private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
-    private static final String RESOURCE_URI = BASE_URI + API_PREFIX + "/instances/token/exchange";
+    private static final String RESOURCE_URI =
+            BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
+    private static final String CATALOG_PLANS_PATH = "/catalog/plans";
+    private static final String ENVIRONMENTS_ME_URI =
+            BASE_URI + API_PREFIX + "/platform/environments/me";
 
     protected CloseableHttpAsyncClient client;
 
@@ -74,9 +81,14 @@ public class ApiClient {
             throw new RuntimeException("Failed to initialize HttpClient", e);
         }
 
+        List<Header> defaultHeaders =
+                List.of(
+                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
+
         this.client =
                 HttpAsyncClients.custom()
                         .setIOReactorConfig(ioReactorConfig)
+                        .setDefaultHeaders(defaultHeaders)
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
@@ -141,6 +153,7 @@ public class ApiClient {
                         "&",
                         List.of(
                                 "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
+                                "subject_token=" + permanentToken.getAccessToken(),
                                 "subject_token_type=urn:ietf:params:oauth:token-type:access_token",
                                 "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
                                 "resource=" + resource));
@@ -183,7 +196,64 @@ public class ApiClient {
                 SimpleRequestBuilder.get(PRODUCTS_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-tag", "v5.0.0") // TODO make dynamic
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .build();
+
+        final Future<SimpleHttpResponse> future =
+                this.client.execute(
+                        SimpleRequestProducer.create(request),
+                        SimpleResponseConsumer.create(),
+                        new HttpResponseCallback(request, "Outgoing request failed"));
+        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Perform an HTTP GET request to the CTI Console to obtain the exact plan associated with the
+     * registered environment.
+     *
+     * @param permanentToken permanent token for the instance.
+     * @return HTTP response.
+     * @throws ExecutionException request failed.
+     * @throws InterruptedException request failed / interrupted.
+     * @throws TimeoutException request timed out.
+     */
+    public SimpleHttpResponse getEnvironmentMe(Token permanentToken)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        String token =
+                String.format(
+                        Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
+
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
+                        .addHeader(HttpHeaders.AUTHORIZATION, token)
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .build();
+
+        final Future<SimpleHttpResponse> future =
+                this.client.execute(
+                        SimpleRequestProducer.create(request),
+                        SimpleResponseConsumer.create(),
+                        new HttpResponseCallback(request, "Outgoing request failed"));
+        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Perform an HTTP GET request to the public CTI catalog plans endpoint. No authentication
+     * required.
+     *
+     * @return HTTP response.
+     * @throws ExecutionException request failed.
+     * @throws InterruptedException request failed / interrupted.
+     * @throws TimeoutException request timed out.
+     */
+    public SimpleHttpResponse getCatalogPlans()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        String url = PluginSettings.getInstance().getCtiBaseUrl() + CATALOG_PLANS_PATH;
+
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(url)
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .build();
 
         final Future<SimpleHttpResponse> future =

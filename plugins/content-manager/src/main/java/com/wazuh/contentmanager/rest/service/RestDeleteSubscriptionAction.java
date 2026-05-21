@@ -26,51 +26,50 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
- * DELETE /_plugins/content-manager/subscription
+ * DELETE /_plugins/_content_manager/subscription
  *
- * <p>Deletes the current CTI subscription.
+ * <p>Removes stored CTI credentials by delegating to {@link SubscriptionService#unregister()},
+ * which clears both the credentials document in {@code .wazuh-cti-credentials} and the in-memory
+ * token in {@link PluginSettings}.
  *
- * <p>Possible HTTP responses: - 200 OK: Subscription successfully deleted - 404 Not Found: No
- * subscription exists to delete - 401 Unauthorized: The endpoint is being accessed by a different
- * user, the expected user is wazuh-dashboard - 500 Internal Server Error: Unexpected error during
- * processing
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>200 OK: Credentials removed successfully.
+ *   <li>500 Internal Server Error: Unexpected error during processing.
+ * </ul>
  */
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_delete";
-    private final CtiConsole ctiConsole;
+    private final SubscriptionService subscriptionService;
 
     /**
      * Create a new REST action.
      *
-     * @param ctiConsole the CTI console used to access and delete subscription tokens
+     * @param subscriptionService the service used to remove stored credentials
      */
-    public RestDeleteSubscriptionAction(CtiConsole ctiConsole) {
-        this.ctiConsole = ctiConsole;
+    public RestDeleteSubscriptionAction(SubscriptionService subscriptionService) {
+        this.subscriptionService = subscriptionService;
     }
 
-    /**
-     * Return a short identifier for this handler.
-     *
-     * @return a short identifier for this handler
-     */
+    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
     /**
-     * Define the routes handled by this action.
+     * Return the route configuration for this handler.
      *
-     * @return the list of routes exposed by this handler (DELETE subscription)
+     * @return route configuration for the DELETE endpoint
      */
     @Override
     public List<Route> routes() {
@@ -83,12 +82,11 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Prepare the request by returning a channel consumer that executes the deletion and sends the
-     * corresponding response. This endpoint ignores request body and query parameters.
+     * Handles incoming requests by delegating to {@link #handleRequest()}.
      *
      * @param request the incoming REST request
-     * @param client the node client (unused)
-     * @return a consumer that will be executed to produce a response
+     * @param client the node client
+     * @return a consumer that sends the credential removal response
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
@@ -96,23 +94,15 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Execute the delete-subscription operation.
+     * Delegates to {@link SubscriptionService#unregister()} and returns the appropriate response.
      *
-     * @return a {@link BytesRestResponse} representing the HTTP response
-     * @throws IOException propagated if an I/O error occurs while building the response
+     * @return a {@link BytesRestResponse} representing the operation result
+     * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            Token token = this.ctiConsole.getToken();
-            if (token == null) {
-                RestResponse error = new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
-                return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
-            }
-
-            this.ctiConsole.deleteToken();
-
-            RestResponse response =
-                    new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
+            this.subscriptionService.unregister();
+            RestResponse response = new RestResponse("Credentials removed", RestStatus.OK.getStatus());
             return new BytesRestResponse(RestStatus.OK, response.toXContent());
         } catch (Exception e) {
             RestResponse error =

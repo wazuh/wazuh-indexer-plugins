@@ -59,7 +59,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostDecoderAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_create";
 
     public RestPostDecoderAction(EngineService engine) {
         super(engine);
@@ -84,6 +84,11 @@ public class RestPostDecoderAction extends AbstractCreateAction {
                         .method(POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
+    }
+
+    @Override
+    protected boolean supportsYamlField() {
+        return true;
     }
 
     @Override

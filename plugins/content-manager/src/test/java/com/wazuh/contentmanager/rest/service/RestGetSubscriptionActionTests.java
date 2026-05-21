@@ -16,90 +16,88 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import java.io.IOException;
+import java.lang.reflect.Field;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for the {@link RestGetSubscriptionAction} class. This test suite validates the REST
- * API endpoint responsible for retrieving the current CTI subscription token.
- *
- * <p>Tests verify proper token retrieval, correct HTTP response formatting, and appropriate status
- * codes for scenarios including successful token retrieval and missing token conditions.
- */
 public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
-    private CtiConsole console;
+    private SubscriptionService subscriptionService;
     private RestGetSubscriptionAction action;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
-     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.console = mock(CtiConsole.class);
-        this.action = new RestGetSubscriptionAction(this.console);
+        clearPluginSettingsInstance();
+        PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
+        this.subscriptionService = mock(SubscriptionService.class);
+        this.action = new RestGetSubscriptionAction(this.subscriptionService);
     }
 
-    /**
-     * Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token is created
-     * (mock). The expected response is: {200, Token}
-     *
-     * @throws IOException
-     */
-    public void testGetToken200() throws IOException {
-        // Mock
-        Token token = new Token("test_token", "test_type");
-        when(this.console.getToken()).thenReturn(token);
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
-
-        // Assert
-        Assert.assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getAccessToken()));
-        Assert.assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getTokenType()));
-        Assert.assertEquals(RestStatus.OK, bytesRestResponse.status());
+    @After
+    public void tearDown() throws Exception {
+        clearPluginSettingsInstance();
+        super.tearDown();
     }
 
-    /**
-     * Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token has not been
-     * created (mock). The expected response is: {404, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testGetToken404() throws IOException {
-        // Mock
-        when(this.console.getToken()).thenReturn(null);
+    @SuppressForbidden(reason = "Unit test reset")
+    private static void clearPluginSettingsInstance() throws Exception {
+        Field f = PluginSettings.class.getDeclaredField("INSTANCE");
+        f.setAccessible(true);
+        f.set(null, null);
+    }
 
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest();
+    /** Token present (registered) → 200 with plan details and "is_registered":true. */
+    public void testGetSubscription200_Registered() throws Exception {
+        PluginSettings.getInstance().setAccessToken("bearer-token");
+        Plan plan = MAPPER.readValue("{\"name\":\"Premium Plan\",\"is_public\":false}", Plan.class);
+        when(this.subscriptionService.getPlan()).thenReturn(plan);
 
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
+        BytesRestResponse response = this.action.handleRequest();
 
-        // Assert
-        Assert.assertTrue(
-                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        Assert.assertTrue(
-                bytesRestResponse
-                        .content()
-                        .utf8ToString()
-                        .contains(String.valueOf(expectedResponse.getStatus())));
-        Assert.assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
+        Assert.assertEquals(RestStatus.OK, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("Premium Plan"));
+        Assert.assertTrue(body.contains("\"is_public\":false"));
+        Assert.assertTrue(body.contains("\"is_registered\":true"));
+        Assert.assertTrue(body.contains("\"status\":200"));
+    }
+
+    /** No token (unregistered) → 200 with public plan and "is_registered":false. */
+    public void testGetSubscription200_Unregistered() throws Exception {
+        Plan plan = MAPPER.readValue("{\"name\":\"Free\",\"is_public\":true}", Plan.class);
+        when(this.subscriptionService.getPlan()).thenReturn(plan);
+
+        BytesRestResponse response = this.action.handleRequest();
+
+        Assert.assertEquals(RestStatus.OK, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("\"is_registered\":false"));
+        Assert.assertTrue(body.contains("Free"));
+    }
+
+    /** getPlan() throws → 500 with the error message. */
+    public void testGetSubscription500() throws Exception {
+        when(this.subscriptionService.getPlan()).thenThrow(new RuntimeException("CTI unreachable"));
+
+        BytesRestResponse response = this.action.handleRequest();
+
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        Assert.assertTrue(response.content().utf8ToString().contains("CTI unreachable"));
     }
 }

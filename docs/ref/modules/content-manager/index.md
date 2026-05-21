@@ -12,22 +12,22 @@ Update check components are:
 
 ## CTI Synchronization
 
-The Content Manager periodically synchronizes content from the Wazuh CTI API. Three content contexts are managed:
+The Content Manager periodically synchronizes content from the Wazuh CTI API. Three catalog consumers are managed:
 
 - **Catalog context**: Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
 - **IoC context**: Contains Indicators of Compromise for threat detection.
 - **CVE context**: Contains Common Vulnerabilities and Exposures data, stored in `wazuh-threatintel-vulnerabilities`. CVE documents do not have a space and are not subject to removals from CTI.
 
-Each context has an associated **consumer** that tracks synchronization state (current offset, snapshot URL) in the `.wazuh-cti-consumers` index.
+Each catalog type has an associated consumer state document in `.wazuh-cti-consumers`, keyed by consumer type (for example, `cti:catalog:consumer:ruleset`).
 
 ### Snapshot Initialization
 
-On first run (when the local offset is `0`), the Content Manager performs a full snapshot initialization:
+On first run (when the local offset is `0`), the Content Manager performs snapshot initialization:
 
-1. Fetches the latest snapshot URL from the CTI API.
-2. Downloads and extracts the ZIP archive.
-3. Indexes the content into the appropriate system indices using bulk operations.
-4. Records the snapshot offset in `.wazuh-cti-consumers`.
+1. If a custom catalog URL is configured, it first attempts remote snapshot initialization using that consumer.
+2. If remote initialization fails, it falls back to the local packaged snapshot when available.
+3. If no custom catalog URL is configured, it initializes from the local packaged snapshot.
+4. It indexes content into the appropriate system indices using bulk operations and updates `.wazuh-cti-consumers` offsets.
 
 ### Incremental Updates
 
@@ -47,7 +47,7 @@ The periodic job is registered with the OpenSearch Job Scheduler and tracked in 
 
 When `plugins.content_manager.telemetry.enabled` is `true` (default), the Content Manager schedules a daily update check heartbeat job.
 
-- **Frequency:** every 24 hours
+- **Frequency:** every 24 hours (with an immediate first ping as soon as the job is registered)
 - **Scheduler document ID:** `wazuh-telemetry-ping-job`
 - **Endpoint:** CTI `/ping`
 - **Data sent:** cluster UUID and deployed Wazuh version (through headers)
@@ -130,7 +130,8 @@ The Content Manager uses the following system indices:
 
 | Index                         | Description                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
-| `.wazuh-cti-consumers`              | Synchronization state for each CTI context/consumer pair (offsets, snapshot URLs)   |
+| `.wazuh-cti-consumers`              | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status)   |
+| `.wazuh-cti-credentials`            | Persisted CTI access token (hidden, single document)                                |
 | `wazuh-threatintel-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
 | `wazuh-threatintel-decoders`               | Log decoders                                                                        |
 | `wazuh-threatintel-integrations`           | Integration definitions                                                             |
@@ -143,10 +144,10 @@ The Content Manager uses the following system indices:
 
 ## CTI Subscription
 
-To synchronize content from the CTI API, the Wazuh Indexer requires a valid subscription token. The subscription is managed through the REST API:
+To synchronize content from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
 
-1. **Register** a subscription with a device code obtained from the Wazuh CTI Console.
-2. The Content Manager stores the token and uses it for all CTI API requests.
-3. Without a valid subscription, sync operations return a `Token not found` error.
+1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-cti-credentials` hidden index and loaded into memory.
+2. The Content Manager uses the in-memory token for all CTI API requests.
+3. Without a registered token, sync operations return a `404 Token not found` error.
 
-See [Subscription Management](api.md#get-cti-subscription) in the API Reference.
+See [Subscription Management](api.md#store-cti-credentials) in the API Reference.

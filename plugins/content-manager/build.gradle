@@ -94,14 +94,15 @@ dependencies {
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.21'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2'
 
-  compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
+  compileOnly "com.wazuh:wazuh-indexer-security-analytics-commons:$version"
   // ZipArchive dependencies used for integration tests
-  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  zipArchive "org.opensearch.plugin:opensearch-job-scheduler:$opensearch_build"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
-  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-alerting', version: "${version}" // Dependency of SAP
-  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-security-analytics', version: "${version}"
-
+  zipArchive "com.wazuh:wazuh-indexer-alerting:$version" // Dependency of SAP
+  zipArchive "com.wazuh:wazuh-indexer-security-analytics:$version"
+  // Setup plugin (from local sibling project to avoid requiring pre-published Maven artifact)
+  zipArchive "org.opensearch.plugin:opensearch-index-management:$opensearch_build"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -156,6 +157,12 @@ integTest {
 }
 
 testClusters.integTest {
+  // Enable memory tracking to diagnose OOM errors.
+  jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
+  jvmArgs '-XX:NativeMemoryTracking=summary'
+  jvmArgs '-Xms2g', '-Xmx2g'
+  jvmArgs '-Xss2m'
+
   // The plugin's REST handlers use blocking actionGet() calls on transport threads.
   // This is a pre-existing design issue (28+ occurrences across the codebase) that
   // triggers a fatal AssertionError in OpenSearch 3.x when Java assertions are enabled.
@@ -165,6 +172,7 @@ testClusters.integTest {
   systemProperty "wazuh.version", "${wazuh_version}"
   setting 'plugins.content_manager.catalog.update_on_start', 'false'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
+  setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
   setting 'plugins.content_manager.engine.mock', 'true'
 
@@ -187,8 +195,24 @@ testClusters.integTest {
   plugin(project.tasks.bundlePlugin.archiveFile)
 }
 
+// Install the setup plugin from the local sibling project (must be deferred until the
+// setup project is fully evaluated so that its bundlePlugin task exists).
+project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
+  testClusters.integTest {
+    plugin(setupProject.tasks.bundlePlugin.archiveFile)
+  }
+}
+
 run {
   useCluster testClusters.integTest
+}
+
+// When this build is rooted at content-manager, an unqualified `./gradlew run`
+// would also fire the included :wazuh-indexer-setup project's own `run` task,
+// which boots a separate cluster on the same default port and shadows ours.
+// Disable it so only this project's `run` is invoked.
+project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
+  setupProject.tasks.named('run').configure { enabled = false }
 }
 
 // updateVersion: Task to auto update version to the next development iteration

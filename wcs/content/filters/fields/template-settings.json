@@ -1,12 +1,12 @@
 {
   "index_patterns": [
-    ".engine-filters"
+    "wazuh-threatintel-filters"
   ],
   "priority": 1,
   "data_stream": {},
   "template": {
     "settings": {
-      "mapping.total_fields.limit": 500,
+      
       "mapping.nested_fields.limit": 10,
       "index": {
         "number_of_shards": "1",

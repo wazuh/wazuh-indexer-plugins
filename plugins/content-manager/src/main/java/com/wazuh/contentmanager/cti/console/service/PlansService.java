@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -33,4 +33,21 @@ public interface PlansService extends ClosableHttpClient {
      *     no plans are found.
      */
     List<Plan> getPlans(Token token);
+
+    /**
+     * Retrieves the applicable plan based on the registration state. For unregistered instances,
+     * returns the public plan.
+     *
+     * @return the applicable {@link Plan}, or {@code null} on error.
+     */
+    Plan getPlan();
+
+    /**
+     * Retrieves the plan for the registered environment using the provided token.
+     *
+     * @param token the authentication {@link Token}.
+     * @return the environment's active {@link Plan}, or {@code null} if the token is invalid or the
+     *     request fails.
+     */
+    Plan getMyPlan(Token token);
 }

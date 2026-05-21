@@ -21,6 +21,9 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -28,9 +31,11 @@ import org.apache.hc.core5.util.Timeout;
 
 import javax.net.ssl.SSLContext;
 
+import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -48,13 +53,24 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class ApiClient {
 
     private final String baseUri;
+    private final ResourceUrlResolver urlResolver;
     private CloseableHttpAsyncClient client;
 
-    /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
-    public ApiClient() {
-        // Retrieve base URI from PluginSettings
+    /**
+     * Constructs an ApiClient instance with a URL resolver and initializes the underlying HTTP
+     * client.
+     *
+     * @param urlResolver the resolver used to transform resource URLs before making HTTP requests.
+     */
+    public ApiClient(ResourceUrlResolver urlResolver) {
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
+        this.urlResolver = urlResolver;
         this.buildClient();
+    }
+
+    /** Constructs an ApiClient instance with an regular URL resolver. */
+    public ApiClient() {
+        this(new RegularUrlResolver());
     }
 
     /**
@@ -76,9 +92,14 @@ public class ApiClient {
             throw new RuntimeException("Failed to initialize HttpClient", e);
         }
 
+        List<Header> defaultHeaders =
+                List.of(
+                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
+
         this.client =
                 HttpAsyncClients.custom()
                         .setIOReactorConfig(ioReactorConfig)
+                        .setDefaultHeaders(defaultHeaders)
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
@@ -95,30 +116,67 @@ public class ApiClient {
     }
 
     /**
-     * Constructs the full URI for a specific consumer within a given context.
+     * Normalizes a consumer URI.
      *
-     * @param context The context identifier (e.g., the specific catalog section).
-     * @param consumer The consumer identifier.
-     * @return A string representing the full absolute URL for the resource.
+     * <p>Blank values are returned as empty strings. Non-blank values must be absolute HTTP(S) URLs
+     * and have trailing slashes stripped.
+     *
+     * @throws IllegalArgumentException if a non-blank value is not an absolute HTTP(S) URL.
      */
-    private String buildConsumerURI(String context, String consumer) {
-        return this.baseUri + "/catalog/contexts/" + context + "/consumers/" + consumer;
+    private String buildConsumerURI(String consumerUri) {
+        if (consumerUri == null || consumerUri.isBlank()) {
+            return "";
+        }
+        String uri = consumerUri.trim();
+        if (!uri.startsWith("https://")) {
+            throw new IllegalArgumentException("Consumer URI must start with https://");
+        }
+
+        URI parsedUri;
+        try {
+            parsedUri = URI.create(uri);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Consumer URI is not a valid absolute URL: " + uri, e);
+        }
+        if (parsedUri.getHost() == null || parsedUri.getHost().isBlank()) {
+            throw new IllegalArgumentException("Consumer URI must include a valid host: " + uri);
+        }
+        String baseUri = PluginSettings.getInstance().getCtiBaseUrl();
+        URI parsedBaseUri;
+        try {
+            parsedBaseUri = URI.create(baseUri);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("CTI base URL is not a valid absolute URL: " + baseUri, e);
+        }
+        if (parsedBaseUri.getHost() == null
+                || !parsedUri.getHost().equalsIgnoreCase(parsedBaseUri.getHost())) {
+            throw new IllegalArgumentException(
+                    "Consumer URI host ["
+                            + parsedUri.getHost()
+                            + "] does not match the CTI base host ["
+                            + parsedBaseUri.getHost()
+                            + "]");
+        }
+
+        while (uri.endsWith("/")) {
+            uri = uri.substring(0, uri.length() - 1);
+        }
+        return uri;
     }
 
     /**
      * Retrieves consumer details from the CTI Catalog.
      *
-     * @param context The context associated with the consumer.
-     * @param consumer The name or ID of the consumer to retrieve.
+     * @param consumerUri The full URL of the consumer.
      * @return A {@link SimpleHttpResponse} containing the API response.
      * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
      */
-    public SimpleHttpResponse getConsumer(String context, String consumer)
+    public SimpleHttpResponse getConsumer(String consumerUri)
             throws ExecutionException, InterruptedException, TimeoutException {
-        SimpleHttpRequest request =
-                SimpleRequestBuilder.get(this.buildConsumerURI(context, consumer)).build();
+        String uri = this.urlResolver.resolve(this.buildConsumerURI(consumerUri));
+        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
@@ -132,8 +190,7 @@ public class ApiClient {
     /**
      * Retrieves the changes for a specific consumer within a given context.
      *
-     * @param context The context identifier.
-     * @param consumer The consumer identifier.
+     * @param consumerUri The full URL of the consumer.
      * @param fromOffset The starting offset (exclusive).
      * @param toOffset The ending offset (inclusive).
      * @return A {@link SimpleHttpResponse} containing the API response.
@@ -141,15 +198,15 @@ public class ApiClient {
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
      */
-    public SimpleHttpResponse getChanges(
-            String context, String consumer, long fromOffset, long toOffset)
+    public SimpleHttpResponse getChanges(String consumerUri, long fromOffset, long toOffset)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri =
-                this.buildConsumerURI(context, consumer)
-                        + "/changes?from_offset="
-                        + fromOffset
-                        + "&to_offset="
-                        + toOffset;
+                this.urlResolver.resolve(
+                        this.buildConsumerURI(consumerUri)
+                                + "/changes?from_offset="
+                                + fromOffset
+                                + "&to_offset="
+                                + toOffset);
 
         SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
@@ -183,7 +240,8 @@ public class ApiClient {
      */
     public SimpleHttpResponse getReleaseUpdates(String tag)
             throws ExecutionException, InterruptedException, TimeoutException {
-        SimpleHttpRequest request = SimpleRequestBuilder.get(this.buildReleasesUpdatesURI(tag)).build();
+        String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
+        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
         final Future<SimpleHttpResponse> future =
                 this.client.execute(

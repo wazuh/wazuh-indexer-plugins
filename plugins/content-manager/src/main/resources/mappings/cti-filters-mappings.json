@@ -2,11 +2,14 @@
   "date_detection": false,
   "dynamic": "strict",
   "properties": {
+    "@timestamp": {
+      "type": "date"
+    },
     "document": {
       "properties": {
         "check": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "enabled": false,
+          "type": "object"
         },
         "enabled": {
           "type": "boolean"
@@ -17,10 +20,6 @@
         },
         "metadata": {
           "properties": {
-            "title": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
             "author": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -28,22 +27,26 @@
             "date": {
               "type": "date"
             },
-            "modified": {
-              "type": "date"
-            },
             "description": {
               "norms": false,
               "type": "text"
-            },
-            "references": {
-              "ignore_above": 1024,
-              "type": "keyword"
             },
             "documentation": {
               "ignore_above": 1024,
               "type": "keyword"
             },
+            "modified": {
+              "type": "date"
+            },
+            "references": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
             "supports": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "title": {
               "ignore_above": 1024,
               "type": "keyword"
             }
@@ -74,6 +77,10 @@
           "type": "keyword"
         }
       }
+    },
+    "yaml": {
+      "norms": false,
+      "type": "text"
     }
   }
 }

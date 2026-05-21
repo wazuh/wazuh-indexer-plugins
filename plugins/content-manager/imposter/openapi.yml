@@ -35,6 +35,97 @@ tags:
     description: Wazuh release version endpoints
 
 paths:
+  /api/v1/ping:
+    get:
+      summary: Ping
+      description: |
+        Health check endpoint for telemetry ping.
+
+        This endpoint is used by the TelemetryClient to send periodic pings containing the instance UUID and version.
+        It can be used to verify connectivity and monitor active instances.
+      operationId: ping
+      tags:
+        - CTI Console
+      parameters:
+        - name: wazuh-uid
+          in: header
+          required: true
+          description: The unique identifier of the Wazuh instance (UUID).
+          schema:
+            type: string
+            example: a17c21ed-1234-5678-9abc-def012345678
+        - name: wazuh-tag
+          in: header
+          required: true
+          description: The version tag of the Wazuh instance (e.g., "v5.0.0").
+          schema:
+            type: string
+            example: v5.0.0
+      responses:
+        '200':
+          $ref: '#/components/responses/ReleaseUpdatesSuccess'
+        '400':
+          description: Invalid tag format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                  tag: ["is invalid"]
+
+  /api/v1/catalog/plans:
+    get:
+      summary: Get Catalog Plans
+      description: |
+        Returns the list of available CTI catalog plans, including public and non-public ones.
+        No authentication required.
+      operationId: getCatalogPlans
+      tags:
+        - CTI Console
+      responses:
+        '200':
+          description: OK - Catalog plans retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogPlansResponse'
+              examples:
+                success:
+                  summary: Plans list with one public and one non-public plan
+                  value:
+                    plans:
+                      - name: "Free"
+                        is_public: true
+                        features:
+                          - name: "public-vulnerabilities-5"
+                            type: "cti:catalog:consumer:vulnerabilities"
+                            description: "Free vulnerabilities feed"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+                          - name: "public-iocs-5"
+                            type: "cti:catalog:consumer:iocs"
+                            description: "Free iocs"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
+                          - name: "public-ruleset-5"
+                            type: "cti:catalog:consumer:ruleset"
+                            description: "Free ruleset 5"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5"
+                      - name: "Pro Plan"
+                        is_public: false
+                        features:
+                          - name: "t0-private-vulnerabilities"
+                            type: "cti:catalog:consumer:vulnerabilities"
+                            description: "Tier 0 paid vulnerabilities"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t0-vulnerabilities-5/consumers/private-vulnerabilities-5"
+                          - name: "t0-private-iocs"
+                            type: "cti:catalog:consumer:iocs"
+                            description: "Tier 0 private IOCs"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t0-iocs-5/consumers/private-iocs-5"
+                          - name: "t0-private-ruleset-5"
+                            type: "cti:catalog:consumer:ruleset"
+                            description: "Private ruleset 5"
+                            resource: "https://localhost:8443/api/v1/catalog/contexts/t0-ruleset-5/consumers/private-ruleset-5"
+
   /api/v1/instances/token:
     post:
       summary: Token Request
@@ -65,7 +156,7 @@ paths:
         '400':
           $ref: '#/components/responses/TokenError'
 
-  /api/v1/instances/token/exchange:
+  /api/v1/platform/environments/token/exchange:
     post:
       summary: Token Exchange Request
       description: |
@@ -97,8 +188,6 @@ paths:
           $ref: '#/components/responses/TokenExchangeSuccess'
         '400':
           $ref: '#/components/responses/TokenExchangeError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/instances/me:
     get:
@@ -433,6 +522,66 @@ components:
                 $ref: '#/components/schemas/Plan'
       required:
         - data
+
+    CatalogPlansResponse:
+      type: object
+      description: Response containing the list of catalog plans.
+      properties:
+        plans:
+          type: array
+          description: List of available plans.
+          items:
+            $ref: '#/components/schemas/CatalogPlan'
+      required:
+        - plans
+
+    CatalogPlan:
+      type: object
+      description: A CTI catalog plan.
+      properties:
+        name:
+          type: string
+          description: Plan name.
+          example: "Free"
+        is_public:
+          type: boolean
+          description: Whether the plan is publicly accessible without registration.
+          example: true
+        features:
+          type: array
+          description: List of features included in the plan.
+          items:
+            $ref: '#/components/schemas/CatalogFeature'
+      required:
+        - name
+        - is_public
+        - features
+
+    CatalogFeature:
+      type: object
+      description: A feature included in a catalog plan.
+      properties:
+        name:
+          type: string
+          description: Feature name.
+          example: "public-vulnerabilities-5"
+        type:
+          type: string
+          description: Feature type identifier.
+          example: "cti:catalog:consumer:vulnerabilities"
+        description:
+          type: string
+          description: Feature description.
+          example: "Free vulnerabilities feed"
+        resource:
+          type: string
+          format: uri
+          description: Resource URL for the feature.
+          example: "https://localhost:8443/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+      required:
+        - name
+        - type
+        - resource
 
     Plan:
       type: object
@@ -808,6 +957,11 @@ components:
               value:
                 error: invalid_target
                 error_description: The resource parameter refers to an invalid endpoint
+            unauthorized_client:
+              summary: Invalid or expired token
+              value:
+                error: unauthorized_client
+                error_description: The provided token is invalid or expired
 
     Unauthorized:
       description: Unauthorized - Authentication failed or token is invalid.

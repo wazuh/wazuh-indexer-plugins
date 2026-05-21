@@ -1,6 +1,10 @@
 // Catalog Response Logic
 // Returns different responses based on verify parameter and query params
 
+// Log the incoming user-agent for validation
+def userAgent = context.request.headers['User-Agent']?.toString()
+logger.info("[catalogResponse] User-Agent: ${userAgent}")
+
 def verify = context.request.queryParams.verify?.toString()
 def fromOffsetStr = context.request.queryParams.from_offset?.toString()
 def toOffsetStr = context.request.queryParams.to_offset?.toString()

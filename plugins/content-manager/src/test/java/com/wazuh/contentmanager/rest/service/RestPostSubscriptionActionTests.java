@@ -16,100 +16,111 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.rest.FakeRestRequest;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Subscription;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for the {@link RestPostSubscriptionAction} class. This test suite validates the REST
- * API endpoint responsible for creating new CTI subscriptions.
- *
- * <p>Tests verify subscription creation requests, proper handling of subscription data, and
- * appropriate HTTP response codes for successful subscription creation and validation errors.
- */
 public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
-    private CtiConsole console;
+    private SubscriptionService subscriptionService;
     private RestPostSubscriptionAction action;
 
-    /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
-     */
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.console = mock(CtiConsole.class);
-        this.action = new RestPostSubscriptionAction(this.console);
+        clearPluginSettingsInstance();
+        PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
+        this.subscriptionService = mock(SubscriptionService.class);
+        this.action = new RestPostSubscriptionAction(this.subscriptionService);
     }
 
-    /**
-     * Test the {@link RestPostSubscriptionAction#handleRequest(Subscription)} method when the request
-     * is complete. The expected response is: {201, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testPostToken201() throws IOException {
-        // Mock
-        Subscription subscription = new Subscription();
-
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(subscription);
-
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Subscription created successfully", RestStatus.CREATED.getStatus());
-
-        // Assert
-        Assert.assertTrue(
-                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        Assert.assertTrue(
-                bytesRestResponse
-                        .content()
-                        .utf8ToString()
-                        .contains(String.valueOf(expectedResponse.getStatus())));
-        Assert.assertEquals(RestStatus.CREATED, bytesRestResponse.status());
+    @After
+    public void tearDown() throws Exception {
+        clearPluginSettingsInstance();
+        super.tearDown();
     }
 
-    /**
-     * Test the {@link RestPostSubscriptionAction#handleRequest(Subscription)} method when the token
-     * has not been created (mock). The expected response is: {400, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testPostToken400() throws IOException {
-        // Mock
-        Subscription subscription = new Subscription();
-        doThrow(new IllegalArgumentException("Missing required parameters"))
-                .when(this.console)
-                .onPostSubscriptionRequest(subscription);
+    @SuppressForbidden(reason = "Unit test reset")
+    private static void clearPluginSettingsInstance() throws Exception {
+        Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
+        instance.setAccessible(true);
+        instance.set(null, null);
+    }
 
-        // Act
-        BytesRestResponse bytesRestResponse = this.action.handleRequest(subscription);
+    private RestRequest buildRequest(String json) {
+        return new FakeRestRequest.Builder(xContentRegistry())
+                .withContent(new BytesArray(json.getBytes(StandardCharsets.UTF_8)), XContentType.JSON)
+                .build();
+    }
 
-        // Expected response
-        RestResponse expectedResponse =
-                new RestResponse("Missing required parameters", RestStatus.BAD_REQUEST.getStatus());
+    /** Valid access_token → 201 with "Credentials received" and delegates to register(). */
+    public void testPostSubscription201() throws Exception {
+        RestRequest request = buildRequest("{\"access_token\": \"my-token-abc\"}");
 
-        // Assert
-        Assert.assertTrue(
-                bytesRestResponse.content().utf8ToString().contains(expectedResponse.getMessage()));
-        Assert.assertTrue(
-                bytesRestResponse
-                        .content()
-                        .utf8ToString()
-                        .contains(String.valueOf(expectedResponse.getStatus())));
-        Assert.assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        BytesRestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.CREATED, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("Credentials received"));
+        Assert.assertTrue(body.contains(String.valueOf(RestStatus.CREATED.getStatus())));
+        verify(this.subscriptionService, times(1)).register("my-token-abc");
+    }
+
+    /** Missing access_token field → 400 with "Missing [access_token] field." */
+    public void testPostSubscription400_MissingField() throws IOException {
+        RestRequest request = buildRequest("{}");
+
+        BytesRestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("Missing [access_token] field."));
+    }
+
+    /** access_token present but empty → 400 */
+    public void testPostSubscription400_EmptyToken() throws IOException {
+        RestRequest request = buildRequest("{\"access_token\": \"\"}");
+
+        BytesRestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+        String body = response.content().utf8ToString();
+        Assert.assertTrue(body.contains("Missing [access_token] field."));
+    }
+
+    /** access_token present but blank (whitespace) → 400 */
+    public void testPostSubscription400_BlankToken() throws IOException {
+        RestRequest request = buildRequest("{\"access_token\": \"   \"}");
+
+        BytesRestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+    }
+
+    /** register() throws → 500 */
+    public void testPostSubscription500_IndexError() throws Exception {
+        RestRequest request = buildRequest("{\"access_token\": \"tok\"}");
+        doThrow(new RuntimeException("Index not ready")).when(this.subscriptionService).register("tok");
+
+        BytesRestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
     }
 }

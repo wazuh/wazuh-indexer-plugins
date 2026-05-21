@@ -137,6 +137,7 @@ services:
 
   splunk:
     image: splunk/splunk:${SPLUNK_VERSION}
+    user: root
     volumes:
       - ./certs/splunk.key:/opt/splunk/etc/auth/custom/splunk.key
       - ./certs/splunk.pem:/opt/splunk/etc/auth/custom/splunk.pem
@@ -159,7 +160,7 @@ services:
       SPLUNK_PASSWORD: Password.1234
       SPLUNK_STANDALONE_URL: https://splunk:8080
       SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
-      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_START_ARGS: --accept-license --run-as-root
 
   logstash:
     image: logstash-oss:${LOGSTASH_OSS_VERSION}

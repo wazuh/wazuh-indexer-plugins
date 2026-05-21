@@ -53,15 +53,13 @@ security:
 
 paths:
   /subscription:
-    description: CTI registration & CTI credentials retrieval
+    description: CTI credentials management
     post:
-      summary: Register CTI Subscription
+      summary: Store CTI Credentials
       description: |
-        Register a new Cyber Threat Intelligence subscription using device code authentication flow.
-        This endpoint initiates the subscription process and must be called with valid device code
-        credentials obtained from the CTI provider. The registration process is asynchronous and
-        may take several seconds to complete.
-      operationId: registerSubscription
+        Stores the provided CTI access token used to authenticate against the CTI API.
+        The token is persisted in a hidden internal index and loaded into memory.
+      operationId: storeCredentials
       tags:
         - Subscription Management
       requestBody:
@@ -72,54 +70,44 @@ paths:
               $ref: "#/components/schemas/SubscriptionPostRequest"
             examples:
               registration:
-                summary: Example subscription registration
+                summary: Example credential storage
                 value:
-                  device_code: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
-                  client_id: "a17c21ed"
-                  expires_in: 1800
-                  interval: 5
+                  access_token: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
       responses:
         "201":
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
     get:
-      summary: Retrieve CTI Credentials
+      summary: Get CTI Subscription Status
       description: |
-        Retrieve the access token and credentials for an active CTI subscription.
-        The access token should be used as a Bearer token for subsequent API calls to CTI services.
-      operationId: getCredentials
+        Returns the subscription status and active plan. For registered instances,
+        the plan is fetched from the authenticated CTI endpoint. Otherwise, the
+        public free plan is returned.
+      operationId: getSubscription
       tags:
         - Subscription Management
       responses:
         "200":
-          $ref: "#/components/responses/GetCredentialsSuccess"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+          $ref: "#/components/responses/SubscriptionStatus"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
     delete:
-      summary: Delete CTI Subscription
+      summary: Delete CTI Credentials
       description: |
-        Delete an existing CTI subscription and revoke all associated credentials.
-        This operation is irreversible and will immediately terminate access to threat intelligence feeds.
+        Clears the stored CTI access token document from the credentials index and clears
+        the in-memory plugin variable. The index itself is preserved. After this operation
+        the instance is unregistered.
       operationId: deleteSubscription
       tags:
         - Subscription Management
       responses:
         "200":
-          $ref: "#/components/responses/SubscriptionDeleted"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+          $ref: "#/components/responses/CredentialsRemoved"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -128,27 +116,21 @@ paths:
     post:
       summary: Initiate On-Demand Content Update
       description: |
-        Trigger an immediate update of threat intelligence content from subscribed CTI feeds.
-        This operation is asynchronous and returns immediately with a task identifier.
+        Trigger an immediate update of the registered consumers.
+        This operation is asynchronous and returns immediately.
         The update process runs in the background and may take several minutes to complete
         depending on the volume of new threat intelligence data.
-
-        **Rate Limiting**: This endpoint is rate-limited to prevent excessive API calls.
-        The default limit is 10 requests per hour.
+        If a content update is already in progress, the request is rejected with a 409 response.
       operationId: updateContent
       tags:
         - Content Updates
       responses:
         "202":
           $ref: "#/components/responses/UpdateAccepted"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -179,6 +161,9 @@ paths:
       summary: Create KVDB
       description: |
         Creates a KVDB in the draft space. The server generates the UUID.
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with an `integration` field and a `resource` field.
       operationId: createKvdb
       requestBody:
         required: true
@@ -188,7 +173,7 @@ paths:
               $ref: "#/components/schemas/KvdbResource"
             examples:
               create_kvdb:
-                summary: Example KVDB creation
+                summary: Example KVDB creation (JSON)
                 value:
                   integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
                   resource:
@@ -203,6 +188,24 @@ paths:
                     content:
                       key1: "value1"
                       key2: "value2"
+          application/yaml:
+            schema:
+              $ref: "#/components/schemas/KvdbResource"
+            examples:
+              create_kvdb_yaml:
+                summary: Example KVDB creation (YAML)
+                value: |
+                  integration: 9e301671-382d-4c1a-9abf-3d9d9544789c
+                  resource:
+                    name: kvdb/azure-functions/0
+                    enabled: true
+                    metadata:
+                      title: azure-functions
+                      author: Wazuh Inc.
+                      description: This integration supports Azure Functions app logs.
+                    content:
+                      key1: value1
+                      key2: value2
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -215,6 +218,9 @@ paths:
     put:
       tags: [KVDBs]
       summary: Update KVDB
+      description: |
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `resource` field.
       operationId: updateKvdb
       parameters:
         - $ref: "#/components/parameters/id"
@@ -226,7 +232,7 @@ paths:
               $ref: "#/components/schemas/KvdbResourceUpdate"
             examples:
               update_kvdb:
-                summary: Example KVDB update
+                summary: Example KVDB update (JSON)
                 value:
                   resource:
                     title: "azure-functions (Updated)"
@@ -240,6 +246,22 @@ paths:
                     content:
                       key1: "new_value1"
                       key3: "value3"
+          application/yaml:
+            schema:
+              $ref: "#/components/schemas/KvdbResourceUpdate"
+            examples:
+              update_kvdb_yaml:
+                summary: Example KVDB update (YAML)
+                value: |
+                  resource:
+                    name: kvdb/azure-functions/0
+                    enabled: false
+                    metadata:
+                      title: azure-functions (Updated)
+                      author: Wazuh Inc.
+                      description: Updated description for Azure Functions KVDB.
+                    content:
+                      key1: new_value1
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -273,6 +295,9 @@ paths:
         Creates a decoder in the draft space. The server generates the UUID for the decoder.
         The decoder is validated against the Wazuh engine before being stored.
         The decoder is automatically linked to the specified integration.
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with an `integration` field and a `resource` field.
       operationId: createDecoder
       requestBody:
         required: true
@@ -294,7 +319,7 @@ paths:
                   $ref: "#/components/schemas/DecoderResourceCreate"
             examples:
               create_decoder:
-                summary: Example decoder creation
+                summary: Example decoder creation (JSON)
                 value:
                   integration: "9e301671-382d-4c1a-9abf-3d9d9544789c"
                   resource:
@@ -316,6 +341,35 @@ paths:
                         - "https://www.cisco.com/..."
                       versions:
                         - "All known webhook formats"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - integration
+                - resource
+              properties:
+                integration:
+                  type: string
+                  format: uuid
+                resource:
+                  $ref: "#/components/schemas/DecoderResourceCreate"
+            examples:
+              create_decoder_yaml:
+                summary: Example decoder creation (YAML)
+                value: |
+                  integration: 9e301671-382d-4c1a-9abf-3d9d9544789c
+                  resource:
+                    name: decoder/netflow-default/0
+                    enabled: true
+                    metadata:
+                      title: NetFlow decoder
+                      description: Decoder for NetFlow logs.
+                      module: netflow
+                      author:
+                        name: Wazuh, Inc.
+                        email: info@wazuh.com
+                    normalize: []
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -331,6 +385,9 @@ paths:
       description: |
         Updates an existing decoder in the draft space. The decoder is validated against the Wazuh engine before being stored.
         The decoder ID in the path must match the resource ID in the payload (if provided).
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `resource` field.
       operationId: updateDecoder
       parameters:
         - $ref: "#/components/parameters/id"
@@ -348,7 +405,7 @@ paths:
                   $ref: "#/components/schemas/DecoderResource"
             examples:
               update_decoder:
-                summary: Example decoder update
+                summary: Example decoder update (JSON)
                 value:
                   resource:
                     enabled: true
@@ -369,6 +426,30 @@ paths:
                         - "https://www.cisco.com/c/en/us/products/ios-nx-os-software/ios-netflow/index.html"
                       versions:
                         - "All known webhook formats"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resource
+              properties:
+                resource:
+                  $ref: "#/components/schemas/DecoderResource"
+            examples:
+              update_decoder_yaml:
+                summary: Example decoder update (YAML)
+                value: |
+                  resource:
+                    name: decoder/netflow-default/0
+                    enabled: true
+                    metadata:
+                      title: NetFlow decoder (Updated)
+                      description: Updated decoder description.
+                      module: netflow
+                      author:
+                        name: Wazuh, Inc.
+                        email: info@wazuh.com
+                    normalize: []
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -407,6 +488,9 @@ paths:
         Creates a filter in the draft or standard space. The server generates the UUID.
         The filter is validated against the Wazuh engine before being stored.
         The filter is automatically linked to the specified space's policy.
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `space` field and a `resource` field.
       operationId: createFilter
       requestBody:
         required: true
@@ -427,7 +511,7 @@ paths:
                   $ref: "#/components/schemas/FilterResourceCreate"
             examples:
               create_filter:
-                summary: Example filter creation
+                summary: Example filter creation (JSON)
                 value:
                   space: "draft"
                   resource:
@@ -441,6 +525,36 @@ paths:
                         url: "https://wazuh.com"
                     check: "$host.os.platform == 'ubuntu'"
                     type: "pre-filter"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                resource:
+                  $ref: "#/components/schemas/FilterResourceCreate"
+            examples:
+              create_filter_yaml:
+                summary: Example filter creation (YAML)
+                value: |
+                  space: draft
+                  resource:
+                    name: filter/prefilter/0
+                    enabled: true
+                    metadata:
+                      title: Default Prefilter
+                      description: Default filter to allow all events (for default ruleset)
+                      author:
+                        email: info@wazuh.com
+                        name: Wazuh, Inc.
+                        url: https://wazuh.com
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: pre-filter
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -456,6 +570,9 @@ paths:
       description: |
         Updates an existing filter in the draft or standard space. The filter is validated against the Wazuh engine before being stored.
         The filter ID in the path must match the resource ID in the payload (if provided).
+
+        Accepts both `application/json` and `application/yaml`. Both formats use
+        the same envelope structure with a `space` field and a `resource` field.
       operationId: updateFilter
       parameters:
         - $ref: "#/components/parameters/id"
@@ -478,7 +595,7 @@ paths:
                   $ref: "#/components/schemas/FilterResource"
             examples:
               update_filter:
-                summary: Example filter update
+                summary: Example filter update (JSON)
                 value:
                   space: "draft"
                   resource:
@@ -492,6 +609,35 @@ paths:
                         url: "https://wazuh.com"
                     check: "$host.os.platform == 'ubuntu'"
                     type: "pre-filter"
+          application/yaml:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft, standard]
+                resource:
+                  $ref: "#/components/schemas/FilterResource"
+            examples:
+              update_filter_yaml:
+                summary: Example filter update (YAML)
+                value: |
+                  space: draft
+                  resource:
+                    name: filter/prefilter/0
+                    enabled: true
+                    metadata:
+                      description: Updated filter description
+                      author:
+                        email: info@wazuh.com
+                        name: Wazuh, Inc.
+                        url: https://wazuh.com
+                    check: "$host.os.platform == 'ubuntu'"
+                    type: pre-filter
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -815,7 +961,7 @@ paths:
         the normalization step is performed and the `detection` section is returned with
         `status: "skipped"`.
 
-        The integration must exist in the specified space (`test` or `standard`). If the
+        The integration must exist in the specified space (`test`, `standard` or `custom`). If the
         integration has no rules, the SAP result returns zero matches. If the engine fails,
         SAP evaluation is skipped.
       operationId: executeLogtest
@@ -901,7 +1047,7 @@ paths:
         `/logtest/normalization` endpoint, or when you already have a normalized event
         and want to test different integrations' rules against it.
 
-        The integration must exist in the specified space (`test` or `standard`).
+        The integration must exist in the specified space (`test`, `standard`, or `custom`).
       operationId: executeLogtestDetection
       requestBody:
         required: true
@@ -1023,13 +1169,16 @@ paths:
 
         **Draft space**: All policy fields are accepted. The `integrations` and `filters`
         arrays allow reordering but do not allow adding or removing entries.
-        Fields `author`, `description`, `documentation`, and `references` are required
-        in addition to the boolean fields.
+        Fields `metadata.author`, `metadata.description`, `metadata.documentation`,
+        and `metadata.references` are required in addition to the boolean fields.
 
         **Standard space**: Only `enrichments`, `filters`, `enabled`,
         `index_unclassified_events`, and `index_discarded_events` can be modified.
         All other fields are preserved from the existing standard policy document.
         The `filters` array allows reordering but not addition or removal.
+
+        **Stored document format**: Policy metadata is stored only under
+        `document.metadata` in the indexed document.
       operationId: policy_update
       parameters:
         - name: space
@@ -1072,7 +1221,8 @@ paths:
           description: The name of the user space to reset.
           schema:
             type: string
-            enum: [ draft ]
+            enum:
+              - draft
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -1096,45 +1246,14 @@ components:
   schemas:
     SubscriptionPostRequest:
       type: object
-      description: Input parameters for registering a CTI subscription.
-      properties:
-        device_code:
-          type: string
-          description: The device code for registration.
-          example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
-        client_id:
-          type: string
-          description: The client ID.
-          example: "a17c21ed"
-        expires_in:
-          type: integer
-          description: Expiration time in seconds.
-          example: 1800
-        interval:
-          type: integer
-          description: Polling interval in seconds.
-          example: 5
+      description: Request body for storing CTI access credentials.
       required:
-        - device_code
-        - client_id
-        - expires_in
-        - interval
-
-    SubscriptionGetResponse:
-      type: object
-      description: Response schema for retrieving CTI credentials.
+        - access_token
       properties:
         access_token:
           type: string
-          description: Access token for authentication.
-          example: "AYjcyMzY3ZDhiNmJkNTY"
-        token_type:
-          type: string
-          description: Type of the token.
-          example: "Bearer"
-      required:
-        - access_token
-        - token_type
+          description: The CTI access token used to authenticate against the CTI API.
+          example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
 
     # Version check response models
     VersionCheckData:
@@ -1246,7 +1365,8 @@ components:
           enum:
             - test
             - standard
-          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space where the integration exists. Must be `"test"`, `"standard"`or `"custom"`.
           example: "test"
 
         queue:
@@ -1292,7 +1412,8 @@ components:
           enum:
             - test
             - standard
-          description: Space context for the normalization. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space context for the normalization. Must be `"test"`, `"standard"` or `"custom"`.
           example: "test"
 
         queue:
@@ -1340,7 +1461,8 @@ components:
           enum:
             - test
             - standard
-          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space where the integration exists. Must be `"test"`, `"standard"` or `"custom"`.
           example: "test"
 
         integration:
@@ -2145,42 +2267,84 @@ components:
   responses:
     # --- Success Responses ---
     SubscriptionCreated:
-      description: Created - Subscription registered successfully.
-
-    GetCredentialsSuccess:
-      description: OK - Credentials retrieved successfully.
+      description: Created - Credentials stored successfully.
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/SubscriptionGetResponse"
+            $ref: "#/components/schemas/RestResponse"
           examples:
-            credentials:
-              summary: Valid credentials response
+            success:
+              summary: Credentials stored
               value:
-                access_token: "AYjcyMzY3ZDhiNmJkNTY"
-                token_type: "Bearer"
+                message: "Credentials received"
+                status: 201
 
-    SubscriptionDeleted:
-      description: OK - Subscription deleted successfully.
+    SubscriptionStatus:
+      description: OK - Subscription status and active plan details.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: object
+                properties:
+                  plan:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      is_public:
+                        type: boolean
+                  is_registered:
+                    type: boolean
+              status:
+                type: integer
+          examples:
+            registered:
+              summary: Registered instance
+              value:
+                message:
+                  plan:
+                    name: "Premium Plan"
+                    is_public: false
+                  is_registered: true
+                status: 200
+            unregistered:
+              summary: Unregistered instance
+              value:
+                message:
+                  plan:
+                    name: "Free"
+                    is_public: true
+                  is_registered: false
+                status: 200
+
+    CredentialsRemoved:
+      description: OK - Credentials removed successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            success:
+              summary: Credentials removed
+              value:
+                message: "Credentials removed"
+                status: 200
 
     UpdateAccepted:
       description: Accepted - The update request has been accepted for processing.
-      headers:
-        X-RateLimit-Limit:
-          description: The maximum number of requests allowed per hour.
+      content:
+        application/json:
           schema:
-            type: integer
-            example: 10
-        X-RateLimit-Remaining:
-          description: The number of requests remaining in the current window.
-          schema:
-            type: integer
-            example: 7
-        X-RateLimit-Reset:
-          description: The time at which the current rate limit window resets (Unix timestamp).
-          schema:
-            type: integer
-            example: 1699963200
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            accepted:
+              summary: Update accepted
+              value:
+                message: "The update request has been accepted for processing."
+                status: 202
 
     OkResponse:
       description: |
@@ -2254,9 +2418,6 @@ components:
                 message: "Cannot remove decoder [82e215c4-988a-4f64-8d15-b98b2fc03a4f] as it is set as root decoder."
                 status: 400
 
-    Unauthorized:
-      description: Unauthorized - Authentication failed or credentials are invalid.
-
     ResourceDeleted:
       description: OK - Resource deleted successfully.
       content:
@@ -2306,40 +2467,8 @@ components:
             undergoing_update:
               summary: Content update in progress
               value:
-                error: "A content update is already in progress."
-
-    TooManyRequests:
-      description: Too Many Requests - Rate limit exceeded.
-      headers:
-        X-RateLimit-Limit:
-          description: The maximum number of requests allowed per hour.
-          schema:
-            type: integer
-            example: 10
-        X-RateLimit-Remaining:
-          description: The number of requests remaining (will be 0).
-          schema:
-            type: integer
-            example: 0
-        X-RateLimit-Reset:
-          description: The time at which the current rate limit window resets (Unix timestamp).
-          schema:
-            type: integer
-            example: 1699963200
-        Retry-After:
-          description: Number of seconds to wait before retrying.
-          schema:
-            type: integer
-            example: 3600
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/RestResponse"
-          examples:
-            rate_limit_exceeded:
-              summary: Rate limit exceeded
-              value:
-                error: "Too many update requests. Please try again later."
+                message: "A content update is already in progress."
+                status: 409
 
     InternalServerError:
       description: |

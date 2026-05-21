@@ -62,6 +62,11 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
     }
 
     @Override
+    protected boolean supportsYamlField() {
+        return true;
+    }
+
+    @Override
     protected String getIndexName() {
         return Constants.INDEX_FILTERS;
     }

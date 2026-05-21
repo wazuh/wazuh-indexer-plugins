@@ -82,7 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add documentation for commom-utils plugin [(#929)](https://github.com/wazuh/wazuh-indexer-plugins/pull/929)
 - Support creation and promotion of rules and integrations across spaces [(#930)](https://github.com/wazuh/wazuh-indexer-plugins/pull/930)
 - Add docs config and tooling versions to meet new documentation standards [(#935)](https://github.com/wazuh/wazuh-indexer-plugins/pull/935)
-- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941)
+- Add metrics data streams [(#941)](https://github.com/wazuh/wazuh-indexer-plugins/pull/941) [(#1114)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1114)
 - Implement telemetry ping job [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939)
 - Create findings module [(#949)](https://github.com/wazuh/wazuh-indexer-plugins/pull/949)
 - Add rollback mechanism to Promote action [(#953)](https://github.com/wazuh/wazuh-indexer-plugins/pull/953)
@@ -94,7 +94,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement version check CM API endpoint [(#1028)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1028)
 - Add documentation for Wazuh Alerting plugin [(#980)](https://github.com/wazuh/wazuh-indexer-plugins/pull/980)
 - Add ruletesting extended endpoints [(#1040)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1040)
-
+- Set custom user-agent header for CTI API communications [(#1074)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1074)
+- Implement wazuh.event.id WCS field [(#1097)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1097)
+- Add detector properties to CTI integration mapping and request builder [(#1047)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1047)
+- YAML support for ruleset resources [(#1100)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1100)
+- Implement GET /platform/environments/me API service [(#1134)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1134)
+- Implement token exchange service [(#1130)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1130)
+- Implement catalog plans service [(#1135)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1135)
+- Add index swap mechanism [(#1165)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1165)
+- Enable Draft policy by default [(1172)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1172)
+- Add revert logic to bumper workflow [(#1059)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1059)
+- Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -103,7 +113,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
-- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701) [(#742)](https://github.com/wazuh/wazuh-indexer-plugins/pull/742) [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817) [(#912)](https://github.com/wazuh/wazuh-indexer-plugins/pull/912) [(#1044)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1044)
+- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701) [(#742)](https://github.com/wazuh/wazuh-indexer-plugins/pull/742) [(#817)](https://github.com/wazuh/wazuh-indexer-plugins/pull/817) [(#912)](https://github.com/wazuh/wazuh-indexer-plugins/pull/912) [(#1044)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1044) [(#1124)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1124)
 - Replace and remove deprecated settings [(#476)](https://github.com/wazuh/wazuh-indexer-plugins/pull/476)
 - Migrate WCS changes from 4.x [(#488)](https://github.com/wazuh/wazuh-indexer-plugins/pull/488) [(#552)](https://github.com/wazuh/wazuh-indexer-plugins/pull/552) [(#568)](https://github.com/wazuh/wazuh-indexer-plugins/pull/568)
 - Implement checksum fields into stateful ECS mappings [(#519)](https://github.com/wazuh/wazuh-indexer-plugins/pull/519) [(#569)](https://github.com/wazuh/wazuh-indexer-plugins/pull/569)
@@ -153,6 +163,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update context and consumers [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/pull/986)
 - Create detectors using only rules enabled [(#1017)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1017)
 - Set indicator.confidence as type short [(#1030)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1030)
+- Remove vulnerability scanner reference field [(#1072)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1072)
+- Change check object in filters template to object[(#1062)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1062)
+- Update ruleset feed for 5.0.0 beta2 [(#1073)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1073)
+- Normalize space values in CM and SAP integration [(#1091)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1091)
+- Nest threat and rule under wazuh object [(#1137)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1137)
+- Initialization from snapshots rework [(#1139)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1139)
+- Skip engine validation for engine-unrelated resources promotion [(#1133)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1133)
+- CTI subscription API update [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145)
+- Update ruleset consumer to beta-2 [(#1161)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1161)
+- Encode credentials in base64 [(#1163)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1163)
+- Allow custom space in logtest endpoint [(#1185)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1185)
+- CTI subscription api update [(#1120)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1120)
 
 ### Deprecated
 -
@@ -188,6 +210,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Reset spaces in Security Analytics [(#1000)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1000)
 - Fix CodeQL maven caching [(#1007)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1007)
 - Fix broken Javadoc link reference in ContentManagerPlugin [(#1020)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1020)
+- Fix Telemetry Ping Job not running immediately after registration [(#1052)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1052)
+- Fix missing wazuh-threatintel-filters index [(#1143)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1143)
+- Remove space.hash from non-policy resources [(#1167)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1167)
+- Fix policy Metadata Duplicated At Root Level On Updates [(1174)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1174)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

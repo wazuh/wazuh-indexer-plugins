@@ -33,7 +33,6 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -84,8 +83,7 @@ public class ConsumersIndex {
                 this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready");
         }
-        // Composed ID
-        String id = String.format(Locale.ROOT, "%s_%s", consumer.getContext(), consumer.getName());
+        String id = consumer.getType();
         IndexRequest request =
                 new IndexRequest().index(INDEX_NAME).id(id).source(consumer.toXContent());
 
@@ -95,8 +93,7 @@ public class ConsumersIndex {
     /**
      * Retrieves a consumer document from the index by its composite identifier.
      *
-     * @param context The context identifier of the consumer.
-     * @param consumer The name identifier of the consumer.
+     * @param type The consumer type identifier used as the document id.
      * @return A {@link GetResponse} containing the document source and metadata.
      * @throws ExecutionException If the client failed to execute the request.
      * @throws InterruptedException If the current thread was interrupted while waiting for the
@@ -104,16 +101,14 @@ public class ConsumersIndex {
      * @throws TimeoutException If the operation exceeded the configured client timeout.
      * @throws RuntimeException If the target index is not currently ready or available.
      */
-    public GetResponse getConsumer(String context, String consumer)
+    public GetResponse getConsumer(String type)
             throws ExecutionException, InterruptedException, TimeoutException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(
                 this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready");
         }
-        // Composed ID
-        String id = String.format(Locale.ROOT, "%s_%s", context, consumer);
-        GetRequest request = new GetRequest().index(INDEX_NAME).id(id).preference("_local");
+        GetRequest request = new GetRequest().index(INDEX_NAME).id(type).preference("_local");
 
         ActionFuture<GetResponse> future = this.client.get(request);
 

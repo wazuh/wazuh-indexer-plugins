@@ -4,53 +4,71 @@ The Content Manager plugin exposes a REST API under `/_plugins/_content_manager/
 
 ---
 
-## Subscription Management
+## YAML Content-Type Support
 
-### Get CTI Subscription
+The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
 
-Retrieves the current CTI subscription token.
+### Envelope structure
 
-**Request**
-- Method: `GET`
-- Path: `/_plugins/_content_manager/subscription`
+Both JSON and YAML requests use the same envelope:
 
-**Example Request**
-
-```bash
-curl -sk -u admin:admin \
-  "https://192.168.56.6:9200/_plugins/_content_manager/subscription"
-```
-
-**Example Response (subscription exists)**
+**JSON example:**
 
 ```json
 {
-  "access_token": "AYjcyMzY3ZDhiNmJkNTY",
-  "token_type": "Bearer"
+  "integration": "<uuid>",
+  "resource": {
+    "metadata": { "title": "My Decoder", "author": "Wazuh" },
+    "name": "decoder/my-decoder/0",
+    "enabled": true
+  }
 }
 ```
 
-**Example Response (no subscription)**
+**Equivalent YAML example:**
 
-```json
-{
-  "message": "Token not found",
-  "status": 404
-}
+```yaml
+---
+integration: <uuid>
+resource:
+  metadata:
+    title: "My Decoder"
+    author: "Wazuh"
+  name: decoder/my-decoder/0
+  enabled: true
 ```
 
-**Status Codes**
+For resource types that do not require an `integration` field (e.g., Filters, which use `space` instead), the corresponding field appears at the top level of the envelope in both formats.
 
-| Code | Description                 |
-| ---- | --------------------------- |
-| 200  | Subscription token returned |
-| 404  | No subscription registered  |
+### YAML field in responses
+
+When a Decoder, KVDB, or Filter is created or updated, a `yaml` field is stored alongside the `document` in the indexed record. This field contains a YAML representation of the resource content:
+
+- **YAML requests**: The `yaml` field is generated from the `resource` subtree of the parsed envelope.
+- **JSON requests**: The `yaml` field is auto-generated from the resource content.
+
+### Type fidelity
+
+YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` are stored as `5.0` in both the `yaml` field and the `document` field — they are not coerced to integers.
+
+### Supported endpoints
+
+| Endpoint | Methods | YAML supported |
+| --- | --- | :---: |
+| `/_plugins/_content_manager/decoders` | POST, PUT | ✅ |
+| `/_plugins/_content_manager/kvdbs` | POST, PUT | ✅ |
+| `/_plugins/_content_manager/filters` | POST, PUT | ✅ |
+| `/_plugins/_content_manager/integrations` | POST, PUT | ❌ |
+| `/_plugins/_content_manager/rules` | POST, PUT | ❌ |
+| `/_plugins/_content_manager/policy/{space}` | PUT | ❌ |
 
 ---
 
-### Register CTI Subscription
+## Subscription Management
 
-Registers a new CTI subscription using a device code obtained from the Wazuh CTI Console.
+### Store CTI Credentials
+
+Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
 **Request**
 - Method: `POST`
@@ -58,12 +76,9 @@ Registers a new CTI subscription using a device code obtained from the Wazuh CTI
 
 **Request Body**
 
-| Field         | Type    | Required | Description                                |
-| ------------- | ------- | -------- | ------------------------------------------ |
-| `device_code` | String  | Yes      | Device authorization code from CTI Console |
-| `client_id`   | String  | Yes      | OAuth client identifier                    |
-| `expires_in`  | Integer | Yes      | Token expiration time in seconds           |
-| `interval`    | Integer | Yes      | Polling interval in seconds                |
+| Field          | Type   | Required | Description                                             |
+| -------------- | ------ | -------- | ------------------------------------------------------- |
+| `access_token` | String | Yes      | The CTI access token used to authenticate against the CTI API |
 
 **Example Request**
 
@@ -72,10 +87,7 @@ curl -sk -u admin:admin -X POST \
   "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
-    "device_code": "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
-    "client_id": "a17c21ed",
-    "expires_in": 1800,
-    "interval": 5
+    "access_token": "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
   }'
 ```
 
@@ -83,25 +95,80 @@ curl -sk -u admin:admin -X POST \
 
 ```json
 {
-  "message": "Subscription created successfully",
+  "message": "Credentials received",
   "status": 201
 }
 ```
 
 **Status Codes**
 
-| Code | Description                                                                    |
-| ---- | ------------------------------------------------------------------------------ |
-| 201  | Subscription registered successfully                                           |
-| 400  | Missing required fields (`device_code`, `client_id`, `expires_in`, `interval`) |
-| 401  | Unauthorized — endpoint accessed by unexpected user                            |
-| 500  | Internal error                                                                 |
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 201  | Credentials stored successfully                 |
+| 400  | Missing or empty `access_token` field           |
+| 500  | Internal error                                  |
 
 ---
 
-### Delete CTI Subscription
+### Get CTI Subscription Status
 
-Removes the current CTI subscription token and revokes all associated credentials.
+Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
+
+> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public free plan as if the instance were unregistered.
+
+**Request**
+- Method: `GET`
+- Path: `/_plugins/_content_manager/subscription`
+
+**Example Request**
+
+```bash
+curl -sk -u admin:admin -X GET \
+  "https://localhost:9200/_plugins/_content_manager/subscription"
+```
+
+**Example Response (registered)**
+
+```json
+{
+  "message": {
+    "plan": {
+      "name": "Premium Plan",
+      "is_public": false
+    },
+    "is_registered": true
+  },
+  "status": 200
+}
+```
+
+**Example Response (unregistered)**
+
+```json
+{
+  "message": {
+    "plan": {
+      "name": "Free",
+      "is_public": true
+    },
+    "is_registered": false
+  },
+  "status": 200
+}
+```
+
+**Status Codes**
+
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 200  | Subscription status returned successfully       |
+| 500  | Internal error                                  |
+
+---
+
+### Delete CTI Credentials
+
+Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered. If the credentials index does not exist the operation succeeds without error.
 
 **Request**
 - Method: `DELETE`
@@ -111,33 +178,24 @@ Removes the current CTI subscription token and revokes all associated credential
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/subscription"
+  "https://localhost:9200/_plugins/_content_manager/subscription"
 ```
 
-**Example Response (success)**
+**Example Response**
 
 ```json
 {
-  "message": "Subscription deleted successfully",
+  "message": "Credentials removed",
   "status": 200
-}
-```
-
-**Example Response (no subscription)**
-
-```json
-{
-  "message": "Token not found",
-  "status": 404
 }
 ```
 
 **Status Codes**
 
-| Code | Description               |
-| ---- | ------------------------- |
-| 200  | Subscription deleted      |
-| 404  | No subscription to delete |
+| Code | Description                                     |
+| ---- | ----------------------------------------------- |
+| 200  | Credentials removed successfully                |
+| 500  | Internal error                                  |
 
 ---
 
@@ -158,16 +216,16 @@ curl -sk -u admin:admin -X POST \
   "https://192.168.56.6:9200/_plugins/_content_manager/update"
 ```
 
-**Example Response (success)**
+**Example Response (accepted)**
 
 ```json
 {
-  "message": "Content update triggered successfully",
-  "status": 200
+  "message": "The update request has been accepted for processing.",
+  "status": 202
 }
 ```
 
-**Example Response (no subscription)**
+**Example Response (no credentials)**
 
 ```json
 {
@@ -176,14 +234,22 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
+**Example Response (update in progress)**
+
+```json
+{
+  "message": "A content update is already in progress.",
+  "status": 409
+}
+```
+
 **Status Codes**
 
 | Code | Description                             |
 | ---- | --------------------------------------- |
-| 200  | Sync triggered successfully             |
-| 404  | No subscription token found             |
+| 202  | Update request accepted for processing  |
+| 404  | No access token registered              |
 | 409  | A content update is already in progress |
-| 429  | Rate limit exceeded                     |
 | 500  | Internal error during sync              |
 
 ---
@@ -205,7 +271,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 | Field            | Type    | Required | Description                                          |
 | ---------------- | ------- | -------- | ---------------------------------------------------- |
 | `integration`    | String  | No       | ID of the integration to test against. If omitted, only normalization is performed. |
-| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
+| `space`          | String  | Yes      | `"test"`, `"standard"` or `"custom"`                             |
 | `queue`          | Integer | Yes      | Queue number for logtest execution                   |
 | `location`       | String  | Yes      | Log file path or logical source location             |
 | `event`          | String  | Yes      | Raw log event to test                                |
@@ -995,7 +1061,7 @@ Fields within `metadata`:
 | Field           | Type   | Description                          |
 | --------------- | ------ | ------------------------------------ |
 | `title`         | String | Human-readable decoder title         |
-| `description`   | String | Decoder description                  |
+| `description`   | String | Decoder description                   |
 | `module`        | String | Module name                          |
 | `compatibility` | String | Compatibility description            |
 | `author`        | Object | Author info (`name`, `email`, `url`) |
@@ -1056,6 +1122,38 @@ curl -sk -u admin:admin -X POST \
 ```
 
 The `message` field contains the UUID of the created decoder (prefixed with `d_`).
+
+**Example Request (YAML)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/decoders" \
+  -H 'Content-Type: application/yaml' \
+  --data-binary '---
+integration: 0aa4fc6f-1cfd-4a7c-b30b-643f32950f1f
+resource:
+  enabled: true
+  metadata:
+    author:
+      name: "Wazuh, Inc."
+    compatibility: "All wazuh events."
+    description: "Base decoder to process Wazuh message format."
+    module: wazuh
+    references:
+      - "https://documentation.wazuh.com/"
+    title: "Wazuh message decoder"
+    versions:
+      - "Wazuh 5.*"
+  name: decoder/core-wazuh-message/0
+  check:
+    - tmp_json.event.action: "string_equal(\"netflow_flow\")"
+  normalize:
+    - map:
+        - "@timestamp": "get_date()"
+'
+```
+
+> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
 
 **Status Codes**
 
@@ -1141,9 +1239,9 @@ A decoder cannot be deleted if it is currently set as the root decoder in the dr
 
 **Parameters**
 
-| Name | In   | Type   | Required | Description         |
-| ---- | ---- | ------ | -------- | ------------------- |
-| `id` | Path | String | Yes      | Decoder document ID |
+| Name | In   | Type          | Required | Description         |
+| ---- | ---- | ------------- | -------- | ------------------- |
+| `id` | Path | String (UUID) | Yes      | Decoder document ID |
 
 **Example Request**
 
@@ -1251,6 +1349,30 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created filter (prefixed with `f_`).
 
+**Example Request (YAML)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/filters" \
+  -H 'Content-Type: application/yaml' \
+  --data-binary '---
+space: draft
+resource:
+  name: filter/prefilter/0
+  enabled: true
+  metadata:
+    description: "Default filter to allow all events (for default ruleset)"
+    author:
+      email: info@wazuh.com
+      name: "Wazuh, Inc."
+      url: "https://wazuh.com"
+  check: "$host.os.platform == '\''ubuntu'\''"
+  type: pre-filter
+'
+```
+
+> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
+
 **Status Codes**
 
 | Code | Description                                                        |
@@ -1271,9 +1393,9 @@ Updates an existing filter in the draft or standard space. The filter is re-vali
 
 **Parameters**
 
-| Name | In   | Type   | Required | Description        |
-| ---- | ---- | ------ | -------- | ------------------ |
-| `id` | Path | String | Yes      | Filter document ID |
+| Name | In   | Type          | Required | Description        |
+| ---- | ---- | ------------- | -------- | ------------------ |
+| `id` | Path | String (UUID) | Yes      | Filter document ID |
 
 **Request Body**
 
@@ -1337,9 +1459,9 @@ Deletes a filter from the draft or standard space. The filter is also removed fr
 
 **Parameters**
 
-| Name | In   | Type   | Required | Description        |
-| ---- | ---- | ------ | -------- | ------------------ |
-| `id` | Path | String | Yes      | Filter document ID |
+| Name | In   | Type          | Required | Description        |
+| ---- | ---- | ------------- | -------- | ------------------ |
+| `id` | Path | String (UUID) | Yes      | Filter document ID |
 
 **Example Request**
 
@@ -1373,7 +1495,7 @@ curl -sk -u admin:admin -X DELETE \
 
 Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered in the Security Analytics Plugin.
 
-The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in the `source` field (e.g., "Draft") for cross-reference.
+The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
 **Request**
 - Method: `POST`
@@ -1671,6 +1793,41 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created KVDB.
 
+**Example Request (YAML)**
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://192.168.56.6:9200/_plugins/_content_manager/kvdbs" \
+  -H 'Content-Type: application/yaml' \
+  --data-binary '---
+integration: f16f33ec-a5ea-4dc4-bf33-616b1562323a
+resource:
+  metadata:
+    title: non_standard_timezones
+    author: "Wazuh Inc."
+    description: ""
+    documentation: ""
+    references:
+      - "https://wazuh.com"
+  name: non_standard_timezones
+  enabled: true
+  content:
+    non_standard_timezones:
+      AEST: Australia/Sydney
+      CEST: Europe/Berlin
+      CST: America/Chicago
+      EDT: America/New_York
+      EST: America/New_York
+      IST: Asia/Kolkata
+      MST: America/Denver
+      PKT: Asia/Karachi
+      SST: Asia/Singapore
+      WEST: Europe/London
+'
+```
+
+> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
+
 **Status Codes**
 
 | Code | Description                                                                       |
@@ -1888,6 +2045,8 @@ The response lists changes grouped by content type. Each change includes:
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
 
+For Draft → Test promotions, the changeset is forwarded to the local Wazuh Engine for validation only when it includes decoders, kvdbs, or filters. Promotions limited to integrations, rules, or the policy skip the engine call entirely. Test → Custom promotions never invoke the engine.
+
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics Plugin (SAP). For each promoted resource, a new SAP document is created in the target space with:
 - A newly generated UUID as the SAP document primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
@@ -1983,8 +2142,6 @@ Resets a user space (`draft`) to its initial state.
 When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
-
-The resources are removed in the Content Manager (`wazuh-threatintel-*` indices) and in the Security Analytics Plugin (`.opensearch-sap-*` indices) to ensure a complete reset of the space. 
 
 > **Note**: Only `draft` space can be reset.
 

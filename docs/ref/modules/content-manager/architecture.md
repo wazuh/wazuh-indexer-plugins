@@ -7,7 +7,7 @@ The Content Manager plugin operates within the Wazuh Indexer environment. It is 
 ### REST Layer
 
 Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
-- Subscription management (register, get, delete CTI tokens)
+- Subscription management (store CTI access token)
 - Manual content sync trigger
 - CUD operations on rules, decoders, integrations, and KVDBs
 - Policy management
@@ -15,9 +15,11 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 - Logtest execution
 - Content validation and promotion
 
-### CTI Console
+### Credentials Store
 
-Manages authentication with the Wazuh CTI API. Stores subscription tokens used for all CTI requests. Without a valid token, sync operations are rejected.
+Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-cti-credentials` hidden index, and cached in `PluginSettings.accessToken` (a `volatile String` field). On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
+
+All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Catalog API client, Snapshot client, and Telemetry client.
 
 ### Job Scheduler (CatalogSyncJob)
 
@@ -29,16 +31,17 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 - Enabled by default through `plugins.content_manager.telemetry.enabled`.
 - Can be toggled at runtime because it is a dynamic setting.
-- Sends deployment metadata required for update checks (cluster UUID and deployed Wazuh version).
+- Sends deployment metadata required for update checks (cluster UUID, deployed Wazuh version, and user-agent).
 - Job metadata is stored in `.wazuh-content-manager-jobs`.
+- The first ping is dispatched immediately after the job is registered in the scheduler; subsequent runs follow the 1-day interval.
 
 ### Consumer Service
 
-Orchestrates synchronization for each context/consumer pair. Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
+Orchestrates synchronization for each catalog consumer type (ruleset, iocs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
 
 ### Snapshot Service
 
-Handles initial content loading. Downloads a ZIP snapshot from the CTI API, extracts it, and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
+Handles initial content loading. Initializes from either a remote CTI snapshot (when a custom consumer URL is configured) or a local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
 
 ### Update Service
 
@@ -48,9 +51,11 @@ Handles incremental updates. Fetches change batches from the CTI API based on of
 
 Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
 
+**Dynamic Configuration**: Instead of using hardcoded defaults, the service extracts `enabled`, `interval`, and `source` (index patterns) directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
+
 **Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
 - `document.id` — the UUID of the original CTI document in the Content Manager.
-- `source` — the space the document belongs to, with the first letter capitalized (e.g., "Draft", "Test", "Custom", or "Sigma" for standard).
+- `source` — the space the document belongs to (e.g., "draft", "test", "custom", or "standard").
 
 This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
 
@@ -71,10 +76,12 @@ Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-i
 ```
 Job Scheduler triggers
   → Consumer Service checks .wazuh-cti-consumers (offset = 0)
-  → Snapshot Service downloads ZIP from CTI API
+  → If custom catalog URL is configured: try remote snapshot first
+  → If remote init fails: fallback to local packaged snapshot
+  → If no custom catalog URL: initialize from local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
-  → Security Analytics Service creates detectors (max 100 rules per detector)
+  → Security Analytics Service creates detectors using dynamic CTI configuration (max 100 rules per detector)
 ```
 
 ### CTI Sync (Incremental)
@@ -91,7 +98,11 @@ Job Scheduler triggers
 ### Update Check Heartbeat
 
 ```
-Job Scheduler triggers (every 24h)
+Registration (on node start or dynamic enable)
+  → TelemetryPingJob document indexed in .wazuh-content-manager-jobs
+  → Immediate first ping fired once the document is written
+
+Job Scheduler triggers (every 24h thereafter)
   → TelemetryPingJob checks plugins.content_manager.telemetry.enabled
   → Reads cluster UUID and current Wazuh version
   → TelemetryClient sends GET /ping to CTI Update check API
@@ -129,7 +140,9 @@ GET /promote?space=draft
 
 POST /promote
   → Capture pre-promotion snapshots of target-space resources
-  → Engine validates configuration (draft → test only)
+  → Engine validates configuration (draft → test only, and only when the
+    changeset includes decoders, kvdbs, or filters — promotions limited to
+    integrations, rules, or the policy skip the engine call)
   → Consolidate changes to CM indices (tracked for rollback)
       → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
       → Apply deletes: integrations, kvdbs, decoders, filters, rules
@@ -193,15 +206,40 @@ Consolidation fails at step N
   → Return 500 with error message
 ```
 
+## Plan Change Handling (Blue/Green Swap)
+
+When a subscription plan changes (e.g., free → pro, or vice versa), all downloaded content must be replaced with the content matching the new plan. The Content Manager uses a **blue/green index swap** to perform this replacement without any user-visible downtime.
+
+### How it works
+
+1. **Detection.** During each sync cycle, the Content Manager compares the plan-provided catalog URL against the one stored locally. If they differ, a plan change is detected.
+2. **Shadow download.** New content is downloaded into hidden staging indices. These shadow indices are invisible to users, dashboards, and REST queries during the rebuild.
+3. **User content preservation.** Any user-created content (draft rules, test decoders, custom integrations, etc.) is copied from the live indices into the shadow indices.
+4. **Atomic switch.** Once the shadow indices are fully ready, all index aliases are swapped in a single atomic operation. Users see either the entire old content or the entire new content — never a mix or an empty state.
+5. **Cleanup.** The old indices are deleted, freeing the temporary disk space.
+
+### Failure behavior
+
+If the new content cannot be downloaded or processed (network error, source unavailable, etc.), the swap is abandoned cleanly: the staging indices are discarded, users continue to see the old content, and the system retries on the next scheduled sync. A failed swap is invisible to the end user.
+
+
 ## Index Structure
 
-Each content index (e.g., `wazuh-threatintel-rules`) stores documents from all three spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
+Each content index (e.g., `wazuh-threatintel-rules`) is backed by an **alias**. The public alias name is the stable identifier used by all queries, dashboards, and REST APIs. The actual data lives in a physical index suffixed with `-a` or `-b`:
+
+| Public alias (stable name) | Physical index (actual storage) |
+|---|---|
+| `wazuh-threatintel-rules` | `wazuh-threatintel-rules-a` or `wazuh-threatintel-rules-b` |
+
+Only one physical index is live at a time. The other is reserved as the staging slot for the next plan-change swap. Administrators and users should always address indices by their alias name — the physical suffix is an internal implementation detail.
+
+Each content index stores documents from all spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
 
 Example document structure in `wazuh-threatintel-rules`:
 
 ```json
 {
-  "_index": "wazuh-threatintel-rules",
+  "_index": "wazuh-threatintel-rules-a",
   "_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "_source": {
     "title": "SSH brute force attempt",
@@ -212,19 +250,21 @@ Example document structure in `wazuh-threatintel-rules`:
 }
 ```
 
-The `.wazuh-cti-consumers` index stores one document per context/consumer pair:
+The `.wazuh-cti-consumers` index stores one document per consumer type:
 
 ```json
 {
   "_index": ".wazuh-cti-consumers",
-  "_id": "t1-ruleset-5_public-ruleset-5",
+  "_id": "cti:catalog:consumer:ruleset",
   "_source": {
     "name": "public-ruleset-5",
-    "context": "t1-ruleset-5",
+    "context": "beta-2-ruleset-5",
+    "type": "cti:catalog:consumer:ruleset",
+    "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
+    "is_public": true,
     "status": "idle",
     "local_offset": 3932,
-    "remote_offset": 3932,
-    "snapshot_link": "https://api.pre.cloud.wazuh.com/store/contexts/t1-ruleset-5/consumers/public-ruleset-5/168_1776070234.zip"
+    "remote_offset": 3932
   }
 }
 ```
