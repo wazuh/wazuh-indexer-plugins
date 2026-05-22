@@ -89,8 +89,8 @@ dependencies {
   compileOnly "org.apache.httpcomponents.core5:httpcore5:5.4"
 
   // Use Jackson provided by OpenSearch (2.21.2) - only for compile time
-  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.21.2'
-  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.21.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.21.3'
+  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.21.3'
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.21'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2'
 
