@@ -27,6 +27,10 @@ Your workstation must meet the minimum hardware requirements (the more resources
 
 The tools and source code to generate a package of Wazuh Indexer are hosted in the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer) repository, so clone it if you haven't done already.
 
+## Obtaining the `wazuh-engine` tarball
+
+A `wazuh-engine` tarball is required to build the Wazuh Indexer package. Follow the [Engine build instructions](https://github.com/wazuh/wazuh/blob/main/src/engine/standalone/README.md) in the `wazuh/wazuh` repository to produce it. The resulting `.tar.gz` is passed to `builder.sh` via the `-e` flag.
+
 ## Building `wazuh-indexer` packages
 
 The Docker environment under `wazuh-indexer/build-scripts/builder` automates the build and assemble process for the Wazuh Indexer and its plugins, making it easy to create packages on any system.
@@ -44,7 +48,7 @@ Arguments:
 -n NOTIFICATIONS_BRANCH         [Optional] wazuh-indexer-notifications repo branch, default is 'main'.
 -t INDEXER_ALERTING_BRANCH      [Optional] wazuh-indexer-alerting repo branch, default is 'main'.
 -c COMMON_UTILS_BRANCH          [Optional] wazuh-indexer-common-utils repo branch, default is 'main'.
--e ENGINE_TARBALL               [Optional] Path to wazuh-engine tarball (.tar.gz) on the host.
+-e ENGINE_TARBALL               [Required] Path to wazuh-engine tarball (.tar.gz) on the host.
 -R REVISION     [Optional] Package revision, default is '0'.
 -S STAGE        [Optional] Staging build, default is 'false'.
 -d DISTRIBUTION [Optional] Distribution, default is 'rpm'.
