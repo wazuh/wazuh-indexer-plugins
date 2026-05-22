@@ -25,64 +25,64 @@ public class UrlUtilsTests extends OpenSearchTestCase {
         // The reported bug: same logical resource, one has a trailing '/'.
         String a = "https://x/api/v1/catalog/contexts/c/consumers/u";
         String b = a + "/";
-        assertTrue(UrlUtils.sameResource(a, b));
-        assertTrue(UrlUtils.sameResource(b, a));
+        assertTrue(UrlUtils.isSameResource(a, b));
+        assertTrue(UrlUtils.isSameResource(b, a));
     }
 
     public void testIdentical() {
         String url = "https://x/y";
-        assertTrue(UrlUtils.sameResource(url, url));
+        assertTrue(UrlUtils.isSameResource(url, url));
     }
 
     public void testDifferentPath() {
-        assertFalse(UrlUtils.sameResource("https://x/a", "https://x/b"));
+        assertFalse(UrlUtils.isSameResource("https://x/a", "https://x/b"));
     }
 
     public void testSchemeCaseDiffers() {
-        assertTrue(UrlUtils.sameResource("HTTPS://x/y", "https://x/y"));
+        assertTrue(UrlUtils.isSameResource("HTTPS://x/y", "https://x/y"));
     }
 
     public void testHostCaseDiffers() {
-        assertTrue(UrlUtils.sameResource("https://X.com/y", "https://x.com/y"));
+        assertTrue(UrlUtils.isSameResource("https://X.com/y", "https://x.com/y"));
     }
 
     public void testPathCaseDiffersStays() {
         // Per RFC 3986 §6.2.2.1, path case is significant.
-        assertFalse(UrlUtils.sameResource("https://x/Y", "https://x/y"));
+        assertFalse(UrlUtils.isSameResource("https://x/Y", "https://x/y"));
     }
 
     public void testQueryDiffers() {
-        assertFalse(UrlUtils.sameResource("https://x/y?a=1", "https://x/y?a=2"));
+        assertFalse(UrlUtils.isSameResource("https://x/y?a=1", "https://x/y?a=2"));
     }
 
     public void testRootPathSlash() {
-        assertTrue(UrlUtils.sameResource("https://x/", "https://x"));
+        assertTrue(UrlUtils.isSameResource("https://x/", "https://x"));
     }
 
     public void testWhitespacePadding() {
-        assertTrue(UrlUtils.sameResource(" https://x/y ", "https://x/y"));
+        assertTrue(UrlUtils.isSameResource(" https://x/y ", "https://x/y"));
     }
 
     public void testMalformedBothSame() {
         // Malformed input falls back to trimmed literal equality.
-        assertTrue(UrlUtils.sameResource("not a url", "not a url"));
+        assertTrue(UrlUtils.isSameResource("not a url", "not a url"));
     }
 
     public void testMalformedVsValid() {
-        assertFalse(UrlUtils.sameResource("not a url", "https://x/y"));
+        assertFalse(UrlUtils.isSameResource("not a url", "https://x/y"));
     }
 
     public void testBothNull() {
-        assertTrue(UrlUtils.sameResource(null, null));
+        assertTrue(UrlUtils.isSameResource(null, null));
     }
 
     public void testOneNull() {
-        assertFalse(UrlUtils.sameResource(null, "https://x"));
-        assertFalse(UrlUtils.sameResource("https://x", null));
+        assertFalse(UrlUtils.isSameResource(null, "https://x"));
+        assertFalse(UrlUtils.isSameResource("https://x", null));
     }
 
     public void testBothBlank() {
-        assertTrue(UrlUtils.sameResource("  ", ""));
-        assertTrue(UrlUtils.sameResource("", null));
+        assertTrue(UrlUtils.isSameResource("  ", ""));
+        assertTrue(UrlUtils.isSameResource("", null));
     }
 }

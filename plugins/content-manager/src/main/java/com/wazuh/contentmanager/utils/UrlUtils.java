@@ -37,7 +37,7 @@ public final class UrlUtils {
      * @param b the second URL string (may be {@code null} or blank).
      * @return {@code true} if both inputs denote the same logical resource.
      */
-    public static boolean sameResource(String a, String b) {
+    public static boolean isSameResource(String a, String b) {
         boolean aBlank = a == null || a.isBlank();
         boolean bBlank = b == null || b.isBlank();
         if (aBlank && bBlank) {
@@ -56,25 +56,25 @@ public final class UrlUtils {
         } catch (IllegalArgumentException e) {
             return ta.equals(tb);
         }
-        return canonicalScheme(ua).equals(canonicalScheme(ub))
-                && canonicalHost(ua).equals(canonicalHost(ub))
+        return UrlUtils.getScheme(ua).equals(UrlUtils.getScheme(ub))
+                && UrlUtils.getHost(ua).equals(UrlUtils.getHost(ub))
                 && ua.getPort() == ub.getPort()
-                && canonicalPath(ua).equals(canonicalPath(ub))
+                && UrlUtils.getPath(ua).equals(UrlUtils.getPath(ub))
                 && Objects.equals(ua.getRawQuery(), ub.getRawQuery())
                 && Objects.equals(ua.getRawFragment(), ub.getRawFragment());
     }
 
-    private static String canonicalScheme(URI uri) {
+    private static String getScheme(URI uri) {
         String scheme = uri.getScheme();
         return scheme == null ? "" : scheme.toLowerCase(Locale.ROOT);
     }
 
-    private static String canonicalHost(URI uri) {
+    private static String getHost(URI uri) {
         String host = uri.getHost();
         return host == null ? "" : host.toLowerCase(Locale.ROOT);
     }
 
-    private static String canonicalPath(URI uri) {
+    private static String getPath(URI uri) {
         String path = uri.getRawPath();
         if (path == null || path.isEmpty()) {
             return "";

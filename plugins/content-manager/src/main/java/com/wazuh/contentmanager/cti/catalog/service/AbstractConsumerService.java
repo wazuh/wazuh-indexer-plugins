@@ -428,7 +428,7 @@ public abstract class AbstractConsumerService {
                 && !planResource.isBlank()
                 && existingResource != null
                 && !existingResource.isBlank()
-                && !UrlUtils.sameResource(planResource, existingResource)) {
+                && !UrlUtils.isSameResource(planResource, existingResource)) {
             // Case 1: Plan upgrade or cross-plan change.
             log.info(
                     "Consumer [{}] resource changed from [{}] to [{}]. Scheduling blue/green swap.",
@@ -442,7 +442,7 @@ public abstract class AbstractConsumerService {
                 && existingResource != null
                 && !existingResource.isBlank()
                 && !manifestResource.isBlank()
-                && !UrlUtils.sameResource(existingResource, manifestResource)) {
+                && !UrlUtils.isSameResource(existingResource, manifestResource)) {
             // Case 2: Downgrade to free — existing resource is a paid URL, manifest has the
             // free/default URL. Swap to the manifest content.
             log.info(
