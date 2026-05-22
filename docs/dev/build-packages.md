@@ -27,9 +27,7 @@ Your workstation must meet the minimum hardware requirements (the more resources
 
 The tools and source code to generate a package of Wazuh Indexer are hosted in the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer) repository, so clone it if you haven't done already.
 
-## Obtaining the `wazuh-engine` tarball
-
-A `wazuh-engine` tarball is required to build the Wazuh Indexer package. Follow the [Engine build instructions](https://github.com/wazuh/wazuh/blob/main/src/engine/standalone/README.md) in the `wazuh/wazuh` repository to produce it. The resulting `.tar.gz` is passed to `builder.sh` via the `-e` flag.
+**A `wazuh-engine` tarball is required** to build the Wazuh Indexer package. Follow the [Engine build instructions](https://github.com/wazuh/wazuh/blob/main/src/engine/standalone/README.md) in the `wazuh/wazuh` repository to produce it. The resulting `.tar.gz` is passed to `builder.sh` via the `-e` flag.
 
 ## Building `wazuh-indexer` packages
 
