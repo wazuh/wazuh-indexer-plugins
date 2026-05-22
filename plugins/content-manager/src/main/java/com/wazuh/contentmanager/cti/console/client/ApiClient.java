@@ -32,6 +32,8 @@ import org.apache.hc.core5.util.Timeout;
 
 import javax.net.ssl.SSLContext;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -152,11 +154,11 @@ public class ApiClient {
                 String.join(
                         "&",
                         List.of(
-                                "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
-                                "subject_token=" + permanentToken.getAccessToken(),
-                                "subject_token_type=urn:ietf:params:oauth:token-type:access_token",
-                                "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
-                                "resource=" + resource));
+                                "grant_type=" + enc("urn:ietf:params:oauth:grant-type:token-exchange"),
+                                "subject_token=" + enc(permanentToken.getAccessToken()),
+                                "subject_token_type=" + enc("urn:ietf:params:oauth:token-type:access_token"),
+                                "requested_token_type=" + enc("urn:wazuh:params:oauth:token-type:signed_url"),
+                                "resource=" + enc(resource)));
         String token =
                 String.format(
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
@@ -174,6 +176,11 @@ public class ApiClient {
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
         return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /** URL-encodes a value for inclusion in an {@code application/x-www-form-urlencoded} body. */
+    private static String enc(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**
