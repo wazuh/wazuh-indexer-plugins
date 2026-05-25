@@ -215,6 +215,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Remove space.hash from non-policy resources [(#1167)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1167)
 - Fix policy Metadata Duplicated At Root Level On Updates [(1174)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1174)
 - Prevent index swapping on default plan [(1188)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1188)
+- Change `threat.enrichments` and `wazuh.threat.enrichments` type from `nested` to `object` and remove root-level `enrichments` field set [(#1210)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1210)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
