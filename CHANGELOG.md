@@ -173,8 +173,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - CTI subscription API update [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145)
 - Update ruleset consumer to beta-2 [(#1161)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1161)
 - Encode credentials in base64 [(#1163)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1163)
+- Update documentation for event-finding time correlation improvements [(#1211)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1211)
 - Allow custom space in logtest endpoint [(#1185)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1185)
 - CTI subscription api update [(#1120)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1120)
+- Update Active Response template to include wazuh.rule object [(#1207)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1207)
 
 ### Deprecated
 -
