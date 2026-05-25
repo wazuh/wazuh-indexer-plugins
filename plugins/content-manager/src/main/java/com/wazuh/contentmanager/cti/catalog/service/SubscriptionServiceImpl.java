@@ -24,6 +24,7 @@ import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Centralizes CTI subscription logic: get status, register, and unregister. */
 public class SubscriptionServiceImpl implements SubscriptionService {
@@ -42,9 +43,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
      *     false, registration is blocked and any stored token is wiped on first access.
      */
     public SubscriptionServiceImpl(
-            PlansService plansService,
-            CredentialsIndex credentialsIndex,
-            boolean credentialsProtected) {
+            PlansService plansService, CredentialsIndex credentialsIndex, boolean credentialsProtected) {
         this.plansService = plansService;
         this.credentialsIndex = credentialsIndex;
         this.credentialsProtected = credentialsProtected;
@@ -58,8 +57,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             if (plan != null) {
                 return plan;
             }
-            log.info(
-                    "Access token is invalid or expired. Clearing credentials and falling back to public plan.");
+            log.info(Constants.I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID);
             try {
                 this.credentialsIndex.deleteDocument();
             } catch (Exception e) {
@@ -87,12 +85,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 String token = this.credentialsIndex.getAccessToken();
                 if (token != null) {
                     PluginSettings.getInstance().setAccessToken(token);
-                    log.info("CTI access token loaded from credentials index.");
+                    log.info(Constants.I_LOG_ACCESS_TOKEN_READ_FROM_INDEX);
                     return token;
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to load CTI access token from credentials index: {}", e.getMessage());
+            log.warn("Failed to load access token from credentials index: {}", e.getMessage());
         }
         return null;
     }
@@ -100,21 +98,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public void register(String accessToken) throws Exception {
         if (!this.credentialsProtected) {
-            throw new IllegalStateException(
-                    "Registration is disabled because the credentials index is not configured "
-                            + "as a system index. Add it to "
-                            + "plugins.security.system_indices.indices in opensearch.yml and restart.");
+            throw new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX);
         }
         this.credentialsIndex.storeCredentials(accessToken);
         PluginSettings.getInstance().setAccessToken(accessToken);
-        log.info(
-                "Access token stored successfully. Registration will be confirmed on next plan retrieval.");
+        log.info(Constants.I_LOG_ACCESS_TOKEN_SET);
     }
 
     @Override
     public void unregister() throws Exception {
         this.credentialsIndex.deleteDocument();
         PluginSettings.getInstance().setAccessToken(null);
-        log.info("Access token removed successfully. Environment is now unregistered.");
+        log.info(Constants.I_LOG_ACCESS_TOKEN_REMOVED);
     }
 }

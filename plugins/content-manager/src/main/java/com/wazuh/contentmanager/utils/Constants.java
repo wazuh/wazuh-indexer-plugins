@@ -39,6 +39,7 @@ public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
+    public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
@@ -67,6 +68,9 @@ public class Constants {
     public static final String E_400_INTEGRATION_NOT_FOUND =
             "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
+    public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
+            "Registration is disabled because the credentials index is not configured as a system index. "
+                    + "Add it to plugins.security.system_indices.indices in opensearch.yml and restart.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
@@ -96,6 +100,14 @@ public class Constants {
     public static final String I_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
     public static final String I_LOG_SAP_DELETE_ASYNC =
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
+    public static final String I_LOG_ACCESS_TOKEN_REMOVED =
+            "Access token removed successfully. Environment is now unregistered.";
+    public static final String I_LOG_ACCESS_TOKEN_SET =
+            "Access token stored successfully. Registration will be confirmed on next plan retrieval.";
+    public static final String I_LOG_ACCESS_TOKEN_READ_FROM_INDEX =
+            "Access token loaded from credentials index.";
+    public static final String I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID =
+            "Access token is invalid or expired. Clearing credentials and falling back to public plan.";
 
     // Index Constants
     public static final String INDEX_POLICIES = "wazuh-threatintel-policies";

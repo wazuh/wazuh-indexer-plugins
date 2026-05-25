@@ -27,7 +27,6 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -87,13 +86,12 @@ public class CredentialsIndex {
      * previously stored value.
      *
      * @param accessToken the CTI access token to persist (plaintext).
-     * @return the IndexResponse from the operation.
      * @throws ExecutionException if the client failed to execute the request.
      * @throws InterruptedException if the current thread was interrupted.
      * @throws TimeoutException if the operation exceeded the configured timeout.
      * @throws IOException if serialization fails.
      */
-    public IndexResponse storeCredentials(String accessToken)
+    public void storeCredentials(String accessToken)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
         // Stash the caller's security context so the client runs as the plugin, which has system index
         // access.
@@ -117,9 +115,7 @@ public class CredentialsIndex {
                                             .startObject()
                                             .field(ACCESS_TOKEN_FIELD, encoded)
                                             .endObject());
-            return this.client
-                    .index(request)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         }
     }
 
