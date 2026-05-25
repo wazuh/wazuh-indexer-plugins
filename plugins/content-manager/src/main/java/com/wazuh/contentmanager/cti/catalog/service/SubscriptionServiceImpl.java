@@ -32,21 +32,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final PlansService plansService;
     private final CredentialsIndex credentialsIndex;
-    private final boolean credentialsProtected;
+    private final boolean isCredentialsIndexProtected;
 
     /**
      * Constructs a new SubscriptionServiceImpl.
      *
      * @param plansService the service used to fetch CTI plans from the console API.
      * @param credentialsIndex the index used to persist and remove the access token.
-     * @param credentialsProtected whether the credentials index is declared as a system index. When
-     *     false, registration is blocked and any stored token is wiped on first access.
+     * @param isCredentialsIndexProtected whether the credentials index is declared as a system index.
+     *     When false, registration is blocked and any stored token is wiped on first access.
      */
     public SubscriptionServiceImpl(
-            PlansService plansService, CredentialsIndex credentialsIndex, boolean credentialsProtected) {
+            PlansService plansService,
+            CredentialsIndex credentialsIndex,
+            boolean isCredentialsIndexProtected) {
         this.plansService = plansService;
         this.credentialsIndex = credentialsIndex;
-        this.credentialsProtected = credentialsProtected;
+        this.isCredentialsIndexProtected = isCredentialsIndexProtected;
     }
 
     @Override
@@ -97,7 +99,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public void register(String accessToken) throws Exception {
-        if (!this.credentialsProtected) {
+        if (!this.isCredentialsIndexProtected) {
             throw new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX);
         }
         this.credentialsIndex.storeCredentials(accessToken);
