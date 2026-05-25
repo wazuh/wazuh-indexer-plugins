@@ -154,11 +154,13 @@ public class ApiClient {
                 String.join(
                         "&",
                         List.of(
-                                "grant_type=" + enc("urn:ietf:params:oauth:grant-type:token-exchange"),
-                                "subject_token=" + enc(permanentToken.getAccessToken()),
-                                "subject_token_type=" + enc("urn:ietf:params:oauth:token-type:access_token"),
-                                "requested_token_type=" + enc("urn:wazuh:params:oauth:token-type:signed_url"),
-                                "resource=" + enc(resource)));
+                                "grant_type=" + this.encode("urn:ietf:params:oauth:grant-type:token-exchange"),
+                                "subject_token=" + this.encode(permanentToken.getAccessToken()),
+                                "subject_token_type="
+                                        + this.encode("urn:ietf:params:oauth:token-type:access_token"),
+                                "requested_token_type="
+                                        + this.encode("urn:wazuh:params:oauth:token-type:signed_url"),
+                                "resource=" + this.encode(resource)));
         String token =
                 String.format(
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
@@ -179,7 +181,7 @@ public class ApiClient {
     }
 
     /** URL-encodes a value for inclusion in an {@code application/x-www-form-urlencoded} body. */
-    private static String enc(String value) {
+    private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
