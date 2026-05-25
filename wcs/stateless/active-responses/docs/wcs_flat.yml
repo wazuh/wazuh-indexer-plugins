@@ -1261,42 +1261,79 @@ wazuh.rule.license:
 wazuh.rule.mitre.subtechnique:
   dashed_name: wazuh-rule-mitre-subtechnique
   description: MITRE ATT&CK subtechniques.
-  example: '["T1059.001", "T1078.001"]'
+  fields:
+  - description: MITRE ATT&CK subtechnique identifiers.
+    example: '["T1059.001", "T1078.001"]'
+    level: custom
+    name: id
+    normalize:
+    - array
+    type: keyword
+  - description: MITRE ATT&CK subtechnique names.
+    example: '["Command and Scripting Interpreter: PowerShell", "Valid Accounts: Default
+      Accounts"]'
+    level: custom
+    name: name
+    normalize:
+    - array
+    type: keyword
   flat_name: wazuh.rule.mitre.subtechnique
-  ignore_above: 1024
   level: custom
   name: subtechnique
-  normalize:
-  - array
+  normalize: []
   original_fieldset: mitre
   short: MITRE ATT&CK subtechniques.
-  type: keyword
+  type: object
 wazuh.rule.mitre.tactic:
   dashed_name: wazuh-rule-mitre-tactic
   description: MITRE ATT&CK tactics.
-  example: '["TA0002", "TA0005"]'
+  fields:
+  - description: MITRE ATT&CK tactic identifiers.
+    example: '["TA0002", "TA0005"]'
+    level: custom
+    name: id
+    normalize:
+    - array
+    type: keyword
+  - description: MITRE ATT&CK tactic names.
+    example: '["Execution", "Defense Evasion"]'
+    level: custom
+    name: name
+    normalize:
+    - array
+    type: keyword
   flat_name: wazuh.rule.mitre.tactic
-  ignore_above: 1024
   level: custom
   name: tactic
-  normalize:
-  - array
+  normalize: []
   original_fieldset: mitre
   short: MITRE ATT&CK tactics.
-  type: keyword
+  type: object
 wazuh.rule.mitre.technique:
   dashed_name: wazuh-rule-mitre-technique
   description: MITRE ATT&CK techniques.
-  example: '["T1059", "T1562"]'
+  fields:
+  - description: MITRE ATT&CK technique identifiers.
+    example: '["T1059", "T1562"]'
+    level: custom
+    name: id
+    normalize:
+    - array
+    type: keyword
+  - description: MITRE ATT&CK technique names.
+    example: '["Command and Scripting Interpreter", "Impair Defenses"]'
+    level: custom
+    name: name
+    normalize:
+    - array
+    type: keyword
   flat_name: wazuh.rule.mitre.technique
-  ignore_above: 1024
   level: custom
   name: technique
-  normalize:
-  - array
+  normalize: []
   original_fieldset: mitre
   short: MITRE ATT&CK techniques.
-  type: keyword
+  type: object
 wazuh.rule.name:
   dashed_name: wazuh-rule-name
   description: The name of the rule or signature generating the event.

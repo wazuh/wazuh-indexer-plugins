@@ -129,16 +129,13 @@
             "mitre": {
               "properties": {
                 "subtechnique": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "type": "object"
                 },
                 "tactic": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "type": "object"
                 },
                 "technique": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "type": "object"
                 }
               }
             },
@@ -2707,16 +2704,13 @@
         "mitre": {
           "properties": {
             "subtechnique": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "object"
             },
             "tactic": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "object"
             },
             "technique": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "object"
             }
           }
         },
@@ -5061,16 +5055,13 @@
             "mitre": {
               "properties": {
                 "subtechnique": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "type": "object"
                 },
                 "tactic": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "type": "object"
                 },
                 "technique": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
+                  "type": "object"
                 }
               }
             },
@@ -8728,16 +8719,13 @@
                 "mitre": {
                   "properties": {
                     "subtechnique": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      "type": "object"
                     },
                     "tactic": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      "type": "object"
                     },
                     "technique": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
+                      "type": "object"
                     }
                   }
                 },

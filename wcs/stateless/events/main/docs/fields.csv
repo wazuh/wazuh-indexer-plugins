@@ -23,9 +23,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
-9.1.0,true,check,check.mitre.subtechnique,keyword,custom,array,"[""T1059.001"", ""T1078.001""]",MITRE ATT&CK subtechniques.
-9.1.0,true,check,check.mitre.tactic,keyword,custom,array,"[""TA0002"", ""TA0005""]",MITRE ATT&CK tactics.
-9.1.0,true,check,check.mitre.technique,keyword,custom,array,"[""T1059"", ""T1562""]",MITRE ATT&CK techniques.
+9.1.0,true,check,check.mitre.subtechnique,object,custom,,,MITRE ATT&CK subtechniques.
+9.1.0,true,check,check.mitre.tactic,object,custom,,,MITRE ATT&CK tactics.
+9.1.0,true,check,check.mitre.technique,object,custom,,,MITRE ATT&CK techniques.
 9.1.0,true,check,check.name,keyword,custom,,Ensure 'Enforce password history' is set to '24 or more password(s)'.,The name of the SCA policy check.
 9.1.0,true,check,check.rationale,keyword,custom,,"""The longer a user uses the same password, the more likely it is that the password will be compromised.""",The reason for the check. Why it is important.
 9.1.0,true,check,check.reason,keyword,custom,,"""The password history setting is not set to 24 or more password(s).""",Reason for the check result.
@@ -581,9 +581,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,log,log.syslog.severity.name,keyword,extended,,Error,Syslog text-based severity of the event.
 9.1.0,true,log,log.syslog.structured_data,flat_object,extended,,,Structured data expressed in RFC 5424 messages.
 9.1.0,true,log,log.syslog.version,keyword,extended,,1,Syslog protocol version.
-9.1.0,true,mitre,mitre.subtechnique,keyword,custom,array,"[""T1059.001"", ""T1078.001""]",MITRE ATT&CK subtechniques.
-9.1.0,true,mitre,mitre.tactic,keyword,custom,array,"[""TA0002"", ""TA0005""]",MITRE ATT&CK tactics.
-9.1.0,true,mitre,mitre.technique,keyword,custom,array,"[""T1059"", ""T1562""]",MITRE ATT&CK techniques.
+9.1.0,true,mitre,mitre.subtechnique,object,custom,,,MITRE ATT&CK subtechniques.
+9.1.0,true,mitre,mitre.tactic,object,custom,,,MITRE ATT&CK tactics.
+9.1.0,true,mitre,mitre.technique,object,custom,,,MITRE ATT&CK techniques.
 9.1.0,true,network,network.application,keyword,extended,,aim,Application level protocol name.
 9.1.0,true,network,network.broadcast,ip,custom,,192.168.0.255,Broadcast address.
 9.1.0,true,network,network.bytes,long,core,,368,Total bytes transferred in both directions.
@@ -1111,9 +1111,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,rule,rule.id,keyword,extended,,101,Rule ID
 9.1.0,true,rule,rule.level,keyword,custom,,high,Severity level of the rule.
 9.1.0,true,rule,rule.license,keyword,extended,,Apache 2.0,Rule license
-9.1.0,true,rule,rule.mitre.subtechnique,keyword,custom,array,"[""T1059.001"", ""T1078.001""]",MITRE ATT&CK subtechniques.
-9.1.0,true,rule,rule.mitre.tactic,keyword,custom,array,"[""TA0002"", ""TA0005""]",MITRE ATT&CK tactics.
-9.1.0,true,rule,rule.mitre.technique,keyword,custom,array,"[""T1059"", ""T1562""]",MITRE ATT&CK techniques.
+9.1.0,true,rule,rule.mitre.subtechnique,object,custom,,,MITRE ATT&CK subtechniques.
+9.1.0,true,rule,rule.mitre.tactic,object,custom,,,MITRE ATT&CK tactics.
+9.1.0,true,rule,rule.mitre.technique,object,custom,,,MITRE ATT&CK techniques.
 9.1.0,true,rule,rule.name,keyword,extended,,BLOCK_DNS_over_TLS,Rule name
 9.1.0,true,rule,rule.reference,keyword,extended,,https://en.wikipedia.org/wiki/DNS_over_TLS,Rule reference URL
 9.1.0,true,rule,rule.ruleset,keyword,extended,,Standard_Protocol_Filters,Rule ruleset
