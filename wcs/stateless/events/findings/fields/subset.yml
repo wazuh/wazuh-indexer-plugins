@@ -7,8 +7,6 @@ fields:
       message: {}
       tags: {}
       labels: {}
-  enrichments:
-    fields: "*"
   agent:
     fields: "*"
   as:
