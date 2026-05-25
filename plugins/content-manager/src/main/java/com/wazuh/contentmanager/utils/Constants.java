@@ -63,7 +63,7 @@ public class Constants {
     public static final String E_400_CANNOT_REMOVE_ROOT_DECODER =
             "Cannot remove decoder [%s] as it is set as root decoder.";
     public static final String E_400_INVALID_SPACE =
-            "Logtest is only supported for the 'test' and 'standard' spaces. Received space: '%s'.";
+            "Logtest is only supported for the 'test', 'custom' and 'standard' spaces. Received space: '%s'.";
     public static final String E_400_INTEGRATION_NOT_FOUND =
             "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";

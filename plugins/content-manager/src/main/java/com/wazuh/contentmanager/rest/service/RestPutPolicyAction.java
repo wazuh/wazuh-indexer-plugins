@@ -213,6 +213,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
                         Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Normalize empty root_decoder to null so it is omitted from serialization
+            if (policy.getRootDecoder() != null && policy.getRootDecoder().isEmpty()) {
+                policy.setRootDecoder(null);
+            }
+
             // Validate required Policy fields
             List<String> missingFields = new ArrayList<>();
             if (policy.getEnabled() == null) {
@@ -377,7 +382,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
                 (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
         mergedPolicy.getMetadata().setCompatibility(existingCompatibility);
 
-        mergedPolicy.setRootDecoder((String) currentPolicyDoc.getOrDefault("root_decoder", ""));
+        Object existingRootDecoder = currentPolicyDoc.get("root_decoder");
+        String rootDecoderValue =
+                existingRootDecoder != null ? existingRootDecoder.toString() : null;
+        mergedPolicy.setRootDecoder(
+                rootDecoderValue != null && !rootDecoderValue.isEmpty() ? rootDecoderValue : null);
         mergedPolicy.setIntegrations(
                 (List<String>)
                         currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList()));

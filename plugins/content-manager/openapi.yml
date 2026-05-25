@@ -961,7 +961,7 @@ paths:
         the normalization step is performed and the `detection` section is returned with
         `status: "skipped"`.
 
-        The integration must exist in the specified space (`test` or `standard`). If the
+        The integration must exist in the specified space (`test`, `standard` or `custom`). If the
         integration has no rules, the SAP result returns zero matches. If the engine fails,
         SAP evaluation is skipped.
       operationId: executeLogtest
@@ -1047,7 +1047,7 @@ paths:
         `/logtest/normalization` endpoint, or when you already have a normalized event
         and want to test different integrations' rules against it.
 
-        The integration must exist in the specified space (`test` or `standard`).
+        The integration must exist in the specified space (`test`, `standard`, or `custom`).
       operationId: executeLogtestDetection
       requestBody:
         required: true
@@ -1365,7 +1365,8 @@ components:
           enum:
             - test
             - standard
-          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space where the integration exists. Must be `"test"`, `"standard"`or `"custom"`.
           example: "test"
 
         queue:
@@ -1411,7 +1412,8 @@ components:
           enum:
             - test
             - standard
-          description: Space context for the normalization. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space context for the normalization. Must be `"test"`, `"standard"` or `"custom"`.
           example: "test"
 
         queue:
@@ -1459,7 +1461,8 @@ components:
           enum:
             - test
             - standard
-          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space where the integration exists. Must be `"test"`, `"standard"` or `"custom"`.
           example: "test"
 
         integration:
