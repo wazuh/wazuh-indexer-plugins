@@ -1289,76 +1289,6 @@
             }
           }
         },
-        "enrichments": {
-          "properties": {
-            "indicator": {
-              "properties": {
-                "confidence": {
-                  "type": "short"
-                },
-                "feed": {
-                  "properties": {
-                    "name": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  }
-                },
-                "first_seen": {
-                  "type": "date"
-                },
-                "id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "last_seen": {
-                  "type": "date"
-                },
-                "name": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "provider": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "reference": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "software": {
-                  "properties": {
-                    "alias": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "name": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    },
-                    "type": {
-                      "ignore_above": 1024,
-                      "type": "keyword"
-                    }
-                  },
-                  "type": "object"
-                },
-                "tags": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "type": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                }
-              }
-            },
-            "source": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
         "error": {
           "properties": {
             "code": {
@@ -6511,7 +6441,7 @@
                   }
                 }
               },
-              "type": "nested"
+              "type": "object"
             },
             "feed": {
               "properties": {
@@ -9650,7 +9580,7 @@
                       }
                     }
                   },
-                  "type": "nested"
+                  "type": "object"
                 },
                 "feed": {
                   "properties": {
