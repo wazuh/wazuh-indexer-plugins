@@ -95,6 +95,13 @@ public class ContentIndex {
     private final ObjectMapper mapper;
 
     /**
+     * Whether this instance targets a shadow physical index during a blue/green swap. Normal
+     * instances write through the alias; shadow instances write directly to the physical name because
+     * the alias still points at the old live index until the atomic swap completes.
+     */
+    private final boolean isShadow;
+
+    /**
      * Constructor for existing indices where mapping path isn't immediately required. Reads and
      * writes go through the alias name.
      *
@@ -102,7 +109,7 @@ public class ContentIndex {
      * @param indexName The public alias name of the index.
      */
     public ContentIndex(Client client, String indexName) {
-        this(client, indexName, null);
+        this(client, indexName, indexName + SUFFIX_A, null, false);
     }
 
     /**
@@ -114,7 +121,7 @@ public class ContentIndex {
      * @param mappingsPath The classpath resource path to the JSON mapping file.
      */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
-        this(client, indexName, indexName + SUFFIX_A, mappingsPath);
+        this(client, indexName, indexName + SUFFIX_A, mappingsPath, false);
     }
 
     /**
@@ -127,12 +134,18 @@ public class ContentIndex {
      * @param mappingsPath The classpath resource path to the JSON mapping file.
      */
     public ContentIndex(Client client, String indexName, String physicalName, String mappingsPath) {
+        this(client, indexName, physicalName, mappingsPath, true);
+    }
+
+    private ContentIndex(
+            Client client, String indexName, String physicalName, String mappingsPath, boolean isShadow) {
         this.pluginSettings = PluginSettings.getInstance();
         this.semaphore = new Semaphore(this.pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
         this.indexName = indexName;
         this.physicalName = physicalName;
         this.mappingsPath = mappingsPath;
+        this.isShadow = isShadow;
         this.mapper = new ObjectMapper();
         this.mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
@@ -164,13 +177,7 @@ public class ContentIndex {
      * @return The index name to target for writes.
      */
     public String getWriteIndex() {
-        // When physicalName matches the default convention (alias + SUFFIX_A), this is a normal
-        // instance and we write through the alias. Otherwise it's a shadow instance and we must
-        // write directly to the physical name since the alias points elsewhere.
-        if (this.physicalName.equals(this.indexName + SUFFIX_A)) {
-            return this.indexName;
-        }
-        return this.physicalName;
+        return this.isShadow ? this.physicalName : this.indexName;
     }
 
     /**
