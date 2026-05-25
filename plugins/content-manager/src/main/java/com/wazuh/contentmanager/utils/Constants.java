@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.utils;
 
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+
 // spotless:off
 
 /**
@@ -69,7 +71,9 @@ public class Constants {
             "Integration [%s] not found in the '%s' space.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
-            "Registration is disabled because the credentials index is not configured as a system index. "
+            "Registration is disabled because the '"
+                    + CredentialsIndex.INDEX_NAME
+                    + "' index is not configured as a system index. "
                     + "Add it to plugins.security.system_indices.indices in opensearch.yml and restart.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_SECURITY_ANALYTICS_ERROR =

@@ -98,9 +98,9 @@ public class ContentManagerPlugin extends Plugin
     private static final String VERSION_FILE_NAME = "VERSION.json";
     private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
-    private boolean credentialsProtected = true;
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
+    private boolean isCredentialsIndexProtected;
     private ThreadPool threadPool;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
@@ -154,7 +154,7 @@ public class ContentManagerPlugin extends Plugin
 
         // Check whether the credentials index is declared as a system index.
         // When not protected, registration is blocked and any stored token is wiped on startup.
-        this.credentialsProtected = true;
+        this.isCredentialsIndexProtected = true;
         if (!ContentManagerPlugin.isTestEnvironment()) {
             Settings nodeSettings = environment.settings();
             boolean systemIndicesEnabled =
@@ -164,14 +164,14 @@ public class ContentManagerPlugin extends Plugin
                             "plugins.security.system_indices.indices", Collections.emptyList());
             if (!systemIndicesEnabled || !systemIndices.contains(CredentialsIndex.INDEX_NAME)) {
                 log.warn(
-                        "Credentials index [{}] is not configured as a system index. "
+                        "[{}] index is not configured as a system index. "
                                 + "Registration will be disabled and any stored token will be "
                                 + "removed on startup. Add it to "
                                 + "plugins.security.system_indices.indices in opensearch.yml and "
                                 + "ensure plugins.security.system_indices.enabled is true, "
                                 + "then restart.",
                         CredentialsIndex.INDEX_NAME);
-                this.credentialsProtected = false;
+                this.isCredentialsIndexProtected = false;
             }
         }
 
@@ -180,7 +180,7 @@ public class ContentManagerPlugin extends Plugin
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
                 new SubscriptionServiceImpl(
-                        this.plansService, this.credentialsIndex, this.credentialsProtected);
+                        this.plansService, this.credentialsIndex, this.isCredentialsIndexProtected);
 
         // Content Manager 5.0
         ContentJobRunner runner = ContentJobRunner.getInstance();
@@ -394,7 +394,7 @@ public class ContentManagerPlugin extends Plugin
      */
     private void tryLoadAccessToken() {
         try {
-            if (!this.credentialsProtected) {
+            if (!this.isCredentialsIndexProtected) {
                 // Credentials index is not a system index — wipe any stored token to prevent
                 // unprotected access and ensure the environment falls back to unregistered mode.
                 if (this.credentialsIndex.exists()) {
