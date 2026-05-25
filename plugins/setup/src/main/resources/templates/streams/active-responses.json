@@ -488,12 +488,42 @@
                 "mitre": {
                   "properties": {
                     "subtechnique": {
+                      "properties": {
+                        "id": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "name": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      },
                       "type": "object"
                     },
                     "tactic": {
+                      "properties": {
+                        "id": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "name": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      },
                       "type": "object"
                     },
                     "technique": {
+                      "properties": {
+                        "id": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "name": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      },
                       "type": "object"
                     }
                   }
