@@ -27,6 +27,8 @@ Your workstation must meet the minimum hardware requirements (the more resources
 
 The tools and source code to generate a package of Wazuh Indexer are hosted in the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer) repository, so clone it if you haven't done already.
 
+**A `wazuh-engine` tarball is required** to build the Wazuh Indexer package. Follow the [Engine build instructions](https://github.com/wazuh/wazuh/blob/main/src/engine/standalone/README.md) in the `wazuh/wazuh` repository to produce it. The resulting `.tar.gz` is passed to `builder.sh` via the `-e` flag.
+
 ## Building `wazuh-indexer` packages
 
 The Docker environment under `wazuh-indexer/build-scripts/builder` automates the build and assemble process for the Wazuh Indexer and its plugins, making it easy to create packages on any system.
@@ -42,8 +44,9 @@ Arguments:
 -r INDEXER_REPORTING_BRANCH     [Optional] wazuh-indexer-reporting repo branch, default is 'main'.
 -s SECURITY_ANALYTICS_BRANCH    [Optional] wazuh-indexer-security-analytics repo branch, default is 'main'.
 -n NOTIFICATIONS_BRANCH         [Optional] wazuh-indexer-notifications repo branch, default is 'main'.
+-t INDEXER_ALERTING_BRANCH      [Optional] wazuh-indexer-alerting repo branch, default is 'main'.
 -c COMMON_UTILS_BRANCH          [Optional] wazuh-indexer-common-utils repo branch, default is 'main'.
--e ENGINE_TARBALL               [Optional] Path to wazuh-engine tarball (.tar.gz) on the host.
+-e ENGINE_TARBALL               [Required] Path to wazuh-engine tarball (.tar.gz) on the host.
 -R REVISION     [Optional] Package revision, default is '0'.
 -S STAGE        [Optional] Staging build, default is 'false'.
 -d DISTRIBUTION [Optional] Distribution, default is 'rpm'.
@@ -55,10 +58,14 @@ Arguments:
 The example below it will generate a wazuh-indexer package for _Debian_ based systems, for the _x64_ architecture, using _1_ as revision number and using the production naming convention.
 
 ```bash
-# Wihtin wazuh-indexer/build-scripts/builder
+# Within wazuh-indexer/build-scripts/builder
 bash builder.sh -d deb -a x64 -R 0 -S true -e ./wazuh-engine-5.0.0-linux-amd64.tar.gz
 ```
 
 The resulting package will be stored at `wazuh-indexer/artifacts/dist`.
 
-> The `STAGE` option defines the naming of the package. When set to `false`, the package will be unequivocally named with the commits' SHA of the `wazuh-indexer`, `wazuh-indexer-plugins` and `wazuh-indexer-reporting` repositories, in that order. For example: `wazuh-indexer_5.0.0-0_x86_64_aff30960363-846f143-494d125.rpm`.
+> The `STAGE` option defines the naming of the package. When set to `false`, the package will be unequivocally named with the commits' SHA of the `wazuh-indexer`, `wazuh-indexer-plugins`, `wazuh-indexer-reporting`, `wazuh-indexer-security-analytics`, `wazuh-indexer-notifications` and `wazuh-indexer-alerting` repositories, in that order. For example: `wazuh-indexer_5.0.0-0_x86_64_aff30960363-846f143-494d125-9c0c1fe-3b2a8d1-7e5f094.rpm`.
+
+## Installing the generated package
+
+The package produced under `wazuh-indexer/artifacts/dist` is the input to the standard Wazuh Indexer installation procedure. Follow the [Installation guide](../ref/getting-started/installation.md) for certificate creation, node configuration, and cluster initialization steps.

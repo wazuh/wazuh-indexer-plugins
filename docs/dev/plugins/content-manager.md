@@ -8,7 +8,7 @@ This document describes the architecture, components, and extension points of th
 
 The Content Manager plugin handles:
 
-- **CTI Credentials:** Stores the CTI access token in `.wazuh-cti-credentials` and caches it in `PluginSettings.accessToken` for REST handler use.
+- **CTI Credentials:** Stores the CTI access token in `.wazuh-internal-state` and caches it in `PluginSettings.accessToken` for REST handler use.
 - **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
 - **Update Check Service:** Sends a daily heartbeat to CTI so Wazuh can notify users when a newer version is available.
 - **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
@@ -90,11 +90,11 @@ Regular incremental updates (no plan change) write through the alias to the live
 
 ### Entry Point
 
-**`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `ActionPlugin`. On startup it:
+**`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `SystemIndexPlugin` (which extends `ActionPlugin`). On startup it:
 
 1. Initializes `PluginSettings`, `ConsumersIndex`, `CredentialsIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
 2. Registers all REST handlers via `getRestHandlers()`.
-3. Creates the `.wazuh-cti-consumers` and `.wazuh-cti-credentials` indices on cluster manager nodes.
+3. Creates the `.wazuh-cti-consumers` and `.wazuh-internal-state` indices on cluster manager nodes.
 4. Schedules the periodic `CatalogSyncJob` via the OpenSearch Job Scheduler.
 5. Optionally triggers an immediate sync on start.
 6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.

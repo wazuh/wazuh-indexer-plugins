@@ -109,7 +109,6 @@ fields:
       hash: {}
       id: {}
       index: {}
-      ingested: {}
       kind: {}
       module: {}
       original: {}
