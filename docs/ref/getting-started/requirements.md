@@ -1,10 +1,10 @@
-# Requirements
+## Requirements
 
-## Hardware recommendations
+### Hardware recommendations
 
 The Wazuh indexer can be installed as a single-node or as a multi-node cluster.
 
-### Hardware recommendations for each node
+#### Hardware recommendations for each node
 
 <table><thead>
   <tr>
@@ -30,7 +30,7 @@ The Wazuh indexer can be installed as a single-node or as a multi-node cluster.
 </tbody>
 </table>
 
-### Disk space requirements
+#### Disk space requirements
 
 The amount of data depends on the generated alerts per second (APS). This table details the estimated disk space needed per agent to store 90 days of alerts on a Wazuh indexer server, depending on the type of monitored endpoints.
 

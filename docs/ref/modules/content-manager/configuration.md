@@ -1,57 +1,54 @@
-# Configuration
+<!-- // ANCHOR: settings-table --> 
+## Content manager settings
 
 The Content Manager plugin is configured through settings in `opensearch.yml`. All settings use the `plugins.content_manager` prefix.
 
-## Settings Reference
+| Setting                                              | Data type | Default value                            | Description                                                                     |
+| ---------------------------------------------------- | --------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| `plugins.content_manager.cti.api`                    | String    | `https://api.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                                  |
+| `plugins.content_manager.catalog.sync_interval`      | Integer   | `60`                                     | Sync interval in minutes. Valid range: 1–1440                                   |
+| `plugins.content_manager.max_items_per_bulk`         | Integer   | `999`                                    | Maximum documents per bulk indexing request. Valid range: 10–999                |
+| `plugins.content_manager.max_concurrent_bulks`       | Integer   | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                            |
+| `plugins.content_manager.client.timeout`             | Long      | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50         |
+| `plugins.content_manager.catalog.update_on_start`    | Boolean   | `true`                                   | Trigger content sync when the plugin starts                                     |
+| `plugins.content_manager.catalog.update_on_schedule` | Boolean   | `true`                                   | Enable the periodic sync job                                                    |
+| `plugins.content_manager.catalog.ruleset`            | String    | `""`                                     | Full CTI consumer URL for ruleset content                                       |
+| `plugins.content_manager.catalog.iocs`               | String    | `""`                                     | Full CTI consumer URL for IoC content                                           |
+| `plugins.content_manager.catalog.vulnerabilities`    | String    | `""`                                     | Full CTI consumer URL for vulnerabilities content                               |
+| `plugins.content_manager.catalog.create_detectors`   | Boolean   | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
+| `plugins.content_manager.telemetry.enabled`          | Boolean   | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
 
-| Setting                                              | Type    | Default                                  | Description                                                                     |
-| ---------------------------------------------------- | ------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
-| `plugins.content_manager.cti.api`                    | String  | `https://api.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                                  |
-| `plugins.content_manager.catalog.sync_interval`      | Integer | `60`                                     | Sync interval in minutes. Valid range: 1–1440                                   |
-| `plugins.content_manager.max_items_per_bulk`         | Integer | `999`                                    | Maximum documents per bulk indexing request. Valid range: 10–999                |
-| `plugins.content_manager.max_concurrent_bulks`       | Integer | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                            |
-| `plugins.content_manager.client.timeout`             | Long    | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50         |
-| `plugins.content_manager.catalog.update_on_start`    | Boolean | `true`                                   | Trigger content sync when the plugin starts                                     |
-| `plugins.content_manager.catalog.update_on_schedule` | Boolean | `true`                                   | Enable the periodic sync job                                                    |
-| `plugins.content_manager.catalog.ruleset`            | String  | `""`                                    | Full CTI consumer URL for ruleset content                                      |
-| `plugins.content_manager.catalog.iocs`               | String  | `""`                                    | Full CTI consumer URL for IoC content                                          |
-| `plugins.content_manager.catalog.vulnerabilities`    | String  | `""`                                    | Full CTI consumer URL for vulnerabilities content                              |
-| `plugins.content_manager.catalog.create_detectors`   | Boolean | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
-| `plugins.content_manager.telemetry.enabled`          | Boolean | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
+<!-- // ANCHOR_END: settings-table -->
 
-## Configuration Examples
+### Offline configuration / disabling automatic updates
 
-### Default Configuration
-
-No configuration is required for default behavior. The Content Manager will sync content every 60 minutes.
-
-### Custom Sync Interval
-
-To sync content every 30 minutes:
-
-```yaml
-# opensearch.yml
-plugins.content_manager.catalog.sync_interval: 30
-```
-
-### Disable Automatic Sync
-
-To disable all automatic synchronization and only sync manually via the API:
+<!-- // ANCHOR: offline-config --> 
+On offline installations, disable every task that requires an internet connection to prevent failures.
 
 ```yaml
 # opensearch.yml
 plugins.content_manager.catalog.update_on_start: false
 plugins.content_manager.catalog.update_on_schedule: false
+plugins.content_manager.telemetry.enabled: false
+```
+<!-- // ANCHOR_END: offline-config -->
+
+On online installations, manual synchronization can be performed on demand using the Content Manager API:
+
+```
+POST /_plugins/_content_manager/update"
 ```
 
-Content can still be synced on demand using:
+### Custom scheduled synchronization interval
 
-```bash
-curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/update"
+The plugin checks for new content every 60 minutes by default, but this can be customized by changing the `plugins.content_manager.catalog.sync_interval` setting. The value is specified in minutes and must be between 10 and 1440 (24 hours).
+
+```yaml
+# opensearch.yml
+plugins.content_manager.catalog.sync_interval: 1440
 ```
 
-### Custom CTI API Endpoint
+#### Custom CTI API Endpoint
 
 To point to a different CTI API (e.g., production):
 
@@ -60,7 +57,7 @@ To point to a different CTI API (e.g., production):
 plugins.content_manager.cti.api: "https://cti.wazuh.com/api/v1"
 ```
 
-### Custom Catalog Consumer URLs
+#### Custom Catalog Consumer URLs
 
 To override default consumers, provide full HTTP(S) consumer URLs:
 
@@ -77,7 +74,7 @@ Behavior:
 - If remote initialization fails, it falls back to the local packaged snapshot when available.
 - If a setting is empty, initialization uses the local packaged snapshot directly.
 
-### Tune Bulk Operations
+#### Tune Bulk Operations
 
 For environments with limited resources, reduce the bulk operation concurrency:
 
@@ -88,7 +85,7 @@ plugins.content_manager.max_concurrent_bulks: 2
 plugins.content_manager.client.timeout: 30
 ```
 
-### Disable Security Analytics Detector Creation
+#### Disable Security Analytics Detector Creation
 
 If you do not use the OpenSearch Security Analytics plugin:
 
@@ -97,7 +94,7 @@ If you do not use the OpenSearch Security Analytics plugin:
 plugins.content_manager.catalog.create_detectors: false
 ```
 
-### CTI communication headers
+#### CTI communication headers
 
 All HTTP clients that communicate with Wazuh CTI services send a custom `User-Agent` header:
 
@@ -107,7 +104,7 @@ User-Agent: Wazuh Indexer <version>
 
 For example: `Wazuh Indexer 5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. The version is read from `VERSION.json` at plugin startup.
 
-### Update check service behavior
+#### Update check service behavior
 
 The update check service is enabled by default and runs once per day, with an immediate first ping fired as soon as the job is registered in the scheduler.
 
@@ -122,7 +119,7 @@ This data allows Wazuh to determine if a newer version is available and notify u
 
 > The service only sends deployment identification/version metadata required for update checks. It does not send rules, events, or log payloads.
 
-### Enable/Disable Update check service dynamically
+#### Enable/Disable Update check service dynamically
 
 The update check service can be enabled or disabled at runtime without restarting the node using the Cluster Settings API:
 
@@ -135,7 +132,7 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 }'
 ```
 
-## Notes
+### Notes
 
 - Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.

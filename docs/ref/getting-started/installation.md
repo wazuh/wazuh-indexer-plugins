@@ -1,4 +1,4 @@
-# Installation
+## Installation
 
 > **Note**:
 > This documentation assumes you are already provisioned with a wazuh-indexer package through any of the possible methods:
@@ -6,7 +6,7 @@
 >   - [GH Workflows artifacts](https://github.com/wazuh/wazuh-indexer/actions).
 >   - [Staging S3 buckets](./packages.md)
 
-## Installing the Wazuh indexer step by step
+### Installing the Wazuh indexer step by step
 
 Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. The installation process is divided into three stages.
 
@@ -18,9 +18,9 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 > **Note**: You need root user privileges to run all the commands described below.
 
-## 1. Certificates creation
+### 1. Certificates creation
 
-### Generating the SSL certificates
+#### Generating the SSL certificates
 
 1. Download the `wazuh-certs-tool.sh` script and the `config.yml` configuration file. This creates the certificates that encrypt communications between the Wazuh central components.
 
@@ -79,39 +79,39 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 1. Copy the `wazuh-certificates.tar` file to all the nodes, including the Wazuh indexer, Wazuh server, and Wazuh dashboard nodes. This can be done by using the `scp` utility.
 
-## 2. Nodes installation
+### 2. Nodes installation
 
-### Installing package dependencies
+#### Installing package dependencies
 
 Install the following packages if missing:
 
-#### yum
+##### yum
 
 ```bash
 yum install coreutils
 ```
 
-#### apt
+##### apt
 
 ```bash
 apt-get install debconf adduser procps
 ```
 
-### Installing the Wazuh indexer package
+#### Installing the Wazuh indexer package
 
-#### rpm
+##### rpm
 
 ```bash
 rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
 ```
 
-#### dpkg
+##### dpkg
 
 ```bash
 dpkg -i wazuh-indexer-<VERSION>.deb
 ```
 
-### Configuring the Wazuh indexer
+#### Configuring the Wazuh indexer
 
 Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the following values:
 
@@ -147,7 +147,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
   - "CN=node-3,OU=Wazuh,O=Wazuh,L=California,C=US"
   ```
 
-### Deploying certificates
+#### Deploying certificates
 
 > **Note**: Make sure that a copy of the `nazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
 
@@ -167,11 +167,19 @@ chmod 400 /etc/wazuh-indexer/certs/*
 chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 ```
 
-### Starting the service
+#### (Optional) Configuring the Wazuh indexer
+
+Configure the Wazuh Indexer according to your needs by editing the `/etc/wazuh-indexer/opensearch.yml` file. For more information about the available configuration options, see the [Configuration](../../ref/configuration/README.md) section.
+
+> **Note**: For offline installations, disable scheduled updates in `opensearch.yml`
+
+{{#include ../../ref/modules/content-manager/configuration.md:offline-config}}
+
+#### Starting the service
 
 Enable and start the Wazuh indexer service.
 
-#### Systemd
+##### Systemd
 
 ```bash
 systemctl daemon-reload
@@ -181,7 +189,7 @@ systemctl start wazuh-indexer
 
 ---
 
-#### SysV
+##### SysV
 
 Choose one option according to the operating system used.
 
@@ -203,7 +211,7 @@ Choose one option according to the operating system used.
 
 Repeat this stage of the installation process for every Wazuh indexer node in your cluster. Then proceed with initializing your single-node or multi-node cluster in the next stage.
 
-## 3. Cluster initialization
+### 3. Cluster initialization
 
 Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer node to load the new certificates information and start the single-node or multi-node cluster.
 
@@ -213,7 +221,7 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 
 > **Note**: You only have to initialize the cluster once, there is no need to run this command on every node.
 
-### Testing the cluster installation
+#### Testing the cluster installation
 
 1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful.
 

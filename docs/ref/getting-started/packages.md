@@ -1,4 +1,4 @@
-# Packages
+## Packages
 
 Wazuh Indexer packages can be downloaded from the internal S3 buckets though the following links. Note these links are placeholders, and that you need to replace the `RELEASE_SERIES`, the `VERSION` and the `REVISION` with the appropriate values.
 
@@ -17,6 +17,6 @@ wazuh_indexer_arm64_deb: "https://packages-staging.xdrsiem.wazuh.info/pre-releas
 wazuh_indexer_x86_64_rpm: "https://packages-staging.xdrsiem.wazuh.info/pre-release/5.x/yum/wazuh-indexer-5.0.0-alpha99.x86_64.rpm"
 ```
 
-## Compatibility
+### Compatibility
 
 Please refer to [this section](../compatibility.md) for information pertaining to compatibility.
