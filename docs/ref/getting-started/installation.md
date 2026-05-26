@@ -169,7 +169,7 @@ chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 
 #### (Optional) Configuring the Wazuh indexer
 
-Configure the Wazuh Indexer according to your needs by editing the `/etc/wazuh-indexer/opensearch.yml` file. For more information about the available configuration options, see the [Configuration](../../ref/configuration/README.md) section.
+Configure the Wazuh Indexer according to your needs by editing the `/etc/wazuh-indexer/opensearch.yml` file. For more information about the available configuration options, see the [Configuration](../../ref/configuration/index.md) section.
 
 > **Note**: For offline installations, disable scheduled updates in `opensearch.yml`
 

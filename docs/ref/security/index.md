@@ -1,6 +1,8 @@
-# Security
+## Security
 
 Wazuh Indexer uses the [OpenSearch Security plugin](https://docs.opensearch.org/3.6/security/) to manage access control and security features.
+
+### Configuration files
 
 The configuration files for the security plugin are located under the `/etc/wazuh-indexer/opensearch-security/` directory by default.
 
