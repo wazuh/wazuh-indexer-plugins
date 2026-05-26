@@ -20,7 +20,6 @@ import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
@@ -33,7 +32,9 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -45,7 +46,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        clearPluginSettingsInstance();
+        RestPostSubscriptionActionTests.clearPluginSettingsInstance();
         PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
         this.subscriptionService = mock(SubscriptionService.class);
         this.action = new RestPostSubscriptionAction(this.subscriptionService);
@@ -53,7 +54,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
 
     @After
     public void tearDown() throws Exception {
-        clearPluginSettingsInstance();
+        RestPostSubscriptionActionTests.clearPluginSettingsInstance();
         super.tearDown();
     }
 
@@ -65,62 +66,60 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     }
 
     private RestRequest buildRequest(String json) {
-        return new FakeRestRequest.Builder(xContentRegistry())
+        return new FakeRestRequest.Builder(this.xContentRegistry())
                 .withContent(new BytesArray(json.getBytes(StandardCharsets.UTF_8)), XContentType.JSON)
                 .build();
     }
 
-    /** Valid access_token → 201 with "Credentials received" and delegates to register(). */
+    /** Valid access_token → 201 with correct message and delegates to register(). */
     public void testPostSubscription201() throws Exception {
-        RestRequest request = buildRequest("{\"access_token\": \"my-token-abc\"}");
+        RestRequest request = this.buildRequest("{\"access_token\": \"my-token-abc\"}");
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request);
 
-        Assert.assertEquals(RestStatus.CREATED, response.status());
-        String body = response.content().utf8ToString();
-        Assert.assertTrue(body.contains("Credentials received"));
-        Assert.assertTrue(body.contains(String.valueOf(RestStatus.CREATED.getStatus())));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), response.getStatus());
+        Assert.assertEquals(Constants.S_201_ACCESS_TOKEN_RECEIVED, response.getMessage());
         verify(this.subscriptionService, times(1)).register("my-token-abc");
     }
 
     /** Missing access_token field → 400 with "Missing [access_token] field." */
     public void testPostSubscription400_MissingField() throws IOException {
-        RestRequest request = buildRequest("{}");
+        RestRequest request = this.buildRequest("{}");
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request);
 
-        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
-        String body = response.content().utf8ToString();
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        String body = response.getMessage();
         Assert.assertTrue(body.contains("Missing [access_token] field."));
     }
 
     /** access_token present but empty → 400 */
     public void testPostSubscription400_EmptyToken() throws IOException {
-        RestRequest request = buildRequest("{\"access_token\": \"\"}");
+        RestRequest request = this.buildRequest("{\"access_token\": \"\"}");
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request);
 
-        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
-        String body = response.content().utf8ToString();
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        String body = response.getMessage();
         Assert.assertTrue(body.contains("Missing [access_token] field."));
     }
 
     /** access_token present but blank (whitespace) → 400 */
     public void testPostSubscription400_BlankToken() throws IOException {
-        RestRequest request = buildRequest("{\"access_token\": \"   \"}");
+        RestRequest request = this.buildRequest("{\"access_token\": \"   \"}");
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request);
 
-        Assert.assertEquals(RestStatus.BAD_REQUEST, response.status());
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
     }
 
     /** register() throws → 500 */
     public void testPostSubscription500_IndexError() throws Exception {
-        RestRequest request = buildRequest("{\"access_token\": \"tok\"}");
+        RestRequest request = this.buildRequest("{\"access_token\": \"tok\"}");
         doThrow(new RuntimeException("Index not ready")).when(this.subscriptionService).register("tok");
 
-        BytesRestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request);
 
-        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
     }
 }

@@ -1438,9 +1438,6 @@
               "ignore_above": 1024,
               "type": "keyword"
             },
-            "ingested": {
-              "type": "date"
-            },
             "kind": {
               "ignore_above": 1024,
               "type": "keyword"

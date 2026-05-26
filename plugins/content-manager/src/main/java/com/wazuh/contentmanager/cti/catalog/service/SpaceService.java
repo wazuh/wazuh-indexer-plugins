@@ -403,8 +403,7 @@ public class SpaceService {
 
         // Root payload structure
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
-        boolean isTesterSpace =
-                Space.TEST.toString().equals(targetSpace) || Space.STANDARD.toString().equals(targetSpace);
+        boolean isTesterSpace = !Space.DRAFT.toString().equals(targetSpace);
         rootPayload.put(Constants.KEY_PROMOTE, isTesterSpace);
         rootPayload.put(Constants.KEY_SPACE, targetSpace);
 

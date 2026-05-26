@@ -48,7 +48,7 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
         this.plansService = mock(PlansService.class);
         this.credentialsIndex = mock(CredentialsIndex.class);
-        this.service = new SubscriptionServiceImpl(this.plansService, this.credentialsIndex);
+        this.service = new SubscriptionServiceImpl(this.plansService, this.credentialsIndex, true);
     }
 
     @After

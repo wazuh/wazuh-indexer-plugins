@@ -173,4 +173,32 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(serviceResponse, response);
     }
+
+    /** Custom space is allowed and delegates to LogtestService. */
+    public void testCustomSpaceDelegatesToService() {
+        RestResponse serviceResponse =
+                new RestResponse("{\"normalization\":{}}", RestStatus.OK.getStatus());
+        when(this.logtestService.executeLogtest(anyString(), any(), any(ObjectNode.class)))
+                .thenReturn(serviceResponse);
+
+        // spotless:off
+        RestRequest request = mockRequest(String.format(Locale.ROOT,
+            """
+            {
+              "integration": "%s",
+              "space": "custom",
+              "queue": 1,
+              "location": "/var/log/cassandra/system.log",
+              "event": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve",
+              "trace_level": "NONE"
+            }
+            """,
+            INTEGRATION_ID));
+        // spotless:on
+
+        RestResponse response = this.action.handleRequest(request);
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        verify(this.logtestService).executeLogtest(eq(INTEGRATION_ID), any(), any(ObjectNode.class));
+    }
 }

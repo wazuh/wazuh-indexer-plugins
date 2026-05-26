@@ -78,6 +78,8 @@ paths:
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -961,7 +963,7 @@ paths:
         the normalization step is performed and the `detection` section is returned with
         `status: "skipped"`.
 
-        The integration must exist in the specified space (`test` or `standard`). If the
+        The integration must exist in the specified space (`test`, `standard` or `custom`). If the
         integration has no rules, the SAP result returns zero matches. If the engine fails,
         SAP evaluation is skipped.
       operationId: executeLogtest
@@ -1047,7 +1049,7 @@ paths:
         `/logtest/normalization` endpoint, or when you already have a normalized event
         and want to test different integrations' rules against it.
 
-        The integration must exist in the specified space (`test` or `standard`).
+        The integration must exist in the specified space (`test`, `standard`, or `custom`).
       operationId: executeLogtestDetection
       requestBody:
         required: true
@@ -1365,7 +1367,8 @@ components:
           enum:
             - test
             - standard
-          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space where the integration exists. Must be `"test"`, `"standard"`or `"custom"`.
           example: "test"
 
         queue:
@@ -1411,7 +1414,8 @@ components:
           enum:
             - test
             - standard
-          description: Space context for the normalization. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space context for the normalization. Must be `"test"`, `"standard"` or `"custom"`.
           example: "test"
 
         queue:
@@ -1459,7 +1463,8 @@ components:
           enum:
             - test
             - standard
-          description: Space where the integration exists. Must be `"test"` or `"standard"`.
+            - custom
+          description: Space where the integration exists. Must be `"test"`, `"standard"` or `"custom"`.
           example: "test"
 
         integration:
@@ -2466,6 +2471,27 @@ components:
               value:
                 message: "A content update is already in progress."
                 status: 409
+
+    PreconditionFailed:
+      description: |
+        Precondition Failed - The server is healthy but a required precondition
+        is not met, so the operation is refused. The operator must adjust the
+        cluster configuration before retrying.
+
+        Common causes:
+        - The credentials index is not declared as a system index. Add it to
+          `plugins.security.system_indices.indices` in `opensearch.yml` and
+          restart the node.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            unprotected_credentials_index:
+              summary: Credentials index is not a system index
+              value:
+                message: "Registration is disabled because the credentials index is not configured as a system index. Add it to plugins.security.system_indices.indices in opensearch.yml and restart."
+                status: 412
 
     InternalServerError:
       description: |

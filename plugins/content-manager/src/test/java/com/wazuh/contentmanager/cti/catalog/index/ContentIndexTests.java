@@ -383,6 +383,17 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /**
+     * Regression: when a shadow swap targets the {@code -a} suffix (i.e., the live alias currently
+     * points at {@code -b}), the shadow instance must still write to its physical name. Inferring
+     * shadow-vs-normal from the suffix alone would incorrectly route writes through the alias and
+     * land them in the old live index.
+     */
+    public void testGetWriteIndex_Shadow_TargetingSuffixA() {
+        ContentIndex idx = new ContentIndex(this.client, "test-alias", "test-alias-a", MAPPINGS_PATH);
+        Assert.assertEquals("test-alias-a", idx.getWriteIndex());
+    }
+
+    /**
      * Test that creating a resource produces the expected JSON schema. Validates that the indexed
      * document contains the required keys: document, hash, and space.
      */

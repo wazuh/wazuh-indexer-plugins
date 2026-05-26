@@ -68,7 +68,7 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 ### Store CTI Credentials
 
-Stores the provided CTI access token in the `.wazuh-cti-credentials` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
+Stores the provided CTI access token in the `.wazuh-internal-state` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
 **Request**
 - Method: `POST`
@@ -271,7 +271,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 | Field            | Type    | Required | Description                                          |
 | ---------------- | ------- | -------- | ---------------------------------------------------- |
 | `integration`    | String  | No       | ID of the integration to test against. If omitted, only normalization is performed. |
-| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
+| `space`          | String  | Yes      | `"test"`, `"standard"` or `"custom"`                             |
 | `queue`          | Integer | Yes      | Queue number for logtest execution                   |
 | `location`       | String  | Yes      | Log file path or logical source location             |
 | `event`          | String  | Yes      | Raw log event to test                                |
