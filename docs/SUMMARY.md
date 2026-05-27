@@ -4,7 +4,7 @@
 
 # Development Documentation
 
-- [Introduction](dev/README.md)
+- [Introduction](dev/index.md)
 - [Setup Environment](dev/setup.md)
 - [Build Packages](dev/build-packages.md)
 - [Build Image](dev/build-image.md)

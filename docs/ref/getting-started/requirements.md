@@ -32,12 +32,12 @@ The Wazuh indexer can be installed as a single-node or as a multi-node cluster.
 
 #### Disk space requirements
 
-The amount of data depends on the generated alerts per second (APS). This table details the estimated disk space needed per agent to store 90 days of alerts on a Wazuh indexer server, depending on the type of monitored endpoints.
+The amount of data depends on the generated events per second (EPS). This table details the estimated disk space needed per agent to store 90 days of events on a Wazuh indexer server, depending on the type of monitored endpoints.
 
-| Monitored endpoints | APS  | Storage in Wazuh indexer (GB/90 days) |
+| Monitored endpoints | EPS  | Storage in Wazuh indexer (GB/90 days) |
 |---------------------|------|---------------------------------------|
 | Servers             | 0.25 | 3.7                                   |
 | Workstations        | 0.1  | 1.5                                   |
 | Network devices     | 0.5  | 7.4                                   |
 
-For example, for an environment with 80 workstations, 10 servers, and 10 network devices, the storage needed on the Wazuh indexer server for 90 days of alerts is 230 GB.
+For example, for an environment with 80 workstations, 10 servers, and 10 network devices, the storage needed on the Wazuh indexer server for 90 days of events is 230 GB.

@@ -6,8 +6,8 @@ The Notifications plugin is configured through settings in `opensearch.yml` and 
 
 On startup, the plugin loads default settings from:
 
-- **Core defaults:** `/etc/wazuh-indexer-notifications-core/notifications-core.yml`
-- **Plugin defaults:** `/etc/wazuh-indexer-notifications/notifications.yml`
+- **Core defaults:** `/etc/wazuh-indexer/wazuh-indexer-notifications-core/notifications-core.yml`
+- **Plugin defaults:** `/etc/wazuh-indexer/wazuh-indexer-notifications/notifications.yml`
 
 These files provide initial values that can be overridden by settings in `opensearch.yml` or through the cluster settings API.
 
