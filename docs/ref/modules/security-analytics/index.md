@@ -1,6 +1,6 @@
 # Security Analytics
 
-The Security Analytics Plugin (SAP) is a fork of the [OpenSearch Security Analytics plugin](https://opensearch.org/docs/latest/security-analytics/) adapted for Wazuh. It evaluates incoming events against Sigma detection rules, creates findings when rules match, and correlates related findings across detectors.
+The Security Analytics Plugin (SAP) is a fork of the [OpenSearch Security Analytics plugin](https://opensearch.org/docs/3.6/security-analytics/) adapted for Wazuh. It evaluates incoming events against Sigma detection rules, creates findings when rules match, and correlates related findings across detectors.
 
 SAP runs inside the Wazuh Indexer and operates as an OpenSearch plugin, using the standard OpenSearch transport layer for all internal communication.
 
