@@ -1410,7 +1410,7 @@
                       }
                     }
                   },
-                  "type": "nested"
+                  "type": "object"
                 },
                 "feed": {
                   "properties": {
