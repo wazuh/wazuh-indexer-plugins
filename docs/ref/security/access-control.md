@@ -2,14 +2,14 @@
 
 Wazuh Indexer uses the OpenSearch Security plugin to manage access control and security features. This allows you to define users, roles, and permissions for accessing indices and performing actions within the Wazuh Indexer.
 
-> You can find a more detailed overview of the OpenSearch Security plugin in the [OpenSearch documentation](https://docs.opensearch.org/3.3/security/access-control/index/).
+> You can find a more detailed overview of the OpenSearch Security plugin in the [OpenSearch documentation](https://docs.opensearch.org/3.6/security/access-control/index/).
 
 ## Wazuh default Internal Users
 
 Wazuh defines internal users and roles for the different Wazuh components to handle index management.
 
 These default users and roles definitions are stored in the `internal_users.yml`, `roles.yml`, and `roles_mapping.yml` files on the `/etc/wazuh-indexer/opensearch-security/` directory.
-> Find more info about the configurations files in the [Configuration Files](/ref/configuration/configuration-files.md) section.
+> Find more info about the configurations files in the [Configuration files](./index.md#configuration-files) section.
 
 ### Users
 

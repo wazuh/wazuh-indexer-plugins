@@ -13,17 +13,17 @@ The Wazuh Indexer Notifications plugin is a specialized component designed to ex
 
 ## Supported Channel Types
 
-| Channel Type | Protocol | Description |
-|---|---|---|
-| `slack` | HTTPS (Webhook) | Posts messages to a Slack channel via an Incoming Webhook URL. |
-| `chime` | HTTPS (Webhook) | Posts messages to an Amazon Chime room via a webhook URL. |
-| `microsoft_teams` | HTTPS (Webhook) | Posts messages to a Microsoft Teams channel via a connector webhook. |
-| `webhook` | HTTP/HTTPS | Sends a payload to an arbitrary HTTP endpoint with configurable method, headers, and URL. |
-| `email` | SMTP / AWS SES | Sends email messages. Requires an `smtp_account` or `ses_account` configuration. |
-| `sns` | AWS SNS SDK | Publishes a message to an Amazon SNS topic. |
-| `smtp_account` | — | Defines SMTP server connection details (host, port, method, credentials). |
-| `ses_account` | — | Defines AWS SES sending details (region, role ARN, from address). |
-| `email_group` | — | Defines a group of email recipients for reuse across email-type channels. |
+| Channel Type      | Protocol        | Description                                                                               |
+| ----------------- | --------------- | ----------------------------------------------------------------------------------------- |
+| `slack`           | HTTPS (Webhook) | Posts messages to a Slack channel via an Incoming Webhook URL.                            |
+| `chime`           | HTTPS (Webhook) | Posts messages to an Amazon Chime room via a webhook URL.                                 |
+| `microsoft_teams` | HTTPS (Webhook) | Posts messages to a Microsoft Teams channel via a connector webhook.                      |
+| `webhook`         | HTTP/HTTPS      | Sends a payload to an arbitrary HTTP endpoint with configurable method, headers, and URL. |
+| `email`           | SMTP / AWS SES  | Sends email messages. Requires an `smtp_account` or `ses_account` configuration.          |
+| `sns`             | AWS SNS SDK     | Publishes a message to an Amazon SNS topic.                                               |
+| `smtp_account`    | —               | Defines SMTP server connection details (host, port, method, credentials).                 |
+| `ses_account`     | —               | Defines AWS SES sending details (region, role ARN, from address).                         |
+| `email_group`     | —               | Defines a group of email recipients for reuse across email-type channels.                 |
 
 ## Default Notification Channels
 
@@ -31,12 +31,12 @@ On first startup, the Notifications plugin automatically creates a set of **defa
 
 The following default channels are created:
 
-| Channel Name | Type | Target Service | Default URL |
-|---|---|---|---|
-| Slack Channel | `slack` | Slack | `https://hooks.slack.com/services/YOUR_WORKSPACE_ID/YOUR_CHANNEL_ID/YOUR_WEBHOOK_TOKEN` |
-| Jira Channel | `webhook` | Jira Cloud | `https://your-domain.atlassian.net/rest/api/3/issue` |
-| PagerDuty Channel | `webhook` | PagerDuty Events API v2 | `https://events.pagerduty.com/v2/enqueue` |
-| Shuffle Channel | `webhook` | Shuffle SOAR | `https://shuffler.io/api/v1/hooks/WEBHOOK_ID` |
+| Channel Name      | Type      | Target Service          | Default URL                                                                             |
+| ----------------- | --------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| Slack Channel     | `slack`   | Slack                   | `https://hooks.slack.com/services/YOUR_WORKSPACE_ID/YOUR_CHANNEL_ID/YOUR_WEBHOOK_TOKEN` |
+| Jira Channel      | `webhook` | Jira Cloud              | `https://your-domain.atlassian.net/rest/api/3/issue`                                    |
+| PagerDuty Channel | `webhook` | PagerDuty Events API v2 | `https://events.pagerduty.com/v2/enqueue`                                               |
+| Shuffle Channel   | `webhook` | Shuffle SOAR            | `https://shuffler.io/api/v1/hooks/WEBHOOK_ID`                                           |
 
 ### Behavior
 
