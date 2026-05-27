@@ -46,9 +46,9 @@ public class IndexStateManagement extends Index {
     public static final String ISM_INDEX_NAME = ".opendistro-ism-config";
 
     // ISM policies names (filename without extension)
-    static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
-    static final String RAW_EVENTS_PURGE_POLICY = "stream-raw-events-policy";
-    static final String UNCLASSIFIED_EVENTS_POLICY = "stream-unclassified-events-policy";
+    static final String EVENTS_POLICY = "stream-events-policy";
+    static final String FINDINGS_POLICY = "stream-findings-policy";
+    static final String RAW_EVENTS_POLICY = "stream-raw-events-policy";
     static final String ACTIVE_RESPONSES_POLICY = "stream-active-responses-policy";
     static final String METRICS_POLICY = "stream-metrics-policy";
 
@@ -68,9 +68,9 @@ public class IndexStateManagement extends Index {
         this.policies = new ArrayList<>();
 
         // Add ISM policies to be created
-        this.policies.add(STREAM_ROLLOVER_POLICY);
-        this.policies.add(RAW_EVENTS_PURGE_POLICY);
-        this.policies.add(UNCLASSIFIED_EVENTS_POLICY);
+        this.policies.add(EVENTS_POLICY);
+        this.policies.add(FINDINGS_POLICY);
+        this.policies.add(RAW_EVENTS_POLICY);
         this.policies.add(ACTIVE_RESPONSES_POLICY);
         this.policies.add(METRICS_POLICY);
     }
