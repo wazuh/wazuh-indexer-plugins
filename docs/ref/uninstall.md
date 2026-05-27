@@ -1,6 +1,6 @@
 # Uninstall
 
->**Note** You need root user privileges to run all the commands described below.
+>**Note**: You need root user privileges to run all the commands described below.
 
 ## Yum
 
