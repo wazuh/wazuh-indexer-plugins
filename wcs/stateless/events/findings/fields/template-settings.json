@@ -3,7 +3,6 @@
     "wazuh-findings-v5*"
   ],
   "priority": 1,
-  "data_stream": {},
   "template": {
     "settings": {
       "plugins.index_state_management.rollover_alias": "wazuh-findings-v5",

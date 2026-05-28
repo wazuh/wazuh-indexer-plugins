@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.index.AliasedIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
@@ -114,9 +115,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                 this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
             }
         }
-        // Findings data streams (stores detection findings per category)
+        // Findings indices (stores detection findings per category). Uses hidden backing indices
+        // with a visible write alias so the UI can mutate documents via _update; data streams
+        // disallow this.
         for (String category : this.categories) {
-            this.indices.add(new StreamIndex(
+            this.indices.add(new AliasedIndex(
                 "wazuh-findings-v5-" + category,
                 "templates/streams/findings"
             ));

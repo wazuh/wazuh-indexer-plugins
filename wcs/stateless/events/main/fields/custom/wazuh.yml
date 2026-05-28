@@ -81,3 +81,41 @@
       description: >
         Wazuh schema version.
       example: "1.7.0"
+    - name: case.user.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the user that owns the case. Not editable by the user.
+      example: "admin"
+    - name: case.status
+      type: keyword
+      level: custom
+      description: >
+        Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED, ERROR, DELETED, AUDIT.
+      example: "ACTIVE"
+    - name: case.created_at
+      type: date
+      level: custom
+      description: >
+        Timestamp when the case was created.
+      example: "1623456789000"
+    - name: case.updated_at
+      type: date
+      level: custom
+      description: >
+        Timestamp when the case was last updated.
+      example: "1623456789000"
+    - name: case.comment
+      type: text
+      level: custom
+      description: >
+        Free-form comment attached to the case.
+      example: "This is a comment for the case."
+    - name: case.tags
+      type: keyword
+      level: custom
+      description: >
+        Tags attached to the case for organization.
+      normalize:
+        - array
+      example: '["tag1", "tag2", "tag3"]'
