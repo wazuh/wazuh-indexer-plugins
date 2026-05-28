@@ -47,6 +47,7 @@
   - [Reporting](ref/modules/reporting/index.md)
   - [Security Analytics](ref/modules/security-analytics/index.md)
     - [Architecture](ref/modules/security-analytics/architecture.md)
+    - [Configuration](ref/modules/security-analytics/configuration.md)
   - [Notifications](ref/modules/notifications/index.md)
     - [Architecture](ref/modules/notifications/architecture.md)
     - [Configuration](ref/modules/notifications/configuration.md)
