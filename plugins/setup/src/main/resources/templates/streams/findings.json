@@ -23,6 +23,7 @@
       },
       "mapping.nested_fields.limit": 50,
       "mapping.total_fields.limit": 3000,
+      "plugins.index_state_management.policy_id": "stream-rollover-policy",
       "plugins.index_state_management.rollover_alias": "wazuh-findings-v5"
     },
     "mappings": {
