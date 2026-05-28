@@ -25,10 +25,14 @@ import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.indexmanagement.indexstatemanagement.transport.action.addpolicy.AddPolicyAction;
+import org.opensearch.indexmanagement.indexstatemanagement.transport.action.addpolicy.AddPolicyRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
+
+import java.util.List;
 
 import com.wazuh.setup.utils.JsonUtils;
 import org.mockito.ArgumentCaptor;
@@ -43,6 +47,7 @@ public class AliasedIndexTests extends OpenSearchTestCase {
     private static final String POLICY_ID = "stream-rollover-policy";
 
     private AliasedIndex aliasedIndex;
+    private Client client;
     private IndicesAdminClient indicesAdminClient;
     private Metadata metadata;
 
@@ -50,7 +55,7 @@ public class AliasedIndexTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        Client client = mock(Client.class);
+        this.client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
         this.indicesAdminClient = mock(IndicesAdminClient.class);
         ClusterService clusterService = mock(ClusterService.class);
@@ -62,11 +67,11 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         doReturn(settings).when(clusterService).getSettings();
 
         this.aliasedIndex = new AliasedIndex(ALIAS, "templates/streams/findings", POLICY_ID);
-        this.aliasedIndex.setClient(client);
+        this.aliasedIndex.setClient(this.client);
         this.aliasedIndex.setClusterService(clusterService);
         this.aliasedIndex.setUtils(mock(JsonUtils.class));
 
-        doReturn(adminClient).when(client).admin();
+        doReturn(adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
         doReturn(clusterState).when(clusterService).state();
         doReturn(this.metadata).when(clusterState).getMetadata();
@@ -96,10 +101,10 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         assertTrue(
                 "Backing index must be hidden so it does not appear in wildcard queries",
                 request.settings().getAsBoolean("index.hidden", false));
-        assertEquals(
-                "ISM policy must be attached to the backing index directly so we do not depend on"
-                        + " ism_template auto-attach (which can miss hidden indices)",
-                POLICY_ID,
+        assertNull(
+                "policy_id should not be on the backing index settings — ISM ignores it for"
+                        + " .ds-prefixed indices via the sweep; the attach is dispatched via"
+                        + " AddPolicyAction",
                 request.settings().get("plugins.index_state_management.policy_id"));
 
         assertEquals(
@@ -113,16 +118,40 @@ public class AliasedIndexTests extends OpenSearchTestCase {
     }
 
     /**
-     * Verifies that when {@code policyId} is null the {@code
-     * plugins.index_state_management.policy_id} setting is not added — callers without an explicit
-     * policy fall back to {@code ism_template} matching.
+     * Verifies that after a successful {@code CreateIndex}, the ISM policy attach is dispatched via
+     * {@link AddPolicyAction} with an {@link AddPolicyRequest} naming the backing index and the
+     * configured policy id.
      */
-    public void testCreateIndexOmitsPolicyIdWhenNotConfigured() {
-        AliasedIndex noPolicyIndex = new AliasedIndex(ALIAS, "templates/streams/findings");
-        // Re-inject the same client/cluster service stack into the new instance.
-        noPolicyIndex.setClient(this.aliasedIndex.client);
-        noPolicyIndex.setClusterService(this.aliasedIndex.clusterService);
-        noPolicyIndex.setUtils(this.aliasedIndex.jsonUtils);
+    public void testCreateIndexDispatchesIsmAttachAfterCreate() {
+        doReturn(false).when(this.metadata).hasAlias(ALIAS);
+
+        CreateIndexResponse response = mock(CreateIndexResponse.class);
+        doReturn(EXPECTED_BACKING_INDEX).when(response).index();
+        ActionFuture actionFuture = mock(ActionFuture.class);
+        doReturn(response).when(actionFuture).actionGet(anyLong());
+        doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
+
+        this.aliasedIndex.createIndex(ALIAS);
+
+        ArgumentCaptor<AddPolicyRequest> reqCaptor = ArgumentCaptor.forClass(AddPolicyRequest.class);
+        verify(this.client)
+                .execute(same(AddPolicyAction.Companion.getINSTANCE()), reqCaptor.capture(), any());
+
+        AddPolicyRequest sent = reqCaptor.getValue();
+        assertEquals(List.of(EXPECTED_BACKING_INDEX), sent.getIndices());
+        assertEquals(POLICY_ID, sent.getPolicyID());
+        assertEquals("_default", sent.getIndexType());
+    }
+
+    /**
+     * Verifies that an {@link AliasedIndex} created without a policy id does not invoke the ISM
+     * attach call after creating the backing index.
+     */
+    public void testAttachPolicyIsSkippedWhenNoPolicyConfigured() {
+        AliasedIndex noPolicy = new AliasedIndex(ALIAS, "templates/streams/findings");
+        noPolicy.setClient(this.aliasedIndex.client);
+        noPolicy.setClusterService(this.aliasedIndex.clusterService);
+        noPolicy.setUtils(this.aliasedIndex.jsonUtils);
 
         doReturn(false).when(this.metadata).hasAlias(ALIAS);
         CreateIndexResponse response = mock(CreateIndexResponse.class);
@@ -131,17 +160,15 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         doReturn(response).when(actionFuture).actionGet(anyLong());
         doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
-        noPolicyIndex.createIndex(ALIAS);
+        noPolicy.createIndex(ALIAS);
 
-        ArgumentCaptor<CreateIndexRequest> captor = ArgumentCaptor.forClass(CreateIndexRequest.class);
-        verify(this.indicesAdminClient).create(captor.capture());
-        assertNull(
-                "policy_id setting must be absent when no policy is configured",
-                captor.getValue().settings().get("plugins.index_state_management.policy_id"));
+        verify(this.client, never())
+                .execute(same(AddPolicyAction.Companion.getINSTANCE()), any(AddPolicyRequest.class), any());
     }
 
     /**
-     * Verifies that when the alias already exists in cluster metadata, no backing index is created.
+     * Verifies that when the alias already exists in cluster metadata, no backing index is created
+     * and no ISM attach call is made.
      */
     public void testCreateIndexSkipsWhenAliasAlreadyExists() {
         doReturn(true).when(this.metadata).hasAlias(ALIAS);
@@ -149,12 +176,13 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         this.aliasedIndex.createIndex(ALIAS);
 
         verify(this.indicesAdminClient, never()).create(any(CreateIndexRequest.class));
+        verify(this.client, never())
+                .execute(same(AddPolicyAction.Companion.getINSTANCE()), any(AddPolicyRequest.class), any());
     }
 
     /**
-     * Verifies that {@code createIndex} swallows {@link ResourceAlreadyExistsException} — this can
-     * happen if the backing index is created concurrently by another node between the alias check and
-     * the create call.
+     * Verifies that {@code createIndex} swallows {@link ResourceAlreadyExistsException}. When the
+     * create fails because the backing index is already there, the attach call is also skipped.
      */
     public void testCreateIndexHandlesResourceAlreadyExists() {
         doReturn(false).when(this.metadata).hasAlias(ALIAS);
@@ -169,5 +197,7 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         this.aliasedIndex.createIndex(ALIAS);
 
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
+        verify(this.client, never())
+                .execute(same(AddPolicyAction.Companion.getINSTANCE()), any(AddPolicyRequest.class), any());
     }
 }
