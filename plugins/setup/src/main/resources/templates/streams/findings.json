@@ -8604,6 +8604,36 @@
                 }
               }
             },
+            "case": {
+              "properties": {
+                "comment": {
+                  "norms": false,
+                  "type": "text"
+                },
+                "created_at": {
+                  "type": "date"
+                },
+                "status": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "tags": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "updated_at": {
+                  "type": "date"
+                },
+                "user": {
+                  "properties": {
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                }
+              }
+            },
             "cluster": {
               "properties": {
                 "name": {
