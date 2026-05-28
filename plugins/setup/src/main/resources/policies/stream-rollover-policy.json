@@ -29,7 +29,7 @@
       {
         "index_patterns": [
           "wazuh-events-v5*",
-          "wazuh-findings-v5*"
+          ".ds-wazuh-findings-v5*"
         ],
         "priority": 50
       }
