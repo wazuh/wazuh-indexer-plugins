@@ -7,11 +7,9 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | ----------------------------------------------------------------------------- | --------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.security_analytics.index_timeout`                                    | Time      | `60s`         | Timeout for Security Analytics index operations                                                                                        |
 | `plugins.security_analytics.request_timeout`                                  | Time      | `10s`         | Timeout for Security Analytics transport requests                                                                                      |
-| `plugins.security_analytics.action_throttle_max_value`                        | Time      | `24h`         | Maximum allowed value for monitor action throttles                                                                                     |
 | `plugins.security_analytics.filter_by_backend_roles`                          | Boolean   | `false`       | Restrict access to detectors, rules, and findings based on the requester's backend roles                                               |
 | `plugins.security_analytics.alert_history_enabled`                            | Boolean   | `true`        | Enable rollover and retention management for the alert history indices                                                                 |
 | `plugins.security_analytics.alert_finding_enabled`                            | Boolean   | `true`        | Enable rollover and retention management for the finding history indices                                                               |
-| `plugins.security_analytics.ioc_finding_enabled`                              | Boolean   | `true`        | Enable rollover and retention management for the IOC finding history indices                                                           |
 | `plugins.security_analytics.alert_history_rollover_period`                    | Time      | `12h`         | How often the alert history rollover job runs                                                                                          |
 | `plugins.security_analytics.alert_finding_rollover_period`                    | Time      | `12h`         | How often the finding history rollover job runs                                                                                        |
 | `plugins.security_analytics.correlation_history_rollover_period`              | Time      | `12h`         | How often the correlation history rollover job runs                                                                                    |
@@ -32,12 +30,6 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | `plugins.security_analytics.correlation_time_window`                          | Time      | `5m`          | Time window used to group findings into correlations                                                                                   |
 | `plugins.security_analytics.auto_correlations_enabled`                        | Boolean   | `false`       | Automatically generate correlation rules from new findings                                                                             |
 | `plugins.security_analytics.mappings.default_schema`                          | String    | `ecs`         | Default field-mapping schema for new detectors                                                                                         |
-| `plugins.security_analytics.threatintel.tifjob.update_interval`               | Time      | `1440m` (24h) | Interval at which the threat intel feed job refreshes IOCs                                                                             |
-| `plugins.security_analytics.threatintel.tifjob.batch_size`                    | Integer   | `10000`       | Bulk size used when indexing threat intel feed data. Minimum `1`                                                                       |
-| `plugins.security_analytics.threat_intel_timeout`                             | Time      | `30s`         | Timeout for the threat intel ingest processor. Minimum `1s`                                                                            |
-| `plugins.security_analytics.ioc.index_retention_period`                       | Time      | `30d`         | Retention period after which IOC indices are deleted. Minimum `1d`                                                                     |
-| `plugins.security_analytics.ioc.max_indices_per_alias`                        | Integer   | `2`           | Maximum number of IOC indices kept per alias before rollover. Minimum `1`                                                              |
-| `plugins.security_analytics.ioc.scan_max_terms_count`                         | Integer   | `65536`       | Maximum number of terms submitted in a single IOC scan terms query. Minimum `1`                                                        |
 | `plugins.security_analytics.enable_detectors_with_dedicated_query_indices`    | Boolean   | `true`        | Create dedicated query indices for new detectors                                                                                       |
 | `plugins.security_analytics.enriched_findings_index_enabled`                  | Boolean   | `true`        | Toggle the enriched findings pipeline (see [Architecture](architecture.md))                                                            |
 | `plugins.security_analytics.correlation.detector_cache_ttl`                   | Time      | `5m`          | TTL for the in-memory monitor-id to detector cache. Set to `0s` to disable the cache                                                   |
@@ -62,7 +54,7 @@ plugins.security_analytics.alert_history_max_docs: 1000
 plugins.security_analytics.alert_history_retention_period: 60d
 ```
 
-The same pattern applies to finding history (`plugins.security_analytics.alert_finding_*`, `plugins.security_analytics.finding_history_*`), correlation history (`plugins.security_analytics.correlation_history_*`), and IOC finding history (`plugins.security_analytics.ioc_finding_*`, `plugins.security_analytics.ioc_finding_history_*`).
+The same pattern applies to finding history (`plugins.security_analytics.alert_finding_*`, `plugins.security_analytics.finding_history_*`), correlation history (`plugins.security_analytics.correlation_history_*`), and IOC finding history (`plugins.security_analytics.ioc_finding_history_*`).
 
 > `plugins.security_analytics.alert_finding_max_docs` is deprecated. Configure finding history rollover through the other `finding_history_*` settings.
 
@@ -80,28 +72,6 @@ plugins.security_analytics.correlation.max_in_flight_findings: 50
 ```
 
 Both `detector_cache_ttl` and `metadata_cache_ttl` accept `0s` to disable the cache entirely, which forces a lookup against the corresponding system index on every finding. Lower `correlation.max_in_flight_findings` on resource-constrained nodes to bound peak demand on the search thread pool.
-
-### Threat intel feeds
-
-The threat intel feed job refreshes IOCs on a fixed interval and bulk-indexes them in batches:
-
-```yaml
-# opensearch.yml
-plugins.security_analytics.threatintel.tifjob.update_interval: 1440m
-plugins.security_analytics.threatintel.tifjob.batch_size: 10000
-plugins.security_analytics.threat_intel_timeout: 30s
-```
-
-### IOC scanning
-
-```yaml
-# opensearch.yml
-plugins.security_analytics.ioc.index_retention_period: 30d
-plugins.security_analytics.ioc.max_indices_per_alias: 2
-plugins.security_analytics.ioc.scan_max_terms_count: 65536
-```
-
-`ioc.scan_max_terms_count` caps the number of terms submitted in a single IOC scan terms query; lower it if scans exceed the cluster's query limits.
 
 ### Detector behavior
 
@@ -134,4 +104,3 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 - Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect. Dynamic settings can additionally be updated at runtime via the Cluster Settings API shown above.
 - `index.correlation` is an index-scope setting and must be applied to individual indices (for example, via an index template or the `_settings` API), not to the cluster as a whole.
 - Rollover jobs are enforced by the OpenSearch Job Scheduler. Actual rollover timing may vary slightly depending on cluster load.
-- The threat intel feed job runs at `threatintel.tifjob.update_interval`. Lower values trade increased indexing load for fresher IOCs.
