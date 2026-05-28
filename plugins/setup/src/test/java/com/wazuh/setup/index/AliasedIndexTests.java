@@ -40,6 +40,7 @@ public class AliasedIndexTests extends OpenSearchTestCase {
 
     private static final String ALIAS = "wazuh-findings-v5-security";
     private static final String EXPECTED_BACKING_INDEX = ".ds-" + ALIAS + "-000001";
+    private static final String POLICY_ID = "stream-rollover-policy";
 
     private AliasedIndex aliasedIndex;
     private IndicesAdminClient indicesAdminClient;
@@ -60,7 +61,7 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         Settings settings = Settings.builder().build();
         doReturn(settings).when(clusterService).getSettings();
 
-        this.aliasedIndex = new AliasedIndex(ALIAS, "templates/streams/findings");
+        this.aliasedIndex = new AliasedIndex(ALIAS, "templates/streams/findings", POLICY_ID);
         this.aliasedIndex.setClient(client);
         this.aliasedIndex.setClusterService(clusterService);
         this.aliasedIndex.setUtils(mock(JsonUtils.class));
@@ -95,6 +96,11 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         assertTrue(
                 "Backing index must be hidden so it does not appear in wildcard queries",
                 request.settings().getAsBoolean("index.hidden", false));
+        assertEquals(
+                "ISM policy must be attached to the backing index directly so we do not depend on"
+                        + " ism_template auto-attach (which can miss hidden indices)",
+                POLICY_ID,
+                request.settings().get("plugins.index_state_management.policy_id"));
 
         assertEquals(
                 "Exactly one alias must be attached to the backing index", 1, request.aliases().size());
@@ -104,6 +110,34 @@ public class AliasedIndexTests extends OpenSearchTestCase {
                 "The alias must be marked as the write index so rollover can swap it",
                 Boolean.TRUE,
                 alias.writeIndex());
+    }
+
+    /**
+     * Verifies that when {@code policyId} is null the {@code
+     * plugins.index_state_management.policy_id} setting is not added — callers without an explicit
+     * policy fall back to {@code ism_template} matching.
+     */
+    public void testCreateIndexOmitsPolicyIdWhenNotConfigured() {
+        AliasedIndex noPolicyIndex = new AliasedIndex(ALIAS, "templates/streams/findings");
+        // Re-inject the same client/cluster service stack into the new instance.
+        noPolicyIndex.setClient(this.aliasedIndex.client);
+        noPolicyIndex.setClusterService(this.aliasedIndex.clusterService);
+        noPolicyIndex.setUtils(this.aliasedIndex.jsonUtils);
+
+        doReturn(false).when(this.metadata).hasAlias(ALIAS);
+        CreateIndexResponse response = mock(CreateIndexResponse.class);
+        doReturn(EXPECTED_BACKING_INDEX).when(response).index();
+        ActionFuture actionFuture = mock(ActionFuture.class);
+        doReturn(response).when(actionFuture).actionGet(anyLong());
+        doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
+
+        noPolicyIndex.createIndex(ALIAS);
+
+        ArgumentCaptor<CreateIndexRequest> captor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.indicesAdminClient).create(captor.capture());
+        assertNull(
+                "policy_id setting must be absent when no policy is configured",
+                captor.getValue().settings().get("plugins.index_state_management.policy_id"));
     }
 
     /**

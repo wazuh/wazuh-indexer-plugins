@@ -46,7 +46,9 @@ public class IndexStateManagement extends Index {
     public static final String ISM_INDEX_NAME = ".opendistro-ism-config";
 
     // ISM policies names (filename without extension)
-    static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
+    /** Generic rollover policy applied to time-series stream-like indices. */
+    public static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
+
     static final String RAW_EVENTS_PURGE_POLICY = "stream-raw-events-policy";
     static final String UNCLASSIFIED_EVENTS_POLICY = "stream-unclassified-events-policy";
     static final String ACTIVE_RESPONSES_POLICY = "stream-active-responses-policy";

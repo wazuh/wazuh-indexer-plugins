@@ -51,16 +51,35 @@ public class AliasedIndex extends WazuhIndex {
 
     private static final String BACKING_INDEX_PREFIX = ".ds-";
     private static final String BACKING_INDEX_SUFFIX = "-000001";
+    private static final String POLICY_ID_SETTING = "plugins.index_state_management.policy_id";
+
+    private final String policyId;
 
     /**
-     * Constructor.
+     * Constructor without an explicit ISM policy. The initial backing index will rely on ISM's {@code
+     * ism_template} auto-attach mechanism for policy assignment.
      *
      * @param alias visible alias name (e.g., "wazuh-findings-v5-security"). Also used as the rollover
      *     alias.
      * @param template path to the index template resource (without .json extension).
      */
     public AliasedIndex(String alias, String template) {
+        this(alias, template, null);
+    }
+
+    /**
+     * Constructor with an explicit ISM policy. The initial backing index is created with the given
+     * policy id set directly on its settings, so ISM picks it up without depending on {@code
+     * ism_template} auto-attach (which has known quirks with hidden indices).
+     *
+     * @param alias visible alias name. Also used as the rollover alias.
+     * @param template path to the index template resource (without .json extension).
+     * @param policyId ISM policy id to attach to the backing index, or null for no explicit
+     *     attachment.
+     */
+    public AliasedIndex(String alias, String template, String policyId) {
         super(alias, template);
+        this.policyId = policyId;
     }
 
     /**
@@ -146,9 +165,14 @@ public class AliasedIndex extends WazuhIndex {
 
         String backingIndex = BACKING_INDEX_PREFIX + alias + BACKING_INDEX_SUFFIX;
         try {
+            Settings.Builder indexSettings = Settings.builder().put("index.hidden", true);
+            if (this.policyId != null) {
+                indexSettings.put(POLICY_ID_SETTING, this.policyId);
+            }
+
             CreateIndexRequest request =
                     new CreateIndexRequest(backingIndex)
-                            .settings(Settings.builder().put("index.hidden", true))
+                            .settings(indexSettings)
                             .alias(new Alias(alias).writeIndex(true));
 
             CreateIndexResponse response =
