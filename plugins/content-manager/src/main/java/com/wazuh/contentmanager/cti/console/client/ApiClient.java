@@ -263,6 +263,7 @@ public class ApiClient {
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(url)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .build();
 
         final Future<SimpleHttpResponse> future =
