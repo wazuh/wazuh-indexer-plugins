@@ -2,41 +2,57 @@
 
 ## Highlights
 
-- New initialization plugin
-- New Content Manager plugin
-- Fork of OpenSearch's Security Analytics plugin
-- Fork of OpenSearch's Reporting plugin
-- Fork of OpenSearch's Notifications plugin
-- Fork of OpenSearch's Alerting plugin
-- Fork of OpenSearch's Common Utils repository
+- New "[Setup][setup-plugin]" initialization plugin.
+  - Creation of Wazuh indices, index templates and ISM policies on startup [#425](https://github.com/wazuh/wazuh-indexer-plugins/issues/425).
+  - Data streams by default for time-series indices.
+  - Adds ISM policies for data streams automatic rollover and removal based on age and size [#466](https://github.com/wazuh/wazuh-indexer-plugins/issues/466).
+  - Adds metrics data streams [#34711](https://github.com/wazuh/wazuh/issues/34711).
+  - Some Wazuh settings now reside in the Indexer, and can be managed using the Settings API in the Setup plugin [#833](https://github.com/wazuh/wazuh-indexer-plugins/issues/833).
+- New "[Content Manager][content-manager-plugin]" plugin.
+  - Official threat intel content management for Wazuh CTI (ruleset, vulnerabilities feed, IoC feed).
+  - Custom content management for user-defined threat intel resources (rules, decoders, ...).
+  - Scheduled automatic updates by default.
+  - Supports for manual updates.
+  - Implements a log test feature split into normalization (decoders) and detection (rules) phases.
+  - Implements a REST API for content management, log testing, manual updates, and other operations.
+- Fork of OpenSearch's Security Analytics plugin. [[1][fork-security-analytics]]
+  - Threat Detection migrated to from the Wazuh Server to the Wazuh Indexer Security Analytics plugin.
+- Fork of OpenSearch's Reporting plugin. [[2][fork-reporting]]
+- Fork of OpenSearch's Notifications plugin. [[3][fork-notifications]]
+  - Webhooks for Slack, Jira, PagerDuty and Shuffle created by default.
+  - Dedicated monitor for Active Response [#8](https://github.com/wazuh/wazuh-indexer-alerting/issues/8).
+- Fork of OpenSearch's Alerting plugin. [[4][fork-alerting]]
+  - Dedicated monitor for Active Response [#8](https://github.com/wazuh/wazuh-indexer-alerting/issues/8).
+- Fork of OpenSearch's Common Utils repository. [[5][fork-common-utils]]
+  - Dedicated monitor for Active Response [#8](https://github.com/wazuh/wazuh-indexer-alerting/issues/8).
 - Built-in Wazuh Engine.
-- Threat Detection migrated to from the Wazuh Server to the Wazuh Indexer
-- Reworked Wazuh Indexer packages and build scripts
-- Content download from Wazuh CTI (ruleset, vulnerabilites feed, IoC feed)
-  - Scheduled automatic updates
-  - Manual updates
-- New documentation
-- Default notification channels
-- New set of default users and roles
-- Active Response
-- Some Wazuh settings now reside in the Indexer, and can be manages using the Settings API in the Setup plugin.
-- Reworked and extended Wazuh Common Schema
-
-- Redesign the indexer initialization plugin to manage the full lifecycle of Wazuh indices, templates, and ISM policies on startup [#425](https://github.com/wazuh/wazuh-indexer-plugins/issues/425)
-- Add ISM rollover policy for stateless indices to automatically rotate based on size, age, and document count [#466](https://github.com/wazuh/wazuh-indexer-plugins/issues/466)
-- Implement Content Manager REST API with scheduled updates, hash-of-hashes validation, and IoC delivery [#3525](https://github.com/wazuh/internal-devel-requests/issues/3525)
-- Engine enrichment. Add IoC content management, GeoIP enrichment, and engine filters for event pre-processing [#33493](https://github.com/wazuh/wazuh/issues/33493)
-- Add metrics data streams and a telemetry ping job to collect platform usage and health data [#34711](https://github.com/wazuh/wazuh/issues/34711)
-- Registration-based content download. Implement token exchange service and catalog plans. [#4743](https://github.com/wazuh/internal-devel-requests/issues/4743)
-
+    - Validation of user-defined threat intel content.
+    - Engine enrichment. Add IoC content management, GeoIP enrichment, and engine filters for event pre-processing [#33493](https://github.com/wazuh/wazuh/issues/33493)
+- New `mdBook` documentation [(#254)](https://github.com/wazuh/wazuh-indexer-plugins/issues/254.)
+- Reworked Wazuh Indexer packages and build scripts.
+  - Wazuh Indexer packages now work for Systemd, SysV and initd service managers [#602](https://github.com/wazuh/wazuh-indexer/issues/602).
+  - Snapshots for ruleset, vulnerabilities feed and IoC feed are now included in Wazuh Indexer packages.
+- New set of default users and roles [#1538](https://github.com/wazuh/wazuh-indexer-plugins/issues/1538)
+- Reworked and extended Wazuh Common Schema.
+- Active Response has been migrated to the Wazuh Indexer.
 
 ## Breaking changes
 
-- Filebeat is no longer used to forward events from the Wazuh server to the Wazuh indexer — replaced by the built-in indexer connector [#2600](https://github.com/wazuh/internal-devel-requests/issues/2600)
-- Replace time-series indices with data streams — index lifecycle and storage management changes [#650](https://github.com/wazuh/wazuh-indexer-plugins/issues/650)
-- Replace and remove deprecated settings — configurations carried over from 4.x are no longer valid [#475](https://github.com/wazuh/wazuh-indexer-plugins/issues/475)
-- Remove alerts and archives index creation from the setup plugin — these are now managed as data streams governed by ISM policies [#689](https://github.com/wazuh/wazuh-indexer-plugins/issues/689)
-- Upgrade Gradle build toolchain — build scripts and plugins must be compatible with the new Gradle version [#630](https://github.com/wazuh/wazuh-indexer-plugins/issues/630)
-- Update to JDK 25 [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341)
+- Wazuh Indexer 4.x can not be upgraded to 5.x. A new installation of Wazuh Indexer 5.x is required.
+- Multi-tenancy disabled by default [#1080](https://github.com/wazuh/wazuh-indexer/issues/1080)
+- Remove Performance Analyzer plugin from Wazuh Indexer packages [#891](https://github.com/wazuh/wazuh-indexer/issues/891)
+- Filebeat is no longer used to forward events from the Wazuh server to the Wazuh indexer — replaced by the built-in indexer connector.
 - Upgrade to OpenSearch 3.0 [#874](https://github.com/wazuh/wazuh-indexer/issues/874)
-- Migration of the Wazuh Common Schema from the wazuh-indexer repository to the wazuh-indexer-plugins repository.
+  - Replace and remove deprecated settings — configurations carried over from 4.x are no longer valid [#475](https://github.com/wazuh/wazuh-indexer-plugins/issues/475)
+  - Update to JDK 25 [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341)
+- Migration of the Wazuh Common Schema from the wazuh-indexer repository to the wazuh-indexer-plugins repository. Folder renamed to `wcs` [#879](https://github.com/wazuh/wazuh-indexer-plugins/issues/879)
+
+
+<!-- Links -->
+[setup-plugin]: https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/index.html
+[content-manager-plugin]: https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/content-manager/index.html
+[fork-security-analytics]: https://github.com/wazuh/wazuh-indexer-security-analytics/issues/1
+[fork-reporting]: https://github.com/wazuh/wazuh-indexer-reporting/issues/1
+[fork-notifications]: https://github.com/wazuh/wazuh-indexer-notifications/issues/2
+[fork-alerting]: https://github.com/wazuh/wazuh-indexer-alerting/issues/1
+[fork-common-utils]: https://github.com/wazuh/wazuh-indexer-common-utils/issues/1
