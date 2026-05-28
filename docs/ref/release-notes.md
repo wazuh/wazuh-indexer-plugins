@@ -32,7 +32,7 @@
 - Reworked Wazuh Indexer packages and build scripts.
   - Wazuh Indexer packages now work for Systemd, SysV and initd service managers [#602](https://github.com/wazuh/wazuh-indexer/issues/602).
   - Snapshots for ruleset, vulnerabilities feed and IoC feed are now included in Wazuh Indexer packages.
-- New set of default users and roles [#1538](https://github.com/wazuh/wazuh-indexer-plugins/issues/1538)
+- New set of default users and roles [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538)
 - Reworked and extended Wazuh Common Schema.
 - Active Response has been migrated to the Wazuh Indexer.
 
