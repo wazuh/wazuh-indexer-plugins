@@ -14,8 +14,9 @@ This update is still being discussed, but we need to be aware of potential issue
 For that, we need to:
 
 - [ ] Bump `opensearch_version` in `build.gradle`.*
+- [ ] Update links to OpenSearch documentation in our docs.
 
-\* Run `./gradlew updateVersion -DnewVersion="2.X.X"`.
+\* Run `./gradlew updateVersion -DnewVersion="3.X.X"`.
 
 
 

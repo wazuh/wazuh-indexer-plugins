@@ -96,8 +96,8 @@ Before assembling an enriched document, the service reads `wazuh.integration.cat
 
 | Field         | Source                                                                      |
 | ------------- | --------------------------------------------------------------------------- |
-| `@timestamp`  | Finding timestamp                                                           |
-| `event.*`     | Pre-existing `event` fields plus `doc_id`, `index`, `ingested`              |
+| `@timestamp`  | `@timestamp` of the original triggering event                               |
+| `event.*`     | Pre-existing `event` fields plus `doc_id`, `index`                          |
 | `wazuh.rule`  | Sigma rule metadata (`id`, `title`, `tags`, `sigma_id`, and any of `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
 
 Rule metadata is nested under `wazuh.rule`. Because the event's `wazuh` map (which carries `wazuh.integration.*`) is shared with the shallow copy, the service defensively copies it before adding `rule`, so the original event source is never mutated.

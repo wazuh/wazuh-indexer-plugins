@@ -173,8 +173,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - CTI subscription API update [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145)
 - Update ruleset consumer to beta-2 [(#1161)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1161)
 - Encode credentials in base64 [(#1163)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1163)
+- Update documentation for event-finding time correlation improvements [(#1211)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1211)
 - Allow custom space in logtest endpoint [(#1185)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1185)
 - CTI subscription api update [(#1120)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1120)
+- Update Active Response template to include wazuh.rule object [(#1207)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1207)
 
 ### Deprecated
 -
@@ -214,6 +216,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix missing wazuh-threatintel-filters index [(#1143)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1143)
 - Remove space.hash from non-policy resources [(#1167)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1167)
 - Fix policy Metadata Duplicated At Root Level On Updates [(1174)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1174)
+- Prevent index swapping on default plan [(1188)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1188)
+- Change `threat.enrichments` and `wazuh.threat.enrichments` type from `nested` to `object` and remove root-level `enrichments` field set [(#1210)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1210)
+- Fix malformed signed CTI token-exchange request [(#1206)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1206)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

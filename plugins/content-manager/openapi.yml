@@ -78,6 +78,8 @@ paths:
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -2469,6 +2471,27 @@ components:
               value:
                 message: "A content update is already in progress."
                 status: 409
+
+    PreconditionFailed:
+      description: |
+        Precondition Failed - The server is healthy but a required precondition
+        is not met, so the operation is refused. The operator must adjust the
+        cluster configuration before retrying.
+
+        Common causes:
+        - The credentials index is not declared as a system index. Add it to
+          `plugins.security.system_indices.indices` in `opensearch.yml` and
+          restart the node.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            unprotected_credentials_index:
+              summary: Credentials index is not a system index
+              value:
+                message: "Registration is disabled because the credentials index is not configured as a system index. Add it to plugins.security.system_indices.indices in opensearch.yml and restart."
+                status: 412
 
     InternalServerError:
       description: |
