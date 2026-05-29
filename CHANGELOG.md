@@ -105,6 +105,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Enable Draft policy by default [(1172)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1172)
 - Add revert logic to bumper workflow [(#1059)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1059)
 - Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
+- Implement findings case management [(#1222)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1222)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
