@@ -1,7 +1,7 @@
 {
   "policy": {
-    "policy_id": "stream-raw-events-policy",
-    "description": "ISM policy for raw events data stream. Rolls over backing indices based on size or document count, and deletes indices older than 10 minutes.",
+    "policy_id": "stream-events-policy",
+    "description": "ISM policy for events data streams. Rolls over backing indices based on size or document count, and deletes indices older than 1 hour.",
     "last_updated_time": 1772122150,
     "schema_version": 1,
     "default_state": "hot",
@@ -25,7 +25,7 @@
           {
             "state_name": "delete",
             "conditions": {
-              "min_index_age": "10m"
+              "min_index_age": "1h"
             }
           }
         ]
@@ -48,11 +48,10 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-events-raw-v5*"
+          "wazuh-events-v5-*"
         ],
-        "priority": 100
+        "priority": 50
       }
     ]
   }
 }
-
