@@ -103,8 +103,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement catalog plans service [(#1135)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1135)
 - Add index swap mechanism [(#1165)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1165)
 - Enable Draft policy by default [(1172)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1172)
+- Add Indexer - 5.0 breaking changes [(1183)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1183)
 - Add revert logic to bumper workflow [(#1059)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1059)
 - Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
+- Add Data retention policies for stream indices [(#1217)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1217)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
