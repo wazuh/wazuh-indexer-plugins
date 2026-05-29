@@ -30,10 +30,6 @@ The `policy` field set stores the SCA policy metadata (id, name, description, fi
 
 A top-level `compliance` field set that mirrors the same framework structure as `check.compliance` but applies at the event level rather than within an SCA check context. This allows any event — not just SCA results — to be tagged with the compliance frameworks it relates to. Same supported frameworks and schema as above.
 
-#### `enrichments` — Threat intelligence enrichments
-
-Extends the ECS `threat` model with fields for threat intelligence indicator enrichment. Contains standard indicator fields (`enrichments.indicator.*` — confidence, first/last seen, name, provider, type, reference). The `enrichments.source` field identifies the external provider that supplied the indicator.
-
 #### `host` extensions — Hardware and network metrics
 
 Extends the ECS `host` field set with hardware inventory fields: CPU details (`host.cpu.cores`, `host.cpu.name`, `host.cpu.speed`), memory stats (`host.memory.total`, `host.memory.free`, `host.memory.used.percentage`), and per-interface network counters for drops, errors, and queue lengths (`host.network.ingress.*`, `host.network.egress.*`).

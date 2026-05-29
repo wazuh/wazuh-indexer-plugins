@@ -73,28 +73,52 @@ Edit the existing index template JSON file and add the following setting:
 "plugins.index_state_management.rollover_alias": "<index-name>"
 ```
 ### 2. Define the ISM Policy
-Refer to the [OpenSearch ISM Policies documentation](https://docs.opensearch.org/3.3/im-plugin/ism/policies/) for more details.
+Refer to the [OpenSearch ISM Policies documentation](https://docs.opensearch.org/3.6/im-plugin/ism/policies/) for more details.
 
 Here is an example ISM policy:
 ```json
 {
   "policy": {
-    "policy_id": "<index-name>-rollover-policy",
+    "policy_id": "<index-name>-policy",
     "description": "<policy-description>",
     "last_updated_time": <unix-timestamp-in-milliseconds>,
-    "schema_version": 21,
-    "error_notification": null,
-    "default_state": "rollover",
+    "schema_version": 1,
+    "default_state": "hot",
     "states": [
       {
-        "name": "rollover",
+        "name": "hot",
         "actions": [
           {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
             "rollover": {
               "min_doc_count": 200000000,
-              "min_index_age": "7d",
               "min_primary_shard_size": "25gb"
             }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "<retention-time>"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "delete": {}
           }
         ],
         "transitions": []
@@ -103,12 +127,9 @@ Here is an example ISM policy:
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-<pattern1>-*"
-          // Optional additional patterns
-          // "wazuh-<pattern2>-*"
+          "wazuh-<pattern>-*"
         ],
-        "priority": <priority-int>,
-        "last_updated_time": <unix-timestamp-in-milliseconds>
+        "priority": <priority-int>
       }
     ]
   }
@@ -203,164 +224,81 @@ new StreamIndex("wazuh-active-responses", "templates/streams/active-responses")
 
 ---
 
-## 🚀 Unclassified Events Data Stream (`wazuh-events-v5-unclassified`)
+## 🚀 Events Data Stream ISM Policy (`stream-events-policy`)
 
 ### Overview
 
-The **wazuh-events-v5-unclassified** data stream is a specialized stream designed to capture and store events that do not match any predefined event categories. This provides visibility into edge cases, parsing failures, and events that may require new categorization rules.
+The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with a short retention period to ensure timely cleanup of processed event data.
 
-### Purpose
+### Policy Details
+- **Policy Name**: `stream-events-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
+- **Index Pattern**: `wazuh-events-v5-*`
+- **Retention Period**: 1 hour
+- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
+- **Priority**: 50
 
-- **Investigation and Troubleshooting**: Analyze uncategorized events to identify patterns or issues
-- **Rule Development**: Identify events that need new categorization rules
-- **System Monitoring**: Track parsing failures and anomalies
-
-### Data Stream Configuration
-
-#### Index Template
-- **Location**: `plugins/setup/src/main/resources/templates/streams/unclassified.json`
-- **Index Pattern**: `wazuh-events-v5-unclassified*`
-- **Rollover Alias**: `wazuh-events-v5-unclassified`
-- **Priority**: 1 (higher priority than standard event streams for proper template selection)
-
-#### Fields Included
-- **@timestamp**: Event timestamp
-- **event.original**: Raw, unprocessed event data
-- **wazuh.agent.***: Agent metadata (id, name, version, type)
-- **wazuh.cluster.***: Cluster information (name, node)
-- **wazuh.space.name**: Wazuh space/tenant information
-- **wazuh.schema.version**: Schema version
-- **wazuh.integration.***: Integration metadata (category, name, decoders, rules)
-
-#### Storage Settings
-- **Number of Shards**: 3
-- **Number of Replicas**: 0
-- **Auto-expand Replicas**: 0-1
-- **Refresh Interval**: 5 seconds
-- **Dynamic Mapping**: Strict (prevents unintended field creation)
-
-### ISM Policy
-
-#### Policy Details
-- **Policy Name**: `stream-unclassified-events-policy`
-- **Location**: `plugins/setup/src/main/resources/policies/stream-unclassified-events-policy.json`
-- **Retention Period**: 7 days
-- **Priority**: 100
-
-#### Policy States
+### Policy States
 
 1. **Hot State**
-   - Actions: None (events are immediately indexed)
-   - Transition Condition: Transitions to `delete` after 7 days
+   - Actions: Rollover when primary shard reaches 25 GB or 200M documents
+   - Transition Condition: Transitions to `delete` after 1 hour
 
 2. **Delete State**
    - Actions: Deletes the index
    - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
 
-### Use Cases
+---
 
-1. **Event Classification Issues**
-   - Events that failed to match any category
-   - Malformed or unusual event formats
+## 🚀 Findings Data Stream ISM Policy (`stream-findings-policy`)
 
-2. **Parsing Failures**
-   - Events that couldn't be decoded properly
-   - Invalid event structures
+### Overview
 
-3. **Rule Development**
-   - Analyzing patterns that require new rules
-   - Edge cases not covered by existing rules
+The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with a 90-day retention period to maintain detection findings for compliance and investigation purposes.
 
-4. **System Diagnostics**
-   - Understanding integration performance
-   - Identifying missing integrations or decoders
+### Policy Details
+- **Policy Name**: `stream-findings-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/stream-findings-policy.json`
+- **Index Pattern**: `wazuh-findings-v5-*`
+- **Retention Period**: 90 days
+- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
+- **Priority**: 50
 
-### Configuration
+### Policy States
 
-The data stream is created automatically during plugin initialization. Ensure:
+1. **Hot State**
+   - Actions: Rollover when primary shard reaches 25 GB or 200M documents
+   - Transition Condition: Transitions to `delete` after 90 days
 
-1. The template file `unclassified.json` exists in `templates/streams/`
-2. The ISM policy file `stream-unclassified-events-policy.json` exists in `policies/`
-3. Both are registered in `SetupPlugin.java` and `IndexStateManagement.java`
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
 
-### Indexing Unclassified Events
+---
 
-To index events into this data stream, use:
+## 🚀 Raw Events Data Stream ISM Policy (`stream-raw-events-policy`)
 
-```bash
-POST /wazuh-events-v5-unclassified/_doc
-{
-  "@timestamp": "2024-02-19T10:00:00Z",
-  "event": {
-    "original": "raw uncategorized event data"
-  },
-  "wazuh": {
-    "agent": {
-      "id": "001",
-      "name": "agent-name"
-    },
-    "space": {
-      "name": "default"
-    }
-  }
-}
-```
+### Overview
 
-### Monitoring and Analysis
+The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream with an aggressive 10-minute retention for temporary raw event storage.
 
-#### Query Unclassified Events
-```bash
-GET /wazuh-events-v5-unclassified/_search
-{
-  "query": {
-    "match_all": {}
-  }
-}
-```
+### Policy Details
+- **Policy Name**: `stream-raw-events-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/stream-raw-events-policy.json`
+- **Index Pattern**: `wazuh-events-raw-v5*`
+- **Retention Period**: 10 minutes
+- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
+- **Priority**: 100
 
-#### Count Events by Agent
-```bash
-GET /wazuh-events-v5-unclassified/_search
-{
-  "size": 0,
-  "aggs": {
-    "events_by_agent": {
-      "terms": {
-        "field": "wazuh.agent.id",
-        "size": 100
-      }
-    }
-  }
-}
-```
+### Policy States
 
-#### Time-based Analysis
-```bash
-GET /wazuh-events-v5-unclassified/_search
-{
-  "size": 0,
-  "aggs": {
-    "events_over_time": {
-      "date_histogram": {
-        "field": "@timestamp",
-        "interval": "1h"
-      }
-    }
-  }
-}
-```
+1. **Hot State**
+   - Actions: Rollover when primary shard reaches 25 GB or 200M documents
+   - Transition Condition: Transitions to `delete` after 10 minutes
 
-### Testing
-
-Integration tests for the unclassified data stream are located at:
-`plugins/setup/src/test/java/com/wazuh/setup/UnclassifiedEventsIT.java`
-
-These tests verify:
-- Data stream creation
-- Template application
-- ISM policy creation and application
-- Document indexing capability
-- Correct field mappings
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
 
 ---
 
@@ -406,6 +344,7 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 - **Policy Name**: `stream-active-responses-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
 - **Retention Period**: 3 days
+- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
 - **Priority**: 100
 
 ### Configuration

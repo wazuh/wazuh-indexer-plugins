@@ -131,7 +131,7 @@ The Content Manager uses the following system indices:
 | Index                         | Description                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
 | `.wazuh-cti-consumers`              | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status)   |
-| `.wazuh-cti-credentials`            | Persisted CTI access token (hidden, single document)                                |
+| `.wazuh-internal-state`            | Persisted CTI access token (hidden, single document)                                |
 | `wazuh-threatintel-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
 | `wazuh-threatintel-decoders`               | Log decoders                                                                        |
 | `wazuh-threatintel-integrations`           | Integration definitions                                                             |
@@ -146,7 +146,7 @@ The Content Manager uses the following system indices:
 
 To synchronize content from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
 
-1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-cti-credentials` hidden index and loaded into memory.
+1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-internal-state` hidden index and loaded into memory.
 2. The Content Manager uses the in-memory token for all CTI API requests.
 3. Without a registered token, sync operations return a `404 Token not found` error.
 

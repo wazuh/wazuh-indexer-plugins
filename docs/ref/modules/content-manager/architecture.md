@@ -17,7 +17,7 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 
 ### Credentials Store
 
-Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-cti-credentials` hidden index, and cached in `PluginSettings.accessToken` (a `volatile String` field). On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
+Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-internal-state` hidden index, and cached in `PluginSettings.accessToken` (a `volatile String` field). On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
 
 All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Catalog API client, Snapshot client, and Telemetry client.
 

@@ -30,6 +30,7 @@ import java.util.List;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -92,8 +93,13 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
      * @return a consumer that sends the subscription registration response
      */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
+        RestResponse response = this.handleRequest(request);
+        return channel ->
+                channel.sendResponse(
+                        new BytesRestResponse(
+                                RestStatus.fromCode(response.getStatus()), response.toXContent()));
     }
 
     /**
@@ -104,7 +110,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
      * @return a BytesRestResponse representing the operation result
      * @throws IOException if an I/O error occurs while building the response
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
+    public RestResponse handleRequest(RestRequest request) throws IOException {
         String accessToken = null;
         try (XContentParser parser = request.contentParser()) {
             XContentParser.Token token;
@@ -120,26 +126,26 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         }
 
         if (accessToken == null || accessToken.isBlank()) {
-            RestResponse error =
-                    new RestResponse(
-                            "Missing [" + ACCESS_TOKEN_FIELD + "] field.", RestStatus.BAD_REQUEST.getStatus());
-            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+            return new RestResponse(
+                    "Missing [" + ACCESS_TOKEN_FIELD + "] field.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         try {
             this.subscriptionService.register(accessToken);
 
-            RestResponse response =
-                    new RestResponse("Credentials received", RestStatus.CREATED.getStatus());
-            return new BytesRestResponse(RestStatus.CREATED, response.toXContent());
+            return new RestResponse(
+                    Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED.getStatus());
+        } catch (IllegalStateException e) {
+            if (e.getMessage().equals(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX)) {
+                return new RestResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED.getStatus());
+            }
+            throw e;
         } catch (Exception e) {
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+            return new RestResponse(
+                    e.getMessage() != null
+                            ? e.getMessage()
+                            : "An unexpected error occurred while processing your request.",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
