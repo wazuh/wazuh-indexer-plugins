@@ -24,6 +24,7 @@
         "refresh_interval": "5s"
       },
       "mapping.total_fields.limit": 1000,
+      "plugins.index_state_management.policy_id": "stream-metrics-policy",
       "plugins.index_state_management.rollover_alias": "wazuh-metrics-agents"
     },
     "mappings": {
