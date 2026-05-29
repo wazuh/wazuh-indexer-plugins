@@ -23,6 +23,7 @@
   - Rules parser improvements: 
     - Case-insensitive Sigma operators [#182](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/182)
     - Add `exists` Sigma modifiers [#173](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/173)
+    - Add support for IPv6 addresses in Sigma rules
   - Dynamic event field referencing in findings [#181](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/181)
 - Fork of OpenSearch's Reporting plugin. [[2][fork-reporting]]
 - Fork of OpenSearch's Notifications plugin. [[3][fork-notifications]]
