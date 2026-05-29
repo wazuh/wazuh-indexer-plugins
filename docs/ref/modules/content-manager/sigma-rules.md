@@ -211,18 +211,18 @@ Multiple modifiers can be chained: `"field|modifier1|modifier2": "value"`.
 
 ### Supported Modifiers
 
-| Modifier     | Description                                                  | Example               |
-|--------------|--------------------------------------------------------------|-----------------------|
-| `contains`   | Field value contains the specified substring                 | `"message             |contains": "timeout"`                 |
-| `startswith` | Field value starts with the specified string                 | `"process.thread.name |startswith": "Gossip"`    |
-| `endswith`   | Field value ends with the specified string                   | `"process.thread.name |endswith": "-5"`          |
-| `re`         | Field value matches the specified regular expression         | `"process.thread.name |re": "^Repair"`           |
-| `cidr`       | IP field value falls within the specified CIDR subnet        | `"source.ip           |cidr": "10.42.0.0/16"`             |
-| `exists`     | Field exists (is not null/absent) in the event               | `"source.ip           |exists": true`                      |
-| `gte`        | Field value is greater than or equal to the specified number | `"event.duration      |gte": 5000`                    |
-| `gt`         | Field value is greater than the specified number             | `"event.severity      |gt": 7`                        |
-| `lte`        | Field value is less than or equal to the specified number    | `"event.severity      |lte": 3`                       |
-| `lt`         | Field value is less than the specified number                | `"event.severity      |lt": 10`                       |
+| Modifier     | Description                                                  | Example                                  |
+|--------------|--------------------------------------------------------------|------------------------------------------|
+| `contains`   | Field value contains the specified substring                 | `"message\|contains": "timeout"`          |
+| `startswith` | Field value starts with the specified string                 | `"process.thread.name\|startswith": "Gossip"` |
+| `endswith`   | Field value ends with the specified string                   | `"process.thread.name\|endswith": "-5"`   |
+| `re`         | Field value matches the specified regular expression         | `"process.thread.name\|re": "^Repair"`    |
+| `cidr`       | IP field value falls within the specified CIDR subnet        | `"source.ip\|cidr": "10.42.0.0/16"`       |
+| `exists`     | Field exists (is not null/absent) in the event               | `"source.ip\|exists": true`               |
+| `gte`        | Field value is greater than or equal to the specified number | `"event.duration\|gte": 5000`             |
+| `gt`         | Field value is greater than the specified number             | `"event.severity\|gt": 7`                 |
+| `lte`        | Field value is less than or equal to the specified number    | `"event.severity\|lte": 3`                |
+| `lt`         | Field value is less than the specified number                | `"event.severity\|lt": 10`                |
 
 > **Reference**: See [Sigma Modifiers](https://sigmahq.io/docs/basics/modifiers.html) for additional context on value transformation modifiers.
 
