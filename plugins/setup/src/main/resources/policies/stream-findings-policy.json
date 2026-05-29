@@ -1,19 +1,31 @@
 {
   "policy": {
-    "policy_id": "stream-unclassified-events-policy",
-    "description": "ISM policy for unclassified events datastream. Provides extended 7-day retention period to facilitate investigation and troubleshooting of uncategorized events.",
+    "policy_id": "stream-findings-policy",
+    "description": "ISM policy for findings data streams. Rolls over backing indices based on size or document count, and deletes indices older than 90 days.",
     "last_updated_time": 1772122150,
     "schema_version": 1,
     "default_state": "hot",
     "states": [
       {
         "name": "hot",
-        "actions": [],
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "rollover": {
+              "min_doc_count": 200000000,
+              "min_primary_shard_size": "25gb"
+            }
+          }
+        ],
         "transitions": [
           {
             "state_name": "delete",
             "conditions": {
-              "min_index_age": "7d"
+              "min_index_age": "90d"
             }
           }
         ]
@@ -36,9 +48,9 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-events-v5-unclassified*"
+          "wazuh-findings-v5-*"
         ],
-        "priority": 100
+        "priority": 50
       }
     ]
   }
