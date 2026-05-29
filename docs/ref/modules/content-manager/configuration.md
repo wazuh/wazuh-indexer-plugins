@@ -1,4 +1,4 @@
-<!-- // ANCHOR: settings-table -->h
+<!-- // ANCHOR: settings-table --> 
 ## Content manager settings
 
 The Content Manager plugin is configured through settings in `opensearch.yml`. All settings use the `plugins.content_manager` prefix.

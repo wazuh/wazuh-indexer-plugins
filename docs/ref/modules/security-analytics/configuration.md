@@ -29,14 +29,7 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | `plugins.security_analytics.finding_history_max_age`                          | Time      | `30d`         | Maximum age of a finding history index before rollover                                                                                 |
 | `plugins.security_analytics.finding_history_retention_period`                 | Time      | `60d`         | Retention period after which finding history indices are deleted                                                                       |
 | `plugins.security_analytics.index_timeout`                                    | Time      | `60s`         | Timeout for Security Analytics index operations                                                                                        |
-| `plugins.security_analytics.ioc_finding_history_max_age`                      | Time      | `30d`         | Maximum age of an IOC finding history index before rollover                                                                            |
-| `plugins.security_analytics.ioc_finding_history_max_docs`                     | Long      | `1000`        | Maximum document count for an IOC finding history index before rollover. Minimum `0`                                                   |
-| `plugins.security_analytics.ioc_finding_history_retention_period`             | Time      | `60d`         | Retention period after which IOC finding history indices are deleted                                                                   |
-| `plugins.security_analytics.ioc_finding_history_rollover_period`              | Time      | `12h`         | How often the IOC finding history rollover job runs                                                                                    |
 | `plugins.security_analytics.mappings.default_schema`                          | String    | `ecs`         | Default field-mapping schema for new detectors                                                                                         |
-| `plugins.security_analytics.threat_intel_timeout`                             | Time      | `30s`         | Timeout for the threat intel ingest processor. Minimum `1s`                                                                            |
-| `plugins.security_analytics.threatintel.tifjob.batch_size`                    | Integer   | `10000`       | Bulk size used when indexing threat intel feed data. Minimum `1`                                                                       |
-| `plugins.security_analytics.threatintel.tifjob.update_interval`               | Time      | `1440m` (24h) | Interval at which the threat intel feed job refreshes IOCs                                                                             |
 
 <!-- // ANCHOR_END: settings-table -->
 
