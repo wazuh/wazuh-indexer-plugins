@@ -1022,4 +1022,4 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 
 - [Content Manager Tutorial: Adding a REST Endpoint](./content-manager-tutorial.md)
 - [Setup Plugin Guide](./setup.md)
-- [OpenSearch Plugin Development](https://docs.opensearch.org/3.3/install-and-configure/plugins/)
+- [OpenSearch Plugin Development](https://docs.opensearch.org/3.6/install-and-configure/plugins/)

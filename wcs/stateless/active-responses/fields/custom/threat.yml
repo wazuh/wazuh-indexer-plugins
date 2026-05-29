@@ -17,7 +17,7 @@
       description: >
         Indicator confidence rating.
     - name: enrichments
-      type: nested
+      type: object
       level: extended
       description: >
         A list of associated indicators objects enriching the event, and the context of that association/enrichment.

@@ -113,7 +113,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
 9.1.0,true,wazuh,wazuh.space.event_discarded,boolean,custom,,False,"When `true`, the event would have been discarded."
 9.1.0,true,wazuh,wazuh.space.name,keyword,custom,,default,Wazuh space name.
-9.1.0,true,wazuh,wazuh.threat.enrichments,nested,extended,array,,List of objects containing indicators enriching the event.
+9.1.0,true,wazuh,wazuh.threat.enrichments,object,extended,array,,List of objects containing indicators enriching the event.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator,object,extended,,,Object containing indicators enriching the event.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.as.organization.name,keyword,extended,,Google LLC,Organization name.
