@@ -78,28 +78,6 @@ configurations {
   zipArchive
 }
 
-// Extract the opensearch-index-management plugin JAR from its zip distribution so the setup
-// plugin can compile against ISM's transport action classes (AddPolicyAction etc.). ISM does not
-// publish those classes as a Maven artifact, but they are guaranteed to be on the runtime
-// classpath because the setup plugin declares ISM via extendedPlugins.
-def ismExtractDir = layout.buildDirectory.dir("extracted-ism").get().asFile
-
-tasks.register('extractIsmJar', Copy) {
-  dependsOn configurations.zipArchive
-  from {
-    configurations.zipArchive.files
-      .findAll { it.name.startsWith('opensearch-index-management-') && !it.name.contains('-spi-') }
-      .collect { zipTree(it) }
-  }
-  include "**/opensearch-index-management-*.jar"
-  exclude "**/opensearch-index-management-spi-*.jar"
-  into ismExtractDir
-  eachFile { it.path = it.name }
-  includeEmptyDirs = false
-}
-tasks.named('compileJava').configure { dependsOn 'extractIsmJar' }
-tasks.named('compileTestJava').configure { dependsOn 'extractIsmJar' }
-
 dependencies {
   implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.25.4"
   implementation "org.slf4j:slf4j-api:2.0.17"
@@ -113,13 +91,6 @@ dependencies {
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: opensearch_build
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: opensearch_build
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
-
-  // ISM's AddPolicyAction is not published as a Maven artifact; extracted from the zip above.
-  compileOnly fileTree(dir: ismExtractDir, include: '*.jar').builtBy('extractIsmJar')
-  testCompileOnly fileTree(dir: ismExtractDir, include: '*.jar').builtBy('extractIsmJar')
-  // ISM's Kotlin classes call kotlin.jvm.internal.Intrinsics at runtime; production gets it via
-  // ISM's plugin classloader, but unit tests need it on the test classpath.
-  testRuntimeOnly "org.jetbrains.kotlin:kotlin-stdlib:2.2.0"
 }
 
 // No need to validate license headers since spotless checks and applies it

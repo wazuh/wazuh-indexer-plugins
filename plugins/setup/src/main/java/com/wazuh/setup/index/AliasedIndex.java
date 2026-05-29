@@ -29,9 +29,6 @@ import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.Template;
 import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.action.ActionListener;
-import org.opensearch.indexmanagement.indexstatemanagement.transport.action.addpolicy.AddPolicyAction;
-import org.opensearch.indexmanagement.indexstatemanagement.transport.action.addpolicy.AddPolicyRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,12 +45,6 @@ import com.wazuh.setup.settings.PluginSettings;
  *
  * <p>Used by indices that need data-stream-like rollover/retention but must remain mutable (i.e.,
  * allow {@code _update} on indexed documents), which data streams disallow.
- *
- * <p><b>ISM enrolment note:</b> ISM does not auto-enrol {@code .ds-}-prefixed regular indices via
- * its coordinator sweep (verified empirically: even with the {@code policy_id} setting present on
- * the index, a sweep leaves it unmanaged). When a {@code policyId} is configured, this class
- * dispatches ISM's {@link AddPolicyAction} transport action after the backing index is created —
- * the same code path the {@code POST /_plugins/_ism/add/<index>} REST endpoint uses.
  */
 public class AliasedIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(AliasedIndex.class);
@@ -62,37 +53,14 @@ public class AliasedIndex extends WazuhIndex {
     private static final String BACKING_INDEX_SUFFIX = "-000001";
 
     /**
-     * Default index type understood by ISM's {@code IndexMetadataProvider}. The literal string is
-     * {@code "_default"} (with underscore) — using {@code "default"} causes ISM to throw {@code
-     * "Index type [type=default] was not recognized"}.
-     */
-    private static final String DEFAULT_INDEX_TYPE = "_default";
-
-    private final String policyId;
-
-    /**
-     * Constructor without an explicit ISM policy. The backing index is created with no policy
-     * attached.
+     * Constructor.
      *
      * @param alias visible alias name (e.g., "wazuh-findings-v5-security"). Also used as the rollover
      *     alias.
      * @param template path to the index template resource (without .json extension).
      */
     public AliasedIndex(String alias, String template) {
-        this(alias, template, null);
-    }
-
-    /**
-     * Constructor with an explicit ISM policy. After the backing index is created, the policy is
-     * attached via ISM's {@link AddPolicyAction} transport action.
-     *
-     * @param alias visible alias name. Also used as the rollover alias.
-     * @param template path to the index template resource (without .json extension).
-     * @param policyId ISM policy id to attach to the backing index, or null to skip the attach.
-     */
-    public AliasedIndex(String alias, String template, String policyId) {
         super(alias, template);
-        this.policyId = policyId;
     }
 
     /**
@@ -165,8 +133,7 @@ public class AliasedIndex extends WazuhIndex {
 
     /**
      * Creates the initial hidden backing index with the visible write alias. Skips creation if the
-     * alias already exists. When a {@code policyId} is configured, attaches the policy via ISM's
-     * {@link AddPolicyAction} after the create succeeds.
+     * alias already exists.
      *
      * @param alias visible alias name.
      */
@@ -196,8 +163,6 @@ public class AliasedIndex extends WazuhIndex {
                     response.index(),
                     alias,
                     response.isAcknowledged());
-
-            this.attachPolicy(backingIndex);
         } catch (ResourceAlreadyExistsException e) {
             log.info("Backing index {} already exists. Skipping.", backingIndex);
         } catch (Exception e) {
@@ -213,34 +178,5 @@ public class AliasedIndex extends WazuhIndex {
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(alias);
         }
-    }
-
-    /**
-     * Dispatches ISM's {@link AddPolicyAction} to attach {@link #policyId} to the given backing
-     * index. Best-effort: a failure is logged and execution continues — the index is still functional
-     * and an operator can re-run {@code POST /_plugins/_ism/add/<index>} by hand.
-     *
-     * @param backingIndex name of the backing index to enrol.
-     */
-    void attachPolicy(String backingIndex) {
-        if (this.policyId == null) {
-            return;
-        }
-        AddPolicyRequest request =
-                new AddPolicyRequest(List.of(backingIndex), this.policyId, DEFAULT_INDEX_TYPE);
-        this.client.execute(
-                AddPolicyAction.Companion.getINSTANCE(),
-                request,
-                ActionListener.wrap(
-                        resp ->
-                                log.info(
-                                        "ISM policy [{}] attached to [{}] (updated: {}, failed: {})",
-                                        this.policyId,
-                                        backingIndex,
-                                        resp.getUpdated(),
-                                        resp.getFailedIndices().size()),
-                        err ->
-                                log.error(
-                                        "Failed to attach ISM policy [{}] to [{}]", this.policyId, backingIndex, err)));
     }
 }
