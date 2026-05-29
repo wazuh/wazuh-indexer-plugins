@@ -179,6 +179,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allow custom space in logtest endpoint [(#1185)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1185)
 - CTI subscription api update [(#1120)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1120)
 - Update Active Response template to include wazuh.rule object [(#1207)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1207)
+- Improve sigma rules documentation [(#1228)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1228)
 
 ### Deprecated
 -
