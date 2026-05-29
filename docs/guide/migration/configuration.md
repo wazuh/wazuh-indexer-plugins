@@ -15,9 +15,9 @@ Both `4.x` and `5.x` install configuration under `/etc/wazuh-indexer/`. The cano
 | `/etc/wazuh-indexer/jvm.options` | JVM heap and GC settings |
 | `/etc/wazuh-indexer/log4j2.properties` | Logging configuration |
 | `/etc/wazuh-indexer/certs/` | Transport and HTTP TLS certificates |
-| `/etc/wazuh-indexer/opensearch-security/` | Security plugin configuration (see [Authentication migration](authentication.md)) |
+| `/etc/wazuh-indexer/opensearch-security/` | Security plugin configuration (see [Authentication migration](#security-configuration)) |
 
-For a full description of each file, see [Configuration files](../../ref/configuration/configuration-files.md).
+For a full description of each file, see [Configuration](../../ref/configuration/index.md).
 
 ### Migration procedure
 
@@ -32,7 +32,7 @@ Perform these steps on the new `5.x` host. The `4.x` cluster is not modified by 
 
 3. Copy the relevant `4.x` configuration values into the corresponding `5.x` file. Do not overwrite the `5.x` file with the `4.x` file. Review each setting against the [Settings changes](#settings-changes) section below.
 4. Migrate certificates by placing the existing trust and node certificates under `/etc/wazuh-indexer/certs/` and updating the `plugins.security.ssl.*` paths in `opensearch.yml` accordingly.
-5. Re-create authentication configuration. See [Authentication migration](authentication.md).
+5. Re-create authentication configuration. See [Authentication migration](#security-configuration).
 6. Start the service:
 
     ```bash
@@ -128,8 +128,6 @@ Refer to the upstream OpenSearch Security documentation for the exact syntax of 
 ## Related documentation
 
 - [Migration Guide](README.md) — entry point and prerequisites
-- [Authentication migration](authentication.md) — security plugin configuration
-- [Legacy 4.x indices](legacy-indices.md) — historical data handling
-- [Configuration files](../../ref/configuration/configuration-files.md) — full reference for each 5.x file
+- [Authentication migration](#security-configuration) — security plugin configuration
 - [Access Control](../../ref/security/access-control.md) — 5.x default users and roles
 - [Defining Users and Roles](../../ref/security/defining-users-and-roles.md) — how to declare new users and roles in 5.x
