@@ -17,6 +17,13 @@
   - Implements a REST API for content management, log testing, manual updates, and other operations.
 - Fork of OpenSearch's Security Analytics plugin. [[1][fork-security-analytics]]
   - Threat Detection migrated to from the Wazuh Server to the Wazuh Indexer Security Analytics plugin.
+  - Extended Sigma rules syntax [#47](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/47)
+  - Per-space support for Log Types and Rules [#37](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/37)
+  - Per-space threat detectors [#117](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/117)
+  - Rules parser improvements: 
+    - Case-insensitive Sigma operators [#182](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/182)
+    - Add `exists` Sigma modifiers [#173](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/173)
+  - Dynamic event field referencing in findings [#181](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/181)
 - Fork of OpenSearch's Reporting plugin. [[2][fork-reporting]]
 - Fork of OpenSearch's Notifications plugin. [[3][fork-notifications]]
   - Webhooks for Slack, Jira, PagerDuty and Shuffle created by default.
@@ -45,7 +52,7 @@
 - Upgrade to OpenSearch 3.0 [#874](https://github.com/wazuh/wazuh-indexer/issues/874)
   - Replace and remove deprecated settings — configurations carried over from 4.x are no longer valid [#475](https://github.com/wazuh/wazuh-indexer-plugins/issues/475)
   - Update to JDK 25 [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341)
-- Migration of the Wazuh Common Schema from the wazuh-indexer repository to the wazuh-indexer-plugins repository. Folder renamed to `wcs` [#879](https://github.com/wazuh/wazuh-indexer-plugins/issues/879)
+- Migration of the Wazuh Common Schema from the `wazuh-indexer` repository to the `wazuh-indexer-plugins` repository. Folder renamed to `wcs` [#879](https://github.com/wazuh/wazuh-indexer-plugins/issues/879)
 
 
 <!-- Links -->
