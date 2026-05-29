@@ -66,5 +66,3 @@
 
 - [Introduction](guide/migration/README.md)
 - [Configuration migration](guide/migration/configuration.md)
-- [Authentication migration](guide/migration/authentication.md)
-- [Legacy 4.x indices](guide/migration/legacy-indices.md)
