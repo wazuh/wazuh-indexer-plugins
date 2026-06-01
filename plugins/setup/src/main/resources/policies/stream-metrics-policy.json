@@ -48,7 +48,7 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-metrics-*"
+          ".ds-wazuh-metrics-*"
         ],
         "priority": 100
       }
