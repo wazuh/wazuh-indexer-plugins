@@ -13,11 +13,11 @@ This page describes the supported rule format, including field requirements, det
 The following table lists all supported top-level fields in a Wazuh Sigma rule payload. Fields marked as **Required** must be present for the rule to pass validation.
 
 | Field            | Type    | Required | Description                                                                  |
-|------------------|---------|----------|------------------------------------------------------------------------------|
+| ---------------- | ------- | -------- | ---------------------------------------------------------------------------- |
 | `status`         | String  | Yes      | Rule maturity status: `experimental`, `test`, or `stable`                    |
 | `level`          | String  | Yes      | Alert severity: `informational`, `low`, `medium`, `high`, or `critical`      |
 | `detection`      | Object  | Yes      | Detection logic (see [Detection](#detection))                                |
-| `logsource`      | Object  | No       | Log source classification (see [Log Source](#log-source))                    |
+| `logsource`      | Object  | Yes      | Log source classification (see [Log Source](#log-source))                    |
 | `sigma_id`       | String  | No       | Original Sigma rule identifier (UUID)                                        |
 | `enabled`        | Boolean | No       | Whether the rule is active (default: `true`)                                 |
 | `tags`           | Array   | No       | Categorization tags (e.g., `attack.initial-access`)                          |
@@ -34,12 +34,12 @@ The following table lists all supported top-level fields in a Wazuh Sigma rule p
 
 The `logsource` object classifies the type of log data the rule targets. It helps organize rules by their applicable data source but does not affect detection matching directly.
 
-| Field        | Type   | Required | Description                                                                     |
-|--------------|--------|----------|---------------------------------------------------------------------------------|
-| `product`    | String | No       | The product or platform generating the log (e.g., `linux`, `windows`, `python`) |
-| `category`   | String | No       | The log category (e.g., `authentication`, `process_creation`, `application`)    |
-| `service`    | String | No       | The specific service or log channel (e.g., `sshd`, `security`, `syslog`)        |
-| `definition` | String | No       | Additional requirements or notes for the log source                             |
+| Field        | Type   | Required | Description                                                                                                                                                       |
+| ------------ | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `product`    | String | Yes      | The product or platform generating the log (e.g., `linux`, `windows`, `python`). Must hold the same value as `metadata.title` from the integration it belongs to. |
+| `category`   | String | No       | The log category (e.g., `authentication`, `process_creation`, `application`)                                                                                      |
+| `service`    | String | No       | The specific service or log channel (e.g., `sshd`, `security`, `syslog`)                                                                                          |
+| `definition` | String | No       | Additional requirements or notes for the log source                                                                                                               |
 
 > **Reference**: See [Sigma Log Sources](https://sigmahq.io/docs/basics/log-sources.html) for general guidance on log source classification.
 
@@ -94,7 +94,7 @@ A **selection** is a named object whose keys are [event field references](#dynam
 Field values can be:
 
 | Value Type | Behavior                                                       |
-|------------|----------------------------------------------------------------|
+| ---------- | -------------------------------------------------------------- |
 | String     | Exact match (case-insensitive). Supports wildcards `*` and `?` |
 | Number     | Exact numeric comparison                                       |
 | Array      | Matches if the field equals **any** element in the list (OR)   |
@@ -136,7 +136,7 @@ The `condition` field is a string expression that combines named selections usin
 ### Operators
 
 | Operator | Description                       | Example                              |
-|----------|-----------------------------------|--------------------------------------|
+| -------- | --------------------------------- | ------------------------------------ |
 | `and`    | Both operands must match          | `selection1 and selection2`          |
 | `or`     | At least one operand must match   | `sel_error or sel_warn`              |
 | `not`    | Negates the following operand     | `selection and not filter`           |
@@ -211,18 +211,18 @@ Multiple modifiers can be chained: `"field|modifier1|modifier2": "value"`.
 
 ### Supported Modifiers
 
-| Modifier     | Description                                                  | Example                                  |
-|--------------|--------------------------------------------------------------|------------------------------------------|
-| `contains`   | Field value contains the specified substring                 | `"message\|contains": "timeout"`          |
+| Modifier     | Description                                                  | Example                                       |
+| ------------ | ------------------------------------------------------------ | --------------------------------------------- |
+| `contains`   | Field value contains the specified substring                 | `"message\|contains": "timeout"`              |
 | `startswith` | Field value starts with the specified string                 | `"process.thread.name\|startswith": "Gossip"` |
-| `endswith`   | Field value ends with the specified string                   | `"process.thread.name\|endswith": "-5"`   |
-| `re`         | Field value matches the specified regular expression         | `"process.thread.name\|re": "^Repair"`    |
-| `cidr`       | IP field value falls within the specified CIDR subnet        | `"source.ip\|cidr": "10.42.0.0/16"`       |
-| `exists`     | Field exists (is not null/absent) in the event               | `"source.ip\|exists": true`               |
-| `gte`        | Field value is greater than or equal to the specified number | `"event.duration\|gte": 5000`             |
-| `gt`         | Field value is greater than the specified number             | `"event.severity\|gt": 7`                 |
-| `lte`        | Field value is less than or equal to the specified number    | `"event.severity\|lte": 3`                |
-| `lt`         | Field value is less than the specified number                | `"event.severity\|lt": 10`                |
+| `endswith`   | Field value ends with the specified string                   | `"process.thread.name\|endswith": "-5"`       |
+| `re`         | Field value matches the specified regular expression         | `"process.thread.name\|re": "^Repair"`        |
+| `cidr`       | IP field value falls within the specified CIDR subnet        | `"source.ip\|cidr": "10.42.0.0/16"`           |
+| `exists`     | Field exists (is not null/absent) in the event               | `"source.ip\|exists": true`                   |
+| `gte`        | Field value is greater than or equal to the specified number | `"event.duration\|gte": 5000`                 |
+| `gt`         | Field value is greater than the specified number             | `"event.severity\|gt": 7`                     |
+| `lte`        | Field value is less than or equal to the specified number    | `"event.severity\|lte": 3`                    |
+| `lt`         | Field value is less than the specified number                | `"event.severity\|lt": 10`                    |
 
 > **Reference**: See [Sigma Modifiers](https://sigmahq.io/docs/basics/modifiers.html) for additional context on value transformation modifiers.
 
@@ -231,7 +231,7 @@ Multiple modifiers can be chained: `"field|modifier1|modifier2": "value"`.
 Within string values (with or without modifiers), the following wildcard characters are supported:
 
 | Character | Meaning                         |
-|-----------|---------------------------------|
+| --------- | ------------------------------- |
 | `*`       | Matches zero or more characters |
 | `?`       | Matches exactly one character   |
 
@@ -266,12 +266,12 @@ This matches events where duration ≥ 5000 **and** severity < 10.
 
 ## Dynamic Event Field Referencing
 
-Detection selections reference fields from the normalized event using **dot-notation** paths aligned with the [Wazuh Common Schema (WCS)](../../glossary.md). These are the same field names produced by decoders during event normalization.
+Detection selections reference fields from the normalized event using **dot-notation** paths aligned with the [Wazuh Common Schema (WCS)](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/wcs). These are the same field names produced by decoders during event normalization.
 
 Examples of valid field references:
 
 | Field                  | Type   | Description                    |
-|------------------------|--------|--------------------------------|
+| ---------------------- | ------ | ------------------------------ |
 | `event.kind`           | String | Event classification           |
 | `event.category`       | Array  | Event category list            |
 | `event.action`         | String | Action performed               |
@@ -298,7 +298,7 @@ All fields referenced in the `detection` stanza are validated against the Wazuh 
 Detection conditions support IPv6 addresses in the following formats:
 
 | Format     | Example                                   |
-|------------|-------------------------------------------|
+| ---------- | ----------------------------------------- |
 | Standard   | `2001:0db8:85a3:0000:0000:8a2e:0370:7334` |
 | Compressed | `2001:db8:85a3::8a2e:370:7334`            |
 | CIDR       | `2001:db8::/32`                           |
@@ -335,7 +335,7 @@ These blocks are optional. Existing rules without them continue to work without 
 The `metadata` block contains authorship and lifecycle fields. All fields are optional unless noted.
 
 | Field           | Type   | Required | Description                                      |
-|-----------------|--------|----------|--------------------------------------------------|
+| --------------- | ------ | -------- | ------------------------------------------------ |
 | `title`         | String | Yes*     | Human-readable rule title                        |
 | `author`        | String | No       | Rule author                                      |
 | `date`          | String | No       | Creation date (ISO 8601, auto-managed)           |
@@ -345,7 +345,6 @@ The `metadata` block contains authorship and lifecycle fields. All fields are op
 | `documentation` | String | No       | Documentation text or URL                        |
 | `supports`      | Array  | No       | Supported platforms or contexts                  |
 
-> \* `title` is required when creating or updating rules via the API.
 
 **Example**
 
@@ -369,7 +368,7 @@ The `metadata` block contains authorship and lifecycle fields. All fields are op
 The `mitre` block maps a rule to MITRE ATT&CK tactics, techniques, and subtechniques. Each field is an array of ID strings.
 
 | Field          | Type  | Description                                  |
-|----------------|-------|----------------------------------------------|
+| -------------- | ----- | -------------------------------------------- |
 | `tactic`       | Array | MITRE tactic IDs (e.g., `TA0002`, `TA0005`)  |
 | `technique`    | Array | MITRE technique IDs (e.g., `T1059`, `T1562`) |
 | `subtechnique` | Array | MITRE subtechnique IDs (e.g., `T1059.001`)   |
@@ -395,7 +394,7 @@ The `compliance` block maps a rule to one or more compliance frameworks. Each ke
 **Supported frameworks**
 
 | Key            | Framework    |
-|----------------|--------------|
+| -------------- | ------------ |
 | `gdpr`         | GDPR         |
 | `pci_dss`      | PCI DSS      |
 | `cmmc`         | CMMC         |
