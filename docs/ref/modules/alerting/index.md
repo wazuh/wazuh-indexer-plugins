@@ -2,7 +2,7 @@
 
 The Wazuh Indexer Alerting plugin monitors data stored in the Wazuh Indexer, evaluates user-defined trigger conditions on a schedule, and executes actions when those conditions are met. Actions typically deliver notifications through the [Notifications](../notifications/index.md) plugin (Slack, email, webhooks, etc.) but can also drive Wazuh-specific workflows such as [Active Response](#active-response).
 
-The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch.org/docs/latest/observing-your-data/alerting/) adapted for Wazuh.
+The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/) adapted for Wazuh.
 
 ## Key Capabilities
 
@@ -30,7 +30,7 @@ Alerting actions route through the [Notifications](../notifications/index.md) pl
 
 The Alerting plugin includes a Wazuh-specific **Active Response monitor type** that extends document-level monitoring for automated response workflows. This monitor type has specific constraints:
 
-- **Indices:** Must target indices matching the `wazuh-findings-v5*` prefix.
+- **Indices:** Must target indices matching the `wazuh-findings-v5-*` prefix.
 - **Schedule:** Maximum interval of 1 minute (60,000 ms).
 - **Triggers:** Only `DocumentLevelTrigger` is supported.
 
@@ -51,8 +51,4 @@ On first startup, a sample alerting monitor is created alongside the [default no
 
 ## Further Reading
 
-For the full upstream API reference, advanced configuration, and Dashboard usage guides, see the [OpenSearch Alerting documentation](https://docs.opensearch.org/docs/latest/observing-your-data/alerting/).
-
-## Version
-
-The current plugin version is **5.0.0-alpha0** (see `VERSION.json` in the repository root).
+For the full upstream API reference, advanced configuration, and Dashboard usage guides, see the [OpenSearch Alerting documentation](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/).

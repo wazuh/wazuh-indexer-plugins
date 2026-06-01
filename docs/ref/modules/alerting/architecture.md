@@ -25,7 +25,7 @@ The alerting pipeline follows a linear flow:
 
 The Active Response monitor type enforces stricter validation than standard document-level monitors:
 
-- Indices must match the `wazuh-findings-v5*` prefix.
+- Indices must match the `wazuh-findings-v5-*` prefix.
 - Schedule interval cannot exceed 60,000 milliseconds (1 minute).
 - Only `DocumentLevelTrigger` is accepted — other trigger types are rejected.
 
@@ -66,7 +66,7 @@ Document-level monitors produce **findings** — records of individual documents
 - The queries (rules) that matched.
 - A timestamp of when the match was detected.
 
-Findings are stored in rolling indices (`.opensearch-alerting-finding-history-*`) with a default retention of 60 days.
+Findings are stored in rolling indices (`.opensearch-alerting-finding-history-*`) with a default retention of 30 days.
 
 In the Wazuh context, the [Security Analytics](../security-analytics/index.md) plugin enriches raw findings with the full event payload and rule metadata before writing them to `wazuh-findings-v5-*` indices.
 
@@ -84,8 +84,8 @@ The plugin manages the following system indices:
 | --- | --- | --- |
 | `.opendistro-alerting-alerts` | Current active alerts | — |
 | `.opendistro-alerting-alert-history-*` | Historical alert records | 30 days (daily rollover) |
-| `.opensearch-alerting-finding-history-*` | Document-level monitor findings | 60 days (12-hour rollover) |
-| `.opensearch-alerting-comments-history-*` | Alert comments and annotations | 60 days (12-hour rollover) |
+| `.opensearch-alerting-finding-history-*` | Document-level monitor findings | 30 days (12-hour rollover) |
+| `.opensearch-alerting-comments-history-*` | Alert comments and annotations | 30 days (12-hour rollover) |
 | `.scheduled-jobs` | Monitor and workflow definitions | — |
 
 Rollover periods and retention are configurable through [plugin settings](configuration.md).

@@ -1,6 +1,6 @@
 # API Reference
 
-The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base path. This page summarizes the available endpoints. For full request/response schemas, see the [OpenSearch Alerting API documentation](https://docs.opensearch.org/docs/latest/observing-your-data/alerting/api/).
+The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base path. This page summarizes the available endpoints. For full request/response schemas, see the [OpenSearch Alerting API documentation](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/api/).
 
 ## Endpoint Summary
 
