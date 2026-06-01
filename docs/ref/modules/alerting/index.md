@@ -28,7 +28,7 @@ Alerting actions route through the [Notifications](../notifications/index.md) pl
 
 ### Active Response
 
-The Alerting plugin includes a Wazuh-specific **Active Response monitor type** (`ACTIVE_RESPONSE_MONITOR`) that extends document-level monitoring for automated response workflows. This monitor type has specific constraints:
+The Alerting plugin includes a Wazuh-specific **Active Response monitor type** that extends document-level monitoring for automated response workflows. This monitor type has specific constraints:
 
 - **Indices:** Must target indices matching the `wazuh-findings-v5*` prefix.
 - **Schedule:** Maximum interval of 1 minute (60,000 ms).
