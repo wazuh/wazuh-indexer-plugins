@@ -1,0 +1,73 @@
+# Self-contained performance test environment for the Wazuh Indexer.
+#
+# Brings up the full primary scenario as VMs, provisioned end-to-end from the
+# official nightly artifacts (no host-side dependencies beyond Vagrant):
+#
+#   - aio       : manager + indexer + dashboard      16 GB / 8 vCPU   192.168.56.20
+#   - agent-1   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.56.21
+#   - agent-2   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.56.22
+#
+# Provider defaults to libvirt (matches tools/test-cluster). Box defaults to
+# Ubuntu 24.04. Both, the IPs and the sizing are overridable via env vars.
+#
+# Requirements: a host with ~20 GB free RAM and 12 vCPU. On Apple Silicon use a
+# provider/box pair that supports arm64 (e.g. PERF_PROVIDER=parallels
+# PERF_BOX=bento/ubuntu-24.04).
+#
+# Usage:
+#   cd tools/performance/vagrant && vagrant up
+#   ../vagrant/run-test.sh            # drive a full 60-min run (see run-test.sh)
+
+BOX           = ENV.fetch("PERF_BOX", "generic/ubuntu2404")
+PROVIDER      = ENV.fetch("PERF_PROVIDER", "libvirt")
+AIO_IP        = ENV.fetch("PERF_AIO_IP", "192.168.56.20")
+AGENT_IPS     = ENV.fetch("PERF_AGENT_IPS", "192.168.56.21,192.168.56.22").split(",")
+ARTIFACTS_URL = ENV.fetch(
+  "PERF_ARTIFACTS_URL",
+  "https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/artifact-urls/artifact_urls_5.0.0-latest.yaml"
+)
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+
+  # --- AIO: manager + indexer + dashboard ------------------------------------
+  config.vm.define "aio" do |aio|
+    aio.vm.hostname = "wazuh-aio"
+    aio.vm.network "private_network", ip: AIO_IP
+    # Mount the whole performance tooling dir so scripts + run outputs are shared.
+    aio.vm.synced_folder "..", "/opt/perf"
+    aio.vm.provider PROVIDER do |v|
+      v.memory = ENV.fetch("PERF_AIO_MEM", "16384")
+      v.cpus   = ENV.fetch("PERF_AIO_CPUS", "8")
+    end
+    aio.vm.provision "shell", inline: <<-SHELL
+      set -e
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -y && apt-get install -y curl tar python3 python3-requests
+      bash /opt/perf/scenario/setup-aio.sh \
+        --artifacts-url "#{ARTIFACTS_URL}" \
+        --password-out /opt/perf/runs/admin-password.txt
+    SHELL
+  end
+
+  # --- Agents: FIM + Logcollector load sources -------------------------------
+  AGENT_IPS.each_with_index do |ip, i|
+    name = "agent-#{i + 1}"
+    config.vm.define name do |agent|
+      agent.vm.hostname = name
+      agent.vm.network "private_network", ip: ip
+      agent.vm.synced_folder "..", "/opt/perf"
+      agent.vm.provider PROVIDER do |v|
+        v.memory = ENV.fetch("PERF_AGENT_MEM", "2048")
+        v.cpus   = ENV.fetch("PERF_AGENT_CPUS", "2")
+      end
+      agent.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y && apt-get install -y curl
+        bash /opt/perf/scenario/setup-agent.sh \
+          --manager #{AIO_IP} --artifacts-url "#{ARTIFACTS_URL}"
+      SHELL
+    end
+  end
+end
