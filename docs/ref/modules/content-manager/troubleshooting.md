@@ -4,6 +4,30 @@ Common issues and diagnostic procedures for the Content Manager plugin.
 
 ## Common Errors
 
+### Installation blocked: "/tmp partition is too small"
+
+The Wazuh Indexer package requires at least 10 GB of total space in the `/tmp` partition. The Content Manager plugin downloads CTI snapshots to `/tmp` during content synchronization, and these snapshots can exceed 4 GB.
+
+**Resolution:**
+
+- **Resize the partition:** Expand the `/tmp` partition to at least 10 GB.
+- **Mount a larger tmpfs:**
+  ```bash
+  sudo mount -o remount,size=10G /tmp
+  ```
+  To make this persistent, update `/etc/fstab`:
+  ```
+  tmpfs /tmp tmpfs defaults,size=10G 0 0
+  ```
+
+> **Note:** Some providers (e.g., Ubuntu 26) create a dedicated `/tmp` partition of only 4 GB by default.
+
+### "No space left on device" during content synchronization
+
+If the Wazuh Indexer is already installed but `/tmp` runs out of space during CTI snapshot downloads, other system operations (e.g., package installations) may fail with `No space left on device` errors.
+
+**Resolution:** Same as above — ensure `/tmp` has at least 10 GB of available space.
+
 ### "Error communicating with Engine socket: Connection refused"
 
 The Wazuh Engine is not running or the Unix socket is not accessible.

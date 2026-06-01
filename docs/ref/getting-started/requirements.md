@@ -41,3 +41,9 @@ The amount of data depends on the generated events per second (EPS). This table 
 | Network devices     | 0.5  | 7.4                                   |
 
 For example, for an environment with 80 workstations, 10 servers, and 10 network devices, the storage needed on the Wazuh indexer server for 90 days of events is 230 GB.
+
+#### `/tmp` storage requirements
+
+The Wazuh indexer requires at least **10 GB** of space in the `/tmp` partition. During content synchronization, the Content Manager plugin downloads CTI (Cyber Threat Intelligence) snapshots to `/tmp`, which can exceed the default size of some distributions.
+ 
+> **Note:** Some providers (e.g., Ubuntu 26) provision a dedicated `/tmp` partition of only 4 GB by default. If your `/tmp` partition is smaller than 10 GB, the Wazuh Indexer installation will be blocked. In that case, resize the `/tmp` partition or mount a larger `tmpfs` before installing.
