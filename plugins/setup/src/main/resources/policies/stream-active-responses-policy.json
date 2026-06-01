@@ -48,7 +48,7 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-active-responses*"
+          ".ds-wazuh-active-responses*"
         ],
         "priority": 100
       }
