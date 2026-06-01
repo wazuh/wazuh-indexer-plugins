@@ -109,6 +109,10 @@ Perform these steps on the new `5.x` host. The `4.x` cluster is not modified by 
     - Custom roles → add to `roles.yml` keeping the `5.x` index patterns and permission names.
     - Role mappings → add to `roles_mapping.yml` referencing the new role names.
     - External authentication backends (LDAP, SAML, OIDC, JWT, Kerberos) → re-create the corresponding `authc` / `authz` blocks in `config.yml`.
+
+    > **Tip — bulk copy alternative**:
+    > Reviewing every entry individually is the safest option, but it is also tedious and risks silently dropping a custom user or role you set up long ago and no longer remember. As an alternative, you can copy **all** custom entries from the `4.x` files into the corresponding `5.x` files at once, then prune afterwards. This guarantees nothing is lost, at the cost of dragging along stale or obsolete entries. If you take this approach, be aware that copied entries may reference `4.x` index patterns or permission names that changed in `5.x`, and may collide with the new `5.x` default users and roles — so still validate the result against [Access Control](../../ref/security/access-control.md) before applying.
+
 4. Apply the configuration with the `securityadmin` tool shipped with the package.
 5. Restart the service and verify authentication works for each backend before pointing production traffic at the new cluster.
 
@@ -127,7 +131,7 @@ Refer to the upstream OpenSearch Security documentation for the exact syntax of 
 
 ## Related documentation
 
-- [Migration Guide](README.md) — entry point and prerequisites
+- [Migration Guide](./README.md) — entry point and prerequisites
 - [Authentication migration](#security-configuration) — security plugin configuration
 - [Access Control](../../ref/security/access-control.md) — 5.x default users and roles
 - [Defining Users and Roles](../../ref/security/defining-users-and-roles.md) — how to declare new users and roles in 5.x
