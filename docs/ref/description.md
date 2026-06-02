@@ -1,6 +1,6 @@
 # Description
 
-The Wazuh Indexer is a highly scalable, full-text search and analytics engine built on top of [OpenSearch](https://opensearch.org/) 3. In Wazuh 5.0 it becomes the **core component of the Wazuh platform**: in addition to indexing and storing security data, it now embeds the Wazuh Engine and hosts the threat detection, alerting, notification, reporting, and content management logic that previously ran on the Wazuh Server.
+The Wazuh Indexer is a highly scalable, full-text search and analytics engine built on top of [OpenSearch](https://opensearch.org/) 3. In Wazuh 5.0 it becomes the **core component of the Wazuh platform**: in addition to indexing and storing security data, it now embeds the Wazuh Engine and hosts the threat detection, alerting, notification, reporting, and content management logic that previously ran on the Wazuh Manager.
 
 The Wazuh Indexer can be deployed as a single-node instance for development and small environments, or as a multi-node cluster for production workloads requiring high availability and horizontal scalability.
 
@@ -9,9 +9,9 @@ The Wazuh Indexer can be deployed as a single-node instance for development and 
 Wazuh 5.0 consolidates most of the platform's data plane and detection logic inside the Indexer:
 
 - The **Wazuh Engine** is bundled into the Wazuh Indexer packages and Docker images (x86_64 and aarch64). Plugins communicate with the Engine over a local Unix socket.
-- **Threat detection** has been migrated from the Wazuh Server to the Indexer through the Security Analytics plugin (a Wazuh fork of the OpenSearch Security Analytics plugin), with extended Sigma rules syntax and per-space rules, log types and detectors.
+- **Threat detection** has been migrated from the Wazuh Manager to the Indexer through the Security Analytics plugin (a Wazuh fork of the OpenSearch Security Analytics plugin), with extended Sigma rules syntax and per-space rules, log types and detectors.
 - **Active Response** has been migrated to the Indexer, driven by a dedicated Alerting monitor and persisted in the `wazuh-active-responses` data stream.
-- **Filebeat is no longer used** to forward events between the Wazuh Server and the Indexer. Events now reach the Indexer through a built-in indexer connector.
+- **Filebeat is no longer used** to forward events between the Wazuh Manager and the Indexer. Events now reach the Indexer through a built-in indexer connector.
 - Time-series data (events, findings, metrics, raw events, active responses) is stored in **data streams** with **ISM policies** for automatic rollover and retention.
 - A new **Content Manager** plugin owns the lifecycle of detection content (ruleset, vulnerabilities feed, IoC feed) and exposes a REST API for user-defined content with a `draft → test → custom` promotion workflow.
 - The **Wazuh Common Schema (WCS)** has been reworked and now lives in the `wazuh-indexer-plugins` repository, bumped to ECS 9.1.0, with per-category event and finding data streams.
@@ -115,8 +115,8 @@ Agent and rule metadata is now relocated under the `wazuh.*` namespace, and inve
 
 In 5.0 the Wazuh Indexer is the central processing and storage tier of the platform:
 
-- **Wazuh Agents** collect endpoint data and send it to the Wazuh Server.
-- **Wazuh Server** acts as the ingestion gateway. It no longer runs analysis, threat detection, content management or active response — these have moved into the Indexer. Events are forwarded to the Indexer through the built-in indexer connector (Filebeat is no longer required).
+- **Wazuh Agents** collect endpoint data and send it to the Wazuh Manager.
+- **Wazuh Manager** acts as the ingestion gateway. It no longer runs analysis, threat detection, content management or active response — these have moved into the Indexer. Events are forwarded to the Indexer through the built-in indexer connector (Filebeat is no longer required).
 - **Wazuh Indexer**, through the bundled Wazuh Engine and its plugins, normalizes events, runs threat detection, manages detection content, dispatches notifications and active responses, and stores all resulting data.
 - **Wazuh Dashboard** (an OpenSearch Dashboards fork) provides the web UI for searching, visualizing and managing Wazuh data, and interacts with the Setup, Content Manager, Security Analytics, Alerting, Notifications and Reporting plugin APIs.
 
