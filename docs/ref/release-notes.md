@@ -17,7 +17,7 @@
   - Implements a REST API for content management, log testing, manual updates, promotion, subscription management, and version checks.
   - Daily version-check ping to Wazuh CTI to surface content updates and deployment telemetry.
 - Fork of OpenSearch's Security Analytics plugin. [[1][fork-security-analytics]]
-  - Threat Detection migrated from the Wazuh Server to the Wazuh Indexer Security Analytics plugin.
+  - Threat Detection migrated from the Wazuh Manager to the Wazuh Indexer Security Analytics plugin.
   - Extended Sigma rules syntax [#47](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/47).
   - Per-space support for Log Types and Rules [#37](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/37).
   - Per-space threat detectors [#117](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/117).
@@ -63,7 +63,7 @@
 - Wazuh Indexer 4.x can not be upgraded to 5.x. A new installation of Wazuh Indexer 5.x is required.
 - Multi-tenancy disabled by default [#1080](https://github.com/wazuh/wazuh-indexer/issues/1080).
 - Remove Performance Analyzer plugin from Wazuh Indexer packages [#891](https://github.com/wazuh/wazuh-indexer/issues/891).
-- Filebeat is no longer used to forward events from the Wazuh server to the Wazuh indexer — replaced by the built-in indexer connector.
+- Filebeat is no longer used to forward events from the Wazuh Manager to the Wazuh indexer — replaced by the built-in indexer connector.
 - Upgrade to OpenSearch 3.0 [#874](https://github.com/wazuh/wazuh-indexer/issues/874).
   - Replace and remove deprecated settings — configurations carried over from 4.x are no longer valid [#475](https://github.com/wazuh/wazuh-indexer-plugins/issues/475).
   - Update to JDK 25 [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341).

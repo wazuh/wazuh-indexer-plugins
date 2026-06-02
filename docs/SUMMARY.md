@@ -61,3 +61,7 @@
   - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
 - [Performance]()
 - [Glossary]()
+
+---
+
+[Release Notes](ref/release-notes.md)
