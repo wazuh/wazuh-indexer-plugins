@@ -1,33 +1,37 @@
 # Self-contained performance test environment for the Wazuh Indexer.
 #
-# Brings up the full primary scenario as VMs, provisioned end-to-end from the
-# official nightly artifacts (no host-side dependencies beyond Vagrant):
+# Two topologies, selected with PERF_TRACK:
 #
-#   - aio       : manager + indexer + dashboard      16 GB / 8 vCPU   192.168.60.20
-#   - agent-1   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.21
-#   - agent-2   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.22
+#   PERF_TRACK=A (default) — real-world scenario (Track A):
+#     - aio       : manager + indexer + dashboard      16 GB / 8 vCPU   192.168.60.20
+#     - agent-1   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.21
+#     - agent-2   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.22
+#
+#   PERF_TRACK=BC — indexer-only + synthetic load (Tracks B/C):
+#     - indexer   : single-node wazuh-indexer + node_exporter   16 GB / 8 vCPU   192.168.60.20
+#     - monitor   : Prometheus + Grafana + OpenSearch Benchmark   2 GB / 2 vCPU   192.168.60.30
 #
 # Works with VirtualBox, libvirt, Parallels and VMware — VM sizing is applied to
-# every provider, so `vagrant up` (or `vagrant up --provider=libvirt`) gets the
-# right resources regardless of which provider is selected.
-#
-# Requirements: a host with ~20 GB free RAM and 12 vCPU. The default box
-# (bento/ubuntu-24.04) covers VirtualBox/Parallels/VMware including Apple Silicon.
-# For libvirt, override with a libvirt-capable box, e.g.
+# every provider. For libvirt, override the box, e.g.
 #   PERF_BOX=cloud-image/ubuntu-24.04 vagrant up --provider=libvirt
 #
 # Usage:
-#   cd tools/performance/vagrant && vagrant up           # 5.x by default
-#   PERF_VERSION=4.14 vagrant up                          # or a 4.x AIO
-#   ./run-test.sh --label wazuh-$PERF_VERSION             # drive a full 60-min run
+#   vagrant up                                   # Track A, 5.x
+#   PERF_VERSION=4.14 vagrant up                  # Track A, 4.x
+#   ./run-test.sh --label wazuh-$PERF_VERSION     # drive the Track A run
+#
+#   PERF_TRACK=BC vagrant up                      # indexer + monitor, 5.x
+#   ./run-track-c.sh                              # cold-start + synthetic load
 
-BOX       = ENV.fetch("PERF_BOX", "bento/ubuntu-24.04")
+BOX        = ENV.fetch("PERF_BOX", "bento/ubuntu-24.04")
+TRACK      = ENV.fetch("PERF_TRACK", "A")
 # Wazuh version to provision (4.x or 5.x). Selects the installer source uniformly.
-VERSION   = ENV.fetch("PERF_VERSION", "5.0.0")
+VERSION    = ENV.fetch("PERF_VERSION", "5.0.0")
 # Default subnet is 192.168.60.x to avoid colliding with VirtualBox's default
 # host-only range (192.168.56.x), which breaks libvirt network creation.
-AIO_IP    = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
-AGENT_IPS = ENV.fetch("PERF_AGENT_IPS", "192.168.60.21,192.168.60.22").split(",")
+INDEXER_IP = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
+AGENT_IPS  = ENV.fetch("PERF_AGENT_IPS", "192.168.60.21,192.168.60.22").split(",")
+MONITOR_IP = ENV.fetch("PERF_MONITOR_IP", "192.168.60.30")
 
 # Apply CPU/memory to whichever provider ends up active.
 def configure_size(vm, mem, cpus)
@@ -52,38 +56,72 @@ end
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
 
-  # --- AIO: manager + indexer + dashboard ------------------------------------
-  config.vm.define "aio" do |aio|
-    aio.vm.hostname = "wazuh-aio"
-    aio.vm.network "private_network", ip: AIO_IP
-    # Mount the whole performance tooling dir so scripts + run outputs are shared.
-    aio.vm.synced_folder "..", "/opt/perf"
-    configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "16384"), ENV.fetch("PERF_AIO_CPUS", "8"))
-    aio.vm.provision "shell", inline: <<-SHELL
-      set -e
-      export DEBIAN_FRONTEND=noninteractive
-      apt-get update -y && apt-get install -y curl tar python3 python3-requests python3-psutil
-      bash /opt/perf/scenario/setup-aio.sh \
-        --version "#{VERSION}" \
-        --password-out /opt/perf/runs/admin-password.txt
-    SHELL
-  end
-
-  # --- Agents: FIM + Logcollector load sources -------------------------------
-  AGENT_IPS.each_with_index do |ip, i|
-    name = "agent-#{i + 1}"
-    config.vm.define name do |agent|
-      agent.vm.hostname = name
-      agent.vm.network "private_network", ip: ip
-      agent.vm.synced_folder "..", "/opt/perf"
-      configure_size(agent.vm, ENV.fetch("PERF_AGENT_MEM", "2048"), ENV.fetch("PERF_AGENT_CPUS", "2"))
-      agent.vm.provision "shell", inline: <<-SHELL
+  if TRACK == "BC"
+    # --- Indexer-only node + node_exporter (Tracks B/C) ----------------------
+    config.vm.define "indexer" do |indexer|
+      indexer.vm.hostname = "wazuh-indexer"
+      indexer.vm.network "private_network", ip: INDEXER_IP
+      indexer.vm.synced_folder "..", "/opt/perf"
+      configure_size(indexer.vm, ENV.fetch("PERF_INDEXER_MEM", "16384"), ENV.fetch("PERF_INDEXER_CPUS", "8"))
+      indexer.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive
-        apt-get update -y && apt-get install -y curl
-        bash /opt/perf/scenario/setup-agent.sh \
-          --version "#{VERSION}" --manager #{AIO_IP}
+        apt-get update -y && apt-get install -y curl tar python3 python3-requests
+        bash /opt/perf/scenario/setup-indexer.sh \
+          --version "#{VERSION}" \
+          --password-out /opt/perf/runs/admin-password.txt
+        bash /opt/perf/monitoring/setup-node-exporter.sh
       SHELL
+    end
+
+    # --- Monitor: Prometheus + Grafana + OpenSearch Benchmark ----------------
+    config.vm.define "monitor" do |monitor|
+      monitor.vm.hostname = "perf-monitor"
+      monitor.vm.network "private_network", ip: MONITOR_IP
+      monitor.vm.synced_folder "..", "/opt/perf"
+      configure_size(monitor.vm, ENV.fetch("PERF_MONITOR_MEM", "2048"), ENV.fetch("PERF_MONITOR_CPUS", "2"))
+      monitor.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y && apt-get install -y curl python3 python3-pip python3-requests
+        pip3 install --break-system-packages opensearch-benchmark
+        bash /opt/perf/monitoring/setup-monitor.sh --indexer-host #{INDEXER_IP}
+      SHELL
+    end
+
+  else
+    # --- AIO: manager + indexer + dashboard (Track A) ------------------------
+    config.vm.define "aio" do |aio|
+      aio.vm.hostname = "wazuh-aio"
+      aio.vm.network "private_network", ip: INDEXER_IP
+      aio.vm.synced_folder "..", "/opt/perf"
+      configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "16384"), ENV.fetch("PERF_AIO_CPUS", "8"))
+      aio.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y && apt-get install -y curl tar python3 python3-requests python3-psutil
+        bash /opt/perf/scenario/setup-aio.sh \
+          --version "#{VERSION}" \
+          --password-out /opt/perf/runs/admin-password.txt
+      SHELL
+    end
+
+    # --- Agents: FIM + Logcollector load sources -----------------------------
+    AGENT_IPS.each_with_index do |ip, i|
+      name = "agent-#{i + 1}"
+      config.vm.define name do |agent|
+        agent.vm.hostname = name
+        agent.vm.network "private_network", ip: ip
+        agent.vm.synced_folder "..", "/opt/perf"
+        configure_size(agent.vm, ENV.fetch("PERF_AGENT_MEM", "2048"), ENV.fetch("PERF_AGENT_CPUS", "2"))
+        agent.vm.provision "shell", inline: <<-SHELL
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -y && apt-get install -y curl
+          bash /opt/perf/scenario/setup-agent.sh \
+            --version "#{VERSION}" --manager #{INDEXER_IP}
+        SHELL
+      end
     end
   end
 end

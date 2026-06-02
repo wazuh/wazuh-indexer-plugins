@@ -19,6 +19,7 @@ USER="admin"
 PASSWORD="admin"
 DOCS=1000000
 OUT="./runs/osb-$(date +%Y%m%d-%H%M%S)"
+NO_HOST=""   # set --no-host when host metrics come from node_exporter (Track C)
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -27,7 +28,8 @@ while [[ $# -gt 0 ]]; do
         --password) PASSWORD="$2"; shift 2 ;;
         --docs)     DOCS="$2"; shift 2 ;;
         --out)      OUT="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--target URL] [--user U] [--password P] [--docs N] [--out DIR]"; exit 1 ;;
+        --no-host)  NO_HOST="--no-host"; shift ;;
+        *) echo "Usage: $0 [--target URL] [--user U] [--password P] [--docs N] [--out DIR] [--no-host]"; exit 1 ;;
     esac
 done
 
@@ -43,7 +45,7 @@ HOST="${TARGET#https://}"; HOST="${HOST#http://}"
 
 # Sample cluster internals for ~10 min alongside the benchmark (background).
 python3 "$SAMPLER" --endpoint "$TARGET" --user "$USER" --password "$PASSWORD" \
-    --interval 60 --duration 600 --out "$OUT" --insecure &
+    --interval 60 --duration 600 --out "$OUT" --insecure $NO_HOST &
 SAMPLER_PID=$!
 
 echo "[INFO] Running OpenSearch Benchmark against $HOST ..."

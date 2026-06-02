@@ -5,7 +5,10 @@
 # Assumes `vagrant up` has provisioned the env (aio + agents). It:
 #   1. starts the FIM + Logcollector load loops on every agent VM (background),
 #   2. runs the per-minute measurement window on the AIO VM,
-#   3. leaves results in tools/performance/runs/ (shared via the synced folder).
+#   3. pulls the results back to tools/performance/runs/ over SSH.
+#
+# Everything is done over `vagrant ssh` — the synced folder is NOT relied on for
+# guest→host transfer (vagrant-libvirt syncs host→guest only).
 #
 # Run from tools/performance/vagrant/.
 #
@@ -53,7 +56,9 @@ fi
 AGENTS=$(vagrant status --machine-readable | awk -F, '$3=="state" && $2!="aio" && $2!="" {print $2}')
 echo "[INFO] Agents: $AGENTS"
 
-OUT="/opt/perf/runs/aio-run"
+# Guest-local output dir (NOT under the synced mount; pulled back over SSH below).
+OUT_GUEST="/root/perf-run"
+LOCAL_OUT="../runs/aio-run"
 
 echo "[INFO] Starting load loops (rate=${RATE}/s, duration=${DURATION}s) ..."
 PIDS=()
@@ -67,10 +72,16 @@ echo "[INFO] Running measurement window on aio ..."
 vagrant ssh aio -c \
     "sudo /opt/perf/scenario/run-scenario.sh \
         --endpoint https://localhost:9200 --user admin --password '$PASSWORD' \
-        --duration $DURATION --interval $INTERVAL --insecure --out $OUT \
+        --duration $DURATION --interval $INTERVAL --insecure --out $OUT_GUEST \
         ${LABEL:+--label '$LABEL'}"
 
 # Wait for the agent load loops to finish.
 for pid in "${PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done
 
-echo "[INFO] Done. Results: tools/performance/runs/aio-run/ (metrics.csv, metrics.ndjson, run-metadata.json)"
+# Pull results from the guest over SSH (base64 keeps the tar stream intact).
+echo "[INFO] Fetching results from the AIO VM ..."
+mkdir -p "$LOCAL_OUT"
+vagrant ssh aio -c "sudo tar -czf - -C $OUT_GUEST . | base64" 2>/dev/null \
+    | base64 -d | tar -xzf - -C "$LOCAL_OUT"
+
+echo "[INFO] Done. Results: tools/performance/runs/aio-run/ (metrics.csv, metrics.ndjson, run-metadata.json, report.md)"

@@ -6,6 +6,9 @@ benchmark/workloads/wazuh-events/workload-params.json
 # Run outputs (metrics, reports)
 runs/
 
+# Rendered monitor scrape config (produced by setup-monitor.sh)
+monitoring/prometheus.rendered.yml
+
 # Python virtual env and other local files
 venv/
 __pycache__/
