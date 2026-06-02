@@ -82,8 +82,7 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.FILTERS_URI));
+        return List.of(new Route(POST, PluginSettings.FILTERS_URI));
     }
 
     @Override

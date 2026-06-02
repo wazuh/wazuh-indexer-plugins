@@ -75,8 +75,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.LOGTEST_URI));
+        return List.of(new Route(POST, PluginSettings.LOGTEST_URI));
     }
 
     /**

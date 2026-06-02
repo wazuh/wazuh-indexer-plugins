@@ -71,8 +71,7 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(DELETE, PluginSettings.RULES_URI + "/{id}"));
+        return List.of(new Route(DELETE, PluginSettings.RULES_URI + "/{id}"));
     }
 
     @Override

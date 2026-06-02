@@ -84,8 +84,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(PUT, PluginSettings.INTEGRATIONS_URI + "/{id}"));
+        return List.of(new Route(PUT, PluginSettings.INTEGRATIONS_URI + "/{id}"));
     }
 
     @Override

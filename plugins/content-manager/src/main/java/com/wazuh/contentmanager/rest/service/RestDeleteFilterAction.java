@@ -90,8 +90,7 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(DELETE, PluginSettings.FILTERS_URI + "/{id}"));
+        return List.of(new Route(DELETE, PluginSettings.FILTERS_URI + "/{id}"));
     }
 
     @Override

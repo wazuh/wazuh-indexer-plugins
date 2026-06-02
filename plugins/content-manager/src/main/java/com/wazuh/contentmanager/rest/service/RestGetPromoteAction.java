@@ -61,8 +61,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(GET, PluginSettings.PROMOTE_URI));
+        return List.of(new Route(GET, PluginSettings.PROMOTE_URI));
     }
 
     @Override

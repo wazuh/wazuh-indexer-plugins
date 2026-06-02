@@ -20,10 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
@@ -227,8 +227,7 @@ public abstract class AbstractContentAction extends BaseRestHandler {
             OpenSearchSecurityException secEx = extractSecurityException(e);
             if (secEx != null) {
                 channel.sendResponse(
-                        new RestResponse(secEx.getMessage(), secEx.status().getStatus())
-                                .toBytesRestResponse());
+                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()).toBytesRestResponse());
                 return;
             }
             log.error("Error processing request", e);

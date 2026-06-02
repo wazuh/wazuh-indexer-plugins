@@ -75,8 +75,7 @@ public class RestPutDecoderAction extends AbstractUpdateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(PUT, PluginSettings.DECODERS_URI + "/{id}"));
+        return List.of(new Route(PUT, PluginSettings.DECODERS_URI + "/{id}"));
     }
 
     @Override

@@ -76,8 +76,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(GET, PluginSettings.SUBSCRIPTION_URI));
+        return List.of(new Route(GET, PluginSettings.SUBSCRIPTION_URI));
     }
 
     /**

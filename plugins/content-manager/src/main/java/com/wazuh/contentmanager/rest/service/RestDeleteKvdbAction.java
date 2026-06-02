@@ -70,8 +70,7 @@ public class RestDeleteKvdbAction extends AbstractDeleteAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(DELETE, PluginSettings.KVDBS_URI + "/{id}"));
+        return List.of(new Route(DELETE, PluginSettings.KVDBS_URI + "/{id}"));
     }
 
     @Override

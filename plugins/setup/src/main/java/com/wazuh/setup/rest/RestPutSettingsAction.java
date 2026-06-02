@@ -69,8 +69,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(RestRequest.Method.PUT, SettingsIndex.SETTINGS_URI));
+        return List.of(new Route(RestRequest.Method.PUT, SettingsIndex.SETTINGS_URI));
     }
 
     @Override

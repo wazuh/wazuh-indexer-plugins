@@ -36,8 +36,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <p>Triggers a CTI content update operation.
  *
- * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 409 Conflict: A content
- * update is already in progress. - 500 Internal Server Error: Unexpected error during processing.
+ * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 409
+ * Conflict: A content update is already in progress. - 500 Internal Server Error: Unexpected error
+ * during processing.
  */
 public class RestPostUpdateAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
@@ -66,8 +67,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.UPDATE_URI));
+        return List.of(new Route(POST, PluginSettings.UPDATE_URI));
     }
 
     @Override

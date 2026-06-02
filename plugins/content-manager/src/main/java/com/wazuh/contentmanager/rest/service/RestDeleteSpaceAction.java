@@ -71,8 +71,7 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(DELETE, PluginSettings.SPACE_URI + "/{space}"));
+        return List.of(new Route(DELETE, PluginSettings.SPACE_URI + "/{space}"));
     }
 
     @Override

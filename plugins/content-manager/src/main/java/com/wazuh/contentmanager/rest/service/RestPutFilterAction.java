@@ -91,8 +91,7 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(PUT, PluginSettings.FILTERS_URI + "/{id}"));
+        return List.of(new Route(PUT, PluginSettings.FILTERS_URI + "/{id}"));
     }
 
     @Override

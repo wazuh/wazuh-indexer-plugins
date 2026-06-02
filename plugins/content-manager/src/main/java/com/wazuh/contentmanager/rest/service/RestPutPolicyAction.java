@@ -130,8 +130,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(PUT, PluginSettings.POLICY_URI + "/{space}"));
+        return List.of(new Route(PUT, PluginSettings.POLICY_URI + "/{space}"));
     }
 
     /**
@@ -377,8 +376,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
         mergedPolicy.getMetadata().setCompatibility(existingCompatibility);
 
         Object existingRootDecoder = currentPolicyDoc.get("root_decoder");
-        String rootDecoderValue =
-                existingRootDecoder != null ? existingRootDecoder.toString() : null;
+        String rootDecoderValue = existingRootDecoder != null ? existingRootDecoder.toString() : null;
         mergedPolicy.setRootDecoder(
                 rootDecoderValue != null && !rootDecoderValue.isEmpty() ? rootDecoderValue : null);
         mergedPolicy.setIntegrations(

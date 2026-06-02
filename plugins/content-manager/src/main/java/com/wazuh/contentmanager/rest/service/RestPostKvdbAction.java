@@ -76,8 +76,7 @@ public class RestPostKvdbAction extends AbstractCreateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.KVDBS_URI));
+        return List.of(new Route(POST, PluginSettings.KVDBS_URI));
     }
 
     @Override

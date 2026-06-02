@@ -75,8 +75,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.SUBSCRIPTION_URI));
+        return List.of(new Route(POST, PluginSettings.SUBSCRIPTION_URI));
     }
 
     /**

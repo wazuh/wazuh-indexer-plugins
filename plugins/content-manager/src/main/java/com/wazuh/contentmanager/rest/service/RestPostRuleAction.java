@@ -82,8 +82,7 @@ public class RestPostRuleAction extends AbstractCreateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.RULES_URI));
+        return List.of(new Route(POST, PluginSettings.RULES_URI));
     }
 
     @Override

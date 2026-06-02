@@ -105,8 +105,7 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(GET, PluginSettings.VERSION_CHECK_URI));
+        return List.of(new Route(GET, PluginSettings.VERSION_CHECK_URI));
     }
 
     @Override

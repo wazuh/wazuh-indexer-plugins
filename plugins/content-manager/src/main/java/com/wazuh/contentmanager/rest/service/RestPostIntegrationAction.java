@@ -74,8 +74,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.INTEGRATIONS_URI));
+        return List.of(new Route(POST, PluginSettings.INTEGRATIONS_URI));
     }
 
     @Override

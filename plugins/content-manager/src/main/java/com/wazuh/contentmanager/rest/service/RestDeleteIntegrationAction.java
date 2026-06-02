@@ -89,8 +89,7 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(DELETE, PluginSettings.INTEGRATIONS_URI + "/{id}"));
+        return List.of(new Route(DELETE, PluginSettings.INTEGRATIONS_URI + "/{id}"));
     }
 
     @Override

@@ -71,8 +71,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(DELETE, PluginSettings.SUBSCRIPTION_URI));
+        return List.of(new Route(DELETE, PluginSettings.SUBSCRIPTION_URI));
     }
 
     /**

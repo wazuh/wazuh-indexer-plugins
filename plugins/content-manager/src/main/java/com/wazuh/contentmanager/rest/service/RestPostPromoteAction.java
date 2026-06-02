@@ -108,8 +108,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(RestRequest.Method.POST, PluginSettings.PROMOTE_URI));
+        return List.of(new Route(RestRequest.Method.POST, PluginSettings.PROMOTE_URI));
     }
 
     /**

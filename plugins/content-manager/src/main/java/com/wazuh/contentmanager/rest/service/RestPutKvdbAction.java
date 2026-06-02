@@ -75,8 +75,7 @@ public class RestPutKvdbAction extends AbstractUpdateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(PUT, PluginSettings.KVDBS_URI + "/{id}"));
+        return List.of(new Route(PUT, PluginSettings.KVDBS_URI + "/{id}"));
     }
 
     @Override

@@ -76,8 +76,7 @@ public class RestPostDecoderAction extends AbstractCreateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new Route(POST, PluginSettings.DECODERS_URI));
+        return List.of(new Route(POST, PluginSettings.DECODERS_URI));
     }
 
     @Override
