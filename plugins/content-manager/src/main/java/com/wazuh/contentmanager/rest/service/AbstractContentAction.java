@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
@@ -190,8 +191,27 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                         "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception ex) {
+            OpenSearchSecurityException secEx = extractSecurityException(ex);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             return new RestResponse(
                     "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /**
+     * Walks the exception cause chain looking for an {@link OpenSearchSecurityException}. Returns it
+     * if found, or {@code null} otherwise.
+     */
+    protected static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof OpenSearchSecurityException) {
+                return (OpenSearchSecurityException) cause;
+            }
+            cause = cause.getCause();
         }
         return null;
     }
@@ -204,6 +224,13 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      */
     private static void sendErrorResponse(RestChannel channel, Exception e) {
         try {
+            OpenSearchSecurityException secEx = extractSecurityException(e);
+            if (secEx != null) {
+                channel.sendResponse(
+                        new RestResponse(secEx.getMessage(), secEx.status().getStatus())
+                                .toBytesRestResponse());
+                return;
+            }
             log.error("Error processing request", e);
             RestResponse error =
                     new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());

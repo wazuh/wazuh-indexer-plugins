@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.rest.service;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -58,7 +57,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteDecoderAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/decoder_delete";
 
     public RestDeleteDecoderAction(EngineService engine) {
         super(engine);
@@ -78,11 +76,7 @@ public class RestDeleteDecoderAction extends AbstractDeleteAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.DECODERS_URI + "/{id}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(DELETE, PluginSettings.DECODERS_URI + "/{id}"));
     }
 
     @Override

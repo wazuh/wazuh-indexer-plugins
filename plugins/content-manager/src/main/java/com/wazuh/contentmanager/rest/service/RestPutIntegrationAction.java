@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.util.Collections;
@@ -67,7 +66,6 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestPutIntegrationAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_update";
 
     public RestPutIntegrationAction(EngineService engine) {
         super(engine);
@@ -87,11 +85,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.INTEGRATIONS_URI + "/{id}")
-                        .method(PUT)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(PUT, PluginSettings.INTEGRATIONS_URI + "/{id}"));
     }
 
     @Override
@@ -188,6 +182,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
         } catch (Exception e) {
+            if (extractSecurityException(e) != null) throw e;
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());

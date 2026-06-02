@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
@@ -65,7 +64,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostRuleAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_create";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
 
     public RestPostRuleAction() {
         super(null);
@@ -85,11 +83,7 @@ public class RestPostRuleAction extends AbstractCreateAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.RULES_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(POST, PluginSettings.RULES_URI));
     }
 
     @Override
@@ -166,6 +160,7 @@ public class RestPostRuleAction extends AbstractCreateAction {
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
+            if (extractSecurityException(e) != null) throw e;
             String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,

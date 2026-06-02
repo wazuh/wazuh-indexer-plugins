@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -55,7 +54,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class RestPostPromoteAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostPromoteAction.class);
     private static final String ENDPOINT_NAME = "content_manager_promote";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote";
 
     /** All resource types in the order they should be processed during consolidation. */
     private static final List<String> APPLY_RESOURCE_TYPES =
@@ -111,11 +109,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.PROMOTE_URI)
-                        .method(RestRequest.Method.POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(RestRequest.Method.POST, PluginSettings.PROMOTE_URI));
     }
 
     /**

@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -48,7 +47,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  */
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_delete";
     private final SubscriptionService subscriptionService;
 
     /**
@@ -74,11 +72,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.SUBSCRIPTION_URI)
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(DELETE, PluginSettings.SUBSCRIPTION_URI));
     }
 
     /**

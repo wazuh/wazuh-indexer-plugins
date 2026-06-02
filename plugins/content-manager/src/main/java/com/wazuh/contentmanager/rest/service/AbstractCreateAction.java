@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
@@ -215,6 +216,10 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             return new RestResponse(id, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
+            OpenSearchSecurityException secEx = extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             log.error(
                     Constants.E_LOG_OPERATION_FAILED,
                     "creating",

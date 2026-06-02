@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -47,7 +46,6 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  */
 public class RestGetPromoteAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_promote_preview";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote_preview";
     private static final Logger log = LogManager.getLogger(RestGetPromoteAction.class);
 
     private final SpaceService spaceService;
@@ -64,11 +62,7 @@ public class RestGetPromoteAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.PROMOTE_URI)
-                        .method(GET)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(GET, PluginSettings.PROMOTE_URI));
     }
 
     @Override

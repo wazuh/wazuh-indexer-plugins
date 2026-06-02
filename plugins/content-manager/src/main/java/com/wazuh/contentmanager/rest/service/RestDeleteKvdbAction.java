@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -53,7 +52,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteKvdbAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_delete";
 
     public RestDeleteKvdbAction(EngineService engine) {
         super(engine);
@@ -73,11 +71,7 @@ public class RestDeleteKvdbAction extends AbstractDeleteAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.KVDBS_URI + "/{id}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(DELETE, PluginSettings.KVDBS_URI + "/{id}"));
     }
 
     @Override

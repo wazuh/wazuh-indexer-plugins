@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -48,8 +47,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  */
 public class RestPostLogtestNormalizationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_logtest_normalization";
-    private static final String ENDPOINT_UNIQUE_NAME =
-            "plugin:content_manager/engine_logtest_normalization";
 
     private final LogtestService logtestService;
     private final PayloadValidations payloadValidations;
@@ -78,11 +75,7 @@ public class RestPostLogtestNormalizationAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.LOGTEST_NORMALIZATION_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(POST, PluginSettings.LOGTEST_NORMALIZATION_URI));
     }
 
     /**

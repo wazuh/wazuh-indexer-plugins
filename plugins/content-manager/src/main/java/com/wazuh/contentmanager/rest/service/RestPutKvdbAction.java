@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
@@ -58,7 +57,6 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestPutKvdbAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_update";
 
     public RestPutKvdbAction(EngineService engine) {
         super(engine);
@@ -78,11 +76,7 @@ public class RestPutKvdbAction extends AbstractUpdateAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.KVDBS_URI + "/{id}")
-                        .method(PUT)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(PUT, PluginSettings.KVDBS_URI + "/{id}"));
     }
 
     @Override

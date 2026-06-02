@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.client.Client;
 
@@ -61,7 +60,6 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestPutRuleAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_update";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_update";
 
     public RestPutRuleAction() {
         super(null);
@@ -81,11 +79,7 @@ public class RestPutRuleAction extends AbstractUpdateAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.RULES_URI + "/{id}")
-                        .method(PUT)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(PUT, PluginSettings.RULES_URI + "/{id}"));
     }
 
     @Override
@@ -126,6 +120,7 @@ public class RestPutRuleAction extends AbstractUpdateAction {
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
+            if (extractSecurityException(e) != null) throw e;
             String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,

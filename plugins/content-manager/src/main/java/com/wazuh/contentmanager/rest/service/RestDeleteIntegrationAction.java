@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
@@ -65,7 +64,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteIntegrationAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -92,11 +90,7 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.INTEGRATIONS_URI + "/{id}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(DELETE, PluginSettings.INTEGRATIONS_URI + "/{id}"));
     }
 
     @Override

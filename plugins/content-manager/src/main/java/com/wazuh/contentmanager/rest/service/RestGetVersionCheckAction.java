@@ -28,7 +28,6 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -65,7 +64,6 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 public class RestGetVersionCheckAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestGetVersionCheckAction.class);
     private static final String ENDPOINT_NAME = "content_manager_version_check_get";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/version_check_get";
 
     private final Environment environment;
     private final ClusterService clusterService;
@@ -108,11 +106,7 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.VERSION_CHECK_URI)
-                        .method(GET)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(GET, PluginSettings.VERSION_CHECK_URI));
     }
 
     @Override

@@ -26,7 +26,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -50,7 +49,6 @@ import com.wazuh.setup.model.WazuhSettings;
 public class RestPutSettingsAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPutSettingsAction.class);
     private static final String ENDPOINT_NAME = "wazuh_settings";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:wazuh/settings";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final SettingsIndex settingsIndex;
@@ -72,11 +70,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .method(RestRequest.Method.PUT)
-                        .path(SettingsIndex.SETTINGS_URI)
-                        .build());
+                new Route(RestRequest.Method.PUT, SettingsIndex.SETTINGS_URI));
     }
 
     @Override
