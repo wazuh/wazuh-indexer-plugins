@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# run-track-c.sh — drive Track C on the Vagrant env (PERF_TRACK=BC): cold-start +
+# run-isolated.sh — measurement helper for the `isolated` scenario: cold-start +
 # synthetic load under continuous monitoring.
 #
-# Assumes `PERF_TRACK=BC vagrant up` provisioned: an `indexer` VM (single-node
-# wazuh-indexer + node_exporter from boot) and a `monitor` VM (Prometheus +
-# Grafana scraping the indexer, plus OpenSearch Benchmark).
+# Normally invoked by tools/performance/run.sh (which owns vagrant up/destroy).
+# Assumes `PERF_SCENARIO=isolated vagrant up` provisioned: an `indexer` VM
+# (single-node wazuh-indexer + node_exporter from boot) and a `monitor` VM
+# (Prometheus + Grafana scraping the indexer, plus OpenSearch Benchmark).
 #
 # It:
 #   1. restarts wazuh-indexer to capture its COLD START (Prometheus is already
@@ -23,13 +24,15 @@ set -e
 INDEXER_IP="${PERF_AIO_IP:-192.168.60.20}"
 DOCS=1000000
 PASSWORD=""
+VERSION=""   # explicit override; otherwise auto-detected from the indexer VM
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --docs)        DOCS="$2"; shift 2 ;;
         --password)    PASSWORD="$2"; shift 2 ;;
+        --version)     VERSION="$2"; shift 2 ;;
         --indexer-ip)  INDEXER_IP="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--docs N] [--password P] [--indexer-ip IP]"; exit 1 ;;
+        *) echo "Usage: $0 [--docs N] [--password P] [--version X.Y.Z] [--indexer-ip IP]"; exit 1 ;;
     esac
 done
 
@@ -39,8 +42,7 @@ cd "$(dirname "$0")"
 echo "[INFO] Syncing latest scripts to the VMs ..."
 vagrant rsync >/dev/null 2>&1 || true
 
-# Admin password — read from the indexer guest over SSH (synced folder is not
-# relied on for guest→host), else --password.
+# Admin password — read from the indexer guest over SSH, else --password.
 if [[ -z "$PASSWORD" ]]; then
     PASSWORD="$(vagrant ssh indexer -c 'sudo cat /opt/perf/runs/admin-password.txt 2>/dev/null' 2>/dev/null | tr -d '\r\n')"
 fi
@@ -48,6 +50,19 @@ if [[ -z "$PASSWORD" ]]; then
     echo "[ERROR] No indexer password found on the indexer VM. Pass --password '<admin pass>'." >&2
     exit 1
 fi
+
+# Resolve the Wazuh version for the label from the installed package, unless --version.
+if [[ -z "$VERSION" ]]; then
+    RAW="$(vagrant ssh indexer -c "dpkg-query -W -f='\${Version}' wazuh-indexer 2>/dev/null || rpm -q --qf '%{VERSION}-%{RELEASE}' wazuh-indexer 2>/dev/null" 2>/dev/null | tr -d '\r\n')"
+    VERSION="${RAW##*:}"
+    VERSION="${VERSION%%-*}"
+fi
+if [[ -z "$VERSION" ]]; then
+    echo "[ERROR] Could not determine the wazuh-indexer version from the indexer VM. Pass --version X.Y.Z." >&2
+    exit 1
+fi
+LABEL="wazuh-$VERSION"
+echo "[INFO] Run label: $LABEL"
 
 # 1. Cold start: restart the indexer; Prometheus/node_exporter are already recording.
 RESTART_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -84,13 +99,23 @@ vagrant ssh monitor -c \
         --docs $DOCS --no-host --out $OUT_GUEST"
 
 # 4. Pull results (OSB report + indexer-internal CSV) from the monitor VM.
-LOCAL_OUT="../runs/track-c"
+LOCAL_OUT="../runs/isolated"
 echo "[INFO] Fetching results from the monitor VM ..."
 mkdir -p "$LOCAL_OUT"
-vagrant ssh monitor -c "sudo tar -czf - -C $OUT_GUEST . | base64" 2>/dev/null \
-    | base64 -d | tar -xzf - -C "$LOCAL_OUT"
+vagrant ssh monitor -c "sudo tar -czf - -C $OUT_GUEST . | base64 -w0" 2>/dev/null \
+    | tr -dc 'A-Za-z0-9+/=' | base64 -d | tar -xzf - -C "$LOCAL_OUT"
+
+# Record the run's real version/label so compare.py / plot.py / report.py can use it.
+cat > "$LOCAL_OUT/run-metadata.json" <<EOF
+{
+  "scenario": "isolated",
+  "label": "$LABEL",
+  "version": "$VERSION",
+  "cold_start": "$RESTART_TS"
+}
+EOF
 
 MON_IP=$(vagrant ssh monitor -c "hostname -I | awk '{print \$1}'" 2>/dev/null | tr -d '\r\n')
 echo
-echo "[INFO] Done. OSB report + metrics.csv: tools/performance/runs/track-c/"
+echo "[INFO] Done ($LABEL). OSB report + metrics.csv: tools/performance/runs/isolated/"
 echo "[INFO] Cold start at $RESTART_TS — view the full host timeline in Grafana: http://${MON_IP}:3000"

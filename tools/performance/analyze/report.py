@@ -83,8 +83,8 @@ def fmt(v, unit):
 def main():
     p = argparse.ArgumentParser(description="Summarize a perf run into report.md")
     p.add_argument("--run", required=True, help="run directory (with metrics.csv)")
-    p.add_argument("--warmup", type=int, default=5,
-                   help="leading samples to drop as warm-up (default 5)")
+    p.add_argument("--warmup", type=int, default=0,
+                   help="leading samples to drop as warm-up (default 0 = keep all)")
     p.add_argument("--label", default=None, help="run label; overrides run-metadata.json")
     args = p.parse_args()
 
@@ -96,8 +96,11 @@ def main():
     lines = []
     lines.append(f"# Performance report — {label}")
     lines.append("")
-    lines.append(f"- Samples: {len(rows)} total, {len(steady)} steady-state "
-                 f"(dropped {len(rows) - len(steady)} warm-up)")
+    if args.warmup > 0:
+        lines.append(f"- Samples: {len(rows)} total "
+                     f"({len(rows) - len(steady)} warm-up dropped, {len(steady)} analyzed)")
+    else:
+        lines.append(f"- Samples: {len(rows)} (all included; --warmup N drops the first N)")
     if meta.get("start"):
         lines.append(f"- Window: {meta.get('start')} → {meta.get('stop')} "
                      f"({meta.get('duration_s', '?')}s @ {meta.get('interval_s', '?')}s)")
@@ -120,7 +123,7 @@ def main():
     mem = col(steady, "host_mem_used_gb")
     eps = col(steady, "index_total_per_s")
     if cpu and mem:
-        lines.append(f"- At ~{statistics.fmean(eps):,.0f} docs/s steady ingest, the AIO host used "
+        lines.append(f"- At ~{statistics.fmean(eps):,.0f} docs/s avg ingest, the host used "
                      f"**{statistics.fmean(cpu):.0f}% CPU avg / {max(cpu):.0f}% peak** and "
                      f"**{statistics.fmean(mem):.1f} GB RAM avg / {max(mem):.1f} GB peak**.")
         lines.append("- Use peak figures for *minimum* hardware and add headroom for *recommended*.")

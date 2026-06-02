@@ -112,7 +112,7 @@ mkdir -p "$FIM_DIR" "$(dirname "$LOG_FILE")"
 echo "[INFO] Appending perf FIM/Logcollector config to /var/ossec/etc/ossec.conf"
 cat >> /var/ossec/etc/ossec.conf <<EOF
 
-<!-- Added by tools/performance/scenario/setup-agent.sh -->
+<!-- Added by tools/performance/scripts/setup-agent.sh -->
 <ossec_config>
   <syscheck>
     <directories check_all="yes" realtime="yes">$FIM_DIR</directories>

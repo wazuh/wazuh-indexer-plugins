@@ -80,7 +80,7 @@ bash "$INSTALL_SCRIPT" $INSTALLER_ARGS
 # --- Best-effort: capture the generated admin password for the sampler -------
 # Both the 4.x and 5.x assistants write credentials to wazuh-passwords.txt inside
 # wazuh-install-files.tar. Best-effort; if it fails, read it manually and pass
-# --password to run-scenario.sh / run-test.sh.
+# --password to run-scenario.sh.
 if [[ -n "$PASSWORD_OUT" ]]; then
     TARBALL="wazuh-install-files.tar"
     if [[ -f "$TARBALL" ]]; then
