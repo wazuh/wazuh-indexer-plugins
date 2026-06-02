@@ -15,6 +15,8 @@ DURATION=3600
 INTERVAL=60
 RATE=10
 PASSWORD=""
+# Version tag for the report; defaults from the version the env was provisioned with.
+LABEL="wazuh-${PERF_VERSION:-5.0.0}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -22,7 +24,8 @@ while [[ $# -gt 0 ]]; do
         --interval) INTERVAL="$2"; shift 2 ;;
         --rate)     RATE="$2"; shift 2 ;;
         --password) PASSWORD="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--duration S] [--interval S] [--rate N] [--password P]"; exit 1 ;;
+        --label)    LABEL="$2"; shift 2 ;;
+        *) echo "Usage: $0 [--duration S] [--interval S] [--rate N] [--password P] [--label TAG]"; exit 1 ;;
     esac
 done
 
@@ -56,7 +59,8 @@ echo "[INFO] Running measurement window on aio ..."
 vagrant ssh aio -c \
     "sudo /opt/perf/scenario/run-scenario.sh \
         --endpoint https://localhost:9200 --user admin --password '$PASSWORD' \
-        --duration $DURATION --interval $INTERVAL --insecure --out $OUT"
+        --duration $DURATION --interval $INTERVAL --insecure --out $OUT \
+        ${LABEL:+--label '$LABEL'}"
 
 # Wait for the agent load loops to finish.
 for pid in "${PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done

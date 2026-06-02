@@ -7,10 +7,6 @@ interval (default 60s) for a fixed duration (default 3600s), and emits:
   - ``metrics.csv``     one row per sample, per-minute rates derived from counters
   - ``metrics.ndjson``  the raw extracted values per sample (one JSON object/line)
 
-Optionally, if ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set and the OpenTelemetry SDK
-is installed, the same metrics are exported via OTLP so they land in your own
-collector/backend. The backend itself is out of scope for this tool.
-
 Used by both performance tracks (real-world agent run and OpenSearch Benchmark).
 """
 
@@ -43,7 +39,94 @@ RATE_FIELDS = {
     "refresh_time_ms",
     "flush_total",
     "flush_time_ms",
+    "host_disk_read_bytes",
+    "host_disk_write_bytes",
 }
+
+# Per-process groups for the AIO host. A process belongs to a group if any of its
+# patterns is a substring of the process command line. Whole-host CPU/RAM/disk do
+# not depend on this; the per-group split is best-effort attribution.
+PROCESS_GROUPS = {
+    "indexer": ["wazuh-indexer"],
+    "dashboard": ["wazuh-dashboard", "opensearch-dashboards"],
+    "manager": ["wazuh-manager", "wazuh-server", "wazuh-engine", "wazuh-analysisd", "wazuh-remoted"],
+}
+GIB = 1024 ** 3
+
+
+class HostCollector:
+    """Collects whole-host + per-process resource usage on the AIO box via psutil.
+
+    This is the metric the hardware-requirements deliverable cares about: total
+    CPU/RAM/disk of the box, plus a per-process split between wazuh-indexer,
+    wazuh-manager (engine) and wazuh-dashboard. Returns an empty dict and logs a
+    warning if psutil is unavailable, so the indexer sampling still works.
+    """
+
+    def __init__(self, disk_path="/"):
+        self.disk_path = disk_path
+        self.enabled = False
+        self._proc_cache = {}  # pid -> psutil.Process (kept across samples for cpu_percent)
+        try:
+            import psutil
+
+            self.psutil = psutil
+            self.ncpu = psutil.cpu_count() or 1
+            psutil.cpu_percent(interval=None)  # prime system-wide cpu_percent
+            self.enabled = True
+        except ImportError:
+            log.warning("psutil not installed — host/process metrics disabled "
+                        "(install with: pip install psutil)")
+
+    def sample(self):
+        if not self.enabled:
+            return {}
+        ps = self.psutil
+        vm = ps.virtual_memory()
+        sw = ps.swap_memory()
+        du = ps.disk_usage(self.disk_path)
+        out = {
+            "host_cpu_percent": round(ps.cpu_percent(interval=None), 2),
+            "host_load1": round(ps.getloadavg()[0], 2),
+            "host_mem_used_percent": vm.percent,
+            "host_mem_used_gb": round(vm.used / GIB, 3),
+            "host_mem_total_gb": round(vm.total / GIB, 3),
+            "host_swap_used_gb": round(sw.used / GIB, 3),
+            "host_disk_used_percent": du.percent,
+            "host_disk_used_gb": round(du.used / GIB, 3),
+        }
+        io = ps.disk_io_counters()
+        if io:
+            out["host_disk_read_bytes"] = io.read_bytes
+            out["host_disk_write_bytes"] = io.write_bytes
+
+        # Per-process attribution.
+        rss = {g: 0.0 for g in PROCESS_GROUPS}
+        cpu = {g: 0.0 for g in PROCESS_GROUPS}
+        seen = set()
+        for proc in ps.process_iter(["pid", "cmdline"]):
+            try:
+                cmdline = " ".join(proc.info.get("cmdline") or [])
+                if not cmdline:
+                    continue
+                for group, patterns in PROCESS_GROUPS.items():
+                    if any(pat in cmdline for pat in patterns):
+                        pid = proc.info["pid"]
+                        seen.add(pid)
+                        handle = self._proc_cache.setdefault(pid, proc)
+                        rss[group] += handle.memory_info().rss
+                        # cpu_percent across the interval, normalized to whole host.
+                        cpu[group] += handle.cpu_percent(interval=None) / self.ncpu
+                        break
+            except (ps.NoSuchProcess, ps.AccessDenied):
+                continue
+        for pid in list(self._proc_cache):  # drop dead pids
+            if pid not in seen:
+                del self._proc_cache[pid]
+        for group in PROCESS_GROUPS:
+            out[f"proc_{group}_rss_gb"] = round(rss[group] / GIB, 3)
+            out[f"proc_{group}_cpu_percent"] = round(cpu[group], 2)
+        return out
 
 
 def utc_now_iso():
@@ -142,38 +225,6 @@ def derive_rates(curr, prev, elapsed_s):
     return row
 
 
-def maybe_make_otlp():
-    """Return an OTLP-backed callable(row) or None if OTel is unavailable."""
-    if not os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
-        return None
-    try:
-        from opentelemetry import metrics
-        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
-            OTLPMetricExporter,
-        )
-        from opentelemetry.sdk.metrics import MeterProvider
-        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-    except ImportError:
-        log.warning("OTEL endpoint set but SDK not installed — skipping OTLP export")
-        return None
-
-    reader = PeriodicExportingMetricReader(OTLPMetricExporter())
-    metrics.set_meter_provider(MeterProvider(metric_readers=[reader]))
-    meter = metrics.get_meter("wazuh.indexer.perf")
-    gauges = {}
-
-    def emit(row):
-        for key, val in row.items():
-            if key == "@timestamp" or not isinstance(val, (int, float)):
-                continue
-            if key not in gauges:
-                gauges[key] = meter.create_gauge(f"wazuh_indexer_{key}")
-            gauges[key].set(val)
-
-    log.info("OTLP export enabled → %s", os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"])
-    return emit
-
-
 def main():
     p = argparse.ArgumentParser(description="Per-minute Wazuh Indexer perf sampler")
     p.add_argument("--endpoint", default="https://localhost:9200")
@@ -183,6 +234,9 @@ def main():
     p.add_argument("--duration", type=int, default=3600, help="total run seconds")
     p.add_argument("--out", default="./run", help="output directory")
     p.add_argument("--insecure", action="store_true", help="skip TLS verification")
+    p.add_argument("--no-host", action="store_true",
+                   help="skip whole-host/process metrics (use when not running on the AIO)")
+    p.add_argument("--disk-path", default="/", help="filesystem path to measure disk usage on")
     args = p.parse_args()
 
     import requests
@@ -194,7 +248,7 @@ def main():
     session.auth = (args.user, args.password)
     session.verify = not args.insecure
 
-    otlp = maybe_make_otlp()
+    host = None if args.no_host else HostCollector(disk_path=args.disk_path)
     samples = max(1, args.duration // args.interval)
     log.info("Sampling %s every %ss for %ss (%s samples) → %s",
              args.endpoint, args.interval, args.duration, samples, args.out)
@@ -210,6 +264,8 @@ def main():
                 nodes = get_json(session, f"{args.endpoint}/_nodes/stats/indices,jvm,thread_pool,os,indexing_pressure")
                 cluster = get_json(session, f"{args.endpoint}/_cluster/stats")
                 curr = extract(nodes, cluster)
+                if host:
+                    curr.update(host.sample())
                 curr["_ts"] = utc_now_iso()
                 elapsed = (loop_start - prev["_mono"]) if prev else 0
                 row = derive_rates(curr, prev, elapsed)
@@ -223,11 +279,10 @@ def main():
                 csv_fd.flush()
                 nd_fd.write(json.dumps(row) + "\n")
                 nd_fd.flush()
-                if otlp:
-                    otlp(row)
-                log.info("sample %d/%d  docs=%s heap=%s%% idx/s=%s",
-                         i + 1, samples, row.get("doc_count"),
-                         row.get("heap_used_percent"), row.get("index_total_per_s"))
+                log.info("sample %d/%d  cpu=%s%% mem=%sGB idx/s=%s heap=%s%%",
+                         i + 1, samples, row.get("host_cpu_percent", "-"),
+                         row.get("host_mem_used_gb", "-"),
+                         row.get("index_total_per_s"), row.get("heap_used_percent"))
             except Exception as exc:  # keep sampling even if one poll fails
                 log.error("sample %d failed: %s", i + 1, exc)
 

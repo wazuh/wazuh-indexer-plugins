@@ -17,18 +17,17 @@
 #   PERF_BOX=cloud-image/ubuntu-24.04 vagrant up --provider=libvirt
 #
 # Usage:
-#   cd tools/performance/vagrant && vagrant up
-#   ./run-test.sh                     # drive a full 60-min run (see run-test.sh)
+#   cd tools/performance/vagrant && vagrant up           # 5.x by default
+#   PERF_VERSION=4.14 vagrant up                          # or a 4.x AIO
+#   ./run-test.sh --label wazuh-$PERF_VERSION             # drive a full 60-min run
 
-BOX           = ENV.fetch("PERF_BOX", "bento/ubuntu-24.04")
+BOX       = ENV.fetch("PERF_BOX", "bento/ubuntu-24.04")
+# Wazuh version to provision (4.x or 5.x). Selects the installer source uniformly.
+VERSION   = ENV.fetch("PERF_VERSION", "5.0.0")
 # Default subnet is 192.168.60.x to avoid colliding with VirtualBox's default
 # host-only range (192.168.56.x), which breaks libvirt network creation.
-AIO_IP        = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
-AGENT_IPS     = ENV.fetch("PERF_AGENT_IPS", "192.168.60.21,192.168.60.22").split(",")
-ARTIFACTS_URL = ENV.fetch(
-  "PERF_ARTIFACTS_URL",
-  "https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/artifact-urls/artifact_urls_5.0.0-latest.yaml"
-)
+AIO_IP    = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
+AGENT_IPS = ENV.fetch("PERF_AGENT_IPS", "192.168.60.21,192.168.60.22").split(",")
 
 # Apply CPU/memory to whichever provider ends up active.
 def configure_size(vm, mem, cpus)
@@ -63,9 +62,9 @@ Vagrant.configure("2") do |config|
     aio.vm.provision "shell", inline: <<-SHELL
       set -e
       export DEBIAN_FRONTEND=noninteractive
-      apt-get update -y && apt-get install -y curl tar python3 python3-requests
+      apt-get update -y && apt-get install -y curl tar python3 python3-requests python3-psutil
       bash /opt/perf/scenario/setup-aio.sh \
-        --artifacts-url "#{ARTIFACTS_URL}" \
+        --version "#{VERSION}" \
         --password-out /opt/perf/runs/admin-password.txt
     SHELL
   end
@@ -83,7 +82,7 @@ Vagrant.configure("2") do |config|
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -y && apt-get install -y curl
         bash /opt/perf/scenario/setup-agent.sh \
-          --manager #{AIO_IP} --artifacts-url "#{ARTIFACTS_URL}"
+          --version "#{VERSION}" --manager #{AIO_IP}
       SHELL
     end
   end
