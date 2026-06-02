@@ -15,7 +15,7 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 | User              | Description                                                                                                                              | Roles                                                                                                                              |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `wazuh-server`    | User for the Wazuh Server with read/write access to stateful indices and write-only access to stateless indices.                         | `stateless-write`, `stateful-delete`, `stateful-write`, `stateful-read`, `cm_subscription_read`                                    |
+| `wazuh-server`    | User for the Wazuh Manager with read/write access to stateful indices and write-only access to stateless indices.                         | `stateless-write`, `stateful-delete`, `stateful-write`, `stateful-read`, `cm_subscription_read`                                    |
 | `wazuh-dashboard` | User for Wazuh Dashboard with read access to stateful and stateless indices, and management level permissionsfor the monitoring indices. | `sample-data-management`, `metrics-write`, `metrics-read`, `stateless-read`, `stateful-read`, `cm_update`, `cm_subscription_write` |
 
 ### Roles
