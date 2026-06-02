@@ -34,6 +34,12 @@ done
 
 cd "$(dirname "$0")"
 
+# Push the latest scripts into the VMs. vagrant-libvirt only syncs host→guest at
+# up/provision, so without this the VMs can run stale scripts (e.g. a missing
+# analyze/report.py). Harmless if rsync isn't the sync type.
+echo "[INFO] Syncing latest scripts to the VMs ..."
+vagrant rsync >/dev/null 2>&1 || true
+
 # Resolve the indexer admin password: explicit flag, else the file captured by
 # setup-aio.sh during provisioning. Read it FROM the AIO guest over SSH (works
 # regardless of synced-folder direction — libvirt often syncs host→guest only),
@@ -83,5 +89,10 @@ echo "[INFO] Fetching results from the AIO VM ..."
 mkdir -p "$LOCAL_OUT"
 vagrant ssh aio -c "sudo tar -czf - -C $OUT_GUEST . | base64" 2>/dev/null \
     | base64 -d | tar -xzf - -C "$LOCAL_OUT"
+
+# Generate the report on the host — authoritative, and independent of whether the
+# VM had analyze/report.py synced.
+python3 ../analyze/report.py --run "$LOCAL_OUT" ${LABEL:+--label "$LABEL"} || \
+    echo "[WARN] Host-side report generation failed; metrics.csv is available."
 
 echo "[INFO] Done. Results: tools/performance/runs/aio-run/ (metrics.csv, metrics.ndjson, run-metadata.json, report.md)"

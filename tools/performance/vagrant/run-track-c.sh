@@ -35,6 +35,10 @@ done
 
 cd "$(dirname "$0")"
 
+# Push the latest scripts into the VMs (vagrant-libvirt only syncs at up/provision).
+echo "[INFO] Syncing latest scripts to the VMs ..."
+vagrant rsync >/dev/null 2>&1 || true
+
 # Admin password — read from the indexer guest over SSH (synced folder is not
 # relied on for guest→host), else --password.
 if [[ -z "$PASSWORD" ]]; then
