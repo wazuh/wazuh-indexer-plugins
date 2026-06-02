@@ -55,6 +55,5 @@ To preserve historical visibility into `4.x` data, run the existing `4.x` cluste
 2. Switch the `4.x` cluster to a read-only role:
     - Stop ingestion from the Wazuh server into `4.x`.
     - Optionally, mark indices read-only at the cluster level to prevent accidental writes.
-3. Move current traffic to `5.x`. A `4.x` Wazuh server and dashboard cannot operate against a `5.x` Wazuh indexer, so upgrade the Wazuh server and dashboard to `5.x` as well and point that upgraded stack at the new cluster.
-4. Keep the existing `4.x` dashboard pointed at the `4.x` cluster for users who need to query historical data; a `5.x` dashboard cannot read `4.x` indices.
-5. Plan a retention window after which the `4.x` environment can be decommissioned according to your data-retention policy.
+3. Keep the existing `4.x` dashboard pointed at the `4.x` cluster for users who need to query historical data; a `5.x` dashboard cannot read `4.x` indices.
+4. Plan a retention window after which the `4.x` environment can be decommissioned according to your data-retention policy.
