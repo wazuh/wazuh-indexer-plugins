@@ -22,6 +22,8 @@ import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.index.engine.VersionConflictEngineException;
@@ -67,6 +69,24 @@ public abstract class IsmManagedIndex extends WazuhIndex {
      * @return the backing index name to register, or {@code null} to skip.
      */
     protected abstract String resolveBackingIndexName();
+
+    /**
+     * Returns true if {@code indexName} is one of this instance's backing indices according to the
+     * given cluster state — used by {@link IsmRolloverListener} to dispatch rollover-target enrolment
+     * to the owning instance. Works for both data-stream backings and write-alias backings because
+     * both expose their member indices via {@link IndexAbstraction}.
+     *
+     * @param indexName candidate backing index name (e.g., from {@code event.indicesCreated()}).
+     * @param state cluster state snapshot the listener was invoked with.
+     * @return true if this {@code IsmManagedIndex} owns the candidate.
+     */
+    protected boolean ownsBackingIndex(String indexName, ClusterState state) {
+        IndexAbstraction abs = state.metadata().getIndicesLookup().get(this.index);
+        if (abs == null) {
+            return false;
+        }
+        return abs.getIndices().stream().anyMatch(im -> im.getIndex().getName().equals(indexName));
+    }
 
     /**
      * Adds an ISM registration pass after the standard {@code createTemplate} + {@code createIndex}

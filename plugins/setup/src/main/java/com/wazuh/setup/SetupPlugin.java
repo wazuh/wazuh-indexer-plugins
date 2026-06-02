@@ -48,6 +48,8 @@ import java.util.function.Supplier;
 import com.wazuh.setup.index.AliasedIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
+import com.wazuh.setup.index.IsmManagedIndex;
+import com.wazuh.setup.index.IsmRolloverListener;
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
@@ -169,6 +171,16 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     index.setClusterService(clusterService);
                     index.setUtils(utils);
                 });
+
+        // Enrol rollover-created backing indices with ISM as they appear in cluster state. The
+        // listener registers on every node and gates internally on the cluster-manager so it
+        // survives CM failover.
+        List<IsmManagedIndex> ismManagedIndices =
+                this.indices.stream()
+                        .filter(IsmManagedIndex.class::isInstance)
+                        .map(IsmManagedIndex.class::cast)
+                        .toList();
+        clusterService.addListener(new IsmRolloverListener(ismManagedIndices));
 
         return Collections.emptyList();
     }
