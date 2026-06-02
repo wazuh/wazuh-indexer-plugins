@@ -211,5 +211,5 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 
 1. Modify `EventMatcher.matchValue()` to handle new `SigmaType` subclasses.
 2. Add test cases in `EventMatcherTests`.
-3. Update the Sigma rules doc (`sigma-rules.md`) if new detection modifiers are supported.
+3. Update the Sigma rules doc ([Sigma Rules](../security-analytics/rules.md)) if new detection modifiers are supported.
 

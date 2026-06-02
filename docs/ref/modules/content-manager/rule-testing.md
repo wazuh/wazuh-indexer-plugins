@@ -92,7 +92,7 @@ curl -sk -u admin:admin -X POST \
 
 ## Step 3: Create a Rule
 
-Rules use the [Sigma format](sigma-rules.md) to define detection logic. Link a rule to the same integration:
+Rules use the [Sigma format](../security-analytics/rules.md) to define detection logic. Link a rule to the same integration:
 
 ```bash
 curl -sk -u admin:admin -X POST \
@@ -400,4 +400,4 @@ The response contains only the detection result:
 | Normalization only | `/_plugins/_content_manager/logtest/normalization` | POST |
 | Detection only | `/_plugins/_content_manager/logtest/detection` | POST |
 
-For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](sigma-rules.md).
+For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](../security-analytics/rules.md).
