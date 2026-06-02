@@ -1,7 +1,6 @@
 # Wazuh Indexer — Performance Testing
 
-Tooling to measure Wazuh Indexer (OpenSearch 3.5 fork) performance and catch
-regressions. Two complementary tracks share a single OpenTelemetry-based
+Tooling to measure Wazuh Indexer performance and catch regressions. Two complementary tracks share a single OpenTelemetry-based
 measurement layer:
 
 | Track | Load source | Purpose |
@@ -11,9 +10,7 @@ measurement layer:
 
 The **measurement layer** ([metrics/sampler.py](metrics/sampler.py)) polls the
 indexer's `_nodes/stats` + `_cluster/stats` once per minute and emits per-minute
-CSV/NDJSON **and** (optionally) OpenTelemetry OTLP metrics. The visualization /
-storage backend is intentionally out of scope — point the OTLP exporter at your
-own collector, or analyze the CSV directly.
+CSV/NDJSON **and** (optionally) OpenTelemetry OTLP metrics.
 
 ## Primary scenario
 
