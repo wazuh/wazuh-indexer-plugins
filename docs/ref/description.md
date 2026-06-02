@@ -87,7 +87,7 @@ The Security plugin provides role-based access control (RBAC), user authenticati
 
 The Wazuh Engine is shipped inside the Wazuh Indexer packages and Docker images. It is responsible for:
 
-- Decoding and normalizing events before they are indexed.
+- Decoding and normalizing events before they are indexed (only in Wazuh Manager).
 - Validating user-defined threat intel content submitted through the Content Manager.
 - Enrichment: IoC content management, GeoIP enrichment, and engine filters for event pre-processing.
 - Executing logtest requests issued by the Content Manager.
@@ -116,8 +116,8 @@ Agent and rule metadata is now relocated under the `wazuh.*` namespace, and inve
 In 5.0 the Wazuh Indexer is the central processing and storage tier of the platform:
 
 - **Wazuh Agents** collect endpoint data and send it to the Wazuh Manager.
-- **Wazuh Manager** acts as the ingestion gateway. It no longer runs analysis, threat detection, content management or active response — these have moved into the Indexer. Events are forwarded to the Indexer through the built-in indexer connector (Filebeat is no longer required).
-- **Wazuh Indexer**, through the bundled Wazuh Engine and its plugins, normalizes events, runs threat detection, manages detection content, dispatches notifications and active responses, and stores all resulting data.
+- **Wazuh Manager** acts as the ingestion gateway. It no longer runs analysis, threat detection, content management or active response — these have moved into the Indexer. Events are normalized and forwarded to the Indexer through the built-in indexer connector (Filebeat is no longer required).
+- **Wazuh Indexer**, through the bundled Wazuh Engine and its plugins, analyzes events, runs threat detection, manages detection content, dispatches notifications and active responses, and stores all resulting data.
 - **Wazuh Dashboard** (an OpenSearch Dashboards fork) provides the web UI for searching, visualizing and managing Wazuh data, and interacts with the Setup, Content Manager, Security Analytics, Alerting, Notifications and Reporting plugin APIs.
 
 The Indexer exposes a standard REST API compatible with the OpenSearch API, so existing OpenSearch tools, clients and integrations work with the Wazuh Indexer out of the box.
