@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.gateway.GatewayService;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.util.List;
 
@@ -41,14 +42,18 @@ public class IsmRolloverListener implements ClusterStateListener {
     private static final Logger log = LogManager.getLogger(IsmRolloverListener.class);
 
     private final List<IsmManagedIndex> managed;
+    private final ThreadPool threadPool;
 
     /**
      * Constructor.
      *
      * @param managed the {@link IsmManagedIndex} instances whose rollover targets should be enrolled.
+     * @param threadPool node thread pool — used to dispatch {@code registerWithISM()} off the
+     *     cluster-state applier thread (blocking operations there trigger an assertion error).
      */
-    public IsmRolloverListener(List<IsmManagedIndex> managed) {
+    public IsmRolloverListener(List<IsmManagedIndex> managed, ThreadPool threadPool) {
         this.managed = managed;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -70,7 +75,9 @@ public class IsmRolloverListener implements ClusterStateListener {
                             "Detected new backing index [{}] for managed entity [{}]; triggering ISM registration.",
                             newIndex,
                             owner.index);
-                    owner.registerWithISM();
+                    // registerWithISM does blocking client.get/index calls which are forbidden on
+                    // the cluster-state applier thread. Dispatch to the generic pool.
+                    this.threadPool.generic().execute(owner::registerWithISM);
                     break;
                 }
             }

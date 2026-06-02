@@ -180,7 +180,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                         .filter(IsmManagedIndex.class::isInstance)
                         .map(IsmManagedIndex.class::cast)
                         .toList();
-        clusterService.addListener(new IsmRolloverListener(ismManagedIndices));
+        clusterService.addListener(new IsmRolloverListener(ismManagedIndices, threadPool));
 
         return Collections.emptyList();
     }
