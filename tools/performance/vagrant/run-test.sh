@@ -32,12 +32,20 @@ done
 cd "$(dirname "$0")"
 
 # Resolve the indexer admin password: explicit flag, else the file captured by
-# setup-aio.sh during provisioning.
+# setup-aio.sh during provisioning. Read it FROM the AIO guest over SSH (works
+# regardless of synced-folder direction — libvirt often syncs host→guest only),
+# falling back to the host-side synced copy.
+if [[ -z "$PASSWORD" ]]; then
+    PASSWORD="$(vagrant ssh aio -c 'sudo cat /opt/perf/runs/admin-password.txt 2>/dev/null' 2>/dev/null | tr -d '\r\n')"
+fi
 if [[ -z "$PASSWORD" && -f ../runs/admin-password.txt ]]; then
     PASSWORD="$(cat ../runs/admin-password.txt)"
 fi
 if [[ -z "$PASSWORD" ]]; then
-    echo "[ERROR] No indexer password. Pass --password, or ensure ../runs/admin-password.txt exists." >&2
+    echo "[ERROR] No indexer password found in the AIO VM (/opt/perf/runs/admin-password.txt)." >&2
+    echo "        Provisioning's best-effort password capture likely failed. Retrieve it with:" >&2
+    echo "          vagrant ssh aio -c 'TAR=\$(sudo find / -name wazuh-install-files.tar 2>/dev/null | head -1); sudo tar -xOf \"\$TAR\" wazuh-install-files/wazuh-passwords.txt | grep -A2 -i admin'" >&2
+    echo "        then re-run with --password '<indexer admin password>'." >&2
     exit 1
 fi
 
