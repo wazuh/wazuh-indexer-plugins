@@ -55,9 +55,10 @@ The following `4.x` settings have changed in `5.x` and must be reviewed before r
 | --- | --- | --- |
 | `transport.port` | `http.port` | Transport-level port configuration has been consolidated; clusters now use `http.port` only. |
 | `opensearch_performance_analyzer.*` | _Removed_ | The `opensearch-performance-analyzer` plugin is no longer shipped. Remove any related entries. |
-| Multi-tenancy settings | _Disabled by default_ | Multi-tenancy is off by default. Enable explicitly only if required. |
+| `compatibility.override_main_response_version` | _Removed_ | Present in `4.x` `opensearch.yml` for legacy Filebeat compatibility. Removed in OpenSearch 3.0; a node that still defines it **will not boot**. Delete the setting. |
+| Multi-tenancy settings | _Disabled by default_ | Multi-tenancy is off by default. |
 
-Additional `4.x` settings may have been removed or renamed by the OpenSearch 3.x base. Before starting the service, validate every setting against the [Compatibility](../../ref/compatibility.md) page and the upstream OpenSearch 3.x release notes.
+Additional `4.x` settings may have been removed or renamed by the OpenSearch 3.x base. Before starting the service, validate every setting against the upstream OpenSearch 3.x breaking changes and release notes.
 
 ### JVM and logging
 
@@ -80,32 +81,30 @@ The relevant files are:
 
 | File | Purpose |
 | --- | --- |
+| `config.yml` | Authentication and authorization backends (internal, LDAP, SAML, OIDC, JWT, etc.) |
 | `internal_users.yml` | Local user accounts and password hashes |
 | `roles.yml` | Role definitions |
 | `roles_mapping.yml` | Mapping from authenticated identities to roles |
-| `config.yml` | Authentication backends (internal, LDAP, SAML, OIDC, JWT, etc.) |
+| `action_groups.yml` | Reusable groups of permissions referenced by roles |
+| `tenants.yml` | Dashboard tenants |
+| `nodes_dn.yml` | Node certificate distinguished names allowed into the cluster |
+| `allowlist.yml` | REST API paths reachable while the cluster is in a restricted state (replaces `4.x` `whitelist.yml`) |
+| `audit.yml` | Audit-logging configuration |
 
 For the `5.x` defaults, see [Access Control](../../ref/security/access-control.md).
 
 ### Default internal users in `5.x`
 
-`5.x` ships with a new set of internal users tailored to the Wazuh stack. The `4.x` defaults are not carried over.
-
-| User | Purpose |
-| --- | --- |
-| `wazuh-server` | Used by the Wazuh Server; read/write to stateful indices, write-only to stateless indices |
-| `wazuh-dashboard` | Used by the Wazuh Dashboard; read access across most indices, management permissions on metrics indices |
-
-A full list of the default users and roles, together with their permissions, is available in [Access Control](../../ref/security/access-control.md).
+`5.x` ships with a new set of internal users tailored to the Wazuh stack; the `4.x` defaults are not carried over. For the full, up-to-date list of default users and roles and their permissions, see [Access Control](../../ref/security/access-control.md).
 
 ### Migration procedure
 
 Perform these steps on the new `5.x` host. The `4.x` cluster is not modified by this procedure.
 
-1. Locate the `4.x` security configuration files under `/etc/wazuh-indexer/opensearch-security/` on the previous installation.
+1. Export the current `4.x` security configuration from the running cluster. The on-disk files under `/etc/wazuh-indexer/opensearch-security/` may be stale, since the active configuration is stored in the security index. Use the backup procedure to write the live configuration to disk before reusing it. See [Back up and Restore](../../ref/backup-restore.md).
 2. On the new `5.x` host, do **not** overwrite the shipped files. Edit them in place under `/etc/wazuh-indexer/opensearch-security/`.
 3. For each custom entry in the `4.x` files, decide whether it should be re-created in `5.x`:
-    - Custom internal users → add to `internal_users.yml` (regenerate password hashes with the bundled hash tool).
+    - Custom internal users → add to `internal_users.yml` (existing password hashes can be reused as-is).
     - Custom roles → add to `roles.yml` keeping the `5.x` index patterns and permission names.
     - Role mappings → add to `roles_mapping.yml` referencing the new role names.
     - External authentication backends (LDAP, SAML, OIDC, JWT, Kerberos) → re-create the corresponding `authc` / `authz` blocks in `config.yml`.
@@ -113,25 +112,17 @@ Perform these steps on the new `5.x` host. The `4.x` cluster is not modified by 
     > **Tip — bulk copy alternative**:
     > Reviewing every entry individually is the safest option, but it is also tedious and risks silently dropping a custom user or role you set up long ago and no longer remember. As an alternative, you can copy **all** custom entries from the `4.x` files into the corresponding `5.x` files at once, then prune afterwards. This guarantees nothing is lost, at the cost of dragging along stale or obsolete entries. If you take this approach, be aware that copied entries may reference `4.x` index patterns or permission names that changed in `5.x`, and may collide with the new `5.x` default users and roles — so still validate the result against [Access Control](../../ref/security/access-control.md) before applying.
 
-4. Apply the configuration with the `securityadmin` tool shipped with the package.
+4. Apply the configuration with the `/usr/share/wazuh-indexer/bin/indexer-security-init.sh` script shipped with the package.
 5. Restart the service and verify authentication works for each backend before pointing production traffic at the new cluster.
 
 > The exact syntax for each authentication backend (LDAP, SAML, OIDC, etc.) is defined and maintained by the upstream OpenSearch Security plugin and may evolve between OpenSearch versions. Always cross-check the backend configuration against the upstream documentation referenced below before applying it.
 
 ### External authentication backends
 
-Wazuh indexer `5.x` supports the same backends as the underlying OpenSearch Security plugin, including LDAP, Active Directory, SAML, OIDC, JWT, Kerberos, and client-certificate authentication. The migration steps are identical regardless of backend: re-create the `authc` and `authz` blocks in `config.yml` against the `5.x` schema, then apply with `securityadmin`.
+Wazuh indexer `5.x` supports the same backends as the underlying OpenSearch Security plugin, including LDAP, Active Directory, SAML, OIDC, JWT, Kerberos, and client-certificate authentication. The migration steps are identical regardless of backend: re-create the `authc` and `authz` blocks in `config.yml` against the `5.x` schema, then apply with `indexer-security-init.sh`.
 
 Refer to the upstream OpenSearch Security documentation for the exact syntax of each backend:
 
-- [OpenSearch Security — Access control](https://docs.opensearch.org/3.5/security/access-control/index/)
-- [OpenSearch Security — Authentication backends](https://docs.opensearch.org/3.5/security/authentication-backends/authc-index/)
-- [OpenSearch Security — Configuration](https://docs.opensearch.org/3.5/security/configuration/index/)
-
-
-## Related documentation
-
-- [Migration Guide](./README.md) — entry point and prerequisites
-- [Authentication migration](#security-configuration) — security plugin configuration
-- [Access Control](../../ref/security/access-control.md) — 5.x default users and roles
-- [Defining Users and Roles](../../ref/security/defining-users-and-roles.md) — how to declare new users and roles in 5.x
+- [OpenSearch Security — Access control](https://docs.opensearch.org/3.6/security/access-control/index/)
+- [OpenSearch Security — Authentication backends](https://docs.opensearch.org/3.6/security/authentication-backends/authc-index/)
+- [OpenSearch Security — Configuration](https://docs.opensearch.org/3.6/security/configuration/index/)

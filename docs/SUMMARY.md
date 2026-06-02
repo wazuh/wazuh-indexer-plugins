@@ -64,5 +64,5 @@
 
 # Migration Guide
 
-- [Introduction](guide/migration/README.md)
+- [Introduction](guide/migration/index.md)
 - [Configuration migration](guide/migration/configuration.md)

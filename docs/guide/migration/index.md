@@ -55,21 +55,6 @@ To preserve historical visibility into `4.x` data, run the existing `4.x` cluste
 2. Switch the `4.x` cluster to a read-only role:
     - Stop ingestion from the Wazuh server into `4.x`.
     - Optionally, mark indices read-only at the cluster level to prevent accidental writes.
-3. Point the Wazuh server and dashboard at the new `5.x` cluster for current traffic.
-4. Keep dashboard access to the `4.x` cluster available for users who need to query historical data.
+3. Move current traffic to `5.x`. A `4.x` Wazuh server and dashboard cannot operate against a `5.x` Wazuh indexer, so upgrade the Wazuh server and dashboard to `5.x` as well and point that upgraded stack at the new cluster.
+4. Keep the existing `4.x` dashboard pointed at the `4.x` cluster for users who need to query historical data; a `5.x` dashboard cannot read `4.x` indices.
 5. Plan a retention window after which the `4.x` environment can be decommissioned according to your data-retention policy.
-
-### Out of scope
-
-The following workflows are explicitly not supported as part of the `4.x` → `5.x` migration:
-
-- Snapshot restore from a `4.x` cluster into a `5.x` cluster.
-- In-place upgrade of `4.x` indices to the v5 schema.
-- `_reindex` from a `4.x` remote cluster into `5.x`.
-- Automated migration tooling for documents, mappings, or templates.
-
-## Related documentation
-
-- [Upgrade](../../ref/upgrade.md) — rolling-upgrade procedure for minor and patch upgrades within the same major version. It does **not** apply to the 4.x → 5.x transition described here.
-- [Installation](../../ref/getting-started/installation.md) — installing a fresh 5.x cluster.
-- [Access Control](../../ref/security/access-control.md) — 5.x default users and roles.
