@@ -45,9 +45,9 @@ nightly artifacts — no manual install steps. Hosts ([vagrant/Vagrantfile](vagr
 
 | VM | Role | Size | IP |
 |----|------|------|----|
-| `aio` | manager + indexer + dashboard | 16 GB / 8 vCPU | 192.168.56.20 |
-| `agent-1` | Wazuh agent (FIM + Logcollector) | 2 GB / 2 vCPU | 192.168.56.21 |
-| `agent-2` | Wazuh agent (FIM + Logcollector) | 2 GB / 2 vCPU | 192.168.56.22 |
+| `aio` | manager + indexer + dashboard | 16 GB / 8 vCPU | 192.168.60.20 |
+| `agent-1` | Wazuh agent (FIM + Logcollector) | 2 GB / 2 vCPU | 192.168.60.21 |
+| `agent-2` | Wazuh agent (FIM + Logcollector) | 2 GB / 2 vCPU | 192.168.60.22 |
 
 ```bash
 cd vagrant
@@ -60,9 +60,14 @@ vagrant up                          # provisions AIO + 2 agents from the staging
 per-minute measurement window on the AIO. The indexer admin password is captured
 during provisioning to `runs/admin-password.txt` (or pass `--password`).
 
-> **Host requirements:** ~20 GB free RAM, 12 vCPU. Provider defaults to `libvirt`
-> (matches `tools/test-cluster`); box defaults to Ubuntu 24.04. Override for other
-> hosts, e.g. Apple Silicon: `PERF_PROVIDER=parallels PERF_BOX=bento/ubuntu-24.04 vagrant up`.
+> **Host requirements:** ~20 GB free RAM, 12 vCPU. Box defaults to
+> `bento/ubuntu-24.04` (VirtualBox/Parallels/VMware, incl. Apple Silicon); VM
+> sizing is applied to every provider. Pick a provider with `vagrant up --provider=X`.
+> For libvirt, use a libvirt-capable box:
+> `PERF_BOX=cloud-image/ubuntu-24.04 vagrant up --provider=libvirt`.
+> VMs default to the `192.168.60.x` subnet (avoids VirtualBox's `192.168.56.x`
+> host-only range, which otherwise blocks libvirt network creation); override
+> with `PERF_AIO_IP` / `PERF_AGENT_IPS`.
 > A lighter alternative for Track B only (indexer in isolation) is Docker Compose;
 > the full agent→manager→indexer path needs VMs.
 
