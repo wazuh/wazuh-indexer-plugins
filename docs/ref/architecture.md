@@ -78,7 +78,7 @@ The Reporting plugin enables on-demand and scheduled report generation from the 
 
 ## Data Flow
 
-1. **Wazuh Agents** collect security events from monitored endpoints and forward them to the **Wazuh Server**.
+1. **Wazuh Agents** collect security events from monitored endpoints and forward them to the **Wazuh Manager**.
 2. The **Wazuh Engine** on the server analyzes events using rules and decoders, then forwards alerts and events to the **Wazuh Indexer** via the Indexer API.
 3. The **Setup Plugin** ensures the correct index templates, data streams, and lifecycle policies exist.
 4. The **Content Manager Plugin** keeps the Engine's detection content up to date by synchronizing with the CTI API and managing user customizations.

@@ -66,3 +66,6 @@
 
 - [Introduction](guide/migration/index.md)
 - [Configuration migration](guide/migration/configuration.md)
+---
+
+[Release Notes](ref/release-notes.md)

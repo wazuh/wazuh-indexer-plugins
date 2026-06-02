@@ -7,6 +7,7 @@
   "template": {
     "settings": {
       "plugins.index_state_management.rollover_alias": "wazuh-findings-v5",
+      "plugins.index_state_management.policy_id": "stream-findings-policy",
       "mapping.total_fields.limit": 3000,
       "index": {
         "number_of_shards": "3",
