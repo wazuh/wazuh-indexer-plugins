@@ -21,25 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
-import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.DataStream;
-import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.index.Index;
-import org.opensearch.core.xcontent.MediaTypeRegistry;
-import org.opensearch.index.engine.VersionConflictEngineException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -50,7 +41,7 @@ import com.wazuh.setup.settings.PluginSettings;
  * Class to represent a Stream index. Stream indices contain time-based events of any kind (alerts,
  * statistics, logs...).
  */
-public class StreamIndex extends WazuhIndex {
+public class StreamIndex extends IsmManagedIndex {
     private static final Logger log = LogManager.getLogger(StreamIndex.class);
 
     /**
@@ -160,120 +151,25 @@ public class StreamIndex extends WazuhIndex {
     }
 
     /**
-     * Overrides {@link com.wazuh.setup.index.Index#initialize()} to also register the backing index
-     * with ISM after creating the data stream.
+     * Resolves the data stream's write backing index (the latest one in the stream) for ISM
+     * registration.
      */
     @Override
-    public void initialize() {
-        this.createTemplate(this.template);
-        this.createIndex(this.index);
-        this.registerWithISM();
-    }
-
-    /**
-     * Registers the data stream's backing index with ISM by writing a {@code ManagedIndexConfig}
-     * document directly to {@code .opendistro-ism-config}. This is necessary because ISM policies
-     * indexed directly (bypassing the ISM API) do not register their {@code ism_template} patterns
-     * with the ISM coordinator cache, so backing indices of data streams would not be auto-detected.
-     */
-    private void registerWithISM() {
+    protected String resolveBackingIndexName() {
         DataStream dataStream = this.clusterService.state().metadata().dataStreams().get(this.index);
         if (dataStream == null) {
             log.warn("Data stream [{}] not found. Skipping ISM registration.", this.index);
-            return;
+            return null;
         }
 
-        List<Index> indices = dataStream.getIndices();
+        List<org.opensearch.core.index.Index> indices = dataStream.getIndices();
         if (indices == null || indices.isEmpty()) {
             log.warn(
                     "Data stream [{}] has no backing indices in cluster state. Skipping ISM registration.",
                     this.index);
-            return;
+            return null;
         }
-        String backingIndex = indices.getLast().getName();
-
-        IndexMetadata indexMetadata = this.clusterService.state().metadata().index(backingIndex);
-        if (indexMetadata == null) {
-            log.warn(
-                    "Index metadata for [{}] not found in cluster state. Skipping ISM registration.",
-                    backingIndex);
-            return;
-        }
-
-        String policyId =
-                indexMetadata.getSettings().get("index.plugins.index_state_management.policy_id");
-        if (policyId == null) {
-            log.warn("No ISM policy_id setting found for [{}]. Skipping ISM registration.", backingIndex);
-            return;
-        }
-
-        try {
-            String indexUuid = indexMetadata.getIndexUUID();
-            long timeout = PluginSettings.getTimeout(this.clusterService.getSettings());
-
-            // Skip if already registered
-            GetResponse existing =
-                    this.client
-                            .get(new GetRequest(IndexStateManagement.ISM_INDEX_NAME).id(indexUuid))
-                            .actionGet(timeout);
-            if (existing.isExists()) {
-                log.debug("Backing index [{}] is already registered with ISM. Skipping.", backingIndex);
-                return;
-            }
-
-            // Fetch the full ISM policy
-            GetResponse policyResponse =
-                    this.client
-                            .get(new GetRequest(IndexStateManagement.ISM_INDEX_NAME).id(policyId))
-                            .actionGet(timeout);
-            if (!policyResponse.isExists()) {
-                log.warn(
-                        "ISM policy [{}] not found. Skipping ISM registration for [{}].",
-                        policyId,
-                        backingIndex);
-                return;
-            }
-
-            long now = Instant.now().toEpochMilli();
-
-            // Build a ManagedIndexConfig document and index it into .opendistro-ism-config
-            // keyed by the backing index's UUID. This is equivalent to calling the
-            // POST _plugins/_ism/add/<index> API: the ISM plugin will pick up this
-            // document on its next sweep and start managing the index according to
-            // the embedded policy. OpType.CREATE ensures only one node wins in a
-            // multi-node cluster (atomic create-if-absent).
-            Map<String, Object> doc =
-                    Map.of(
-                            "managed_index",
-                            Map.ofEntries(
-                                    Map.entry("name", backingIndex),
-                                    Map.entry("index", backingIndex),
-                                    Map.entry("index_uuid", indexUuid),
-                                    Map.entry("enabled", true),
-                                    Map.entry("enabled_time", now),
-                                    Map.entry("last_updated_time", now),
-                                    Map.entry("policy_id", policyId),
-                                    Map.entry("policy_seq_no", policyResponse.getSeqNo()),
-                                    Map.entry("policy_primary_term", policyResponse.getPrimaryTerm()),
-                                    Map.entry("policy", policyResponse.getSourceAsMap().get("policy")),
-                                    Map.entry(
-                                            "schedule",
-                                            Map.of(
-                                                    "interval", Map.of("period", 1, "unit", "Minutes", "start_time", now)))));
-
-            this.client
-                    .index(
-                            new IndexRequest(IndexStateManagement.ISM_INDEX_NAME)
-                                    .id(indexUuid)
-                                    .opType(DocWriteRequest.OpType.CREATE)
-                                    .source(doc, MediaTypeRegistry.JSON))
-                    .actionGet(timeout);
-            log.info("Registered backing index [{}] with ISM policy [{}]", backingIndex, policyId);
-        } catch (VersionConflictEngineException e) {
-            log.debug("Backing index [{}] is already registered with ISM. Skipping.", backingIndex);
-        } catch (Exception e) {
-            log.warn("Failed to register [{}] with ISM: {}", backingIndex, e.getMessage());
-        }
+        return indices.getLast().getName();
     }
 
     /**

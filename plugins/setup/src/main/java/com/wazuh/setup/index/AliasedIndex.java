@@ -26,6 +26,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
+import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.Template;
 import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
@@ -46,7 +48,7 @@ import com.wazuh.setup.settings.PluginSettings;
  * <p>Used by indices that need data-stream-like rollover/retention but must remain mutable (i.e.,
  * allow {@code _update} on indexed documents), which data streams disallow.
  */
-public class AliasedIndex extends WazuhIndex {
+public class AliasedIndex extends IsmManagedIndex {
     private static final Logger log = LogManager.getLogger(AliasedIndex.class);
 
     private static final String BACKING_INDEX_PREFIX = ".ds-";
@@ -178,5 +180,22 @@ public class AliasedIndex extends WazuhIndex {
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(alias);
         }
+    }
+
+    /**
+     * Resolves the write target of the visible alias for ISM registration. After cluster restart this
+     * dynamically picks up the current write backing index (e.g., {@code -000002} after a rollover),
+     * not just the initial one.
+     */
+    @Override
+    protected String resolveBackingIndexName() {
+        IndexAbstraction abs =
+                this.clusterService.state().metadata().getIndicesLookup().get(this.index);
+        if (abs == null) {
+            log.warn("Alias [{}] not found. Skipping ISM registration.", this.index);
+            return null;
+        }
+        IndexMetadata writeIdx = abs.getWriteIndex();
+        return writeIdx != null ? writeIdx.getIndex().getName() : null;
     }
 }
