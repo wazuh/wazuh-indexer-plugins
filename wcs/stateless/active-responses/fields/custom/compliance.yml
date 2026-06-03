@@ -91,23 +91,56 @@
       - wazuh.rule
   fields:
     - name: tactic
-      type: keyword
+      type: object
       level: custom
       description: MITRE ATT&CK tactics.
+    - name: tactic.id
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK tactic identifiers.
       normalize:
         - array
       example: '["TA0002", "TA0005"]'
-    - name: technique
+    - name: tactic.name
       type: keyword
       level: custom
+      description: MITRE ATT&CK tactic names.
+      normalize:
+        - array
+      example: '["Execution", "Defense Evasion"]'
+    - name: technique
+      type: object
+      level: custom
       description: MITRE ATT&CK techniques.
+    - name: technique.id
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK technique identifiers.
       normalize:
         - array
       example: '["T1059", "T1562"]'
-    - name: subtechnique
+    - name: technique.name
       type: keyword
       level: custom
+      description: MITRE ATT&CK technique names.
+      normalize:
+        - array
+      example: '["Command and Scripting Interpreter", "Impair Defenses"]'
+    - name: subtechnique
+      type: object
+      level: custom
       description: MITRE ATT&CK subtechniques.
+    - name: subtechnique.id
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK subtechnique identifiers.
       normalize:
         - array
       example: '["T1059.001", "T1078.001"]'
+    - name: subtechnique.name
+      type: keyword
+      level: custom
+      description: MITRE ATT&CK subtechnique names.
+      normalize:
+        - array
+      example: '["Command and Scripting Interpreter: PowerShell", "Valid Accounts: Default Accounts"]'
