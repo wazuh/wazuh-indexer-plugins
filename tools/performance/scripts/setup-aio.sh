@@ -77,25 +77,30 @@ curl -sS --fail -L "$INSTALL_URL" -o "$INSTALL_SCRIPT"
 echo "[INFO] Running: bash $INSTALL_SCRIPT $INSTALLER_ARGS"
 bash "$INSTALL_SCRIPT" $INSTALLER_ARGS
 
-# --- Best-effort: capture the generated admin password for the sampler -------
-# Both the 4.x and 5.x assistants write credentials to wazuh-passwords.txt inside
-# wazuh-install-files.tar. Best-effort; if it fails, read it manually and pass
-# --password to run-scenario.sh.
+# --- Capture the generated admin password for the sampler --------------------
+# The assistant writes credentials to wazuh-passwords.txt inside
+# wazuh-install-files.tar. Locate it on disk (the assistant's CWD isn't fixed
+# under Vagrant provisioning), extract, and parse the admin indexer password.
 if [[ -n "$PASSWORD_OUT" ]]; then
-    TARBALL="wazuh-install-files.tar"
-    if [[ -f "$TARBALL" ]]; then
-        mkdir -p "$(dirname "$PASSWORD_OUT")"
-        if tar -xOf "$TARBALL" wazuh-install-files/wazuh-passwords.txt 2>/dev/null \
-            | grep -A1 "indexer_username: 'admin'" \
-            | grep -oP "indexer_password: '\K[^']+" \
-            | head -1 > "$PASSWORD_OUT" && [[ -s "$PASSWORD_OUT" ]]; then
-            chmod 600 "$PASSWORD_OUT"
-            echo "[INFO] Wrote admin indexer password to $PASSWORD_OUT"
-        else
-            rm -f "$PASSWORD_OUT"
-            echo "[WARN] Could not extract admin password — read wazuh-passwords.txt manually."
-        fi
+    TARBALL=$(find / -name wazuh-install-files.tar -type f 2>/dev/null | head -1)
+    PWFILE=""
+    if [[ -n "$TARBALL" ]]; then
+        EXDIR=$(mktemp -d)
+        tar -xf "$TARBALL" -C "$EXDIR" 2>/dev/null || true
+        PWFILE=$(find "$EXDIR" -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
     fi
+    [[ -z "$PWFILE" ]] && PWFILE=$(find / -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
+    PW=""
+    [[ -n "$PWFILE" ]] && PW=$(awk -F"'" '/indexer_username: .admin.$/{f=1} f && /indexer_password:/{print $2; exit}' "$PWFILE")
+    if [[ -n "$PW" ]]; then
+        mkdir -p "$(dirname "$PASSWORD_OUT")"
+        printf '%s' "$PW" > "$PASSWORD_OUT"
+        chmod 600 "$PASSWORD_OUT"
+        echo "[INFO] Wrote admin indexer password to $PASSWORD_OUT"
+    else
+        echo "[WARN] Could not extract admin password (tar: ${TARBALL:-none}, passwords: ${PWFILE:-none}); read wazuh-passwords.txt manually." >&2
+    fi
+    [[ -n "${EXDIR:-}" ]] && rm -rf "$EXDIR"
 fi
 
 # --- Print agent enrollment instructions -------------------------------------

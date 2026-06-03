@@ -78,21 +78,28 @@ bash "$INSTALL_SCRIPT" --wazuh-indexer "${NODE_NAME}"
 echo "[INFO] Initializing the cluster (security)"
 bash "$INSTALL_SCRIPT" --start-cluster
 
-# --- Best-effort: capture the generated admin password for the sampler -------
+# --- Capture the generated admin password for the sampler --------------------
+# Locate wazuh-install-files.tar on disk, extract, parse the admin indexer password.
 if [[ -n "$PASSWORD_OUT" ]]; then
-    if [[ -f "$WORKDIR/wazuh-install-files.tar" ]]; then
-        mkdir -p "$(dirname "$PASSWORD_OUT")"
-        if tar -xOf "$WORKDIR/wazuh-install-files.tar" wazuh-install-files/wazuh-passwords.txt 2>/dev/null \
-            | grep -A1 "indexer_username: 'admin'" \
-            | grep -oP "indexer_password: '\K[^']+" \
-            | head -1 > "$PASSWORD_OUT" && [[ -s "$PASSWORD_OUT" ]]; then
-            chmod 600 "$PASSWORD_OUT"
-            echo "[INFO] Wrote admin indexer password to $PASSWORD_OUT"
-        else
-            rm -f "$PASSWORD_OUT"
-            echo "[WARN] Could not extract admin password — read wazuh-passwords.txt manually."
-        fi
+    TARBALL=$(find / -name wazuh-install-files.tar -type f 2>/dev/null | head -1)
+    PWFILE=""
+    if [[ -n "$TARBALL" ]]; then
+        EXDIR=$(mktemp -d)
+        tar -xf "$TARBALL" -C "$EXDIR" 2>/dev/null || true
+        PWFILE=$(find "$EXDIR" -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
     fi
+    [[ -z "$PWFILE" ]] && PWFILE=$(find / -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
+    PW=""
+    [[ -n "$PWFILE" ]] && PW=$(awk -F"'" '/indexer_username: .admin.$/{f=1} f && /indexer_password:/{print $2; exit}' "$PWFILE")
+    if [[ -n "$PW" ]]; then
+        mkdir -p "$(dirname "$PASSWORD_OUT")"
+        printf '%s' "$PW" > "$PASSWORD_OUT"
+        chmod 600 "$PASSWORD_OUT"
+        echo "[INFO] Wrote admin indexer password to $PASSWORD_OUT"
+    else
+        echo "[WARN] Could not extract admin password (tar: ${TARBALL:-none}, passwords: ${PWFILE:-none}); read wazuh-passwords.txt manually." >&2
+    fi
+    [[ -n "${EXDIR:-}" ]] && rm -rf "$EXDIR"
 fi
 
 echo

@@ -18,6 +18,7 @@ set -e
 
 SCENARIO=""
 VERSION=""
+PASSWORD=""
 KEEP=""
 # Scenario-specific passthrough (defaults match the runners).
 DURATION="" INTERVAL="" RATE=""   # real-world
@@ -27,12 +28,13 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --scenario) SCENARIO="$2"; shift 2 ;;
         --version)  VERSION="$2"; shift 2 ;;
+        --password) PASSWORD="$2"; shift 2 ;;
         --duration) DURATION="$2"; shift 2 ;;
         --interval) INTERVAL="$2"; shift 2 ;;
         --rate)     RATE="$2"; shift 2 ;;
         --docs)     DOCS="$2"; shift 2 ;;
         --keep)     KEEP=1; shift ;;
-        *) echo "Usage: $0 --scenario real-world|isolated [--version X.Y.Z] [--keep]"
+        *) echo "Usage: $0 --scenario real-world|isolated [--version X.Y.Z] [--password P] [--keep]"
            echo "                 [--duration S --interval S --rate N]   (real-world)"
            echo "                 [--docs N]                              (isolated)"; exit 1 ;;
     esac
@@ -58,6 +60,7 @@ vagrant up
 # Build the scenario-specific measurement args.
 RUN_ARGS=()
 [[ -n "$VERSION" ]] && RUN_ARGS+=(--version "$VERSION")
+[[ -n "$PASSWORD" ]] && RUN_ARGS+=(--password "$PASSWORD")
 if [[ "$SCENARIO" == "real-world" ]]; then
     [[ -n "$DURATION" ]] && RUN_ARGS+=(--duration "$DURATION")
     [[ -n "$INTERVAL" ]] && RUN_ARGS+=(--interval "$INTERVAL")
