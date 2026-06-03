@@ -68,6 +68,17 @@ fi
 LABEL="wazuh-$VERSION"
 echo "[INFO] Run label: $LABEL (installed version)"
 
+# Fail fast on a missing HOST dependency. gen-corpora.py (step 2b) runs on the host —
+# it needs the wcs/ generator, which isn't in the VMs — and that generator imports
+# `requests`. Check now, before the multi-minute cold-start/green wait, so a missing
+# dep surfaces as a clear message instead of a deep traceback minutes later.
+if [[ ! -f ../benchmark/workloads/wazuh-events/documents.json ]] && ! python3 -c 'import requests' 2>/dev/null; then
+    echo "[ERROR] The host is missing the Python 'requests' module, needed to build the OSB" >&2
+    echo "        corpus (gen-corpora.py runs on the host via the WCS event generator). Install it:" >&2
+    echo "          pip install requests        # or: sudo apt-get install -y python3-requests" >&2
+    exit 1
+fi
+
 # 1. Cold start: restart the indexer; Prometheus/node_exporter are already recording.
 RESTART_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "[INFO] Cold-start marker: $RESTART_TS — restarting wazuh-indexer ..."
@@ -90,7 +101,8 @@ vagrant ssh indexer -c "
             | grep -q '\"status\":\"green\"\|\"status\":\"yellow\"' && exit 0
         sleep 5
     done
-    echo '[WARN] indexer did not report green/yellow within 5 min' >&2
+    echo '[WARN] indexer not green/yellow within 5 min — last health check (HTTP 401 ⇒ wrong password):' >&2
+    curl -ks -o /dev/null -w '  HTTP %{http_code}\n' -u admin:'$PASSWORD' https://localhost:9200/_cluster/health >&2 || true
 "
 
 # 2b. Ensure the OSB corpus exists. gen-corpora.py needs the repo (WCS generator +

@@ -27,7 +27,9 @@ Prometheus** for continuous, from-boot host metrics so the cold start is capture
 ## Prerequisites
 
 - **Method 1 (Vagrant):** Vagrant + a provider (VirtualBox / Parallels / libvirt),
-  on a host with ~20 GB free RAM and 12 vCPU.
+  on a host with ~20 GB free RAM and 12 vCPU. The `isolated` scenario builds its corpus
+  on the host (it uses the `wcs/` generator), and `analyze.sh` plots on the host, so the
+  host also needs `pip install requests matplotlib`.
 - **Method 2 (manual):** the [Requirements](#requirements) deps installed per host,
   plus internet access to the Wazuh package repos.
 

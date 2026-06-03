@@ -48,8 +48,16 @@ python3 "$SAMPLER" --endpoint "$TARGET" --user "$USER" --password "$PASSWORD" \
     --interval 60 --duration 600 --out "$OUT" --insecure $NO_HOST &
 SAMPLER_PID=$!
 
-echo "[INFO] Running OpenSearch Benchmark against $HOST ..."
-opensearch-benchmark execute-test \
+# OSB renamed the test-execution subcommand from `execute-test` to `run` in newer
+# releases. Pick whichever this install provides.
+if opensearch-benchmark --help 2>&1 | grep -qF 'execute-test'; then
+    OSB_SUBCMD="execute-test"
+else
+    OSB_SUBCMD="run"
+fi
+
+echo "[INFO] Running OpenSearch Benchmark ($OSB_SUBCMD) against $HOST ..."
+opensearch-benchmark "$OSB_SUBCMD" \
     --pipeline=benchmark-only \
     --workload-path="$WORKLOAD_DIR/workload.json" \
     --workload-params="$WORKLOAD_DIR/workload-params.json" \

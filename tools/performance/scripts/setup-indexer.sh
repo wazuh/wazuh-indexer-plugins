@@ -81,6 +81,23 @@ echo "[INFO] Initializing the cluster (security)"
 bash "$INSTALL_SCRIPT" --start-cluster 2>&1 | tee -a "$INSTALL_LOG"
 set +o pipefail
 
+# --- Bind on all interfaces --------------------------------------------------
+# The assistant sets network.host to the node IP, which on a multi-homed VM (e.g.
+# Vagrant: NAT eth0 + private eth1) is whichever `hostname -I` returns first — often
+# the NAT IP. That leaves the node unreachable over the private network the monitor/
+# sampler use, and off localhost too. Bind 0.0.0.0 so it listens everywhere; all our
+# clients use insecure TLS, so the cert SAN is irrelevant.
+CONF=/etc/wazuh-indexer/opensearch.yml
+if [[ -f "$CONF" ]]; then
+    if grep -qE '^[[:space:]]*network\.host:' "$CONF"; then
+        sed -i -E 's/^([[:space:]]*network\.host:).*/\1 0.0.0.0/' "$CONF"
+    else
+        echo 'network.host: 0.0.0.0' >> "$CONF"
+    fi
+    echo "[INFO] Set network.host: 0.0.0.0 — restarting wazuh-indexer"
+    systemctl restart wazuh-indexer || true
+fi
+
 # --- Capture the admin password for the sampler -----------------------------
 # Primary: the assistant prints it ("Password: ..."); fallback: wazuh-passwords.txt
 # inside wazuh-install-files.tar (located anywhere on disk).
