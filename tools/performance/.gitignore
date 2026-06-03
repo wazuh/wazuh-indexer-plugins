@@ -6,9 +6,9 @@ benchmark/workloads/wazuh-events/workload-params.json
 # Run outputs (metrics, reports)
 runs/
 
-# Analyze outputs when written to the tool dir (compare.py / plot.py defaults)
-compare.md
-timeline.png
+# Analyze outputs written to the tool dir (analyze.sh + compare.py / plot.py defaults)
+*compare.md
+*timeline.png
 
 # Rendered monitor scrape config (produced by setup-monitor.sh)
 monitoring/prometheus.rendered.yml

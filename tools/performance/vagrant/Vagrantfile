@@ -61,9 +61,12 @@ Vagrant.configure("2") do |config|
         set -e
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -y && apt-get install -y curl tar python3 python3-requests
+        # Write the password OUTSIDE the /opt/perf synced folder: the runners call
+        # `vagrant rsync` (rsync --delete) before reading it, which would wipe any
+        # guest-only file living under the synced mount.
         bash /opt/perf/scripts/setup-indexer.sh \
           --version "#{VERSION}" \
-          --password-out /opt/perf/runs/admin-password.txt
+          --password-out /var/lib/wazuh-perf/admin-password.txt
         bash /opt/perf/monitoring/setup-node-exporter.sh
       SHELL
     end
@@ -94,9 +97,12 @@ Vagrant.configure("2") do |config|
         set -e
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -y && apt-get install -y curl tar python3 python3-requests python3-psutil
+        # Write the password OUTSIDE the /opt/perf synced folder: the runners call
+        # `vagrant rsync` (rsync --delete) before reading it, which would wipe any
+        # guest-only file living under the synced mount.
         bash /opt/perf/scripts/setup-aio.sh \
           --version "#{VERSION}" \
-          --password-out /opt/perf/runs/admin-password.txt
+          --password-out /var/lib/wazuh-perf/admin-password.txt
       SHELL
     end
 

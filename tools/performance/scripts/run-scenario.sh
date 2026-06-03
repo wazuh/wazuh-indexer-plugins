@@ -56,7 +56,7 @@ echo "[INFO] Run window STOP: $STOP"
 
 cat > "$OUT/run-metadata.json" <<EOF
 {
-  "track": "A-real-world",
+  "scenario": "real-world",
   "label": "$LABEL",
   "endpoint": "$ENDPOINT",
   "start": "$START",

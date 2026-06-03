@@ -52,10 +52,11 @@ cd tools/performance
 ./run.sh --scenario isolated --keep            # leave the VMs up afterwards (debug)
 ```
 
-Results land in `tools/performance/runs/<scenario>-<version>/` (e.g.
-`real-world-5.0.0/`, `isolated-4.14.1/`) — named after the **actual installed**
-Wazuh version, so runs of different versions don't overwrite each other and can be
-compared (see [Output](#output)). Tune load with `--duration` / `--interval` /
+Results land in `tools/performance/runs/<scenario>-<version>/` — named after the
+**actual installed** Wazuh version, so `--version 4.14` lands in
+`runs/real-world-4.14.1/` (the resolved patch) and runs of different versions never
+overwrite each other and can be compared (see [Output](#output)). Tune load with
+`--duration` / `--interval` /
 `--rate` (real-world) or `--docs` (isolated). Topologies ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
 
 - **real-world**: `aio` (16 GB/8 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) — 192.168.60.20–22.
@@ -131,6 +132,7 @@ sudo systemctl restart wazuh-indexer
 ```
 tools/performance/
 ├── run.sh                          # One-liner entrypoint - up → measure → destroy
+├── analyze.sh                      # one-shot: build <scenario>-compare.md + -timeline.png from runs/
 ├── metrics/sampler.py              # per-minute host + indexer sampler → CSV/NDJSON
 ├── analyze/report.py               # aggregates a run → labeled hardware-utilization report.md
 ├── analyze/compare.py              # diffs two+ runs side by side → compare.md (e.g. 4.x vs 5.x)
@@ -175,28 +177,30 @@ Timing: provisioning ~10–15 min, then the measurement window (`--duration`, de
 
 ## Comparing versions (4.x vs 5.x)
 
-Each run is labeled with the real installed version. To compare, run the same
+Each run is labeled with its real installed version. To compare, run the same
 scenario twice (`--version 4.14`, then `--version 5.0.0`, e.g. on separate CI/AWS
-VMs) and diff the artifacts. Run the analysis commands from `tools/performance/`
-(or use absolute paths):
+VMs) — they land in `runs/real-world-4.14.1/` and `runs/real-world-5.0.0/`. Then
+generate the comparison + timeline in one shot from `tools/performance/`:
 
-`run-scenario.sh` runs the sampler then `analyze/report.py`, producing `report.md`
-(avg/peak of host CPU, RAM, disk, ingest rate, per-process split — **all samples
-included**; pass `--warmup N` to drop the first N). Diff two runs:
+```bash
+./analyze.sh                       # every scenario found in runs/
+./analyze.sh --scenario real-world # restrict to one scenario
+```
+
+It groups runs by scenario (never mixing real-world with isolated) and writes
+`<scenario>-compare.md` (side-by-side avg/peak diff, needs ≥2 versions) and
+`<scenario>-timeline.png` (overlaid minutes-since-start lines showing *when* spikes
+happen — cold start, GC, ingest dips). Each run also keeps its own `report.md`;
+all of these include **every sample** — pass `--warmup N` to drop the first N.
+Under the hood `analyze.sh` calls the two tools, which you can also run directly:
 
 ```bash
 python3 analyze/compare.py \
   wazuh-4.14.1=./runs/real-world-4.14.1/metrics.csv \
-  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv
-```
-
-See *when* spikes happen (cold start, GC, ingest dips) with `analyze/plot.py`,
-which overlays the runs on a minutes-since-start timeline (needs `matplotlib`):
-
-```bash
+  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv          # → compare.md
 python3 analyze/plot.py \
   wazuh-4.14.1=./runs/real-world-4.14.1/metrics.csv \
-  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv --out timeline.png
+  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv --out timeline.png   # needs matplotlib
 ```
 
 > For the delta to mean "version cost", the two runs must be **comparable**:

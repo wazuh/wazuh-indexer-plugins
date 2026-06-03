@@ -19,7 +19,7 @@ DURATION=3600
 INTERVAL=60
 RATE=10
 PASSWORD=""
-VERSION=""   # explicit override; otherwise auto-detected from the aio VM
+VERSION=""   # fallback only; the label uses the detected INSTALLED version
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -40,34 +40,37 @@ echo "[INFO] Syncing latest scripts to the VMs ..."
 vagrant rsync >/dev/null 2>&1 || true
 
 # Resolve the indexer admin password: explicit flag, else the file captured during
-# provisioning, read FROM the AIO guest over SSH (libvirt often syncs host→guest only).
+# provisioning, read FROM the AIO guest over SSH. The file lives at /var/lib/wazuh-perf
+# (NOT under /opt/perf): the rsync above would delete a guest-only file inside the
+# synced folder before we could read it.
 if [[ -z "$PASSWORD" ]]; then
-    PASSWORD="$(vagrant ssh aio -c 'sudo cat /opt/perf/runs/admin-password.txt 2>/dev/null' 2>/dev/null | tr -d '\r\n')"
+    PASSWORD="$(vagrant ssh aio -c 'sudo cat /var/lib/wazuh-perf/admin-password.txt 2>/dev/null' 2>/dev/null | tr -d '\r\n')"
 fi
 if [[ -z "$PASSWORD" && -f ../runs/admin-password.txt ]]; then
     PASSWORD="$(cat ../runs/admin-password.txt)"
 fi
 if [[ -z "$PASSWORD" ]]; then
-    echo "[ERROR] No indexer password found in the AIO VM (/opt/perf/runs/admin-password.txt)." >&2
+    echo "[ERROR] No indexer password found in the AIO VM (/var/lib/wazuh-perf/admin-password.txt)." >&2
     echo "        Retrieve it with:" >&2
     echo "          vagrant ssh aio -c 'TAR=\$(sudo find / -name wazuh-install-files.tar 2>/dev/null | head -1); sudo tar -xOf \"\$TAR\" wazuh-install-files/wazuh-passwords.txt | grep -A2 -i admin'" >&2
     echo "        then re-run with --password '<indexer admin password>'." >&2
     exit 1
 fi
 
-# Resolve the Wazuh version for the label from the installed package (ground truth),
-# unless --version was given. No assumed default.
-if [[ -z "$VERSION" ]]; then
-    RAW="$(vagrant ssh aio -c "dpkg-query -W -f='\${Version}' wazuh-indexer 2>/dev/null || rpm -q --qf '%{VERSION}-%{RELEASE}' wazuh-indexer 2>/dev/null" 2>/dev/null | tr -d '\r\n')"
-    VERSION="${RAW##*:}"   # strip any epoch
-    VERSION="${VERSION%%-*}"  # strip Debian/RPM revision → upstream version
-fi
+# Resolve the Wazuh version for the label from the INSTALLED package (ground truth).
+# This captures the real patch: --version 4.14 installs the latest 4.14.x, and the
+# label + output dir reflect that exact version (e.g. 4.14.1). --version is only a
+# fallback if the package query fails.
+RAW="$(vagrant ssh aio -c "dpkg-query -W -f='\${Version}' wazuh-indexer 2>/dev/null || rpm -q --qf '%{VERSION}-%{RELEASE}' wazuh-indexer 2>/dev/null" 2>/dev/null | tr -d '\r\n')"
+DETECTED="${RAW##*:}"        # strip any epoch
+DETECTED="${DETECTED%%-*}"   # strip Debian/RPM revision → upstream version
+VERSION="${DETECTED:-$VERSION}"
 if [[ -z "$VERSION" ]]; then
     echo "[ERROR] Could not determine the wazuh-indexer version from the aio VM. Pass --version X.Y.Z." >&2
     exit 1
 fi
 LABEL="wazuh-$VERSION"
-echo "[INFO] Run label: $LABEL"
+echo "[INFO] Run label: $LABEL (installed version)"
 
 # Discover agent VM names from the Vagrant status (everything except 'aio').
 AGENTS=$(vagrant status --machine-readable | awk -F, '$3=="state" && $2!="aio" && $2!="" {print $2}')
