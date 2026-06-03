@@ -123,7 +123,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         for (String category : this.categories) {
             this.indices.add(new AliasedIndex(
                 "wazuh-findings-v5-" + category,
-                "templates/streams/findings"
+                "templates/aliased/findings"
             ));
         }
         // Raw events data stream (stores original unprocessed events)

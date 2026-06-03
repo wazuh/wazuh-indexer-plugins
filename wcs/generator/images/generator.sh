@@ -63,8 +63,10 @@ generate_mappings() {
 
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
 
-  # Transform legacy index template for OpenSearch compatibility
-  if [[ "$ecs_module" =~ "stateless/" ]]; then
+  # Transform legacy index template for OpenSearch compatibility.
+  # Findings live under stateless/ but use an aliased regular-index layout (not a data stream)
+  # so the dashboard can mutate documents via _update — they must NOT get the data_stream block.
+  if [[ "$ecs_module" =~ "stateless/" && "$ecs_module" != "stateless/events/findings" ]]; then
     # Transform time-series templates to use data streams
     jq '{
       "index_patterns": .index_patterns,
@@ -76,7 +78,7 @@ generate_mappings() {
       }
     }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
   else
-    # Stateful templates remain unchanged except for the formatting
+    # Stateful templates and aliased indices (findings) — no data_stream block
     jq '{
       "index_patterns": .index_patterns,
       "priority": .order,

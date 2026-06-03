@@ -60,7 +60,7 @@ public class AliasedIndexTests extends OpenSearchTestCase {
         Settings settings = Settings.builder().build();
         doReturn(settings).when(clusterService).getSettings();
 
-        this.aliasedIndex = new AliasedIndex(ALIAS, "templates/streams/findings");
+        this.aliasedIndex = new AliasedIndex(ALIAS, "templates/aliased/findings");
         this.aliasedIndex.setClient(client);
         this.aliasedIndex.setClusterService(clusterService);
         this.aliasedIndex.setUtils(mock(JsonUtils.class));
