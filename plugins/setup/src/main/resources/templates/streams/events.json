@@ -212,8 +212,8 @@
           }
         },
         {
-          "wcs_check_mitre_subtechnique": {
-            "path_match": "check.mitre.subtechnique",
+          "wcs_check_mitre_subtechnique_id": {
+            "path_match": "check.mitre.subtechnique.id",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -221,8 +221,8 @@
           }
         },
         {
-          "wcs_check_mitre_tactic": {
-            "path_match": "check.mitre.tactic",
+          "wcs_check_mitre_subtechnique_name": {
+            "path_match": "check.mitre.subtechnique.name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -230,8 +230,35 @@
           }
         },
         {
-          "wcs_check_mitre_technique": {
-            "path_match": "check.mitre.technique",
+          "wcs_check_mitre_tactic_id": {
+            "path_match": "check.mitre.tactic.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_mitre_tactic_name": {
+            "path_match": "check.mitre.tactic.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_mitre_technique_id": {
+            "path_match": "check.mitre.technique.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_mitre_technique_name": {
+            "path_match": "check.mitre.technique.name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -4856,8 +4883,8 @@
           }
         },
         {
-          "wcs_mitre_subtechnique": {
-            "path_match": "mitre.subtechnique",
+          "wcs_mitre_subtechnique_id": {
+            "path_match": "mitre.subtechnique.id",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -4865,8 +4892,8 @@
           }
         },
         {
-          "wcs_mitre_tactic": {
-            "path_match": "mitre.tactic",
+          "wcs_mitre_subtechnique_name": {
+            "path_match": "mitre.subtechnique.name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -4874,8 +4901,35 @@
           }
         },
         {
-          "wcs_mitre_technique": {
-            "path_match": "mitre.technique",
+          "wcs_mitre_tactic_id": {
+            "path_match": "mitre.tactic.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_mitre_tactic_name": {
+            "path_match": "mitre.tactic.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_mitre_technique_id": {
+            "path_match": "mitre.technique.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_mitre_technique_name": {
+            "path_match": "mitre.technique.name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -9294,8 +9348,8 @@
           }
         },
         {
-          "wcs_rule_mitre_subtechnique": {
-            "path_match": "rule.mitre.subtechnique",
+          "wcs_rule_mitre_subtechnique_id": {
+            "path_match": "rule.mitre.subtechnique.id",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -9303,8 +9357,8 @@
           }
         },
         {
-          "wcs_rule_mitre_tactic": {
-            "path_match": "rule.mitre.tactic",
+          "wcs_rule_mitre_subtechnique_name": {
+            "path_match": "rule.mitre.subtechnique.name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -9312,8 +9366,35 @@
           }
         },
         {
-          "wcs_rule_mitre_technique": {
-            "path_match": "rule.mitre.technique",
+          "wcs_rule_mitre_tactic_id": {
+            "path_match": "rule.mitre.tactic.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_mitre_tactic_name": {
+            "path_match": "rule.mitre.tactic.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_mitre_technique_id": {
+            "path_match": "rule.mitre.technique.id",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_rule_mitre_technique_name": {
+            "path_match": "rule.mitre.technique.name",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -19975,7 +20056,17 @@
               "properties": {}
             },
             "mitre": {
-              "properties": {}
+              "properties": {
+                "subtechnique": {
+                  "properties": {}
+                },
+                "tactic": {
+                  "properties": {}
+                },
+                "technique": {
+                  "properties": {}
+                }
+              }
             }
           }
         },
@@ -20388,7 +20479,17 @@
           }
         },
         "mitre": {
-          "properties": {}
+          "properties": {
+            "subtechnique": {
+              "properties": {}
+            },
+            "tactic": {
+              "properties": {}
+            },
+            "technique": {
+              "properties": {}
+            }
+          }
         },
         "network": {
           "properties": {
@@ -20765,7 +20866,17 @@
               "properties": {}
             },
             "mitre": {
-              "properties": {}
+              "properties": {
+                "subtechnique": {
+                  "properties": {}
+                },
+                "tactic": {
+                  "properties": {}
+                },
+                "technique": {
+                  "properties": {}
+                }
+              }
             }
           }
         },
