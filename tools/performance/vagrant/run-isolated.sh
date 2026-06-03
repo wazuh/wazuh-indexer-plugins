@@ -99,7 +99,8 @@ vagrant ssh monitor -c \
         --docs $DOCS --no-host --out $OUT_GUEST"
 
 # 4. Pull results (OSB report + indexer-internal CSV) from the monitor VM.
-LOCAL_OUT="../runs/isolated"
+# Per-version output dir so runs don't overwrite each other (compare across versions).
+LOCAL_OUT="../runs/isolated-$VERSION"
 echo "[INFO] Fetching results from the monitor VM ..."
 mkdir -p "$LOCAL_OUT"
 vagrant ssh monitor -c "sudo tar -czf - -C $OUT_GUEST . | base64 -w0" 2>/dev/null \
@@ -117,5 +118,5 @@ EOF
 
 MON_IP=$(vagrant ssh monitor -c "hostname -I | awk '{print \$1}'" 2>/dev/null | tr -d '\r\n')
 echo
-echo "[INFO] Done ($LABEL). OSB report + metrics.csv: tools/performance/runs/isolated/"
+echo "[INFO] Done ($LABEL). OSB report + metrics.csv: tools/performance/runs/isolated-$VERSION/"
 echo "[INFO] Cold start at $RESTART_TS — view the full host timeline in Grafana: http://${MON_IP}:3000"

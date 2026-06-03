@@ -75,7 +75,8 @@ echo "[INFO] Agents: $AGENTS"
 
 # Guest-local output dir (NOT under the synced mount; pulled back over SSH below).
 OUT_GUEST="/root/perf-run"
-LOCAL_OUT="../runs/aio-run"
+# Per-version output dir so runs don't overwrite each other (compare across versions).
+LOCAL_OUT="../runs/real-world-$VERSION"
 
 echo "[INFO] Starting load loops (rate=${RATE}/s, duration=${DURATION}s) ..."
 PIDS=()
@@ -106,4 +107,4 @@ vagrant ssh aio -c "sudo tar -czf - -C $OUT_GUEST . | base64 -w0" 2>/dev/null \
 python3 ../analyze/report.py --run "$LOCAL_OUT" --label "$LABEL" || \
     echo "[WARN] Host-side report generation failed; metrics.csv is available."
 
-echo "[INFO] Done. Results: tools/performance/runs/aio-run/ (metrics.csv, metrics.ndjson, run-metadata.json, report.md)"
+echo "[INFO] Done. Results: tools/performance/runs/real-world-$VERSION/ (metrics.csv, metrics.ndjson, run-metadata.json, report.md)"
