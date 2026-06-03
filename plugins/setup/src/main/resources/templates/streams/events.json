@@ -24,6 +24,7 @@
       },
       "mapping.nested_fields.limit": 50,
       "mapping.total_fields.limit": 1000,
+      "plugins.index_state_management.policy_id": "stream-events-policy",
       "plugins.index_state_management.rollover_alias": "wazuh-events-v5"
     },
     "mappings": {
@@ -2286,129 +2287,6 @@
         {
           "wcs_email_x_mailer": {
             "path_match": "email.x_mailer",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_confidence": {
-            "path_match": "enrichments.indicator.confidence",
-            "mapping": {
-              "type": "short"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_feed_name": {
-            "path_match": "enrichments.indicator.feed.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_first_seen": {
-            "path_match": "enrichments.indicator.first_seen",
-            "mapping": {
-              "type": "date"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_id": {
-            "path_match": "enrichments.indicator.id",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_last_seen": {
-            "path_match": "enrichments.indicator.last_seen",
-            "mapping": {
-              "type": "date"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_name": {
-            "path_match": "enrichments.indicator.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_provider": {
-            "path_match": "enrichments.indicator.provider",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_reference": {
-            "path_match": "enrichments.indicator.reference",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_software_alias": {
-            "path_match": "enrichments.indicator.software.alias",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_software_name": {
-            "path_match": "enrichments.indicator.software.name",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_software_type": {
-            "path_match": "enrichments.indicator.software.type",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_tags": {
-            "path_match": "enrichments.indicator.tags",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_indicator_type": {
-            "path_match": "enrichments.indicator.type",
-            "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "wcs_enrichments_source": {
-            "path_match": "enrichments.source",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -20407,20 +20285,6 @@
             },
             "to": {
               "properties": {}
-            }
-          }
-        },
-        "enrichments": {
-          "properties": {
-            "indicator": {
-              "properties": {
-                "feed": {
-                  "properties": {}
-                },
-                "software": {
-                  "properties": {}
-                }
-              }
             }
           }
         },

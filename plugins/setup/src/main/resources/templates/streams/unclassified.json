@@ -21,6 +21,7 @@
       },
       "mapping.nested_fields.limit": 10,
       "mapping.total_fields.limit": 1000,
+      "plugins.index_state_management.policy_id": "stream-events-policy",
       "plugins.index_state_management.rollover_alias": "wazuh-events-v5-unclassified"
     },
     "mappings": {
@@ -1250,7 +1251,7 @@
                       }
                     }
                   },
-                  "type": "nested"
+                  "type": "object"
                 },
                 "feed": {
                   "properties": {

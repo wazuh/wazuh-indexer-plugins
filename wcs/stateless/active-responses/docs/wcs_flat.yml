@@ -1528,7 +1528,7 @@ wazuh.threat.enrichments:
   - array
   original_fieldset: threat
   short: List of objects containing indicators enriching the event.
-  type: nested
+  type: object
 wazuh.threat.enrichments.indicator:
   dashed_name: wazuh-threat-enrichments-indicator
   description: Object containing associated indicators enriching the event.

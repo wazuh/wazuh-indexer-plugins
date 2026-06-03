@@ -41,12 +41,12 @@
     - [Architecture](ref/modules/content-manager/architecture.md)
     - [Configuration](ref/modules/content-manager/configuration.md)
     - [API Reference](ref/modules/content-manager/api.md)
-    - [Sigma Rules](ref/modules/content-manager/sigma-rules.md)
     - [Logtest Usage](ref/modules/content-manager/rule-testing.md)
     - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)
   - [Security Analytics](ref/modules/security-analytics/index.md)
     - [Architecture](ref/modules/security-analytics/architecture.md)
+    - [Sigma rules](ref/modules/security-analytics/rules.md)
   - [Notifications](ref/modules/notifications/index.md)
     - [Architecture](ref/modules/notifications/architecture.md)
     - [Configuration](ref/modules/notifications/configuration.md)
@@ -61,3 +61,8 @@
   - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
 - [Performance]()
 - [Glossary]()
+
+---
+
+[Release Notes](ref/release-notes.md)
+[Migration Guide](guide/migration/index.md)

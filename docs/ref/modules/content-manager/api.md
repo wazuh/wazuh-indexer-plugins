@@ -799,7 +799,7 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 ## Rules
 
-Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](sigma-rules.md) for the full format reference, including the `mitre`, `compliance`, and `metadata` blocks.
+Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../security-analytics/rules.md) for the full format reference, including the `mitre`, `compliance`, and `metadata` blocks.
 
 > **Validation notes**:
 > - The `logsource.product` field must exactly match the `metadata.title` of the parent integration.
@@ -834,8 +834,8 @@ Fields within `resource`:
 | `level`       | String  | Yes      | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
 | `logsource`   | Object  | No       | Log source definition (`product`, `category`)               |
 | `detection`   | Object  | Yes      | Sigma detection logic with `condition` and selection fields |
-| `mitre`       | Object  | No       | MITRE ATT&CK mapping (see [Sigma Rules](sigma-rules.md#mitre-attck-block))       |
-| `compliance`  | Object  | No       | Compliance framework mapping (see [Sigma Rules](sigma-rules.md#compliance-block)) |
+| `mitre`       | Object  | No       | MITRE ATT&CK mapping (see [Sigma Rules](../security-analytics/rules.md#mitre-attck-block))       |
+| `compliance`  | Object  | No       | Compliance framework mapping (see [Sigma Rules](../security-analytics/rules.md#compliance-block)) |
 
 Fields within `resource.metadata`:
 
