@@ -71,35 +71,44 @@ EOF
 
 # The assistant reads config.yml from its CWD and leaves wazuh-install-files.tar there.
 cd "$WORKDIR"
+INSTALL_LOG="$WORKDIR/install.log"
+set -o pipefail
 echo "[INFO] Generating config + certificates"
-bash "$INSTALL_SCRIPT" --generate-config-files
+bash "$INSTALL_SCRIPT" --generate-config-files 2>&1 | tee "$INSTALL_LOG"
 echo "[INFO] Installing the Wazuh indexer node '${NODE_NAME}'"
-bash "$INSTALL_SCRIPT" --wazuh-indexer "${NODE_NAME}"
+bash "$INSTALL_SCRIPT" --wazuh-indexer "${NODE_NAME}" 2>&1 | tee -a "$INSTALL_LOG"
 echo "[INFO] Initializing the cluster (security)"
-bash "$INSTALL_SCRIPT" --start-cluster
+bash "$INSTALL_SCRIPT" --start-cluster 2>&1 | tee -a "$INSTALL_LOG"
+set +o pipefail
 
-# --- Capture the generated admin password for the sampler --------------------
-# Locate wazuh-install-files.tar on disk, extract, parse the admin indexer password.
+# --- Capture the admin password for the sampler -----------------------------
+# Primary: the assistant prints it ("Password: ..."); fallback: wazuh-passwords.txt
+# inside wazuh-install-files.tar (located anywhere on disk).
 if [[ -n "$PASSWORD_OUT" ]]; then
-    TARBALL=$(find / -name wazuh-install-files.tar -type f 2>/dev/null | head -1)
-    PWFILE=""
-    if [[ -n "$TARBALL" ]]; then
-        EXDIR=$(mktemp -d)
-        tar -xf "$TARBALL" -C "$EXDIR" 2>/dev/null || true
-        PWFILE=$(find "$EXDIR" -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
-    fi
-    [[ -z "$PWFILE" ]] && PWFILE=$(find / -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
     PW=""
-    [[ -n "$PWFILE" ]] && PW=$(awk -F"'" '/indexer_username: .admin.$/{f=1} f && /indexer_password:/{print $2; exit}' "$PWFILE")
+    # Anchor on the "User: admin" → next "Password: <pw>" pair (the log has other
+    # Password: lines). Strip ANSI colors first, then trim.
+    [[ -f "$INSTALL_LOG" ]] && PW=$(sed -E 's/\x1b\[[0-9;]*m//g' "$INSTALL_LOG" \
+        | awk '/User:[[:space:]]*admin/{u=1;next} u&&/Password:/{sub(/.*Password:[[:space:]]*/,"");print;exit}' \
+        | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' | tr -d '\r')
+    if [[ -z "$PW" ]]; then
+        TARBALL=$(find / -name wazuh-install-files.tar -type f 2>/dev/null | head -1)
+        if [[ -n "$TARBALL" ]]; then
+            EXDIR=$(mktemp -d)
+            tar -xf "$TARBALL" -C "$EXDIR" 2>/dev/null || true
+            PWFILE=$(find "$EXDIR" -name wazuh-passwords.txt -type f 2>/dev/null | head -1)
+            [[ -n "$PWFILE" ]] && PW=$(awk -F"'" '/indexer_username: .admin.$/{f=1} f && /indexer_password:/{print $2; exit}' "$PWFILE")
+            rm -rf "$EXDIR"
+        fi
+    fi
     if [[ -n "$PW" ]]; then
         mkdir -p "$(dirname "$PASSWORD_OUT")"
         printf '%s' "$PW" > "$PASSWORD_OUT"
         chmod 600 "$PASSWORD_OUT"
         echo "[INFO] Wrote admin indexer password to $PASSWORD_OUT"
     else
-        echo "[WARN] Could not extract admin password (tar: ${TARBALL:-none}, passwords: ${PWFILE:-none}); read wazuh-passwords.txt manually." >&2
+        echo "[WARN] Could not capture admin password; read it from the install summary above." >&2
     fi
-    [[ -n "${EXDIR:-}" ]] && rm -rf "$EXDIR"
 fi
 
 echo

@@ -8,6 +8,9 @@ share one measurement layer:
 | **real-world** | AIO + 2 agents | Agents' FIM + Logcollector loops | Realistic SIEM ingest; hardware requirements |
 | **isolated** | single indexer + monitor VM | OpenSearch Benchmark | Indexer in isolation, watched from **boot** (node_exporter → Prometheus/Grafana) incl. cold start |
 
+Pick **real-world** for hardware sizing under realistic agent load, and **isolated** for
+indexer peak throughput and cold-start cost.
+
 The **measurement layer** ([metrics/sampler.py](metrics/sampler.py)) polls the
 indexer's `_nodes/stats` + `_cluster/stats` (and, on the host, CPU/RAM/disk) and
 emits per-minute CSV/NDJSON. The `isolated` scenario adds **node_exporter +
@@ -17,9 +20,29 @@ Prometheus** for continuous, from-boot host metrics so the cold start is capture
 > (no manager, no dashboard) to measure the indexer alone; `real-world` uses the
 > full AIO.
 
-## Quick start
+> **Terms:** AIO = all-in-one (manager + indexer + dashboard); FIM / Logcollector =
+> agent modules that produce file/log events; OSB = OpenSearch Benchmark; cold start =
+> the indexer's first boot (index-template/ISM/CTI-sync cost).
 
-One entrypoint owns the whole lifecycle — `vagrant up` → measure → `vagrant destroy`:
+## Prerequisites
+
+- **Method 1 (Vagrant):** Vagrant + a provider (VirtualBox / Parallels / libvirt),
+  on a host with ~20 GB free RAM and 12 vCPU.
+- **Method 2 (manual):** the [Requirements](#requirements) deps installed per host,
+  plus internet access to the Wazuh package repos.
+
+## Running
+
+There are two methods to execute the performance tests; they use the same scripts and analysis, differing only in how the hosts are created.
+
+| Method | Where | Use it for |
+|--------|-------|-----------|
+| **One-liner (Vagrant)** | your machine | turnkey local runs — `run.sh` owns up → measure → destroy |
+| **Manual** | any hosts, e.g. **AWS EC2** | cloud / CI / dev — run the guest-side scripts directly on the instances |
+
+### Method 1 — One-liner (Vagrant, local)
+
+One entrypoint owns the whole lifecycle:
 
 ```bash
 cd tools/performance
@@ -29,25 +52,93 @@ cd tools/performance
 ./run.sh --scenario isolated --keep            # leave the VMs up afterwards (debug)
 ```
 
-Results land in `tools/performance/runs/` (`metrics.csv`, `report.md`, …), labeled
-with the **actual installed** Wazuh version (auto-detected from the VM; override
-with `--version`). Requires Vagrant + a provider; for libvirt also set a box, e.g.
-`PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh --scenario real-world`.
+Results land in `tools/performance/runs/` — `aio-run/` (real-world) or `isolated/`
+— labeled with the **actual installed** Wazuh version (see [Output](#output)). Tune
+load with `--duration` / `--interval` / `--rate` (real-world) or `--docs` (isolated).
+Topologies ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
+
+- **real-world**: `aio` (16 GB/8 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) — 192.168.60.20–22.
+- **isolated**: `indexer` (16 GB/8 vCPU, node_exporter from boot) + `monitor`
+  (2 GB/2 vCPU, Prometheus/Grafana/OSB) — 192.168.60.20 / .30; restarts the indexer
+  to capture its cold start, drives OSB from the monitor, opens Grafana for the timeline.
+
+> **Host:** ~20 GB free RAM, 12 vCPU. Box defaults to `bento/ubuntu-24.04`
+> (VirtualBox/Parallels/VMware, incl. Apple Silicon). For libvirt use a
+> libvirt-capable box: `PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh --scenario real-world`.
+> All host↔guest transfer is over `vagrant ssh`; the synced folder is only used to
+> deliver scripts at `vagrant up` (vagrant-libvirt syncs one way).
+
+### Method 2 — manual (bare hosts, e.g. AWS EC2)
+
+`run.sh` is Vagrant-only. On real hosts you run the guest-side scripts directly —
+more control, and what you'd use on EC2 or in CI. Put the tool on each instance
+(`git clone` the repo, or `scp -r tools/performance`), and install deps on the
+**measuring** host:
+
+```bash
+sudo apt-get install -y python3 python3-requests python3-psutil    # Debian/Ubuntu
+cd <repo>/tools/performance
+```
+
+A single `--version` selects the release; the flow is identical for 4.x and 5.x.
+Use the instances' **private IPs** for inter-host traffic.
+
+**real-world** — 1 AIO instance + 2 agent instances:
+
+```bash
+# AIO instance — install + capture the admin password:
+VERSION=5.0.0   # or 4.14
+sudo ./scripts/setup-aio.sh --version "$VERSION" --password-out ./runs/admin-password.txt
+
+# each agent instance — enroll against the AIO and start the load loop:
+sudo ./scripts/setup-agent.sh --version "$VERSION" --manager <aio-private-ip>
+./scripts/agent-load.sh --duration 3600
+
+# AIO instance — run the measurement window (sampler reads localhost + host metrics):
+sudo ./scripts/run-scenario.sh --endpoint https://localhost:9200 --user admin \
+  --password "$(cat ./runs/admin-password.txt)" --insecure \
+  --duration 3600 --interval 60 --label "wazuh-$VERSION" --out ./runs/"$VERSION"
+```
+
+Results stay in `./runs/$VERSION` on the AIO instance — `scp` them off.
+
+**isolated** — 1 indexer instance + 1 monitor instance:
+
+```bash
+# indexer instance:
+sudo ./scripts/setup-indexer.sh --version 5.0.0 --password-out ./runs/admin-password.txt
+sudo ./monitoring/setup-node-exporter.sh                                    # from boot
+
+# monitor instance (needs Docker + opensearch-benchmark; the corpus generator needs the full repo):
+sudo ./monitoring/setup-monitor.sh --indexer-host <indexer-private-ip>      # Prometheus :9090, Grafana :3000
+python3 benchmark/gen-corpora.py --docs 1000000
+
+# indexer instance — capture cold start, then drive load from the monitor:
+sudo systemctl restart wazuh-indexer
+# monitor instance:
+./benchmark/run-osb.sh --target https://<indexer-private-ip>:9200 --user admin --password <pass> --no-host
+```
+
+`--no-host` skips psutil (host metrics come from node_exporter → Prometheus/Grafana).
+
+> **AWS notes:** open the security-group ports between instances — 9200 (indexer),
+> 1514/1515 (agent→manager, real-world), 9100 (node_exporter→Prometheus, isolated),
+> 9090/3000 (Prometheus/Grafana). Retrieve artifacts with `scp -r <host>:.../runs ./`.
 
 ## Layout
 
 ```
 tools/performance/
-├── run.sh                          # ENTRYPOINT — up → measure → destroy (--scenario real-world|isolated)
+├── run.sh                          # One-liner entrypoint - up → measure → destroy
 ├── metrics/sampler.py              # per-minute host + indexer sampler → CSV/NDJSON
 ├── analyze/report.py               # aggregates a run → labeled hardware-utilization report.md
 ├── analyze/compare.py              # diffs two+ runs side by side → compare.md (e.g. 4.x vs 5.x)
 ├── analyze/plot.py                 # timeline charts overlaying runs → timeline.png (spikes)
 ├── vagrant/
 │   ├── Vagrantfile                 # PERF_SCENARIO=real-world (aio+agents) | isolated (indexer+monitor)
-│   ├── run-real-world.sh           # measurement helper (assumes VMs up); invoked by run.sh
-│   └── run-isolated.sh             # measurement helper (cold-start + OSB); invoked by run.sh
-├── scripts/                        # guest-side install/measurement scripts (synced to /opt/perf/scripts)
+│   ├── run-real-world.sh           # Vagrant measurement helper (invoked by run.sh)
+│   └── run-isolated.sh             # Vagrant measurement helper, cold-start + OSB (invoked by run.sh)
+├── scripts/                        # guest-side install/measurement scripts (run directly in Method 2)
 │   ├── setup-aio.sh                # install AIO (real-world) — official assistant by --version
 │   ├── setup-indexer.sh            # install single-node indexer (isolated) by --version
 │   ├── setup-agent.sh              # install + enroll an agent, configure FIM/Logcollector paths
@@ -64,73 +155,29 @@ tools/performance/
     └── workloads/wazuh-events/workload.json
 ```
 
-## real-world scenario
+## Output
 
-`./run.sh --scenario real-world` brings up an AIO + 2 agents, drives FIM +
-Logcollector load, runs the per-minute measurement window, pulls results to
-`runs/aio-run/`, and tears the VMs down. Hosts ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
+Each run writes `runs/<dir>/` with per-minute `metrics.csv` (+ `.ndjson`),
+`run-metadata.json`, and a `report.md` like:
 
-| VM | Role | Size | IP |
-|----|------|------|----|
-| `aio` | manager + indexer + dashboard | 16 GB / 8 vCPU | 192.168.60.20 |
-| `agent-1` | Wazuh agent (FIM + Logcollector) | 2 GB / 2 vCPU | 192.168.60.21 |
-| `agent-2` | Wazuh agent (FIM + Logcollector) | 2 GB / 2 vCPU | 192.168.60.22 |
-
-Tune the load with `--duration` / `--interval` / `--rate`. The admin password is
-read from the AIO VM automatically. Everything goes over `vagrant ssh` — the synced
-folder is used only to deliver scripts host→guest at `vagrant up`; **guest→host
-transfer is not relied on** (vagrant-libvirt syncs one way only).
-
-## isolated scenario
-
-`./run.sh --scenario isolated` brings up a single indexer VM (with node_exporter
-from boot) + a monitor VM (Prometheus + Grafana + OpenSearch Benchmark). It
-**restarts the indexer to capture its cold start** (Prometheus is already
-recording), drives the OSB synthetic workload **from the monitor VM** (off the
-indexer host), pulls results to `runs/isolated/`, and points you at Grafana for
-the full host timeline. `--docs` sets the corpus size.
-
-> **Host requirements:** ~20 GB free RAM, 12 vCPU. Box defaults to
-> `bento/ubuntu-24.04` (VirtualBox/Parallels/VMware, incl. Apple Silicon); VM
-> sizing applies to every provider. For libvirt, use a libvirt-capable box:
-> `PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh --scenario isolated --provider...`.
-> VMs use the `192.168.60.x` subnet (avoids VirtualBox's `192.168.56.x` host-only
-> range, which blocks libvirt network creation).
-
-## Manual hosts (without Vagrant)
-
-The guest-side scripts run on any bare host (e.g. AWS VMs). A single `--version`
-selects the Wazuh release; the flow is identical for 4.x and 5.x.
-
-**real-world** — on the AIO host, then each agent host:
-
-```bash
-VERSION=5.0.0    # or 4.14
-sudo ./scripts/setup-aio.sh --version $VERSION --password-out ./runs/admin-password.txt
-sudo ./scripts/setup-agent.sh --version $VERSION --manager <aio-ip>   # each agent
-./scripts/agent-load.sh --duration 3600                               # each agent
-sudo ./scripts/run-scenario.sh --endpoint https://localhost:9200 --user admin \
-  --password "$(cat ./runs/admin-password.txt)" --insecure \
-  --duration 3600 --interval 60 --label wazuh-$VERSION --out ./runs/$VERSION
+```
+# Performance report — wazuh-5.0.0
+- Samples: 60 (all included)
+| Metric              | Avg   | Peak  |
+| Host CPU (%)        | 1.5   | 2.3   |
+| Host RAM used (GB)  | 9.4   | 9.5   |
+| Ingest rate (docs/s)| 121.8 | 133.5 |
 ```
 
-**isolated** — single indexer + a separate monitor host:
-
-```bash
-sudo ./scripts/setup-indexer.sh --version 5.0.0 --password-out ./runs/admin-password.txt
-sudo ./monitoring/setup-node-exporter.sh                              # indexer host (from boot)
-sudo ./monitoring/setup-monitor.sh --indexer-host <indexer-ip>        # monitor host: Prometheus :9090, Grafana :3000
-sudo systemctl restart wazuh-indexer                                  # capture cold start
-./benchmark/run-osb.sh --target https://<indexer-ip>:9200 --user admin --password <pass> --no-host
-```
-
-`--no-host` tells the sampler to skip psutil (host metrics come from node_exporter).
+Timing: provisioning ~10–15 min, then the measurement window (`--duration`, default
+60 min for real-world; OSB ~10–15 min for isolated).
 
 ## Comparing versions (4.x vs 5.x)
 
 Each run is labeled with the real installed version. To compare, run the same
 scenario twice (`--version 4.14`, then `--version 5.0.0`, e.g. on separate CI/AWS
-VMs) and diff the artifacts.
+VMs) and diff the artifacts. Run the analysis commands from `tools/performance/`
+(or use absolute paths):
 
 `run-scenario.sh` runs the sampler then `analyze/report.py`, producing `report.md`
 (avg/peak of host CPU, RAM, disk, ingest rate, per-process split — **all samples
