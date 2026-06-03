@@ -18,6 +18,7 @@ set -e
 VERSION="5.0.0"
 NODE_NAME="node-1"
 PASSWORD_OUT=""
+DEV_ARGS=""   # extra installer flags (staging repo selection); set per version below
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -46,10 +47,17 @@ case "$VERSION" in
             echo "[ERROR] 'wazuh_installation_assistant' key not found in artifacts YAML." >&2
             exit 1
         fi
+        # Staging 5.x: the --wazuh-indexer/--start-cluster steps must read package URLs
+        # from the local artifact_urls.yaml downloaded above (next to the installer),
+        # not the production repo — which has no unreleased 5.x (else: "Failed to download
+        # artifact URLs from .../production/5.x... Exit code: 22"). `-d local` selects it;
+        # `-id` lets the assistant install OS dependencies. Same recipe as setup-aio.sh.
+        DEV_ARGS="-d local -id"
         ;;
     4.*)
         MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
         INSTALL_URL="https://packages.wazuh.com/${MAJOR_MINOR}/wazuh-install.sh"
+        DEV_ARGS=""   # GA: the production repo is the default and exists for 4.x
         ;;
     *)
         echo "[ERROR] Unsupported version '$VERSION' (expected 4.x or 5.x)." >&2
@@ -75,10 +83,14 @@ INSTALL_LOG="$WORKDIR/install.log"
 set -o pipefail
 echo "[INFO] Generating config + certificates"
 bash "$INSTALL_SCRIPT" --generate-config-files 2>&1 | tee "$INSTALL_LOG"
+# $DEV_ARGS is intentionally unquoted so it word-splits into separate flags (or expands
+# to nothing for 4.x). `-d` is only valid with -wi/-s, not --generate-config-files.
 echo "[INFO] Installing the Wazuh indexer node '${NODE_NAME}'"
-bash "$INSTALL_SCRIPT" --wazuh-indexer "${NODE_NAME}" 2>&1 | tee -a "$INSTALL_LOG"
+# shellcheck disable=SC2086
+bash "$INSTALL_SCRIPT" --wazuh-indexer "${NODE_NAME}" $DEV_ARGS 2>&1 | tee -a "$INSTALL_LOG"
 echo "[INFO] Initializing the cluster (security)"
-bash "$INSTALL_SCRIPT" --start-cluster 2>&1 | tee -a "$INSTALL_LOG"
+# shellcheck disable=SC2086
+bash "$INSTALL_SCRIPT" --start-cluster $DEV_ARGS 2>&1 | tee -a "$INSTALL_LOG"
 set +o pipefail
 
 # --- Bind on all interfaces --------------------------------------------------
