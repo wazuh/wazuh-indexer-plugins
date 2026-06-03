@@ -29,7 +29,7 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
     curl -sO https://packages-dev.wazuh.com/5.0/config.yml
     ```
 
-1. Edit `./config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh server, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
+1. Edit `./config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh Manager, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
 
     ```yml
     nodes:
@@ -77,7 +77,7 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
     rm -rf ./wazuh-certificates
     ```
 
-1. Copy the `wazuh-certificates.tar` file to all the nodes, including the Wazuh indexer, Wazuh server, and Wazuh dashboard nodes. This can be done by using the `scp` utility.
+1. Copy the `wazuh-certificates.tar` file to all the nodes, including the Wazuh indexer, Wazuh Manager, and Wazuh dashboard nodes. This can be done by using the `scp` utility.
 
 ### 2. Nodes installation
 

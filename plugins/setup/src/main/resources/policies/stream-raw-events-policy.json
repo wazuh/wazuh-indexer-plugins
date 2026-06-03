@@ -1,19 +1,31 @@
 {
   "policy": {
     "policy_id": "stream-raw-events-policy",
-    "description": "Aggressive purge policy for raw events datastream. Deletes data after 1 day retention to optimize storage.",
+    "description": "ISM policy for raw events data stream. Rolls over backing indices based on size or document count, and deletes indices older than 10 minutes.",
     "last_updated_time": 1772122150,
     "schema_version": 1,
     "default_state": "hot",
     "states": [
       {
         "name": "hot",
-        "actions": [],
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "rollover": {
+              "min_doc_count": 200000000,
+              "min_primary_shard_size": "25gb"
+            }
+          }
+        ],
         "transitions": [
           {
             "state_name": "delete",
             "conditions": {
-              "min_index_age": "1d"
+              "min_index_age": "10m"
             }
           }
         ]
@@ -36,11 +48,10 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-events-raw-v5*"
+          ".ds-wazuh-events-raw-v5*"
         ],
         "priority": 100
       }
     ]
   }
 }
-
