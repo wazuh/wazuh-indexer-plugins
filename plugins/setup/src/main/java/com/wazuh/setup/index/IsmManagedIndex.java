@@ -16,21 +16,32 @@
  */
 package com.wazuh.setup.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.common.compress.CompressedXContent;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.index.engine.VersionConflictEngineException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
 
 /**
@@ -44,11 +55,17 @@ import com.wazuh.setup.settings.PluginSettings;
  * _plugins/_ism/add/<index>}. This is required because ISM policies indexed directly (i.e.,
  * bypassing the ISM REST API) don't register their {@code ism_template} patterns with the ISM
  * coordinator cache, so the backing indices are not auto-detected.
+ *
+ * <p>{@link #createTemplate(String)} is implemented here too: subclasses customise it by overriding
+ * the three hooks {@link #indexPattern()}, {@link #augmentSettings(Map)} and {@link
+ * #buildComposableTemplate(IndexTemplate, Settings, CompressedXContent)}.
  */
 public abstract class IsmManagedIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(IsmManagedIndex.class);
 
     private static final String POLICY_ID_SETTING = "index.plugins.index_state_management.policy_id";
+    private static final String ROLLOVER_ALIAS_SETTING =
+            "plugins.index_state_management.rollover_alias";
 
     /**
      * Constructor.
@@ -89,6 +106,36 @@ public abstract class IsmManagedIndex extends WazuhIndex {
     }
 
     /**
+     * Index pattern this template should bind to. Defaults to {@code <index>*}; AliasedIndex
+     * overrides to target {@code .ds-<index>*}.
+     */
+    protected String indexPattern() {
+        return this.index + "*";
+    }
+
+    /**
+     * Hook for subclasses to mutate the raw settings map loaded from the template JSON before it is
+     * compiled into a {@link Settings} instance. Default is a no-op; AliasedIndex adds {@code
+     * index.hidden: true} so rollover-created backing indices stay hidden like the initial one.
+     *
+     * @param settings the mutable settings map; may be {@code null} if the template has no settings.
+     */
+    protected void augmentSettings(Map<String, Object> settings) {
+        // default no-op
+    }
+
+    /**
+     * Builds the {@link ComposableIndexTemplate} to register. Default delegates to {@link
+     * IndexTemplate#getComposableIndexTemplate(Settings, CompressedXContent)} which preserves the
+     * {@code data_stream} block; AliasedIndex overrides to build a regular (non-data-stream)
+     * template.
+     */
+    protected ComposableIndexTemplate buildComposableTemplate(
+            IndexTemplate indexTemplate, Settings settings, CompressedXContent mappings) {
+        return indexTemplate.getComposableIndexTemplate(settings, mappings);
+    }
+
+    /**
      * Adds an ISM registration pass after the standard {@code createTemplate} + {@code createIndex}
      * sequence inherited from {@link Index}.
      */
@@ -97,6 +144,70 @@ public abstract class IsmManagedIndex extends WazuhIndex {
         this.createTemplate(this.template);
         this.createIndex(this.index);
         this.registerWithISM();
+    }
+
+    /**
+     * Loads the index template from the JSON resource, rewrites the index pattern and rollover alias
+     * to point at {@link #index}, allows subclasses to inject additional settings via {@link
+     * #augmentSettings(Map)}, then publishes it via {@link PutComposableIndexTemplateAction}.
+     *
+     * @param template path to the index template resource (without {@code .json} extension).
+     */
+    @Override
+    public void createTemplate(String template) {
+        String templateName = this.index + "-template";
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
+            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+
+            // Dynamically set the index patterns to match this specific index/alias
+            indexTemplate.setIndexPatterns(List.of(this.indexPattern()));
+
+            // Rewrite the rollover alias if it exists in the base template, then let subclasses
+            // inject any additional settings (e.g., index.hidden for the aliased layout).
+            Map<String, Object> settingsMap = indexTemplate.getSettings();
+            if (settingsMap != null) {
+                if (settingsMap.containsKey(ROLLOVER_ALIAS_SETTING)) {
+                    settingsMap.put(ROLLOVER_ALIAS_SETTING, this.index);
+                }
+                this.augmentSettings(settingsMap);
+            }
+
+            String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
+            CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
+            Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
+            ComposableIndexTemplate composableTemplate =
+                    this.buildComposableTemplate(indexTemplate, settings, compressedMapping);
+
+            PutComposableIndexTemplateAction.Request request =
+                    new PutComposableIndexTemplateAction.Request(templateName)
+                            .indexTemplate(composableTemplate)
+                            .create(false);
+
+            this.client
+                    .execute(PutComposableIndexTemplateAction.INSTANCE, request)
+                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+        } catch (IOException e) {
+            log.error(
+                    "Error reading index template from filesystem [{}]. Caused by: {}",
+                    template,
+                    e.toString());
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index template {} already exists. Skipping.", templateName);
+        } catch (Exception e) {
+            if (!this.retry_template_creation) {
+                log.error(
+                        "Initialization of index template [{}] finally failed. The node will shut down.",
+                        templateName);
+                throw e;
+            }
+            log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
+            this.retry_template_creation = false;
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.createTemplate(template);
+        }
     }
 
     /**
@@ -190,7 +301,7 @@ public abstract class IsmManagedIndex extends WazuhIndex {
         } catch (VersionConflictEngineException e) {
             log.debug("Backing index [{}] is already registered with ISM. Skipping.", backingIndex);
         } catch (Exception e) {
-            log.warn("Failed to register [{}] with ISM: {}", backingIndex, e.getMessage());
+            log.error("Failed to register [{}] with ISM", backingIndex, e);
         }
     }
 }

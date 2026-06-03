@@ -16,15 +16,12 @@
  */
 package com.wazuh.setup.index;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
@@ -32,9 +29,6 @@ import org.opensearch.cluster.metadata.Template;
 import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 import com.wazuh.setup.model.IndexTemplate;
@@ -53,6 +47,7 @@ public class AliasedIndex extends IsmManagedIndex {
 
     private static final String BACKING_INDEX_PREFIX = ".ds-";
     private static final String BACKING_INDEX_SUFFIX = "-000001";
+    private static final String HIDDEN_SETTING = "index.hidden";
 
     /**
      * Constructor.
@@ -65,72 +60,36 @@ public class AliasedIndex extends IsmManagedIndex {
         super(alias, template);
     }
 
+    /** Backing-index pattern: {@code .ds-<alias>*}. */
+    @Override
+    protected String indexPattern() {
+        return BACKING_INDEX_PREFIX + this.index + "*";
+    }
+
     /**
-     * Creates the composable index template. Mirrors {@link StreamIndex#createTemplate(String)} but
-     * strips any {@code data_stream} block so the template materializes as a regular index template.
-     *
-     * @param template path to the index template resource (without .json extension).
+     * Marks the template as hidden so rollover-created backing indices stay out of wildcard queries —
+     * matching the explicit {@code index.hidden} setting on the initial backing index.
      */
     @Override
-    public void createTemplate(String template) {
-        String templateName = this.index + "-template";
+    protected void augmentSettings(Map<String, Object> settings) {
+        settings.put(HIDDEN_SETTING, true);
+    }
 
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
-            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
-
-            // Restrict the template to this specific index/alias pattern and rewrite the rollover alias.
-            indexTemplate.setIndexPatterns(List.of(BACKING_INDEX_PREFIX + this.index + "*"));
-            Map<String, Object> settingsMap = indexTemplate.getSettings();
-            if (settingsMap != null
-                    && settingsMap.containsKey("plugins.index_state_management.rollover_alias")) {
-                settingsMap.put("plugins.index_state_management.rollover_alias", this.index);
-            }
-
-            String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
-            CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
-            Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
-
-            // Build the composable template directly (without dataStreamTemplate) so this works even
-            // when the source template still carries a "data_stream" block.
-            ComposableIndexTemplate composableTemplate =
-                    new ComposableIndexTemplate(
-                            indexTemplate.getIndexPatterns(),
-                            new Template(settings, compressedMapping, null),
-                            null,
-                            indexTemplate.getPriority(),
-                            null,
-                            null,
-                            null);
-
-            PutComposableIndexTemplateAction.Request request =
-                    new PutComposableIndexTemplateAction.Request(templateName)
-                            .indexTemplate(composableTemplate)
-                            .create(false);
-
-            this.client
-                    .execute(PutComposableIndexTemplateAction.INSTANCE, request)
-                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-        } catch (IOException e) {
-            log.error(
-                    "Error reading index template from filesystem [{}]. Caused by: {}",
-                    template,
-                    e.toString());
-        } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", templateName);
-        } catch (Exception e) {
-            if (!this.retry_template_creation) {
-                log.error(
-                        "Initialization of index template [{}] finally failed. The node will shut down.",
-                        templateName);
-                throw e;
-            }
-            log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
-            this.retry_template_creation = false;
-            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
-            this.createTemplate(template);
-        }
+    /**
+     * Builds a regular composable template (no {@code dataStreamTemplate}) so the materialized
+     * indices behave like ordinary aliased indices, not data-stream backings.
+     */
+    @Override
+    protected ComposableIndexTemplate buildComposableTemplate(
+            IndexTemplate indexTemplate, Settings settings, CompressedXContent mappings) {
+        return new ComposableIndexTemplate(
+                indexTemplate.getIndexPatterns(),
+                new Template(settings, mappings, null),
+                null,
+                indexTemplate.getPriority(),
+                null,
+                null,
+                null);
     }
 
     /**
@@ -150,7 +109,7 @@ public class AliasedIndex extends IsmManagedIndex {
         try {
             CreateIndexRequest request =
                     new CreateIndexRequest(backingIndex)
-                            .settings(Settings.builder().put("index.hidden", true))
+                            .settings(Settings.builder().put(HIDDEN_SETTING, true))
                             .alias(new Alias(alias).writeIndex(true));
 
             CreateIndexResponse response =
