@@ -54,6 +54,22 @@ export PERF_SCENARIO="$SCENARIO"
 [[ -n "$VERSION" ]] && export PERF_VERSION="$VERSION"
 
 cd "$VAGRANT_DIR"
+
+# Start clean. `vagrant up` won't re-provision an already-created VM, and the Vagrantfile
+# defines a DIFFERENT machine set per scenario (indexer/monitor vs aio/agents). So a
+# leftover environment from a prior run — even the OTHER scenario — would linger and get
+# silently reused (stale install/version/config). Tear down both scenarios' VMs first,
+# each under its own PERF_SCENARIO: a bare `vagrant destroy` only sees the default
+# scenario's machines, so it would miss the others.
+for sc in real-world isolated; do
+    created=$(PERF_SCENARIO="$sc" vagrant status --machine-readable 2>/dev/null \
+        | awk -F, '$3=="state" && $4!="not_created"{n++} END{print n+0}')
+    if [[ "$created" -gt 0 ]]; then
+        echo "[INFO] Destroying $created leftover '$sc' VM(s) from a previous run ..."
+        PERF_SCENARIO="$sc" vagrant destroy -f
+    fi
+done
+
 echo "[INFO] Bringing up the '$SCENARIO' environment ..."
 vagrant up
 
@@ -79,12 +95,12 @@ fi
 
 # Teardown — unless --keep, and kept (for debugging) if the run failed.
 if [[ -n "$KEEP" ]]; then
-    echo "[INFO] --keep set; leaving the VMs up. Destroy later with: (cd $VAGRANT_DIR && vagrant destroy -f)"
+    echo "[INFO] --keep set; leaving the VMs up. Destroy later with: (cd $VAGRANT_DIR && PERF_SCENARIO=$SCENARIO vagrant destroy -f)"
 elif [[ "$RUN_OK" -eq 1 ]]; then
     echo "[INFO] Tearing down the environment ..."
     vagrant destroy -f
 else
-    echo "[WARN] Run failed — leaving the VMs up for debugging. Destroy with: (cd $VAGRANT_DIR && vagrant destroy -f)"
+    echo "[WARN] Run failed — leaving the VMs up for debugging. Destroy with: (cd $VAGRANT_DIR && PERF_SCENARIO=$SCENARIO vagrant destroy -f)"
 fi
 
 [[ "$RUN_OK" -eq 1 ]] || exit 1
