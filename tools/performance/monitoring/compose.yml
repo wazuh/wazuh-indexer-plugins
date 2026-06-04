@@ -4,7 +4,8 @@
 #
 #   docker compose -f compose.yml up -d
 #
-# Prometheus UI :9090 — Grafana :3000 (admin / admin), Prometheus datasource preset.
+# Prometheus UI :9090 — Grafana :3000 (admin / admin), Prometheus datasource +
+# "Wazuh Indexer Host Overview" dashboard auto-provisioned (uid wazuh-host-overview).
 
 services:
   prometheus:
@@ -30,6 +31,8 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
       - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+      - ./grafana/dashboard-provider.yml:/etc/grafana/provisioning/dashboards/perf.yml:ro
+      - ./grafana/host-overview.json:/etc/grafana/dashboards/host-overview.json:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "3000:3000"

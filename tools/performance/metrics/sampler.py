@@ -41,6 +41,10 @@ RATE_FIELDS = {
     "flush_time_ms",
     "host_disk_read_bytes",
     "host_disk_write_bytes",
+    # Rejections are monotonic counters since node start; as rates they are
+    # attributed to the measurement window (excludes cold-start/provisioning).
+    "write_rejected",
+    "search_rejected",
 }
 
 # Per-process groups for the AIO host. A process belongs to a group if any of its
@@ -222,6 +226,20 @@ def derive_rates(curr, prev, elapsed_s):
                 row[f"{key}_per_s"] = 0
         else:
             row[key] = val
+
+    # Per-operation latency over the window: (Δ total_time_ms) / (Δ op_count).
+    # More useful than ms/s — it is the typical time the indexer spent per
+    # indexed doc / per query. 0 when no ops happened (idle minute / cold start).
+    for op, count_key, time_key in (
+        ("index", "index_total", "index_time_ms"),
+        ("query", "query_total", "query_time_ms"),
+    ):
+        latency = 0
+        if prev is not None:
+            d_count = curr[count_key] - prev[count_key]
+            if d_count > 0:
+                latency = round((curr[time_key] - prev[time_key]) / d_count, 3)
+        row[f"{op}_latency_ms"] = latency
     return row
 
 

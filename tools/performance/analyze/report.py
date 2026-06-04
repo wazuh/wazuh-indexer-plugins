@@ -36,10 +36,15 @@ METRICS = [
     ("proc_dashboard_rss_gb", "wazuh-dashboard RAM", "GB", "gauge"),
     ("index_total_per_s", "Ingest rate", "docs/s", "rate"),
     ("query_total_per_s", "Query rate", "q/s", "rate"),
+    ("index_latency_ms", "Index latency", "ms/op", "rate"),
+    ("query_latency_ms", "Query latency", "ms/op", "rate"),
     ("heap_used_percent", "Indexer JVM heap", "%", "gauge"),
     ("gc_old_time_ms_per_s", "Old-GC time", "ms/s", "rate"),
-    ("write_rejected", "Write rejections", "", "peak"),
-    ("search_rejected", "Search rejections", "", "peak"),
+    ("indexing_pressure_bytes", "Indexing pressure", "B", "gauge"),
+    ("write_queue", "Write queue depth", "", "gauge"),
+    ("search_queue", "Search queue depth", "", "gauge"),
+    ("write_rejected_per_s", "Write rejections", "/s", "rate"),
+    ("search_rejected_per_s", "Search rejections", "/s", "rate"),
     ("doc_count", "Total documents", "", "peak"),
     ("store_size_bytes", "Store size", "B", "peak"),
 ]
@@ -127,9 +132,11 @@ def main():
                      f"**{statistics.fmean(cpu):.0f}% CPU avg / {max(cpu):.0f}% peak** and "
                      f"**{statistics.fmean(mem):.1f} GB RAM avg / {max(mem):.1f} GB peak**.")
         lines.append("- Use peak figures for *minimum* hardware and add headroom for *recommended*.")
-    rej = (max(col(steady, "write_rejected") or [0]) + max(col(steady, "search_rejected") or [0]))
-    if rej > 0:
-        lines.append(f"- ⚠️ {int(rej)} thread-pool rejections observed — the host was saturated at this load.")
+    rej_peak = max((col(steady, "write_rejected_per_s") or [0])
+                   + (col(steady, "search_rejected_per_s") or [0]))
+    if rej_peak > 0:
+        lines.append(f"- ⚠️ Thread-pool rejections observed (peak {rej_peak:.1f}/s) — "
+                     f"the host was saturated at some point during the window.")
 
     out = os.path.join(args.run, "report.md")
     with open(out, "w") as fd:

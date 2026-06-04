@@ -27,6 +27,7 @@ DEFAULT_METRICS = [
     ("proc_indexer_rss_gb", "Indexer RSS (GB)"),
     ("proc_manager_rss_gb", "Manager RSS (GB)"),
     ("index_total_per_s", "Ingest (docs/s)"),
+    ("index_latency_ms", "Index latency (ms/op)"),
     ("heap_used_percent", "Indexer heap %"),
     ("gc_old_time_ms_per_s", "Old-GC (ms/s)"),
     ("host_disk_write_bytes_per_s", "Disk write (B/s)"),

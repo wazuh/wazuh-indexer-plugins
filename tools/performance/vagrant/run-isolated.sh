@@ -19,7 +19,7 @@
 #
 # Run from tools/performance/vagrant/.
 #
-set -e
+set -euo pipefail
 
 INDEXER_IP="${PERF_AIO_IP:-192.168.60.20}"
 DOCS=1000000
@@ -37,36 +37,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 cd "$(dirname "$0")"
+# shellcheck source=lib.sh
+source ./lib.sh
 
-# Push the latest scripts into the VMs (vagrant-libvirt only syncs at up/provision).
-echo "[INFO] Syncing latest scripts to the VMs ..."
-vagrant rsync >/dev/null 2>&1 || true
-
-# Admin password — read from the indexer guest over SSH, else --password. The file
-# lives at /var/lib/wazuh-perf (NOT under /opt/perf): the rsync above would delete a
-# guest-only file inside the synced folder before we could read it.
-if [[ -z "$PASSWORD" ]]; then
-    PASSWORD="$(vagrant ssh indexer -c 'sudo cat /var/lib/wazuh-perf/admin-password.txt 2>/dev/null' 2>/dev/null | tr -d '\r\n')"
-fi
-if [[ -z "$PASSWORD" ]]; then
-    echo "[ERROR] No indexer password found on the indexer VM (/var/lib/wazuh-perf/admin-password.txt)." >&2
-    echo "        Pass --password '<admin pass>', or check setup-indexer.sh output for a capture warning." >&2
-    exit 1
-fi
-
-# Resolve the Wazuh version for the label from the INSTALLED package (ground truth).
-# --version 4.14 installs the latest 4.14.x; the label + output dir reflect that
-# exact patch (e.g. 4.14.1). --version is only a fallback if the query fails.
-RAW="$(vagrant ssh indexer -c "dpkg-query -W -f='\${Version}' wazuh-indexer 2>/dev/null || rpm -q --qf '%{VERSION}-%{RELEASE}' wazuh-indexer 2>/dev/null" 2>/dev/null | tr -d '\r\n')"
-DETECTED="${RAW##*:}"
-DETECTED="${DETECTED%%-*}"
-VERSION="${DETECTED:-$VERSION}"
-if [[ -z "$VERSION" ]]; then
-    echo "[ERROR] Could not determine the wazuh-indexer version from the indexer VM. Pass --version X.Y.Z." >&2
-    exit 1
-fi
-LABEL="wazuh-$VERSION"
-echo "[INFO] Run label: $LABEL (installed version)"
+perf_rsync
+perf_resolve_password indexer   # sets PASSWORD
+perf_detect_version indexer     # sets VERSION + LABEL
 
 # Fail fast on a missing HOST dependency. gen-corpora.py (step 2b) runs on the host —
 # it needs the wcs/ generator, which isn't in the VMs — and that generator imports
@@ -112,8 +88,7 @@ if [[ ! -f ../benchmark/workloads/wazuh-events/documents.json ]]; then
     echo "[INFO] Generating OSB corpus on the host ($DOCS docs) ..."
     python3 ../benchmark/gen-corpora.py --docs "$DOCS"
 fi
-echo "[INFO] Syncing corpus to the monitor VM ..."
-vagrant rsync monitor >/dev/null 2>&1 || true
+perf_rsync monitor   # sync the freshly built corpus into the monitor VM
 
 # 3. Run the OSB synthetic workload FROM the monitor VM (off the indexer host).
 OUT_GUEST="/root/perf-run"
@@ -127,9 +102,7 @@ vagrant ssh monitor -c \
 # Per-version output dir so runs don't overwrite each other (compare across versions).
 LOCAL_OUT="../runs/isolated-$VERSION"
 echo "[INFO] Fetching results from the monitor VM ..."
-mkdir -p "$LOCAL_OUT"
-vagrant ssh monitor -c "sudo tar -czf - -C $OUT_GUEST . | base64 -w0" 2>/dev/null \
-    | tr -dc 'A-Za-z0-9+/=' | base64 -d | tar -xzf - -C "$LOCAL_OUT"
+perf_pull_results monitor "$OUT_GUEST" "$LOCAL_OUT"
 
 # Record the run's real version/label so compare.py / plot.py / report.py can use it.
 cat > "$LOCAL_OUT/run-metadata.json" <<EOF
@@ -141,7 +114,16 @@ cat > "$LOCAL_OUT/run-metadata.json" <<EOF
 }
 EOF
 
-MON_IP=$(vagrant ssh monitor -c "hostname -I | awk '{print \$1}'" 2>/dev/null | tr -d '\r\n')
+MON_IP=$(vagrant ssh monitor -c "hostname -I | awk '{print \$1}'" 2>/dev/null | tr -d '\r\n' || true)
 echo
 echo "[INFO] Done ($LABEL). OSB report + metrics.csv: tools/performance/runs/isolated-$VERSION/"
-echo "[INFO] Cold start at $RESTART_TS — view the full host timeline in Grafana: http://${MON_IP}:3000"
+if [[ -n "$MON_IP" ]]; then
+    DASH_URL="http://${MON_IP}:3000/d/wazuh-host-overview"
+    echo "[INFO] Cold start at $RESTART_TS — view the host timeline in Grafana: $DASH_URL"
+    # Best-effort: open the dashboard in the host's browser (no-op if unavailable).
+    (command -v open >/dev/null 2>&1 && open "$DASH_URL") \
+        || (command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL" >/dev/null 2>&1) \
+        || true
+else
+    echo "[INFO] Cold start at $RESTART_TS — open Grafana on the monitor VM (port 3000), dashboard 'wazuh-host-overview'."
+fi

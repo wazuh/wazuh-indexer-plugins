@@ -13,7 +13,7 @@
 #
 # Run from tools/performance/vagrant/.
 #
-set -e
+set -euo pipefail
 
 DURATION=3600
 INTERVAL=60
@@ -33,47 +33,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 cd "$(dirname "$0")"
+# shellcheck source=lib.sh
+source ./lib.sh
 
-# Push the latest scripts into the VMs. vagrant-libvirt only syncs host→guest at
-# up/provision, so without this the VMs can run stale scripts.
-echo "[INFO] Syncing latest scripts to the VMs ..."
-vagrant rsync >/dev/null 2>&1 || true
-
-# Resolve the indexer admin password: explicit flag, else the file captured during
-# provisioning, read FROM the AIO guest over SSH. The file lives at /var/lib/wazuh-perf
-# (NOT under /opt/perf): the rsync above would delete a guest-only file inside the
-# synced folder before we could read it.
-if [[ -z "$PASSWORD" ]]; then
-    PASSWORD="$(vagrant ssh aio -c 'sudo cat /var/lib/wazuh-perf/admin-password.txt 2>/dev/null' 2>/dev/null | tr -d '\r\n')"
-fi
-if [[ -z "$PASSWORD" && -f ../runs/admin-password.txt ]]; then
-    PASSWORD="$(cat ../runs/admin-password.txt)"
-fi
-if [[ -z "$PASSWORD" ]]; then
-    echo "[ERROR] No indexer password found in the AIO VM (/var/lib/wazuh-perf/admin-password.txt)." >&2
-    echo "        Retrieve it with:" >&2
-    echo "          vagrant ssh aio -c 'TAR=\$(sudo find / -name wazuh-install-files.tar 2>/dev/null | head -1); sudo tar -xOf \"\$TAR\" wazuh-install-files/wazuh-passwords.txt | grep -A2 -i admin'" >&2
-    echo "        then re-run with --password '<indexer admin password>'." >&2
-    exit 1
-fi
-
-# Resolve the Wazuh version for the label from the INSTALLED package (ground truth).
-# This captures the real patch: --version 4.14 installs the latest 4.14.x, and the
-# label + output dir reflect that exact version (e.g. 4.14.1). --version is only a
-# fallback if the package query fails.
-RAW="$(vagrant ssh aio -c "dpkg-query -W -f='\${Version}' wazuh-indexer 2>/dev/null || rpm -q --qf '%{VERSION}-%{RELEASE}' wazuh-indexer 2>/dev/null" 2>/dev/null | tr -d '\r\n')"
-DETECTED="${RAW##*:}"        # strip any epoch
-DETECTED="${DETECTED%%-*}"   # strip Debian/RPM revision → upstream version
-VERSION="${DETECTED:-$VERSION}"
-if [[ -z "$VERSION" ]]; then
-    echo "[ERROR] Could not determine the wazuh-indexer version from the aio VM. Pass --version X.Y.Z." >&2
-    exit 1
-fi
-LABEL="wazuh-$VERSION"
-echo "[INFO] Run label: $LABEL (installed version)"
+perf_rsync
+perf_resolve_password aio   # sets PASSWORD
+perf_detect_version aio     # sets VERSION + LABEL
 
 # Discover agent VM names from the Vagrant status (everything except 'aio').
-AGENTS=$(vagrant status --machine-readable | awk -F, '$3=="state" && $2!="aio" && $2!="" {print $2}')
+AGENTS=$(vagrant status --machine-readable | awk -F, '$3=="state" && $2!="aio" && $2!="" {print $2}' || true)
 echo "[INFO] Agents: $AGENTS"
 
 # Guest-local output dir (NOT under the synced mount; pulled back over SSH below).
@@ -97,14 +65,11 @@ vagrant ssh aio -c \
         --label '$LABEL'"
 
 # Wait for the agent load loops to finish.
-for pid in "${PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done
+for pid in ${PIDS[@]+"${PIDS[@]}"}; do wait "$pid" 2>/dev/null || true; done
 
-# Pull results from the guest over SSH. base64 -w0 (no wrapping) + stripping any
-# non-base64 chars on the host defends against CR/PTY mangling by `vagrant ssh`.
+# Pull results from the guest over SSH (CR/PTY-safe; see lib.sh).
 echo "[INFO] Fetching results from the AIO VM ..."
-mkdir -p "$LOCAL_OUT"
-vagrant ssh aio -c "sudo tar -czf - -C $OUT_GUEST . | base64 -w0" 2>/dev/null \
-    | tr -dc 'A-Za-z0-9+/=' | base64 -d | tar -xzf - -C "$LOCAL_OUT"
+perf_pull_results aio "$OUT_GUEST" "$LOCAL_OUT"
 
 # Generate the report on the host — authoritative, independent of the VM's synced state.
 python3 ../analyze/report.py --run "$LOCAL_OUT" --label "$LABEL" || \

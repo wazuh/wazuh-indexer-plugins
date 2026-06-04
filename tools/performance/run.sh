@@ -14,7 +14,7 @@
 # VirtualBox, …). For libvirt also set the box, e.g.
 #   PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh --scenario real-world
 #
-set -e
+set -euo pipefail
 
 SCENARIO=""
 VERSION=""
@@ -23,6 +23,28 @@ KEEP=""
 # Scenario-specific passthrough (defaults match the runners).
 DURATION="" INTERVAL="" RATE=""   # real-world
 DOCS=""                           # isolated
+
+usage() {
+    cat <<'EOF'
+Usage: run.sh --scenario real-world|isolated [options]
+
+Owns the full lifecycle: vagrant up → measure → destroy. Results land in
+tools/performance/runs/<scenario>-<version>/. Run ./analyze.sh afterwards to
+compare versions.
+
+Global options:
+  --scenario real-world|isolated   topology to run (required)
+  --version X.Y.Z                  Wazuh release to install (e.g. 4.14, 5.0.0)
+  --password P                     admin password (auto-detected from the VM if omitted)
+  --keep                           leave the VMs up afterwards (debugging)
+  -h, --help                       show this help
+
+real-world options:   --duration S   --interval S   --rate N
+isolated options:     --docs N
+
+Provider/box overrides via env, e.g. PERF_BOX, PERF_INDEXER_MEM, PERF_BOOT_TIMEOUT.
+EOF
+}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -34,9 +56,8 @@ while [[ $# -gt 0 ]]; do
         --rate)     RATE="$2"; shift 2 ;;
         --docs)     DOCS="$2"; shift 2 ;;
         --keep)     KEEP=1; shift ;;
-        *) echo "Usage: $0 --scenario real-world|isolated [--version X.Y.Z] [--password P] [--keep]"
-           echo "                 [--duration S --interval S --rate N]   (real-world)"
-           echo "                 [--docs N]                              (isolated)"; exit 1 ;;
+        -h|--help)  usage; exit 0 ;;
+        *) echo "[ERROR] Unknown argument: $1" >&2; usage >&2; exit 1 ;;
     esac
 done
 
@@ -63,7 +84,7 @@ cd "$VAGRANT_DIR"
 # scenario's machines, so it would miss the others.
 for sc in real-world isolated; do
     created=$(PERF_SCENARIO="$sc" vagrant status --machine-readable 2>/dev/null \
-        | awk -F, '$3=="state" && $4!="not_created"{n++} END{print n+0}')
+        | awk -F, '$3=="state" && $4!="not_created"{n++} END{print n+0}' || true)
     if [[ "$created" -gt 0 ]]; then
         echo "[INFO] Destroying $created leftover '$sc' VM(s) from a previous run ..."
         PERF_SCENARIO="$sc" vagrant destroy -f
@@ -96,7 +117,7 @@ fi
 # Measure. Capture success so we only tear down a clean run.
 RUN_OK=1
 echo "[INFO] Running the '$SCENARIO' measurement ..."
-if ! "./run-${SCENARIO}.sh" "${RUN_ARGS[@]}"; then
+if ! "./run-${SCENARIO}.sh" ${RUN_ARGS[@]+"${RUN_ARGS[@]}"}; then
     RUN_OK=0
     echo "[ERROR] Measurement failed." >&2
 fi

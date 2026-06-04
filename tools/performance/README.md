@@ -64,7 +64,8 @@ overwrite each other and can be compared (see [Output](#output)). Tune load with
 - **real-world**: `aio` (16 GB/8 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) — 192.168.60.20–22.
 - **isolated**: `indexer` (16 GB/8 vCPU, node_exporter from boot) + `monitor`
   (2 GB/2 vCPU, Prometheus/Grafana/OSB) — 192.168.60.20 / .30; restarts the indexer
-  to capture its cold start, drives OSB from the monitor, opens Grafana for the timeline.
+  to capture its cold start, drives OSB from the monitor, and opens Grafana on the
+  auto-provisioned **Host Overview** dashboard (`uid wazuh-host-overview`) for the timeline.
 
 > **Host:** ~20 GB free RAM, 12 vCPU. Box defaults to `bento/ubuntu-24.04`
 > (VirtualBox/Parallels/VMware, incl. Apple Silicon). For libvirt use a
@@ -141,6 +142,7 @@ tools/performance/
 ├── analyze/plot.py                 # timeline charts overlaying runs → timeline.png (spikes)
 ├── vagrant/
 │   ├── Vagrantfile                 # PERF_SCENARIO=real-world (aio+agents) | isolated (indexer+monitor)
+│   ├── lib.sh                      # shared helpers (rsync, password/version detect, results pull)
 │   ├── run-real-world.sh           # Vagrant measurement helper (invoked by run.sh)
 │   └── run-isolated.sh             # Vagrant measurement helper, cold-start + OSB (invoked by run.sh)
 ├── scripts/                        # guest-side install/measurement scripts (run directly in Method 2)
@@ -153,7 +155,11 @@ tools/performance/
 │   ├── setup-node-exporter.sh      # node_exporter systemd on the indexer host (from boot)
 │   ├── setup-monitor.sh            # Prometheus + Grafana on the monitor host
 │   ├── compose.yml                 # Prometheus + Grafana containers
-│   └── prometheus.yml              # scrape config (node_exporter on the indexer)
+│   ├── prometheus.yml              # scrape config (node_exporter on the indexer)
+│   ├── grafana-datasource.yml      # auto-provision Prometheus as Grafana's datasource
+│   └── grafana/                    # auto-provisioned dashboard
+│       ├── dashboard-provider.yml  # tells Grafana to load JSON dashboards at start
+│       └── host-overview.json      # Host Overview dashboard (node_exporter PromQL)
 └── benchmark/                      # OSB synthetic workload (used by the isolated scenario)
     ├── gen-corpora.py              # builds OSB index.json + corpus from the real template + WCS generator
     ├── run-osb.sh                  # runs opensearch-benchmark with the custom workload
@@ -214,9 +220,11 @@ python3 analyze/plot.py \
 **Host (the sizing deliverable):** total CPU %, load, RAM used (GB + %), swap,
 disk used, disk read/write rate; per-process CPU + RAM split across
 `wazuh-indexer` / `wazuh-manager` / `wazuh-dashboard`.
-**Indexer:** ingest rate + latency, indexing pressure, write/search thread-pool
-queue + rejections, JVM heap %, GC count/time, segments, merge/refresh/flush,
-store size, doc count. See [metrics/sampler.py](metrics/sampler.py) for the exact fields.
+**Indexer:** ingest + query rate, **per-operation index/query latency** (ms/op),
+indexing pressure, write/search thread-pool queue depth + **rejections/s** (attributed
+to the window, not since boot), JVM heap %, GC count/time, segments, merge/refresh/flush,
+store size, doc count. See [metrics/sampler.py](metrics/sampler.py) for the exact fields;
+the labeled `report.md` surfaces avg + peak for each.
 
 ## Requirements
 

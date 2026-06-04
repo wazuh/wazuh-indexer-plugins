@@ -10,7 +10,7 @@
 #   sudo ./setup-agent.sh --version 5.0.0 --manager <aio-ip>  # on each agent host
 #   ./agent-load.sh --duration 3600                           # on each agent host
 #
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SAMPLER="$SCRIPT_DIR/../metrics/sampler.py"

@@ -16,18 +16,21 @@
 #   ./analyze.sh --scenario real-world # restrict to one scenario
 #   ./analyze.sh --runs-dir /path/runs # analyze runs from another location
 #
-set -e
+set -euo pipefail
 
 cd "$(dirname "$0")"
 
 RUNS_DIR="runs"
 ONLY_SCENARIO=""
 
+usage() { echo "Usage: $0 [--scenario real-world|isolated] [--runs-dir DIR]"; }
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --runs-dir) RUNS_DIR="$2"; shift 2 ;;
         --scenario) ONLY_SCENARIO="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--scenario real-world|isolated] [--runs-dir DIR]"; exit 1 ;;
+        -h|--help)  usage; exit 0 ;;
+        *) echo "[ERROR] Unknown argument: $1" >&2; usage >&2; exit 1 ;;
     esac
 done
 
@@ -40,7 +43,7 @@ pair_for() {
     label="$name"
     if [[ -f "$d/run-metadata.json" ]]; then
         l="$(grep -o '"label"[[:space:]]*:[[:space:]]*"[^"]*"' "$d/run-metadata.json" \
-             | sed 's/.*"\([^"]*\)"$/\1/')"
+             | sed 's/.*"\([^"]*\)"$/\1/' || true)"
         [[ -n "$l" ]] && label="$l"
     fi
     printf '%s=%s' "$label" "$d/metrics.csv"

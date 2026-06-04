@@ -18,7 +18,7 @@
 #     <location>/var/perf-logs/load.log</location>
 #   </localfile>
 #
-set -e
+set -euo pipefail
 
 FIM_DIR="/var/perf-fim"
 LOG_FILE="/var/perf-logs/load.log"
