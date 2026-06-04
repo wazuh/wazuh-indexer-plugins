@@ -49,6 +49,10 @@ end
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
+  # A 16 GB guest on a busy host can take longer than Vagrant's 300s default to become
+  # SSH-reachable, surfacing as "Timed out while waiting for the machine to boot".
+  # Give it more headroom (override with PERF_BOOT_TIMEOUT).
+  config.vm.boot_timeout = ENV.fetch("PERF_BOOT_TIMEOUT", "900").to_i
 
   if SCENARIO == "isolated"
     # --- Indexer-only node + node_exporter (isolated) ------------------------
