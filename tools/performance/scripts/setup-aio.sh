@@ -7,21 +7,24 @@
 #   - 5.x  → latest staging nightly (resolved from the artifacts YAML)
 #   - 4.x  → GA installer from packages.wazuh.com
 #
-#   sudo ./setup-aio.sh --version 5.0.0
+#   sudo ./setup-aio.sh --version 5.0
 #   sudo ./setup-aio.sh --version 4.14
+#
+# Versions are given as MAJOR.MINOR (e.g. 5.0, 4.14): the latest patch of that line
+# is installed, and the run is labeled with the resolved patch.
 #
 # Run as root on the target AIO host (16 GB RAM / 8 vCPU for the perf scenario).
 #
 set -e
 
-VERSION="5.0.0"
+VERSION="5.0"
 PASSWORD_OUT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version)      VERSION="$2"; shift 2 ;;
         --password-out) PASSWORD_OUT="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--version X.Y.Z] [--password-out FILE]"; exit 1 ;;
+        *) echo "Usage: $0 [--version MAJOR.MINOR] [--password-out FILE]"; exit 1 ;;
     esac
 done
 
@@ -46,8 +49,12 @@ INSTALL_SCRIPT="$WORKDIR/wazuh-install.sh"
 # --- Resolve the installer for the requested version -------------------------
 case "$VERSION" in
     5.*)
-        # Staging nightly: the assistant URL lives in the artifacts YAML.
-        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${VERSION}/artifact-urls/artifact_urls_${VERSION}-latest.yaml"
+        # Staging nightly: the assistant URL lives in the artifacts YAML, published per
+        # exact patch. Resolve the MAJOR.MINOR input to that patch (pre-release 5.x → .0,
+        # e.g. 5.0 → 5.0.0); a full MAJOR.MINOR.PATCH passes through unchanged.
+        STAGING_VERSION="$VERSION"
+        [[ "$STAGING_VERSION" == *.*.* ]] || STAGING_VERSION="${STAGING_VERSION}.0"
+        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${STAGING_VERSION}/artifact-urls/artifact_urls_${STAGING_VERSION}-latest.yaml"
         ARTIFACTS_FILE="$WORKDIR/artifact_urls.yaml"
         echo "[INFO] Downloading artifacts YAML: $ARTIFACTS_URL"
         curl -sS --fail -L "$ARTIFACTS_URL" -o "$ARTIFACTS_FILE"

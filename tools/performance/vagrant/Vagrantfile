@@ -19,8 +19,9 @@
 
 BOX        = ENV.fetch("PERF_BOX", "bento/ubuntu-24.04")
 SCENARIO   = ENV.fetch("PERF_SCENARIO", "real-world")
-# Wazuh version to provision (4.x or 5.x). Selects the installer source uniformly.
-VERSION    = ENV.fetch("PERF_VERSION", "5.0.0")
+# Wazuh version to provision as MAJOR.MINOR (e.g. 5.0, 4.14); the latest patch of
+# that line is installed. Selects the installer source uniformly.
+VERSION    = ENV.fetch("PERF_VERSION", "5.0")
 # Default subnet is 192.168.60.x to avoid colliding with VirtualBox's default
 # host-only range (192.168.56.x), which breaks libvirt network creation.
 INDEXER_IP = ENV.fetch("PERF_AIO_IP", "192.168.60.20")

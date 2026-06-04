@@ -6,8 +6,8 @@
 # duration, then generates report.md. Bring up the AIO first and start the agent
 # loops:
 #
-#   sudo ./setup-aio.sh --version 5.0.0                       # AIO (manager+indexer+dashboard)
-#   sudo ./setup-agent.sh --version 5.0.0 --manager <aio-ip>  # on each agent host
+#   sudo ./setup-aio.sh --version 5.0                       # AIO (manager+indexer+dashboard)
+#   sudo ./setup-agent.sh --version 5.0 --manager <aio-ip>  # on each agent host
 #   ./agent-load.sh --duration 3600                           # on each agent host
 #
 set -euo pipefail

@@ -7,14 +7,17 @@
 #   - 5.x  → latest staging nightly agent package (resolved from the artifacts YAML)
 #   - 4.x  → official packages.wazuh.com 4.x repository
 #
-#   sudo ./setup-agent.sh --version 5.0.0 --manager <aio-ip>
-#   sudo ./setup-agent.sh --version 4.14  --manager <aio-ip>
+#   sudo ./setup-agent.sh --version 5.0  --manager <aio-ip>
+#   sudo ./setup-agent.sh --version 4.14 --manager <aio-ip>
+#
+# Versions are given as MAJOR.MINOR (e.g. 5.0, 4.14): the latest patch of that line
+# is installed.
 #
 # Run as root on each agent host, pointing at the AIO manager IP.
 #
 set -e
 
-VERSION="5.0.0"
+VERSION="5.0"
 MANAGER=""
 FIM_DIR="/var/perf-fim"
 LOG_FILE="/var/perf-logs/load.log"
@@ -25,7 +28,7 @@ while [[ $# -gt 0 ]]; do
         --manager)  MANAGER="$2"; shift 2 ;;
         --fim-dir)  FIM_DIR="$2"; shift 2 ;;
         --log-file) LOG_FILE="$2"; shift 2 ;;
-        *) echo "Usage: $0 --manager IP [--version X.Y.Z] [--fim-dir D] [--log-file F]"; exit 1 ;;
+        *) echo "Usage: $0 --manager IP [--version MAJOR.MINOR] [--fim-dir D] [--log-file F]"; exit 1 ;;
     esac
 done
 
@@ -54,8 +57,12 @@ trap 'rm -rf "$WORKDIR"' EXIT
 # --- Install + enroll the agent for the requested version --------------------
 case "$VERSION" in
     5.*)
-        # Staging nightly: resolve the agent package URL from the artifacts YAML.
-        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${VERSION}/artifact-urls/artifact_urls_${VERSION}-latest.yaml"
+        # Staging nightly: resolve the agent package URL from the artifacts YAML,
+        # published per exact patch. Resolve the MAJOR.MINOR input to that patch
+        # (pre-release 5.x → .0, e.g. 5.0 → 5.0.0); a full patch passes through.
+        STAGING_VERSION="$VERSION"
+        [[ "$STAGING_VERSION" == *.*.* ]] || STAGING_VERSION="${STAGING_VERSION}.0"
+        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${STAGING_VERSION}/artifact-urls/artifact_urls_${STAGING_VERSION}-latest.yaml"
         ARTIFACTS_FILE="$WORKDIR/artifact_urls.yaml"
         echo "[INFO] Downloading artifacts YAML: $ARTIFACTS_URL"
         curl -sS --fail -L "$ARTIFACTS_URL" -o "$ARTIFACTS_FILE"

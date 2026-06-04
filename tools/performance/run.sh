@@ -34,7 +34,7 @@ compare versions.
 
 Global options:
   --scenario real-world|isolated   topology to run (required)
-  --version X.Y.Z                  Wazuh release to install (e.g. 4.14, 5.0.0)
+  --version MAJOR.MINOR            Wazuh line to install (e.g. 5.0, 4.14); latest patch of the line
   --password P                     admin password (auto-detected from the VM if omitted)
   --keep                           leave the VMs up afterwards (debugging)
   -h, --help                       show this help

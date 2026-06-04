@@ -14,14 +14,17 @@
 #           "step-by-step" install).
 # Both then bind 0.0.0.0 and initialize the security index with indexer-security-init.sh.
 #
-#   sudo ./setup-indexer.sh --version 5.0.0
+#   sudo ./setup-indexer.sh --version 5.0
 #   sudo ./setup-indexer.sh --version 4.14
+#
+# Versions are given as MAJOR.MINOR (e.g. 5.0, 4.14): the latest patch of that line
+# is installed.
 #
 # Leaves a single-node indexer reachable on https://<host>:9200 with admin/admin.
 #
 set -e
 
-VERSION="5.0.0"
+VERSION="5.0"
 NODE_NAME="node-1"   # the package's default node.name / nodes_dn — keep it
 PASSWORD_OUT=""
 
@@ -30,7 +33,7 @@ while [[ $# -gt 0 ]]; do
         --version)      VERSION="$2"; shift 2 ;;
         --node-name)    NODE_NAME="$2"; shift 2 ;;
         --password-out) PASSWORD_OUT="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--version X.Y.Z] [--node-name NAME] [--password-out FILE]"; exit 1 ;;
+        *) echo "Usage: $0 [--version MAJOR.MINOR] [--node-name NAME] [--password-out FILE]"; exit 1 ;;
     esac
 done
 
@@ -55,7 +58,11 @@ case "$VERSION" in
             exit 1
         fi
 
-        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${VERSION}/artifact-urls/artifact_urls_${VERSION}-latest.yaml"
+        # Staging nightly is published per exact patch; resolve the MAJOR.MINOR input
+        # to that patch (pre-release 5.x → .0, e.g. 5.0 → 5.0.0). A full patch passes through.
+        STAGING_VERSION="$VERSION"
+        [[ "$STAGING_VERSION" == *.*.* ]] || STAGING_VERSION="${STAGING_VERSION}.0"
+        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${STAGING_VERSION}/artifact-urls/artifact_urls_${STAGING_VERSION}-latest.yaml"
         echo "[INFO] Downloading artifacts YAML: $ARTIFACTS_URL"
         curl -sS --fail -L "$ARTIFACTS_URL" -o "$WORKDIR/artifact_urls.yaml"
         PKG_URL=$(grep "^wazuh_indexer_${ARCH}_${PKG_TYPE}:" "$WORKDIR/artifact_urls.yaml" | sed 's/^[^"]*"//;s/"$//')
