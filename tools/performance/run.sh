@@ -20,6 +20,7 @@ SCENARIO=""
 VERSION=""
 PASSWORD=""
 KEEP=""
+DESTROY=""
 # Scenario-specific passthrough (defaults match the runners).
 DURATION="" INTERVAL="" RATE=""   # real-world
 DOCS=""                           # isolated
@@ -28,15 +29,17 @@ usage() {
     cat <<'EOF'
 Usage: run.sh --scenario real-world|isolated [options]
 
-Owns the full lifecycle: vagrant up → measure → destroy. Results land in
-tools/performance/runs/<scenario>-<version>/. Run ./analyze.sh afterwards to
-compare versions.
+Owns the lifecycle: vagrant up → measure → (real-world) destroy. The isolated
+scenario LEAVES THE VMs UP on success so Grafana stays reachable; tear them down
+with `run.sh --scenario isolated --destroy` (or just start another run). Results
+land in tools/performance/runs/<scenario>-<version>/; run ./analyze.sh afterwards.
 
 Global options:
   --scenario real-world|isolated   topology to run (required)
   --version MAJOR.MINOR            Wazuh line to install (e.g. 5.0, 4.14); latest patch of the line
   --password P                     admin password (auto-detected from the VM if omitted)
-  --keep                           leave the VMs up afterwards (debugging)
+  --keep                           leave the VMs up afterwards (real-world; isolated already keeps)
+  --destroy                        tear down the scenario's VMs and exit (no run)
   -h, --help                       show this help
 
 real-world options:   --duration S   --interval S   --rate N
@@ -56,6 +59,7 @@ while [[ $# -gt 0 ]]; do
         --rate)     RATE="$2"; shift 2 ;;
         --docs)     DOCS="$2"; shift 2 ;;
         --keep)     KEEP=1; shift ;;
+        --destroy)  DESTROY=1; shift ;;
         -h|--help)  usage; exit 0 ;;
         *) echo "[ERROR] Unknown argument: $1" >&2; usage >&2; exit 1 ;;
     esac
@@ -75,6 +79,14 @@ export PERF_SCENARIO="$SCENARIO"
 [[ -n "$VERSION" ]] && export PERF_VERSION="$VERSION"
 
 cd "$VAGRANT_DIR"
+
+# Destroy-only: tear down the scenario's VMs and exit (e.g. clean up an isolated run
+# whose VMs were left up for Grafana).
+if [[ -n "$DESTROY" ]]; then
+    echo "[INFO] Destroying the '$SCENARIO' environment ..."
+    PERF_SCENARIO="$SCENARIO" vagrant destroy -f
+    exit 0
+fi
 
 # Start clean. `vagrant up` won't re-provision an already-created VM, and the Vagrantfile
 # defines a DIFFERENT machine set per scenario (indexer/monitor vs aio/agents). So a
@@ -122,14 +134,24 @@ if ! "./run-${SCENARIO}.sh" ${RUN_ARGS[@]+"${RUN_ARGS[@]}"}; then
     echo "[ERROR] Measurement failed." >&2
 fi
 
-# Teardown — unless --keep, and kept (for debugging) if the run failed.
-if [[ -n "$KEEP" ]]; then
-    echo "[INFO] --keep set; leaving the VMs up. Destroy later with: (cd $VAGRANT_DIR && PERF_SCENARIO=$SCENARIO vagrant destroy -f)"
-elif [[ "$RUN_OK" -eq 1 ]]; then
+# Teardown policy:
+#   - run failed       → leave up for debugging (regardless of scenario)
+#   - --keep           → leave up
+#   - isolated + ok    → leave up so Grafana/Prometheus stay reachable (they live on
+#                        the monitor VM; destroying it discards the cold-start timeline)
+#   - real-world + ok  → tear down (no persistent monitoring to preserve)
+DESTROY_CMD="(cd $VAGRANT_DIR && PERF_SCENARIO=$SCENARIO vagrant destroy -f)   # or: $HERE/run.sh --scenario $SCENARIO --destroy"
+if [[ "$RUN_OK" -ne 1 ]]; then
+    echo "[WARN] Run failed — leaving the VMs up for debugging. Destroy with: $DESTROY_CMD"
+elif [[ -n "$KEEP" ]]; then
+    echo "[INFO] --keep set; leaving the VMs up. Destroy later with: $DESTROY_CMD"
+elif [[ "$SCENARIO" == "isolated" ]]; then
+    echo "[INFO] Leaving the VMs up so Grafana stays reachable:"
+    echo "         http://${PERF_MONITOR_IP:-192.168.60.30}:3000/d/wazuh-host-overview"
+    echo "[INFO] Destroy when done: $DESTROY_CMD"
+else
     echo "[INFO] Tearing down the environment ..."
     vagrant destroy -f
-else
-    echo "[WARN] Run failed — leaving the VMs up for debugging. Destroy with: (cd $VAGRANT_DIR && PERF_SCENARIO=$SCENARIO vagrant destroy -f)"
 fi
 
 [[ "$RUN_OK" -eq 1 ]] || exit 1

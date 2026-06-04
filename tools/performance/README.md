@@ -39,7 +39,7 @@ There are two methods to execute the performance tests, they use the same script
 
 | Method | Where | Use it for |
 |--------|-------|-----------|
-| **One-liner (Vagrant)** | your machine | turnkey local runs - `run.sh` owns up → measure → destroy |
+| **One-liner (Vagrant)** | your machine | turnkey local runs - `run.sh` owns up → measure → teardown |
 | **Manual** | any hosts, e.g. **AWS EC2** | cloud / CI / dev - run the guest-side scripts directly on the instances |
 
 ### Method 1 - One-liner (Vagrant, local)
@@ -48,11 +48,17 @@ One entrypoint owns the whole lifecycle:
 
 ```bash
 cd tools/performance
-./run.sh --scenario real-world                 # AIO + 2 agents
+./run.sh --scenario real-world                 # AIO + 2 agents (torn down on success)
 ./run.sh --scenario isolated                   # single indexer + monitor + OSB, from cold start
 ./run.sh --scenario real-world --version 4.14  # install + measure 4.x instead of 5.x
-./run.sh --scenario isolated --keep            # leave the VMs up afterwards (debug)
+./run.sh --scenario isolated --destroy         # tear down a kept isolated env when done
 ```
+
+> **Teardown:** `real-world` is torn down automatically on success. **`isolated`
+> leaves the VMs up** so the Grafana/Prometheus cold-start timeline (which lives on
+> the monitor VM) stays reachable — explore it, then run `--scenario isolated
+> --destroy` (or just start another run; leftovers are cleaned up first). `--keep`
+> forces real-world to stay up too.
 
 Results land in `tools/performance/runs/<scenario>-<version>/`, named after the
 **actual installed** Wazuh version, so `--version 4.14` lands in
