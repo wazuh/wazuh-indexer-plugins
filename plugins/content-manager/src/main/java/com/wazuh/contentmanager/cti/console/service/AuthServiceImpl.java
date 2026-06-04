@@ -29,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.console.TokenListener;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Implementation of the AuthService interface. */
 public class AuthServiceImpl extends AbstractService implements AuthService {
@@ -63,14 +64,12 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
                 return token;
             } else {
                 log.warn(
-                        "Operation to fetch a permanent token failed: { \"status_code\": {}, \"message\": {} }",
-                        response.getCode(),
-                        response.getBodyText());
+                        Constants.W_LOG_CTI_REGISTRATION_FAILED, response.getCode(), response.getBodyText());
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error("Couldn't obtain permanent token from CTI: {}", e.getMessage());
+            log.error(Constants.E_LOG_CTI_ACCESS_TOKEN_FAILED, e.getMessage());
         } catch (IOException e) {
-            log.error("Failed to parse permanent token: {}", e.getMessage());
+            log.error(Constants.E_LOG_CTI_ACCESS_TOKEN_PARSE_FAILED, e.getMessage());
         }
         return null;
     }

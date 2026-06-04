@@ -182,15 +182,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
             RestResponse response = this.engineService.promote(payload);
             if (response.getStatus() == RestStatus.OK.getStatus()) {
-                log.info("Engine load for standard space completed successfully.");
+                log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
             } else {
                 log.warn(
-                        "Engine load for standard space returned status [{}]: {}",
+                        Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
                         response.getStatus(),
                         response.getMessage());
             }
         } catch (Exception e) {
-            log.error("Failed to load standard space into Engine: {}", e.getMessage());
+            log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage());
         }
     }
 
@@ -200,8 +200,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncIntegrations() {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
-            log.error(
-                    "Integrations index is missing. Cannot sync integrations to Security Analytics Plugin.");
+            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "integrations");
             return;
         }
 
@@ -209,7 +208,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Map<String, Map<String, Object>> integrations =
                     this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
             if (integrations.isEmpty()) {
-                log.debug("No integrations to synchronize with the Security Analytics plugin.");
+                log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
                 return;
             }
 
@@ -237,17 +236,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                         },
                                         e -> {
                                             failed.add(id);
-                                            log.debug(
-                                                    "Integration [{}] could not be sent to Security Analytics: {}",
-                                                    id,
-                                                    e.getMessage());
+                                            log.debug(Constants.D_LOG_SAP_ITEM_FAILED, "Integration", id, e.getMessage());
                                             latch.countDown();
                                         }));
                     });
 
             if (!latch.await(60, TimeUnit.SECONDS)) {
-                log.warn(
-                        "Timed out sending integrations to Security Analytics; some may be unavailable until the next sync.");
+                log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
             }
             if (sent.get() > 0) {
                 log.info(
@@ -263,13 +258,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(
-                    "Interrupted while sending integrations to the Security Analytics plugin: {}",
-                    e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_INTERRUPTED, "integrations", e.getMessage());
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error sending integrations to the Security Analytics plugin: {}",
-                    e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
         }
     }
 
@@ -279,7 +270,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncRules() {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
-            log.error("Rules index is missing. Cannot sync rules to Security Analytics Plugin.");
+            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Rules", "rules");
             return;
         }
 
@@ -287,7 +278,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Map<String, Map<String, Object>> rules =
                     this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
             if (rules.isEmpty()) {
-                log.debug("No rules to synchronize with the Security Analytics plugin.");
+                log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
                 return;
             }
 
@@ -315,17 +306,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                         },
                                         e -> {
                                             failed.add(id);
-                                            log.debug(
-                                                    "Rule [{}] could not be sent to Security Analytics: {}",
-                                                    id,
-                                                    e.getMessage());
+                                            log.debug(Constants.D_LOG_SAP_ITEM_FAILED, "Rule", id, e.getMessage());
                                             latch.countDown();
                                         }));
                     });
 
             if (!latch.await(60, TimeUnit.SECONDS)) {
-                log.warn(
-                        "Timed out sending rules to Security Analytics; some may be unavailable until the next sync.");
+                log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
             }
             if (sent.get() > 0) {
                 log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), rules.size(), "rules", Space.STANDARD);
@@ -335,11 +322,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(
-                    "Interrupted while sending rules to the Security Analytics plugin: {}", e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_INTERRUPTED, "rules", e.getMessage());
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error sending rules to the Security Analytics plugin: {}", e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "rules", e.getMessage());
         }
     }
 
@@ -350,8 +335,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncDetectors() throws IOException {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
-            log.error(
-                    "Integrations index is missing. Cannot sync detectors to Security Analytics Plugin.");
+            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "detectors");
             return;
         }
 
@@ -373,8 +357,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        log.debug(
-                "Syncing {} detectors ({} sequentially, {} in parallel)", docs.size(), 1, docs.size() - 1);
+        log.debug(Constants.D_LOG_SAP_DETECTORS_SYNCING, docs.size(), 1, docs.size() - 1);
 
         AtomicInteger sent = new AtomicInteger();
         List<String> failed = Collections.synchronizedList(new ArrayList<>());
@@ -395,7 +378,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         e -> {
                             failed.add(firstName);
                             log.debug(
-                                    "Detector for integration [{}] could not be sent to Security Analytics: {}",
+                                    Constants.D_LOG_SAP_ITEM_FAILED,
+                                    "Detector for integration",
                                     firstName,
                                     e.getMessage());
                             firstLatch.countDown();
@@ -403,12 +387,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         try {
             if (!firstLatch.await(30, TimeUnit.SECONDS)) {
-                log.warn(
-                        "Timed out sending detectors to Security Analytics; some may be unavailable until the next sync.");
+                log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
                 return;
             }
         } catch (InterruptedException e) {
-            log.error("Interrupted waiting for first detector", e);
+            log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
             Thread.currentThread().interrupt();
             return;
         }
@@ -431,7 +414,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                 e -> {
                                     failed.add(name);
                                     log.debug(
-                                            "Detector for integration [{}] could not be sent to Security Analytics: {}",
+                                            Constants.D_LOG_SAP_ITEM_FAILED,
+                                            "Detector for integration",
                                             name,
                                             e.getMessage());
                                     parallelLatch.countDown();
@@ -440,11 +424,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             try {
                 if (!parallelLatch.await(60, TimeUnit.SECONDS)) {
-                    log.warn(
-                            "Timed out sending detectors to Security Analytics; some may be unavailable until the next sync.");
+                    log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
                 }
             } catch (InterruptedException e) {
-                log.error("Interrupted waiting for detectors sync", e);
+                log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
                 Thread.currentThread().interrupt();
             }
         }
@@ -502,7 +485,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private JsonNode extractDocument(JsonNode source, String hitId) {
         if (!source.has(Constants.KEY_DOCUMENT)) {
-            log.warn("Hit [{}] missing 'document' field, skipping", hitId);
+            log.warn(Constants.W_LOG_HIT_MISSING_DOCUMENT, hitId);
             return null;
         }
         return source.get(Constants.KEY_DOCUMENT);

@@ -206,7 +206,7 @@ public class ContentIndex {
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
         if (this.mappingsPath == null) {
-            log.error("Cannot create index [{}]: Mappings path not provided.", this.indexName);
+            log.error(Constants.E_LOG_CREATE_INDEX_NO_MAPPINGS, this.indexName);
             return null;
         }
 
@@ -245,10 +245,7 @@ public class ContentIndex {
                     .indices()
                     .aliases(aliasRequest)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.info(
-                    "Index [{}] created with alias [{}] (write_index=true)",
-                    this.physicalName,
-                    this.indexName);
+            log.info(Constants.I_LOG_INDEX_CREATED_WITH_ALIAS, this.physicalName, this.indexName);
         }
 
         return response;
@@ -267,7 +264,7 @@ public class ContentIndex {
     public CreateIndexResponse createShadowIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
         if (this.mappingsPath == null) {
-            log.error("Cannot create shadow index [{}]: Mappings path not provided.", this.physicalName);
+            log.error(Constants.E_LOG_CREATE_SHADOW_INDEX_NO_MAPPINGS, this.physicalName);
             return null;
         }
 
@@ -290,7 +287,7 @@ public class ContentIndex {
                         .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
         if (response.isAcknowledged()) {
-            log.info("Shadow index [{}] created (hidden, no alias)", this.physicalName);
+            log.debug(Constants.D_LOG_SHADOW_INDEX_CREATED, this.physicalName);
         }
 
         return response;
@@ -304,13 +301,12 @@ public class ContentIndex {
     private String readMappings() {
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
             if (is == null) {
-                log.error(
-                        "Could not find mappings file [{}] for index [{}]", this.mappingsPath, this.indexName);
+                log.error(Constants.E_LOG_MAPPINGS_FILE_NOT_FOUND, this.mappingsPath, this.indexName);
                 return null;
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            log.error("Could not read mappings for index [{}]: {}", this.indexName, e.getMessage());
+            log.error(Constants.E_LOG_READ_MAPPINGS_FAILED, this.indexName, e.getMessage());
             return null;
         }
     }
@@ -338,7 +334,8 @@ public class ContentIndex {
                 return this.mapper.readTree(response.getSourceAsString());
             }
         } catch (Exception e) {
-            log.error("Error retrieving document [{}] from [{}]: {}", id, this.indexName, e.getMessage());
+            log.error(
+                    Constants.E_LOG_RETRIEVE_DOCUMENT_FROM_INDEX_FAILED, id, this.indexName, e.getMessage());
         }
         return null;
     }
@@ -377,7 +374,7 @@ public class ContentIndex {
                     .index(request)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to index document [{}]: {}", id, e.getMessage());
+            log.error(Constants.E_LOG_INDEX_DOCUMENT_FAILED, id, e.getMessage());
             throw new IOException(e);
         }
     }
@@ -454,12 +451,12 @@ public class ContentIndex {
                 new ActionListener<>() {
                     @Override
                     public void onResponse(DeleteResponse response) {
-                        log.debug("Deleted {} from {}", id, ContentIndex.this.indexName);
+                        log.debug(Constants.D_LOG_DELETED_FROM_INDEX, id, ContentIndex.this.indexName);
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error("Failed to delete {}: {}", id, e.getMessage());
+                        log.error(Constants.E_LOG_DELETE_DOCUMENT_FAILED, id, e.getMessage());
                     }
                 });
     }
@@ -508,8 +505,7 @@ public class ContentIndex {
                     || searchResponse.getHits() == null
                     || searchResponse.getHits().getTotalHits() == null
                     || searchResponse.getHits().getTotalHits().value() == 0L) {
-                log.debug(
-                        "No document found in [{}] with query {}", this.indexName, queryBuilder.toString());
+                log.debug(Constants.D_LOG_NO_DOCUMENT_FOUND_QUERY, this.indexName, queryBuilder.toString());
                 return null;
             }
             ArrayNode hitsArray = this.mapper.createArrayNode();
@@ -523,7 +519,7 @@ public class ContentIndex {
             result.put("total", searchResponse.getHits().getTotalHits().value());
             return result;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Search by query failed in [{}]: {}", this.indexName, e.getMessage());
+            log.error(Constants.E_LOG_SEARCH_BY_QUERY_FAILED, this.indexName, e.getMessage());
             return null;
         }
     }
@@ -544,18 +540,18 @@ public class ContentIndex {
                             ContentIndex.this.semaphore.release();
                             if (bulkResponse.hasFailures()) {
                                 log.warn(
-                                        "Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
+                                        Constants.W_LOG_BULK_INDEXING_FAILURES, bulkResponse.buildFailureMessage());
                             }
                         }
 
                         @Override
                         public void onFailure(Exception e) {
                             ContentIndex.this.semaphore.release();
-                            log.error("Bulk index operation failed: {}", e.getMessage());
+                            log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
                         }
                     });
         } catch (InterruptedException e) {
-            log.error("Interrupted while waiting for semaphore: {}", e.getMessage());
+            log.error(Constants.E_LOG_SEMAPHORE_INTERRUPTED, e.getMessage());
             Thread.currentThread().interrupt();
         }
     }
@@ -578,7 +574,7 @@ public class ContentIndex {
      */
     public void clear() {
         if (this.mappingsPath == null) {
-            log.error("Cannot clear index [{}]: mappings path not set.", this.indexName);
+            log.error(Constants.E_LOG_CLEAR_INDEX_NO_MAPPINGS, this.indexName);
             return;
         }
         try {
@@ -588,9 +584,9 @@ public class ContentIndex {
                 this.client.admin().indices().prepareDelete(this.physicalName).get();
             }
             this.createIndex();
-            log.debug("[{}] wiped and recreated (physical: [{}])", this.indexName, this.physicalName);
+            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, this.physicalName);
         } catch (Exception e) {
-            log.error("[{}] clear failed: {}", this.indexName, e.getMessage());
+            log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, this.indexName, e.getMessage());
         }
     }
 
@@ -643,7 +639,7 @@ public class ContentIndex {
 
             return this.mapper.valueToTree(resource);
         } catch (Exception e) {
-            log.error("Failed to process payload via models: {}", e.getMessage(), e);
+            log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
             return this.mapper.createObjectNode();
         }
     }

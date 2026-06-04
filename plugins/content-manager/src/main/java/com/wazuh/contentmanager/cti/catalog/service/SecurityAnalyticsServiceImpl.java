@@ -158,7 +158,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     id,
                     ActionListener.wrap(
                             detectorResponse -> {
-                                log.debug("Detector [{}] deleted. Now deleting integration.", id);
+                                log.debug(Constants.D_LOG_SAP_DETECTOR_DELETED_THEN_INTEGRATION, id);
                                 this.executeAsync(
                                         WDeleteIntegrationAction.INSTANCE,
                                         new WDeleteIntegrationRequest(
@@ -406,7 +406,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String category = this.formatCategory(doc, rawCategory);
         List<String> rules = this.fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
         if (rules.isEmpty()) {
-            log.debug("Detector [{}] has no enabled rules. Skipping creation.", id);
+            log.debug(Constants.D_LOG_SAP_DETECTOR_NO_ENABLED_RULES, id);
             return null;
         }
 
@@ -430,7 +430,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 int MAX = 10080; // 60*24*7
                 if (interval < MIN || interval > MAX) {
                     log.warn(
-                            "Interval for detector [{}] is out of bounds ([{},{}], got: {}). Falling back to default value of {} minutes.",
+                            Constants.W_LOG_DETECTOR_INTERVAL_OUT_OF_BOUNDS,
                             id,
                             MIN,
                             MAX,
@@ -494,11 +494,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             }
             int filtered = candidateIds.size() - enabledIds.size();
             if (filtered > 0) {
-                log.debug("Filtered {} disabled rule(s) from detector rule list", filtered);
+                log.debug(Constants.D_LOG_DETECTOR_FILTERED_DISABLED_RULES, filtered);
             }
             return enabledIds;
         } catch (Exception e) {
-            log.error("Failed to fetch enabled rule IDs: {}", e.getMessage());
+            log.error(Constants.E_LOG_FETCH_ENABLED_RULES_FAILED, e.getMessage());
             return candidateIds;
         }
     }
@@ -542,14 +542,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             .actionGet();
 
             if (response.hasFailures()) {
-                log.warn(
-                        "Partial failures deleting SAP resources for space [{}]: {}",
-                        space,
-                        response.getFailureMessage());
+                log.warn(Constants.W_LOG_SAP_SPACE_DELETE_PARTIAL, space, response.getFailureMessage());
             }
 
             log.info(
-                    "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]",
+                    Constants.I_LOG_SAP_SPACE_DELETED,
                     response.getDeletedIntegrations(),
                     response.getDeletedRules(),
                     space);
@@ -589,7 +586,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     this.client.execute(WEvaluateRulesAction.INSTANCE, request).actionGet();
             return response.getResultJson();
         } catch (Exception e) {
-            log.error("Failed to evaluate rules via SAP transport action.", e);
+            log.error(Constants.E_LOG_EVALUATE_RULES_FAILED, e);
             return "{\"status\":\"error\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}";
         }
     }
