@@ -100,10 +100,14 @@ public class Constants {
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
     public static final String W_LOG_EXTERNAL_NOT_FOUND =
             "Resource {} [{}] not found in external service, continuing deletion.";
-    public static final String I_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
-    public static final String I_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
-    public static final String I_LOG_SAP_DELETE_ASYNC =
+    public static final String D_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
+    public static final String D_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
+    public static final String D_LOG_SAP_DELETE_ASYNC =
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
+    public static final String I_LOG_SAP_SUMMARY =
+            "Sent {} of {} {} to Security Analytics for space [{}].";
+    public static final String W_LOG_SAP_PARTIAL =
+            "{} {} could not be sent to Security Analytics for space [{}]: {}";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
     public static final String I_LOG_ACCESS_TOKEN_SET =

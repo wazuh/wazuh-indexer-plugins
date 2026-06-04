@@ -637,15 +637,15 @@ public abstract class AbstractConsumerService {
                     log.error("Local snapshot initialization failed for consumer [{}].", consumerType);
                 }
             } else if (hasEffectiveCatalog) {
-                log.fatal(
-                        "No local snapshot found at [{}] and custom consumer initialization could not be completed for [{}].",
-                        localSnapshot,
-                        consumerType);
+                log.error(
+                        "Could not initialize consumer [{}]: no local snapshot at [{}] and the remote source could not be reached. Content will be retried on the next sync.",
+                        consumerType,
+                        localSnapshot);
             } else {
-                log.fatal(
-                        "No local snapshot at [{}] for consumer [{}] and no custom consumer URL is configured.",
-                        localSnapshot,
-                        consumerType);
+                log.error(
+                        "Could not initialize consumer [{}]: no local snapshot at [{}] and no remote source is configured.",
+                        consumerType,
+                        localSnapshot);
             }
         }
 
@@ -687,8 +687,9 @@ public abstract class AbstractConsumerService {
         try {
             boolean exists = AccessController.doPrivilegedChecked(() -> Files.exists(manifestPath));
             if (!exists) {
-                log.fatal(
-                        "Snapshots manifest not found at [{}]. Consumer won't be initialized.", manifestPath);
+                log.error(
+                        "Snapshot manifest not found at [{}]; consumer cannot be initialized and will be retried on the next sync.",
+                        manifestPath);
                 return null;
             }
 
@@ -697,8 +698,8 @@ public abstract class AbstractConsumerService {
             String snapshotFilename = this.getSnapshotFilename();
             JsonNode entry = root.get(snapshotFilename);
             if (entry == null || entry.isNull()) {
-                log.fatal(
-                        "No entry for [{}] in [{}]. Consumer won't be initialized.",
+                log.error(
+                        "No snapshot entry for [{}] in manifest [{}]; consumer cannot be initialized and will be retried on the next sync.",
                         snapshotFilename,
                         manifestPath.getFileName());
                 return null;
@@ -709,8 +710,8 @@ public abstract class AbstractConsumerService {
                     manifestPath.getFileName());
             return entry;
         } catch (Exception e) {
-            log.fatal(
-                    "Failed to load snapshots manifest from [{}]: {}. Consumer won't be initialized.",
+            log.error(
+                    "Failed to read snapshot manifest from [{}]: {}. Consumer cannot be initialized and will be retried on the next sync.",
                     manifestPath,
                     e.getMessage());
             return null;

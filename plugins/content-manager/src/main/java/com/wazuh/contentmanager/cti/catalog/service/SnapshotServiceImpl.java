@@ -162,7 +162,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
             // Ensure all bulk requests are finished
             if (!this.indicesMap.isEmpty()) {
-                log.info("Waiting for pending bulk updates to finish...");
+                log.debug("Waiting for pending bulk updates to finish...");
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
@@ -352,12 +352,12 @@ public class SnapshotServiceImpl implements SnapshotService {
 
             // Ensure all bulk requests are finished
             if (!this.indicesMap.isEmpty()) {
-                log.info("Waiting for pending bulk updates to finish...");
+                log.debug("Waiting for pending bulk updates to finish...");
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
         } catch (Exception e) {
-            log.fatal("Error processing local snapshot: {}", e.getMessage());
+            log.error("Error processing local snapshot: {}", e.getMessage());
             return false;
         } finally {
             // Cleanup temporary extraction directory only
