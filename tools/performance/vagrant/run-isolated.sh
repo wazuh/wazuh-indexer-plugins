@@ -114,16 +114,15 @@ cat > "$LOCAL_OUT/run-metadata.json" <<EOF
 }
 EOF
 
-MON_IP=$(vagrant ssh monitor -c "hostname -I | awk '{print \$1}'" 2>/dev/null | tr -d '\r\n' || true)
+# Grafana is reached over the monitor VM's PRIVATE-network IP (the host-routable one,
+# same value the Vagrantfile assigns). `hostname -I` on the guest would return the
+# VirtualBox NAT IP (10.0.2.15) first, which the host can't reach.
+MON_IP="${PERF_MONITOR_IP:-192.168.60.30}"
+DASH_URL="http://${MON_IP}:3000/d/wazuh-host-overview"
 echo
 echo "[INFO] Done ($LABEL). OSB report + metrics.csv: tools/performance/runs/isolated-$VERSION/"
-if [[ -n "$MON_IP" ]]; then
-    DASH_URL="http://${MON_IP}:3000/d/wazuh-host-overview"
-    echo "[INFO] Cold start at $RESTART_TS — view the host timeline in Grafana: $DASH_URL"
-    # Best-effort: open the dashboard in the host's browser (no-op if unavailable).
-    (command -v open >/dev/null 2>&1 && open "$DASH_URL") \
-        || (command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL" >/dev/null 2>&1) \
-        || true
-else
-    echo "[INFO] Cold start at $RESTART_TS — open Grafana on the monitor VM (port 3000), dashboard 'wazuh-host-overview'."
-fi
+echo "[INFO] Cold start at $RESTART_TS — view the host timeline in Grafana: $DASH_URL"
+# Best-effort: open the dashboard in the host's browser (no-op if unavailable).
+(command -v open >/dev/null 2>&1 && open "$DASH_URL") \
+    || (command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL" >/dev/null 2>&1) \
+    || true
