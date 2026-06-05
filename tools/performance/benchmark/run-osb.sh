@@ -19,19 +19,24 @@ USER="admin"
 PASSWORD="admin"
 DOCS=1000000
 OUT="./runs/osb-$(date +%Y%m%d-%H%M%S)"
-NO_HOST=""   # set --no-host when host metrics come from node_exporter (Track C)
+NO_HOST=""        # set --no-host so the sampler skips local psutil (it runs off-host here)
+NODE_EXPORTER=""  # node_exporter endpoint (host:9100) for the indexer's host metrics
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --target)   TARGET="$2"; shift 2 ;;
-        --user)     USER="$2"; shift 2 ;;
-        --password) PASSWORD="$2"; shift 2 ;;
-        --docs)     DOCS="$2"; shift 2 ;;
-        --out)      OUT="$2"; shift 2 ;;
-        --no-host)  NO_HOST="--no-host"; shift ;;
-        *) echo "Usage: $0 [--target URL] [--user U] [--password P] [--docs N] [--out DIR] [--no-host]"; exit 1 ;;
+        --target)         TARGET="$2"; shift 2 ;;
+        --user)           USER="$2"; shift 2 ;;
+        --password)       PASSWORD="$2"; shift 2 ;;
+        --docs)           DOCS="$2"; shift 2 ;;
+        --out)            OUT="$2"; shift 2 ;;
+        --no-host)        NO_HOST="--no-host"; shift ;;
+        --node-exporter)  NODE_EXPORTER="$2"; shift 2 ;;
+        *) echo "Usage: $0 [--target URL] [--user U] [--password P] [--docs N] [--out DIR] [--no-host] [--node-exporter HOST:9100]"; exit 1 ;;
     esac
 done
+
+NE_ARG=()
+[[ -n "$NODE_EXPORTER" ]] && NE_ARG=(--node-exporter "$NODE_EXPORTER")
 
 mkdir -p "$OUT"
 
@@ -45,7 +50,7 @@ HOST="${TARGET#https://}"; HOST="${HOST#http://}"
 
 # Sample cluster internals for ~10 min alongside the benchmark (background).
 python3 "$SAMPLER" --endpoint "$TARGET" --user "$USER" --password "$PASSWORD" \
-    --interval 60 --duration 600 --out "$OUT" --insecure $NO_HOST &
+    --interval 60 --duration 600 --out "$OUT" --insecure $NO_HOST ${NE_ARG[@]+"${NE_ARG[@]}"} &
 SAMPLER_PID=$!
 
 # OSB renamed the test-execution subcommand from `execute-test` to `run` in newer

@@ -15,4 +15,5 @@ monitoring/prometheus.rendered.yml
 
 # Python virtual env and other local files
 venv/
+.venv/
 __pycache__/

@@ -93,10 +93,13 @@ perf_rsync monitor   # sync the freshly built corpus into the monitor VM
 # 3. Run the OSB synthetic workload FROM the monitor VM (off the indexer host).
 OUT_GUEST="/root/perf-run"
 echo "[INFO] Running OpenSearch Benchmark from the monitor VM against $INDEXER_IP ..."
+# --node-exporter pulls the indexer's host metrics (CPU/RAM/disk) into the CSV from
+# node_exporter (the monitor already reaches it on :9100), since the sampler runs
+# off the indexer host here and can't read them via local psutil.
 vagrant ssh monitor -c \
     "sudo /opt/perf/benchmark/run-osb.sh \
         --target https://$INDEXER_IP:9200 --user admin --password '$PASSWORD' \
-        --docs $DOCS --no-host --out $OUT_GUEST"
+        --docs $DOCS --no-host --node-exporter $INDEXER_IP:9100 --out $OUT_GUEST"
 
 # 4. Pull results (OSB report + indexer-internal CSV) from the monitor VM.
 # Per-version output dir so runs don't overwrite each other (compare across versions).

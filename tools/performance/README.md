@@ -26,12 +26,24 @@ Prometheus** for continuous, from-boot host metrics so the cold start is capture
 
 ## Prerequisites
 
-- **Method 1 (Vagrant):** Vagrant + a provider (VirtualBox / Parallels / libvirt),
-  on a host with ~20 GB free RAM and 12 vCPU. The `isolated` scenario builds its corpus
-  on the host (it uses the `wcs/` generator), and `analyze.sh` plots on the host, so the
-  host also needs `pip install requests matplotlib`.
-- **Method 2 (manual):** the [Requirements](#requirements) deps installed per host,
-  plus internet access to the Wazuh package repos.
+- Vagrant + a provider (VirtualBox / Parallels / libvirt) for Method 1, on a host with ~20 GB free RAM and 12 vCPU
+- Python 3.9+
+- `requests`
+- `psutil`
+- `matplotlib`
+- `opensearch-benchmark` (isolated scenario)
+- Docker (isolated scenario monitor: Prometheus + Grafana)
+
+Install the Python dependencies in a virtual environment:
+
+```bash
+cd tools/performance
+python3 -m venv .venv
+source .venv/bin/activate
+pip install requests psutil matplotlib opensearch-benchmark
+```
+
+> Method 1 (Vagrant) installs the guest-side dependencies (`psutil`, `opensearch-benchmark`, Docker) inside the VMs automatically, so on the host you only need Python with `requests` and `matplotlib`. For Method 2 (manual), install the requirements on each host yourself.
 
 ## Running
 
@@ -127,10 +139,15 @@ python3 benchmark/gen-corpora.py --docs 1000000
 # indexer instance - capture cold start, then drive load from the monitor:
 sudo systemctl restart wazuh-indexer
 # monitor instance:
-./benchmark/run-osb.sh --target https://<indexer-private-ip>:9200 --user admin --password <pass> --no-host
+./benchmark/run-osb.sh --target https://<indexer-private-ip>:9200 --user admin --password <pass> \
+  --no-host --node-exporter <indexer-private-ip>:9100
 ```
 
-`--no-host` skips psutil (host metrics come from node_exporter → Prometheus/Grafana).
+`--no-host` skips local psutil (the sampler runs off the indexer host). `--node-exporter`
+reads the indexer's host metrics (CPU, RAM, disk, load) from node_exporter into the CSV,
+so `report.md` / `compare.md` / `timeline.png` include them. The same series also stay in
+Prometheus/Grafana for the from-boot cold-start view. Per-process splits are not available
+from node_exporter, but in isolation the indexer is effectively the whole host.
 
 > **AWS notes:** open the security-group ports between instances, 9200 (indexer),
 > 1514/1515 (agent→manager, real-world), 9100 (node_exporter→Prometheus, isolated),
@@ -225,20 +242,34 @@ python3 analyze/plot.py \
 ## Metrics captured (per minute)
 
 **Host (the sizing deliverable):** total CPU %, load, RAM used (GB + %), swap,
-disk used, disk read/write rate, per-process CPU + RAM split across
-`wazuh-indexer` / `wazuh-manager` / `wazuh-dashboard`.
+disk used, disk read/write rate. In **real-world** these come from local psutil and
+include a per-process CPU + RAM split across `wazuh-indexer` / `wazuh-manager` /
+`wazuh-dashboard`. In **isolated** they come from the indexer's node_exporter (no
+per-process split, but the indexer is effectively the whole host there).
 **Indexer:** ingest + query rate, **per-operation index/query latency** (ms/op),
 indexing pressure, write/search thread-pool queue depth + **rejections/s** (attributed
 to the window, not since boot), JVM heap %, GC count/time, segments, merge/refresh/flush,
 store size, doc count. See [metrics/sampler.py](metrics/sampler.py) for the exact fields,
 the labeled `report.md` surfaces avg + peak for each.
 
-## Requirements
+## Troubleshooting
 
-- Python 3.9+ with `requests` (already used by the repo's event generators).
-- `psutil` on the host for host/process metrics (`pip install psutil` or
-  `apt install python3-psutil`, the Vagrant env installs it automatically).
-- `matplotlib` for timeline charts (`analyze/plot.py`): `pip install matplotlib`.
-- `opensearch-benchmark` for the isolated scenario (`pip install opensearch-benchmark`,
-  the monitor VM installs it automatically).
-- Docker on the monitor host for Prometheus + Grafana (`setup-monitor.sh`).
+**Leftover VMs.** The `isolated` scenario leaves its VMs up on success, and a failed or
+interrupted run leaves them up too. A bare `vagrant destroy` only sees the default
+scenario's machines, so destroy with the scenario set explicitly (run from
+`tools/performance/vagrant/`):
+
+```bash
+PERF_SCENARIO=isolated   vagrant destroy -f   # isolated VMs (indexer + monitor)
+PERF_SCENARIO=real-world vagrant destroy -f   # real-world VMs (aio + agents)
+```
+
+Or use the entrypoint, which wraps the same command:
+
+```bash
+./run.sh --scenario isolated --destroy
+```
+
+Starting a new run also clears leftovers from both scenarios first. For VMs orphaned
+outside Vagrant's state, inspect them with `vagrant global-status --prune` (and the
+provider's own list, e.g. `VBoxManage list runningvms`).

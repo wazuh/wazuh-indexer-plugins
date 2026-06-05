@@ -133,6 +133,127 @@ class HostCollector:
         return out
 
 
+# node_exporter series read by NodeExporterCollector, mapped onto the host_* schema.
+_NE_NEEDED = frozenset((
+    "node_cpu_seconds_total",
+    "node_load1",
+    "node_memory_MemTotal_bytes",
+    "node_memory_MemAvailable_bytes",
+    "node_memory_SwapTotal_bytes",
+    "node_memory_SwapFree_bytes",
+    "node_filesystem_size_bytes",
+    "node_filesystem_avail_bytes",
+    "node_disk_read_bytes_total",
+    "node_disk_written_bytes_total",
+))
+
+
+def parse_prom(text):
+    """Parse the node_exporter text exposition format into {name: [(labels, value)]}.
+
+    Only the families in ``_NE_NEEDED`` are kept. Label parsing is deliberately
+    simple (split on commas); node_exporter label values don't contain commas.
+    """
+    fams = {}
+    for line in text.splitlines():
+        if not line or line[0] == "#":
+            continue
+        head, _, val = line.rpartition(" ")
+        name = head[:head.index("{")] if "{" in head else head
+        if name not in _NE_NEEDED:
+            continue
+        try:
+            value = float(val)
+        except ValueError:
+            continue
+        labels = {}
+        if "{" in head:
+            for kv in head[head.index("{") + 1:head.rindex("}")].split(","):
+                if "=" in kv:
+                    k, v = kv.split("=", 1)
+                    labels[k] = v.strip().strip('"')
+        fams.setdefault(name, []).append((labels, value))
+    return fams
+
+
+class NodeExporterCollector:
+    """Collects whole-host metrics by scraping a node_exporter ``/metrics`` endpoint.
+
+    Used by the isolated scenario, where the sampler runs off-host (on the monitor)
+    and the indexer's host metrics come from node_exporter rather than local psutil.
+    Emits the same host_* fields as HostCollector minus the per-process split (which
+    node_exporter can't provide). host_cpu_percent is derived downstream from the
+    idle counter; mem/swap/disk/load are gauges; disk I/O is a counter turned into a
+    rate by RATE_FIELDS. Returns {} (and logs) on a scrape failure so indexer-internal
+    sampling keeps working.
+    """
+
+    def __init__(self, endpoint):
+        url = endpoint if endpoint.startswith("http") else f"http://{endpoint}"
+        url = url.rstrip("/")
+        self.url = url if url.endswith("/metrics") else url + "/metrics"
+        import requests
+
+        self.requests = requests
+
+    @staticmethod
+    def _first(fams, name):
+        vals = fams.get(name)
+        return vals[0][1] if vals else None
+
+    @staticmethod
+    def _fs_root(fams, name):
+        for labels, value in fams.get(name, []):
+            if labels.get("mountpoint") == "/":
+                return value
+        return None
+
+    def sample(self):
+        try:
+            resp = self.requests.get(self.url, timeout=10)
+            resp.raise_for_status()
+            fams = parse_prom(resp.text)
+        except Exception as exc:
+            log.error("node_exporter scrape failed (%s): %s", self.url, exc)
+            return {}
+
+        out = {}
+        cpu_series = fams.get("node_cpu_seconds_total", [])
+        if cpu_series:  # idle seconds + core count → host_cpu_percent derived downstream
+            out["_host_cpu_idle_seconds"] = sum(v for lbl, v in cpu_series if lbl.get("mode") == "idle")
+            out["_host_cpu_count"] = len({lbl.get("cpu") for lbl, _ in cpu_series}) or 1
+
+        load1 = self._first(fams, "node_load1")
+        if load1 is not None:
+            out["host_load1"] = round(load1, 2)
+
+        mem_total = self._first(fams, "node_memory_MemTotal_bytes")
+        mem_avail = self._first(fams, "node_memory_MemAvailable_bytes")
+        if mem_total and mem_avail is not None:
+            used = mem_total - mem_avail
+            out["host_mem_total_gb"] = round(mem_total / GIB, 3)
+            out["host_mem_used_gb"] = round(used / GIB, 3)
+            out["host_mem_used_percent"] = round(100 * used / mem_total, 2)
+
+        swap_total = self._first(fams, "node_memory_SwapTotal_bytes")
+        swap_free = self._first(fams, "node_memory_SwapFree_bytes")
+        if swap_total is not None and swap_free is not None:
+            out["host_swap_used_gb"] = round((swap_total - swap_free) / GIB, 3)
+
+        fs_size = self._fs_root(fams, "node_filesystem_size_bytes")
+        fs_avail = self._fs_root(fams, "node_filesystem_avail_bytes")
+        if fs_size and fs_avail is not None:
+            used = fs_size - fs_avail
+            out["host_disk_used_gb"] = round(used / GIB, 3)
+            out["host_disk_used_percent"] = round(100 * used / fs_size, 2)
+
+        if fams.get("node_disk_read_bytes_total"):
+            out["host_disk_read_bytes"] = sum(v for _, v in fams["node_disk_read_bytes_total"])
+        if fams.get("node_disk_written_bytes_total"):
+            out["host_disk_write_bytes"] = sum(v for _, v in fams["node_disk_written_bytes_total"])
+        return out
+
+
 def utc_now_iso():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -240,6 +361,16 @@ def derive_rates(curr, prev, elapsed_s):
             if d_count > 0:
                 latency = round((curr[time_key] - prev[time_key]) / d_count, 3)
         row[f"{op}_latency_ms"] = latency
+
+    # Host CPU% from node_exporter's idle counter (when scraping it). psutil sets
+    # host_cpu_percent directly, so this only fires when the raw idle counter is present.
+    if "_host_cpu_idle_seconds" in curr:
+        cpu = 0
+        if prev is not None and elapsed_s > 0:
+            ncpu = curr.get("_host_cpu_count") or 1
+            d_idle = curr["_host_cpu_idle_seconds"] - prev.get("_host_cpu_idle_seconds", curr["_host_cpu_idle_seconds"])
+            cpu = round(max(0.0, min(100.0, 100 * (1 - d_idle / (ncpu * elapsed_s)))), 2)
+        row["host_cpu_percent"] = cpu
     return row
 
 
@@ -253,7 +384,11 @@ def main():
     p.add_argument("--out", default="./run", help="output directory")
     p.add_argument("--insecure", action="store_true", help="skip TLS verification")
     p.add_argument("--no-host", action="store_true",
-                   help="skip whole-host/process metrics (use when not running on the AIO)")
+                   help="skip local psutil host/process metrics (use when not running on the AIO)")
+    p.add_argument("--node-exporter", default="",
+                   help="scrape host metrics (CPU/RAM/disk/load) from this node_exporter "
+                        "endpoint (e.g. 192.168.60.20:9100) instead of local psutil; used by "
+                        "the isolated scenario where the sampler runs off the indexer host")
     p.add_argument("--disk-path", default="/", help="filesystem path to measure disk usage on")
     args = p.parse_args()
 
@@ -266,7 +401,12 @@ def main():
     session.auth = (args.user, args.password)
     session.verify = not args.insecure
 
-    host = None if args.no_host else HostCollector(disk_path=args.disk_path)
+    if args.node_exporter:
+        host = NodeExporterCollector(args.node_exporter)
+    elif not args.no_host:
+        host = HostCollector(disk_path=args.disk_path)
+    else:
+        host = None
     samples = max(1, args.duration // args.interval)
     log.info("Sampling %s every %ss for %ss (%s samples) → %s",
              args.endpoint, args.interval, args.duration, samples, args.out)
