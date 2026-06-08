@@ -73,7 +73,7 @@ Document-level monitors produce **findings** — records of individual documents
 
 Findings are stored in rolling indices (`.opensearch-alerting-finding-history-*`) with a default retention of 30 days.
 
-In the Wazuh context, the [Security Analytics](../security-analytics/index.md) plugin enriches raw findings with the full event payload and rule metadata before writing them to `wazuh-findings-v5-*` indices.
+These raw alerting findings are not the same as the findings surfaced in the Wazuh context. Detectors managed by the [Security Analytics](../security-analytics/index.md) plugin run on document-level monitors internally, but produce their own enriched findings — augmented with the full event payload and rule metadata — which are written to `wazuh-findings-v5-*` indices. A plain document-level monitor only produces the raw findings described above; it does not perform this enrichment.
 
 ## Workflows
 
@@ -91,6 +91,6 @@ The plugin manages the following system indices:
 | `.opendistro-alerting-alert-history-*` | Historical alert records | 30 days (daily rollover) |
 | `.opensearch-alerting-finding-history-*` | Document-level monitor findings | 30 days (12-hour rollover) |
 | `.opensearch-alerting-comments-history-*` | Alert comments and annotations | 30 days (12-hour rollover) |
-| `.scheduled-jobs` | Monitor and workflow definitions | — |
+| `.opensearch-scheduled-jobs` | Monitor and workflow definitions | — |
 
 Rollover periods and retention are configurable through [plugin settings](configuration.md).
