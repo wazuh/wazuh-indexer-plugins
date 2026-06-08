@@ -16,9 +16,11 @@ The alerting pipeline follows a linear flow:
 
 | Monitor Type | Description | Trigger Type | Input Type |
 | --- | --- | --- | --- |
-| **Query-level** | Executes an OpenSearch query and evaluates the aggregation results as a whole. Suitable for threshold-based alerts (e.g., error count > 100). | `QueryLevelTrigger` | `SearchInput` |
-| **Bucket-level** | Monitors aggregation bucket results individually. Each bucket that meets the trigger condition generates a separate alert. | `BucketLevelTrigger` | `SearchInput` (with aggregations) |
-| **Document-level** | Matches individual documents using percolate queries. Creates a finding for each matching document. | `DocumentLevelTrigger` | `DocLevelMonitorInput` |
+| **Query-level** (per query) | Executes an OpenSearch query and evaluates the aggregation results as a whole. Suitable for threshold-based alerts (e.g., error count > 100). | `QueryLevelTrigger` | `SearchInput` |
+| **Bucket-level** (per bucket) | Monitors aggregation bucket results individually. Each bucket that meets the trigger condition generates a separate alert. | `BucketLevelTrigger` | `SearchInput` (with aggregations) |
+| **Cluster metrics** (per cluster metrics) | Periodically calls OpenSearch cluster APIs (cluster health, stats, tasks, etc.) and evaluates the response. Suitable for monitoring cluster state rather than indexed data. | `QueryLevelTrigger` | `ClusterMetricsInput` |
+| **Document-level** (per document) | Matches individual documents using percolate queries. Creates a finding for each matching document. | `DocumentLevelTrigger` | `DocLevelMonitorInput` |
+| **Composite** | Chains multiple monitors into a workflow and evaluates conditions across their alerts. See [Workflows](#workflows). | `ChainedAlertTrigger` | `CompositeInput` |
 | **Active Response** | Wazuh-specific extension of document-level monitoring for automated response. See [Active Response](index.md#active-response). | `DocumentLevelTrigger` | `DocLevelMonitorInput` |
 
 ### Active Response Monitor Constraints
@@ -36,6 +38,9 @@ Each monitor type uses a corresponding trigger type:
 - **QueryLevelTrigger**: Evaluates a script condition against the full query response. The script has access to the query results, aggregations, and monitor metadata.
 - **BucketLevelTrigger**: Evaluates a condition per aggregation bucket. Supports composite aggregations for paginating through large result sets.
 - **DocumentLevelTrigger**: Defines per-document matching conditions using query DSL. Documents that match the trigger's queries generate findings.
+- **ChainedAlertTrigger**: Evaluates a condition over the alerts produced by the delegate monitors of a composite (workflow) monitor, allowing alerts to fire based on combinations of upstream monitor results.
+
+Cluster metrics monitors reuse `QueryLevelTrigger`, evaluating a script condition against the cluster API response.
 
 ## Actions
 
