@@ -62,6 +62,13 @@
         Cumulative number of events forwarded to downstream processing
         components.
       example: 5697755
+    - name: failed.total
+      type: long
+      level: custom
+      description: >
+        Cumulative number of agent events that could not be delivered
+        to the analysis daemon.
+      example: 0
 
 - name: messages
   title: Messages
@@ -107,6 +114,22 @@
       description: >
         Cumulative number of control messages processed from the queue.
       example: 2918243
+    - name: states.total
+      type: long
+      level: custom
+      short: Inventory-sync messages forwarded to the states router.
+      description: >
+        Cumulative number of inventory-synchronization messages received
+        from agents and forwarded to the inventory-states router provider.
+      example: 0
+    - name: upgrades.total
+      type: long
+      level: custom
+      short: Upgrade-ack messages forwarded to the upgrades router.
+      description: >
+        Cumulative number of upgrade-acknowledgement messages received from
+        agents and forwarded to the upgrade_notifications router provider.
+      example: 0
 
 - name: network
   title: Network
