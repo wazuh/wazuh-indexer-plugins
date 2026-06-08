@@ -58,6 +58,18 @@ event.module:
   normalize: []
   short: Name of the module this data is coming from.
   type: keyword
+events.failed.total:
+  dashed_name: events-failed-total
+  description: Cumulative number of agent events that could not be delivered to the
+    analysis daemon.
+  example: 0
+  flat_name: events.failed.total
+  level: custom
+  name: failed.total
+  normalize: []
+  short: Cumulative number of agent events that could not be delivered to the analysis
+    daemon.
+  type: long
 events.total:
   dashed_name: events-total
   description: Cumulative number of events forwarded to downstream processing components.
@@ -120,6 +132,17 @@ messages.control.usage:
   normalize: []
   short: Current utilization ratio of the control message queue (0.0–1.0).
   type: float
+messages.states.total:
+  dashed_name: messages-states-total
+  description: Cumulative number of inventory-synchronization messages received from
+    agents and forwarded to the inventory-states router provider.
+  example: 0
+  flat_name: messages.states.total
+  level: custom
+  name: states.total
+  normalize: []
+  short: Inventory-sync messages forwarded to the states router.
+  type: long
 messages.total:
   dashed_name: messages-total
   description: Cumulative number of control messages received.
@@ -129,6 +152,17 @@ messages.total:
   name: total
   normalize: []
   short: Cumulative number of control messages received.
+  type: long
+messages.upgrades.total:
+  dashed_name: messages-upgrades-total
+  description: Cumulative number of upgrade-acknowledgement messages received from
+    agents and forwarded to the upgrade_notifications router provider.
+  example: 0
+  flat_name: messages.upgrades.total
+  level: custom
+  name: upgrades.total
+  normalize: []
+  short: Upgrade-ack messages forwarded to the upgrades router.
   type: long
 network.egress.bytes:
   dashed_name: network-egress-bytes
