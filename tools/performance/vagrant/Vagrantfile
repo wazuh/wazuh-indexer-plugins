@@ -1,0 +1,132 @@
+# Performance test environment for the Wazuh Indexer.
+#
+# Don't drive this directly — use the entrypoint `tools/performance/run.sh`, which
+# owns the full lifecycle (vagrant up → measure → destroy). Two topologies,
+# selected with PERF_SCENARIO:
+#
+#   PERF_SCENARIO=real-world (default):
+#     - aio       : manager + indexer + dashboard      16 GB / 8 vCPU   192.168.60.20
+#     - agent-1   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.21
+#     - agent-2   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.22
+#
+#   PERF_SCENARIO=isolated — single indexer + synthetic load, watched from boot:
+#     - indexer   : single-node wazuh-indexer + node_exporter   16 GB / 8 vCPU   192.168.60.20
+#     - monitor   : Prometheus + Grafana + OpenSearch Benchmark   2 GB / 2 vCPU   192.168.60.30
+#
+# Works with VirtualBox, libvirt, Parallels and VMware — VM sizing is applied to
+# every provider. For libvirt, override the box, e.g.
+#   PERF_BOX=cloud-image/ubuntu-24.04 vagrant up --provider=libvirt
+
+BOX        = ENV.fetch("PERF_BOX", "bento/ubuntu-24.04")
+SCENARIO   = ENV.fetch("PERF_SCENARIO", "real-world")
+# Wazuh version to provision as MAJOR.MINOR (e.g. 5.0, 4.14); the latest patch of
+# that line is installed. Selects the installer source uniformly.
+VERSION    = ENV.fetch("PERF_VERSION", "5.0")
+# Default subnet is 192.168.60.x to avoid colliding with VirtualBox's default
+# host-only range (192.168.56.x), which breaks libvirt network creation.
+INDEXER_IP = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
+AGENT_IPS  = ENV.fetch("PERF_AGENT_IPS", "192.168.60.21,192.168.60.22").split(",")
+MONITOR_IP = ENV.fetch("PERF_MONITOR_IP", "192.168.60.30")
+
+# Apply CPU/memory to whichever provider ends up active.
+def configure_size(vm, mem, cpus)
+  vm.provider "virtualbox" do |v|
+    v.memory = mem
+    v.cpus = cpus
+  end
+  vm.provider "libvirt" do |v|
+    v.memory = mem
+    v.cpus = cpus
+  end
+  vm.provider "parallels" do |v|
+    v.memory = mem
+    v.cpus = cpus
+  end
+  vm.provider "vmware_desktop" do |v|
+    v.vmx["memsize"] = mem
+    v.vmx["numvcpus"] = cpus
+  end
+end
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+  # A 16 GB guest on a busy host can take longer than Vagrant's 300s default to become
+  # SSH-reachable, surfacing as "Timed out while waiting for the machine to boot".
+  # Give it more headroom (override with PERF_BOOT_TIMEOUT).
+  config.vm.boot_timeout = ENV.fetch("PERF_BOOT_TIMEOUT", "900").to_i
+
+  if SCENARIO == "isolated"
+    # --- Indexer-only node + node_exporter (isolated) ------------------------
+    config.vm.define "indexer" do |indexer|
+      indexer.vm.hostname = "wazuh-indexer"
+      indexer.vm.network "private_network", ip: INDEXER_IP
+      indexer.vm.synced_folder "..", "/opt/perf"
+      configure_size(indexer.vm, ENV.fetch("PERF_INDEXER_MEM", "16384"), ENV.fetch("PERF_INDEXER_CPUS", "8"))
+      indexer.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y && apt-get install -y curl tar python3 python3-requests
+        # Write the password OUTSIDE the /opt/perf synced folder: the runners call
+        # `vagrant rsync` (rsync --delete) before reading it, which would wipe any
+        # guest-only file living under the synced mount.
+        bash /opt/perf/scripts/setup-indexer.sh \
+          --version "#{VERSION}" \
+          --password-out /var/lib/wazuh-perf/admin-password.txt
+        bash /opt/perf/monitoring/setup-node-exporter.sh
+      SHELL
+    end
+
+    # --- Monitor: Prometheus + Grafana + OpenSearch Benchmark ----------------
+    config.vm.define "monitor" do |monitor|
+      monitor.vm.hostname = "perf-monitor"
+      monitor.vm.network "private_network", ip: MONITOR_IP
+      monitor.vm.synced_folder "..", "/opt/perf"
+      configure_size(monitor.vm, ENV.fetch("PERF_MONITOR_MEM", "2048"), ENV.fetch("PERF_MONITOR_CPUS", "2"))
+      monitor.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y && apt-get install -y curl python3 python3-pip python3-requests
+        pip3 install --break-system-packages opensearch-benchmark
+        bash /opt/perf/monitoring/setup-monitor.sh --indexer-host #{INDEXER_IP}
+      SHELL
+    end
+
+  else
+    # --- AIO: manager + indexer + dashboard (real-world) ---------------------
+    config.vm.define "aio" do |aio|
+      aio.vm.hostname = "wazuh-aio"
+      aio.vm.network "private_network", ip: INDEXER_IP
+      aio.vm.synced_folder "..", "/opt/perf"
+      configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "16384"), ENV.fetch("PERF_AIO_CPUS", "8"))
+      aio.vm.provision "shell", inline: <<-SHELL
+        set -e
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y && apt-get install -y curl tar python3 python3-requests python3-psutil
+        # Write the password OUTSIDE the /opt/perf synced folder: the runners call
+        # `vagrant rsync` (rsync --delete) before reading it, which would wipe any
+        # guest-only file living under the synced mount.
+        bash /opt/perf/scripts/setup-aio.sh \
+          --version "#{VERSION}" \
+          --password-out /var/lib/wazuh-perf/admin-password.txt
+      SHELL
+    end
+
+    # --- Agents: FIM + Logcollector load sources -----------------------------
+    AGENT_IPS.each_with_index do |ip, i|
+      name = "agent-#{i + 1}"
+      config.vm.define name do |agent|
+        agent.vm.hostname = name
+        agent.vm.network "private_network", ip: ip
+        agent.vm.synced_folder "..", "/opt/perf"
+        configure_size(agent.vm, ENV.fetch("PERF_AGENT_MEM", "2048"), ENV.fetch("PERF_AGENT_CPUS", "2"))
+        agent.vm.provision "shell", inline: <<-SHELL
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -y && apt-get install -y curl
+          bash /opt/perf/scripts/setup-agent.sh \
+            --version "#{VERSION}" --manager #{INDEXER_IP}
+        SHELL
+      end
+    end
+  end
+end
