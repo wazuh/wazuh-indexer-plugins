@@ -68,3 +68,4 @@
 ---
 
 [Release Notes](ref/release-notes.md)
+[Migration Guide](guide/migration/index.md)
