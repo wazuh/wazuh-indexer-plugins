@@ -16,6 +16,10 @@ The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch
 - **REST API:** Full programmatic control over monitors, workflows, alerts, findings, and comments. See [API Reference](api.md).
 - **Dashboard UI:** Create, manage, and monitor alerts through the Wazuh Dashboard interface.
 
+## Limits
+
+- **Maximum monitors:** Users can create up to 10 custom monitors. This limit applies to all monitor types.
+
 ## Wazuh Integration Points
 
 ### Security Analytics
