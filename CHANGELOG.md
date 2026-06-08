@@ -107,6 +107,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add revert logic to bumper workflow [(#1059)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1059)
 - Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
 - Add Data retention policies for stream indices [(#1217)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1217)
+- Add alerting documentation [(#1231)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1231)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -179,6 +180,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allow custom space in logtest endpoint [(#1185)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1185)
 - CTI subscription api update [(#1120)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1120)
 - Update Active Response template to include wazuh.rule object [(#1207)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1207)
+- Add configuration to documentation [(#1223)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1223)
 - Improve sigma rules documentation [(#1228)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1228)
 - Improve Content Manager logging clarity and reduce redundant log output [(#1237)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1237)
 
