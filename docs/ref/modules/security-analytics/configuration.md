@@ -5,7 +5,7 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 
 | Setting                                                                       | Data type | Default value | Description                                                                                                                            |
 | ----------------------------------------------------------------------------- | --------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugins.security_analytics.alert_finding_enabled`                            | Boolean   | `true`        | Enable rollover and retention management for the finding history indices                                                               |
+| `plugins.security_analytics.alert_finding_enabled`                            | Boolean   | `false`        | Enable rollover and retention management for the finding history indices                                                               |
 | `plugins.security_analytics.alert_finding_max_docs`                           | Long      | `1000`        | **Deprecated.** Maximum document count for a finding history index before rollover. Minimum `0`                                        |
 | `plugins.security_analytics.alert_finding_rollover_period`                    | Time      | `12h`         | How often the finding history rollover job runs                                                                                        |
 | `plugins.security_analytics.alert_history_enabled`                            | Boolean   | `true`        | Enable rollover and retention management for the alert history indices                                                                 |
@@ -34,7 +34,7 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 
 ### History indices
 
-Each history group (alerts, findings, correlations) is managed by an independent rollover job with the same four knobs: an enable toggle, a rollover period, a max age, a max document count, and a retention period after which old indices are deleted.
+Each history group (alerts, findings, correlations) is managed by an independent rollover job with the same five knobs: an enable toggle, a rollover period, a max age, a max document count, and a retention period after which old indices are deleted.
 
 To tune retention for the alert history indices:
 
