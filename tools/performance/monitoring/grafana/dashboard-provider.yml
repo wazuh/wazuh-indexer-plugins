@@ -1,0 +1,13 @@
+# Auto-load JSON dashboards baked into the container at start.
+# Mirrors the datasource-provisioning pattern (grafana-datasource.yml). The path
+# is kept outside /var/lib/grafana so a stale grafana-data volume can't shadow it.
+apiVersion: 1
+
+providers:
+  - name: perf-dashboards
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: false
