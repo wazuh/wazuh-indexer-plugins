@@ -58,16 +58,26 @@
     - name: total
       type: long
       level: custom
+      short: Agent events accepted and queued for wazuh-analysisd.
       description: >
-        Cumulative number of events forwarded to downstream processing
-        components.
+        Cumulative number of agent events that wazuh-remoted accepted and
+        queued for delivery to wazuh-analysisd. These are stateless event
+        payloads that drive rule-based detection. Messages classified as
+        control, inventory-sync, upgrade-ack, ping, or legacy DBSYNC are
+        counted under their own fields and do not contribute here.
       example: 5697755
     - name: failed.total
       type: long
       level: custom
+      short: Agent events that could not be delivered to wazuh-analysisd.
       description: >
-        Cumulative number of agent events that could not be delivered
-        to the analysis daemon.
+        Cumulative number of agent events that wazuh-remoted could not
+        deliver to wazuh-analysisd. Includes events rejected by the
+        internal batch queue (queue full or per-agent cap exceeded) and
+        events dropped by the HTTP dispatcher when the connection to
+        wazuh-analysisd is unavailable. An event counted here may also
+        appear in events.total, which reflects acceptance into the batch
+        queue, not successful delivery.
       example: 0
 
 - name: messages

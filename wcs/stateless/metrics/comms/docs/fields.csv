@@ -2,8 +2,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,true,discarded,discarded.total,long,custom,,0,Cumulative number of discarded messages.
 9.1.0,true,event,event.module,keyword,core,,apache,Name of the module this data is coming from.
-9.1.0,true,events,events.failed.total,long,custom,,0,Cumulative number of agent events that could not be delivered to the analysis daemon.
-9.1.0,true,events,events.total,long,custom,,5697755,Cumulative number of events forwarded to downstream processing components.
+9.1.0,true,events,events.failed.total,long,custom,,0,Agent events that could not be delivered to wazuh-analysisd.
+9.1.0,true,events,events.total,long,custom,,5697755,Agent events accepted and queued for wazuh-analysisd.
 9.1.0,true,messages,messages.control.dropped_on_close.total,long,custom,,0,Cumulative number of queued messages dropped when the agent connection was closed.
 9.1.0,true,messages,messages.control.processed.total,long,custom,,2918243,Cumulative number of control messages processed from the queue.
 9.1.0,true,messages,messages.control.received.total,long,custom,,2918243,Cumulative number of control messages inserted into the control queue.
