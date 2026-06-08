@@ -29,6 +29,7 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | `plugins.security_analytics.finding_history_max_age`                          | Time      | `30d`         | Maximum age of a finding history index before rollover                                                                                 |
 | `plugins.security_analytics.finding_history_retention_period`                 | Time      | `60d`         | Retention period after which finding history indices are deleted                                                                       |
 | `plugins.security_analytics.index_timeout`                                    | Time      | `60s`         | Timeout for Security Analytics index operations                                                                                        |
+| `plugins.security_analytics.max_detectors`                                    | Integer   | `10`          | Maximum number of user-created detectors (Content Manager detectors do not count). Minimum `0`                                         |
 
 <!-- // ANCHOR_END: settings-table -->
 
