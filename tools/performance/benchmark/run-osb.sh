@@ -18,6 +18,8 @@ TARGET="https://localhost:9200"
 USER="admin"
 PASSWORD="admin"
 DOCS=1000000
+DURATION=600      # sampler window (s) alongside the benchmark
+INTERVAL=60       # sampler cadence (s)
 OUT="./runs/osb-$(date +%Y%m%d-%H%M%S)"
 NO_HOST=""        # set --no-host so the sampler skips local psutil (it runs off-host here)
 NODE_EXPORTER=""  # node_exporter endpoint (host:9100) for the indexer's host metrics
@@ -28,10 +30,12 @@ while [[ $# -gt 0 ]]; do
         --user)           USER="$2"; shift 2 ;;
         --password)       PASSWORD="$2"; shift 2 ;;
         --docs)           DOCS="$2"; shift 2 ;;
+        --duration)       DURATION="$2"; shift 2 ;;
+        --interval)       INTERVAL="$2"; shift 2 ;;
         --out)            OUT="$2"; shift 2 ;;
         --no-host)        NO_HOST="--no-host"; shift ;;
         --node-exporter)  NODE_EXPORTER="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--target URL] [--user U] [--password P] [--docs N] [--out DIR] [--no-host] [--node-exporter HOST:9100]"; exit 1 ;;
+        *) echo "Usage: $0 [--target URL] [--user U] [--password P] [--docs N] [--duration S] [--interval S] [--out DIR] [--no-host] [--node-exporter HOST:9100]"; exit 1 ;;
     esac
 done
 
@@ -48,9 +52,9 @@ fi
 # Strip scheme for OSB --target-hosts and pass TLS/auth via client options.
 HOST="${TARGET#https://}"; HOST="${HOST#http://}"
 
-# Sample cluster internals for ~10 min alongside the benchmark (background).
+# Sample cluster internals alongside the benchmark (background) for the window.
 python3 "$SAMPLER" --endpoint "$TARGET" --user "$USER" --password "$PASSWORD" \
-    --interval 60 --duration 600 --out "$OUT" --insecure $NO_HOST ${NE_ARG[@]+"${NE_ARG[@]}"} &
+    --interval "$INTERVAL" --duration "$DURATION" --out "$OUT" --insecure $NO_HOST ${NE_ARG[@]+"${NE_ARG[@]}"} &
 SAMPLER_PID=$!
 
 # OSB renamed the test-execution subcommand from `execute-test` to `run` in newer

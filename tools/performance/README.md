@@ -64,7 +64,19 @@ cd tools/performance
 ./run.sh --scenario isolated                   # single indexer + monitor + OSB, from cold start
 ./run.sh --scenario real-world --version 4.14  # install + measure 4.x instead of 5.x
 ./run.sh --scenario isolated --destroy         # tear down a kept isolated env when done
+./run.sh --scenario isolated   --package ~/wazuh-indexer_5.0.0_amd64.deb   # benchmark a local build (indexer only)
+./run.sh --scenario real-world --package ~/wazuh-indexer_5.0.0_amd64.deb   # AIO, then overwrite the indexer
 ```
+
+> **Custom indexer build:** `--package FILE` benchmarks a specific local `.deb`/`.rpm`
+> instead of resolving by version. `run.sh` stages the file into the synced folder so the
+> guest can read it. **isolated** installs it directly; **real-world** installs the AIO
+> normally, then overwrites only the `wazuh-indexer` package with it — keeping the AIO's
+> generated admin password, security index, and certs (the package's own
+> `opensearch.yml` is not applied; the AIO's is kept). `--version` still selects the
+> certificate flow, so match it to the package (e.g. `--version 4.14 --package
+> wazuh-indexer_4.14.x.deb`). The run is labeled with the package's own installed version,
+> so a build sharing a stock version string lands in the same `runs/<scenario>-<ver>/` dir.
 
 > **Teardown:** `real-world` is torn down automatically on success. **`isolated`
 > leaves the VMs up** so the Grafana/Prometheus cold-start timeline (which lives on
@@ -112,6 +124,10 @@ Use the instances' **private IPs** for inter-host traffic.
 # AIO instance - install + capture the admin password:
 VERSION=5.0   # or 4.14  (MAJOR.MINOR; latest patch of the line is installed)
 sudo ./scripts/setup-aio.sh --version "$VERSION" --password-out ./runs/admin-password.txt
+# ...or benchmark a specific indexer build: install the AIO, then overwrite the indexer
+# (--version still selects the cert flow; the AIO password/certs are preserved):
+#   sudo ./scripts/setup-aio.sh --version "$VERSION" --package ./wazuh-indexer_5.0.0_amd64.deb \
+#        --password-out ./runs/admin-password.txt
 
 # each agent instance - enroll against the AIO and start the load loop:
 sudo ./scripts/setup-agent.sh --version "$VERSION" --manager <aio-private-ip>
@@ -130,6 +146,8 @@ Results stay in `./runs/$VERSION` on the AIO instance - `scp` them off.
 ```bash
 # indexer instance:
 sudo ./scripts/setup-indexer.sh --version 5.0 --password-out ./runs/admin-password.txt
+# ...or benchmark a specific build (--version still selects the cert flow):
+#   sudo ./scripts/setup-indexer.sh --version 5.0 --package ./wazuh-indexer_5.0.0_amd64.deb
 sudo ./monitoring/setup-node-exporter.sh                                    # from boot
 
 # monitor instance (needs Docker + opensearch-benchmark, the corpus generator needs the full repo):

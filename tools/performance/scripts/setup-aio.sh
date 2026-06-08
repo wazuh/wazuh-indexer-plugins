@@ -9,9 +9,14 @@
 #
 #   sudo ./setup-aio.sh --version 5.0
 #   sudo ./setup-aio.sh --version 4.14
+#   sudo ./setup-aio.sh --version 5.0 --package ./wazuh-indexer_5.0.0_amd64.deb
 #
 # Versions are given as MAJOR.MINOR (e.g. 5.0, 4.14): the latest patch of that line
 # is installed, and the run is labeled with the resolved patch.
+#
+# --package installs the AIO normally, then overwrites ONLY the wazuh-indexer package
+# with the given local .deb/.rpm — keeping the assistant's generated admin password,
+# security index and demo certs — so the AIO runs a specific indexer build.
 #
 # Run as root on the target AIO host (16 GB RAM / 8 vCPU for the perf scenario).
 #
@@ -19,12 +24,14 @@ set -e
 
 VERSION="5.0"
 PASSWORD_OUT=""
+PACKAGE=""           # after the AIO install, overwrite the wazuh-indexer package with this
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version)      VERSION="$2"; shift 2 ;;
         --password-out) PASSWORD_OUT="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--version MAJOR.MINOR] [--password-out FILE]"; exit 1 ;;
+        --package)      PACKAGE="$2"; shift 2 ;;
+        *) echo "Usage: $0 [--version MAJOR.MINOR] [--password-out FILE] [--package FILE]"; exit 1 ;;
     esac
 done
 
@@ -41,6 +48,15 @@ else
     exit 1
 fi
 echo "[INFO] Version: $VERSION | Architecture: $ARCH | Package type: $PKG_TYPE"
+
+# Validate the override file up front so a bad path fails before the long assistant install.
+if [[ -n "$PACKAGE" ]]; then
+    if [[ ! -f "$PACKAGE" ]]; then
+        echo "[ERROR] --package file not found: $PACKAGE" >&2
+        exit 1
+    fi
+    echo "[INFO] Will overwrite the wazuh-indexer package post-install with: $PACKAGE"
+fi
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -129,3 +145,37 @@ echo "======================================================"
 echo
 echo "[INFO] Enroll each agent host with:"
 echo "  ./setup-agent.sh --version ${VERSION} --manager ${IP}"
+
+# --- Overwrite ONLY the wazuh-indexer package with a local build (optional) ---
+# The AIO is already installed and its generated admin password captured above. Replace
+# just the wazuh-indexer package, KEEPING the assistant's config/certs/security index:
+#   - do NOT export GENERATE_CERTS  → the postinst won't regenerate demo certs
+#   - do NOT run indexer-security-init.sh → keeps the captured (random) admin password
+#   - keep the existing opensearch.yml via the package manager's conffile flags
+# Certs (/etc/wazuh-indexer/certs) and data (/var/lib/wazuh-indexer) are not package
+# files, so a replace leaves them untouched.
+if [[ -n "$PACKAGE" ]]; then
+    echo
+    echo "[INFO] Overwriting the wazuh-indexer package with local build: $PACKAGE"
+    systemctl stop wazuh-indexer
+    if [[ "$PKG_TYPE" == "deb" ]]; then
+        # --force-confold keeps the AIO's opensearch.yml; --force-downgrade allows a
+        # same/older build; apt-get -f repairs any unmet deps a bare dpkg -i would leave.
+        dpkg -i --force-confold --force-downgrade "$PACKAGE" || apt-get install -y -f
+    else
+        # --oldpackage permits downgrade/same-version; --force reinstalls over an identical
+        # version; %config(noreplace) files (opensearch.yml) are preserved (new one → .rpmnew).
+        rpm -Uvh --force --oldpackage "$PACKAGE"
+    fi
+    systemctl daemon-reload
+    echo "[INFO] Starting wazuh-indexer (custom build)"
+    systemctl start wazuh-indexer
+
+    echo "[INFO] Waiting for the indexer HTTP port to accept connections ..."
+    for _ in $(seq 1 60); do
+        code=$(curl -ks -o /dev/null -w '%{http_code}' https://localhost:9200 2>/dev/null || echo 000)
+        [[ "$code" != "000" ]] && break
+        sleep 5
+    done
+    echo "[INFO] wazuh-indexer overwrite complete; AIO security state (password/certs) preserved."
+fi

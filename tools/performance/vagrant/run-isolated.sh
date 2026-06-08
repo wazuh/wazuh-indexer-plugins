@@ -23,16 +23,20 @@ set -euo pipefail
 
 INDEXER_IP="${PERF_AIO_IP:-192.168.60.20}"
 DOCS=1000000
+DURATION=""   # sampler window (s); empty → run-osb.sh default
+INTERVAL=""   # sampler cadence (s); empty → run-osb.sh default
 PASSWORD=""
 VERSION=""   # fallback only; the label uses the detected INSTALLED version
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --docs)        DOCS="$2"; shift 2 ;;
+        --duration)    DURATION="$2"; shift 2 ;;
+        --interval)    INTERVAL="$2"; shift 2 ;;
         --password)    PASSWORD="$2"; shift 2 ;;
         --version)     VERSION="$2"; shift 2 ;;
         --indexer-ip)  INDEXER_IP="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--docs N] [--password P] [--version X.Y.Z] [--indexer-ip IP]"; exit 1 ;;
+        *) echo "Usage: $0 [--docs N] [--duration S] [--interval S] [--password P] [--version X.Y.Z] [--indexer-ip IP]"; exit 1 ;;
     esac
 done
 
@@ -99,7 +103,8 @@ echo "[INFO] Running OpenSearch Benchmark from the monitor VM against $INDEXER_I
 vagrant ssh monitor -c \
     "sudo /opt/perf/benchmark/run-osb.sh \
         --target https://$INDEXER_IP:9200 --user admin --password '$PASSWORD' \
-        --docs $DOCS --no-host --node-exporter $INDEXER_IP:9100 --out $OUT_GUEST"
+        --docs $DOCS ${DURATION:+--duration $DURATION} ${INTERVAL:+--interval $INTERVAL} \
+        --no-host --node-exporter $INDEXER_IP:9100 --out $OUT_GUEST"
 
 # 4. Pull results (OSB report + indexer-internal CSV) from the monitor VM.
 # Per-version output dir so runs don't overwrite each other (compare across versions).

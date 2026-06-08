@@ -27,17 +27,30 @@ set -e
 VERSION="5.0"
 NODE_NAME="node-1"   # the package's default node.name / nodes_dn — keep it
 PASSWORD_OUT=""
+PACKAGE=""           # install this local .deb/.rpm instead of resolving by version
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version)      VERSION="$2"; shift 2 ;;
         --node-name)    NODE_NAME="$2"; shift 2 ;;
         --password-out) PASSWORD_OUT="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--version MAJOR.MINOR] [--node-name NAME] [--password-out FILE]"; exit 1 ;;
+        --package)      PACKAGE="$2"; shift 2 ;;
+        *) echo "Usage: $0 [--version MAJOR.MINOR] [--node-name NAME] [--password-out FILE] [--package FILE]"; exit 1 ;;
     esac
 done
 
-echo "[INFO] Version: $VERSION | Node: $NODE_NAME"
+# --package installs a specific build instead of resolving by version. --version still
+# selects the certificate flow (5.x GENERATE_CERTS vs 4.x manual certs), so pass the line
+# that matches the package (e.g. --version 4.14 --package wazuh-indexer_4.14.x.deb).
+if [[ -n "$PACKAGE" ]]; then
+    if [[ ! -f "$PACKAGE" ]]; then
+        echo "[ERROR] --package file not found: $PACKAGE" >&2
+        exit 1
+    fi
+    echo "[INFO] Version: $VERSION (cert flow) | Node: $NODE_NAME | Package: $PACKAGE"
+else
+    echo "[INFO] Version: $VERSION | Node: $NODE_NAME"
+fi
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
@@ -58,21 +71,25 @@ case "$VERSION" in
             exit 1
         fi
 
-        # Staging nightly is published per exact patch; resolve the MAJOR.MINOR input
-        # to that patch (pre-release 5.x → .0, e.g. 5.0 → 5.0.0). A full patch passes through.
-        STAGING_VERSION="$VERSION"
-        [[ "$STAGING_VERSION" == *.*.* ]] || STAGING_VERSION="${STAGING_VERSION}.0"
-        ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${STAGING_VERSION}/artifact-urls/artifact_urls_${STAGING_VERSION}-latest.yaml"
-        echo "[INFO] Downloading artifacts YAML: $ARTIFACTS_URL"
-        curl -sS --fail -L "$ARTIFACTS_URL" -o "$WORKDIR/artifact_urls.yaml"
-        PKG_URL=$(grep "^wazuh_indexer_${ARCH}_${PKG_TYPE}:" "$WORKDIR/artifact_urls.yaml" | sed 's/^[^"]*"//;s/"$//')
-        if [[ -z "$PKG_URL" ]]; then
-            echo "[ERROR] 'wazuh_indexer_${ARCH}_${PKG_TYPE}' key not found in artifacts YAML." >&2
-            exit 1
+        if [[ -n "$PACKAGE" ]]; then
+            PKG="$PACKAGE"
+        else
+            # Staging nightly is published per exact patch; resolve the MAJOR.MINOR input
+            # to that patch (pre-release 5.x → .0, e.g. 5.0 → 5.0.0). A full patch passes through.
+            STAGING_VERSION="$VERSION"
+            [[ "$STAGING_VERSION" == *.*.* ]] || STAGING_VERSION="${STAGING_VERSION}.0"
+            ARTIFACTS_URL="https://packages-staging.xdrsiem.wazuh.info/nightly/${STAGING_VERSION}/artifact-urls/artifact_urls_${STAGING_VERSION}-latest.yaml"
+            echo "[INFO] Downloading artifacts YAML: $ARTIFACTS_URL"
+            curl -sS --fail -L "$ARTIFACTS_URL" -o "$WORKDIR/artifact_urls.yaml"
+            PKG_URL=$(grep "^wazuh_indexer_${ARCH}_${PKG_TYPE}:" "$WORKDIR/artifact_urls.yaml" | sed 's/^[^"]*"//;s/"$//')
+            if [[ -z "$PKG_URL" ]]; then
+                echo "[ERROR] 'wazuh_indexer_${ARCH}_${PKG_TYPE}' key not found in artifacts YAML." >&2
+                exit 1
+            fi
+            PKG="$WORKDIR/$(basename "$PKG_URL")"
+            echo "[INFO] Downloading indexer package: $PKG_URL"
+            curl -sS --fail -L "$PKG_URL" -o "$PKG"
         fi
-        PKG="$WORKDIR/$(basename "$PKG_URL")"
-        echo "[INFO] Downloading indexer package: $PKG_URL"
-        curl -sS --fail -L "$PKG_URL" -o "$PKG"
 
         # GENERATE_CERTS=true → the postinst runs install-demo-certificates.sh, producing
         # a root CA + admin + node cert (SAN localhost/127.0.0.1) in /etc/wazuh-indexer/certs.
@@ -89,7 +106,15 @@ case "$VERSION" in
         # --- 4.x: package from the GA repo + manual certs (step-by-step install) --
         MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
 
-        if command -v dpkg >/dev/null 2>&1; then
+        if [[ -n "$PACKAGE" ]]; then
+            echo "[INFO] Installing provided indexer package: $PACKAGE"
+            if command -v dpkg >/dev/null 2>&1; then
+                # apt-get -f resolves any unmet deps a bare dpkg -i would leave.
+                dpkg -i "$PACKAGE" || { apt-get update -y && apt-get install -y -f; }
+            else
+                yum install -y "$PACKAGE"
+            fi
+        elif command -v dpkg >/dev/null 2>&1; then
             echo "[INFO] Configuring the Wazuh 4.x apt repository"
             curl -sS --fail https://packages.wazuh.com/key/GPG-KEY-WAZUH \
                 | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import

@@ -21,6 +21,7 @@ VERSION=""
 PASSWORD=""
 KEEP=""
 DESTROY=""
+PACKAGE=""
 # Scenario-specific passthrough (defaults match the runners).
 DURATION="" INTERVAL="" RATE=""   # real-world
 DOCS=""                           # isolated
@@ -40,10 +41,24 @@ Global options:
   --password P                     admin password (auto-detected from the VM if omitted)
   --keep                           leave the VMs up afterwards (real-world; isolated already keeps)
   --destroy                        tear down the scenario's VMs and exit (no run)
+  --package FILE                   benchmark a specific local .deb/.rpm indexer build.
+                                   isolated installs it directly; real-world installs the
+                                   AIO then overwrites the indexer with it. --version still
+                                   selects the cert flow, so match it (e.g. --version 4.14).
   -h, --help                       show this help
 
-real-world options:   --duration S   --interval S   --rate N
-isolated options:     --docs N
+Measurement options (both scenarios):
+  --duration S                     sampler window in seconds (default: real-world 3600, isolated 600)
+  --interval S                     seconds between samples (default 60)
+
+real-world option:
+  --rate N                         per-agent event rate in events/sec, per source (FIM + Logcollector);
+                                   2 agents → ~2N docs/s offered to the indexer (default 10)
+
+isolated option:
+  --docs N                         OSB corpus size = documents indexed by the benchmark (default 1000000).
+                                   This drives how long the load runs; --duration only bounds the sampler
+                                   window, so raise --docs for a longer active-load window.
 
 Provider/box overrides via env, e.g. PERF_BOX, PERF_INDEXER_MEM, PERF_BOOT_TIMEOUT.
 EOF
@@ -60,6 +75,7 @@ while [[ $# -gt 0 ]]; do
         --docs)     DOCS="$2"; shift 2 ;;
         --keep)     KEEP=1; shift ;;
         --destroy)  DESTROY=1; shift ;;
+        --package)  PACKAGE="$2"; shift 2 ;;
         -h|--help)  usage; exit 0 ;;
         *) echo "[ERROR] Unknown argument: $1" >&2; usage >&2; exit 1 ;;
     esac
@@ -72,6 +88,13 @@ esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 VAGRANT_DIR="$HERE/vagrant"
+
+# Resolve --package to an absolute path NOW, while still in the invocation directory:
+# the `cd "$VAGRANT_DIR"` below would otherwise break a path given relative to the cwd.
+if [[ -n "$PACKAGE" ]]; then
+    [[ -f "$PACKAGE" ]] || { echo "[ERROR] --package file not found: $PACKAGE" >&2; exit 1; }
+    PACKAGE="$(cd "$(dirname "$PACKAGE")" && pwd)/$(basename "$PACKAGE")"
+fi
 
 # Provision: the Vagrantfile reads PERF_SCENARIO; PERF_VERSION (if given) picks the
 # install version. Run all vagrant commands from the Vagrantfile's directory.
@@ -86,6 +109,22 @@ if [[ -n "$DESTROY" ]]; then
     echo "[INFO] Destroying the '$SCENARIO' environment ..."
     PERF_SCENARIO="$SCENARIO" vagrant destroy -f
     exit 0
+fi
+
+# --package: stage the local .deb/.rpm into the synced folder so the guest can read it,
+# and hand its guest-side path to the setup script via PERF_PACKAGE. isolated installs it
+# directly (setup-indexer.sh); real-world installs the AIO then overwrites the indexer
+# (setup-aio.sh). Both consume PERF_PACKAGE via the Vagrantfile.
+if [[ -n "$PACKAGE" ]]; then
+    case "$SCENARIO" in
+        isolated|real-world) ;;
+        *) echo "[ERROR] --package requires --scenario isolated or real-world." >&2; exit 1 ;;
+    esac
+    [[ -f "$PACKAGE" ]] || { echo "[ERROR] --package file not found: $PACKAGE" >&2; exit 1; }
+    mkdir -p "$HERE/.pkg"
+    cp -f "$PACKAGE" "$HERE/.pkg/"
+    export PERF_PACKAGE="/opt/perf/.pkg/$(basename "$PACKAGE")"
+    echo "[INFO] Staged $(basename "$PACKAGE") for the guest ($PERF_PACKAGE)"
 fi
 
 # Start clean. `vagrant up` won't re-provision an already-created VM, and the Vagrantfile
@@ -114,13 +153,14 @@ if ! vagrant up; then
     exit 1
 fi
 
-# Build the scenario-specific measurement args.
+# Build the scenario-specific measurement args. --duration/--interval drive the sampler
+# window in BOTH scenarios; --rate is real-world-only and --docs is isolated-only.
 RUN_ARGS=()
 [[ -n "$VERSION" ]] && RUN_ARGS+=(--version "$VERSION")
 [[ -n "$PASSWORD" ]] && RUN_ARGS+=(--password "$PASSWORD")
+[[ -n "$DURATION" ]] && RUN_ARGS+=(--duration "$DURATION")
+[[ -n "$INTERVAL" ]] && RUN_ARGS+=(--interval "$INTERVAL")
 if [[ "$SCENARIO" == "real-world" ]]; then
-    [[ -n "$DURATION" ]] && RUN_ARGS+=(--duration "$DURATION")
-    [[ -n "$INTERVAL" ]] && RUN_ARGS+=(--interval "$INTERVAL")
     [[ -n "$RATE" ]] && RUN_ARGS+=(--rate "$RATE")
 else
     [[ -n "$DOCS" ]] && RUN_ARGS+=(--docs "$DOCS")
