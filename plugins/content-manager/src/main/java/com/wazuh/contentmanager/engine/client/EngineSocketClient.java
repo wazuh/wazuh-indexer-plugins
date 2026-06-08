@@ -182,7 +182,8 @@ public class EngineSocketClient {
                 httpStatus = Integer.parseInt(statusParts[1]);
             }
         } catch (Exception e) {
-            logger.warn(Constants.W_LOG_ENGINE_STATUS_LINE_PARSE_FAILED, headers);
+            logger.warn(Constants.W_LOG_ENGINE_STATUS_LINE_PARSE_FAILED);
+            logger.debug(Constants.D_LOG_ENGINE_RESPONSE_HEADERS, headers);
         }
 
         // 3. Parse JSON Body
@@ -205,7 +206,8 @@ public class EngineSocketClient {
             return new RestResponse(message, httpStatus);
 
         } catch (Exception e) {
-            logger.warn(Constants.W_LOG_ENGINE_JSON_PARSE_FAILED, body);
+            logger.warn(Constants.W_LOG_ENGINE_JSON_PARSE_FAILED);
+            logger.debug(Constants.D_LOG_ENGINE_RESPONSE_BODY, body);
             return new RestResponse(body, httpStatus);
         }
     }

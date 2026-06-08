@@ -64,13 +64,18 @@ public class TokenExchangeServiceImpl extends AbstractService implements TokenEx
                 Token resourceToken = this.mapper.readValue(response.getBodyText(), Token.class);
                 return resourceToken.getAccessToken();
             } else {
-                log.warn(
-                        Constants.W_LOG_CTI_RESOURCE_TOKEN_FAILED, response.getCode(), response.getBodyText());
+                log.warn(Constants.W_LOG_CTI_RESOURCE_TOKEN_FAILED);
+                log.debug(
+                        Constants.D_LOG_CTI_RESOURCE_TOKEN_RESPONSE_DETAIL,
+                        response.getCode(),
+                        response.getBodyText());
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error(Constants.E_LOG_CTI_RESOURCE_TOKEN_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_CTI_RESOURCE_TOKEN_FAILED);
+            log.debug(Constants.D_LOG_CTI_RESOURCE_TOKEN_DETAIL, e.getMessage());
         } catch (IOException e) {
-            log.error(Constants.E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED);
+            log.debug(Constants.D_LOG_CTI_RESOURCE_TOKEN_DETAIL, e.getMessage());
         }
         return null;
     }

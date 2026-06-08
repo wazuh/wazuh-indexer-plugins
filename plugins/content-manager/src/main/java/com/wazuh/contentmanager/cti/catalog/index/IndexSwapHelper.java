@@ -141,7 +141,7 @@ public final class IndexSwapHelper {
                         "Shadow index creation for [" + shadowPhysical + "] was not acknowledged");
             }
             shadowMap.put(type, shadowIndex);
-            log.info(Constants.I_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS, shadowPhysical, aliasName);
+            log.debug(Constants.D_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS, shadowPhysical, aliasName);
         }
         return shadowMap;
     }
@@ -161,7 +161,7 @@ public final class IndexSwapHelper {
             String livePhysical = entry.getKey();
             String shadowPhysical = entry.getValue();
 
-            log.info(Constants.I_LOG_REINDEX_USER_CONTENT_START, livePhysical, shadowPhysical);
+            log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_START, livePhysical, shadowPhysical);
 
             new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
                     .source(livePhysical)
@@ -172,7 +172,7 @@ public final class IndexSwapHelper {
                     .refresh(true)
                     .get();
 
-            log.info(Constants.I_LOG_REINDEX_USER_CONTENT_COMPLETE, livePhysical, shadowPhysical);
+            log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_COMPLETE, livePhysical, shadowPhysical);
         }
     }
 
@@ -240,7 +240,7 @@ public final class IndexSwapHelper {
                 boolean exists = client.admin().indices().prepareExists(indexName).get().isExists();
                 if (exists) {
                     client.admin().indices().prepareDelete(indexName).get();
-                    log.info(Constants.I_LOG_DELETED_PHYSICAL_INDEX, indexName);
+                    log.debug(Constants.D_LOG_DELETED_PHYSICAL_INDEX, indexName);
                 }
             } catch (Exception e) {
                 log.warn(Constants.W_LOG_DELETE_PHYSICAL_INDEX_FAILED, indexName, e.getMessage());

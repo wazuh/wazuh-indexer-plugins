@@ -380,34 +380,41 @@ public class Constants {
     public static final String E_LOG_CLEAR_INDEX_FAILED = "[{}] clear failed: {}";
     public static final String E_LOG_PROCESS_PAYLOAD_FAILED =
             "Failed to process payload via models: {}";
-    public static final String I_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS =
+    public static final String D_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS =
             "Created shadow index [{}] for alias [{}]";
-    public static final String I_LOG_REINDEX_USER_CONTENT_START =
+    public static final String D_LOG_REINDEX_USER_CONTENT_START =
             "Reindexing user content from [{}] to [{}]";
-    public static final String I_LOG_REINDEX_USER_CONTENT_COMPLETE =
+    public static final String D_LOG_REINDEX_USER_CONTENT_COMPLETE =
             "User content reindex from [{}] to [{}] completed";
     public static final String D_LOG_ALIAS_SWAP_COMPLETED = "Alias swap completed for {} aliases.";
-    public static final String I_LOG_DELETED_PHYSICAL_INDEX = "Deleted physical index [{}]";
+    public static final String D_LOG_DELETED_PHYSICAL_INDEX = "Deleted physical index [{}]";
     public static final String W_LOG_DELETE_PHYSICAL_INDEX_FAILED =
             "Failed to delete physical index [{}]: {}";
 
     // Log messages - CTI console / Engine socket / job runner
     public static final String W_LOG_CTI_REGISTRATION_FAILED =
-            "CTI Console registration failed (HTTP {}): {}";
+            "Registration on the Wazuh Console failed.";
+    public static final String D_LOG_CTI_REGISTRATION_DETAIL =
+            "Wazuh Console registration response (HTTP {}): {}";
     public static final String E_LOG_CTI_ACCESS_TOKEN_FAILED =
-            "Could not obtain CTI access token: {}";
+            "Could not obtain an access token from the Wazuh Console.";
+    public static final String D_LOG_CTI_ACCESS_TOKEN_DETAIL = "Wazuh Console access-token error: {}";
     public static final String E_LOG_CTI_ACCESS_TOKEN_PARSE_FAILED =
-            "Could not parse the CTI access token response: {}";
+            "Could not parse the response from the Wazuh Console to obtain an access token.";
     public static final String W_LOG_RESOURCE_NULL_OR_EMPTY = "Resource must not be null or empty";
     public static final String W_LOG_ACCESS_TOKEN_NULL_OR_EMPTY =
             "Access token must not be null or empty";
     public static final String W_LOG_CTI_RESOURCE_TOKEN_FAILED =
-            "CTI resource token exchange failed (HTTP {}): {}";
+            "Resource token exchange with the Wazuh Console failed.";
+    public static final String D_LOG_CTI_RESOURCE_TOKEN_RESPONSE_DETAIL =
+            "Wazuh Console resource-token response (HTTP {}): {}";
     public static final String E_LOG_CTI_RESOURCE_TOKEN_FAILED =
-            "Could not obtain CTI resource token: {}";
+            "Could not obtain a resource token from the Wazuh Console.";
+    public static final String D_LOG_CTI_RESOURCE_TOKEN_DETAIL =
+            "Wazuh Console resource-token error: {}";
     public static final String E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED =
-            "Could not parse the CTI resource token response: {}";
-    public static final String D_LOG_CTI_ACCESS_TOKEN_UPDATED = "CTI access token updated.";
+            "Could not parse the response from the Wazuh Console to obtain a resource token.";
+    public static final String D_LOG_CTI_ACCESS_TOKEN_UPDATED = "Wazuh Console access token updated.";
     public static final String E_LOG_ENGINE_SOCKET_UNAVAILABLE =
             "Cannot reach the Wazuh Engine: its API socket is not available. Verify the Engine is running.";
     public static final String D_LOG_ENGINE_SOCKET_NOT_FOUND = "Engine socket not found at [{}].";
@@ -420,9 +427,11 @@ public class Constants {
     public static final String E_LOG_ENGINE_UNEXPECTED_ERROR =
             "Unexpected error communicating with the Wazuh Engine: {}";
     public static final String W_LOG_ENGINE_STATUS_LINE_PARSE_FAILED =
-            "Failed to parse HTTP status line: {}";
+            "Could not parse the status line of the Wazuh Engine response; assuming HTTP 500.";
+    public static final String D_LOG_ENGINE_RESPONSE_HEADERS = "Wazuh Engine response headers: {}";
     public static final String W_LOG_ENGINE_JSON_PARSE_FAILED =
-            "Failed to parse Engine JSON. Raw body: {}";
+            "Could not parse the Wazuh Engine JSON response.";
+    public static final String D_LOG_ENGINE_RESPONSE_BODY = "Wazuh Engine response body: {}";
     public static final String I_LOG_JOB_HANDLER_REGISTERED =
             "Scheduled job handler registered for type [{}].";
     public static final String W_LOG_JOB_UNEXPECTED_TYPE =
@@ -445,13 +454,13 @@ public class Constants {
     public static final String W_LOG_ACCESS_TOKEN_DELETED_UNPROTECTED =
             "Deleted stored access token because the credentials index is not configured as a system index.";
     public static final String I_LOG_CTI_TOKEN_LOADED =
-            "CTI access token loaded from credentials index.";
+            "Wazuh Console access token loaded from credentials index.";
     public static final String D_LOG_CREDENTIALS_INDEX_NO_TOKEN =
             "Credentials index exists but no access token is stored.";
     public static final String D_LOG_CREDENTIALS_INDEX_MISSING =
             "Credentials index does not exist yet; access token not loaded.";
     public static final String W_LOG_CTI_TOKEN_LOAD_FAILED =
-            "Could not load CTI access token from credentials index: {}";
+            "Could not load the Wazuh Console access token from the credentials index: {}";
     public static final String I_LOG_JOB_INDEX_CREATED = "Created job index {}.";
     public static final String D_LOG_INDEX_ALREADY_EXISTS = "Index {} already exists. Skipping.";
     public static final String W_LOG_INDEX_CREATE_FAILED = "Could not create index {}: {}";
@@ -490,9 +499,8 @@ public class Constants {
     public static final String W_LOG_RESOURCE_NOT_IN_TARGET_SPACE =
             "Resource '{}' to delete is in space '{}', not target space '{}'";
     public static final String D_LOG_RESOURCE_MARKED_FOR_DELETION =
-            "Resource '{}' marked for deletion from target space {}";
-    public static final String E_LOG_CONSOLIDATION_FAILED =
-            "Consolidation failed, initiating LIFO rollback: {}";
+            "Resource '{}' marked for deletion in target space {}";
+    public static final String E_LOG_CONSOLIDATION_FAILED = "Consolidation failed, rolling back: {}";
     public static final String W_LOG_SAP_DELETE_RULE_FAILED =
             "Failed to delete rule [{}] from Security Analytics for space [{}]: {}";
     public static final String W_LOG_SAP_DELETE_INTEGRATION_FAILED =
@@ -506,16 +514,16 @@ public class Constants {
             "Rollback step FAILED [{}]. Index: [{}], Affected IDs: {}. Manual intervention required. Error: {}";
     public static final String I_LOG_ROLLBACK_COMPLETE =
             "Rollback completed for promotion to space [{}].";
-    public static final String D_LOG_SAP_RECONCILE_DELETED =
-            "Security Analytics reconciliation: deleted {} [{}] from space [{}]";
-    public static final String D_LOG_SAP_RECONCILE_RESTORED =
-            "Security Analytics reconciliation: restored {} [{}] in space [{}]";
-    public static final String W_LOG_SAP_RECONCILE_FAILED =
-            "Security Analytics reconciliation failed for {} [{}]: {}";
-    public static final String D_LOG_SAP_RECONCILE_RESTORED_DELETED =
-            "Security Analytics reconciliation: restored deleted {} [{}] in space [{}]";
-    public static final String W_LOG_SAP_RECONCILE_RESTORE_DELETED_FAILED =
-            "Security Analytics reconciliation failed to restore deleted {} [{}]: {}";
+    public static final String D_LOG_SAP_ROLLBACK_DELETED =
+            "Security Analytics rollback: deleted {} [{}] from space [{}]";
+    public static final String D_LOG_SAP_ROLLBACK_RESTORED =
+            "Security Analytics rollback: restored {} [{}] in space [{}]";
+    public static final String W_LOG_SAP_ROLLBACK_FAILED =
+            "Security Analytics rollback failed for {} [{}]: {}";
+    public static final String D_LOG_SAP_ROLLBACK_RESTORED_DELETED =
+            "Security Analytics rollback: restored deleted {} [{}] in space [{}]";
+    public static final String W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED =
+            "Security Analytics rollback failed to restore deleted {} [{}]: {}";
     public static final String E_LOG_DRAFT_POLICY_MISSING =
             "Draft policy document is missing; content cannot be created or edited until the initial CTI sync has created the draft space.";
     public static final String E_LOG_PROCESS_REQUEST_FAILED = "Failed to process content request: {}";
@@ -651,7 +659,8 @@ public class Constants {
     public static final String IOC_EXPORT_FILENAME = "iocs.ndjson";
     public static final String D_LOG_IOC_EXPORT_COMPLETE = "IOC export completed: {}";
     public static final String E_LOG_IOC_EXPORT_FAILED = "Failed to export IOCs to NDJSON: {}";
-    public static final String I_LOG_IOC_ENGINE_NOTIFIED = "Loaded updated IOCs into the Engine.";
+    public static final String I_LOG_IOC_ENGINE_NOTIFIED =
+            "Notified the Wazuh Engine to load the updated IOCs.";
     public static final String E_LOG_IOC_ENGINE_NOTIFY_FAILED =
             "Failed to notify Engine to load IOCs: {}";
     public static final String W_LOG_IOC_ENGINE_BUSY =

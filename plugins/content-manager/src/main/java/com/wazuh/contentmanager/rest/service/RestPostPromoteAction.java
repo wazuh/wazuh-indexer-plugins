@@ -930,7 +930,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
                     } else {
                         this.securityAnalyticsService.deleteRule(id, targetSpaceEnum);
                     }
-                    log.debug(Constants.D_LOG_SAP_RECONCILE_DELETED, resourceType, id, targetSpaceEnum);
+                    log.debug(Constants.D_LOG_SAP_ROLLBACK_DELETED, resourceType, id, targetSpaceEnum);
                 } else if (oldVersion.containsKey(Constants.KEY_DOCUMENT)) {
                     // Was an update → restore old version
                     @SuppressWarnings("unchecked")
@@ -944,10 +944,10 @@ public class RestPostPromoteAction extends BaseRestHandler {
                         this.securityAnalyticsService.upsertRule(
                                 docNode, targetSpaceEnum, RestRequest.Method.PUT);
                     }
-                    log.debug(Constants.D_LOG_SAP_RECONCILE_RESTORED, resourceType, id, targetSpaceEnum);
+                    log.debug(Constants.D_LOG_SAP_ROLLBACK_RESTORED, resourceType, id, targetSpaceEnum);
                 }
             } catch (Exception e) {
-                log.warn(Constants.W_LOG_SAP_RECONCILE_FAILED, resourceType, id, e.getMessage());
+                log.warn(Constants.W_LOG_SAP_ROLLBACK_FAILED, resourceType, id, e.getMessage());
             }
         }
     }
@@ -979,11 +979,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                                 docNode, targetSpaceEnum, RestRequest.Method.POST);
                     }
                     log.debug(
-                            Constants.D_LOG_SAP_RECONCILE_RESTORED_DELETED, resourceType, id, targetSpaceEnum);
+                            Constants.D_LOG_SAP_ROLLBACK_RESTORED_DELETED, resourceType, id, targetSpaceEnum);
                 }
             } catch (Exception e) {
                 log.warn(
-                        Constants.W_LOG_SAP_RECONCILE_RESTORE_DELETED_FAILED, resourceType, id, e.getMessage());
+                        Constants.W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED, resourceType, id, e.getMessage());
             }
         }
     }

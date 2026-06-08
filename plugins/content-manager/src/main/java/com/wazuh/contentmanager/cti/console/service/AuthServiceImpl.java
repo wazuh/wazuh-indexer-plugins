@@ -63,13 +63,16 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
                 // Return token
                 return token;
             } else {
-                log.warn(
-                        Constants.W_LOG_CTI_REGISTRATION_FAILED, response.getCode(), response.getBodyText());
+                log.warn(Constants.W_LOG_CTI_REGISTRATION_FAILED);
+                log.debug(
+                        Constants.D_LOG_CTI_REGISTRATION_DETAIL, response.getCode(), response.getBodyText());
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error(Constants.E_LOG_CTI_ACCESS_TOKEN_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_CTI_ACCESS_TOKEN_FAILED);
+            log.debug(Constants.D_LOG_CTI_ACCESS_TOKEN_DETAIL, e.getMessage());
         } catch (IOException e) {
-            log.error(Constants.E_LOG_CTI_ACCESS_TOKEN_PARSE_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_CTI_ACCESS_TOKEN_PARSE_FAILED);
+            log.debug(Constants.D_LOG_CTI_ACCESS_TOKEN_DETAIL, e.getMessage());
         }
         return null;
     }
