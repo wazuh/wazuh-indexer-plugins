@@ -45,6 +45,13 @@
         },
         "events": {
           "properties": {
+            "failed": {
+              "properties": {
+                "total": {
+                  "type": "long"
+                }
+              }
+            },
             "total": {
               "type": "long"
             }
@@ -87,8 +94,22 @@
                 }
               }
             },
+            "states": {
+              "properties": {
+                "total": {
+                  "type": "long"
+                }
+              }
+            },
             "total": {
               "type": "long"
+            },
+            "upgrades": {
+              "properties": {
+                "total": {
+                  "type": "long"
+                }
+              }
             }
           }
         },

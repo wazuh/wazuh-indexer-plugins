@@ -58,15 +58,34 @@ event.module:
   normalize: []
   short: Name of the module this data is coming from.
   type: keyword
+events.failed.total:
+  dashed_name: events-failed-total
+  description: Cumulative number of agent events that wazuh-remoted could not deliver
+    to wazuh-analysisd. Includes events rejected by the internal batch queue (queue
+    full or per-agent cap exceeded) and events dropped by the HTTP dispatcher when
+    the connection to wazuh-analysisd is unavailable. An event counted here may also
+    appear in events.total, which reflects acceptance into the batch queue, not successful
+    delivery.
+  example: 0
+  flat_name: events.failed.total
+  level: custom
+  name: failed.total
+  normalize: []
+  short: Agent events that could not be delivered to wazuh-analysisd.
+  type: long
 events.total:
   dashed_name: events-total
-  description: Cumulative number of events forwarded to downstream processing components.
+  description: Cumulative number of agent events that wazuh-remoted accepted and queued
+    for delivery to wazuh-analysisd. These are stateless event payloads that drive
+    rule-based detection. Messages classified as control, inventory-sync, upgrade-ack,
+    ping, or legacy DBSYNC are counted under their own fields and do not contribute
+    here.
   example: 5697755
   flat_name: events.total
   level: custom
   name: total
   normalize: []
-  short: Cumulative number of events forwarded to downstream processing components.
+  short: Agent events accepted and queued for wazuh-analysisd.
   type: long
 messages.control.dropped_on_close.total:
   dashed_name: messages-control-dropped-on-close-total
@@ -120,6 +139,17 @@ messages.control.usage:
   normalize: []
   short: Current utilization ratio of the control message queue (0.0–1.0).
   type: float
+messages.states.total:
+  dashed_name: messages-states-total
+  description: Cumulative number of inventory-synchronization messages received from
+    agents and forwarded to the inventory-states router provider.
+  example: 0
+  flat_name: messages.states.total
+  level: custom
+  name: states.total
+  normalize: []
+  short: Inventory-sync messages forwarded to the states router.
+  type: long
 messages.total:
   dashed_name: messages-total
   description: Cumulative number of control messages received.
@@ -129,6 +159,17 @@ messages.total:
   name: total
   normalize: []
   short: Cumulative number of control messages received.
+  type: long
+messages.upgrades.total:
+  dashed_name: messages-upgrades-total
+  description: Cumulative number of upgrade-acknowledgement messages received from
+    agents and forwarded to the upgrade_notifications router provider.
+  example: 0
+  flat_name: messages.upgrades.total
+  level: custom
+  name: upgrades.total
+  normalize: []
+  short: Upgrade-ack messages forwarded to the upgrades router.
   type: long
 network.egress.bytes:
   dashed_name: network-egress-bytes
