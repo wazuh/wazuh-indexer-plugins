@@ -13,9 +13,18 @@ fields:
   events:
     fields:
       total: {}
+      failed:
+        fields:
+          total: {}
   messages:
     fields:
       total: {}
+      states:
+        fields:
+          total: {}
+      upgrades:
+        fields:
+          total: {}
       control:
         fields:
           dropped_on_close:
