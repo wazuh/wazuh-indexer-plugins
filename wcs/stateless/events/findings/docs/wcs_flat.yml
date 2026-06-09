@@ -25523,6 +25523,73 @@ wazuh.agent.version:
   original_fieldset: agent
   short: Version of the agent.
   type: keyword
+wazuh.case.comment:
+  dashed_name: wazuh-case-comment
+  description: Free-form comment attached to the case.
+  example: This is a comment for the case.
+  flat_name: wazuh.case.comment
+  level: custom
+  name: case.comment
+  normalize: []
+  norms: false
+  short: Free-form comment attached to the case.
+  type: text
+wazuh.case.created_at:
+  dashed_name: wazuh-case-created-at
+  description: Timestamp when the case was created.
+  example: '1623456789000'
+  flat_name: wazuh.case.created_at
+  level: custom
+  name: case.created_at
+  normalize: []
+  short: Timestamp when the case was created.
+  type: date
+wazuh.case.status:
+  dashed_name: wazuh-case-status
+  description: Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED,
+    ERROR, DELETED, AUDIT.
+  example: ACTIVE
+  flat_name: wazuh.case.status
+  ignore_above: 1024
+  level: custom
+  name: case.status
+  normalize: []
+  short: Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED, ERROR,
+    DELETED, AUDIT.
+  type: keyword
+wazuh.case.tags:
+  dashed_name: wazuh-case-tags
+  description: Tags attached to the case for organization.
+  example: '["tag1", "tag2", "tag3"]'
+  flat_name: wazuh.case.tags
+  ignore_above: 1024
+  level: custom
+  name: case.tags
+  normalize:
+  - array
+  short: Tags attached to the case for organization.
+  type: keyword
+wazuh.case.updated_at:
+  dashed_name: wazuh-case-updated-at
+  description: Timestamp when the case was last updated.
+  example: '1623456789000'
+  flat_name: wazuh.case.updated_at
+  level: custom
+  name: case.updated_at
+  normalize: []
+  short: Timestamp when the case was last updated.
+  type: date
+wazuh.case.user.name:
+  dashed_name: wazuh-case-user-name
+  description: Name of the user that owns the case. Not editable by the user.
+  example: admin
+  flat_name: wazuh.case.user.name
+  ignore_above: 1024
+  level: custom
+  name: case.user.name
+  normalize: []
+  short: Name of the user that owns the case. Not editable by the user.
+  type: keyword
 wazuh.cluster.name:
   dashed_name: wazuh-cluster-name
   description: Wazuh cluster name.
