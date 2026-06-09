@@ -703,7 +703,11 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 this.securityAnalyticsService.deleteRule(ruleId, targetSpaceEnum);
             } catch (Exception e) {
                 log.warn(
-                        Constants.W_LOG_SAP_DELETE_RULE_FAILED, ruleId, context.targetSpace, e.getMessage());
+                        Constants.W_LOG_SAP_DELETE_RESOURCE_FAILED,
+                        "rule",
+                        ruleId,
+                        context.targetSpace,
+                        e.getMessage());
             }
         }
 
@@ -712,7 +716,8 @@ public class RestPostPromoteAction extends BaseRestHandler {
                 this.securityAnalyticsService.deleteIntegration(integrationId, targetSpaceEnum);
             } catch (Exception e) {
                 log.warn(
-                        Constants.W_LOG_SAP_DELETE_INTEGRATION_FAILED,
+                        Constants.W_LOG_SAP_DELETE_RESOURCE_FAILED,
+                        "integration",
                         integrationId,
                         context.targetSpace,
                         e.getMessage());

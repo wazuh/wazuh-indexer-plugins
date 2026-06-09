@@ -112,8 +112,6 @@ public class Constants {
             "Access token removed successfully. Environment is now unregistered.";
     public static final String I_LOG_ACCESS_TOKEN_SET =
             "Access token stored successfully. Registration will be confirmed on next plan retrieval.";
-    public static final String I_LOG_ACCESS_TOKEN_READ_FROM_INDEX =
-            "Access token loaded from credentials index.";
     public static final String I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID =
             "Access token is invalid or expired. Clearing credentials and falling back to public plan.";
 
@@ -359,8 +357,6 @@ public class Constants {
             "Could not find mappings file [{}] for index [{}]";
     public static final String E_LOG_READ_MAPPINGS_FAILED =
             "Could not read mappings for index [{}]: {}";
-    public static final String E_LOG_RETRIEVE_DOCUMENT_FROM_INDEX_FAILED =
-            "Error retrieving document [{}] from [{}]: {}";
     public static final String E_LOG_INDEX_DOCUMENT_FAILED = "Failed to index document [{}]: {}";
     public static final String D_LOG_DELETED_FROM_INDEX = "Deleted {} from {}";
     public static final String E_LOG_DELETE_DOCUMENT_FAILED = "Failed to delete {}: {}";
@@ -501,10 +497,8 @@ public class Constants {
     public static final String D_LOG_RESOURCE_MARKED_FOR_DELETION =
             "Resource '{}' marked for deletion in target space {}";
     public static final String E_LOG_CONSOLIDATION_FAILED = "Consolidation failed, rolling back: {}";
-    public static final String W_LOG_SAP_DELETE_RULE_FAILED =
-            "Failed to delete rule [{}] from Security Analytics for space [{}]: {}";
-    public static final String W_LOG_SAP_DELETE_INTEGRATION_FAILED =
-            "Failed to delete integration [{}] from Security Analytics for space [{}]: {}";
+    public static final String W_LOG_SAP_DELETE_RESOURCE_FAILED =
+            "Failed to delete {} [{}] from Security Analytics for space [{}]: {}";
     public static final String W_LOG_SAP_SYNC_RESOURCE_FAILED =
             "Failed to sync {} [{}] to Security Analytics for space [{}]: {}";
     public static final String I_LOG_ROLLBACK_START =

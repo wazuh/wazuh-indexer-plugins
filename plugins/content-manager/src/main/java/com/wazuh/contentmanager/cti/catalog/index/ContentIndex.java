@@ -334,8 +334,7 @@ public class ContentIndex {
                 return this.mapper.readTree(response.getSourceAsString());
             }
         } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_RETRIEVE_DOCUMENT_FROM_INDEX_FAILED, id, this.indexName, e.getMessage());
+            log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, this.indexName, e.getMessage());
         }
         return null;
     }
