@@ -244,6 +244,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
             }
+            // One INFO summary instead of one line per item (per-item sends are at
+            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
             if (sent.get() > 0) {
                 log.info(
                         Constants.I_LOG_SAP_SUMMARY,
@@ -314,6 +316,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
             }
+            // One INFO summary instead of one line per item (per-item sends are at
+            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
             if (sent.get() > 0) {
                 log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), rules.size(), "rules", Space.STANDARD);
             }
@@ -432,6 +436,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
         }
 
+        // One INFO summary instead of one line per item (per-item sends are at
+        // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
         if (sent.get() > 0) {
             log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "detectors", Space.STANDARD);
         }

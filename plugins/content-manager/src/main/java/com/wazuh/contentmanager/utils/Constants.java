@@ -128,23 +128,22 @@ public class Constants {
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
-            "Consumer [{}] t0 written: status=UPDATING, local_offset=0, remote_offset={}";
+            "Recorded initial state for consumer [{}] (status UPDATING, local offset 0, remote offset {}).";
     public static final String W_LOG_CONSUMER_T0_FAILED =
             "Failed to write initial consumer state for [{}]: {}";
     public static final String W_LOG_REFRESH_INDICES_FAILED = "Error refreshing indices: {}";
     public static final String D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED =
             "Could not resolve snapshots directory for [{}]: {}";
     public static final String D_LOG_BLUEGREEN_SWAP_SCHEDULED =
-            "Consumer [{}] resource changed from [{}] to [{}]. Scheduling blue/green swap.";
+            "Content source for consumer [{}] changed from [{}] to [{}]; rebuilding in staging indices.";
     public static final String D_LOG_BLUEGREEN_DOWNGRADE_SCHEDULED =
-            "Consumer [{}] downgrade detected: existing resource [{}] differs from manifest [{}]. Scheduling blue/green swap to free content.";
+            "Consumer [{}] reverted to the default content source (was [{}], now [{}]); rebuilding in staging indices.";
     public static final String I_LOG_CONTENT_SOURCE_CHANGED =
             "Content source changed for consumer [{}]; updating content.";
     public static final String D_LOG_SIGNED_URL_RESOLVER =
-            "Registered environment detected for consumer [{}]. Using signed URL resolver.";
+            "Consumer [{}] is registered; using signed download URLs.";
     public static final String D_LOG_REGULAR_URL_RESOLVER =
-            "Non-registered environment for consumer [{}]. Using regular URL resolver.";
-    public static final String I_LOG_INDEX_CREATED = "Index [{}] created successfully";
+            "Consumer [{}] is not registered; using public download URLs.";
     public static final String E_LOG_INDEX_CREATE_FAILED = "Failed to create index [{}]: {}";
     public static final String W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE =
             "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.";
@@ -189,25 +188,25 @@ public class Constants {
     public static final String W_LOG_PLAN_RESOURCE_RESOLVE_FAILED =
             "Failed to resolve plan resource for consumer [{}]: {}";
     public static final String E_LOG_SHADOW_SWAP_UNAVAILABLE =
-            "Cannot perform shadow swap for consumer [{}]: remote consumer or snapshot link unavailable.";
+            "Cannot rebuild content for consumer [{}]: the remote content source is unavailable.";
     public static final String D_LOG_SHADOW_INDICES_CREATING =
-            "Creating shadow indices for consumer [{}] plan change swap.";
+            "Creating staging indices to rebuild content for consumer [{}].";
     public static final String D_LOG_SHADOW_SNAPSHOT_DOWNLOADING =
-            "Downloading snapshot into shadow indices for consumer [{}] from [{}].";
+            "Downloading the new content into staging indices for consumer [{}] from [{}].";
     public static final String E_LOG_SHADOW_SNAPSHOT_FAILED =
-            "Shadow snapshot download failed for consumer [{}]. Aborting swap.";
+            "Failed to download the new content for consumer [{}]; keeping the current content.";
     public static final String D_LOG_REINDEX_USER_CONTENT =
-            "Reindexing user content for consumer [{}] plan change swap.";
+            "Copying custom content into the staging indices for consumer [{}].";
     public static final String D_LOG_ATOMIC_ALIAS_SWAP =
-            "Performing atomic alias swap for consumer [{}].";
+            "Switching aliases to the new content indices for consumer [{}].";
     public static final String E_LOG_SHADOW_SWAP_FAILED_BEFORE_SWAP =
-            "Shadow swap failed for consumer [{}] before alias swap: {}. Cleaning up.";
+            "Failed to rebuild content in staging indices for consumer [{}]: {}. Cleaning up.";
     public static final String D_LOG_CONSUMER_DOC_REWRITTEN =
-            "Consumer [{}] document rewritten for new plan resource [{}], offset={}";
+            "Updated consumer [{}] record to the new content source [{}] (offset {}).";
     public static final String E_LOG_CONSUMER_DOC_REWRITE_FAILED =
-            "Failed to rewrite consumer [{}] document after alias swap: {}. Next sync will re-detect the plan change and retry.";
+            "Content for consumer [{}] was switched over but its record could not be saved: {}. It will be retried on the next sync.";
     public static final String W_LOG_OLD_INDICES_DELETE_FAILED =
-            "Failed to delete old physical indices for consumer [{}]: {}";
+            "Failed to remove the previous content indices for consumer [{}]: {}";
     public static final String I_LOG_CONTENT_UPDATED_NEW_SOURCE =
             "Content updated to the new source for consumer [{}].";
     public static final String D_LOG_CONSUMER_DOC_DELETED_REINIT =
@@ -280,7 +279,7 @@ public class Constants {
     public static final String E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED =
             "Error processing local snapshot: {}";
     public static final String W_LOG_SNAPSHOT_CONSUMER_DOC_MISSING =
-            "Consumer [{}] doc not present after snapshot load; skipping local_offset update.";
+            "Consumer [{}] record not found after loading the snapshot; skipping local offset update.";
     public static final String E_LOG_SNAPSHOT_CONSUMER_STATE_UPDATE_FAILED =
             "Failed to update consumer state in {}: {}";
     public static final String D_LOG_SNAPSHOT_LOCAL_DELETED = "Deleted local snapshot file [{}]";
@@ -351,11 +350,11 @@ public class Constants {
             "Failed to check engine resources in space [{}] index [{}]: {}";
     public static final String E_LOG_CREATE_INDEX_NO_MAPPINGS =
             "Cannot create index [{}]: Mappings path not provided.";
-    public static final String I_LOG_INDEX_CREATED_WITH_ALIAS = "Index [{}] created with alias [{}].";
+    public static final String D_LOG_INDEX_CREATED_WITH_ALIAS = "Index [{}] created with alias [{}].";
     public static final String E_LOG_CREATE_SHADOW_INDEX_NO_MAPPINGS =
-            "Cannot create shadow index [{}]: Mappings path not provided.";
+            "Cannot create staging index [{}]: mappings path not provided.";
     public static final String D_LOG_SHADOW_INDEX_CREATED =
-            "Shadow index [{}] created (hidden, no alias)";
+            "Created staging index [{}] (hidden, no alias).";
     public static final String E_LOG_MAPPINGS_FILE_NOT_FOUND =
             "Could not find mappings file [{}] for index [{}]";
     public static final String E_LOG_READ_MAPPINGS_FAILED =
@@ -376,20 +375,21 @@ public class Constants {
     public static final String E_LOG_CLEAR_INDEX_NO_MAPPINGS =
             "Cannot clear index [{}]: mappings path not set.";
     public static final String D_LOG_INDEX_WIPED_RECREATED =
-            "[{}] wiped and recreated (physical: [{}])";
+            "[{}] cleared and recreated (backing index [{}]).";
     public static final String E_LOG_CLEAR_INDEX_FAILED = "[{}] clear failed: {}";
     public static final String E_LOG_PROCESS_PAYLOAD_FAILED =
             "Failed to process payload via models: {}";
     public static final String D_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS =
-            "Created shadow index [{}] for alias [{}]";
+            "Created staging index [{}] for alias [{}].";
     public static final String D_LOG_REINDEX_USER_CONTENT_START =
-            "Reindexing user content from [{}] to [{}]";
+            "Copying custom content from [{}] to [{}].";
     public static final String D_LOG_REINDEX_USER_CONTENT_COMPLETE =
-            "User content reindex from [{}] to [{}] completed";
-    public static final String D_LOG_ALIAS_SWAP_COMPLETED = "Alias swap completed for {} aliases.";
-    public static final String D_LOG_DELETED_PHYSICAL_INDEX = "Deleted physical index [{}]";
+            "Finished copying custom content from [{}] to [{}].";
+    public static final String D_LOG_ALIAS_SWAP_COMPLETED =
+            "Switched {} aliases to the new content indices.";
+    public static final String D_LOG_DELETED_PHYSICAL_INDEX = "Removed previous content index [{}].";
     public static final String W_LOG_DELETE_PHYSICAL_INDEX_FAILED =
-            "Failed to delete physical index [{}]: {}";
+            "Failed to remove previous content index [{}]: {}";
 
     // Log messages - CTI console / Engine socket / job runner
     public static final String W_LOG_CTI_REGISTRATION_FAILED =

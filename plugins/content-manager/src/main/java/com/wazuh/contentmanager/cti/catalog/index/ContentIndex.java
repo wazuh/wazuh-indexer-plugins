@@ -245,7 +245,7 @@ public class ContentIndex {
                     .indices()
                     .aliases(aliasRequest)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.info(Constants.I_LOG_INDEX_CREATED_WITH_ALIAS, this.physicalName, this.indexName);
+            log.debug(Constants.D_LOG_INDEX_CREATED_WITH_ALIAS, this.physicalName, this.indexName);
         }
 
         return response;

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
@@ -443,6 +442,9 @@ public abstract class AbstractConsumerService {
             catalogUri = manifestResource;
         }
 
+        // Single user-facing INFO that a content-source change is being applied; the
+        // step-by-step rebuild/swap below is logged at DEBUG. Paired with the
+        // "content updated" INFO emitted once the swap completes.
         if (shadowSwapRequired) {
             log.info(Constants.I_LOG_CONTENT_SOURCE_CHANGED, consumerType);
         }
@@ -488,10 +490,8 @@ public abstract class AbstractConsumerService {
 
             if (!indexExists) {
                 try {
-                    CreateIndexResponse response = index.createIndex();
-                    if (response.isAcknowledged()) {
-                        log.info(Constants.I_LOG_INDEX_CREATED, response.index());
-                    }
+                    // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
+                    index.createIndex();
                 } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
                 }
