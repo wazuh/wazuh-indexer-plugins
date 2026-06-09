@@ -25531,9 +25531,8 @@ wazuh.case.comment:
   level: custom
   name: case.comment
   normalize: []
-  norms: false
   short: Free-form comment attached to the case.
-  type: text
+  type: match_only_text
 wazuh.case.created_at:
   dashed_name: wazuh-case-created-at
   description: Timestamp when the case was created.

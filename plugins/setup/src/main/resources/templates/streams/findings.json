@@ -8616,8 +8616,7 @@
             "case": {
               "properties": {
                 "comment": {
-                  "norms": false,
-                  "type": "text"
+                  "type": "match_only_text"
                 },
                 "created_at": {
                   "type": "date"

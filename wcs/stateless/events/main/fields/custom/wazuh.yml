@@ -106,7 +106,7 @@
         Timestamp when the case was last updated.
       example: "1623456789000"
     - name: case.comment
-      type: text
+      type: match_only_text
       level: custom
       description: >
         Free-form comment attached to the case.
@@ -119,4 +119,3 @@
       normalize:
         - array
       example: '["tag1", "tag2", "tag3"]'
-  
