@@ -132,12 +132,12 @@ public class Constants {
     public static final String W_LOG_REFRESH_INDICES_FAILED = "Error refreshing indices: {}";
     public static final String D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED =
             "Could not resolve snapshots directory for [{}]: {}";
-    public static final String D_LOG_BLUEGREEN_SWAP_SCHEDULED =
-            "Content source for consumer [{}] changed from [{}] to [{}]; rebuilding in staging indices.";
-    public static final String D_LOG_BLUEGREEN_DOWNGRADE_SCHEDULED =
-            "Consumer [{}] reverted to the default content source (was [{}], now [{}]); rebuilding in staging indices.";
+    public static final String D_LOG_INDEX_SWAP_STARTED =
+            "Data source for consumer [{}] changed from [{}] to [{}]; rebuilding in staging indices.";
+    public static final String D_LOG_INDEX_SWAP_TO_FREE_PLAN =
+            "Consumer [{}] reverted to the default data source (was [{}], now [{}]); rebuilding in staging indices.";
     public static final String I_LOG_CONTENT_SOURCE_CHANGED =
-            "Content source changed for consumer [{}]; updating content.";
+            "Data source changed for consumer [{}]; updating content.";
     public static final String D_LOG_SIGNED_URL_RESOLVER =
             "Consumer [{}] is registered; using signed download URLs.";
     public static final String D_LOG_REGULAR_URL_RESOLVER =
@@ -518,8 +518,6 @@ public class Constants {
             "Security Analytics rollback: restored deleted {} [{}] in space [{}]";
     public static final String W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED =
             "Security Analytics rollback failed to restore deleted {} [{}]: {}";
-    public static final String E_LOG_DRAFT_POLICY_MISSING =
-            "Draft policy document is missing; content cannot be created or edited until the initial CTI sync has created the draft space.";
     public static final String E_LOG_PROCESS_REQUEST_FAILED = "Failed to process content request: {}";
     public static final String E_LOG_SEND_ERROR_RESPONSE_FAILED = "Failed to send error response";
 

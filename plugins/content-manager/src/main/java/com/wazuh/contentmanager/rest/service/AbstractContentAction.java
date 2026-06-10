@@ -185,9 +185,9 @@ public abstract class AbstractContentAction extends BaseRestHandler {
             SearchResponse response = client.search(searchRequest).actionGet();
 
             if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                log.error(Constants.E_LOG_DRAFT_POLICY_MISSING);
+                log.error(Constants.E_500_MISSING_DRAFT_POLICY);
                 return new RestResponse(
-                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception ex) {
             return new RestResponse(

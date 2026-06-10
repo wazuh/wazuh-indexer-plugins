@@ -420,8 +420,7 @@ public abstract class AbstractConsumerService {
                 && !existingResource.isBlank()
                 && !UrlUtils.isSameResource(planResource, existingResource)) {
             // Case 1: Plan upgrade or cross-plan change.
-            log.debug(
-                    Constants.D_LOG_BLUEGREEN_SWAP_SCHEDULED, consumerType, existingResource, planResource);
+            log.debug(Constants.D_LOG_INDEX_SWAP_STARTED, consumerType, existingResource, planResource);
             shadowSwapRequired = true;
             swapTargetResource = planResource;
             catalogUri = planResource;
@@ -433,7 +432,7 @@ public abstract class AbstractConsumerService {
             // Case 2: Downgrade to free — existing resource is a paid URL, manifest has the
             // free/default URL. Swap to the manifest content.
             log.debug(
-                    Constants.D_LOG_BLUEGREEN_DOWNGRADE_SCHEDULED,
+                    Constants.D_LOG_INDEX_SWAP_TO_FREE_PLAN,
                     consumerType,
                     existingResource,
                     manifestResource);
