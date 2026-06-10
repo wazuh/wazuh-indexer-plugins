@@ -154,6 +154,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
         // ADD A COMMENT TO TEST
         // SECOND COMMENT TO TEST
+        // THIRD COMMENT TO TEST
 
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
