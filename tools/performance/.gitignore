@@ -1,8 +1,3 @@
-# Generated benchmark corpus + index body (produced by gen-corpora.py)
-benchmark/workloads/wazuh-events/documents.json
-benchmark/workloads/wazuh-events/index.json
-benchmark/workloads/wazuh-events/workload-params.json
-
 # Run outputs (metrics, reports)
 runs/
 

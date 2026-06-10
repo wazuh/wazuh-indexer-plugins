@@ -23,7 +23,6 @@ KEEP=""
 DESTROY=""
 PACKAGE=""
 TUNE_CONFIG=""                    # perf-tune YAML override (default: config/perf-tune.yml)
-ARTIFACT_URL=""                   # TEMP: KEY=URL injected into the AIO assistant's artifacts YAML
 # Scenario-specific passthrough (defaults match the runners).
 DURATION="" INTERVAL="" RATE=""   # both scenarios (RATE: events/sec)
 
@@ -55,10 +54,6 @@ Global options:
   --tune-config FILE               perf-tune YAML overriding config/perf-tune.yml (heap size +
                                    detection/memory_lock/swap toggles). Heap is always applied;
                                    toggles default per the YAML. See config/perf-tune.yml.
-  --artifact-url KEY=URL           TEMP workaround (real-world/AIO): inject a missing artifacts-YAML
-                                   key into the install assistant's download, e.g.
-                                   --artifact-url wazuh_indexer_amd64_deb=https://.../backup/...deb
-                                   — use when a broken nightly build omits a package key.
   -h, --help                       show this help
 
 Measurement options (both scenarios):
@@ -81,7 +76,6 @@ while [[ $# -gt 0 ]]; do
         --interval) INTERVAL="$2"; shift 2 ;;
         --rate)     RATE="$2"; shift 2 ;;
         --tune-config) TUNE_CONFIG="$2"; shift 2 ;;
-        --artifact-url) ARTIFACT_URL="$2"; shift 2 ;;
         --keep)     KEEP=1; shift ;;
         --destroy)  DESTROY=1; shift ;;
         --package)  PACKAGE="$2"; shift 2 ;;
@@ -110,9 +104,6 @@ fi
 # install version. Run all vagrant commands from the Vagrantfile's directory.
 export PERF_SCENARIO="$SCENARIO"
 [[ -n "$VERSION" ]] && export PERF_VERSION="$VERSION"
-# PERF_ARTIFACT_URL (KEY=URL) is a TEMP workaround: setup-aio.sh injects it into the
-# assistant's artifacts YAML when a nightly build is missing a package key.
-[[ -n "$ARTIFACT_URL" ]] && export PERF_ARTIFACT_URL="$ARTIFACT_URL"
 
 # --tune-config: stage a custom perf-tune.yml into the synced folder so the guest can read
 # it (the guest only sees files under tools/performance, mounted at /opt/perf). Default

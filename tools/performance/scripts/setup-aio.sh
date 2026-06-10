@@ -26,7 +26,6 @@ VERSION="5.0"
 PASSWORD_OUT=""
 PACKAGE=""           # after the AIO install, overwrite the wazuh-indexer package with this
 TUNE_CONFIG=""       # perf-tune YAML; empty → perf-tune-indexer.sh built-in default
-ARTIFACT_URL=""      # TEMP workaround: KEY=URL to inject into the assistant's artifacts YAML
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -34,8 +33,7 @@ while [[ $# -gt 0 ]]; do
         --password-out) PASSWORD_OUT="$2"; shift 2 ;;
         --package)      PACKAGE="$2"; shift 2 ;;
         --tune-config)  TUNE_CONFIG="$2"; shift 2 ;;
-        --artifact-url) ARTIFACT_URL="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--version MAJOR.MINOR] [--password-out FILE] [--package FILE] [--tune-config perf-tune.yml] [--artifact-url KEY=URL]"; exit 1 ;;
+        *) echo "Usage: $0 [--version MAJOR.MINOR] [--password-out FILE] [--package FILE] [--tune-config perf-tune.yml]"; exit 1 ;;
     esac
 done
 
@@ -109,44 +107,11 @@ esac
 echo "[INFO] Downloading installer: $INSTALL_URL"
 curl -sS --fail -L "$INSTALL_URL" -o "$INSTALL_SCRIPT"
 
-# TEMP workaround — inject a missing artifacts-YAML key (broken nightly build). The
-# assistant downloads its own copy of artifact_urls*.yaml and aborts on a missing key, so
-# we put a `curl` shim on PATH for the assistant run that appends KEY=URL to any
-# artifact_urls YAML it fetches. Remove by dropping --artifact-url.
-RUN_PATH="$PATH"
-if [[ -n "$ARTIFACT_URL" ]]; then
-    AKEY="${ARTIFACT_URL%%=*}"; AURL="${ARTIFACT_URL#*=}"
-    if [[ -z "$AKEY" || "$AKEY" == "$ARTIFACT_URL" || -z "$AURL" ]]; then
-        echo "[ERROR] --artifact-url must be KEY=URL (e.g. wazuh_indexer_amd64_deb=https://...)." >&2
-        exit 1
-    fi
-    SHIM_DIR="$WORKDIR/shim"; mkdir -p "$SHIM_DIR"
-    REAL_CURL="$(command -v curl)"
-    cat > "$SHIM_DIR/curl" <<'SHIM'
-#!/bin/bash
-# TEMP curl shim: append a missing key to any artifacts YAML the assistant downloads.
-real='__REAL_CURL__'; key='__KEY__'; url='__URL__'
-inject() { if ! grep -q "$key" "$1" 2>/dev/null; then printf '%s: "%s"\n' "$key" "$url" >> "$1"; echo "[INFO] (TEMP) injected artifact key '$key' into $1" >&2; fi; }
-out=""; prev=""
-for a in "$@"; do [[ "$prev" == "-o" || "$prev" == "--output" ]] && out="$a"; prev="$a"; done
-case "$*" in
-  *artifact_urls*)
-    if [[ -n "$out" ]]; then "$real" "$@"; rc=$?; [[ -f "$out" ]] && inject "$out"; exit "$rc"
-    else tmp="$(mktemp)"; "$real" "$@" >"$tmp"; rc=$?; inject "$tmp"; cat "$tmp"; rm -f "$tmp"; exit "$rc"; fi ;;
-esac
-exec "$real" "$@"
-SHIM
-    sed -i "s#__REAL_CURL__#${REAL_CURL}#; s#__KEY__#${AKEY}#; s#__URL__#${AURL}#" "$SHIM_DIR/curl"
-    chmod +x "$SHIM_DIR/curl"
-    RUN_PATH="$SHIM_DIR:$PATH"
-    echo "[INFO] (TEMP) Will inject artifact key '$AKEY' → '$AURL' into the assistant's YAML."
-fi
-
 # shellcheck disable=SC2086  # INSTALLER_ARGS is intentionally word-split
 echo "[INFO] Running: bash $INSTALL_SCRIPT $INSTALLER_ARGS"
 INSTALL_LOG="$WORKDIR/install.log"
 set -o pipefail
-PATH="$RUN_PATH" bash "$INSTALL_SCRIPT" $INSTALLER_ARGS 2>&1 | tee "$INSTALL_LOG"
+bash "$INSTALL_SCRIPT" $INSTALLER_ARGS 2>&1 | tee "$INSTALL_LOG"
 set +o pipefail
 
 # --- Capture the admin password for the sampler -----------------------------

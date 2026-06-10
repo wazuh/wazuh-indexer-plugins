@@ -30,9 +30,6 @@ PACKAGE    = ENV.fetch("PERF_PACKAGE", "")
 # Optional perf-tune config (perf-tune-indexer.sh reads it): guest path to a perf-tune.yml.
 # Empty → the tune script's built-in default (/opt/perf/config/perf-tune.yml).
 TUNE_CONFIG = ENV.fetch("PERF_TUNE_CONFIG", "")
-# TEMP workaround: KEY=URL injected into the AIO assistant's artifacts YAML when a nightly
-# build is missing a package key (e.g. wazuh_indexer_amd64_deb=https://.../backup/...deb).
-ARTIFACT_URL = ENV.fetch("PERF_ARTIFACT_URL", "")
 # Default subnet is 192.168.60.x to avoid colliding with VirtualBox's default
 # host-only range (192.168.56.x), which breaks libvirt network creation.
 INDEXER_IP = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
@@ -126,8 +123,7 @@ Vagrant.configure("2") do |config|
           --version "#{VERSION}" \
           --password-out /var/lib/wazuh-perf/admin-password.txt \
           #{PACKAGE.empty? ? "" : "--package \"#{PACKAGE}\""} \
-          #{TUNE_CONFIG.empty? ? "" : "--tune-config \"#{TUNE_CONFIG}\""} \
-          #{ARTIFACT_URL.empty? ? "" : "--artifact-url \"#{ARTIFACT_URL}\""}
+          #{TUNE_CONFIG.empty? ? "" : "--tune-config \"#{TUNE_CONFIG}\""}
       SHELL
     end
 
