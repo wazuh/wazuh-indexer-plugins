@@ -8,14 +8,14 @@ Case management adds triage capabilities to Security Analytics findings, allowin
 
 ### Case fields
 
-| WCS field | OpenSearch type | Description |
-| --- | --- | --- |
-| `wazuh.case.status` | `keyword` | Workflow status: `ACTIVE`, `ACKNOWLEDGED`, `COMPLETED`, `ERROR`, `DELETED`, `AUDIT` |
-| `wazuh.case.comment` | `match_only_text` | Free-form analyst comment |
-| `wazuh.case.tags` | `keyword` (array) | Organizational tags |
-| `wazuh.case.created_at` | `date` | Case creation timestamp |
-| `wazuh.case.updated_at` | `date` | Last update timestamp |
-| `wazuh.case.user.name` | `keyword` | User who performed the update |
+| WCS field               | OpenSearch type   | Description                                                                         |
+| ----------------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| `wazuh.case.status`     | `keyword`         | Workflow status: `ACTIVE`, `ACKNOWLEDGED`, `COMPLETED`, `ERROR`, `DELETED`, `AUDIT` |
+| `wazuh.case.comment`    | `match_only_text` | Free-form analyst comment                                                           |
+| `wazuh.case.tags`       | `keyword` (array) | Organizational tags                                                                 |
+| `wazuh.case.created_at` | `date`            | Case creation timestamp                                                             |
+| `wazuh.case.updated_at` | `date`            | Last update timestamp                                                               |
+| `wazuh.case.user.name`  | `keyword`         | User who performed the update                                                       |
 
 These fields are present in the index template but not populated at finding creation time, they are written exclusively through the update endpoint.
 
@@ -27,8 +27,6 @@ These fields are present in the index template but not populated at finding crea
 
 **Route:** `PUT /_plugins/_security_analytics/findings/_update`
 
-**Named route:** `plugin:wazuh/findings/case/update`
-
 #### Design decisions
 
 1. **Bulk-based**: the endpoint allows up to 50 finding updates per call.
@@ -39,16 +37,16 @@ These fields are present in the index template but not populated at finding crea
 
 The handler performs eager validation before building the bulk request:
 
-| Check | HTTP status | Message |
-| --- | --- | --- |
-| Invalid/missing JSON body | `400` | `Invalid JSON body: ...` |
-| Missing `findings` array | `400` | `Request body must contain a "findings" array` |
-| Empty `findings` array | `400` | `Findings array is empty` |
-| More than 50 items | `400` | `Cannot update more than 50 findings at once` |
-| Element not a JSON object | `400` | `Element at index N is not a JSON object` |
-| Missing `_id` | `400` | `Element at index N is missing _id` |
-| Missing `_index` | `400` | `Element at index N is missing _index` |
-| Missing/invalid `case` | `400` | `Element at index N is missing or invalid case object` |
+| Check                     | HTTP status | Message                                                |
+| ------------------------- | ----------- | ------------------------------------------------------ |
+| Invalid/missing JSON body | `400`       | `Invalid JSON body: ...`                               |
+| Missing `findings` array  | `400`       | `Request body must contain a "findings" array`         |
+| Empty `findings` array    | `400`       | `Findings array is empty`                              |
+| More than 50 items        | `400`       | `Cannot update more than 50 findings at once`          |
+| Element not a JSON object | `400`       | `Element at index N is not a JSON object`              |
+| Missing `_id`             | `400`       | `Element at index N is missing _id`                    |
+| Missing `_index`          | `400`       | `Element at index N is missing _index`                 |
+| Missing/invalid `case`    | `400`       | `Element at index N is missing or invalid case object` |
 
 Validation errors short-circuit, the first error aborts the entire request.
 
