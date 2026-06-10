@@ -120,7 +120,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
   b. **`node.name`**: Name of the Wazuh indexer node as defined in the `config.yml` file. For example, `node-1`.
 
-  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your `config.yml` definitions.
+  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3` lines, change the names, or add more lines, according to your `config.yml` definitions.
 
   ```yml
   cluster.initial_cluster_manager_nodes:
@@ -149,7 +149,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
 #### Deploying certificates
 
-> **Note**: Make sure that a copy of the `nazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
+> **Note**: Make sure that a copy of the `wazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
 
 Run the following commands, replacing `<INDEXER_NODE_NAME>` with the name of the Wazuh indexer node you are configuring as defined in `config.yml`. For example, `node-1`. This deploys the SSL certificates to encrypt communications between the Wazuh central components.
 
@@ -167,11 +167,9 @@ chmod 400 /etc/wazuh-indexer/certs/*
 chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 ```
 
-#### (Optional) Configuring the Wazuh indexer
+#### Set up Wazuh Indexer in your environment
 
-Configure the Wazuh Indexer according to your needs by editing the `/etc/wazuh-indexer/opensearch.yml` file. For more information about the available configuration options, see the [Configuration](../../ref/configuration/index.md) section.
-
-> **Note**: For offline installations, disable scheduled updates in `opensearch.yml`
+Follow the instructions in the [Configuration](../../ref/configuration/index.md) section to set up Wazuh Indexer in your environment.
 
 {{#include ../../ref/modules/content-manager/configuration.md:offline-config}}
 

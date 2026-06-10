@@ -754,7 +754,15 @@ public class ContentManagerPlugin extends Plugin
                                 String content = Files.readString(versionFilePath, StandardCharsets.UTF_8);
                                 JsonNode json = new ObjectMapper().readTree(content);
                                 JsonNode versionNode = json.get("version");
-                                return versionNode != null ? versionNode.asText() : null;
+                                if (versionNode == null || versionNode.asText().isBlank()) {
+                                    return null;
+                                }
+                                String version = versionNode.asText();
+                                JsonNode stageNode = json.get("stage");
+                                if (stageNode != null && !stageNode.asText().isBlank()) {
+                                    version = version + "-" + stageNode.asText();
+                                }
+                                return version;
                             });
 
             if (fileVersion != null && !fileVersion.isBlank()) {
