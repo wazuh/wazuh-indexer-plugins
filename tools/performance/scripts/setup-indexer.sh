@@ -28,6 +28,7 @@ VERSION="5.0"
 NODE_NAME="node-1"   # the package's default node.name / nodes_dn — keep it
 PASSWORD_OUT=""
 PACKAGE=""           # install this local .deb/.rpm instead of resolving by version
+TUNE_CONFIG=""       # perf-tune YAML; empty → perf-tune-indexer.sh built-in default
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -35,15 +36,18 @@ while [[ $# -gt 0 ]]; do
         --node-name)    NODE_NAME="$2"; shift 2 ;;
         --password-out) PASSWORD_OUT="$2"; shift 2 ;;
         --package)      PACKAGE="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--version MAJOR.MINOR] [--node-name NAME] [--password-out FILE] [--package FILE]"; exit 1 ;;
+        --tune-config)  TUNE_CONFIG="$2"; shift 2 ;;
+        *) echo "Usage: $0 [--version MAJOR.MINOR] [--node-name NAME] [--password-out FILE] [--package FILE] [--tune-config perf-tune.yml]"; exit 1 ;;
     esac
 done
 
-# --package installs a specific build instead of resolving by version. --version still
-# selects the certificate flow (5.x GENERATE_CERTS vs 4.x manual certs), so pass the line
-# that matches the package (e.g. --version 4.14 --package wazuh-indexer_4.14.x.deb).
+# --package installs a specific build instead of resolving by version (bypasses the
+# artifacts YAML entirely — handy when a nightly build is broken: point it at a backup
+# URL). It accepts a local .deb/.rpm OR an http(s) URL. --version still selects the
+# certificate flow (5.x GENERATE_CERTS vs 4.x manual certs), so pass the matching line
+# (e.g. --version 4.14 --package wazuh-indexer_4.14.x.deb).
 if [[ -n "$PACKAGE" ]]; then
-    if [[ ! -f "$PACKAGE" ]]; then
+    if [[ "$PACKAGE" != http*://* && ! -f "$PACKAGE" ]]; then
         echo "[ERROR] --package file not found: $PACKAGE" >&2
         exit 1
     fi
@@ -54,6 +58,15 @@ fi
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
+
+# A --package URL (e.g. a nightly-backup .deb) is downloaded once here so the rest of the
+# script can treat it as a local file.
+if [[ "$PACKAGE" == http*://* ]]; then
+    echo "[INFO] Downloading --package URL: $PACKAGE"
+    PKG_DL="$WORKDIR/$(basename "$PACKAGE")"
+    curl -sS --fail -L "$PACKAGE" -o "$PKG_DL"
+    PACKAGE="$PKG_DL"
+fi
 
 case "$VERSION" in
     5.*)
@@ -217,3 +230,7 @@ echo " WAZUH INDEXER (single node) READY — version: $VERSION"
 echo " Endpoint: https://${IP}:9200  (admin/admin)"
 echo "======================================================"
 echo "[INFO] Verify: curl -k -u admin:admin https://${IP}:9200/_cluster/health?pretty"
+
+# Apply perf-test tuning (heap + optional toggles) from the YAML config so the isolated
+# indexer matches the AIO indexer's config. See config/perf-tune.yml.
+bash "$(dirname "$0")/perf-tune-indexer.sh" "$VERSION" ${TUNE_CONFIG:+"$TUNE_CONFIG"}

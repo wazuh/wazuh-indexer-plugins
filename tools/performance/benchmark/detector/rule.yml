@@ -1,0 +1,17 @@
+title: Perf System Activity File Modified
+id: 9a1b2c3d-4e5f-4a6b-8c7d-1e2f3a4b5c6d
+description: Matches system-activity events whose event.action is "modified" — used by the
+  isolated performance scenario so every indexed perf event deterministically yields a finding.
+status: experimental
+author: wazuh-perf
+date: 2026/01/01
+logsource:
+  product: wazuh
+  category: system_activity
+detection:
+  selection:
+    event.action: modified
+  condition: selection
+falsepositives:
+  - Performance testing only
+level: high

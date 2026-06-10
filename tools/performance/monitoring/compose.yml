@@ -33,6 +33,7 @@ services:
       - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
       - ./grafana/dashboard-provider.yml:/etc/grafana/provisioning/dashboards/perf.yml:ro
       - ./grafana/host-overview.json:/etc/grafana/dashboards/host-overview.json:ro
+      - ./grafana/jvm-overview.json:/etc/grafana/dashboards/jvm-overview.json:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "3000:3000"

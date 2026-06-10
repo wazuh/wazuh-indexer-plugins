@@ -1,0 +1,27 @@
+# perf-tune.yml — Wazuh Indexer performance-test tuning.
+#
+# Read by scripts/perf-tune-indexer.sh (applied at provision time by setup-indexer.sh /
+# setup-aio.sh). Flat key: value pairs only — the parser is intentionally simple. This file
+# is the single source of truth: ALL keys below are required (no code-side defaults), so to
+# change behavior edit the value here. A missing/empty key aborts provisioning.
+#
+#   heap_size  JVM heap, applied to -Xms/-Xmx. ALWAYS applied (permanent setting).
+#
+# 5.x plugin settings — written verbatim into opensearch.yml as the value below (skipped on
+# 4.x, where these plugins don't exist). enriched_findings_index_enabled must be true for the
+# isolated scenario to generate findings. The catalog_*/telemetry keys gate CTI catalog sync +
+# auto detector creation — kept false because the isolated scenario PRE-CREATES its detector
+# offline (no network to the CTI API needed).
+#
+#   memory_lock   bootstrap.memory_lock + systemd LimitMEMLOCK=infinity. On-demand.
+#   disable_swap  swapoff -a for this boot (fstab untouched → reverts on reboot). On-demand.
+heap_size: 4g
+
+enriched_findings_index_enabled: true
+catalog_update_on_start: false
+catalog_update_on_schedule: false
+catalog_create_detectors: false
+telemetry_enabled: false
+
+memory_lock: false
+disable_swap: false
