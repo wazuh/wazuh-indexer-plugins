@@ -162,7 +162,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             toOffset);
             this.consumersIndex.setConsumer(updated);
 
-            log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, consumer, lastAppliedOffset);
+            log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, consumer.getType(), lastAppliedOffset);
         } catch (Exception e) {
             log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage(), e);
             this.resetConsumer();
