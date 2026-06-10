@@ -1,0 +1,103 @@
+{
+  "version": 2,
+  "description": "Wazuh events ingest + query benchmark (representative SIEM workload)",
+  "indices": [
+    {
+      "name": "{{index_name | default('wazuh-events-perf')}}",
+      "body": "index.json"
+    }
+  ],
+  "corpora": [
+    {
+      "name": "wazuh-events",
+      "documents": [
+        {
+          "source-file": "documents.json",
+          "document-count": {{doc_count}},
+          "uncompressed-bytes": {{uncompressed_bytes}}
+        }
+      ]
+    }
+  ],
+  "schedule": [
+    {
+      "operation": {
+        "operation-type": "delete-index"
+      }
+    },
+    {
+      "operation": {
+        "operation-type": "create-index"
+      }
+    },
+    {
+      "operation": {
+        "operation-type": "cluster-health",
+        "request-params": {
+          "wait_for_status": "yellow"
+        }
+      }
+    },
+    {
+      "operation": {
+        "name": "bulk-index",
+        "operation-type": "bulk",
+        "bulk-size": {{bulk_size | default(5000)}}
+      },
+      "warmup-time-period": 60,
+      "clients": {{bulk_clients | default(4)}}
+    },
+    {
+      "operation": {
+        "name": "match-all",
+        "operation-type": "search",
+        "index": "{{index_name | default('wazuh-events-perf')}}",
+        "body": {
+          "query": {
+            "match_all": {}
+          }
+        }
+      },
+      "warmup-iterations": 50,
+      "iterations": 200,
+      "clients": 2
+    },
+    {
+      "operation": {
+        "name": "term-agent-id",
+        "operation-type": "search",
+        "index": "{{index_name | default('wazuh-events-perf')}}",
+        "body": {
+          "query": {
+            "term": {
+              "agent.id": "001"
+            }
+          }
+        }
+      },
+      "warmup-iterations": 50,
+      "iterations": 200,
+      "clients": 2
+    },
+    {
+      "operation": {
+        "name": "category-terms-agg",
+        "operation-type": "search",
+        "index": "{{index_name | default('wazuh-events-perf')}}",
+        "body": {
+          "size": 0,
+          "aggs": {
+            "by_category": {
+              "terms": {
+                "field": "event.category"
+              }
+            }
+          }
+        }
+      },
+      "warmup-iterations": 50,
+      "iterations": 100,
+      "clients": 1
+    }
+  ]
+}
