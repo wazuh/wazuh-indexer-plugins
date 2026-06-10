@@ -19,6 +19,7 @@
     - [Tutorial](dev/plugins/content-manager-tutorial.md)
     - [Logtest](dev/plugins/content-manager-logtest.md)
   - [Notifications](dev/plugins/notifications.md)
+  - [Security Analytics](dev/plugins/security-analytics.md)
 
 # Reference Manual
 - [Introduction]()
@@ -48,6 +49,7 @@
     - [Architecture](ref/modules/security-analytics/architecture.md)
     - [Configuration](ref/modules/security-analytics/configuration.md)
     - [Sigma rules](ref/modules/security-analytics/rules.md)
+    - [Case Management](ref/modules/security-analytics/case-management.md)
   - [Notifications](ref/modules/notifications/index.md)
     - [Architecture](ref/modules/notifications/architecture.md)
     - [Configuration](ref/modules/notifications/configuration.md)
