@@ -1,12 +1,12 @@
 name: (5.x) Check email
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, ready_for_review]
 
 jobs:
   # Checks if the email domain is @wazuh.com, if not the workflow will fail
   verify-email:
-    if: github.repository == 'wazuh/wazuh-indexer-plugins'
+    if: ${{ !github.event.pull_request.draft && github.repository == 'wazuh/wazuh-indexer-plugins' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: wazuh/wazuh-indexer/.github/actions/5_codeanalysis_emailchecker@main
