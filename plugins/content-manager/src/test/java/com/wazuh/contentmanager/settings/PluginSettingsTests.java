@@ -74,9 +74,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // Verify default values
         Assert.assertTrue(pluginSettings.isUpdateOnStart());
         Assert.assertTrue(pluginSettings.isUpdateOnSchedule());
-        Assert.assertEquals(
-                "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
-                pluginSettings.getCatalogRuleset());
+        Assert.assertEquals("", pluginSettings.getCatalogRuleset());
         Assert.assertEquals("", pluginSettings.getCatalogIocs());
         Assert.assertEquals("", pluginSettings.getCatalogVulnerabilities());
     }
