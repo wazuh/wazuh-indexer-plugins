@@ -47,6 +47,15 @@ NE_ARG=()
 [[ -n "$NODE_EXPORTER" ]] && NE_ARG=(--node-exporter "$NODE_EXPORTER")
 mkdir -p "$OUT"
 
+# 0. Auth/connectivity preflight — fail fast instead of burning the whole window on 401s
+#    (every sampler poll, detector call and bulk would otherwise fail one by one).
+PRE=$(curl -ks -o /dev/null -w '%{http_code}' -u "$USER:$PASSWORD" "$TARGET/_cluster/health" 2>/dev/null || echo 000)
+if [[ "$PRE" != "200" ]]; then
+    echo "[ERROR] Preflight to $TARGET failed (HTTP $PRE) as user '$USER'. Aborting before the load." >&2
+    echo "        401 ⇒ wrong password; 000 ⇒ unreachable/TLS. Verify: curl -k -u $USER:<pw> $TARGET/_cluster/health" >&2
+    exit 1
+fi
+
 # 1. Pre-create the detector so indexed events become findings.
 bash "$SCRIPT_DIR/setup-detector.sh" --target "$TARGET" --user "$USER" --password "$PASSWORD" \
     --index "$INDEX" --insecure | tee "$OUT/detector-setup.txt"

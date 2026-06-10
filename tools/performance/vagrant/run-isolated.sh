@@ -27,7 +27,7 @@ INDEXER_IP="${PERF_AIO_IP:-192.168.60.20}"
 RATE=1000     # events/sec indexed into the data stream
 DURATION=""   # load + sampler window (s); empty → run-load.sh default
 INTERVAL=""   # sampler cadence (s); empty → run-load.sh default
-PASSWORD=""
+PASSWORD="admin"   # the standalone package's demo credentials are always admin/admin
 VERSION=""   # fallback only; the label uses the detected INSTALLED version
 
 while [[ $# -gt 0 ]]; do
@@ -47,7 +47,9 @@ cd "$(dirname "$0")"
 source ./lib.sh
 
 perf_rsync
-perf_resolve_password indexer   # sets PASSWORD
+# No password resolution needed: the isolated scenario installs the standalone wazuh-indexer
+# package directly (no AIO assistant), so the credentials are always the demo admin/admin
+# (overridable with --password).
 perf_detect_version indexer     # sets VERSION + LABEL
 
 # 1. Cold start: restart the indexer; Prometheus/node_exporter/JMX exporter are already recording.
@@ -123,9 +125,26 @@ python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --out "$LOCAL_OUT/tim
 # same value the Vagrantfile assigns). `hostname -I` on the guest would return the
 # VirtualBox NAT IP (10.0.2.15) first, which the host can't reach.
 MON_IP="${PERF_MONITOR_IP:-192.168.60.30}"
+
+# Render the Grafana dashboards to PNG via the grafana-image-renderer sidecar (monitoring/
+# compose.yml). Window spans the cold start → now: (--duration or 600s) + ~25 min for
+# provisioning/cold-start, so the whole run is in frame. Best-effort — needs the renderer up.
+DASH_WINDOW_MIN=$(( (${DURATION:-600} / 60) + 25 ))
+capture_dashboard() {
+    local uid="$1" name="$2"
+    if curl -sf --max-time 180 -u admin:admin -o "$LOCAL_OUT/$name.png" \
+        "http://${MON_IP}:3000/render/d/${uid}/_?orgId=1&from=now-${DASH_WINDOW_MIN}m&to=now&width=1600&height=900&tz=UTC&kiosk"; then
+        echo "[INFO] Rendered Grafana dashboard → $name.png"
+    else
+        echo "[WARN] Could not render the '$uid' dashboard (is the renderer container up?)."
+    fi
+}
+capture_dashboard wazuh-host-overview grafana-host-overview
+capture_dashboard wazuh-jvm-overview  grafana-jvm-overview
+
 echo
 echo "[INFO] Done ($LABEL). Results: tools/performance/runs/isolated-$VERSION/"
-echo "       metrics.csv, report.md, timeline.png — events: ${EVENTS:-?}, findings: ${FINDINGS:-?}"
+echo "       metrics.csv, report.md, timeline.png, grafana-*.png — events: ${EVENTS:-?}, findings: ${FINDINGS:-?}"
 echo "[INFO] Cold start at $RESTART_TS — view the timelines in Grafana:"
 echo "         http://${MON_IP}:3000/d/wazuh-host-overview   (host CPU/RAM/disk)"
 echo "         http://${MON_IP}:3000/d/wazuh-jvm-overview    (JVM heap/GC/threads via JMX)"

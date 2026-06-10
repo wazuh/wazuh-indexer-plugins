@@ -105,7 +105,7 @@ overwrite each other and can be compared (see [Output](#output)). Tune load with
 `--duration` / `--interval` / `--rate`. Topologies ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
 
 - **isolated**: `indexer` (16 GB/8 vCPU, node_exporter + JMX exporter from boot) + `monitor`
-  (2 GB/2 vCPU, Prometheus/Grafana) - 192.168.60.20 / .30. Restarts the indexer to capture
+  (2 GB/2 vCPU, Prometheus/Grafana/image-renderer) - 192.168.60.20 / .30. Restarts the indexer to capture
   its cold start, pre-creates the detector and drives the findings load from the monitor, and
   opens Grafana on the auto-provisioned **Host Overview** (`uid wazuh-host-overview`) and
   **JVM Overview** (`uid wazuh-jvm-overview`) dashboards.
@@ -257,7 +257,10 @@ tools/performance/
 
 Each run writes `runs/<scenario>-<version>/` with per-minute `metrics.csv`
 (+ `.ndjson`), `run-metadata.json` (includes `events_indexed` + `findings` for isolated),
-a `report.md`, and a single-run `timeline.png`:
+a `report.md`, a single-run `timeline.png`, and — for isolated — `grafana-host-overview.png`
+and `grafana-jvm-overview.png` rendered from the live Grafana dashboards (via the
+[grafana-image-renderer](https://grafana.com/grafana/plugins/grafana-image-renderer) sidecar
+in [monitoring/compose.yml](monitoring/compose.yml)):
 
 ```
 # Performance report - wazuh-5.0.0

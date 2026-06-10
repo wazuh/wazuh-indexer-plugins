@@ -29,6 +29,12 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      # Remote image rendering via the grafana-image-renderer sidecar (below), so the run
+      # can capture the dashboards as PNGs (/render/...). CALLBACK is how the renderer
+      # reaches Grafana back over the compose network.
+      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
+      - GF_LOG_FILTERS=rendering:info
     volumes:
       - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
       - ./grafana/dashboard-provider.yml:/etc/grafana/provisioning/dashboards/perf.yml:ro
@@ -39,6 +45,16 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+      - renderer
+
+  # Headless-Chromium renderer for Grafana → PNG. Internal only (Grafana reaches it on the
+  # compose network); not published to the host.
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+    container_name: perf-grafana-renderer
+    restart: unless-stopped
+    environment:
+      - ENABLE_METRICS=false
 
 volumes:
   prometheus-data:
