@@ -207,10 +207,6 @@ public class Constants {
             "Failed to remove the previous content indices for consumer [{}]: {}";
     public static final String I_LOG_CONTENT_UPDATED_NEW_SOURCE =
             "Content updated to the new source for consumer [{}].";
-    public static final String D_LOG_CONSUMER_DOC_DELETED_REINIT =
-            "Consumer [{}] document deleted for re-initialization. Result: {}";
-    public static final String W_LOG_CONSUMER_DELETE_REINIT_FAILED =
-            "Failed to delete consumer [{}] for re-initialization: {}";
 
     // Log messages - Security Analytics sync (SecurityAnalyticsServiceImpl, ConsumerRulesetService)
     public static final String D_LOG_SAP_DETECTOR_DELETED_THEN_INTEGRATION =
