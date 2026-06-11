@@ -17,6 +17,7 @@
 plugins { id "com.diffplug.spotless" version "6.25.0" }
 repositories { mavenCentral() }
 
+
 apply plugin: 'java'
 apply from: 'gradle/formatting.gradle'
 
