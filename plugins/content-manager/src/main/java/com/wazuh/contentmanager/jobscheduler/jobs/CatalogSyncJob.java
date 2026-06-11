@@ -176,7 +176,7 @@ public class CatalogSyncJob implements JobExecutor {
      * Blocks until the Setup plugin reports its initialization as complete via the {@value
      * Constants#SETUP_STATUS_DOC_ID} marker document in the {@value Constants#INDEX_SETUP_STATUS}
      * index. Retries up to {@link Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff
-     * (5s, 10s, 20s) before giving up.
+     * (5s, 10s, 20s, 40s) before giving up.
      *
      * @return true if the Setup plugin completed its initialization, false otherwise.
      */
