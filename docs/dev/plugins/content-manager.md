@@ -21,7 +21,7 @@ The Content Manager plugin handles:
 
 ---
 
-## Tunning the development environment
+## Tuning the development environment
 
 The `build.gradle`file defines the development environment for the plugin. There, you can configure and modify the plugin's behavior by setting custom values for any of the settings exposed by the plugin, or by setting up environment variables, as follows:
 
@@ -36,6 +36,52 @@ testClusters.integTest {
   // Plugin settings.
   setting 'plugins.content_manager.catalog.update_on_start', 'true'
 }
+```
+
+---
+
+## Pre-registration with Wazuh Cloud
+
+{{ #include ../../ref/modules/content-manager/index.md:deploy-key }}
+
+**State diagram**
+
+```mermaid
+---
+title: XDR pre-deploy on Cloud
+---
+stateDiagram-v2
+    state if_state <<choice>>
+    env_var_exists: Does env var exist?
+    no_state: Unresgistered mode
+    yes_state: Registered mode
+    inititalization: Initialization
+
+
+    [*] --> env_var_exists
+    env_var_exists --> if_state
+    if_state --> no_state: No
+    if_state --> yes_state : yes
+
+    no_state --> inititalization : Init from local snapshots
+    yes_state --> inititalization : Init from active plan
+    inititalization --> [*]
+```
+
+**Sequence diagram**
+
+```mermaid
+---
+title: XDR pre-deploy on Cloud
+---
+sequenceDiagram
+    onNodeStarted->>onNodeStarted: deployKeyExists()
+    alt DEPLOY_KEY env var exists
+        onNodeStarted->>SubscriptionService: register(deployKey)
+        onNodeStarted->>SnapshotService: deleteSnapshots(snapshotsDir)
+    end
+    onNodeStarted->>CatalogSyncJob: trigger()
+
 ```
 
 ---
