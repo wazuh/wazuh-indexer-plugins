@@ -109,7 +109,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 SimpleHttpResponse response =
                         this.client.getChanges(this.consumerUri, currentFromOffset, currentToOffset);
                 if (response.getCode() != 200) {
-                    log.error("Failed to fetch changes from offset [{}] to [{}] with error code [{}]", currentFromOffset, currentToOffset, response.getCode());
+                    log.error(
+                            "Failed to fetch changes from offset [{}] to [{}] with error code [{}]",
+                            currentFromOffset,
+                            currentToOffset,
+                            response.getCode());
                     if (lastAppliedOffset == fromOffset) {
                         return false;
                     }
@@ -278,7 +282,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     (getResponse != null && getResponse.isExists())
                             ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
                             : null;
-            boolean effectiveIsPublic = current != null ? current.isPublic() : true;
+            boolean effectiveIsPublic = current == null || current.isPublic();
             LocalConsumer reset =
                     new LocalConsumer(
                             this.firstNonBlank(current != null ? current.getContext() : null, this.context),
