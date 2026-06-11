@@ -56,4 +56,12 @@ public class CreateSubscriptionResponse extends ActionResponse implements ToXCon
                 .field(Constants.KEY_STATUS, status.getStatus())
                 .endObject();
     }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public RestStatus getStatus() {
+        return status;
+    }
 }

@@ -107,7 +107,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         String subscription = request.content().utf8ToString();
 
         CreateSubscriptionRequest subscriptionRequest =
-                new CreateSubscriptionRequest(, request.method(), subscription);
+                new CreateSubscriptionRequest(request.method(), subscription);
         return channel ->
                 client.execute(
                         CreateSubscriptionAction.INSTANCE,

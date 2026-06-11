@@ -16,12 +16,9 @@
  */
 package com.wazuh.contentmanager.action;
 
-import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
-import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
@@ -33,20 +30,17 @@ public class CreateSubscriptionRequest extends ActionRequest {
 
     public static final String ACCESS_TOKEN_IS_MISSING = "Access token is missing";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
-    private static final SubscriptionService service;
     private RestRequest.Method method;
     private String token;
 
-    public CreateSubscriptionRequest(SubscriptionService service, Method method, String token) {
+    public CreateSubscriptionRequest(Method method, String token) {
         super();
-        this.service = service;
         this.method = method;
         this.token = token;
     }
 
     public CreateSubscriptionRequest(StreamInput sin) throws IOException {
-        this(sin.readOptionalWriteable(SubscriptionServiceImpl::new),
-            sin.readEnum(Method.class), sin.readString());
+        this(sin.readEnum(Method.class), sin.readString());
     }
 
     @Override

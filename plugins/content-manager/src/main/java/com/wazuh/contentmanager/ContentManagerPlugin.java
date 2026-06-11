@@ -227,7 +227,7 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return Collections.emptyList();
+        return List.of(this.subscriptionService);
     }
 
     /**
