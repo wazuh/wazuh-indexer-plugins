@@ -169,12 +169,15 @@ testClusters.integTest {
   // Disable just that assertion so tests exercise REST API behavior without node crashes.
   jvmArgs '-da:org.opensearch.transport.Transports'
   systemProperty "INDEXER_TEST_ENV", "true"
-  systemProperty "wazuh.version", "${wazuh_version}"
-  setting 'plugins.content_manager.catalog.update_on_start', 'false'
+  systemProperty "wazuh.version", "${wazuh_version}-beta3"
+  setting 'plugins.content_manager.catalog.update_on_start', 'true'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
   setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
   setting 'plugins.content_manager.engine.mock', 'true'
+  setting 'plugins.content_manager.catalog.ruleset', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta3-t1-ruleset-5/consumers/public-ruleset-5"
+  setting 'plugins.content_manager.catalog.iocs', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
+  setting 'plugins.content_manager.catalog.vulnerabilities', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
 
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   configurations.zipArchive.asFileTree.each {
