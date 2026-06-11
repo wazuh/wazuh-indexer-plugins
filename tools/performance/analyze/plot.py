@@ -80,21 +80,42 @@ def main():
     args = p.parse_args()
 
     runs = [(lbl, load_csv(path)) for lbl, path in map(parse_input, args.inputs)]
-    metrics = [(m, m) for m in args.metrics.split(",")] if args.metrics else DEFAULT_METRICS
+    requested = [(m, m) for m in args.metrics.split(",")] if args.metrics else DEFAULT_METRICS
+
+    # Drop metrics that have no data in ANY run, so we don't render blank panels. The
+    # per-process splits (proc_indexer_rss_gb / proc_manager_rss_gb) only exist in the
+    # real-world scenario (local psutil); in isolated the sampler reads node_exporter, which
+    # has no per-process breakdown and there's no manager — so those panels are omitted there.
+    def has_data(metric):
+        return any(series(rows, metric)[1] for _, rows in runs)
+
+    metrics = [(m, t) for (m, t) in requested if has_data(m)]
+    dropped = [m for (m, _) in requested if not has_data(m)]
+    if dropped:
+        print(f"[INFO] Skipping {len(dropped)} metric(s) with no data: {', '.join(dropped)}")
+    if not metrics:
+        print("[WARN] No metrics with data to plot — nothing written.")
+        return
 
     cols = 2
     rows_n = (len(metrics) + cols - 1) // cols
     fig, axes = plt.subplots(rows_n, cols, figsize=(13, 3 * rows_n), squeeze=False)
     for i, (metric, title) in enumerate(metrics):
         ax = axes[i // cols][i % cols]
+        plotted = 0
         for label, rows in runs:
             xs, ys = series(rows, metric)
             if ys:
                 ax.plot(xs, ys, label=label, linewidth=1.2)
+                plotted += 1
         ax.set_title(title, fontsize=10)
         ax.set_xlabel("minutes")
         ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8)
+        # Only draw a legend when a run actually had data for this metric — else matplotlib
+        # warns "No artists with labels found" (e.g. the per-process panels are empty in the
+        # isolated scenario).
+        if plotted:
+            ax.legend(fontsize=8)
     for j in range(len(metrics), rows_n * cols):
         axes[j // cols][j % cols].axis("off")
 

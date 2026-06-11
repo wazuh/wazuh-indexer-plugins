@@ -12,9 +12,10 @@
 #   1. restarts wazuh-indexer to capture its COLD START (Prometheus is already scraping
 #      node_exporter + the JMX exporter, so startup CPU/RAM/disk/JVM land in the series),
 #   2. waits for the indexer to go green,
-#   3. from the monitor VM: pre-creates the detector, then indexes the fixed
-#      system-activity event into wazuh-events-v5-system-activity at --rate events/sec for
-#      --duration seconds (generating findings), sampling the indexer in parallel,
+#   3. from the monitor VM: indexes the fixed system-activity event into
+#      wazuh-events-v5-system-activity at --rate events/sec for --duration seconds, sampling
+#      the indexer in parallel. The indexer's own content-manager (CTI catalog sync, enabled
+#      in config/perf-tune.yml) auto-creates the detectors that turn the event into findings,
 #   4. pulls the load + metrics back over SSH and generates report.md + timeline.png.
 #
 # Everything is over `vagrant ssh` — no reliance on guest→host synced folders.
@@ -66,9 +67,10 @@ if ! vagrant ssh indexer -c "sudo systemctl restart wazuh-indexer"; then
     exit 1
 fi
 
-# 2. Wait for the node to come back green (cold start captured in Prometheus). The setup
-#    plugin also needs to create the wazuh-events-v5-* / wazuh-findings-v5-* templates and
-#    data streams on this first green — the detector setup (step 3) depends on them.
+# 2. Wait for the node to come back green (cold start captured in Prometheus). On this first
+#    green the setup plugin creates the wazuh-events-v5-* / wazuh-findings-v5-* templates and
+#    data streams, and the content-manager begins syncing the CTI catalog and auto-creating
+#    detectors (needed for findings).
 echo "[INFO] Waiting for the indexer to go green ..."
 vagrant ssh indexer -c "
     for i in \$(seq 1 60); do
@@ -80,9 +82,9 @@ vagrant ssh indexer -c "
     curl -ks -o /dev/null -w '  HTTP %{http_code}\n' -u admin:'$PASSWORD' https://localhost:9200/_cluster/health >&2 || true
 "
 
-# 3. Pre-create the detector + drive the findings load FROM the monitor VM (off the indexer
-#    host). --node-exporter pulls the indexer's host metrics (CPU/RAM/disk) into the CSV from
-#    node_exporter (the sampler runs off the indexer host here and can't read them via psutil).
+# 3. Drive the findings load FROM the monitor VM (off the indexer host). --node-exporter
+#    pulls the indexer's host metrics (CPU/RAM/disk) into the CSV from node_exporter (the
+#    sampler runs off the indexer host here and can't read them via local psutil).
 OUT_GUEST="/root/perf-run"
 echo "[INFO] Running the findings load from the monitor VM against $INDEXER_IP (rate=${RATE}/s) ..."
 vagrant ssh monitor -c \
@@ -126,18 +128,48 @@ python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --out "$LOCAL_OUT/tim
 # VirtualBox NAT IP (10.0.2.15) first, which the host can't reach.
 MON_IP="${PERF_MONITOR_IP:-192.168.60.30}"
 
+# Ensure the monitor stack matches the current compose.yml before rendering — a monitor VM
+# provisioned before the image-renderer was added won't have it, so `up -d` pulls the renderer
+# image and recreates Grafana with the rendering env. Surface failures (image pull, etc.)
+# instead of silencing them, and confirm the renderer container actually ended up running.
+echo "[INFO] Ensuring the monitor stack (incl. image-renderer) is up ..."
+vagrant ssh monitor -c "cd /opt/perf/monitoring && sudo docker compose up -d 2>&1 | tail -n 5" \
+    || echo "[WARN] Could not refresh the monitor stack; dashboard PNGs may be skipped."
+RENDERER_STATE=$(vagrant ssh monitor -c \
+    "sudo docker inspect -f '{{.State.Running}}' perf-grafana-renderer 2>/dev/null" 2>/dev/null | tr -dc 'a-z')
+if [[ "$RENDERER_STATE" == "true" ]]; then
+    echo "[INFO] Image-renderer container is running."
+else
+    echo "[WARN] Image-renderer container is not running (state: ${RENDERER_STATE:-absent}). The"
+    echo "       in-run refresh couldn't start it — re-provision the monitor once so it's baked in:"
+    echo "         (cd \"\$(dirname \"\$0\")\" && vagrant provision monitor)"
+fi
+
+# Wait for Grafana to be serving again after the (possible) recreate, so the first render
+# doesn't hit a still-booting Grafana.
+for _ in $(seq 1 18); do
+    curl -sf --max-time 5 "http://${MON_IP}:3000/api/health" >/dev/null 2>&1 && break
+    sleep 5
+done
+
 # Render the Grafana dashboards to PNG via the grafana-image-renderer sidecar (monitoring/
 # compose.yml). Window spans the cold start → now: (--duration or 600s) + ~25 min for
-# provisioning/cold-start, so the whole run is in frame. Best-effort — needs the renderer up.
+# provisioning/cold-start, so the whole run is in frame. Retry a few times — on the first run
+# the renderer container has only just started. Best-effort.
 DASH_WINDOW_MIN=$(( (${DURATION:-600} / 60) + 25 ))
 capture_dashboard() {
     local uid="$1" name="$2"
-    if curl -sf --max-time 180 -u admin:admin -o "$LOCAL_OUT/$name.png" \
-        "http://${MON_IP}:3000/render/d/${uid}/_?orgId=1&from=now-${DASH_WINDOW_MIN}m&to=now&width=1600&height=900&tz=UTC&kiosk"; then
-        echo "[INFO] Rendered Grafana dashboard → $name.png"
-    else
-        echo "[WARN] Could not render the '$uid' dashboard (is the renderer container up?)."
-    fi
+    local url="http://${MON_IP}:3000/render/d/${uid}/_?orgId=1&from=now-${DASH_WINDOW_MIN}m&to=now&width=1600&height=900&tz=UTC&kiosk"
+    for _ in 1 2 3 4 5; do
+        if curl -sf --max-time 180 -u admin:admin -o "$LOCAL_OUT/$name.png" "$url"; then
+            echo "[INFO] Rendered Grafana dashboard → $name.png"
+            return 0
+        fi
+        sleep 15
+    done
+    echo "[WARN] Could not render the '$uid' dashboard after retries. If the monitor VM predates"
+    echo "       the renderer, re-provision it once: (cd vagrant && vagrant provision monitor)."
+    rm -f "$LOCAL_OUT/$name.png"   # drop any truncated/empty file curl may have left
 }
 capture_dashboard wazuh-host-overview grafana-host-overview
 capture_dashboard wazuh-jvm-overview  grafana-jvm-overview
@@ -148,8 +180,12 @@ echo "       metrics.csv, report.md, timeline.png, grafana-*.png — events: ${E
 echo "[INFO] Cold start at $RESTART_TS — view the timelines in Grafana:"
 echo "         http://${MON_IP}:3000/d/wazuh-host-overview   (host CPU/RAM/disk)"
 echo "         http://${MON_IP}:3000/d/wazuh-jvm-overview    (JVM heap/GC/threads via JMX)"
-# Best-effort: open the host dashboard in the host's browser (no-op if unavailable).
+# Best-effort: open the host dashboard in a browser, but only on a graphical session — on a
+# headless host (CI / remote homeserver) there's no opener, so stay silent instead of spewing
+# xdg-open / vscode 'open' shim errors.
 DASH_URL="http://${MON_IP}:3000/d/wazuh-host-overview"
-(command -v open >/dev/null 2>&1 && open "$DASH_URL") \
-    || (command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL" >/dev/null 2>&1) \
-    || true
+if [[ -n "${DISPLAY:-}" || "$(uname)" == "Darwin" ]]; then
+    { command -v open >/dev/null 2>&1 && open "$DASH_URL"; } >/dev/null 2>&1 \
+        || { command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL"; } >/dev/null 2>&1 \
+        || true
+fi

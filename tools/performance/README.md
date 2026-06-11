@@ -10,8 +10,9 @@ share one measurement layer:
 
 `isolated` is the default: it installs a single indexer, captures cold start, then for
 `--duration` seconds indexes a fixed system-activity event into the
-`wazuh-events-v5-system-activity` data stream at `--rate` events/sec while monitoring — a
-**pre-created detector** turns each event into a **finding**. Pick **real-world** for
+`wazuh-events-v5-system-activity` data stream at `--rate` events/sec while monitoring. The
+indexer's **own detection pipeline** (the content-manager syncs the CTI catalog on start and
+auto-creates the real detectors) turns the event into **findings**. Pick **real-world** for
 hardware sizing under realistic agent load.
 
 The **measurement layer** ([metrics/sampler.py](metrics/sampler.py)) polls the
@@ -73,15 +74,18 @@ cd tools/performance
 ./run.sh --tune-config ./my-perf-tune.yml                     # override heap / detection / memlock / swap
 ```
 
-> **Findings load (isolated):** the run pre-creates a security-analytics detector + Sigma
-> rule (offline, via [benchmark/setup-detector.sh](benchmark/setup-detector.sh)), then
-> indexes a fixed system-activity event into `wazuh-events-v5-system-activity` at `--rate`
-> events/sec for `--duration` seconds ([benchmark/event-loader.py](benchmark/event-loader.py)).
-> The detector's monitor runs on a 1-minute schedule, so each event becomes a finding in
-> `wazuh-findings-v5-*`. The run **fails loudly if zero findings are generated**. Keep
-> `--duration` at least a few minutes so the monitor fires. Detection/enrichment is ON by
-> default (see [config/perf-tune.yml](config/perf-tune.yml)); CTI catalog sync stays OFF
-> because the detector is pre-created — no network to the CTI API is needed.
+> **Findings load (isolated):** the run indexes a fixed system-activity event into
+> `wazuh-events-v5-system-activity` at `--rate` events/sec for `--duration` seconds
+> ([benchmark/event-loader.py](benchmark/event-loader.py)). Findings come from the indexer's
+> **own detection pipeline**: the content-manager syncs the CTI catalog on start and
+> auto-creates the real detectors (incl. system-activity), whose monitors match the event and
+> write into `wazuh-findings-v5-*`. This build has no security-analytics REST API to create
+> detectors manually, so the pipeline must be enabled — `config/perf-tune.yml` sets
+> `enriched_findings_index_enabled`, `catalog_update_on_start` and `catalog_create_detectors`
+> to true. **The indexer therefore needs network access to the CTI API.** Detectors default to
+> a ~2-minute schedule, so keep `--duration` at least a few minutes. The run reports the
+> findings count; **zero findings is a warning, not a failure** (the perf metrics are still
+> saved) — check the indexer's CTI connectivity if it happens.
 
 > **Custom indexer build:** `--package FILE` benchmarks a specific local `.deb`/`.rpm`
 > instead of resolving by version. `run.sh` stages the file into the synced folder so the
@@ -106,7 +110,8 @@ overwrite each other and can be compared (see [Output](#output)). Tune load with
 
 - **isolated**: `indexer` (16 GB/8 vCPU, node_exporter + JMX exporter from boot) + `monitor`
   (2 GB/2 vCPU, Prometheus/Grafana/image-renderer) - 192.168.60.20 / .30. Restarts the indexer to capture
-  its cold start, pre-creates the detector and drives the findings load from the monitor, and
+  its cold start, drives the findings load from the monitor (the indexer's CTI-synced detectors
+  generate the findings), and
   opens Grafana on the auto-provisioned **Host Overview** (`uid wazuh-host-overview`) and
   **JVM Overview** (`uid wazuh-jvm-overview`) dashboards.
 - **real-world**: `aio` (16 GB/8 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) - 192.168.60.20–22.
@@ -126,9 +131,9 @@ provision time by [scripts/perf-tune-indexer.sh](scripts/perf-tune-indexer.sh):
 heap_size: 4g                          # JVM -Xms/-Xmx — ALWAYS applied (permanent)
 
 enriched_findings_index_enabled: true  # 5.x findings enrichment (needed for findings)
-catalog_update_on_start: false         # CTI catalog sync on start  ┐ off — we pre-create
-catalog_update_on_schedule: false      # CTI catalog sync on schedule│   the detector offline
-catalog_create_detectors: false        # auto detector creation     ┘   (no CTI network)
+catalog_update_on_start: true          # CTI catalog sync on start  ┐ on — the pipeline
+catalog_update_on_schedule: false      # CTI catalog sync on schedule│   builds the real
+catalog_create_detectors: true         # auto detector creation     ┘   detectors (needs CTI net)
 telemetry_enabled: false               # content-manager telemetry
 
 memory_lock: false                     # on-demand: bootstrap.memory_lock + systemd LimitMEMLOCK
@@ -198,9 +203,9 @@ sudo systemctl restart wazuh-indexer
   --rate 1000 --duration 600 --no-host --node-exporter <indexer-private-ip>:9100
 ```
 
-`run-load.sh` pre-creates the detector ([benchmark/setup-detector.sh](benchmark/setup-detector.sh)),
-indexes the system-activity event at `--rate` events/sec for `--duration` seconds, samples the
-indexer, and verifies findings were generated. `--no-host` skips local psutil (the sampler runs
+`run-load.sh` indexes the system-activity event at `--rate` events/sec for `--duration`
+seconds, samples the indexer, and reports the findings count (the indexer's CTI-synced
+detectors generate them; zero is a warning, not a failure). `--no-host` skips local psutil (the sampler runs
 off the indexer host). `--node-exporter` reads the indexer's host metrics (CPU, RAM, disk, load)
 from node_exporter into the CSV, so `report.md` / `compare.md` / `timeline.png` include them. The
 same series (plus JVM metrics from the JMX exporter) stay in Prometheus/Grafana for the from-boot
@@ -248,9 +253,7 @@ tools/performance/
 │       └── jvm-overview.json       # JVM Overview dashboard (JMX exporter PromQL)
 └── benchmark/                      # isolated-scenario findings load
     ├── event-loader.py             # steady-rate loader: TEST_EVENT → wazuh-events-v5-system-activity
-    ├── setup-detector.sh           # pre-creates the log type + Sigma rule + detector (offline)
-    ├── run-load.sh                 # detector + loader + sampler, then verifies findings
-    └── detector/                   # logtype.json, rule.yml, detector.json
+    └── run-load.sh                 # loader + sampler, then reports the findings count
 ```
 
 ## Output

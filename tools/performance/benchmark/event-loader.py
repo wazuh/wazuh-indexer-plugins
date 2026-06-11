@@ -3,8 +3,9 @@
 
 Indexes copies of a fixed system-activity event into the
 ``wazuh-events-v5-system-activity`` data stream at a target rate (events/sec) for a
-fixed duration, so the pre-created detector (see setup-detector.sh) turns each event
-into a finding. The data stream is append-only, so ``_bulk`` uses the ``create`` action.
+fixed duration. The indexer's own detection pipeline (content-manager CTI-synced
+detectors) turns each matching event into a finding. The data stream is append-only,
+so ``_bulk`` uses the ``create`` action.
 
 Each second it submits one ``_bulk`` of ``--rate`` events (each with a fresh
 ``@timestamp``) and sleeps off the remainder of the second, logging achieved vs target
@@ -21,7 +22,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 # The canonical perf event. event.action="modified" + category "system-activity" is what
-# the pre-created Sigma rule / detector matches. @timestamp is overwritten per document.
+# the CTI-synced system-activity detector matches. @timestamp is overwritten per document.
 TEST_EVENT_TEMPLATE = {
     "event.action": "modified",
     "wazuh": {"integration": {"category": "system-activity", "name": "wazuh-fim"}},

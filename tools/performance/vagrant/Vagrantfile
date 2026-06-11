@@ -96,7 +96,8 @@ Vagrant.configure("2") do |config|
       monitor.vm.hostname = "perf-monitor"
       monitor.vm.network "private_network", ip: MONITOR_IP
       monitor.vm.synced_folder "..", "/opt/perf"
-      configure_size(monitor.vm, ENV.fetch("PERF_MONITOR_MEM", "2048"), ENV.fetch("PERF_MONITOR_CPUS", "2"))
+      # 3 GB: Prometheus + Grafana + the image-renderer (headless Chromium) need headroom.
+      configure_size(monitor.vm, ENV.fetch("PERF_MONITOR_MEM", "3072"), ENV.fetch("PERF_MONITOR_CPUS", "2"))
       monitor.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive

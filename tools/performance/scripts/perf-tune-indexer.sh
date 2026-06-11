@@ -9,8 +9,9 @@
 #      permanent setting, not reverted afterwards.
 #   2. Writes the 5.x plugin settings (enriched_findings_index_enabled, catalog_update_on_*,
 #      catalog_create_detectors, telemetry_enabled) verbatim from the YAML into opensearch.yml.
-#      enriched_findings_index_enabled must be true for findings; the catalog_*/telemetry keys
-#      gate CTI sync + auto detector creation (off by default — we pre-create the detector).
+#      enriched_findings_index_enabled must be true for findings; catalog_update_on_start +
+#      catalog_create_detectors drive the content-manager to sync the CTI catalog and build the
+#      real detectors that match the perf event (needs CTI network from the indexer).
 #   3. memory_lock=true (on-demand) → bootstrap.memory_lock + systemd LimitMEMLOCK=infinity.
 #   4. disable_swap=true (on-demand) → swapoff -a for this boot (fstab untouched).
 # Step 2 is skipped on 4.x where those plugins don't exist.
@@ -75,9 +76,9 @@ add_indexer_setting() {
 # 1. 5.x plugin settings, taken verbatim from the YAML. These keys belong to the
 #    security-analytics and content-manager plugins, which ship only with 5.x — adding them
 #    to a 4.x opensearch.yml would stop the indexer from starting, so skip them there.
-#    enriched_findings_index_enabled drives the findings pipeline; the catalog_*/telemetry
-#    keys gate CTI sync + auto detector creation (kept off by default since we pre-create
-#    the detector offline).
+#    enriched_findings_index_enabled drives the findings pipeline; catalog_update_on_start +
+#    catalog_create_detectors let the content-manager sync the CTI catalog and build the real
+#    detectors that turn the perf event into findings (needs CTI network from the indexer).
 if [[ "$VERSION" == 4.* ]]; then
     echo "[INFO] Version $VERSION is 4.x — no 5.x plugins; skipping plugin settings."
 else

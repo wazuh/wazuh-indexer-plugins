@@ -1,6 +1,0 @@
-{
-  "name": "system_activity",
-  "description": "Perf-test custom log type for the system-activity events data stream.",
-  "source": "Custom",
-  "category": "Other"
-}
