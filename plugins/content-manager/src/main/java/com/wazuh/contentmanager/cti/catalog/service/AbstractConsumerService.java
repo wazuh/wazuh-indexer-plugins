@@ -638,9 +638,8 @@ public abstract class AbstractConsumerService {
                             new ApiClient(urlResolver),
                             this.consumersIndex,
                             indicesMap);
-            updateService.update(currentOffset, remoteConsumer.getOffset());
+            updated = updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
-            updated = true;
         }
         return updated;
     }

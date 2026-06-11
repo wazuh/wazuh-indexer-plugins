@@ -95,7 +95,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * states.
      */
     @Override
-    public void update(long fromOffset, long toOffset) {
+    public boolean update(long fromOffset, long toOffset) {
         log.debug(Constants.D_LOG_UPDATE_START, this.consumer, fromOffset, toOffset);
         try {
             long currentFromOffset = fromOffset;
@@ -109,12 +109,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 SimpleHttpResponse response =
                         this.client.getChanges(this.consumerUri, currentFromOffset, currentToOffset);
                 if (response.getCode() != 200) {
-                    log.error(
-                            Constants.E_LOG_UPDATE_FETCH_CHANGES_FAILED,
-                            response.getCode(),
-                            response.getBodyText());
+                    log.error("Failed to fetch changes from offset [{}] to [{}] with error code [{}]", currentFromOffset, currentToOffset, response.getCode());
                     if (lastAppliedOffset == fromOffset) {
-                        return;
+                        return false;
                     }
                     break;
                 }
@@ -130,8 +127,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 offset.getOffset(),
                                 offset.getType(),
                                 offset.getResource(),
-                                e.getMessage(),
-                                e);
+                                e.getMessage());
                         throw e;
                     }
                 }
@@ -163,9 +159,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             this.consumersIndex.setConsumer(updated);
 
             log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, consumer.getType(), lastAppliedOffset);
+            return true;
         } catch (Exception e) {
-            log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage(), e);
+            log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage());
             this.resetConsumer();
+            return false;
         }
     }
 

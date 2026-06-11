@@ -277,8 +277,14 @@ public class SnapshotServiceImpl implements SnapshotService {
                     bulkRequest.add(indexRequest);
                     docCount++;
 
-                    // Execute Bulk if limit reached
-                    if (docCount >= this.pluginSettings.getMaxItemsPerBulk()) {
+                    // Flush when EITHER the document count OR the estimated byte size cap is reached.
+                    // estimatedSizeInBytes() is maintained incrementally by BulkRequest.add(...), so
+                    // this adds no per-doc work. The byte trigger bounds per-request heap regardless
+                    // of individual document size (e.g. large CVE documents); the count trigger still
+                    // governs small docs. Worst-case in-flight heap = MAX_CONCURRENT_BULKS *
+                    // MAX_BULK_BYTES.
+                    if (docCount >= this.pluginSettings.getMaxItemsPerBulk()
+                            || bulkRequest.estimatedSizeInBytes() >= this.pluginSettings.getMaxBulkBytes()) {
                         executorIndex.executeBulk(bulkRequest);
                         bulkRequest = new BulkRequest();
                         docCount = 0;
