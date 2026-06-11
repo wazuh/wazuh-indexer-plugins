@@ -27,22 +27,19 @@ import org.opensearch.transport.TransportService;
 import com.wazuh.contentmanager.action.CreateSubscriptionAction;
 import com.wazuh.contentmanager.action.CreateSubscriptionRequest;
 import com.wazuh.contentmanager.action.CreateSubscriptionResponse;
-import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportCreateSubscriptionAction
         extends HandledTransportAction<CreateSubscriptionRequest, CreateSubscriptionResponse> {
 
-    private Object response;
-    private ActionListener<CreateSubscriptionResponse> listener;
-    private CreateSubscriptionRequest request;
-    private final SubscriptionService subscriptionService;
+    private final SubscriptionServiceImpl subscriptionService;
 
     @Inject
     public TransportCreateSubscriptionAction(
             TransportService transportService,
             ActionFilters actionFilters,
-            SubscriptionService subscriptionService) {
+            SubscriptionServiceImpl subscriptionService) {
         super(
                 CreateSubscriptionAction.NAME,
                 transportService,
@@ -56,29 +53,26 @@ public class TransportCreateSubscriptionAction
             Task task,
             CreateSubscriptionRequest request,
             ActionListener<CreateSubscriptionResponse> listener) {
-        this.request = request;
-        this.listener = listener;
-
         String accessToken = request.getToken();
         try {
             this.subscriptionService.register(accessToken);
-            CreateSubscriptionResponse response =
-                    new CreateSubscriptionResponse(Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED);
-            listener.onResponse(response);
+            listener.onResponse(
+                    new CreateSubscriptionResponse(
+                            Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED));
         } catch (IllegalStateException e) {
             if (e.getMessage().equals(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX)) {
-                CreateSubscriptionResponse response =
-                        new CreateSubscriptionResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED);
-                listener.onResponse(response);
+                listener.onResponse(
+                        new CreateSubscriptionResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
+                return;
             }
-            throw e;
+            listener.onFailure(e);
         } catch (Exception e) {
-            CreateSubscriptionResponse response =
+            listener.onResponse(
                     new CreateSubscriptionResponse(
                             e.getMessage() != null
                                     ? e.getMessage()
                                     : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR);
+                            RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 }

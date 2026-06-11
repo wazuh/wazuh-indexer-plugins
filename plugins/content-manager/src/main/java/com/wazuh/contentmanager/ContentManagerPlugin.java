@@ -294,7 +294,7 @@ public class ContentManagerPlugin extends Plugin
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
-                new RestPostSubscriptionAction(this.subscriptionService),
+                new RestPostSubscriptionAction(),
                 new RestGetSubscriptionAction(this.subscriptionService),
                 new RestDeleteSubscriptionAction(this.subscriptionService),
                 new RestPostUpdateAction(this.catalogSyncJob),

@@ -28,8 +28,8 @@ import java.io.IOException;
 import com.wazuh.contentmanager.utils.Constants;
 
 public class CreateSubscriptionResponse extends ActionResponse implements ToXContent {
-    private String message;
-    private RestStatus status;
+    private final String message;
+    private final RestStatus status;
 
     public CreateSubscriptionResponse(String message, RestStatus status) {
         super();
