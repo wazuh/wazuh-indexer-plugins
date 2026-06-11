@@ -131,8 +131,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 offset.getOffset(),
                                 offset.getType(),
                                 offset.getResource(),
-                                e.getMessage(),
-                                e);
+                                e.getMessage());
                         throw e;
                     }
                 }
@@ -166,7 +165,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
             return true;
         } catch (Exception e) {
-            log.error("Error during content update: {}", e.getMessage(), e);
+            log.error("Error during content update: {}", e.getMessage());
             this.resetConsumer();
             return false;
         }
