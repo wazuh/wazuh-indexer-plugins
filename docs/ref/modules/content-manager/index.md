@@ -156,6 +156,6 @@ See [Subscription Management](api.md#store-cti-credentials) in the API Reference
 
 <!-- ANCHOR: deploy-key -->
 
-The Content Manager supports pre-registration of the Wazuh instance with Wazuh Cloud using the `DEPLOY_TOKEN` environment variable. If this variable is set at startup, the Content Manager automatically registers the token as if it were sent through the REST API, enabling immediate synchronization with the CTI API without manual intervention. Snapshots bundled with the package are removed in favor of fetching the latest content directly from the CTI API using the provided token. This streamlines the setup process for new deployments and ensures that they start with the most up-to-date detection content from their subscription plan.
+The Content Manager supports pre-registration of the Wazuh instance with Wazuh Cloud using the `DEPLOY_KEY` environment variable. If this variable is set at startup, the Content Manager automatically registers the token as if it were sent through the REST API, enabling immediate synchronization with the CTI API without manual intervention. Snapshots bundled with the package are removed in favor of fetching the latest content directly from the CTI API using the provided token. This streamlines the setup process for new deployments and ensures that they start with the most up-to-date detection content from their subscription plan.
 
 <!-- ANCHOR_END: deploy-key -->

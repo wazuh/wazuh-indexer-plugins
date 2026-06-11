@@ -254,15 +254,15 @@ public class ContentManagerPlugin extends Plugin
                                     log.fatal("Unexpected error pre-registering environment: {}", e.getMessage());
                                     throw new RuntimeException(e);
                                 }
-                            }
 
-                            // 2. Delete local snapshots.
-                            Path pluginsDir = this.environment.pluginsDir();
-                            if (pluginsDir != null) {
-                                SnapshotServiceImpl.deleteSnapshots(
-                                        pluginsDir
-                                                .resolve(Constants.PLUGIN_DIR_NAME)
-                                                .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                                // 2. Delete local snapshots (only for pre-registered environments).
+                                Path pluginsDir = this.environment.pluginsDir();
+                                if (pluginsDir != null) {
+                                    SnapshotServiceImpl.deleteSnapshots(
+                                            pluginsDir
+                                                    .resolve(Constants.PLUGIN_DIR_NAME)
+                                                    .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                                }
                             }
 
                             // 3. Initialize
