@@ -16,15 +16,25 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -32,6 +42,11 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 /** Tests for the UnifiedConsumerSynchronizer class. */
 public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
@@ -99,5 +114,84 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         String actualMessage = exception.getMessage();
 
         Assert.assertTrue(actualMessage.contains(expectedMessage));
+    }
+
+    /**
+     * missingSourceIndices() collects the detector source indices from the integration documents
+     * and returns only those missing from the cluster. Source indices are usually
+     * data streams (wazuh-events-v5-*), so resolution must be data-stream-aware: a name that
+     * resolves to a data stream is NOT missing, and an unresolvable name is missing.
+     */
+    @SuppressWarnings("unchecked")
+    public void testMissingSourceIndices_dataStreamResolved_returnsOnlyMissingOnes()
+            throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode doc1 =
+                mapper.readTree(
+                        "{\"detector\":{\"source\":[\"wazuh-events-v5-security\",\"wazuh-events-v5-other\"]}}");
+        JsonNode doc2 = mapper.readTree("{\"detector\":{\"source\":[\"wazuh-events-v5-security\"]}}");
+
+        AdminClient adminClient = mock(AdminClient.class);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        when(this.client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+
+        // wazuh-events-v5-security exists as a data stream (no plain index, no alias).
+        ResolveIndexAction.Response dataStreamResponse = mock(ResolveIndexAction.Response.class);
+        when(dataStreamResponse.getIndices()).thenReturn(Collections.emptyList());
+        when(dataStreamResponse.getAliases()).thenReturn(Collections.emptyList());
+        when(dataStreamResponse.getDataStreams()).thenReturn(Collections.singletonList(null));
+        ActionFuture<ResolveIndexAction.Response> dataStreamFuture = mock(ActionFuture.class);
+        when(dataStreamFuture.actionGet()).thenReturn(dataStreamResponse);
+
+        when(indicesAdminClient.resolveIndex(any(ResolveIndexAction.Request.class)))
+                .thenAnswer(
+                        invocation -> {
+                            ResolveIndexAction.Request request = invocation.getArgument(0);
+                            if ("wazuh-events-v5-security".equals(request.indices()[0])) {
+                                return dataStreamFuture;
+                            }
+                            throw new IndexNotFoundException(request.indices()[0]);
+                        });
+
+        List<String> missing = this.synchronizer.missingSourceIndices(List.of(doc1, doc2));
+
+        Assert.assertEquals(List.of("wazuh-events-v5-other"), missing);
+    }
+
+    /** A name resolving to a plain index (e.g. a state index) is not reported as missing. */
+    @SuppressWarnings("unchecked")
+    public void testMissingSourceIndices_plainIndexResolved_returnsEmpty() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode doc = mapper.readTree("{\"detector\":{\"source\":[\"wazuh-states-sca\"]}}");
+
+        AdminClient adminClient = mock(AdminClient.class);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        when(this.client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+
+        ResolveIndexAction.Response indexResponse = mock(ResolveIndexAction.Response.class);
+        when(indexResponse.getIndices()).thenReturn(Collections.singletonList(null));
+        when(indexResponse.getAliases()).thenReturn(Collections.emptyList());
+        when(indexResponse.getDataStreams()).thenReturn(Collections.emptyList());
+        ActionFuture<ResolveIndexAction.Response> future = mock(ActionFuture.class);
+        when(future.actionGet()).thenReturn(indexResponse);
+        when(indicesAdminClient.resolveIndex(any(ResolveIndexAction.Request.class)))
+                .thenReturn(future);
+
+        List<String> missing = this.synchronizer.missingSourceIndices(List.of(doc));
+
+        Assert.assertTrue(missing.isEmpty());
+    }
+
+    /** Documents without a detector.source array contribute nothing; no cluster calls are made. */
+    public void testMissingSourceIndices_noDetectorSource_returnsEmpty() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode doc = mapper.readTree("{\"metadata\":{\"title\":\"no detector here\"}}");
+
+        List<String> missing = this.synchronizer.missingSourceIndices(List.of(doc));
+
+        Assert.assertTrue(missing.isEmpty());
+        verifyNoInteractions(this.client);
     }
 }

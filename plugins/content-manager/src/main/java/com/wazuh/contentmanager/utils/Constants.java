@@ -262,4 +262,12 @@ public class Constants {
     // Job Scheduler registration retries
     public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
     public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
+
+    // Setup plugin readiness marker (written by the Setup plugin once all its
+    // index templates, indices and data streams have been created).
+    public static final String INDEX_SETUP_STATUS = ".wazuh-setup-status";
+    public static final String SETUP_STATUS_DOC_ID = "setup-status";
+    public static final String SETUP_STATUS_COMPLETE = "complete";
+    public static final int MAX_SETUP_WAIT_RETRIES = 3;
+    public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
 }
