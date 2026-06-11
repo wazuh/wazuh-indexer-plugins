@@ -117,11 +117,13 @@ cat > "$LOCAL_OUT/run-metadata.json" <<EOF
 EOF
 
 # Generate the deliverables on the host: aggregated report.md + a single-run timeline.png
-# (so the user just runs ./run.sh and reads the CSV + PNG). Both are best-effort.
+# (spikes) + averages.png (mean per metric) so the run is easy to read and compare. Best-effort.
 python3 ../analyze/report.py --run "$LOCAL_OUT" --label "$LABEL" \
     || echo "[WARN] Host-side report generation failed; metrics.csv is available."
-python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --out "$LOCAL_OUT/timeline.png" \
+python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --kind timeline --out "$LOCAL_OUT/timeline.png" \
     || echo "[WARN] Host-side timeline plot failed (matplotlib installed?); metrics.csv is available."
+python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --kind average --out "$LOCAL_OUT/averages.png" \
+    || echo "[WARN] Host-side averages plot failed (matplotlib installed?); metrics.csv is available."
 
 # Grafana is reached over the monitor VM's PRIVATE-network IP (the host-routable one,
 # same value the Vagrantfile assigns). `hostname -I` on the guest would return the
@@ -158,25 +160,32 @@ done
 # the renderer container has only just started. Best-effort.
 DASH_WINDOW_MIN=$(( (${DURATION:-600} / 60) + 25 ))
 capture_dashboard() {
-    local uid="$1" name="$2"
-    local url="http://${MON_IP}:3000/render/d/${uid}/_?orgId=1&from=now-${DASH_WINDOW_MIN}m&to=now&width=1600&height=900&tz=UTC&kiosk"
+    local uid="$1" name="$2" code
+    local tmp="$LOCAL_OUT/.$name.tmp"
+    # &timeout=120 → give Grafana's renderer up to 2 min (the default is 30s, which a
+    # multi-panel dashboard over a ~35-min window at 10s resolution can exceed → 500).
+    local url="http://${MON_IP}:3000/render/d/${uid}/_?orgId=1&from=now-${DASH_WINDOW_MIN}m&to=now&width=1600&height=900&tz=UTC&kiosk&timeout=120"
     for _ in 1 2 3 4 5; do
-        if curl -sf --max-time 180 -u admin:admin -o "$LOCAL_OUT/$name.png" "$url"; then
+        code=$(curl -s --max-time 180 -u admin:admin -o "$tmp" -w '%{http_code}' "$url" 2>/dev/null || echo 000)
+        # A real render is a multi-KB PNG; treat 200 + non-trivial size as success.
+        if [[ "$code" == "200" && -s "$tmp" && "$(wc -c <"$tmp")" -gt 1000 ]]; then
+            mv "$tmp" "$LOCAL_OUT/$name.png"
             echo "[INFO] Rendered Grafana dashboard → $name.png"
             return 0
         fi
         sleep 15
     done
-    echo "[WARN] Could not render the '$uid' dashboard after retries. If the monitor VM predates"
-    echo "       the renderer, re-provision it once: (cd vagrant && vagrant provision monitor)."
-    rm -f "$LOCAL_OUT/$name.png"   # drop any truncated/empty file curl may have left
+    echo "[WARN] Could not render the '$uid' dashboard (last HTTP $code). Grafana's response:" >&2
+    head -c 500 "$tmp" 2>/dev/null | sed 's/^/         /' >&2; echo >&2
+    echo "       If the monitor VM predates the renderer, re-provision once: (cd vagrant && vagrant provision monitor)." >&2
+    rm -f "$tmp"
 }
 capture_dashboard wazuh-host-overview grafana-host-overview
 capture_dashboard wazuh-jvm-overview  grafana-jvm-overview
 
 echo
 echo "[INFO] Done ($LABEL). Results: tools/performance/runs/isolated-$VERSION/"
-echo "       metrics.csv, report.md, timeline.png, grafana-*.png — events: ${EVENTS:-?}, findings: ${FINDINGS:-?}"
+echo "       metrics.csv, report.md, timeline.png, averages.png, grafana-*.png — events: ${EVENTS:-?}, findings: ${FINDINGS:-?}"
 echo "[INFO] Cold start at $RESTART_TS — view the timelines in Grafana:"
 echo "         http://${MON_IP}:3000/d/wazuh-host-overview   (host CPU/RAM/disk)"
 echo "         http://${MON_IP}:3000/d/wazuh-jvm-overview    (JVM heap/GC/threads via JMX)"

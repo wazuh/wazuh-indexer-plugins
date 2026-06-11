@@ -7,6 +7,7 @@ runs/
 # Analyze outputs written to the tool dir (analyze.sh + compare.py / plot.py defaults)
 *compare.md
 *timeline.png
+*averages.png
 
 # Rendered monitor scrape config (produced by setup-monitor.sh)
 monitoring/prometheus.rendered.yml

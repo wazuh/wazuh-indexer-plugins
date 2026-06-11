@@ -221,12 +221,12 @@ cold-start view.
 ```
 tools/performance/
 ├── run.sh                          # One-liner entrypoint - up → measure → destroy (default: isolated)
-├── analyze.sh                      # one-shot: build <scenario>-compare.md + -timeline.png from runs/
+├── analyze.sh                      # one-shot: build <scenario>-compare.md + -timeline.png + -averages.png
 ├── config/perf-tune.yml            # indexer tuning: permanent heap + on-demand toggles
 ├── metrics/sampler.py              # per-minute host + indexer sampler → CSV/NDJSON
 ├── analyze/report.py               # aggregates a run → labeled hardware-utilization report.md
 ├── analyze/compare.py              # diffs two+ runs side by side → compare.md (e.g. 4.x vs 5.x)
-├── analyze/plot.py                 # timeline charts overlaying runs → timeline.png (spikes)
+├── analyze/plot.py                 # --kind timeline → timeline.png (spikes) | --kind average → averages.png (moving-average line)
 ├── vagrant/
 │   ├── Vagrantfile                 # PERF_SCENARIO=isolated (indexer+monitor) | real-world (aio+agents)
 │   ├── lib.sh                      # shared helpers (rsync, password/version detect, results pull)
@@ -260,7 +260,9 @@ tools/performance/
 
 Each run writes `runs/<scenario>-<version>/` with per-minute `metrics.csv`
 (+ `.ndjson`), `run-metadata.json` (includes `events_indexed` + `findings` for isolated),
-a `report.md`, a single-run `timeline.png`, and — for isolated — `grafana-host-overview.png`
+a `report.md`, two charts — `timeline.png` (per-sample spikes) and `averages.png` (a trailing
+moving-average line per metric that smooths the spikes, raw series faint behind it) — and, for
+isolated, `grafana-host-overview.png`
 and `grafana-jvm-overview.png` rendered from the live Grafana dashboards (via the
 [grafana-image-renderer](https://grafana.com/grafana/plugins/grafana-image-renderer) sidecar
 in [monitoring/compose.yml](monitoring/compose.yml)):
@@ -293,11 +295,12 @@ generate the comparison + timeline in one shot from `tools/performance/`:
 ```
 
 It groups runs by scenario (never mixing real-world with isolated) and writes
-`<scenario>-compare.md` (side-by-side avg/peak diff, needs ≥2 versions) and
+`<scenario>-compare.md` (side-by-side avg/peak diff, needs ≥2 versions),
 `<scenario>-timeline.png` (overlaid minutes-since-start lines showing *when* spikes
-happen - cold start, GC, ingest dips). Each run also keeps its own `report.md`,
-all of these include **every sample**, pass `--warmup N` to drop the first N.
-Under the hood `analyze.sh` calls the two tools, which you can also run directly:
+happen - cold start, GC, ingest dips) and `<scenario>-averages.png` (a trailing moving-average
+line per run — smooths the spikes so the trend/level is easy to compare). Each run also keeps its
+own `report.md`, all of these include **every sample**, pass `--warmup N` to drop the first N.
+Under the hood `analyze.sh` calls the tools, which you can also run directly:
 
 ```bash
 python3 analyze/compare.py \
@@ -305,7 +308,8 @@ python3 analyze/compare.py \
   wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv          # → compare.md
 python3 analyze/plot.py \
   wazuh-4.14.1=./runs/real-world-4.14.1/metrics.csv \
-  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv --out timeline.png   # needs matplotlib
+  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv \
+  --kind timeline --out timeline.png   # or --kind average --out averages.png (needs matplotlib)
 ```
 
 > For the delta to mean "version cost", the two runs must be **comparable**:
