@@ -95,7 +95,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * states.
      */
     @Override
-    public void update(long fromOffset, long toOffset) {
+    public boolean update(long fromOffset, long toOffset) {
         log.info(
                 "Starting content update for consumer [{}] from [{}] to [{}]",
                 this.consumer,
@@ -115,7 +115,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 if (response.getCode() != 200) {
                     log.error("Failed to fetch changes: {} {}", response.getCode(), response.getBodyText());
                     if (lastAppliedOffset == fromOffset) {
-                        return;
+                        return false;
                     }
                     break;
                 }
@@ -164,9 +164,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             this.consumersIndex.setConsumer(updated);
 
             log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
+            return true;
         } catch (Exception e) {
             log.error("Error during content update: {}", e.getMessage(), e);
             this.resetConsumer();
+            return false;
         }
     }
 
