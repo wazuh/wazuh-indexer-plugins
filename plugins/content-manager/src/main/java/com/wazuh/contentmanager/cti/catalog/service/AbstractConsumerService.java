@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
@@ -372,16 +373,20 @@ public abstract class AbstractConsumerService {
         Path snapshotsDir = null;
         Path localSnapshot = null;
         JsonNode manifestEntry = null;
-        try {
-            Path pluginsDir = this.environment.pluginsDir();
-            if (pluginsDir != null) {
-                snapshotsDir =
-                        pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
-                localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
-                manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+        // Snapshots dir do not exist on development environments.
+        if (!ContentManagerPlugin.isTestEnvironment()) {
+            try {
+                Path pluginsDir = this.environment.pluginsDir();
+                if (pluginsDir != null) {
+                    snapshotsDir =
+                            pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
+                    localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+                    manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+                }
+            } catch (Exception e) {
+                log.debug(
+                        "Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
             }
-        } catch (Exception e) {
-            log.debug("Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
         }
 
         // The effective catalog URI prefers, in order:
