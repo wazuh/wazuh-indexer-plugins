@@ -70,6 +70,7 @@ import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
@@ -255,8 +256,14 @@ public class ContentManagerPlugin extends Plugin
                                 }
                             }
 
-                            // 2. Delete local snapshots
-                            // TODO
+                            // 2. Delete local snapshots.
+                            Path pluginsDir = this.environment.pluginsDir();
+                            if (pluginsDir != null) {
+                                SnapshotServiceImpl.deleteSnapshots(
+                                        pluginsDir
+                                                .resolve(Constants.PLUGIN_DIR_NAME)
+                                                .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                            }
 
                             // 3. Initialize
                             this.catalogSyncJob.trigger();

@@ -427,6 +427,33 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
     }
 
+    /**
+     * Deletes every local snapshot zip file found directly under the given snapshots directory,
+     * delegating each deletion to {@link #deleteSnapshot(Path)}. Safe to call when the directory does
+     * not exist (e.g. development environments). Only the plugin's local snapshots directory should
+     * be passed in — remote snapshots are managed by the CTI service.
+     *
+     * @param snapshotsDir The plugin's local snapshots directory.
+     */
+    public static void deleteSnapshots(Path snapshotsDir) {
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        if (!Files.isDirectory(snapshotsDir)) {
+                            return null;
+                        }
+                        try (DirectoryStream<Path> stream = Files.newDirectoryStream(snapshotsDir, "*.zip")) {
+                            for (Path snapshot : stream) {
+                                deleteSnapshot(snapshot);
+                            }
+                        }
+                        return null;
+                    });
+        } catch (Exception e) {
+            log.warn("Failed to delete local snapshots in [{}]: {}", snapshotsDir, e.getMessage());
+        }
+    }
+
     /** Deletes temporary files and directories used during the process. */
     private void cleanup(Path zipFile, Path directory) {
         try {
