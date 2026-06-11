@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -914,26 +913,5 @@ public abstract class AbstractConsumerService {
 
         log.info("Blue/green swap completed successfully for consumer [{}].", consumerType);
         return true;
-    }
-
-    /**
-     * Resets the persisted consumer state by deleting its document from the consumers index. This
-     * forces a full re-initialization on the next sync cycle (snapshot download + incremental
-     * update).
-     *
-     * @param consumerType the consumer type identifier to reset.
-     */
-    private void resetConsumer(String consumerType) {
-        try {
-            DeleteResponse response =
-                    this.client.prepareDelete(ConsumersIndex.INDEX_NAME, consumerType).execute().actionGet();
-            log.info(
-                    "Consumer [{}] document deleted for re-initialization. Result: {}",
-                    consumerType,
-                    response.getResult());
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to delete consumer [{}] for re-initialization: {}", consumerType, e.getMessage());
-        }
     }
 }

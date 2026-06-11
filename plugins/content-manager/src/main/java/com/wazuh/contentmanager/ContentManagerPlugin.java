@@ -240,6 +240,25 @@ public class ContentManagerPlugin extends Plugin
             this.start(
                     () -> {
                         if (PluginSettings.getInstance().isUpdateOnStart()) {
+
+                            // Pre-deployment
+                            // -------------
+                            // 1. Register key from environment variable
+                            String accessToken = ContentManagerPlugin.preDeploymentKey();
+                            if (!accessToken.isBlank()) {
+                                try {
+                                    log.info("Pre-registered environment detected.");
+                                    this.subscriptionService.register(accessToken);
+                                } catch (Exception e) {
+                                    log.fatal("Unexpected error pre-registering environment: {}", e.getMessage());
+                                    throw new RuntimeException(e);
+                                }
+                            }
+
+                            // 2. Delete local snapshots
+                            // TODO
+
+                            // 3. Initialize
                             this.catalogSyncJob.trigger();
                         } else {
                             log.info("Skipping catalog sync job trigger");
@@ -791,5 +810,15 @@ public class ContentManagerPlugin extends Plugin
      */
     public static boolean isTestEnvironment() {
         return "true".equals(System.getProperty("INDEXER_TEST_ENV"));
+    }
+
+    /**
+     * Returns the value of the "DEPLOY_KEY" environment variable, if it exists.
+     *
+     * @return value of the "DEPLOY_KEY" environment variable, of an empty string if it does not
+     *     exist.
+     */
+    public static String preDeploymentKey() {
+        return System.getProperty("DEPLOY_KEY", "");
     }
 }
