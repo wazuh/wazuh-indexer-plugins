@@ -166,8 +166,8 @@ done
 echo "[INFO] Bringing up the '$SCENARIO' environment ..."
 if ! vagrant up; then
     echo "[ERROR] 'vagrant up' failed. A boot timeout usually means the host is over-committed:" >&2
-    echo "        the two VMs need ~18 GB RAM (indexer 16 + monitor/agents). Options:" >&2
-    echo "          - free RAM, or lower it: PERF_INDEXER_MEM=8192 ./run.sh --scenario $SCENARIO ..." >&2
+    echo "        isolated needs ~11 GB RAM (indexer 8 + monitor 3); real-world ~14 GB (aio 10 + 2 agents). Options:" >&2
+    echo "          - free RAM, or lower it: PERF_INDEXER_MEM=6144 ./run.sh --scenario $SCENARIO ..." >&2
     echo "          - allow a longer boot:   PERF_BOOT_TIMEOUT=1200 ./run.sh --scenario $SCENARIO ..." >&2
     echo "          - clear leftovers:       vagrant global-status --prune ; VBoxManage list runningvms" >&2
     echo "        The VMs are left as-is; re-running this script destroys them first." >&2

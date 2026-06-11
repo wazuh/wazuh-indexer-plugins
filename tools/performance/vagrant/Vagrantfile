@@ -5,13 +5,13 @@
 # selected with PERF_SCENARIO:
 #
 #   PERF_SCENARIO=real-world (default):
-#     - aio       : manager + indexer + dashboard      16 GB / 8 vCPU   192.168.60.20
+#     - aio       : manager + indexer + dashboard      10 GB / 6 vCPU   192.168.60.20
 #     - agent-1   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.21
 #     - agent-2   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.22
 #
 #   PERF_SCENARIO=isolated — single indexer + synthetic load, watched from boot:
-#     - indexer   : single-node wazuh-indexer + node_exporter   16 GB / 8 vCPU   192.168.60.20
-#     - monitor   : Prometheus + Grafana + OpenSearch Benchmark   2 GB / 2 vCPU   192.168.60.30
+#     - indexer   : single-node wazuh-indexer + node_exporter   8 GB / 4 vCPU   192.168.60.20
+#     - monitor   : Prometheus + Grafana + image-renderer        3 GB / 2 vCPU   192.168.60.30
 #
 # Works with VirtualBox, libvirt, Parallels and VMware — VM sizing is applied to
 # every provider. For libvirt, override the box, e.g.
@@ -58,7 +58,7 @@ end
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
-  # A 16 GB guest on a busy host can take longer than Vagrant's 300s default to become
+  # A large guest on a busy host can take longer than Vagrant's 300s default to become
   # SSH-reachable, surfacing as "Timed out while waiting for the machine to boot".
   # Give it more headroom (override with PERF_BOOT_TIMEOUT).
   config.vm.boot_timeout = ENV.fetch("PERF_BOOT_TIMEOUT", "900").to_i
@@ -69,7 +69,7 @@ Vagrant.configure("2") do |config|
       indexer.vm.hostname = "wazuh-indexer"
       indexer.vm.network "private_network", ip: INDEXER_IP
       indexer.vm.synced_folder "..", "/opt/perf"
-      configure_size(indexer.vm, ENV.fetch("PERF_INDEXER_MEM", "16384"), ENV.fetch("PERF_INDEXER_CPUS", "8"))
+      configure_size(indexer.vm, ENV.fetch("PERF_INDEXER_MEM", "8192"), ENV.fetch("PERF_INDEXER_CPUS", "4"))
       indexer.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive
@@ -112,7 +112,7 @@ Vagrant.configure("2") do |config|
       aio.vm.hostname = "wazuh-aio"
       aio.vm.network "private_network", ip: INDEXER_IP
       aio.vm.synced_folder "..", "/opt/perf"
-      configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "16384"), ENV.fetch("PERF_AIO_CPUS", "8"))
+      configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "10240"), ENV.fetch("PERF_AIO_CPUS", "6"))
       aio.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive

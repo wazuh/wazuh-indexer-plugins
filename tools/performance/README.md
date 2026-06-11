@@ -31,7 +31,7 @@ start is captured.
 
 ## Prerequisites
 
-- Vagrant + a provider (VirtualBox / Parallels / libvirt) for Method 1, on a host with ~20 GB free RAM and 12 vCPU
+- Vagrant + a provider (VirtualBox / Parallels / libvirt) for Method 1, on a host with ~14 GB free RAM and ~10 vCPU (real-world is the heavier topology; isolated needs ~11 GB / 6 vCPU)
 - Python 3.9+
 - `requests`
 - `psutil`
@@ -108,15 +108,15 @@ Results land in `tools/performance/runs/<scenario>-<version>/`, named after the
 overwrite each other and can be compared (see [Output](#output)). Tune load with
 `--duration` / `--interval` / `--rate`. Topologies ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
 
-- **isolated**: `indexer` (16 GB/8 vCPU, node_exporter + JMX exporter from boot) + `monitor`
-  (2 GB/2 vCPU, Prometheus/Grafana/image-renderer) - 192.168.60.20 / .30. Restarts the indexer to capture
+- **isolated**: `indexer` (8 GB/4 vCPU, node_exporter + JMX exporter from boot) + `monitor`
+  (3 GB/2 vCPU, Prometheus/Grafana/image-renderer) - 192.168.60.20 / .30. Restarts the indexer to capture
   its cold start, drives the findings load from the monitor (the indexer's CTI-synced detectors
   generate the findings), and
   opens Grafana on the auto-provisioned **Host Overview** (`uid wazuh-host-overview`) and
   **JVM Overview** (`uid wazuh-jvm-overview`) dashboards.
-- **real-world**: `aio` (16 GB/8 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) - 192.168.60.20–22.
+- **real-world**: `aio` (10 GB/6 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) - 192.168.60.20–22.
 
-> **Host:** ~20 GB free RAM, 12 vCPU. Box defaults to `bento/ubuntu-24.04`
+> **Host:** ~14 GB free RAM, ~10 vCPU (real-world; isolated needs ~11 GB / 6 vCPU). Box defaults to `bento/ubuntu-24.04`
 > (VirtualBox/Parallels/VMware, incl. Apple Silicon). For libvirt use a
 > libvirt-capable box: `PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh`.
 > All host↔guest transfer is over `vagrant ssh`, the synced folder is only used to
