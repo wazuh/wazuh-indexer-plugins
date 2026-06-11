@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
@@ -32,6 +33,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -41,6 +43,7 @@ import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -65,6 +68,7 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.action.CreateSubscriptionAction;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
@@ -83,6 +87,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.transport.TransportCreateSubscriptionAction;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -90,7 +95,7 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
+        implements ActionPlugin, ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
@@ -690,6 +695,13 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS);
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return List.of(
+                new ActionPlugin.ActionHandler<>(
+                        CreateSubscriptionAction.INSTANCE, TransportCreateSubscriptionAction.class));
     }
 
     /**

@@ -27,7 +27,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Centralizes CTI subscription logic: get status, register, and unregister. */
-public class SubscriptionServiceImpl implements SubscriptionService {
+public class SubscriptionServiceImpl implements SubscriptionService{
     private static final Logger log = LogManager.getLogger(SubscriptionServiceImpl.class);
 
     private final PlansService plansService;

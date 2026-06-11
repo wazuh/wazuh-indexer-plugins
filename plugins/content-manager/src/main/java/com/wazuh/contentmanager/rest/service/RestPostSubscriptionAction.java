@@ -16,17 +16,25 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
+import com.wazuh.contentmanager.action.CreateSubscriptionAction;
+import com.wazuh.contentmanager.action.CreateSubscriptionRequest;
+import com.wazuh.contentmanager.action.CreateSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -49,6 +57,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * </ul>
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
@@ -77,12 +86,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.SUBSCRIPTION_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(POST, PluginSettings.SUBSCRIPTION_URI));
     }
 
     /**
@@ -93,13 +97,36 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
      * @return a consumer that sends the subscription registration response
      */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        RestResponse response = this.handleRequest(request);
+
+        log.debug(
+                String.format(
+                        Locale.getDefault(), "%s %s", request.method(), PluginSettings.SUBSCRIPTION_URI));
+
+        String subscription = request.content().utf8ToString();
+
+        CreateSubscriptionRequest subscriptionRequest =
+                new CreateSubscriptionRequest(, request.method(), subscription);
         return channel ->
-                channel.sendResponse(
-                        new BytesRestResponse(
-                                RestStatus.fromCode(response.getStatus()), response.toXContent()));
+                client.execute(
+                        CreateSubscriptionAction.INSTANCE,
+                        subscriptionRequest,
+                        createSubscriptionResponse(channel, request.method()));
+    }
+
+    private RestResponseListener<CreateSubscriptionResponse> createSubscriptionResponse(
+            RestChannel channel, RestRequest.Method restMethod) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public org.opensearch.rest.RestResponse buildResponse(CreateSubscriptionResponse response)
+                    throws Exception {
+                RestStatus returnStatus = RestStatus.CREATED;
+
+                return new BytesRestResponse(
+                        returnStatus, response.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS));
+            }
+        };
     }
 
     /**
