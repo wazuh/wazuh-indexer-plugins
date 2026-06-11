@@ -169,8 +169,9 @@ testClusters.integTest {
   // Disable just that assertion so tests exercise REST API behavior without node crashes.
   jvmArgs '-da:org.opensearch.transport.Transports'
   systemProperty "INDEXER_TEST_ENV", "true"
+  systemProperty "DEPLOY_KEY", ""
   systemProperty "wazuh.version", "${wazuh_version}-beta3"
-  setting 'plugins.content_manager.catalog.update_on_start', 'true'
+  setting 'plugins.content_manager.catalog.update_on_start', 'false'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
   setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'

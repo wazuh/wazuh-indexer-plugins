@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -34,6 +33,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
@@ -373,16 +373,20 @@ public abstract class AbstractConsumerService {
         Path snapshotsDir = null;
         Path localSnapshot = null;
         JsonNode manifestEntry = null;
-        try {
-            Path pluginsDir = this.environment.pluginsDir();
-            if (pluginsDir != null) {
-                snapshotsDir =
-                        pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
-                localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
-                manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+        // Snapshots dir do not exist on development environments.
+        if (!ContentManagerPlugin.isTestEnvironment()) {
+            try {
+                Path pluginsDir = this.environment.pluginsDir();
+                if (pluginsDir != null) {
+                    snapshotsDir =
+                            pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
+                    localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+                    manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+                }
+            } catch (Exception e) {
+                log.debug(
+                        "Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
             }
-        } catch (Exception e) {
-            log.debug("Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
         }
 
         // The effective catalog URI prefers, in order:
@@ -913,26 +917,5 @@ public abstract class AbstractConsumerService {
 
         log.info("Blue/green swap completed successfully for consumer [{}].", consumerType);
         return true;
-    }
-
-    /**
-     * Resets the persisted consumer state by deleting its document from the consumers index. This
-     * forces a full re-initialization on the next sync cycle (snapshot download + incremental
-     * update).
-     *
-     * @param consumerType the consumer type identifier to reset.
-     */
-    private void resetConsumer(String consumerType) {
-        try {
-            DeleteResponse response =
-                    this.client.prepareDelete(ConsumersIndex.INDEX_NAME, consumerType).execute().actionGet();
-            log.info(
-                    "Consumer [{}] document deleted for re-initialization. Result: {}",
-                    consumerType,
-                    response.getResult());
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to delete consumer [{}] for re-initialization: {}", consumerType, e.getMessage());
-        }
     }
 }
