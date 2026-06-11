@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -128,6 +129,12 @@ public class RestPutSettingsAction extends BaseRestHandler {
 
                     @Override
                     public void onFailure(Exception e) {
+                        OpenSearchSecurityException secEx = extractSecurityException(e);
+                        if (secEx != null) {
+                            sendResponse(
+                                    channel, new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                            return;
+                        }
                         log.error("Failed to persist settings: {}", e.getMessage(), e);
                         sendResponse(
                                 channel,
@@ -136,6 +143,17 @@ public class RestPutSettingsAction extends BaseRestHandler {
                                         RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                     }
                 });
+    }
+
+    private static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof OpenSearchSecurityException) {
+                return (OpenSearchSecurityException) cause;
+            }
+            cause = cause.getCause();
+        }
+        return null;
     }
 
     /**
