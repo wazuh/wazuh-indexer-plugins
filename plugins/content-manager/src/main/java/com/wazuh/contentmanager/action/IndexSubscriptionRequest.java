@@ -27,20 +27,20 @@ import java.io.IOException;
 
 import static org.opensearch.action.ValidateActions.addValidationError;
 
-public class CreateSubscriptionRequest extends ActionRequest {
+public class IndexSubscriptionRequest extends ActionRequest {
 
     public static final String ACCESS_TOKEN_IS_MISSING = "Access token is missing";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
     private final RestRequest.Method method;
     private final String token;
 
-    public CreateSubscriptionRequest(Method method, String token) {
+    public IndexSubscriptionRequest(Method method, String token) {
         super();
         this.method = method;
         this.token = token;
     }
 
-    public CreateSubscriptionRequest(StreamInput sin) throws IOException {
+    public IndexSubscriptionRequest(StreamInput sin) throws IOException {
         this(sin.readEnum(Method.class), sin.readString());
     }
 

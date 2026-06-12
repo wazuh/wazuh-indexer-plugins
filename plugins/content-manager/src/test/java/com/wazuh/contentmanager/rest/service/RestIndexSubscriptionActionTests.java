@@ -38,23 +38,23 @@ import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
-public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
+public class RestIndexSubscriptionActionTests extends OpenSearchTestCase {
     private SubscriptionService subscriptionService;
-    private RestPostSubscriptionAction action;
+    private RestIndexSubscriptionAction action;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        RestPostSubscriptionActionTests.clearPluginSettingsInstance();
+        RestIndexSubscriptionActionTests.clearPluginSettingsInstance();
         PluginSettings.getInstance(org.opensearch.common.settings.Settings.EMPTY);
         this.subscriptionService = mock(SubscriptionService.class);
-        this.action = new RestPostSubscriptionAction(this.subscriptionService);
+        this.action = new RestIndexSubscriptionAction(this.subscriptionService);
     }
 
     @After
     public void tearDown() throws Exception {
-        RestPostSubscriptionActionTests.clearPluginSettingsInstance();
+        RestIndexSubscriptionActionTests.clearPluginSettingsInstance();
         super.tearDown();
     }
 

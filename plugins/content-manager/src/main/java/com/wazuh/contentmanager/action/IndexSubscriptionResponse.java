@@ -27,17 +27,17 @@ import java.io.IOException;
 
 import com.wazuh.contentmanager.utils.Constants;
 
-public class CreateSubscriptionResponse extends ActionResponse implements ToXContent {
+public class IndexSubscriptionResponse extends ActionResponse implements ToXContent {
     private final String message;
     private final RestStatus status;
 
-    public CreateSubscriptionResponse(String message, RestStatus status) {
+    public IndexSubscriptionResponse(String message, RestStatus status) {
         super();
         this.message = message;
         this.status = status;
     }
 
-    public CreateSubscriptionResponse(StreamInput sin) throws IOException {
+    public IndexSubscriptionResponse(StreamInput sin) throws IOException {
         this(sin.readString(), sin.readEnum(RestStatus.class));
     }
 

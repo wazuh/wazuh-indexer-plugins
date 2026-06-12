@@ -31,9 +31,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.action.CreateSubscriptionAction;
-import com.wazuh.contentmanager.action.CreateSubscriptionRequest;
-import com.wazuh.contentmanager.action.CreateSubscriptionResponse;
+import com.wazuh.contentmanager.action.IndexSubscriptionAction;
+import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
+import com.wazuh.contentmanager.action.IndexSubscriptionResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -54,8 +54,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
  */
-public class RestPostSubscriptionAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPostSubscriptionAction.class);
+public class RestIndexSubscriptionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestIndexSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
@@ -78,7 +78,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
 
     /**
      * Parses the {@code access_token} field from the request body and delegates to the transport
-     * action via {@link CreateSubscriptionAction}.
+     * action via {@link IndexSubscriptionAction}.
      *
      * @param request the incoming REST request
      * @param client the node client
@@ -106,20 +106,20 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
             }
         }
 
-        CreateSubscriptionRequest subscriptionRequest =
-                new CreateSubscriptionRequest(request.method(), accessToken);
+        IndexSubscriptionRequest subscriptionRequest =
+                new IndexSubscriptionRequest(request.method(), accessToken);
         return channel ->
                 client.execute(
-                        CreateSubscriptionAction.INSTANCE,
+                        IndexSubscriptionAction.INSTANCE,
                         subscriptionRequest,
                         createSubscriptionResponse(channel));
     }
 
-    private RestResponseListener<CreateSubscriptionResponse> createSubscriptionResponse(
+    private RestResponseListener<IndexSubscriptionResponse> createSubscriptionResponse(
             RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(CreateSubscriptionResponse response)
+            public org.opensearch.rest.RestResponse buildResponse(IndexSubscriptionResponse response)
                     throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),

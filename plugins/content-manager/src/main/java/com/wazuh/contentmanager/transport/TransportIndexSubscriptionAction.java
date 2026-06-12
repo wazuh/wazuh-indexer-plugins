@@ -24,51 +24,50 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import com.wazuh.contentmanager.action.CreateSubscriptionAction;
-import com.wazuh.contentmanager.action.CreateSubscriptionRequest;
-import com.wazuh.contentmanager.action.CreateSubscriptionResponse;
+import com.wazuh.contentmanager.action.IndexSubscriptionAction;
+import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
+import com.wazuh.contentmanager.action.IndexSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
 
-public class TransportCreateSubscriptionAction
-        extends HandledTransportAction<CreateSubscriptionRequest, CreateSubscriptionResponse> {
+public class TransportIndexSubscriptionAction
+        extends HandledTransportAction<IndexSubscriptionRequest, IndexSubscriptionResponse> {
 
     private final SubscriptionServiceImpl subscriptionService;
 
     @Inject
-    public TransportCreateSubscriptionAction(
+    public TransportIndexSubscriptionAction(
             TransportService transportService,
             ActionFilters actionFilters,
             SubscriptionServiceImpl subscriptionService) {
         super(
-                CreateSubscriptionAction.NAME,
+                IndexSubscriptionAction.NAME,
                 transportService,
                 actionFilters,
-                CreateSubscriptionRequest::new);
+                IndexSubscriptionRequest::new);
         this.subscriptionService = subscriptionService;
     }
 
     @Override
     protected void doExecute(
             Task task,
-            CreateSubscriptionRequest request,
-            ActionListener<CreateSubscriptionResponse> listener) {
+            IndexSubscriptionRequest request,
+            ActionListener<IndexSubscriptionResponse> listener) {
         String accessToken = request.getToken();
         try {
             this.subscriptionService.register(accessToken);
             listener.onResponse(
-                    new CreateSubscriptionResponse(
-                            Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED));
+                    new IndexSubscriptionResponse(Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED));
         } catch (IllegalStateException e) {
             if (e.getMessage().equals(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX)) {
                 listener.onResponse(
-                        new CreateSubscriptionResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
+                        new IndexSubscriptionResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
                 return;
             }
             listener.onFailure(e);
         } catch (Exception e) {
             listener.onResponse(
-                    new CreateSubscriptionResponse(
+                    new IndexSubscriptionResponse(
                             e.getMessage() != null
                                     ? e.getMessage()
                                     : "An unexpected error occurred while processing your request.",

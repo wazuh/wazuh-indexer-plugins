@@ -68,7 +68,7 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.action.CreateSubscriptionAction;
+import com.wazuh.contentmanager.action.IndexSubscriptionAction;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
@@ -87,7 +87,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.transport.TransportCreateSubscriptionAction;
+import com.wazuh.contentmanager.transport.TransportIndexSubscriptionAction;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -294,7 +294,7 @@ public class ContentManagerPlugin extends Plugin
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
-                new RestPostSubscriptionAction(),
+                new RestIndexSubscriptionAction(),
                 new RestGetSubscriptionAction(this.subscriptionService),
                 new RestDeleteSubscriptionAction(this.subscriptionService),
                 new RestPostUpdateAction(this.catalogSyncJob),
@@ -701,7 +701,7 @@ public class ContentManagerPlugin extends Plugin
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
                 new ActionPlugin.ActionHandler<>(
-                        CreateSubscriptionAction.INSTANCE, TransportCreateSubscriptionAction.class));
+                        IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class));
     }
 
     /**
