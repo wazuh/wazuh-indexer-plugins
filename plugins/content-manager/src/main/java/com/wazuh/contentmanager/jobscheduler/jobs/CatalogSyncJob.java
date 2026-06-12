@@ -176,8 +176,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Blocks until the Setup plugin reports its initialization as complete via the {@value
      * Constants#SETUP_STATUS_DOC_ID} marker document in the {@value Constants#INDEX_SETUP_STATUS}
      * index. Retries up to {@link Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff
-     * (5s, 10s, 20s) before giving up.
-     * This method blocks the calling generic-pool thread for up to 35 seconds in the worst case.
+     * (5s, 10s, 20s) before giving up. This method blocks the calling generic-pool thread for up to
+     * 35 seconds in the worst case.
      *
      * @return true if the Setup plugin completed its initialization, false otherwise.
      */
@@ -208,14 +208,13 @@ public class CatalogSyncJob implements JobExecutor {
      * Reads the Setup plugin's readiness marker. Any failure (index not created yet, cluster not
      * ready) is treated as "setup not complete".
      *
-     * @return true if the marker document exists with status {@value Constants#SETUP_STATUS_COMPLETE}.
+     * @return true if the marker document exists with status {@value
+     *     Constants#SETUP_STATUS_COMPLETE}.
      */
     private boolean isSetupComplete() {
         try {
             GetResponse response =
-                    this.client
-                            .prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID)
-                            .get();
+                    this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID).get();
             if (!response.isExists()) {
                 return false;
             }

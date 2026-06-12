@@ -214,7 +214,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
                                 this.indices.forEach(Index::initialize);
 
-                                // Signal that all indices are ready. Consumers of this marker may now start working with them.
+                                // Signal that all indices are ready. Consumers of this marker may now start working
+                                // with them.
                                 this.setupStatusIndex.markComplete();
                             });
         }

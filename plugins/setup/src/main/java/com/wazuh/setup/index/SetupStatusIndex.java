@@ -19,6 +19,7 @@ package com.wazuh.setup.index;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
 
 import java.time.Instant;
@@ -88,6 +89,9 @@ public class SetupStatusIndex extends WazuhIndex {
      * Writes the setup status marker document. Failures are logged but never propagated, so they
      * cannot interrupt node startup.
      *
+     * <p>Periodic refresh is disabled on this index ({@code refresh_interval: -1}) since it only
+     * changes on startup, so each write triggers an immediate refresh to keep the marker searchable.
+     *
      * @param status marker status value to persist.
      */
     private void setSetupStatus(String status) {
@@ -97,7 +101,8 @@ public class SetupStatusIndex extends WazuhIndex {
                             .id(SETUP_STATUS_ID)
                             .source(
                                     Map.of(KEY_STATUS, status, KEY_TIMESTAMP, Instant.now().toString()),
-                                    XContentType.JSON);
+                                    XContentType.JSON)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
             this.client.index(request).actionGet();
             log.info("Setup status marker set to [{}].", status);
         } catch (Exception e) {

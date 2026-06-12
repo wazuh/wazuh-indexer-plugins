@@ -335,8 +335,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        // detectors reference the wazuh-events-v5-* data streams as source indices, and Security Analytics
-        // rejects detectors whose source indices do not exist.
+        // detectors reference the wazuh-events-v5-* data streams as source indices, and Security
+        // Analytics rejects detectors whose source indices do not exist.
         List<String> missingIndices = this.missingSourceIndices(docs);
         if (!missingIndices.isEmpty()) {
             log.error(
@@ -425,8 +425,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Collects the detector source indices declared in the given integration documents
-     * and returns those that do not exist in the cluster.
+     * Collects the detector source indices declared in the given integration documents and returns
+     * those that do not exist in the cluster.
      *
      * @param docs integration documents potentially holding a {@code detector.source} array.
      * @return sorted list of missing source indices; empty if all exist.
@@ -460,8 +460,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private boolean indexIsMissing(String indexName) {
         try {
-            ResolveIndexAction.Request request =
-                    new ResolveIndexAction.Request(new String[] {indexName});
+            ResolveIndexAction.Request request = new ResolveIndexAction.Request(new String[] {indexName});
             ResolveIndexAction.Response response =
                     this.client.admin().indices().resolveIndex(request).actionGet();
             return response.getIndices().isEmpty()

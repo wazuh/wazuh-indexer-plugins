@@ -117,10 +117,10 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * missingSourceIndices() collects the detector source indices from the integration documents
-     * and returns only those missing from the cluster. Source indices are usually
-     * data streams (wazuh-events-v5-*), so resolution must be data-stream-aware: a name that
-     * resolves to a data stream is NOT missing, and an unresolvable name is missing.
+     * missingSourceIndices() collects the detector source indices from the integration documents and
+     * returns only those missing from the cluster. Source indices are usually data streams
+     * (wazuh-events-v5-*), so resolution must be data-stream-aware: a name that resolves to a data
+     * stream is NOT missing, and an unresolvable name is missing.
      */
     @SuppressWarnings("unchecked")
     public void testMissingSourceIndices_dataStreamResolved_returnsOnlyMissingOnes()
@@ -176,8 +176,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         when(indexResponse.getDataStreams()).thenReturn(Collections.emptyList());
         ActionFuture<ResolveIndexAction.Response> future = mock(ActionFuture.class);
         when(future.actionGet()).thenReturn(indexResponse);
-        when(indicesAdminClient.resolveIndex(any(ResolveIndexAction.Request.class)))
-                .thenReturn(future);
+        when(indicesAdminClient.resolveIndex(any(ResolveIndexAction.Request.class))).thenReturn(future);
 
         List<String> missing = this.synchronizer.missingSourceIndices(List.of(doc));
 

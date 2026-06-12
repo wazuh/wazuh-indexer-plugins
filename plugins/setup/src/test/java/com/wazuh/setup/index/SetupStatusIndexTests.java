@@ -18,6 +18,7 @@ package com.wazuh.setup.index;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
@@ -97,6 +98,10 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
         assertTrue(
                 "Payload must contain a timestamp",
                 captured.source().utf8ToString().contains("\"timestamp\""));
+        assertEquals(
+                "The write must refresh the index immediately (periodic refresh is disabled)",
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                captured.getRefreshPolicy());
     }
 
     /** markInitializing() with no marker index -> no stale marker to invalidate; no-op. */
@@ -108,7 +113,9 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
-    /** markInitializing() with an existing index -> overwrites the marker with status=initializing. */
+    /**
+     * markInitializing() with an existing index -> overwrites the marker with status=initializing.
+     */
     public void testMarkInitializing_indexExists_writesInitializingStatus() {
         when(this.routingTable.hasIndex(SetupStatusIndex.INDEX_NAME)).thenReturn(true);
         when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
@@ -127,6 +134,10 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
                         .source()
                         .utf8ToString()
                         .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_INITIALIZING + "\""));
+        assertEquals(
+                "The write must refresh the index immediately (periodic refresh is disabled)",
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                captured.getRefreshPolicy());
     }
 
     /** A failure while writing the marker is swallowed; node startup must not be affected. */
