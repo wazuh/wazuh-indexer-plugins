@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import org.opensearch.action.get.GetRequestBuilder;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -25,11 +27,23 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link CatalogSyncJob} class. This test suite validates the scheduled job
@@ -49,6 +63,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     @Mock private Environment environment;
     @Mock private ThreadPool threadPool;
     @Mock private EngineService engineService;
+    @Mock private GetRequestBuilder getRequestBuilder;
+    @Mock private GetResponse getResponse;
 
     @Before
     @Override
@@ -64,6 +80,10 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                         this.environment,
                         this.threadPool,
                         this.engineService);
+
+        when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
+                .thenReturn(this.getRequestBuilder);
+        when(this.getRequestBuilder.get()).thenReturn(this.getResponse);
     }
 
     @After
@@ -85,5 +105,40 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     /** Test that the {@link CatalogSyncJob#JOB_TYPE} constant is correctly defined. */
     public void testJobTypeConstant() {
         Assert.assertEquals("consumer-sync-task", CatalogSyncJob.JOB_TYPE);
+    }
+
+    /** The setup status marker must be read from the dedicated .wazuh-setup-status index. */
+    public void testSetupStatusIndexConstant() {
+        Assert.assertEquals(".wazuh-setup-status", Constants.INDEX_SETUP_STATUS);
+    }
+
+    /** Setup marker already complete -> waitForSetup returns true on the first check. */
+    public void testWaitForSetup_markerComplete_returnsTrue() {
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsMap())
+                .thenReturn(Map.of(Constants.KEY_STATUS, Constants.SETUP_STATUS_COMPLETE));
+
+        Assert.assertTrue(this.catalogSyncJob.waitForSetup());
+    }
+
+    /** When setup never completes, the synchronization pass is skipped entirely. */
+    public void testTrigger_setupIncomplete_skipsSynchronization() {
+        ExecutorService sameThreadExecutor = mock(ExecutorService.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(sameThreadExecutor)
+                .execute(any(Runnable.class));
+        when(this.threadPool.generic()).thenReturn(sameThreadExecutor);
+
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(false).when(job).waitForSetup();
+
+        job.trigger();
+
+        verifyNoInteractions(this.consumersIndex);
+        Assert.assertFalse("Semaphore must be released after a skipped pass", job.isRunning());
     }
 }

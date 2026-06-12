@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
@@ -361,6 +362,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
+        // detectors reference the wazuh-events-v5-* data streams as source indices, and Security
+        // Analytics rejects detectors whose source indices do not exist.
+        List<String> missingIndices = this.missingSourceIndices(docs);
+        if (!missingIndices.isEmpty()) {
+            log.error(
+                    "Skipping detectors sync. Required source indices not found: {}",
+                    String.join(", ", missingIndices));
+            return;
+        }
+
         log.debug(Constants.D_LOG_SAP_DETECTORS_SYNCING, docs.size(), 1, docs.size() - 1);
 
         AtomicInteger sent = new AtomicInteger();
@@ -473,13 +484,51 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Checks if the specified index exists in the cluster.
+     * Collects the detector source indices declared in the given integration documents and returns
+     * those that do not exist in the cluster.
      *
-     * @param indexName The name of the index to check.
-     * @return true if the index exists, false otherwise.
+     * @param docs integration documents potentially holding a {@code detector.source} array.
+     * @return sorted list of missing source indices; empty if all exist.
+     */
+    List<String> missingSourceIndices(List<JsonNode> docs) {
+        Set<String> sourceIndices = new TreeSet<>();
+        for (JsonNode doc : docs) {
+            JsonNode detector = doc.path(Constants.KEY_DETECTOR);
+            if (detector.has(Constants.KEY_SOURCE) && detector.get(Constants.KEY_SOURCE).isArray()) {
+                detector.get(Constants.KEY_SOURCE).forEach(source -> sourceIndices.add(source.asText()));
+            }
+        }
+
+        List<String> missing = new ArrayList<>();
+        for (String index : sourceIndices) {
+            if (this.indexIsMissing(index)) {
+                missing.add(index);
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Checks if the specified index exists in the cluster. Uses the resolve index API so the name may
+     * be a plain index, an alias or a data stream (the indices exists API does not resolve data
+     * streams, which would report the wazuh-events-v5-* streams as missing). Resolution failures are
+     * treated as missing.
+     *
+     * @param indexName The name of the index, alias or data stream to check.
+     * @return true if the name does not resolve to anything, false otherwise.
      */
     private boolean indexIsMissing(String indexName) {
-        return !this.client.admin().indices().prepareExists(indexName).get().isExists();
+        try {
+            ResolveIndexAction.Request request = new ResolveIndexAction.Request(new String[] {indexName});
+            ResolveIndexAction.Response response =
+                    this.client.admin().indices().resolveIndex(request).actionGet();
+            return response.getIndices().isEmpty()
+                    && response.getAliases().isEmpty()
+                    && response.getDataStreams().isEmpty();
+        } catch (Exception e) {
+            log.debug("Could not resolve index [{}]: {}", indexName, e.getMessage());
+            return true;
+        }
     }
 
     /**
