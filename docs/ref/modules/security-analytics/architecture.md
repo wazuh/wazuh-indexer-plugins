@@ -94,11 +94,11 @@ Before assembling an enriched document, the service reads `wazuh.integration.cat
 
 `buildAndIndex` starts from a shallow copy of the triggering event source and overlays the following fields:
 
-| Field         | Source                                                                      |
-| ------------- | --------------------------------------------------------------------------- |
-| `@timestamp`  | `@timestamp` of the original triggering event                               |
-| `event.*`     | Pre-existing `event` fields plus `doc_id`, `index`                          |
-| `wazuh.rule`  | Sigma rule metadata (`id`, `title`, `tags`, `sigma_id`, and any of `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
+| Field        | Source                                                                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@timestamp` | `@timestamp` of the original triggering event                                                                                                |
+| `event.*`    | Pre-existing `event` fields plus `doc_id`, `index`                                                                                           |
+| `wazuh.rule` | Sigma rule metadata (`id`, `title`, `tags`, `sigma_id`, and any of `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
 
 Rule metadata is nested under `wazuh.rule`. Because the event's `wazuh` map (which carries `wazuh.integration.*`) is shared with the shallow copy, the service defensively copies it before adding `rule`, so the original event source is never mutated.
 
@@ -107,20 +107,22 @@ The `WTransportIndexDetectorAction` serves as the entry point for detector creat
 
 ## Technical parameters
 
-| Parameter            | Value                            | Description                                                     |
-| -------------------- | -------------------------------- | --------------------------------------------------------------- |
-| `BULK_BATCH_SIZE`    | `100`                            | Pending index requests accumulated before a batch-trigger flush |
-| `MAX_IN_FLIGHT`      | `50`                             | Maximum concurrent async enrichment chains                      |
-| `FLUSH_INTERVAL`     | `5 s`                            | Interval between periodic flush runs                            |
-| Target data stream   | `wazuh-findings-v5-{category}*`  | Data stream destination, resolved per finding                   |
-| Rule metadata cache  | Unbounded, in-memory             | `ConcurrentHashMap`, keyed by rule ID, cleared on restart       |
-| Index operation type | `CREATE`                         | Prevents overwriting existing enriched findings                 |
+| Parameter            | Value                           | Description                                                     |
+| -------------------- | ------------------------------- | --------------------------------------------------------------- |
+| `BULK_BATCH_SIZE`    | `100`                           | Pending index requests accumulated before a batch-trigger flush |
+| `MAX_IN_FLIGHT`      | `50`                            | Maximum concurrent async enrichment chains                      |
+| `FLUSH_INTERVAL`     | `5 s`                           | Interval between periodic flush runs                            |
+| Target data stream   | `wazuh-findings-v5-{category}*` | Data stream destination, resolved per finding                   |
+| Rule metadata cache  | Unbounded, in-memory            | `ConcurrentHashMap`, keyed by rule ID, cleared on restart       |
+| Index operation type | `CREATE`                        | Prevents overwriting existing enriched findings                 |
 
 ## System indices
 
-| Index                                   | Description                                                  |
-| --------------------------------------- | ------------------------------------------------------------ |
-| `.opensearch-sap-{category}-findings-*` | Raw SAP findings written by the Security Analytics Plugin    |
-| `.opensearch-pre-packaged-rules`        | Wazuh-provided Sigma rules; source for rule metadata         |
-| `.opensearch-custom-rules`              | User-created custom rules; fallback source for rule metadata |
-| `wazuh-findings-v5-{category}*`         | Enriched findings written by `WazuhEnrichedFindingService`   |
+| Index                                       | Description                                                  |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| `.opensearch-sap-{category}-findings-*`     | Raw SAP findings written by the Security Analytics Plugin    |
+| `.opensearch-sap-pre-packaged-rules-config` | Wazuh-provided Sigma rules; source for rule metadata         |
+| `.opensearch-sap-custom-rules-config`       | User-created custom rules; fallback source for rule metadata |
+| `.opensearch-sap-log-types-config`          | Integrations                                                 |
+| `wazuh-findings-v5-{category}*`             | Enriched findings written by `WazuhEnrichedFindingService`   |
+| `.opensearch-sap-detectors-config`          | Threat Detectors configurations.                             |
