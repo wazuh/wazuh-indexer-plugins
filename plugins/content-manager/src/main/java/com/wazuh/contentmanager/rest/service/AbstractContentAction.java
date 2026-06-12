@@ -186,9 +186,9 @@ public abstract class AbstractContentAction extends BaseRestHandler {
             SearchResponse response = client.search(searchRequest).actionGet();
 
             if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                log.error("Failed to find Draft policy document");
+                log.error(Constants.E_500_MISSING_DRAFT_POLICY);
                 return new RestResponse(
-                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception ex) {
             OpenSearchSecurityException secEx = extractSecurityException(ex);
@@ -230,12 +230,12 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                         new RestResponse(secEx.getMessage(), secEx.status().getStatus()).toBytesRestResponse());
                 return;
             }
-            log.error("Error processing request", e);
+            log.error(Constants.E_LOG_PROCESS_REQUEST_FAILED, e.getMessage(), e);
             RestResponse error =
                     new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             channel.sendResponse(error.toBytesRestResponse());
         } catch (Exception ex) {
-            log.error("Failed to send error response", ex);
+            log.error(Constants.E_LOG_SEND_ERROR_RESPONSE_FAILED, ex);
         }
     }
 

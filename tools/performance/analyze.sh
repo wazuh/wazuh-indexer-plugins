@@ -6,7 +6,8 @@
 # Discovers every runs/<scenario>-<version>/metrics.csv, groups them by scenario
 # (real-world / isolated), and for each scenario that has runs writes:
 #   <scenario>-compare.md    (analyze/compare.py — needs >=2 versions)
-#   <scenario>-timeline.png  (analyze/plot.py)
+#   <scenario>-timeline.png  (analyze/plot.py --kind timeline — per-sample spikes)
+#   <scenario>-averages.png  (analyze/plot.py --kind average — mean bar per run)
 #
 # Comparisons only make sense within a scenario (same workload), so runs are never
 # mixed across scenarios. Each run's label comes from its run-metadata.json, else
@@ -64,7 +65,8 @@ for s in "${SCENARIOS[@]}"; do
     ANY=1
 
     echo "[INFO] $s: ${#pairs[@]} run(s) — ${pairs[*]}"
-    python3 analyze/plot.py "${pairs[@]}" --out "$s-timeline.png"
+    python3 analyze/plot.py "${pairs[@]}" --kind timeline --out "$s-timeline.png"
+    python3 analyze/plot.py "${pairs[@]}" --kind average  --out "$s-averages.png"
     if [[ ${#pairs[@]} -ge 2 ]]; then
         python3 analyze/compare.py "${pairs[@]}" --out "$s-compare.md"
     else
@@ -77,4 +79,4 @@ done
     exit 1
 }
 
-echo "[INFO] Done. See <scenario>-compare.md and <scenario>-timeline.png in $(pwd)."
+echo "[INFO] Done. See <scenario>-compare.md, <scenario>-timeline.png and <scenario>-averages.png in $(pwd)."

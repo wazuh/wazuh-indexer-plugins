@@ -130,11 +130,11 @@ public class SnapshotServiceImpl implements SnapshotService {
         String snapshotUrl = consumer.getSnapshotLink();
 
         if (snapshotUrl == null || snapshotUrl.isEmpty()) {
-            log.warn("Snapshot URL is empty. Skipping initialization.");
+            log.warn(Constants.W_LOG_SNAPSHOT_URL_EMPTY);
             return false;
         }
 
-        log.info("Starting snapshot initialization for [{}]", this.consumerType);
+        log.debug(Constants.D_LOG_SNAPSHOT_INIT_START, this.consumerType);
         Path snapshotZip = null;
         Path outputDir = null;
 
@@ -142,7 +142,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             // 1. Download Snapshot
             snapshotZip = this.snapshotClient.downloadFile(snapshotUrl);
             if (snapshotZip == null) {
-                log.error("Failed to download snapshot from {}", snapshotUrl);
+                log.error(Constants.E_LOG_SNAPSHOT_DOWNLOAD_FAILED, snapshotUrl);
                 return false;
             }
 
@@ -162,12 +162,12 @@ public class SnapshotServiceImpl implements SnapshotService {
 
             // Ensure all bulk requests are finished
             if (!this.indicesMap.isEmpty()) {
-                log.info("Waiting for pending bulk updates to finish...");
+                log.debug(Constants.D_LOG_SNAPSHOT_WAIT_PENDING_BULK);
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
         } catch (Exception e) {
-            log.error("Error processing snapshot: {}", e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
             return false;
         } finally {
             // Cleanup temporary files
@@ -189,6 +189,10 @@ public class SnapshotServiceImpl implements SnapshotService {
     private void processSnapshotFile(Path filePath) {
         String line;
         int docCount = 0;
+        int missingPayload = 0;
+        int unknownType = 0;
+        int unmappedType = 0;
+        int parseErrors = 0;
         BulkRequest bulkRequest = new BulkRequest();
 
         // Use any available index to execute the bulk request
@@ -205,7 +209,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
                     // 1. Validate and Extract Payload
                     if (!rootJson.has(Constants.KEY_PAYLOAD)) {
-                        log.warn("Snapshot entry missing '{}'. Skipping.", Constants.KEY_PAYLOAD);
+                        missingPayload++;
                         continue;
                     }
                     JsonNode payload = rootJson.get(Constants.KEY_PAYLOAD);
@@ -231,14 +235,15 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     if (type == null) {
-                        log.warn("Could not identify resource type. Skipping.");
+                        unknownType++;
                         continue;
                     }
 
                     // 3. Select correct index based on type
                     ContentIndex indexHandler = this.indicesMap.get(type);
                     if (indexHandler == null) {
-                        log.warn("No ContentIndex found for type [{}]. Skipping.", type);
+                        log.debug(Constants.D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE, type);
+                        unmappedType++;
                         continue;
                     }
 
@@ -286,8 +291,20 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                 } catch (IOException e) {
-                    log.error("Error parsing/indexing JSON line: {}", e.getMessage());
+                    log.debug(Constants.D_LOG_SNAPSHOT_PARSE_LINE_FAILED, e.getMessage());
+                    parseErrors++;
                 }
+            }
+
+            int skipped = missingPayload + unknownType + unmappedType + parseErrors;
+            if (skipped > 0) {
+                log.warn(
+                        Constants.W_LOG_SNAPSHOT_ENTRIES_SKIPPED,
+                        skipped,
+                        missingPayload,
+                        unknownType,
+                        unmappedType,
+                        parseErrors);
             }
 
             // Index remaining documents
@@ -296,7 +313,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
         } catch (Exception e) {
-            log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_READ_FILE_FAILED, filePath, e.getMessage());
         }
     }
 
@@ -325,10 +342,7 @@ public class SnapshotServiceImpl implements SnapshotService {
      */
     @Override
     public boolean initialize(Path localZip, JsonNode manifestEntry) {
-        log.info(
-                "Starting local snapshot initialization for [{}] from [{}]",
-                this.consumerType,
-                localZip.getFileName());
+        log.debug(Constants.D_LOG_SNAPSHOT_LOCAL_INIT_START, this.consumerType, localZip.getFileName());
 
         Path outputDir = null;
         this.maxOffsetSeen = 0;
@@ -358,12 +372,12 @@ public class SnapshotServiceImpl implements SnapshotService {
 
             // Ensure all bulk requests are finished
             if (!this.indicesMap.isEmpty()) {
-                log.info("Waiting for pending bulk updates to finish...");
+                log.debug(Constants.D_LOG_SNAPSHOT_WAIT_PENDING_BULK);
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
         } catch (Exception e) {
-            log.fatal("Error processing local snapshot: {}", e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
             return false;
         } finally {
             // Cleanup temporary extraction directory only
@@ -389,9 +403,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         try {
             GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
             if (getResponse == null || !getResponse.isExists()) {
-                log.warn(
-                        "Consumer [{}] doc not present after snapshot load; skipping local_offset update.",
-                        this.consumerType);
+                log.warn(Constants.W_LOG_SNAPSHOT_CONSUMER_DOC_MISSING, this.consumerType);
                 return false;
             }
             LocalConsumer current =
@@ -410,7 +422,9 @@ public class SnapshotServiceImpl implements SnapshotService {
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
-                    "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
+                    Constants.E_LOG_SNAPSHOT_CONSUMER_STATE_UPDATE_FAILED,
+                    ConsumersIndex.INDEX_NAME,
+                    e.getMessage());
             return false;
         }
     }
@@ -426,10 +440,37 @@ public class SnapshotServiceImpl implements SnapshotService {
         try {
             boolean deleted = AccessController.doPrivilegedChecked(() -> Files.deleteIfExists(snapshot));
             if (deleted) {
-                log.info("Deleted local snapshot file [{}]", snapshot);
+                log.debug(Constants.D_LOG_SNAPSHOT_LOCAL_DELETED, snapshot);
             }
         } catch (Exception e) {
-            log.warn("Failed to delete local snapshot file [{}]: {}", snapshot, e.getMessage());
+            log.warn(Constants.W_LOG_SNAPSHOT_LOCAL_DELETE_FAILED, snapshot, e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes every local snapshot zip file found directly under the given snapshots directory,
+     * delegating each deletion to {@link #deleteSnapshot(Path)}. Safe to call when the directory does
+     * not exist (e.g. development environments). Only the plugin's local snapshots directory should
+     * be passed in — remote snapshots are managed by the CTI service.
+     *
+     * @param snapshotsDir The plugin's local snapshots directory.
+     */
+    public static void deleteSnapshots(Path snapshotsDir) {
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        if (!Files.isDirectory(snapshotsDir)) {
+                            return null;
+                        }
+                        try (DirectoryStream<Path> stream = Files.newDirectoryStream(snapshotsDir, "*.zip")) {
+                            for (Path snapshot : stream) {
+                                deleteSnapshot(snapshot);
+                            }
+                        }
+                        return null;
+                    });
+        } catch (Exception e) {
+            log.warn("Failed to delete local snapshots in [{}]: {}", snapshotsDir, e.getMessage());
         }
     }
 
@@ -447,12 +488,12 @@ public class SnapshotServiceImpl implements SnapshotService {
                                     try {
                                         Files.delete(path);
                                     } catch (IOException e) {
-                                        log.warn("Failed to delete temp file {}", path);
+                                        log.warn(Constants.W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED, path);
                                     }
                                 });
             }
         } catch (IOException e) {
-            log.warn("Error during cleanup: {}", e.getMessage());
+            log.warn(Constants.W_LOG_SNAPSHOT_CLEANUP_FAILED, e.getMessage());
         }
     }
 }
