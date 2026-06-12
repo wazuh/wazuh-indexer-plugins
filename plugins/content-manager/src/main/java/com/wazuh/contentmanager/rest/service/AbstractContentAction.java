@@ -144,7 +144,7 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                 RestResponse result = executeRequest(request, client);
                 channel.sendResponse(result.toBytesRestResponse());
             } catch (Exception e) {
-                sendErrorResponse(channel, e);
+                AbstractContentAction.sendErrorResponse(channel, e);
             }
         };
     }
@@ -191,7 +191,7 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                         Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception ex) {
-            OpenSearchSecurityException secEx = extractSecurityException(ex);
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(ex);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
@@ -224,7 +224,7 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      */
     private static void sendErrorResponse(RestChannel channel, Exception e) {
         try {
-            OpenSearchSecurityException secEx = extractSecurityException(e);
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
             if (secEx != null) {
                 channel.sendResponse(
                         new RestResponse(secEx.getMessage(), secEx.status().getStatus()).toBytesRestResponse());

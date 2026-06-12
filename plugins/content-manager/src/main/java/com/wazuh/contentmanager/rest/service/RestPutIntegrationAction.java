@@ -181,7 +181,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
         } catch (Exception e) {
-            if (extractSecurityException(e) != null) throw e;
+            if (AbstractContentAction.extractSecurityException(e) != null) throw e;
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());

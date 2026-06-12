@@ -159,7 +159,7 @@ public class RestPostRuleAction extends AbstractCreateAction {
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            if (extractSecurityException(e) != null) throw e;
+            if (AbstractContentAction.extractSecurityException(e) != null) throw e;
             String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,

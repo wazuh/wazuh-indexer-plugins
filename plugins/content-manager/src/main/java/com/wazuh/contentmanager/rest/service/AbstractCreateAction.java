@@ -216,7 +216,7 @@ public abstract class AbstractCreateAction extends AbstractContentAction {
             return new RestResponse(id, RestStatus.CREATED.getStatus());
 
         } catch (Exception e) {
-            OpenSearchSecurityException secEx = extractSecurityException(e);
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
