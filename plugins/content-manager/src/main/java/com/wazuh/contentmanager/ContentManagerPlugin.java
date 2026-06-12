@@ -69,6 +69,7 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionAction;
+import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
@@ -88,6 +89,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.transport.TransportIndexSubscriptionAction;
+import com.wazuh.contentmanager.transport.TransportTriggerUpdateAction;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -227,7 +229,7 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return List.of(this.subscriptionService);
+        return List.of(this.subscriptionService, this.catalogSyncJob);
     }
 
     /**
@@ -297,7 +299,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestIndexSubscriptionAction(),
                 new RestGetSubscriptionAction(this.subscriptionService),
                 new RestDeleteSubscriptionAction(this.subscriptionService),
-                new RestPostUpdateAction(this.catalogSyncJob),
+                new RestPostUpdateAction(),
                 // Version check endpoint
                 new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints
@@ -701,7 +703,9 @@ public class ContentManagerPlugin extends Plugin
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
                 new ActionPlugin.ActionHandler<>(
-                        IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class));
+                        IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
+                new ActionPlugin.ActionHandler<>(
+                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class));
     }
 
     /**
