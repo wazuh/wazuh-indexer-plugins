@@ -244,8 +244,7 @@ public class ContentManagerPlugin extends Plugin
                                     log.info("Pre-registered environment detected.");
                                     this.subscriptionService.register(accessToken);
                                 } catch (Exception e) {
-                                    log.fatal("Unexpected error pre-registering environment: {}", e.getMessage());
-                                    throw new RuntimeException(e);
+                                    log.error("Unexpected error pre-registering environment: {}", e.getMessage());
                                 }
 
                                 // 2. Delete local snapshots (only for pre-registered environments).
