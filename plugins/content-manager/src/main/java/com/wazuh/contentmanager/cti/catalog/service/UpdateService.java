@@ -27,6 +27,7 @@ public interface UpdateService {
      *
      * @param fromOffset The starting offset (exclusive) to fetch changes from.
      * @param toOffset The target offset (inclusive) to reach.
+     * @return {@code true} if the update completed successfully, {@code false} otherwise.
      */
-    void update(long fromOffset, long toOffset);
+    boolean update(long fromOffset, long toOffset);
 }

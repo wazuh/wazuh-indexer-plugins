@@ -87,7 +87,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 String token = this.credentialsIndex.getAccessToken();
                 if (token != null) {
                     PluginSettings.getInstance().setAccessToken(token);
-                    log.info(Constants.I_LOG_ACCESS_TOKEN_READ_FROM_INDEX);
+                    log.info(Constants.I_LOG_CTI_TOKEN_LOADED);
                     return token;
                 }
             }

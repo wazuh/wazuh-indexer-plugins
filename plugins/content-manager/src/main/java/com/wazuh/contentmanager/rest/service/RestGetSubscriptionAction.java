@@ -21,7 +21,6 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -53,7 +52,6 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  */
 public class RestGetSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_get";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_get";
     private final SubscriptionService subscriptionService;
 
     /**
@@ -78,12 +76,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.SUBSCRIPTION_URI)
-                        .method(GET)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(GET, PluginSettings.SUBSCRIPTION_URI));
     }
 
     /**

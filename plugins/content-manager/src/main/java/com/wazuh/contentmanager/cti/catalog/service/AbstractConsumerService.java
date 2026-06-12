@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -34,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
@@ -167,10 +166,7 @@ public abstract class AbstractConsumerService {
     public void synchronize() {
         this.setConsumerStatus(LocalConsumer.Status.UPDATING);
         boolean isUpdated = this.syncConsumerServices();
-        log.info(
-                "Synchronization completed for consumer [{}]. Updated: {}",
-                this.getConsumerType(),
-                isUpdated);
+        log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
         this.onSyncComplete(isUpdated);
         this.setConsumerStatus(LocalConsumer.Status.IDLE);
     }
@@ -188,8 +184,7 @@ public abstract class AbstractConsumerService {
         try {
             GetResponse response = this.consumersIndex.getConsumer(consumerType);
             if (response == null || !response.isExists()) {
-                log.debug(
-                        "Consumer [{}] doc not present; skipping status update to [{}]", consumerType, status);
+                log.debug(Constants.D_LOG_CONSUMER_DOC_ABSENT, consumerType, status);
                 return;
             }
             LocalConsumer current =
@@ -205,10 +200,9 @@ public abstract class AbstractConsumerService {
                             current.getLocalOffset(),
                             current.getRemoteOffset());
             this.consumersIndex.setConsumer(updated);
-            log.debug("Consumer [{}] status set to [{}]", consumerType, status);
+            log.debug(Constants.D_LOG_CONSUMER_STATUS_SET, consumerType, status);
         } catch (Exception e) {
-            log.warn(
-                    "Failed to set consumer [{}] status to [{}]: {}", consumerType, status, e.getMessage());
+            log.warn(Constants.W_LOG_CONSUMER_STATUS_FAILED, consumerType, status, e.getMessage());
         }
     }
 
@@ -228,8 +222,7 @@ public abstract class AbstractConsumerService {
             String resource = current.getResource();
             return (resource != null && !resource.isBlank()) ? resource : null;
         } catch (Exception e) {
-            log.debug(
-                    "Could not read existing consumer resource for [{}]: {}", consumerType, e.getMessage());
+            log.debug(Constants.D_LOG_CONSUMER_RESOURCE_READ_FAILED, consumerType, e.getMessage());
             return null;
         }
     }
@@ -283,12 +276,9 @@ public abstract class AbstractConsumerService {
                 return;
             }
             this.consumersIndex.setConsumer(t0);
-            log.debug(
-                    "Consumer [{}] t0 written: status=UPDATING, local_offset=0, remote_offset={}",
-                    consumerType,
-                    t0.getRemoteOffset());
+            log.debug(Constants.D_LOG_CONSUMER_T0_WRITTEN, consumerType, t0.getRemoteOffset());
         } catch (Exception e) {
-            log.warn("Failed to write initial consumer state for [{}]: {}", consumerType, e.getMessage());
+            log.warn(Constants.W_LOG_CONSUMER_T0_FAILED, consumerType, e.getMessage());
         }
     }
 
@@ -350,7 +340,7 @@ public abstract class AbstractConsumerService {
         try {
             this.client.admin().indices().prepareRefresh(indexNames).get();
         } catch (Exception e) {
-            log.warn("Error refreshing indices: {}", e.getMessage());
+            log.warn(Constants.W_LOG_REFRESH_INDICES_FAILED, e.getMessage());
         }
     }
 
@@ -373,16 +363,19 @@ public abstract class AbstractConsumerService {
         Path snapshotsDir = null;
         Path localSnapshot = null;
         JsonNode manifestEntry = null;
-        try {
-            Path pluginsDir = this.environment.pluginsDir();
-            if (pluginsDir != null) {
-                snapshotsDir =
-                        pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
-                localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
-                manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+        // Snapshots dir do not exist on development environments.
+        if (!ContentManagerPlugin.isTestEnvironment()) {
+            try {
+                Path pluginsDir = this.environment.pluginsDir();
+                if (pluginsDir != null) {
+                    snapshotsDir =
+                            pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
+                    localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+                    manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
+                }
+            } catch (Exception e) {
+                log.debug(Constants.D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED, consumerType, e.getMessage());
             }
-        } catch (Exception e) {
-            log.debug("Could not resolve snapshots directory for [{}]: {}", consumerType, e.getMessage());
         }
 
         // The effective catalog URI prefers, in order:
@@ -430,11 +423,7 @@ public abstract class AbstractConsumerService {
                 && !existingResource.isBlank()
                 && !UrlUtils.isSameResource(planResource, existingResource)) {
             // Case 1: Plan upgrade or cross-plan change.
-            log.info(
-                    "Consumer [{}] resource changed from [{}] to [{}]. Scheduling blue/green swap.",
-                    consumerType,
-                    existingResource,
-                    planResource);
+            log.debug(Constants.D_LOG_INDEX_SWAP_STARTED, consumerType, existingResource, planResource);
             shadowSwapRequired = true;
             swapTargetResource = planResource;
             catalogUri = planResource;
@@ -445,9 +434,8 @@ public abstract class AbstractConsumerService {
                 && !UrlUtils.isSameResource(existingResource, manifestResource)) {
             // Case 2: Downgrade to free — existing resource is a paid URL, manifest has the
             // free/default URL. Swap to the manifest content.
-            log.info(
-                    "Consumer [{}] downgrade detected: existing resource [{}] differs from manifest [{}]. "
-                            + "Scheduling blue/green swap to free content.",
+            log.debug(
+                    Constants.D_LOG_INDEX_SWAP_TO_FREE_PLAN,
                     consumerType,
                     existingResource,
                     manifestResource);
@@ -455,22 +443,26 @@ public abstract class AbstractConsumerService {
             swapTargetResource = manifestResource;
             catalogUri = manifestResource;
         }
+
+        // Single user-facing INFO that a content-source change is being applied; the
+        // step-by-step rebuild/swap below is logged at DEBUG. Paired with the
+        // "content updated" INFO emitted once the swap completes.
+        if (shadowSwapRequired) {
+            log.info(Constants.I_LOG_CONTENT_SOURCE_CHANGED, consumerType);
+        }
+
         String context = PluginSettings.getContextFromCatalogUri(catalogUri);
         String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
 
         // Build URL resolver based on registration status
         ResourceUrlResolver urlResolver;
         if (PluginSettings.getInstance().isRegistered()) {
-            log.debug(
-                    "Registered environment detected for consumer [{}]. Using signed URL resolver.",
-                    consumerType);
+            log.debug(Constants.D_LOG_SIGNED_URL_RESOLVER, consumerType);
             urlResolver =
                     new SignedUrlResolver(
                             new TokenExchangeServiceImpl(), PluginSettings.getInstance().getAccessToken());
         } else {
-            log.debug(
-                    "Non-registered environment for consumer [{}]. Using regular URL resolver.",
-                    consumerType);
+            log.debug(Constants.D_LOG_REGULAR_URL_RESOLVER, consumerType);
             urlResolver = new RegularUrlResolver();
         }
 
@@ -500,12 +492,10 @@ public abstract class AbstractConsumerService {
 
             if (!indexExists) {
                 try {
-                    CreateIndexResponse response = index.createIndex();
-                    if (response.isAcknowledged()) {
-                        log.info("Index [{}] created successfully", response.index());
-                    }
+                    // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
+                    index.createIndex();
                 } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
+                    log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
                 }
             }
         }
@@ -524,7 +514,7 @@ public abstract class AbstractConsumerService {
         if (localConsumer != null && remoteConsumer != null) {
             if (currentOffset > remoteConsumer.getOffset()) {
                 log.warn(
-                        "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.",
+                        Constants.W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE,
                         currentOffset,
                         remoteConsumer.getOffset(),
                         consumerType);
@@ -542,7 +532,7 @@ public abstract class AbstractConsumerService {
                     snapshotExists =
                             AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshotPath));
                 } catch (Exception e) {
-                    log.warn("Failed to check local snapshot at [{}]: {}", localSnapshotPath, e.getMessage());
+                    log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED, localSnapshotPath, e.getMessage());
                     snapshotExists = false;
                 }
             }
@@ -578,16 +568,13 @@ public abstract class AbstractConsumerService {
                         SpaceService spaceService = new SpaceService(this.client);
                         spaceService.deleteSpaceResources(Space.STANDARD);
                     } catch (Exception e) {
-                        log.error(
-                                "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}",
-                                consumerType,
-                                e.getMessage());
+                        log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
                     }
                 } else {
                     indicesMap.values().forEach(ContentIndex::clear);
                 }
 
-                log.info("Initializing snapshot from custom consumer URL: {}", catalogUri);
+                log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
                 boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
                 if (remoteSuccess) {
                     currentOffset = remoteConsumer.getSnapshotOffset();
@@ -596,22 +583,16 @@ public abstract class AbstractConsumerService {
                         SnapshotServiceImpl.deleteSnapshot(localSnapshot);
                     }
                 } else if (snapshotExists) {
-                    log.warn(
-                            "Remote snapshot initialization failed for consumer [{}]. Falling back to local snapshot [{}].",
-                            consumerType,
-                            localSnapshot);
+                    log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
                     boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
                     if (localSuccess) {
                         currentOffset = snapshotService.getMaxOffsetSeen();
                         updated = true;
                     } else {
-                        log.warn("Local snapshot fallback failed for consumer [{}].", consumerType);
+                        log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
                     }
                 } else {
-                    log.warn(
-                            "Remote snapshot initialization failed for consumer [{}] and no local snapshot was found at [{}].",
-                            consumerType,
-                            localSnapshot);
+                    log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
                 }
             } else if (snapshotExists) {
                 if (hasEffectiveCatalog) {
@@ -619,40 +600,34 @@ public abstract class AbstractConsumerService {
                     // (invalid URL, network failure, missing snapshot link). Fall back to the
                     // packaged local snapshot.
                     log.warn(
-                            "Could not reach catalog URL [{}] for consumer [{}]. Falling back to local snapshot [{}].",
+                            Constants.W_LOG_CATALOG_UNREACHABLE_FALLBACK,
                             catalogUri,
                             consumerType,
                             localSnapshot.getFileName());
                 } else {
-                    log.info(
-                            "Initializing consumer [{}] from local snapshot [{}]",
-                            consumerType,
-                            localSnapshot.getFileName());
+                    log.debug(
+                            Constants.D_LOG_INIT_FROM_LOCAL_SNAPSHOT, consumerType, localSnapshot.getFileName());
                 }
                 boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
                 if (localSuccess) {
                     currentOffset = snapshotService.getMaxOffsetSeen();
                     updated = true;
                 } else {
-                    log.error("Local snapshot initialization failed for consumer [{}].", consumerType);
+                    log.error(Constants.E_LOG_LOCAL_SNAPSHOT_INIT_FAILED, consumerType);
                 }
             } else if (hasEffectiveCatalog) {
-                log.fatal(
-                        "No local snapshot found at [{}] and custom consumer initialization could not be completed for [{}].",
-                        localSnapshot,
-                        consumerType);
+                log.error(
+                        Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_REACH, consumerType, localSnapshot);
             } else {
-                log.fatal(
-                        "No local snapshot at [{}] for consumer [{}] and no custom consumer URL is configured.",
-                        localSnapshot,
-                        consumerType);
+                log.error(
+                        Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
             }
         }
 
         // Incremental Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
             log.info(
-                    "Performing update for consumer [{}] from offset [{}] to [{}]",
+                    Constants.I_LOG_UPDATING_CONSUMER_CONTENT,
                     consumerType,
                     currentOffset,
                     remoteConsumer.getOffset());
@@ -666,9 +641,8 @@ public abstract class AbstractConsumerService {
                             new ApiClient(urlResolver),
                             this.consumersIndex,
                             indicesMap);
-            updateService.update(currentOffset, remoteConsumer.getOffset());
+            updated = updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
-            updated = true;
         }
         return updated;
     }
@@ -687,8 +661,7 @@ public abstract class AbstractConsumerService {
         try {
             boolean exists = AccessController.doPrivilegedChecked(() -> Files.exists(manifestPath));
             if (!exists) {
-                log.fatal(
-                        "Snapshots manifest not found at [{}]. Consumer won't be initialized.", manifestPath);
+                log.error(Constants.E_LOG_MANIFEST_NOT_FOUND, manifestPath);
                 return null;
             }
 
@@ -697,22 +670,15 @@ public abstract class AbstractConsumerService {
             String snapshotFilename = this.getSnapshotFilename();
             JsonNode entry = root.get(snapshotFilename);
             if (entry == null || entry.isNull()) {
-                log.fatal(
-                        "No entry for [{}] in [{}]. Consumer won't be initialized.",
-                        snapshotFilename,
-                        manifestPath.getFileName());
+                log.error(
+                        Constants.E_LOG_MANIFEST_ENTRY_MISSING, snapshotFilename, manifestPath.getFileName());
                 return null;
             }
-            log.info(
-                    "Snapshot details for [{}] loaded from [{}].",
-                    snapshotFilename,
-                    manifestPath.getFileName());
+            log.debug(
+                    Constants.D_LOG_SNAPSHOT_DETAILS_LOADED, snapshotFilename, manifestPath.getFileName());
             return entry;
         } catch (Exception e) {
-            log.fatal(
-                    "Failed to load snapshots manifest from [{}]: {}. Consumer won't be initialized.",
-                    manifestPath,
-                    e.getMessage());
+            log.error(Constants.E_LOG_MANIFEST_READ_FAILED, manifestPath, e.getMessage());
             return null;
         }
     }
@@ -737,19 +703,16 @@ public abstract class AbstractConsumerService {
                         plansService.getMyPlan(
                                 new Token(PluginSettings.getInstance().getAccessToken(), "Bearer"));
                 if (plan == null) {
-                    log.debug("No plan returned for registered environment.");
+                    log.debug(Constants.D_LOG_NO_PLAN_RETURNED);
                     return null;
                 }
                 Feature feature = plan.getFeature(consumerType);
                 if (feature == null) {
-                    log.debug(
-                            "No feature found for consumer type [{}] in plan [{}].",
-                            consumerType,
-                            plan.getName());
+                    log.debug(Constants.D_LOG_NO_FEATURE_FOR_CONSUMER, consumerType, plan.getName());
                     return null;
                 }
-                log.info(
-                        "Plan [{}] provides resource [{}] for consumer [{}].",
+                log.debug(
+                        Constants.D_LOG_PLAN_PROVIDES_RESOURCE,
                         plan.getName(),
                         feature.getResource(),
                         consumerType);
@@ -758,8 +721,7 @@ public abstract class AbstractConsumerService {
                 plansService.close();
             }
         } catch (Exception e) {
-            log.warn(
-                    "Failed to resolve plan resource for consumer [{}]: {}", consumerType, e.getMessage());
+            log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
             return null;
         }
     }
@@ -789,9 +751,7 @@ public abstract class AbstractConsumerService {
             ResourceUrlResolver urlResolver) {
 
         if (remoteConsumer == null || remoteConsumer.getSnapshotLink() == null) {
-            log.error(
-                    "Cannot perform shadow swap for consumer [{}]: remote consumer or snapshot link unavailable.",
-                    consumerType);
+            log.error(Constants.E_LOG_SHADOW_SWAP_UNAVAILABLE, consumerType);
             return false;
         }
 
@@ -805,7 +765,7 @@ public abstract class AbstractConsumerService {
 
         try {
             // Step 1-2: Resolve shadow names and create hidden shadow indices.
-            log.info("Creating shadow indices for consumer [{}] plan change swap.", consumerType);
+            log.debug(Constants.D_LOG_SHADOW_INDICES_CREATING, consumerType);
             shadowIndicesMap =
                     IndexSwapHelper.createShadowIndices(this.client, this.getMappings(), this::getIndexName);
 
@@ -822,10 +782,7 @@ public abstract class AbstractConsumerService {
             }
 
             // Step 3-4: Download snapshot into shadow indices.
-            log.info(
-                    "Downloading snapshot into shadow indices for consumer [{}] from [{}].",
-                    consumerType,
-                    catalogUri);
+            log.debug(Constants.D_LOG_SHADOW_SNAPSHOT_DOWNLOADING, consumerType, catalogUri);
             SnapshotServiceImpl snapshotService =
                     this.snapshotServiceOverride != null
                             ? this.snapshotServiceOverride
@@ -837,8 +794,7 @@ public abstract class AbstractConsumerService {
                                     urlResolver);
             boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
             if (!snapshotSuccess) {
-                log.error(
-                        "Shadow snapshot download failed for consumer [{}]. Aborting swap.", consumerType);
+                log.error(Constants.E_LOG_SHADOW_SNAPSHOT_FAILED, consumerType);
                 IndexSwapHelper.deleteIndices(this.client, shadowPhysicalNames);
                 return false;
             }
@@ -851,21 +807,17 @@ public abstract class AbstractConsumerService {
                     String aliasName = entry.getKey();
                     liveToShadow.put(aliasToOldPhysical.get(aliasName), entry.getValue());
                 }
-                log.info("Reindexing user content for consumer [{}] plan change swap.", consumerType);
+                log.debug(Constants.D_LOG_REINDEX_USER_CONTENT, consumerType);
                 IndexSwapHelper.reindexUserContent(this.client, liveToShadow, timeoutSeconds);
             }
 
             // Step 6-7: Unhide + atomic alias swap.
-            log.info("Performing atomic alias swap for consumer [{}].", consumerType);
+            log.debug(Constants.D_LOG_ATOMIC_ALIAS_SWAP, consumerType);
             IndexSwapHelper.atomicSwap(
                     this.client, aliasToNewPhysical, aliasToOldPhysical, timeoutSeconds);
 
         } catch (Exception e) {
-            log.error(
-                    "Shadow swap failed for consumer [{}] before alias swap: {}. Cleaning up.",
-                    consumerType,
-                    e.getMessage(),
-                    e);
+            log.error(Constants.E_LOG_SHADOW_SWAP_FAILED_BEFORE_SWAP, consumerType, e.getMessage(), e);
             IndexSwapHelper.deleteIndices(this.client, shadowPhysicalNames);
             return false;
         }
@@ -889,51 +841,19 @@ public abstract class AbstractConsumerService {
                             snapshotOffset,
                             remoteConsumer.getOffset());
             this.consumersIndex.setConsumer(newConsumer);
-            log.info(
-                    "Consumer [{}] document rewritten for new plan resource [{}], offset={}",
-                    consumerType,
-                    planResource,
-                    snapshotOffset);
+            log.debug(Constants.D_LOG_CONSUMER_DOC_REWRITTEN, consumerType, planResource, snapshotOffset);
         } catch (Exception e) {
-            log.error(
-                    "Failed to rewrite consumer [{}] document after alias swap: {}. "
-                            + "Next sync will re-detect the plan change and retry.",
-                    consumerType,
-                    e.getMessage());
+            log.error(Constants.E_LOG_CONSUMER_DOC_REWRITE_FAILED, consumerType, e.getMessage());
         }
 
         // Step 10: Delete old physical indices.
         try {
             IndexSwapHelper.deleteIndices(this.client, aliasToOldPhysical.values());
         } catch (Exception e) {
-            log.warn(
-                    "Failed to delete old physical indices for consumer [{}]: {}",
-                    consumerType,
-                    e.getMessage());
+            log.warn(Constants.W_LOG_OLD_INDICES_DELETE_FAILED, consumerType, e.getMessage());
         }
 
-        log.info("Blue/green swap completed successfully for consumer [{}].", consumerType);
+        log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
         return true;
-    }
-
-    /**
-     * Resets the persisted consumer state by deleting its document from the consumers index. This
-     * forces a full re-initialization on the next sync cycle (snapshot download + incremental
-     * update).
-     *
-     * @param consumerType the consumer type identifier to reset.
-     */
-    private void resetConsumer(String consumerType) {
-        try {
-            DeleteResponse response =
-                    this.client.prepareDelete(ConsumersIndex.INDEX_NAME, consumerType).execute().actionGet();
-            log.info(
-                    "Consumer [{}] document deleted for re-initialization. Result: {}",
-                    consumerType,
-                    response.getResult());
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to delete consumer [{}] for re-initialization: {}", consumerType, e.getMessage());
-        }
     }
 }

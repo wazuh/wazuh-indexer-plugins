@@ -95,12 +95,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * states.
      */
     @Override
-    public void update(long fromOffset, long toOffset) {
-        log.info(
-                "Starting content update for consumer [{}] from [{}] to [{}]",
-                this.consumer,
-                fromOffset,
-                toOffset);
+    public boolean update(long fromOffset, long toOffset) {
+        log.debug(Constants.D_LOG_UPDATE_START, this.consumer, fromOffset, toOffset);
         try {
             long currentFromOffset = fromOffset;
             long lastAppliedOffset = fromOffset;
@@ -113,9 +109,13 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 SimpleHttpResponse response =
                         this.client.getChanges(this.consumerUri, currentFromOffset, currentToOffset);
                 if (response.getCode() != 200) {
-                    log.error("Failed to fetch changes: {} {}", response.getCode(), response.getBodyText());
+                    log.error(
+                            "Failed to fetch changes from offset [{}] to [{}] with error code [{}]",
+                            currentFromOffset,
+                            currentToOffset,
+                            response.getCode());
                     if (lastAppliedOffset == fromOffset) {
-                        return;
+                        return false;
                     }
                     break;
                 }
@@ -127,12 +127,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         this.applyOffset(offset);
                     } catch (Exception e) {
                         log.error(
-                                "Failed to apply offset [{}] (type={}, resource={}): {}",
+                                Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
                                 offset.getOffset(),
                                 offset.getType(),
                                 offset.getResource(),
-                                e.getMessage(),
-                                e);
+                                e.getMessage());
                         throw e;
                     }
                 }
@@ -163,10 +162,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             toOffset);
             this.consumersIndex.setConsumer(updated);
 
-            log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
+            log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, consumer.getType(), lastAppliedOffset);
+            return true;
         } catch (Exception e) {
-            log.error("Error during content update: {}", e.getMessage(), e);
+            log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage());
             this.resetConsumer();
+            return false;
         }
     }
 
@@ -209,7 +210,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         if (index != null) {
                             index.create(id, payload);
                         } else {
-                            log.warn("No index mapped for type [{}]", type);
+                            log.warn(Constants.W_LOG_UPDATE_NO_INDEX_FOR_TYPE, type);
                         }
                     }
                 }
@@ -220,14 +221,14 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case DELETE:
                 if (this.shouldSkipDelete(id)) {
-                    log.info("Skipping DELETE for CVE resource [{}] (CVE removals are not applied).", id);
+                    log.debug(Constants.D_LOG_UPDATE_SKIP_CVE_DELETE, id);
                     break;
                 }
                 index = this.findIndexForId(id);
                 index.delete(id);
                 break;
             default:
-                log.warn("Unsupported JSON patch operation [{}]", offset.getType());
+                log.warn(Constants.W_LOG_UPDATE_UNSUPPORTED_OPERATION, offset.getType());
                 break;
         }
     }
@@ -274,14 +275,14 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
     /** Resets the local consumer offset to 0. */
     private void resetConsumer() {
-        log.info("Resetting consumer [{}] offset to 0 due to update failure.", this.consumer);
+        log.warn(Constants.W_LOG_UPDATE_RESET_CONSUMER, this.consumer);
         try {
             GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
             LocalConsumer current =
                     (getResponse != null && getResponse.isExists())
                             ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
                             : null;
-            boolean effectiveIsPublic = current != null ? current.isPublic() : true;
+            boolean effectiveIsPublic = current == null || current.isPublic();
             LocalConsumer reset =
                     new LocalConsumer(
                             this.firstNonBlank(current != null ? current.getContext() : null, this.context),
@@ -293,7 +294,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             0);
             this.consumersIndex.setConsumer(reset);
         } catch (Exception e) {
-            log.error("Failed to reset consumer: {}", e.getMessage());
+            log.error(Constants.E_LOG_UPDATE_RESET_CONSUMER_FAILED, e.getMessage());
         }
     }
 

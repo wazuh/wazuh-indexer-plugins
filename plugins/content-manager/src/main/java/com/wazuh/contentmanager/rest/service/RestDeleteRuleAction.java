@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -54,7 +53,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_delete";
 
     public RestDeleteRuleAction() {
         super(null);
@@ -73,12 +71,7 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.RULES_URI + "/{id}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(DELETE, PluginSettings.RULES_URI + "/{id}"));
     }
 
     @Override
