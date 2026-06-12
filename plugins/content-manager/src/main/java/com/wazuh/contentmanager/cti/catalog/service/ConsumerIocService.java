@@ -117,7 +117,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
 
             if ("true".equals(System.getProperty("INDEXER_TEST_ENV"))) {
-                log.info("IOCs export skipped: test environment");
+                log.debug(Constants.D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV);
                 return;
             }
             // Export IoCs to NDJSON and load them into the Engine.
@@ -170,9 +170,9 @@ public class ConsumerIocService extends AbstractConsumerService {
                             .source(hashDocument.toString(), XContentType.JSON);
             this.client.index(indexRequest).actionGet();
 
-            log.info("IOC type hashes stored successfully.");
+            log.debug(Constants.D_LOG_IOC_TYPE_HASHES_STORED);
         } catch (Exception e) {
-            log.error("Failed to compute and store IOC type hashes: {}", e.getMessage(), e);
+            log.error(Constants.E_LOG_IOC_TYPE_HASHES_FAILED, e.getMessage(), e);
         } finally {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
@@ -315,7 +315,7 @@ public class ConsumerIocService extends AbstractConsumerService {
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
         }
 
-        log.info(Constants.I_LOG_IOC_EXPORT_COMPLETE, outputPath);
+        log.debug(Constants.D_LOG_IOC_EXPORT_COMPLETE, outputPath);
         return outputPath;
     }
 
@@ -334,7 +334,8 @@ public class ConsumerIocService extends AbstractConsumerService {
 
         RestResponse response = this.engineService.updateIoc(filePath, hash);
         if (response.getStatus() >= 200 && response.getStatus() < 300) {
-            log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED, response.getMessage());
+            log.info(Constants.I_LOG_IOC_ENGINE_NOTIFIED);
+            log.debug(Constants.D_LOG_IOC_ENGINE_REPLY, response.getMessage());
         } else {
             log.error(Constants.E_LOG_IOC_ENGINE_NOTIFY_FAILED, response.getMessage());
         }

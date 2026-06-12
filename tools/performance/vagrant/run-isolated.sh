@@ -1,19 +1,22 @@
 #!/bin/bash
 #
 # run-isolated.sh — measurement helper for the `isolated` scenario: cold-start +
-# synthetic load under continuous monitoring.
+# steady-rate findings load under continuous monitoring.
 #
 # Normally invoked by tools/performance/run.sh (which owns vagrant up/destroy).
 # Assumes `PERF_SCENARIO=isolated vagrant up` provisioned: an `indexer` VM
-# (single-node wazuh-indexer + node_exporter from boot) and a `monitor` VM
-# (Prometheus + Grafana scraping the indexer, plus OpenSearch Benchmark).
+# (single-node wazuh-indexer + node_exporter + JMX exporter from boot) and a `monitor`
+# VM (Prometheus + Grafana scraping the indexer).
 #
 # It:
-#   1. restarts wazuh-indexer to capture its COLD START (Prometheus is already
-#      scraping node_exporter, so startup CPU/RAM/disk land in the timeseries),
+#   1. restarts wazuh-indexer to capture its COLD START (Prometheus is already scraping
+#      node_exporter + the JMX exporter, so startup CPU/RAM/disk/JVM land in the series),
 #   2. waits for the indexer to go green,
-#   3. runs the OSB synthetic workload FROM the monitor VM (off the indexer host),
-#   4. pulls the OSB report + indexer-internal CSV back over SSH.
+#   3. from the monitor VM: indexes the fixed system-activity event into
+#      wazuh-events-v5-system-activity at --rate events/sec for --duration seconds, sampling
+#      the indexer in parallel. The indexer's own content-manager (CTI catalog sync, enabled
+#      in config/perf-tune.yml) auto-creates the detectors that turn the event into findings,
+#   4. pulls the load + metrics back over SSH and generates report.md + timeline.png.
 #
 # Everything is over `vagrant ssh` — no reliance on guest→host synced folders.
 #
@@ -22,17 +25,21 @@
 set -euo pipefail
 
 INDEXER_IP="${PERF_AIO_IP:-192.168.60.20}"
-DOCS=1000000
-PASSWORD=""
+RATE=1000     # events/sec indexed into the data stream
+DURATION=""   # load + sampler window (s); empty → run-load.sh default
+INTERVAL=""   # sampler cadence (s); empty → run-load.sh default
+PASSWORD="admin"   # the standalone package's demo credentials are always admin/admin
 VERSION=""   # fallback only; the label uses the detected INSTALLED version
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --docs)        DOCS="$2"; shift 2 ;;
+        --rate)        RATE="$2"; shift 2 ;;
+        --duration)    DURATION="$2"; shift 2 ;;
+        --interval)    INTERVAL="$2"; shift 2 ;;
         --password)    PASSWORD="$2"; shift 2 ;;
         --version)     VERSION="$2"; shift 2 ;;
         --indexer-ip)  INDEXER_IP="$2"; shift 2 ;;
-        *) echo "Usage: $0 [--docs N] [--password P] [--version X.Y.Z] [--indexer-ip IP]"; exit 1 ;;
+        *) echo "Usage: $0 [--rate N] [--duration S] [--interval S] [--password P] [--version X.Y.Z] [--indexer-ip IP]"; exit 1 ;;
     esac
 done
 
@@ -41,21 +48,12 @@ cd "$(dirname "$0")"
 source ./lib.sh
 
 perf_rsync
-perf_resolve_password indexer   # sets PASSWORD
+# No password resolution needed: the isolated scenario installs the standalone wazuh-indexer
+# package directly (no AIO assistant), so the credentials are always the demo admin/admin
+# (overridable with --password).
 perf_detect_version indexer     # sets VERSION + LABEL
 
-# Fail fast on a missing HOST dependency. gen-corpora.py (step 2b) runs on the host —
-# it needs the wcs/ generator, which isn't in the VMs — and that generator imports
-# `requests`. Check now, before the multi-minute cold-start/green wait, so a missing
-# dep surfaces as a clear message instead of a deep traceback minutes later.
-if [[ ! -f ../benchmark/workloads/wazuh-events/documents.json ]] && ! python3 -c 'import requests' 2>/dev/null; then
-    echo "[ERROR] The host is missing the Python 'requests' module, needed to build the OSB" >&2
-    echo "        corpus (gen-corpora.py runs on the host via the WCS event generator). Install it:" >&2
-    echo "          pip install requests        # or: sudo apt-get install -y python3-requests" >&2
-    exit 1
-fi
-
-# 1. Cold start: restart the indexer; Prometheus/node_exporter are already recording.
+# 1. Cold start: restart the indexer; Prometheus/node_exporter/JMX exporter are already recording.
 RESTART_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "[INFO] Cold-start marker: $RESTART_TS — restarting wazuh-indexer ..."
 if ! vagrant ssh indexer -c "sudo systemctl restart wazuh-indexer"; then
@@ -65,11 +63,14 @@ if ! vagrant ssh indexer -c "sudo systemctl restart wazuh-indexer"; then
         sudo journalctl -u wazuh-indexer --no-pager -n 40" >&2 || true
     echo "[HINT] If the unit is missing, the indexer was not installed: the VM was likely" >&2
     echo "       'already provisioned' from a prior run. Destroy and re-run so --version takes effect:" >&2
-    echo "         (cd \"\$(dirname \"\$0\")\" && vagrant destroy -f) && ./run.sh --scenario isolated --version <X.Y>" >&2
+    echo "         (cd \"\$(dirname \"\$0\")\" && vagrant destroy -f) && ./run.sh --version <X.Y>" >&2
     exit 1
 fi
 
-# 2. Wait for the node to come back green (cold start captured in Prometheus).
+# 2. Wait for the node to come back green (cold start captured in Prometheus). On this first
+#    green the setup plugin creates the wazuh-events-v5-* / wazuh-findings-v5-* templates and
+#    data streams, and the content-manager begins syncing the CTI catalog and auto-creating
+#    detectors (needed for findings).
 echo "[INFO] Waiting for the indexer to go green ..."
 vagrant ssh indexer -c "
     for i in \$(seq 1 60); do
@@ -81,31 +82,26 @@ vagrant ssh indexer -c "
     curl -ks -o /dev/null -w '  HTTP %{http_code}\n' -u admin:'$PASSWORD' https://localhost:9200/_cluster/health >&2 || true
 "
 
-# 2b. Ensure the OSB corpus exists. gen-corpora.py needs the repo (WCS generator +
-#     events template), which is only present on the HOST — generate here, then
-#     rsync it into the monitor VM (the synced folder is host→guest).
-if [[ ! -f ../benchmark/workloads/wazuh-events/documents.json ]]; then
-    echo "[INFO] Generating OSB corpus on the host ($DOCS docs) ..."
-    python3 ../benchmark/gen-corpora.py --docs "$DOCS"
-fi
-perf_rsync monitor   # sync the freshly built corpus into the monitor VM
-
-# 3. Run the OSB synthetic workload FROM the monitor VM (off the indexer host).
+# 3. Drive the findings load FROM the monitor VM (off the indexer host). --node-exporter
+#    pulls the indexer's host metrics (CPU/RAM/disk) into the CSV from node_exporter (the
+#    sampler runs off the indexer host here and can't read them via local psutil).
 OUT_GUEST="/root/perf-run"
-echo "[INFO] Running OpenSearch Benchmark from the monitor VM against $INDEXER_IP ..."
-# --node-exporter pulls the indexer's host metrics (CPU/RAM/disk) into the CSV from
-# node_exporter (the monitor already reaches it on :9100), since the sampler runs
-# off the indexer host here and can't read them via local psutil.
+echo "[INFO] Running the findings load from the monitor VM against $INDEXER_IP (rate=${RATE}/s) ..."
 vagrant ssh monitor -c \
-    "sudo /opt/perf/benchmark/run-osb.sh \
+    "sudo /opt/perf/benchmark/run-load.sh \
         --target https://$INDEXER_IP:9200 --user admin --password '$PASSWORD' \
-        --docs $DOCS --no-host --node-exporter $INDEXER_IP:9100 --out $OUT_GUEST"
+        --rate $RATE ${DURATION:+--duration $DURATION} ${INTERVAL:+--interval $INTERVAL} \
+        --no-host --node-exporter $INDEXER_IP:9100 --out $OUT_GUEST"
 
-# 4. Pull results (OSB report + indexer-internal CSV) from the monitor VM.
+# 4. Pull results (load report + indexer-internal CSV) from the monitor VM.
 # Per-version output dir so runs don't overwrite each other (compare across versions).
 LOCAL_OUT="../runs/isolated-$VERSION"
 echo "[INFO] Fetching results from the monitor VM ..."
 perf_pull_results monitor "$OUT_GUEST" "$LOCAL_OUT"
+
+# Pull the events/findings counts the loader recorded into load-report.txt for the metadata.
+EVENTS=$(grep -o 'events_indexed=[0-9]*' "$LOCAL_OUT/load-report.txt" 2>/dev/null | head -1 | cut -d= -f2 || true)
+FINDINGS=$(grep -o 'findings=[0-9]*' "$LOCAL_OUT/load-report.txt" 2>/dev/null | head -1 | cut -d= -f2 || true)
 
 # Record the run's real version/label so compare.py / plot.py / report.py can use it.
 cat > "$LOCAL_OUT/run-metadata.json" <<EOF
@@ -113,19 +109,92 @@ cat > "$LOCAL_OUT/run-metadata.json" <<EOF
   "scenario": "isolated",
   "label": "$LABEL",
   "version": "$VERSION",
-  "cold_start": "$RESTART_TS"
+  "cold_start": "$RESTART_TS",
+  "rate": $RATE,
+  "events_indexed": ${EVENTS:-0},
+  "findings": ${FINDINGS:-0}
 }
 EOF
+
+# Generate the deliverables on the host: aggregated report.md + a single-run timeline.png
+# (spikes) + averages.png (mean per metric) so the run is easy to read and compare. Best-effort.
+python3 ../analyze/report.py --run "$LOCAL_OUT" --label "$LABEL" \
+    || echo "[WARN] Host-side report generation failed; metrics.csv is available."
+python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --kind timeline --out "$LOCAL_OUT/timeline.png" \
+    || echo "[WARN] Host-side timeline plot failed (matplotlib installed?); metrics.csv is available."
+python3 ../analyze/plot.py "$LABEL=$LOCAL_OUT/metrics.csv" --kind average --out "$LOCAL_OUT/averages.png" \
+    || echo "[WARN] Host-side averages plot failed (matplotlib installed?); metrics.csv is available."
 
 # Grafana is reached over the monitor VM's PRIVATE-network IP (the host-routable one,
 # same value the Vagrantfile assigns). `hostname -I` on the guest would return the
 # VirtualBox NAT IP (10.0.2.15) first, which the host can't reach.
 MON_IP="${PERF_MONITOR_IP:-192.168.60.30}"
-DASH_URL="http://${MON_IP}:3000/d/wazuh-host-overview"
+
+# Ensure the monitor stack matches the current compose.yml before rendering — a monitor VM
+# provisioned before the image-renderer was added won't have it, so `up -d` pulls the renderer
+# image and recreates Grafana with the rendering env. Surface failures (image pull, etc.)
+# instead of silencing them, and confirm the renderer container actually ended up running.
+echo "[INFO] Ensuring the monitor stack (incl. image-renderer) is up ..."
+vagrant ssh monitor -c "cd /opt/perf/monitoring && sudo docker compose up -d 2>&1 | tail -n 5" \
+    || echo "[WARN] Could not refresh the monitor stack; dashboard PNGs may be skipped."
+RENDERER_STATE=$(vagrant ssh monitor -c \
+    "sudo docker inspect -f '{{.State.Running}}' perf-grafana-renderer 2>/dev/null" 2>/dev/null | tr -dc 'a-z')
+if [[ "$RENDERER_STATE" == "true" ]]; then
+    echo "[INFO] Image-renderer container is running."
+else
+    echo "[WARN] Image-renderer container is not running (state: ${RENDERER_STATE:-absent}). The"
+    echo "       in-run refresh couldn't start it — re-provision the monitor once so it's baked in:"
+    echo "         (cd \"\$(dirname \"\$0\")\" && vagrant provision monitor)"
+fi
+
+# Wait for Grafana to be serving again after the (possible) recreate, so the first render
+# doesn't hit a still-booting Grafana.
+for _ in $(seq 1 18); do
+    curl -sf --max-time 5 "http://${MON_IP}:3000/api/health" >/dev/null 2>&1 && break
+    sleep 5
+done
+
+# Render the Grafana dashboards to PNG via the grafana-image-renderer sidecar (monitoring/
+# compose.yml). Window spans the cold start → now: (--duration or 600s) + ~25 min for
+# provisioning/cold-start, so the whole run is in frame. Retry a few times — on the first run
+# the renderer container has only just started. Best-effort.
+DASH_WINDOW_MIN=$(( (${DURATION:-600} / 60) + 25 ))
+capture_dashboard() {
+    local uid="$1" name="$2" code
+    local tmp="$LOCAL_OUT/.$name.tmp"
+    # &timeout=120 → give Grafana's renderer up to 2 min (the default is 30s, which a
+    # multi-panel dashboard over a ~35-min window at 10s resolution can exceed → 500).
+    local url="http://${MON_IP}:3000/render/d/${uid}/_?orgId=1&from=now-${DASH_WINDOW_MIN}m&to=now&width=1600&height=900&tz=UTC&kiosk&timeout=120"
+    for _ in 1 2 3 4 5; do
+        code=$(curl -s --max-time 180 -u admin:admin -o "$tmp" -w '%{http_code}' "$url" 2>/dev/null || echo 000)
+        # A real render is a multi-KB PNG; treat 200 + non-trivial size as success.
+        if [[ "$code" == "200" && -s "$tmp" && "$(wc -c <"$tmp")" -gt 1000 ]]; then
+            mv "$tmp" "$LOCAL_OUT/$name.png"
+            echo "[INFO] Rendered Grafana dashboard → $name.png"
+            return 0
+        fi
+        sleep 15
+    done
+    echo "[WARN] Could not render the '$uid' dashboard (last HTTP $code). Grafana's response:" >&2
+    head -c 500 "$tmp" 2>/dev/null | sed 's/^/         /' >&2; echo >&2
+    echo "       If the monitor VM predates the renderer, re-provision once: (cd vagrant && vagrant provision monitor)." >&2
+    rm -f "$tmp"
+}
+capture_dashboard wazuh-host-overview grafana-host-overview
+capture_dashboard wazuh-jvm-overview  grafana-jvm-overview
+
 echo
-echo "[INFO] Done ($LABEL). OSB report + metrics.csv: tools/performance/runs/isolated-$VERSION/"
-echo "[INFO] Cold start at $RESTART_TS — view the host timeline in Grafana: $DASH_URL"
-# Best-effort: open the dashboard in the host's browser (no-op if unavailable).
-(command -v open >/dev/null 2>&1 && open "$DASH_URL") \
-    || (command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL" >/dev/null 2>&1) \
-    || true
+echo "[INFO] Done ($LABEL). Results: tools/performance/runs/isolated-$VERSION/"
+echo "       metrics.csv, report.md, timeline.png, averages.png, grafana-*.png — events: ${EVENTS:-?}, findings: ${FINDINGS:-?}"
+echo "[INFO] Cold start at $RESTART_TS — view the timelines in Grafana:"
+echo "         http://${MON_IP}:3000/d/wazuh-host-overview   (host CPU/RAM/disk)"
+echo "         http://${MON_IP}:3000/d/wazuh-jvm-overview    (JVM heap/GC/threads via JMX)"
+# Best-effort: open the host dashboard in a browser, but only on a graphical session — on a
+# headless host (CI / remote homeserver) there's no opener, so stay silent instead of spewing
+# xdg-open / vscode 'open' shim errors.
+DASH_URL="http://${MON_IP}:3000/d/wazuh-host-overview"
+if [[ -n "${DISPLAY:-}" || "$(uname)" == "Darwin" ]]; then
+    { command -v open >/dev/null 2>&1 && open "$DASH_URL"; } >/dev/null 2>&1 \
+        || { command -v xdg-open >/dev/null 2>&1 && xdg-open "$DASH_URL"; } >/dev/null 2>&1 \
+        || true
+fi
